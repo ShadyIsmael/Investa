@@ -1,0 +1,12 @@
+namespace Investa.Application.DTOs.Profile;
+
+/// <summary>
+/// Section 2: Contact information for the user
+/// </summary>
+public class ContactInfoDto
+{
+    public string? Email { get; set; }
+    public string? Phone1 { get; set; }
+    public string? Phone2 { get; set; }
+    public string? WorkAddress { get; set; }
+}
