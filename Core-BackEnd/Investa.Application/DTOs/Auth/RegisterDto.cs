@@ -15,4 +15,21 @@ public class RegisterDto
     /// Password for the user account
     /// </summary>
     public string Password { get; set; } = string.Empty;
+
+    /// <summary>
+    /// User's first name
+    /// </summary>
+    public string FirstName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// User's last name
+    /// </summary>
+    public string LastName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Optional Firebase user id provided after OTP verification on client.
+    /// When present the backend will mark the phone as verified and store
+    /// the firebase uid as a claim on the Identity user.
+    /// </summary>
+    public string FirebaseUid { get; set; } = string.Empty;
 }

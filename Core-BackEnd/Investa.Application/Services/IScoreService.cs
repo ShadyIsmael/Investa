@@ -1,7 +1,7 @@
 namespace Investa.Application.Services;
 
-public interface IScoreService
+public interface ICredibilityService
 {
-    Task<int> GetCredibilityScoreAsync(int userId);
-    Task UpdateCredibilityScoreAsync(int userId, int newScore);
+    Task<int> GetCredibilityScoreAsync(Guid userId);
+    Task UpdateCredibilityScoreAsync(Guid userId, int newScore);
 }

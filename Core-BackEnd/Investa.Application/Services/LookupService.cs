@@ -30,6 +30,12 @@ public class LookupService : ILookupService
         return items.OrderBy(i => i.SortOrder).Select(Map).ToList();
     }
 
+    public async Task<LookupDto?> GetByIdAsync(int id)
+    {
+        var item = await _uow.Repository<Lookup>().GetByIdAsync(id);
+        return item == null ? null : Map(item);
+    }
+
     public async Task<LookupDto> CreateAsync(CreateLookupDto dto)
     {
         var entity = new Lookup
@@ -37,6 +43,7 @@ public class LookupService : ILookupService
             Type = dto.Type,
             Key = dto.Key,
             Value = dto.Value,
+            ValueAr = dto.ValueAr,
             SortOrder = dto.SortOrder
         };
 
@@ -55,6 +62,7 @@ public class LookupService : ILookupService
         existing.Type = dto.Type;
         existing.Key = dto.Key;
         existing.Value = dto.Value;
+        existing.ValueAr = dto.ValueAr;
         existing.SortOrder = dto.SortOrder;
 
         await repo.UpdateAsync(existing);
@@ -73,6 +81,63 @@ public class LookupService : ILookupService
         return true;
     }
 
+    public async Task<LookupNormalizationResultDto> NormalizeAndVerifyAsync()
+    {
+        // Normalize Lookups
+        var repoLookup = _uow.Repository<Lookup>();
+        var allLookups = (await repoLookup.GetAllAsync()).ToList();
+        int fixedLookups = 0;
+        foreach (var l in allLookups)
+        {
+            if (string.IsNullOrWhiteSpace(l.ValueAr))
+            {
+                l.ValueAr = l.Value;
+                fixedLookups++;
+                await repoLookup.UpdateAsync(l);
+            }
+        }
+
+        // Normalize BusinessCategory
+        var repoBc = _uow.Repository<Investa.Domain.Entities.BusinessCategory>();
+        var allBc = (await repoBc.GetAllAsync()).ToList();
+        int fixedBc = 0;
+        foreach (var b in allBc)
+        {
+            if (string.IsNullOrWhiteSpace(b.ValueAr))
+            {
+                b.ValueAr = b.Value;
+                fixedBc++;
+                await repoBc.UpdateAsync(b);
+            }
+        }
+
+        // Normalize ClientStatus
+        var repoCs = _uow.Repository<Investa.Domain.Entities.ClientStatus>();
+        var allCs = (await repoCs.GetAllAsync()).ToList();
+        int fixedCs = 0;
+        foreach (var s in allCs)
+        {
+            if (string.IsNullOrWhiteSpace(s.NameAr))
+            {
+                s.NameAr = s.NameEn;
+                fixedCs++;
+                await repoCs.UpdateAsync(s);
+            }
+        }
+
+        await _uow.SaveChangesAsync();
+
+        return new LookupNormalizationResultDto
+        {
+            LookupsTotal = allLookups.Count,
+            LookupsFixed = fixedLookups,
+            BusinessCategoriesTotal = allBc.Count,
+            BusinessCategoriesFixed = fixedBc,
+            ClientStatusesTotal = allCs.Count,
+            ClientStatusesFixed = fixedCs
+        };
+    }
+
     private LookupDto Map(Lookup l)
     {
         var slug = l.Key?.ToLowerInvariant().Replace(' ', '-') ?? string.Empty;
@@ -87,6 +152,7 @@ public class LookupService : ILookupService
             Type = l.Type,
             Key = l.Key,
             Value = l.Value,
+            ValueAr = l.ValueAr,
             SortOrder = l.SortOrder,
             Slug = slug,
             DisplayName = display

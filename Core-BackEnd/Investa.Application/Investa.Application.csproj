@@ -19,4 +19,13 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- Exclude obsolete InvestmentOpportunity DTOs and services (merged into Investment) -->
+    <Compile Remove="Services\IInvestmentOpportunityService.cs" />
+    <Compile Remove="Services\InvestmentOpportunityService.cs" />
+    <Compile Remove="DTOs\CreateInvestmentOpportunityDto.cs" />
+    <Compile Remove="DTOs\InvestmentOpportunityDto.cs" />
+    <Compile Remove="DTOs\UpdateInvestmentOpportunityDto.cs" />
+  </ItemGroup>
+
 </Project>

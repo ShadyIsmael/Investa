@@ -6,7 +6,7 @@ namespace Investa.Domain.Entities;
 public class User
 {
     [Key]
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     [Required]
     [StringLength(100)]
@@ -35,6 +35,9 @@ public class User
     // Navigation properties
     public ICollection<Investment> Investments { get; set; } = new List<Investment>();
     public ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
+    public ICollection<CreditTransaction> CreditTransactions { get; set; } = new List<CreditTransaction>();
+    public ICollection<ScoreTransaction> ScoreTransactions { get; set; } = new List<ScoreTransaction>();
+    public ICollection<UserGroup> UserGroups { get; set; } = new List<UserGroup>();
     
     /// <summary>
     /// One-to-one relationship with UserProfile for extended user information.

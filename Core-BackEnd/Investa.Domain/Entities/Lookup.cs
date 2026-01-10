@@ -18,5 +18,11 @@ public class Lookup
     [StringLength(200)]
     public string Value { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Arabic localized value
+    /// </summary>
+    [StringLength(200)]
+    public string ValueAr { get; set; } = string.Empty;
+
     public int SortOrder { get; set; }
 }

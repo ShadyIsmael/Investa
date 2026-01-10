@@ -9,23 +9,14 @@ namespace Investa.API.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
+[ApiExplorerSettings(IgnoreApi = true)]
+[Obsolete("This controller is disabled and removed from API surface.")]
 public class ProjectsController : ControllerBase
 {
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly IMapper _mapper;
-
-    public ProjectsController(IUnitOfWork unitOfWork, IMapper mapper)
-    {
-        _unitOfWork = unitOfWork;
-        _mapper = mapper;
-    }
-
     [HttpGet]
     [AllowAnonymous]
-    public async Task<ActionResult<IEnumerable<ProjectDto>>> GetProjects()
+    public Task<IActionResult> GetProjects()
     {
-        var projects = await _unitOfWork.Repository<Domain.Entities.Project>().GetAllAsync();
-        var projectDtos = _mapper.Map<IEnumerable<ProjectDto>>(projects);
-        return Ok(projectDtos);
+        return Task.FromResult<IActionResult>(NotFound(new { message = "This endpoint is disabled." }));
     }
-}
+} 

@@ -9,7 +9,7 @@ namespace Investa.Application.DTOs.Profile;
 /// </summary>
 public class UserProfileDto
 {
-    public int UserId { get; set; }
+    public Guid UserId { get; set; }
     
     /// <summary>
     /// User's core credentials and metrics

@@ -1,0 +1,62 @@
+﻿[
+    {
+        "phone":  "01022322292",
+        "error":  "Unable to connect to the remote server",
+        "success":  false
+    },
+    {
+        "phone":  "01083358375",
+        "success":  true,
+        "response":  {
+                         "success":  true,
+                         "data":  {
+                                      "token":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiMGFmNTBkZS02NjQ1LTRhZWEtOGQzMy0zMjQ4ZDc1MzU5MWIiLCJpZCI6ImIwYWY1MGRlLTY2NDUtNGFlYS04ZDMzLTMyNDhkNzUzNTkxYiIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWVpZGVudGlmaWVyIjoiMDEwODMzNTgzNzUiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9tb2JpbGVwaG9uZSI6IjAxMDgzMzU4Mzc1IiwicGhvbmVfbnVtYmVyIjoiMDEwODMzNTgzNzUiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJDbGllbnQiLCJyb2xlIjoiQ2xpZW50IiwidXNlclR5cGUiOiJDbGllbnQiLCJleHAiOjE3Njc5Njg0MzYsImlzcyI6IkludmVzdGEiLCJhdWQiOiJJbnZlc3RhLkNsaWVudCJ9.-yEtxOnSZ72nD2xh23lojP3eJafuv0fUFMdBVp04sSc",
+                                      "expiresAt":  "2026-01-09T14:20:36.5162433Z",
+                                      "phoneNumber":  "01083358375",
+                                      "refreshToken":  "IzC7X4YnWbqv7el_lE82JBfBu4Wa6Ng55jgSkgwo4eu0-vNXG8QWXq5jPvpwwAbBvGW72g7CmBo2Y7hwIABQZg",
+                                      "refreshExpiresAt":  "2026-02-08T13:20:36.5380736Z",
+                                      "message":  "Authentication successful"
+                                  }
+                     }
+    },
+    {
+        "phone":  "01522023738",
+        "error":  "The remote server returned an error: (400) Bad Request.",
+        "success":  false
+    },
+    {
+        "phone":  "01171002984",
+        "success":  true,
+        "response":  {
+                         "success":  true,
+                         "data":  {
+                                      "token":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzYzcyZDE3ZC00MDM2LTQyY2QtOTRkMi1hNGE5NmJmMmYwN2IiLCJpZCI6IjNjNzJkMTdkLTQwMzYtNDJjZC05NGQyLWE0YTk2YmYyZjA3YiIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWVpZGVudGlmaWVyIjoiMDExNzEwMDI5ODQiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9tb2JpbGVwaG9uZSI6IjAxMTcxMDAyOTg0IiwicGhvbmVfbnVtYmVyIjoiMDExNzEwMDI5ODQiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJDbGllbnQiLCJyb2xlIjoiQ2xpZW50IiwidXNlclR5cGUiOiJDbGllbnQiLCJleHAiOjE3Njc5Njg0MzgsImlzcyI6IkludmVzdGEiLCJhdWQiOiJJbnZlc3RhLkNsaWVudCJ9.K5YtbkMGV58Hd1KgfzzfX2M9AYkAxEhF6ePNktSYjos",
+                                      "expiresAt":  "2026-01-09T14:20:38.1922249Z",
+                                      "phoneNumber":  "01171002984",
+                                      "refreshToken":  "HKGQfsSGw94-eLiSBQODC8JOVujyprVxVUlZ16qAF49FKOmTKGl4EWcrxurUPQpq1kBEqMj1zUGtPa40f2ZqFQ",
+                                      "refreshExpiresAt":  "2026-02-08T13:20:38.192628Z",
+                                      "message":  "Authentication successful"
+                                  }
+                     }
+    },
+    {
+        "phone":  "01034285293",
+        "success":  true,
+        "response":  {
+                         "success":  true,
+                         "data":  {
+                                      "token":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OWJhYWM3ZS0wOWQyLTRhYTgtYjkyNC03MTY5OWVhZTA0NWEiLCJpZCI6IjY5YmFhYzdlLTA5ZDItNGFhOC1iOTI0LTcxNjk5ZWFlMDQ1YSIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWVpZGVudGlmaWVyIjoiMDEwMzQyODUyOTMiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9tb2JpbGVwaG9uZSI6IjAxMDM0Mjg1MjkzIiwicGhvbmVfbnVtYmVyIjoiMDEwMzQyODUyOTMiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJDbGllbnQiLCJyb2xlIjoiQ2xpZW50IiwidXNlclR5cGUiOiJDbGllbnQiLCJleHAiOjE3Njc5Njg0MzksImlzcyI6IkludmVzdGEiLCJhdWQiOiJJbnZlc3RhLkNsaWVudCJ9.HfI1QF7oaQF89ZNF8Qa1FMm_Aphvlg5aX6WcpO368UU",
+                                      "expiresAt":  "2026-01-09T14:20:39.0210813Z",
+                                      "phoneNumber":  "01034285293",
+                                      "refreshToken":  "_msaHIMbYiRZjFbwFH6-yxEssPQfhZDu095iBg2XjURJ9cwFsvOgNey6Jthhv6r5iI5SlHczrT6eDK1EgoMW8g",
+                                      "refreshExpiresAt":  "2026-02-08T13:20:39.0212634Z",
+                                      "message":  "Authentication successful"
+                                  }
+                     }
+    },
+    {
+        "phone":  "01537478790",
+        "error":  "The remote server returned an error: (400) Bad Request.",
+        "success":  false
+    }
+]

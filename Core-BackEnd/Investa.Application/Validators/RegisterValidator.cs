@@ -12,11 +12,20 @@ public class RegisterValidator : AbstractValidator<RegisterDto>
 {
     public RegisterValidator()
     {
+        // First and last name validation
+        RuleFor(x => x.FirstName)
+            .NotEmpty().WithMessage("First name is required.")
+            .MinimumLength(2).WithMessage("First name must be at least 2 characters.");
+
+        RuleFor(x => x.LastName)
+            .NotEmpty().WithMessage("Last name is required.")
+            .MinimumLength(2).WithMessage("Last name must be at least 2 characters.");
+
         // Phone number validation - Egyptian phone numbers
         RuleFor(x => x.PhoneNumber)
             .NotEmpty().WithMessage("Phone number is required.")
             .Must(IsValidEgyptianPhoneNumber).WithMessage("Invalid Egyptian phone number format. " +
-                "Expected formats: +20XXXXXXXXXX, 020XXXXXXXXX, or 01XXXXXXXXX");
+                "Expected formats: +20XXXXXXXXXX, +20XXXXXXXXXXX, 020XXXXXXXXX, or 01XXXXXXXXX");
 
         // Password validation
         RuleFor(x => x.Password)
@@ -33,6 +42,7 @@ public class RegisterValidator : AbstractValidator<RegisterDto>
     /// Validates Egyptian phone number formats
     /// Accepted formats:
     /// - +20XXXXXXXXXX (international format, 12 digits total)
+    /// - +20XXXXXXXXXXX (international format, 13 digits total for numbers starting with 0)
     /// - 020XXXXXXXXX (Vodafone, 11 digits)
     /// - 01XXXXXXXXX (Etisalat, Mobinil, etc., 11 digits starting with 01)
     /// </summary>
@@ -47,14 +57,18 @@ public class RegisterValidator : AbstractValidator<RegisterDto>
         // Pattern 1: International format +20XXXXXXXXXX (12 digits)
         var pattern1 = @"^\+20\d{10}$";
 
-        // Pattern 2: Vodafone Egypt 020XXXXXXXXX (11 digits)
-        var pattern2 = @"^020\d{8}$";
+        // Pattern 2: International format +20XXXXXXXXXXX (13 digits for numbers starting with 0)
+        var pattern2 = @"^\+20\d{11}$";
 
-        // Pattern 3: Other Egyptian operators 01XXXXXXXXX (11 digits starting with 01)
-        var pattern3 = @"^01[0-2]\d{8}$"; // 010, 011, 012 are valid first 3 digits
+        // Pattern 3: Vodafone Egypt 020XXXXXXXXX (11 digits)
+        var pattern3 = @"^020\d{8}$";
+
+        // Pattern 4: Other Egyptian operators 01XXXXXXXXX (11 digits starting with 01)
+        var pattern4 = @"^01[0-2]\d{8}$"; // 010, 011, 012 are valid first 3 digits
 
         return Regex.IsMatch(cleaned, pattern1) ||
                Regex.IsMatch(cleaned, pattern2) ||
-               Regex.IsMatch(cleaned, pattern3);
+               Regex.IsMatch(cleaned, pattern3) ||
+               Regex.IsMatch(cleaned, pattern4);
     }
 }

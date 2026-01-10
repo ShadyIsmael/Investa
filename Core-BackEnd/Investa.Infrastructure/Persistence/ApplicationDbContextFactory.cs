@@ -16,10 +16,11 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
             .AddEnvironmentVariables();
 
         var config = builder.Build();
+
         var conn = config.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-        optionsBuilder.UseSqlServer(conn, b => b.MigrationsAssembly("Investa.API"));
+        optionsBuilder.UseSqlServer(conn, b => b.MigrationsAssembly("Investa.Infrastructure"));
 
         return new ApplicationDbContext(optionsBuilder.Options);
     }

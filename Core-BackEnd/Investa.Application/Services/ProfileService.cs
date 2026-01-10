@@ -23,7 +23,7 @@ public class ProfileService : IProfileService
     }
 
     /// <inheritdoc/>
-    public async Task<UserProfileDto?> GetUserProfileAsync(int userId)
+    public async Task<UserProfileDto?> GetUserProfileAsync(Guid userId)
     {
         var user = await _unitOfWork.Repository<User>()
             .GetSingleAsync(u => u.Id == userId, u => u.Profile);
@@ -31,11 +31,11 @@ public class ProfileService : IProfileService
         if (user == null || user.Profile == null)
             return null;
 
-        return MapToProfileDto(user)!;
+        return await MapToProfileDtoAsync(user)!;
     }
 
     /// <inheritdoc/>
-    public async Task<UserProfileDto> GetOrCreateUserProfileAsync(int userId)
+    public async Task<UserProfileDto> GetOrCreateUserProfileAsync(Guid userId)
     {
         var user = await _unitOfWork.Repository<User>()
             .GetSingleAsync(u => u.Id == userId, u => u.Profile);
@@ -57,11 +57,11 @@ public class ProfileService : IProfileService
             await _unitOfWork.SaveChangesAsync();
         }
 
-        return MapToProfileDto(user)!;
+        return await MapToProfileDtoAsync(user)!;
     }
 
     /// <inheritdoc/>
-    public async Task<UserProfileDto> UpdateUserProfileAsync(int userId, UserProfileDto profileDto)
+    public async Task<UserProfileDto> UpdateUserProfileAsync(Guid userId, UserProfileDto profileDto)
     {
         var user = await _unitOfWork.Repository<User>()
             .GetSingleAsync(u => u.Id == userId, u => u.Profile);
@@ -82,9 +82,12 @@ public class ProfileService : IProfileService
         if (profileDto.BasicInfo != null)
         {
             profile.FullName = profileDto.BasicInfo.FullName;
+            profile.FirstName = profileDto.BasicInfo.FirstName;
+            profile.LastName = profileDto.BasicInfo.LastName;
             profile.Gender = profileDto.BasicInfo.Gender;
             profile.Nationality = profileDto.BasicInfo.Nationality;
             profile.Bio = profileDto.BasicInfo.Bio;
+            profile.AvatarUrl = profileDto.BasicInfo.AvatarUrl;
         }
 
         // Update contact info
@@ -94,6 +97,9 @@ public class ProfileService : IProfileService
             profile.Phone1 = profileDto.ContactInfo.Phone1;
             profile.Phone2 = profileDto.ContactInfo.Phone2;
             profile.WorkAddress = profileDto.ContactInfo.WorkAddress;
+            profile.Address = profileDto.ContactInfo.Address;
+            profile.LinkedInUrl = profileDto.ContactInfo.LinkedInUrl;
+            profile.FacebookUrl = profileDto.ContactInfo.FacebookUrl;
         }
 
         // Update identity & compliance
@@ -108,11 +114,11 @@ public class ProfileService : IProfileService
         profile.UpdatedAt = DateTime.UtcNow;
         await _unitOfWork.SaveChangesAsync();
 
-        return MapToProfileDto(user)!;
+        return await MapToProfileDtoAsync(user)!;
     }
 
     /// <inheritdoc/>
-    public async Task<UserProfileDto> UpdateLastLoginAsync(int userId, string? ipAddress, string? deviceInfo)
+    public async Task<UserProfileDto> UpdateLastLoginAsync(Guid userId, string? ipAddress, string? deviceInfo)
     {
         var user = await _unitOfWork.Repository<User>()
             .GetSingleAsync(u => u.Id == userId, u => u.Profile);
@@ -135,11 +141,11 @@ public class ProfileService : IProfileService
 
         await _unitOfWork.SaveChangesAsync();
 
-        return MapToProfileDto(user)!;
+        return await MapToProfileDtoAsync(user)!;
     }
 
     /// <inheritdoc/>
-    public async Task<UserProfileDto> SetRegistrationIpAsync(int userId, string? ipAddress)
+    public async Task<UserProfileDto> SetRegistrationIpAsync(Guid userId, string? ipAddress)
     {
         var user = await _unitOfWork.Repository<User>()
             .GetSingleAsync(u => u.Id == userId, u => u.Profile);
@@ -160,17 +166,29 @@ public class ProfileService : IProfileService
 
         await _unitOfWork.SaveChangesAsync();
 
-        return MapToProfileDto(user)!;
+        return await MapToProfileDtoAsync(user)!;
     }
 
     /// <summary>
     /// Maps User and UserProfile entities to UserProfileDto with all 4 sections.
     /// </summary>
-    private UserProfileDto MapToProfileDto(User user)
+    private async Task<UserProfileDto> MapToProfileDtoAsync(User user)
     {
         var dto = _mapper.Map<UserProfileDto>(user);
         if (dto == null)
             throw new InvalidOperationException("Failed to map user profile DTO.");
+
+        // attempt to include client metrics (Score, Credit) from Client entity
+        var client = await _unitOfWork.Repository<Client>().GetSingleAsync(c => c.UserId == user.Id);
+        if (dto.BasicInfo == null)
+            dto.BasicInfo = new BasicInfoDto();
+
+        if (client != null)
+        {
+            dto.BasicInfo.Score = client.Score;
+            dto.BasicInfo.Credit = client.Credit;
+        }
+
         return dto;
     }
 }

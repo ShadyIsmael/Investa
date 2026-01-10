@@ -1,8 +1,13 @@
 using Investa.Domain.Entities;
+using Investa.Application.DTOs;
 
 namespace Investa.Application.Services;
 
 public interface IInvestmentService
 {
-    Task<bool> InvestInProjectAsync(int investorId, int projectId, decimal amount);
+    Task<bool> InvestInProjectAsync(Guid investorId, int projectId, decimal amount);
+    Task<Investment> CreateAsync(CreateInvestmentDto dto);
+    Task<bool> UpdateAsync(int id, UpdateInvestmentDto dto);
+    Task<Investment?> GetByIdAsync(int id);
+    Task<IEnumerable<Investment>> GetByCategoryAsync(int? categoryId);
 }

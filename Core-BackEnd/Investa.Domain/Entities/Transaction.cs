@@ -16,7 +16,7 @@ public class Transaction
     public int Id { get; set; }
 
     [Required]
-    public int WalletId { get; set; }
+    public Guid WalletId { get; set; }
 
     [Range(0, double.MaxValue)]
     public decimal Amount { get; set; }

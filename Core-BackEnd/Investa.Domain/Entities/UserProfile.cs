@@ -15,7 +15,7 @@ public class UserProfile
 
     [Required]
     [ForeignKey(nameof(User))]
-    public int UserId { get; set; }
+    public Guid UserId { get; set; }
 
     #region Section 1: Basic Info
 
@@ -24,6 +24,18 @@ public class UserProfile
     /// </summary>
     [StringLength(200)]
     public string? FullName { get; set; }
+
+    /// <summary>
+    /// First name stored separately for easier searching and display
+    /// </summary>
+    [StringLength(100)]
+    public string? FirstName { get; set; }
+
+    /// <summary>
+    /// Last name stored separately for easier searching and display
+    /// </summary>
+    [StringLength(100)]
+    public string? LastName { get; set; }
 
     /// <summary>
     /// User's gender (e.g., Male, Female, Other, Prefer not to say)
@@ -71,6 +83,30 @@ public class UserProfile
     /// </summary>
     [StringLength(500)]
     public string? WorkAddress { get; set; }
+
+    /// <summary>
+    /// General address or location details (city, street, coordinates, etc.)
+    /// </summary>
+    [StringLength(500)]
+    public string? Address { get; set; }
+
+    /// <summary>
+    /// URL to the user's avatar/profile image
+    /// </summary>
+    [StringLength(500)]
+    public string? AvatarUrl { get; set; }
+
+    /// <summary>
+    /// LinkedIn profile URL
+    /// </summary>
+    [StringLength(250)]
+    public string? LinkedInUrl { get; set; }
+
+    /// <summary>
+    /// Facebook profile URL
+    /// </summary>
+    [StringLength(250)]
+    public string? FacebookUrl { get; set; }
 
     #endregion
 

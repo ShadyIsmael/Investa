@@ -6,4 +6,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- Exclude obsolete InvestmentOpportunity entity (merged into Investment) -->
+    <Compile Remove="Entities\InvestmentOpportunity.cs" />
+  </ItemGroup>
+
 </Project>

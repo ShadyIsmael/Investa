@@ -4,6 +4,9 @@ using Investa.Application.Services;
 using Investa.Domain.Entities.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using Investa.Application.DTOs;
 
 namespace Investa.API.Controllers;
 
@@ -12,61 +15,66 @@ namespace Investa.API.Controllers;
 [Authorize]
 public class LookupsController : ControllerBase
 {
-    private readonly ILookupService _service;
+    private readonly ILookupService _lookupService;
 
-    public LookupsController(ILookupService service)
+    public LookupsController(ILookupService lookupService)
     {
-        _service = service;
+        _lookupService = lookupService;
     }
 
-    [HttpGet]
-    [AllowAnonymous]
-    public async Task<IActionResult> GetAll()
+    [HttpPost("seed-random")]
+    [Authorize(Roles = "OrgUser")]
+    public async Task<IActionResult> SeedRandom([FromQuery] Investa.Domain.Entities.Enums.LookupType type = Investa.Domain.Entities.Enums.LookupType.BusinessCategory, [FromQuery] int count = 5)
     {
-        var items = await _service.GetAllAsync();
-        return Ok(ApiResponse<IEnumerable<LookupDto>>.Success(items));
-    }
-
-    [HttpGet("by-type/{type}")]
-    [AllowAnonymous]
-    public async Task<IActionResult> GetByType(string type)
-    {
-        if (!Enum.TryParse<LookupType>(type, true, out var lt))
-            return BadRequest(ApiResponse<object>.Fail(new[] { new ErrorDto("InvalidType", "Lookup type is invalid. Use BusinessStage or BusinessCategory") }));
-
-        var items = await _service.GetByTypeAsync(lt);
-        return Ok(ApiResponse<IEnumerable<LookupDto>>.Success(items));
-    }
-
-    [HttpGet("grouped")]
-    [AllowAnonymous]
-    public async Task<IActionResult> GetGrouped()
-    {
-        var stages = await _service.GetByTypeAsync(LookupType.BusinessStage);
-        var categories = await _service.GetByTypeAsync(LookupType.BusinessCategory);
-
-        var result = new
+        var rnd = new Random();
+        var created = new List<LookupDto>();
+        for (int i = 0; i < Math.Max(1, count); i++)
         {
-            BusinessStage = stages,
-            BusinessCategory = categories
-        };
+            var key = $"Random-{type}-{Guid.NewGuid().ToString().Substring(0, 8)}";
+            var dto = new CreateLookupDto
+            {
+                Type = type,
+                Key = key,
+                Value = key,
+                ValueAr = key,
+                SortOrder = 1000 + i
+            };
 
-        return Ok(ApiResponse<object>.Success(result));
+            var result = await _lookupService.CreateAsync(dto);
+            created.Add(result);
+        }
+
+        return Ok(new { success = true, createdCount = created.Count, items = created });
     }
 
     [HttpGet("business-stages")]
     [AllowAnonymous]
     public async Task<IActionResult> GetBusinessStages()
     {
-        var stages = await _service.GetByTypeAsync(LookupType.BusinessStage);
-        return Ok(ApiResponse<IEnumerable<LookupDto>>.Success(stages));
+        var items = await _lookupService.GetByTypeAsync(LookupType.BusinessStage);
+        return Ok(new { success = true, data = items });
     }
 
-    [HttpGet("business-categories")]
+    [HttpGet("project-phases")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetBusinessCategories()
+    public async Task<IActionResult> GetProjectPhases()
     {
-        var categories = await _service.GetByTypeAsync(LookupType.BusinessCategory);
-        return Ok(ApiResponse<IEnumerable<LookupDto>>.Success(categories));
+        var items = await _lookupService.GetByTypeAsync(LookupType.ProjectPhase);
+        return Ok(new { success = true, data = items });
+    }
+
+    [HttpPost("normalize-and-verify")]
+    [Authorize(Roles = "OrgUser")]
+    public async Task<IActionResult> NormalizeAndVerify()
+    {
+        var result = await _lookupService.NormalizeAndVerifyAsync();
+        return Ok(new { success = true, data = result });
+    }
+
+    [HttpGet]
+    [AllowAnonymous]
+    public Task<IActionResult> GetAll()
+    {
+        return Task.FromResult<IActionResult>(NotFound(new { message = "This endpoint is disabled." }));
     }
 }
