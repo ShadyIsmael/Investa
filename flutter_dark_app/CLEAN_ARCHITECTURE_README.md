@@ -98,8 +98,8 @@ lib/
 
 ### **NetworkConfig**
 ```dart
-// Default Base URL: http://DESKTOP-DIH7CQH.local:5000
-// SignalR Hub: http://DESKTOP-DIH7CQH.local:5000/hubs/chat
+// Default Base URL: https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev
+// SignalR Hub: https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev/hubs/chat
 
 final networkConfig = NetworkConfig();
 print(networkConfig.baseUrl);        // Uses mDNS by default
@@ -258,8 +258,8 @@ flutter pub get
 Create a `.env` file:
 ```env
 BASE_HOST_NAME=DESKTOP-DIH7CQH
-API_BASE_URL=http://DESKTOP-DIH7CQH.local:5000
-SIGNALR_HUB_URL=http://DESKTOP-DIH7CQH.local:5000/hubs/chat
+API_BASE_URL=https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev
+SIGNALR_HUB_URL=https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev/hubs/chat
 ```
 
 ### **3. Run the App**

@@ -148,12 +148,12 @@ main_clean.dart
 
 NetworkConfig
     │
-    ├─ Base URL: http://DESKTOP-DIH7CQH.local:5000
+    ├─ Base URL: https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev
     │   ├─ Priority 1: Custom URL (user-provided)
     │   ├─ Priority 2: .env file
     │   └─ Priority 3: Default hostname with .local (mDNS)
     │
-    └─ SignalR Hub URL: http://DESKTOP-DIH7CQH.local:5000/hubs/chat
+    └─ SignalR Hub URL: https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev/hubs/chat
         ├─ Auto-derived from Base URL
         └─ Fallback candidates for connection retry
 

@@ -11,7 +11,7 @@
 
 - **Network Layer:**
   - ✅ NetworkConfig with mDNS support (`core/network/network_config.dart`)
-    - Default: `http://DESKTOP-DIH7CQH.local:5000`
+    - Default: `https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev`
     - Fallback to alternative URLs
   - ✅ NetworkClient with Dio (`core/network/network_client.dart`)
     - Automatic token injection
@@ -226,10 +226,10 @@ SizedBox(
 final config = NetworkConfig();
 
 // Get base URL (defaults to mDNS)
-config.baseUrl  // http://DESKTOP-DIH7CQH.local:5000
+config.baseUrl  // https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev
 
 // Get SignalR hub URL
-config.signalRHubUrl  // http://DESKTOP-DIH7CQH.local:5000/hubs/chat
+config.signalRHuburl  // https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev/hubs/chat
 
 // Override if needed
 config.setCustomBaseUrl('http://192.168.1.100:5000');

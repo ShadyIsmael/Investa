@@ -8,8 +8,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 /// - Dynamic hostname resolution with mDNS fallback
 ///
 /// Default configuration for physical devices:
-/// - Base URL: http://DESKTOP-DIH7CQH.local:5000
-/// - SignalR Hub: http://DESKTOP-DIH7CQH.local:5000/hubs/chat
+/// - Base URL: https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev
+/// - SignalR Hub: https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev/hubs/chat
 class NetworkConfig {
   // Default hostname (Windows machine name for mDNS discovery)
   static const String defaultHostname = 'DESKTOP-DIH7CQH';
