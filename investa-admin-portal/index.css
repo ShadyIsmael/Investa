@@ -1,0 +1,93 @@
+/* Global design tokens and theme refinements */
+:root {
+  --bg: #f8fafc; /* slate-50 */
+  --surface: #ffffff; /* white */
+  --muted: #64748b; /* slate-500 */
+  --text: #0f1724; /* slate-900 */
+  --border: #e6eef8; /* light border */
+  --primary: #6366f1; /* indigo-500 */
+  --shadow: 0 6px 18px rgba(15, 23, 36, 0.06);
+}
+
+.dark {
+  /* Dark mode - refined for improved contrast and clearer surfaces */
+  --bg: #04060a; /* richer background */
+  --surface: #071226; /* surface for cards and panels */
+  --muted: #9aa6b6; /* slightly brighter muted */
+  --text: #e6eef8; /* light text */
+  --text-strong: #ffffff; /* strong text when needed */
+  --border: rgba(255,255,255,0.06); /* subtle but visible */
+  --primary: #9097ff; /* slightly brighter indigo */
+  --focus: rgba(144,151,255,0.18);
+  --shadow: 0 10px 30px rgba(2, 6, 23, 0.7);
+}
+
+/* Smooth global transitions for theme changes */
+html, body, #root {
+  transition: background-color 240ms ease, color 240ms ease;
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+/* Make major UI surfaces respect our tokens */
+.bg-slate-50, .bg-white { background-color: var(--surface) !important; }
+.text-slate-900, .text-slate-800 { color: var(--text) !important; }
+.border-slate-100 { border-color: var(--border) !important; }
+.dark .bg-slate-900 { background-color: var(--surface) !important; }
+
+/* Subtle shadow and focus ring adjustments */
+.rounded-2xl, .rounded-xl, .rounded-md {
+  box-shadow: var(--shadow);
+}
+
+/* Inputs & form controls in dark mode */
+input, textarea, select, .form-input, .form-select {
+  background-color: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--focus);
+  border-color: var(--primary);
+}
+
+/* Card elevation and borders */
+.card, .panel, .shadow-card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+/* Strong text utility */
+.text-strong { color: var(--text-strong) !important; }
+
+/* Buttons - subtle accent in dark */
+.btn-primary { background-color: var(--primary); color: white; }
+.btn-outline { border: 1px solid var(--border); color: var(--text); background: transparent; }
+
+/* Map commonly used Tailwind dark utilities to our tokens for consistency */
+.dark .border-slate-800 { border-color: var(--border) !important; }
+.dark .text-slate-200 { color: var(--text) !important; }
+.dark .text-slate-400 { color: var(--muted) !important; }
+.dark .bg-indigo-900\/20 { background-color: rgba(129,140,248,0.08) !important; }
+.dark .bg-indigo-50 { background-color: rgba(129,140,248,0.03) !important; }
+
+
+/* Improve scrollbar colors */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.12); border-radius: 8px; }
+.dark ::-webkit-scrollbar-thumb { background: rgba(129,140,248,0.12); }
+
+/* Theme transition helper - apply temporarily to smooth component-level changes */
+.theme-transition *, .theme-transition *::before, .theme-transition *::after {
+  transition: background-color 240ms ease, color 240ms ease, border-color 240ms ease, box-shadow 240ms ease;
+}
+
+/* Slight elevation for cards in dark to make them pop */
+.dark .shadow-md { box-shadow: 0 8px 24px rgba(2,6,23,0.5) !important; }
+
+/* Small utility for the System Default hint */
+.theme-hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
