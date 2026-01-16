@@ -45,11 +45,11 @@ Create/update `.env` file in the project root:
 # Default hostname for mDNS discovery
 BASE_HOST_NAME=DESKTOP-DIH7CQH
 
-# API Base URL (optional - defaults to http://DESKTOP-DIH7CQH.local:5000)
-API_BASE_URL=http://DESKTOP-DIH7CQH.local:5000
+# API Base URL (optional - defaults to https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev)
+API_BASE_URL=https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev
 
 # SignalR Hub URL (optional - auto-derived from base URL)
-SIGNALR_HUB_URL=http://DESKTOP-DIH7CQH.local:5000/hubs/chat
+SIGNALR_HUB_URL=https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev/hubs/chat
 ```
 
 **For Physical Devices:**
@@ -188,12 +188,12 @@ Look for these tags in your console:
 **Symptom:** `[SignalR] Failed to connect to any SignalR hub candidate`
 
 **Solutions:**
-1. Check if backend server is running on `http://DESKTOP-DIH7CQH.local:5000`
+1. Check if backend server is running on `https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev` (or locally `http://DESKTOP-DIH7CQH.local:5000`)
 2. Test server accessibility:
    ```bash
    # From the device/emulator
    ping DESKTOP-DIH7CQH.local
-   curl http://DESKTOP-DIH7CQH.local:5000/hubs/chat
+   curl https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev/hubs/chat
    ```
 3. Use IP address instead of hostname in `.env`
 4. Check firewall settings on the PC
