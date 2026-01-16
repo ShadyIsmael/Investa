@@ -156,7 +156,7 @@ class AppTheme {
         foregroundColor: scheme.onSurface,
         iconTheme: IconThemeData(color: scheme.onSurface),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: Colors.white,
         elevation: 1,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -236,7 +236,7 @@ class AppTheme {
             fontWeight: FontWeight.w600, fontSize: 20, color: Colors.white),
         foregroundColor: Colors.white,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: Colors.white.withAlpha(13),
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
