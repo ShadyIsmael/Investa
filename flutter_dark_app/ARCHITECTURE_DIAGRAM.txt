@@ -1,0 +1,247 @@
+lib/
+│
+├── 📂 core/                                    # ⚙️ Core Infrastructure (Singletons, Utilities)
+│   │
+│   ├── 📂 di/
+│   │   └── 📄 injection_container.dart         # 💉 Dependency Injection (GetIt)
+│   │
+│   ├── 📂 error/
+│   │   └── 📄 failures.dart                    # ❌ Error classes (NetworkFailure, ServerFailure, etc.)
+│   │
+│   ├── 📂 network/
+│   │   ├── 📄 network_config.dart              # 🌐 Network configuration (Base URL, SignalR Hub)
+│   │   └── 📄 network_client.dart              # 🔌 Dio HTTP client with interceptors
+│   │
+│   └── 📂 services/
+│       ├── 📄 logger_service.dart              # 📝 Centralized logging service
+│       ├── 📄 secure_storage_service.dart      # 🔐 Secure storage wrapper
+│       ├── 📄 signalr_service.dart             # 🔄 SignalR hub connection & events
+│       └── 📄 firebase_messaging_service.dart  # 🔔 Firebase push notifications
+│
+├── 📂 features/                                # 🎯 Feature Modules (Clean Architecture)
+│   │
+│   ├── 📂 auth/                                # 🔑 Authentication Feature
+│   │   │
+│   │   ├── 📂 data/                            # Data Layer
+│   │   │   ├── 📂 datasources/
+│   │   │   │   └── 📄 auth_remote_datasource.dart
+│   │   │   ├── 📂 models/
+│   │   │   │   └── 📄 user_dto.dart            # JSON ↔ Entity mapping
+│   │   │   └── 📂 repositories/
+│   │   │       └── 📄 auth_repository_impl.dart
+│   │   │
+│   │   ├── 📂 domain/                          # Domain Layer (Business Logic)
+│   │   │   ├── 📂 entities/
+│   │   │   │   └── 📄 user.dart                # Pure business model
+│   │   │   ├── 📂 repositories/
+│   │   │   │   └── 📄 auth_repository.dart     # Abstract interface
+│   │   │   └── 📂 usecases/
+│   │   │       ├── 📄 login_usecase.dart
+│   │   │       ├── 📄 signup_usecase.dart
+│   │   │       └── 📄 logout_usecase.dart
+│   │   │
+│   │   └── 📂 presentation/                    # Presentation Layer (UI)
+│   │       ├── 📂 providers/
+│   │       │   └── 📄 auth_provider.dart       # State management
+│   │       ├── 📂 screens/
+│   │       │   ├── 📄 login_screen.dart
+│   │       │   └── 📄 signup_screen.dart
+│   │       └── 📂 widgets/
+│   │
+│   └── 📂 support/                             # 💬 Support Feature (SignalR Integration)
+│       │
+│       ├── 📂 data/
+│       │   ├── 📂 datasources/
+│       │   │   └── 📄 support_remote_datasource.dart   # SignalR communication
+│       │   └── 📂 repositories/
+│       │       └── 📄 support_repository_impl.dart
+│       │
+│       ├── 📂 domain/
+│       │   ├── 📂 entities/
+│       │   │   └── 📄 support_message.dart
+│       │   ├── 📂 repositories/
+│       │   │   └── 📄 support_repository.dart
+│       │   └── 📂 usecases/
+│       │       ├── 📄 send_support_request_usecase.dart
+│       │       └── 📄 listen_to_support_messages_usecase.dart
+│       │
+│       └── 📂 presentation/
+│           ├── 📂 providers/
+│           │   └── 📄 support_provider.dart
+│           ├── 📂 screens/
+│           │   └── 📄 support_request_screen.dart      # Responsive UI
+│           └── 📂 widgets/
+│
+├── 📂 config/                                  # ⚙️ App Configuration
+│   ├── 📄 app_config.dart                      # Constants and settings
+│   ├── 📄 routes.dart                          # Navigation routing
+│   └── 📄 theme.dart                           # Light/Dark themes
+│
+└── 📄 main_clean.dart                          # 🚀 Entry point (Clean Architecture)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+📊 LAYER DEPENDENCIES (Clean Architecture)
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         PRESENTATION LAYER                                  │
+│  - Screens (UI widgets)                                                     │
+│  - Providers (State Management)                                             │
+│  - Depends on: Domain Layer (Use Cases)                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    ⬇️
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           DOMAIN LAYER                                      │
+│  - Entities (Business models)                                               │
+│  - Use Cases (Business logic)                                               │
+│  - Repository Interfaces (Contracts)                                        │
+│  - NO dependencies on other layers                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    ⬇️
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            DATA LAYER                                       │
+│  - DTOs (JSON models)                                                       │
+│  - Data Sources (API, SignalR, Local DB)                                    │
+│  - Repository Implementations                                               │
+│  - Depends on: Domain Layer (Interfaces)                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+🔗 DEPENDENCY INJECTION FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+main_clean.dart
+    │
+    ├─ initializeDependencies()
+    │   │
+    │   ├─ Core Services
+    │   │   ├─ LoggerService
+    │   │   ├─ SecureStorageService
+    │   │   ├─ NetworkConfig
+    │   │   ├─ NetworkClient (Dio)
+    │   │   ├─ SignalRService
+    │   │   └─ FirebaseMessagingService
+    │   │
+    │   ├─ Auth Feature
+    │   │   ├─ AuthRemoteDataSource
+    │   │   ├─ AuthRepository
+    │   │   ├─ LoginUseCase
+    │   │   ├─ SignupUseCase
+    │   │   ├─ LogoutUseCase
+    │   │   └─ AuthProvider
+    │   │
+    │   └─ Support Feature
+    │       ├─ SupportRemoteDataSource
+    │       ├─ SupportRepository
+    │       ├─ SendSupportRequestUseCase
+    │       ├─ ListenToSupportMessagesUseCase
+    │       └─ SupportProvider
+    │
+    └─ runApp(InvestaApp)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+🌐 NETWORK CONFIGURATION
+═══════════════════════════════════════════════════════════════════════════════
+
+NetworkConfig
+    │
+    ├─ Base URL: http://DESKTOP-DIH7CQH.local:5000
+    │   ├─ Priority 1: Custom URL (user-provided)
+    │   ├─ Priority 2: .env file
+    │   └─ Priority 3: Default hostname with .local (mDNS)
+    │
+    └─ SignalR Hub URL: http://DESKTOP-DIH7CQH.local:5000/hubs/chat
+        ├─ Auto-derived from Base URL
+        └─ Fallback candidates for connection retry
+
+
+═══════════════════════════════════════════════════════════════════════════════
+📡 SIGNALR INTEGRATION
+═══════════════════════════════════════════════════════════════════════════════
+
+SignalRService (core/services/signalr_service.dart)
+    │
+    ├─ Connection
+    │   ├─ Hub URL: /hubs/chat
+    │   ├─ Transport: WebSockets
+    │   ├─ Auth: Bearer token from SecureStorage
+    │   └─ Auto-reconnect: [0, 2s, 5s, 10s, 30s]
+    │
+    ├─ Methods (Invoke)
+    │   └─ RequestSupport(SupportRequestDto)
+    │       ├─ userMobile: string
+    │       ├─ message: string
+    │       ├─ type: "Request" | "Inquire" | "Problem"
+    │       └─ conversationId?: string
+    │
+    └─ Events (Listen)
+        ├─ ReceiveSupportRequest → SupportMessageDto
+        ├─ AdminJoined → AdminJoinedDto
+        └─ UserTyping → UserTypingDto
+
+
+═══════════════════════════════════════════════════════════════════════════════
+🔔 FIREBASE MESSAGING INTEGRATION
+═══════════════════════════════════════════════════════════════════════════════
+
+FirebaseMessagingService
+    │
+    ├─ Foreground Messages
+    │   ├─ Listen to onMessage stream
+    │   ├─ Show local notification
+    │   └─ Deduplicate with SignalR (5-second window)
+    │
+    ├─ Background Messages
+    │   ├─ onMessageOpenedApp (app in background)
+    │   └─ getInitialMessage (app terminated)
+    │
+    ├─ Notification Tap
+    │   └─ Deep link to Support Chat screen
+    │       └─ Extract conversationId from data payload
+    │
+    └─ Token Management
+        ├─ getToken() → Send to backend on login
+        ├─ onTokenRefresh → Update backend
+        └─ deleteToken() → On logout
+
+
+═══════════════════════════════════════════════════════════════════════════════
+🎨 RESPONSIVE UI RULES
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ ALWAYS USE:
+    ├─ MediaQuery.of(context).size.width/height
+    ├─ Expanded, Flexible widgets
+    ├─ SingleChildScrollView for forms
+    ├─ SafeArea wrapper
+    └─ ScreenUtil for scaling (.sp, .h, .w)
+
+❌ NEVER USE:
+    ├─ Hardcoded widths/heights (width: 300)
+    ├─ Fixed Column without scroll
+    └─ Pixel values without responsiveness
+
+
+═══════════════════════════════════════════════════════════════════════════════
+🧪 ERROR HANDLING
+═══════════════════════════════════════════════════════════════════════════════
+
+Failure Classes (Functional Programming Style)
+    │
+    ├─ NetworkFailure       → No connection, timeout
+    ├─ ServerFailure        → 5xx errors, API issues
+    ├─ AuthenticationFailure → 401, invalid credentials
+    ├─ ValidationFailure    → Form validation errors
+    ├─ SignalRFailure       → SignalR connection issues
+    ├─ FirebaseFailure      → FCM errors
+    └─ UnexpectedFailure    → Catch-all
+
+Usage with Either<Failure, Success>:
+    final result = await useCase();
+    result.fold(
+      (failure) => showError(failure.message),
+      (success) => navigateToNext(),
+    );
