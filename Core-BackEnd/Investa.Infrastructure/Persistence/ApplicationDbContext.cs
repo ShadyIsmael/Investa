@@ -1,5 +1,6 @@
 using Investa.Domain.Entities;
 using Investa.Domain.Entities.Enums;
+using Investa.Domain.Entities.Security;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -51,22 +52,40 @@ public class ApplicationDbContext : IdentityDbContext
 
     // Permission definitions used to gate features
     public DbSet<Permission> Permissions { get; set; }
+    
+    // Enhanced permission system with resource-action model
+    public DbSet<ApplicationPermission> ApplicationPermissions { get; set; }
 
     // Many-to-many join between Groups and Permissions
     public DbSet<GroupPermission> GroupPermissions { get; set; }
 
     // Assignments of users to groups
     public DbSet<UserGroup> UserGroups { get; set; }
+    
+    // Group-Bound Role Architecture entities
+    public new DbSet<Investa.Domain.Entities.Security.Role> Roles { get; set; }
+    public new DbSet<Investa.Domain.Entities.Security.UserRole> UserRoles { get; set; }
+    public DbSet<Investa.Domain.Entities.Security.RolePermission> RolePermissions { get; set; }
+    
+    // User session tracking for refresh tokens and security
+    public DbSet<UserSession> UserSessions { get; set; }
+    
+    // Audit trail for compliance and security monitoring
+    public DbSet<AuditLog> AuditLogs { get; set; }
 
     // Business category taxonomy used for client classification
     public DbSet<BusinessCategory> BusinessCategories { get; set; }
 
     // Chat module entities (conversations, messages, attachments, reactions)
     public DbSet<Investa.Domain.Entities.Chat.Conversation> Conversations { get; set; }
+    public DbSet<Investa.Domain.Entities.Chat.ChatMessage> ChatMessages { get; set; }
     public DbSet<Investa.Domain.Entities.Chat.ConversationParticipant> ConversationParticipants { get; set; }
-    public DbSet<Investa.Domain.Entities.Chat.Message> Messages { get; set; }
     public DbSet<Investa.Domain.Entities.Chat.MessageAttachment> MessageAttachments { get; set; }
     public DbSet<Investa.Domain.Entities.Chat.MessageReaction> MessageReactions { get; set; }
+
+    // Support Session entities (new support request handling)
+    public DbSet<SupportSession> SupportSessions { get; set; }
+    public DbSet<Message> Messages { get; set; }
 
     // Refresh tokens for long-lived authentication sessions
     public DbSet<RefreshToken> RefreshTokens { get; set; }
@@ -194,6 +213,18 @@ public class ApplicationDbContext : IdentityDbContext
             eb.HasIndex(a => a.FirebaseUid).IsUnique(false).HasFilter("\"FirebaseUid\" IS NOT NULL");
         });
 
+        // Conversation mapping (Status + Category support)
+        modelBuilder.Entity<Investa.Domain.Entities.Chat.Conversation>(c =>
+        {
+            c.HasKey(x => x.Id);
+            c.Property(x => x.UserMobile).HasMaxLength(50).IsRequired();
+            c.Property(x => x.AdminEmail).HasMaxLength(256).IsRequired(false);
+            c.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+            c.Property(x => x.IsActive).HasDefaultValue(true);
+            c.Property(x => x.Category).HasMaxLength(100).IsRequired(false);
+            c.Property(x => x.Status).HasConversion<string>().HasDefaultValue(Investa.Domain.Entities.Enums.ConversationStatus.Pending);
+        });
+
         // RefreshToken mapping
         modelBuilder.Entity<RefreshToken>(rt =>
         {
@@ -265,6 +296,7 @@ public class ApplicationDbContext : IdentityDbContext
             g.Property(x => x.Name).HasMaxLength(200).IsRequired();
             g.Property(x => x.Description).HasMaxLength(1000).IsRequired(false);
             g.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+            g.Property(x => x.MetadataJson).HasColumnType("nvarchar(max)").IsRequired(false);
             g.HasIndex(x => x.Name).IsUnique();
         });
 
@@ -280,7 +312,8 @@ public class ApplicationDbContext : IdentityDbContext
 
         modelBuilder.Entity<GroupPermission>(gp =>
         {
-            gp.HasKey(x => new { x.GroupId, x.PermissionId });
+            gp.HasKey(x => x.Id);
+            gp.HasIndex(x => new { x.GroupId, x.PermissionId }).IsUnique();
             gp.HasOne(x => x.Group).WithMany(g => g.GroupPermissions).HasForeignKey(x => x.GroupId).OnDelete(DeleteBehavior.Cascade);
             gp.HasOne(x => x.Permission).WithMany(p => p.GroupPermissions).HasForeignKey(x => x.PermissionId).OnDelete(DeleteBehavior.Cascade);
         });
@@ -292,6 +325,120 @@ public class ApplicationDbContext : IdentityDbContext
             ug.HasOne(x => x.Group).WithMany(g => g.UserGroups).HasForeignKey(x => x.GroupId).OnDelete(DeleteBehavior.Cascade);
             ug.HasOne(x => x.User).WithMany(u => u.UserGroups).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             ug.HasIndex(x => new { x.UserId, x.GroupId }).IsUnique();
+        });
+        
+        // Role configuration (Group-Bound Role Architecture)
+        modelBuilder.Entity<Investa.Domain.Entities.Security.Role>(r =>
+        {
+            r.HasKey(x => x.Id);
+            r.Property(x => x.Name).HasMaxLength(256).IsRequired();
+            r.Property(x => x.NormalizedName).HasMaxLength(256).IsRequired();
+            r.Property(x => x.Description).HasMaxLength(500);
+            r.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+            r.HasIndex(x => x.NormalizedName).IsUnique();
+            r.HasIndex(x => new { x.GroupId, x.Name }).IsUnique(); // Unique role name per group
+            
+            // MANDATORY: Every role must belong to a group
+            r.HasOne(x => x.Group)
+             .WithMany(g => g.Roles)
+             .HasForeignKey(x => x.GroupId)
+             .OnDelete(DeleteBehavior.Restrict)
+             .IsRequired();
+        });
+        
+        // UserRole configuration
+        modelBuilder.Entity<Investa.Domain.Entities.Security.UserRole>(ur =>
+        {
+            ur.HasKey(x => x.Id);
+            ur.Property(x => x.AssignedAt).HasDefaultValueSql("GETDATE()");
+            ur.HasIndex(x => new { x.UserId, x.RoleId }).IsUnique();
+            ur.Property(x => x.AuthUserId).IsRequired(false);
+            
+            ur.HasOne(x => x.User)
+              .WithMany(u => u.UserRoles)
+              .HasForeignKey(x => x.UserId)
+              .OnDelete(DeleteBehavior.Cascade)
+              .IsRequired();
+              
+            ur.HasOne(x => x.Role)
+              .WithMany(r => r.UserRoles)
+              .HasForeignKey(x => x.RoleId)
+              .OnDelete(DeleteBehavior.Cascade)
+              .IsRequired();
+        });
+        
+        // RolePermission configuration
+        modelBuilder.Entity<Investa.Domain.Entities.Security.RolePermission>(rp =>
+        {
+            rp.HasKey(x => x.Id);
+            rp.Property(x => x.AssignedAt).HasDefaultValueSql("GETDATE()");
+            rp.HasIndex(x => new { x.RoleId, x.PermissionId }).IsUnique();
+            
+            rp.HasOne(x => x.Role)
+              .WithMany(r => r.RolePermissions)
+              .HasForeignKey(x => x.RoleId)
+              .OnDelete(DeleteBehavior.Cascade)
+              .IsRequired();
+              
+            rp.HasOne(x => x.Permission)
+              .WithMany(p => p.RolePermissions)
+              .HasForeignKey(x => x.PermissionId)
+              .OnDelete(DeleteBehavior.Cascade)
+              .IsRequired();
+        });
+        
+        // ApplicationPermission configuration
+        modelBuilder.Entity<ApplicationPermission>(ap =>
+        {
+            ap.HasKey(x => x.Id);
+            ap.Property(x => x.Key).IsRequired().HasMaxLength(100);
+            ap.HasIndex(x => x.Key).IsUnique();
+            ap.Property(x => x.Name).IsRequired().HasMaxLength(200);
+            ap.Property(x => x.ResourceType).IsRequired().HasMaxLength(100);
+            ap.Property(x => x.Action).IsRequired().HasMaxLength(50);
+            ap.HasIndex(x => new { x.ResourceType, x.Action });
+            ap.HasIndex(x => x.TenantId);
+            
+            // Self-referencing for hierarchical permissions
+            ap.HasOne(x => x.ParentPermission)
+                .WithMany(x => x.ChildPermissions)
+                .HasForeignKey(x => x.ParentPermissionId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+        
+        // UserSession configuration
+        modelBuilder.Entity<UserSession>(us =>
+        {
+            us.HasKey(x => x.Id);
+            us.HasIndex(x => x.UserId);
+            us.HasIndex(x => x.RefreshTokenHash).IsUnique();
+            us.HasIndex(x => new { x.UserId, x.ExpiresAt });
+            us.Property(x => x.RefreshTokenHash).IsRequired().HasMaxLength(128);
+            us.Property(x => x.IpAddress).IsRequired().HasMaxLength(45); // IPv6 support
+            us.Property(x => x.DeviceFingerprint).HasMaxLength(256);
+            us.Property(x => x.UserAgent).HasMaxLength(512);
+            us.Property(x => x.Location).HasMaxLength(200);
+            
+            us.HasOne(x => x.User)
+                .WithMany(u => u.UserSessions)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+        
+        // AuditLog configuration
+        modelBuilder.Entity<AuditLog>(al =>
+        {
+            al.HasKey(x => x.Id);
+            al.HasIndex(x => x.UserId);
+            al.HasIndex(x => x.EntityType);
+            al.HasIndex(x => new { x.EntityType, x.EntityId });
+            al.HasIndex(x => x.Timestamp);
+            al.HasIndex(x => x.TenantId);
+            al.Property(x => x.EntityType).IsRequired().HasMaxLength(100);
+            al.Property(x => x.EntityId).IsRequired().HasMaxLength(100);
+            al.Property(x => x.Action).IsRequired().HasMaxLength(50);
+            al.Property(x => x.IpAddress).HasMaxLength(45);
+            al.Property(x => x.UserAgent).HasMaxLength(512);
         });
 
                 // Client <-> BusinessCategory many-to-many
@@ -399,22 +546,37 @@ public class ApplicationDbContext : IdentityDbContext
             .Property(i => i.TargetFund)
             .HasPrecision(18, 2);
 
-        // Configure Chat entities (encryption metadata and relationships)
+        // Configure Chat entities
         modelBuilder.Entity<Investa.Domain.Entities.Chat.Conversation>(c =>
         {
             c.HasKey(x => x.Id);
-            c.Property(x => x.Title).HasMaxLength(200).IsRequired(false);
+            c.Property(x => x.UserMobile).HasMaxLength(20).IsRequired();
+            c.Property(x => x.AdminEmail).HasMaxLength(256).IsRequired(false);
             c.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
-            c.Property(x => x.IsArchived).HasDefaultValue(false);
+            c.Property(x => x.IsActive).HasDefaultValue(true);
 
-            c.Property(x => x.WrappedDek).HasColumnType("varbinary(max)").IsRequired(false);
-            c.Property(x => x.DekNonce).HasColumnType("varbinary(64)").IsRequired(false);
-            c.Property(x => x.DekTag).HasColumnType("varbinary(64)").IsRequired(false);
-            c.Property(x => x.DekKeyId).HasMaxLength(200).IsRequired(false);
-            c.Property(x => x.DekVersion).IsRequired(false);
+            // Conversation -> Messages relationship removed: messages are now linked to SupportSessions
+            // c.HasMany(x => x.Messages).WithOne(m => m.Conversation).HasForeignKey(m => m.ConversationId).OnDelete(DeleteBehavior.Cascade);
+        });
 
-            c.HasMany(x => x.Participants).WithOne(p => p.Conversation).HasForeignKey(p => p.ConversationId).OnDelete(DeleteBehavior.Cascade);
-            c.HasMany(x => x.Messages).WithOne(m => m.Conversation).HasForeignKey(m => m.ConversationId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<Investa.Domain.Entities.Chat.ChatMessage>(m =>
+        {
+            m.HasKey(x => x.Id);
+            m.Property(x => x.SenderId).HasMaxLength(256).IsRequired();
+            m.Property(x => x.MessageText).HasColumnType("nvarchar(max)").IsRequired();
+            m.Property(x => x.Timestamp).HasDefaultValueSql("GETDATE()");
+            m.Property(x => x.IsRead).HasDefaultValue(false);
+
+            // FK to SupportSession (nullable to allow gradual migration)
+            m.HasOne<SupportSession>()
+                .WithMany()
+                .HasForeignKey(x => x.SupportSessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Preserve existing ConversationId index and add SupportSessionId index
+            // Removed ConversationId index - using SupportSessionId instead
+            // m.HasIndex(x => new { x.ConversationId, x.Timestamp });
+            m.HasIndex(x => new { x.SupportSessionId, x.Timestamp });
         });
 
         modelBuilder.Entity<Investa.Domain.Entities.Chat.ConversationParticipant>(cp =>
@@ -423,18 +585,6 @@ public class ApplicationDbContext : IdentityDbContext
             cp.HasIndex(x => x.UserId);
             cp.Property(x => x.JoinedAt).HasDefaultValueSql("GETDATE()");
             cp.Property(x => x.IsMuted).HasDefaultValue(false);
-        });
-
-        modelBuilder.Entity<Investa.Domain.Entities.Chat.Message>(m =>
-        {
-            m.HasKey(x => x.Id);
-            m.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
-            m.Property(x => x.CipherText).HasColumnType("varbinary(max)").IsRequired();
-            m.Property(x => x.Nonce).HasColumnType("varbinary(64)").IsRequired();
-            m.Property(x => x.Tag).HasColumnType("varbinary(64)").IsRequired();
-            m.Property(x => x.KeyId).HasMaxLength(200).IsRequired(false);
-            m.Property(x => x.Algorithm).HasMaxLength(50).HasDefaultValue("AES-GCM");
-            m.HasIndex(x => new { x.ConversationId, x.CreatedAt });
         });
 
         modelBuilder.Entity<Investa.Domain.Entities.Chat.MessageAttachment>(a =>
@@ -448,6 +598,28 @@ public class ApplicationDbContext : IdentityDbContext
         {
             r.HasKey(x => new { x.MessageId, x.UserId });
             r.Property(x => x.Reaction).HasMaxLength(50).IsRequired();
+        });
+
+        // Configure SupportSession and Message entities
+        modelBuilder.Entity<SupportSession>(ss =>
+        {
+            ss.HasKey(x => x.Id);
+            ss.Property(x => x.UserMobile).HasMaxLength(50).IsRequired();
+            ss.Property(x => x.Category).HasMaxLength(100).IsRequired();
+            ss.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+            ss.Property(x => x.Status).HasConversion<string>().HasDefaultValue(SupportSessionStatus.Open);
+            ss.Property(x => x.UnreadCount).HasDefaultValue(0);
+            ss.HasMany(x => x.Messages).WithOne(m => m.SupportSession).HasForeignKey(m => m.SupportSessionId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Message>(m =>
+        {
+            m.HasKey(x => x.Id);
+            m.Property(x => x.SenderId).HasMaxLength(256).IsRequired();
+            m.Property(x => x.MessageText).HasColumnType("nvarchar(max)").IsRequired();
+            m.Property(x => x.Timestamp).HasDefaultValueSql("GETDATE()");
+            m.Property(x => x.IsRead).HasDefaultValue(false);
+            m.HasIndex(x => new { x.SupportSessionId, x.Timestamp });
         });
 
         // Seed default admin groups and permissions
@@ -472,12 +644,12 @@ public class ApplicationDbContext : IdentityDbContext
 
         // Assign all permissions to Org_Admin group by default
         modelBuilder.Entity<GroupPermission>().HasData(
-            new { GroupId = 1000, PermissionId = 2000 },
-            new { GroupId = 1000, PermissionId = 2001 },
-            new { GroupId = 1000, PermissionId = 2002 },
-            new { GroupId = 1000, PermissionId = 2003 },
-            new { GroupId = 1000, PermissionId = 2004 },
-            new { GroupId = 1000, PermissionId = 2005 }
+            new GroupPermission { Id = 1, GroupId = 1000, PermissionId = 2000, AssignedAt = seedCreatedAt },
+            new GroupPermission { Id = 2, GroupId = 1000, PermissionId = 2001, AssignedAt = seedCreatedAt },
+            new GroupPermission { Id = 3, GroupId = 1000, PermissionId = 2002, AssignedAt = seedCreatedAt },
+            new GroupPermission { Id = 4, GroupId = 1000, PermissionId = 2003, AssignedAt = seedCreatedAt },
+            new GroupPermission { Id = 5, GroupId = 1000, PermissionId = 2004, AssignedAt = seedCreatedAt },
+            new GroupPermission { Id = 6, GroupId = 1000, PermissionId = 2005, AssignedAt = seedCreatedAt }
         );
     }
 }

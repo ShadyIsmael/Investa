@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using Investa.Domain.Entities.Enums;
+using Investa.Domain.Entities.Security;
 
 namespace Investa.Domain.Entities;
 
@@ -34,7 +35,14 @@ public class AuthUser
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>
+    /// Multi-tenancy support - null for system accounts
+    /// </summary>
+    public Guid? TenantId { get; set; }
+
     // Navigation
     public Client? Client { get; set; }
     public Employee? Employee { get; set; }
+    public ICollection<UserGroup> UserGroups { get; set; } = new List<UserGroup>();
+    public ICollection<UserSession> UserSessions { get; set; } = new List<UserSession>();
 }

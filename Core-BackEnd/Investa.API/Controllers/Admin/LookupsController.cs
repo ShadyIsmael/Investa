@@ -1,14 +1,15 @@
 using Investa.Application.Common;
 using Investa.Application.DTOs;
-using Investa.Application.Services;
+using Investa.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Investa.Domain.Entities.Security;
 
 namespace Investa.API.Controllers.Admin;
 
 [ApiController]
 [Route("api/v1/admin/lookups")]
-[Authorize(Roles = "OrgUser")]
+[Authorize(Roles = nameof(UserRoles.Admin))]
 [ApiExplorerSettings(IgnoreApi = true)]
 [Obsolete("This controller is disabled and removed from API surface.")]
 public class LookupsController : ControllerBase

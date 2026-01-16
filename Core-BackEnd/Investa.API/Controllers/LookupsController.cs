@@ -1,12 +1,12 @@
 using Investa.Application.Common;
 using Investa.Application.DTOs;
-using Investa.Application.Services;
+using Investa.Application.Interfaces;
 using Investa.Domain.Entities.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
-using Investa.Application.DTOs;
+using Investa.Domain.Entities.Security;
 
 namespace Investa.API.Controllers;
 
@@ -23,7 +23,7 @@ public class LookupsController : ControllerBase
     }
 
     [HttpPost("seed-random")]
-    [Authorize(Roles = "OrgUser")]
+    [Authorize(Roles = nameof(UserRoles.OrgUser))]
     public async Task<IActionResult> SeedRandom([FromQuery] Investa.Domain.Entities.Enums.LookupType type = Investa.Domain.Entities.Enums.LookupType.BusinessCategory, [FromQuery] int count = 5)
     {
         var rnd = new Random();
@@ -64,7 +64,7 @@ public class LookupsController : ControllerBase
     }
 
     [HttpPost("normalize-and-verify")]
-    [Authorize(Roles = "OrgUser")]
+    [Authorize(Roles = nameof(UserRoles.OrgUser))]
     public async Task<IActionResult> NormalizeAndVerify()
     {
         var result = await _lookupService.NormalizeAndVerifyAsync();

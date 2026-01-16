@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Investa.Domain.Entities.Enums;
+using Investa.Domain.Entities.Security;
 
 namespace Investa.Domain.Entities;
 
@@ -38,6 +39,7 @@ public class User
     public ICollection<CreditTransaction> CreditTransactions { get; set; } = new List<CreditTransaction>();
     public ICollection<ScoreTransaction> ScoreTransactions { get; set; } = new List<ScoreTransaction>();
     public ICollection<UserGroup> UserGroups { get; set; } = new List<UserGroup>();
+    public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
     
     /// <summary>
     /// One-to-one relationship with UserProfile for extended user information.

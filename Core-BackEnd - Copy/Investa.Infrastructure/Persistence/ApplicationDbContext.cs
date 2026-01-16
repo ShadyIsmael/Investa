@@ -1,0 +1,475 @@
+using Investa.Domain.Entities;
+using Investa.Domain.Entities.Enums;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+
+namespace Investa.Infrastructure.Persistence;
+
+/// <summary>
+/// Application database context that combines business entities with ASP.NET Core Identity
+/// Inherits from IdentityDbContext to support user authentication and authorization
+/// </summary>
+public class ApplicationDbContext : IdentityDbContext
+{
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        : base(options)
+    {
+    }
+
+    // Stores application business users (domain-level user records used by the app services)
+    public DbSet<User> ApplicationUsers { get; set; }
+
+    // Stores extended profile information for users (full name, contact, addresses, timestamps)
+    public DbSet<UserProfile> UserProfiles { get; set; }
+
+    // Legacy/central authentication records that mirror or complement Identity users
+    public DbSet<AuthUser> AuthUsers { get; set; }
+
+    // Client-specific records containing business/customer details
+    public DbSet<Client> Clients { get; set; }
+
+    // Lookup table for client statuses (Active, Suspended, etc.)
+    public DbSet<ClientStatus> ClientStatuses { get; set; }
+
+    // History of changes to a client's status over time
+    public DbSet<ClientStatusHistory> ClientStatusHistories { get; set; }
+
+    // Employee records linked to AuthUser for internal staff
+    public DbSet<Employee> Employees { get; set; }
+
+    // Investments made by users
+    public DbSet<Investment> Investments { get; set; }
+
+    // Financial transactions tied to user wallets
+    public DbSet<Transaction> Transactions { get; set; }
+
+    // Generic lookup values used across the system (multilingual keys/values)
+    public DbSet<Lookup> Lookups { get; set; }
+
+    // Administrative groups (roles/teams) in the application
+    public DbSet<Group> Groups { get; set; }
+
+    // Permission definitions used to gate features
+    public DbSet<Permission> Permissions { get; set; }
+
+    // Many-to-many join between Groups and Permissions
+    public DbSet<GroupPermission> GroupPermissions { get; set; }
+
+    // Assignments of users to groups
+    public DbSet<UserGroup> UserGroups { get; set; }
+
+    // Business category taxonomy used for client classification
+    public DbSet<BusinessCategory> BusinessCategories { get; set; }
+
+    // Chat module entities (conversations, messages, attachments, reactions)
+    public DbSet<Investa.Domain.Entities.Chat.Conversation> Conversations { get; set; }
+    public DbSet<Investa.Domain.Entities.Chat.ChatMessage> ChatMessages { get; set; }
+    public DbSet<Investa.Domain.Entities.Chat.ConversationParticipant> ConversationParticipants { get; set; }
+    public DbSet<Investa.Domain.Entities.Chat.MessageAttachment> MessageAttachments { get; set; }
+    public DbSet<Investa.Domain.Entities.Chat.MessageReaction> MessageReactions { get; set; }
+
+    // Refresh tokens for long-lived authentication sessions
+    public DbSet<RefreshToken> RefreshTokens { get; set; }
+
+    // Records credit-related balance changes per user
+    public DbSet<CreditTransaction> CreditTransactions { get; set; }
+
+    // Configuration table for credit packages/options
+    public DbSet<CreditConfiguration> CreditConfigurations { get; set; }
+
+    // Records score/points transactions for users (e.g., reward points)
+    public DbSet<ScoreTransaction> ScoreTransactions { get; set; }
+
+    // Many-to-many join between Clients and BusinessCategories
+    public DbSet<ClientBusinessCategory> ClientBusinessCategories { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        // Configure decimal precision
+        modelBuilder.Entity<User>()
+            .Property(u => u.WalletBalance)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<Investment>()
+            .Property(i => i.Amount)
+            .HasPrecision(18, 2);
+
+        modelBuilder.Entity<Transaction>()
+            .Property(t => t.Amount)
+            .HasPrecision(18, 2);
+
+        // Seed ClientStatus lookup (ar/en)
+        modelBuilder.Entity<ClientStatus>().HasData(
+            new ClientStatus { Id = 1, NameEn = "Active", NameAr = "نشط" },
+            new ClientStatus { Id = 2, NameEn = "Diactive", NameAr = "غير نشط" },
+            new ClientStatus { Id = 3, NameEn = "Suspended", NameAr = "معلق" }
+        );
+
+            modelBuilder.Entity<CreditTransaction>()
+                .Property(ct => ct.Amount)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<CreditTransaction>(ctb =>
+            {
+                ctb.HasKey(c => c.Id);
+                ctb.Property(c => c.Description).HasMaxLength(1000);
+                ctb.Property(c => c.CreatedAt).HasDefaultValueSql("GETDATE()");
+
+                ctb.HasOne(c => c.User)
+                   .WithMany(u => u.CreditTransactions)
+                   .HasForeignKey(c => c.UserId)
+                   .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ScoreTransaction mapping
+            modelBuilder.Entity<ScoreTransaction>(st =>
+            {
+                st.HasKey(s => s.Id);
+                st.Property(s => s.Score).HasColumnType("numeric(5,2)");
+                st.Property(s => s.CreatedAt).HasDefaultValueSql("GETDATE()");
+
+                st.HasOne(s => s.User)
+                  .WithMany(u => u.ScoreTransactions)
+                  .HasForeignKey(s => s.UserId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+                st.HasOne(s => s.TransactionType)
+                  .WithMany()
+                  .HasForeignKey(s => s.TransactionTypeId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // CreditConfiguration mapping
+            modelBuilder.Entity<CreditConfiguration>(cc =>
+            {
+                cc.HasKey(x => x.Id);
+                cc.Property(x => x.Amount).HasColumnType("decimal(18,2)");
+                cc.Property(x => x.FromDate).HasColumnType("datetime2");
+                cc.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+            });
+        // Configure User entity
+        modelBuilder.Entity<User>()
+            .Property(u => u.CredibilityScore)
+            .HasDefaultValue(3500);
+
+        modelBuilder.Entity<User>()
+            .Property(u => u.ClientType)
+            .HasConversion<int>();
+
+        // Configure UserProfile entity - One-to-One relationship with User
+        modelBuilder.Entity<UserProfile>()
+            .HasOne(up => up.User)
+            .WithOne(u => u.Profile)
+            .HasForeignKey<UserProfile>(up => up.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Configure VerificationStatus enum
+        modelBuilder.Entity<UserProfile>()
+            .Property(up => up.VerificationStatus)
+            .HasConversion<int>();
+
+        // Configure UserProfile timestamps
+        modelBuilder.Entity<UserProfile>()
+            .Property(up => up.CreatedAt)
+            .HasDefaultValueSql("GETDATE()");
+
+        modelBuilder.Entity<UserProfile>()
+            .Property(up => up.UpdatedAt)
+            .HasDefaultValueSql("GETDATE()");
+
+        // AuthUser mapping
+        modelBuilder.Entity<AuthUser>(eb =>
+        {
+            eb.HasKey(a => a.Id);
+            eb.Property(a => a.Email).HasMaxLength(256);
+            eb.Property(a => a.PasswordHash).HasMaxLength(512).IsRequired();
+            eb.Property(a => a.UserType).HasConversion<string>().HasMaxLength(20).IsRequired();
+            eb.Property(a => a.Status).HasDefaultValue(true);
+            eb.Property(a => a.FirebaseUid).HasMaxLength(128).IsRequired(false);
+            eb.Property(a => a.SuspendedUntil).HasColumnType("datetime2").IsRequired(false);
+            eb.Property(a => a.CreatedAt).HasDefaultValueSql("GETDATE()");
+            eb.HasIndex(a => a.Email).IsUnique().HasFilter("\"Email\" IS NOT NULL");
+            eb.HasIndex(a => a.FirebaseUid).IsUnique(false).HasFilter("\"FirebaseUid\" IS NOT NULL");
+        });
+
+        // RefreshToken mapping
+        modelBuilder.Entity<RefreshToken>(rt =>
+        {
+            rt.HasKey(r => r.Id);
+            rt.Property(r => r.Token).HasMaxLength(512).IsRequired();
+            rt.Property(r => r.ExpiresAt).IsRequired();
+            rt.Property(r => r.Revoked).HasDefaultValue(false);
+            rt.Property(r => r.CreatedAt).HasDefaultValueSql("GETDATE()");
+            rt.HasOne(r => r.AuthUser)
+              .WithMany()
+              .HasForeignKey(r => r.AuthUserId)
+              .OnDelete(DeleteBehavior.Cascade);
+            rt.HasIndex(r => r.Token).IsUnique();
+        });
+
+        // Client mapping - one-to-one with AuthUser
+        modelBuilder.Entity<Client>(cb =>
+        {
+            cb.HasKey(c => c.Id);
+            cb.Property(c => c.FirstName).HasMaxLength(100);
+            cb.Property(c => c.LastName).HasMaxLength(100);
+            cb.Property(c => c.Gender).HasMaxLength(20);
+            cb.Property(c => c.PersonalImageUrl).HasMaxLength(500);
+            cb.Property(c => c.MobileNumber).HasMaxLength(20);
+            cb.Property(c => c.Phone).HasMaxLength(20);
+                cb.Property(c => c.Country).HasMaxLength(100);
+                cb.Property(c => c.City).HasMaxLength(100);
+                cb.Property(c => c.District).HasMaxLength(100);
+                cb.Property(c => c.Address1).HasMaxLength(500);
+                cb.Property(c => c.Address2).HasMaxLength(500);
+            cb.Property(c => c.NationalId).HasMaxLength(50);
+            cb.Property(c => c.NationalIdImageUrl).HasMaxLength(500);
+            cb.Property(c => c.WebsiteUrl).HasMaxLength(500);
+            cb.Property(c => c.LinkedInUrl).HasMaxLength(250);
+            cb.Property(c => c.FacebookUrl).HasMaxLength(250);
+            cb.Property(c => c.BusinessRole).HasMaxLength(200);
+            cb.Property(c => c.Score).HasPrecision(5, 2).HasDefaultValue(0m);
+            cb.Property(c => c.Credit).HasPrecision(18, 2).HasDefaultValue(0m);
+            cb.Property(c => c.CreatedAt).HasDefaultValueSql("GETDATE()");
+            cb.Property(c => c.UpdatedAt).HasDefaultValueSql("GETDATE()");
+
+            cb.HasOne(c => c.User)
+              .WithOne(u => u.Client)
+              .HasForeignKey<Client>(c => c.UserId)
+              .OnDelete(DeleteBehavior.Cascade);
+            cb.HasIndex(c => c.UserId).IsUnique();
+            cb.HasIndex(c => c.MobileNumber);
+            cb.HasIndex(c => c.Phone);
+                        cb.HasIndex(c => c.Email).IsUnique(false);
+        });
+
+        // ClientStatusHistory mapping
+        modelBuilder.Entity<ClientStatusHistory>(h =>
+        {
+            h.HasKey(x => x.Id);
+            h.Property(x => x.Reason).HasMaxLength(1000);
+            h.Property(x => x.ChangedAt).HasDefaultValueSql("GETDATE()");
+
+            h.HasOne(x => x.Client)
+             .WithMany()
+             .HasForeignKey(x => x.ClientId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Groups & Permissions mapping
+        modelBuilder.Entity<Group>(g =>
+        {
+            g.HasKey(x => x.Id);
+            g.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            g.Property(x => x.Description).HasMaxLength(1000).IsRequired(false);
+            g.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+            g.HasIndex(x => x.Name).IsUnique();
+        });
+
+        modelBuilder.Entity<Permission>(p =>
+        {
+            p.HasKey(x => x.Id);
+            p.Property(x => x.Key).HasMaxLength(200).IsRequired();
+            p.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            p.Property(x => x.Description).HasMaxLength(1000).IsRequired(false);
+            p.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+            p.HasIndex(x => x.Key).IsUnique();
+        });
+
+        modelBuilder.Entity<GroupPermission>(gp =>
+        {
+            gp.HasKey(x => new { x.GroupId, x.PermissionId });
+            gp.HasOne(x => x.Group).WithMany(g => g.GroupPermissions).HasForeignKey(x => x.GroupId).OnDelete(DeleteBehavior.Cascade);
+            gp.HasOne(x => x.Permission).WithMany(p => p.GroupPermissions).HasForeignKey(x => x.PermissionId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UserGroup>(ug =>
+        {
+            ug.HasKey(x => x.Id);
+            ug.Property(x => x.AssignedAt).HasDefaultValueSql("GETDATE()");
+            ug.HasOne(x => x.Group).WithMany(g => g.UserGroups).HasForeignKey(x => x.GroupId).OnDelete(DeleteBehavior.Cascade);
+            ug.HasOne(x => x.User).WithMany(u => u.UserGroups).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            ug.HasIndex(x => new { x.UserId, x.GroupId }).IsUnique();
+        });
+
+                // Client <-> BusinessCategory many-to-many
+                modelBuilder.Entity<ClientBusinessCategory>(j =>
+                {
+                        j.HasKey(x => new { x.ClientId, x.BusinessCategoryId });
+                        j.HasOne(x => x.Client).WithMany(c => c.ClientBusinessCategories).HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+                        j.HasOne(x => x.BusinessCategory).WithMany(bc => bc.ClientBusinessCategories).HasForeignKey(x => x.BusinessCategoryId).OnDelete(DeleteBehavior.Cascade);
+                });
+        // Employee mapping - one-to-one with AuthUser
+        modelBuilder.Entity<Employee>(eb2 =>
+        {
+            eb2.HasKey(e => e.Id);
+            eb2.Property(e => e.EmployeeNumber).HasMaxLength(50).IsRequired();
+            eb2.Property(e => e.Department).HasMaxLength(100);
+            eb2.Property(e => e.PermissionsLevel).HasDefaultValue((byte)1);
+            eb2.Property(e => e.HireDate).HasColumnType("date");
+            eb2.Property(e => e.CreatedAt).HasDefaultValueSql("GETDATE()");
+            eb2.Property(e => e.UpdatedAt).HasDefaultValueSql("GETDATE()");
+
+            eb2.HasOne(e => e.User)
+               .WithOne(u => u.Employee)
+               .HasForeignKey<Employee>(e => e.UserId)
+               .OnDelete(DeleteBehavior.Cascade);
+            eb2.HasIndex(e => e.UserId).IsUnique();
+            eb2.HasIndex(e => e.EmployeeNumber).IsUnique();
+        });
+
+        // Relationships
+        modelBuilder.Entity<Investment>()
+            .HasOne(i => i.Investor)
+            .WithMany(u => u.Investments)
+            .HasForeignKey(i => i.InvestorId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Transaction>()
+            .HasOne(t => t.Wallet)
+            .WithMany(u => u.Transactions)
+            .HasForeignKey(t => t.WalletId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Lookup entity
+        modelBuilder.Entity<Lookup>()
+            .Property(l => l.Type)
+            .HasConversion<int>();
+
+        // Seed BusinessStage (multilingual)
+        modelBuilder.Entity<Lookup>().HasData(
+            new Lookup { Id = 1, Type = LookupType.BusinessStage, Key = "Idea", Value = "Idea", ValueAr = "فكرة", SortOrder = 1 },
+            new Lookup { Id = 2, Type = LookupType.BusinessStage, Key = "MVP", Value = "MVP", ValueAr = "المنتج الأولي", SortOrder = 2 },
+            new Lookup { Id = 3, Type = LookupType.BusinessStage, Key = "Startup", Value = "Startup", ValueAr = "شركة ناشئة", SortOrder = 3 },
+            new Lookup { Id = 4, Type = LookupType.BusinessStage, Key = "Running", Value = "Running", ValueAr = "قيد التشغيل", SortOrder = 4 },
+            new Lookup { Id = 5, Type = LookupType.BusinessStage, Key = "Expanding", Value = "Expanding", ValueAr = "توسع", SortOrder = 5 }
+        );
+
+        // Seed ProjectPhase (multilingual)
+        modelBuilder.Entity<Lookup>().HasData(
+            new Lookup { Id = 6, Type = LookupType.ProjectPhase, Key = "Initiation", Value = "Initiation", ValueAr = "البدء", SortOrder = 1 },
+            new Lookup { Id = 7, Type = LookupType.ProjectPhase, Key = "Planning", Value = "Planning", ValueAr = "التخطيط", SortOrder = 2 },
+            new Lookup { Id = 8, Type = LookupType.ProjectPhase, Key = "Execution", Value = "Execution", ValueAr = "التنفيذ", SortOrder = 3 },
+            new Lookup { Id = 9, Type = LookupType.ProjectPhase, Key = "Testing", Value = "Testing", ValueAr = "الاختبار", SortOrder = 4 },
+            new Lookup { Id = 10, Type = LookupType.ProjectPhase, Key = "Launching", Value = "Launching", ValueAr = "الإطلاق", SortOrder = 5 }
+        );
+
+        // Seed RiskLevel (multilingual)
+        modelBuilder.Entity<Lookup>().HasData(
+            new Lookup { Id = 11, Type = LookupType.RiskLevel, Key = "Low", Value = "Low", ValueAr = "منخفض", SortOrder = 1 },
+            new Lookup { Id = 12, Type = LookupType.RiskLevel, Key = "Medium", Value = "Medium", ValueAr = "متوسط", SortOrder = 2 },
+            new Lookup { Id = 13, Type = LookupType.RiskLevel, Key = "High", Value = "High", ValueAr = "مرتفع", SortOrder = 3 }
+        );
+
+        // Seed ScoreTransaction types
+        modelBuilder.Entity<Lookup>().HasData(
+            new Lookup { Id = 200, Type = LookupType.ScoreTransaction, Key = "Review", Value = "Review", ValueAr = "مراجعة", SortOrder = 1 },
+            new Lookup { Id = 201, Type = LookupType.ScoreTransaction, Key = "Interactive", Value = "Interactive", ValueAr = "تفاعلي", SortOrder = 2 },
+            new Lookup { Id = 202, Type = LookupType.ScoreTransaction, Key = "Deal", Value = "Deal", ValueAr = "صفقة", SortOrder = 3 }
+        );
+
+        // Seed categories
+        modelBuilder.Entity<Lookup>().HasData(
+            new Lookup { Id = 100, Type = LookupType.BusinessCategory, Key = "Technology", Value = "Technology", ValueAr = "تكنولوجيا", SortOrder = 1 },
+            new Lookup { Id = 101, Type = LookupType.BusinessCategory, Key = "Industry", Value = "Industry", ValueAr = "صناعة", SortOrder = 2 },
+            new Lookup { Id = 102, Type = LookupType.BusinessCategory, Key = "Trading", Value = "Trading", ValueAr = "تجارة", SortOrder = 3 }
+        );
+
+        // Seed BusinessCategory table with initial categories (mirror of lookup categories)
+        modelBuilder.Entity<BusinessCategory>().HasData(
+            new BusinessCategory { Id = 100, Key = "Technology", Value = "Technology", ValueAr = "تكنولوجيا", SortOrder = 1 },
+            new BusinessCategory { Id = 101, Key = "Industry", Value = "Industry", ValueAr = "صناعة", SortOrder = 2 },
+            new BusinessCategory { Id = 102, Key = "Trading", Value = "Trading", ValueAr = "تجارة", SortOrder = 3 }
+        );
+
+        // BusinessCategory mapping
+        modelBuilder.Entity<BusinessCategory>(bc =>
+        {
+            bc.HasKey(b => b.Id);
+            bc.Property(b => b.Key).HasMaxLength(200);
+            bc.Property(b => b.Value).HasMaxLength(200);
+            bc.Property(b => b.ValueAr).HasMaxLength(200);
+            bc.Property(b => b.CreatedAt).HasDefaultValueSql("GETDATE()");
+        });
+
+        // Investment precision for merged opportunity fields
+        modelBuilder.Entity<Investment>()
+            .Property(i => i.TargetFund)
+            .HasPrecision(18, 2);
+
+        // Configure Chat entities
+        modelBuilder.Entity<Investa.Domain.Entities.Chat.Conversation>(c =>
+        {
+            c.HasKey(x => x.Id);
+            c.Property(x => x.UserMobile).HasMaxLength(20).IsRequired();
+            c.Property(x => x.AdminEmail).HasMaxLength(256).IsRequired(false);
+            c.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+            c.Property(x => x.IsActive).HasDefaultValue(true);
+
+            c.HasMany(x => x.Messages).WithOne(m => m.Conversation).HasForeignKey(m => m.ConversationId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Investa.Domain.Entities.Chat.ChatMessage>(m =>
+        {
+            m.HasKey(x => x.Id);
+            m.Property(x => x.SenderId).HasMaxLength(256).IsRequired();
+            m.Property(x => x.MessageText).HasColumnType("nvarchar(max)").IsRequired();
+            m.Property(x => x.Timestamp).HasDefaultValueSql("GETDATE()");
+            m.Property(x => x.IsRead).HasDefaultValue(false);
+            m.HasIndex(x => new { x.ConversationId, x.Timestamp });
+        });
+
+        modelBuilder.Entity<Investa.Domain.Entities.Chat.ConversationParticipant>(cp =>
+        {
+            cp.HasKey(x => new { x.ConversationId, x.UserId });
+            cp.HasIndex(x => x.UserId);
+            cp.Property(x => x.JoinedAt).HasDefaultValueSql("GETDATE()");
+            cp.Property(x => x.IsMuted).HasDefaultValue(false);
+        });
+
+        modelBuilder.Entity<Investa.Domain.Entities.Chat.MessageAttachment>(a =>
+        {
+            a.HasKey(x => x.Id);
+            a.Property(x => x.StoragePath).HasMaxLength(1024).IsRequired();
+            a.Property(x => x.FileName).HasMaxLength(512).IsRequired();
+        });
+
+        modelBuilder.Entity<Investa.Domain.Entities.Chat.MessageReaction>(r =>
+        {
+            r.HasKey(x => new { x.MessageId, x.UserId });
+            r.Property(x => x.Reaction).HasMaxLength(50).IsRequired();
+        });
+
+        // Seed default admin groups and permissions
+        // Use a static timestamp for seeded data to avoid EF Core "pending model changes" warnings
+        var seedCreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, DateTimeKind.Utc);
+
+        modelBuilder.Entity<Group>().HasData(
+            new Group { Id = 1000, Name = "Org_Admin", Description = "Organization administrator - full access", CreatedAt = seedCreatedAt },
+            new Group { Id = 1001, Name = "Admin", Description = "Admin with elevated privileges", CreatedAt = seedCreatedAt },
+            new Group { Id = 1002, Name = "Manager", Description = "Manager with limited admin privileges", CreatedAt = seedCreatedAt },
+            new Group { Id = 1003, Name = "Viewer", Description = "Read-only admin", CreatedAt = seedCreatedAt }
+        );
+
+        modelBuilder.Entity<Permission>().HasData(
+            new Permission { Id = 2000, Key = "admin.clients.read", Name = "Read Clients", Description = "Read client records", CreatedAt = seedCreatedAt },
+            new Permission { Id = 2001, Key = "admin.clients.manage", Name = "Manage Clients", Description = "Create/update/delete clients", CreatedAt = seedCreatedAt },
+            new Permission { Id = 2002, Key = "admin.categories.manage", Name = "Manage Categories", Description = "CRUD categories", CreatedAt = seedCreatedAt },
+            new Permission { Id = 2003, Key = "admin.groups.manage", Name = "Manage Groups", Description = "Manage groups and assignments", CreatedAt = seedCreatedAt },
+            new Permission { Id = 2004, Key = "admin.lookups.manage", Name = "Manage Lookups", Description = "Manage lookup values", CreatedAt = seedCreatedAt },
+            new Permission { Id = 2005, Key = "admin.dev.manage", Name = "Dev Tools", Description = "Development utility endpoints", CreatedAt = seedCreatedAt }
+        );
+
+        // Assign all permissions to Org_Admin group by default
+        modelBuilder.Entity<GroupPermission>().HasData(
+            new { GroupId = 1000, PermissionId = 2000 },
+            new { GroupId = 1000, PermissionId = 2001 },
+            new { GroupId = 1000, PermissionId = 2002 },
+            new { GroupId = 1000, PermissionId = 2003 },
+            new { GroupId = 1000, PermissionId = 2004 },
+            new { GroupId = 1000, PermissionId = 2005 }
+        );
+    }
+}

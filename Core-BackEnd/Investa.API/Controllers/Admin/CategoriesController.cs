@@ -1,13 +1,14 @@
 using Investa.Application.DTOs;
-using Investa.Application.Services;
+using Investa.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Investa.Domain.Entities.Security;
 
 namespace Investa.API.Controllers.Admin;
 
 [ApiController]
 [Route("api/v1/admin/categories")]
-[Authorize(Roles = "OrgUser")]
+[Authorize(Roles = nameof(UserRoles.Admin))]
 public class CategoriesController : ControllerBase
 {
     private readonly ICategoryService _categoryService;

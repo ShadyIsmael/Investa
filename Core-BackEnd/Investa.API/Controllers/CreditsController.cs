@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Investa.Domain.Entities.Security;
 
 namespace Investa.API.Controllers
 {
     [ApiController]
     [Route("api/credits")]
-    [Authorize(Roles = "OrgUser")]
+    [Authorize(Roles = nameof(UserRoles.OrgUser))]
     [ApiExplorerSettings(IgnoreApi = true)]
     public class CreditsController : ControllerBase
     {

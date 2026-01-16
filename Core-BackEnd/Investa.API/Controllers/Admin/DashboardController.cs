@@ -5,12 +5,13 @@ using Investa.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Investa.Domain.Entities.Security;
 
 namespace Investa.API.Controllers.Admin
 {
     [ApiController]
     [Route("api/v1/admin/dashboard")]
-    [Authorize(Roles = "OrgUser")]
+    [Authorize(Roles = nameof(UserRoles.Admin))]
     public class DashboardController : ControllerBase
     {
         private readonly ICreditService _creditService;

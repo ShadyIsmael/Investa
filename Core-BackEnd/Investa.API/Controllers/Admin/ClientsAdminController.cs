@@ -1,14 +1,15 @@
 using System.Threading.Tasks;
 using Investa.Application.DTOs;
-using Investa.Application.Services;
+using Investa.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Investa.Domain.Entities.Security;
 
 namespace Investa.API.Controllers.Admin
 {
     [ApiController]
     [Route("api/v1/admin/clients")]
-    [Authorize(Roles = "OrgUser")]
+    [Authorize(Roles = nameof(UserRoles.Admin))]
     public class ClientsAdminController : ControllerBase
     {
         private readonly IClientService _clientService;

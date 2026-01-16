@@ -1,16 +1,16 @@
 using AutoMapper;
 using Investa.Application.DTOs;
-using Investa.Application.Services;
 using Investa.Application.Interfaces;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Investa.Domain.Entities.Security;
 
 namespace Investa.API.Controllers;
 
 [ApiController]
 [Route("api/v1/investments")]
-[Authorize(Roles = "Client")]
+[Authorize(Roles = nameof(UserRoles.Client))]
 public class InvestmentsController : ControllerBase
 {
     private readonly IInvestmentService _service;
@@ -27,7 +27,7 @@ public class InvestmentsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = nameof(UserRoles.Client))]
     public async Task<IActionResult> Create([FromBody] CreateInvestmentDto dto)
     {
         if (dto == null) return BadRequest(new { success = false, message = "Invalid payload" });
@@ -45,7 +45,7 @@ public class InvestmentsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = nameof(UserRoles.Client))]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateInvestmentDto dto)
     {
         if (dto == null) return BadRequest(new { success = false, message = "Invalid payload" });

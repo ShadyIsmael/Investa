@@ -1,0 +1,168 @@
+using System;
+using System.Linq;
+using System.Security.Claims;
+using System.Threading.Tasks;
+using Investa.Application.Interfaces;
+using Investa.Application.DTOs;
+using Investa.Domain.Entities.Chat;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
+
+namespace Investa.API.Hubs
+{
+    [Authorize]
+    public class ChatHub : Hub
+    {
+        private readonly IChatService _chatService;
+        private readonly IAdminAvailabilityService _adminAvailability;
+        private readonly ILogger<ChatHub> _logger;
+
+        public ChatHub(IChatService chatService, IAdminAvailabilityService adminAvailability, ILogger<ChatHub> logger)
+        {
+            _chatService = chatService;
+            _adminAvailability = adminAvailability;
+            _logger = logger;
+        }
+
+        private Guid GetUserIdFromContext()
+        {
+            var sub = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Context.User?.FindFirst("sub")?.Value;
+            if (string.IsNullOrEmpty(sub)) throw new InvalidOperationException("Cannot determine user id from claims");
+            if (Guid.TryParse(sub, out var gu)) return gu;
+            // If ID is numeric or not guid, try parse as GUID of domain user mapping may differ
+            throw new InvalidOperationException("User id claim is not a GUID");
+        }
+
+        public async Task JoinConversation(Guid conversationId)
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"Conversation:{conversationId}");
+            _logger.LogInformation("Connection {Conn} joined Conversation:{Conv}", Context.ConnectionId, conversationId);
+
+            // Check if the caller is an admin and notify the conversation
+            var userId = GetUserIdFromContext();
+            var isAdmin = await IsUserAdminAsync(userId);
+
+            if (isAdmin)
+            {
+                // Get admin display name (simplified - enhance as needed)
+                var adminName = "Support Agent"; // Could be enhanced to get actual name from user profile
+
+                await Clients.Group($"Conversation:{conversationId}")
+                    .SendAsync("AdminJoined", new {
+                        conversationId = conversationId.ToString(),
+                        adminId = userId.ToString(),
+                        adminName = adminName
+                    });
+
+                _logger.LogInformation("Admin {AdminId} joined conversation {Conv}", userId, conversationId);
+            }
+        }
+
+        public async Task LeaveConversation(Guid conversationId)
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"Conversation:{conversationId}");
+            _logger.LogInformation("Connection {Conn} left Conversation:{Conv}", Context.ConnectionId, conversationId);
+        }
+
+        public async Task SendMessage(Guid conversationId, string content)
+        {
+            var senderId = GetUserIdFromContext();
+            var messageId = await _chatService.SendMessageAsync(conversationId, senderId, content);
+
+            var msgDto = new ChatMessageDto
+            {
+                Id = messageId,
+                ConversationId = conversationId,
+                SenderId = senderId,
+                Content = content,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+
+            await Clients.Group($"Conversation:{conversationId}").SendAsync("NewMessage", msgDto);
+        }
+
+        /// <summary>
+        /// Start a new conversation and optionally assign an available agent
+        /// </summary>
+        public async Task<Guid> StartNewConversation(string type, Dictionary<string, object> metadata)
+        {
+            var userId = GetUserIdFromContext();
+
+            // Create conversation via IChatService
+            var participantIds = new List<Guid> { userId };
+            var conversationId = await _chatService.CreateConversationAsync(userId, participantIds, (byte)ConversationType.Direct, type);
+
+            // Add the caller connection to the conversation group immediately
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"Conversation:{conversationId}");
+
+            _logger.LogInformation("User {User} started conversation {Conv}", userId, conversationId);
+
+            // Attempt to assign an available admin now
+            var assignedAdmin = await _adminAvailability.GetNextAvailableAdminAsync();
+            if (!string.IsNullOrEmpty(assignedAdmin))
+            {
+                // Assign admin to conversation
+                var adminAssigned = await _chatService.AssignAdminToSupportChatAsync(conversationId, assignedAdmin);
+                if (adminAssigned)
+                {
+                    // Get admin display name (simplified - you might want to enhance this)
+                    var adminName = "Support Agent"; // Could be enhanced to get actual name
+
+                    // Notify the conversation participants that the admin has joined
+                    await Clients.Group($"Conversation:{conversationId}")
+                        .SendAsync("AdminJoined", new {
+                            conversationId = conversationId.ToString(),
+                            adminId = assignedAdmin,
+                            adminName = adminName
+                        });
+
+                    // Notify the admin
+                    await Clients.User(assignedAdmin)
+                        .SendAsync("NewConversationAssigned", conversationId.ToString());
+
+                    _logger.LogInformation("Auto-assigned admin {Admin} to conversation {Conv}", assignedAdmin, conversationId);
+                }
+            }
+
+            return conversationId;
+        }
+
+        /// <summary>
+        /// Admin method to set online status
+        /// </summary>
+        public async Task SetAdminOnline(int maxConcurrentChats = 3)
+        {
+            var userId = GetUserIdFromContext();
+            var userIdString = userId.ToString();
+
+            await _adminAvailability.SetAdminOnlineAsync(userIdString, maxConcurrentChats);
+
+            _logger.LogInformation("Admin {AdminId} set online with max {MaxChats} concurrent chats",
+                userIdString, maxConcurrentChats);
+
+            await Clients.Caller.SendAsync("AdminStatusUpdated", new { IsOnline = true, MaxChats = maxConcurrentChats });
+        }
+
+        /// <summary>
+        /// Admin method to set offline status
+        /// </summary>
+        public async Task SetAdminOffline()
+        {
+            var userId = GetUserIdFromContext();
+            var userIdString = userId.ToString();
+
+            await _adminAvailability.SetAdminOfflineAsync(userIdString);
+
+            _logger.LogInformation("Admin {AdminId} set offline", userIdString);
+
+            await Clients.Caller.SendAsync("AdminStatusUpdated", new { IsOnline = false });
+        }
+
+        private async Task<bool> IsUserAdminAsync(Guid userId)
+        {
+            // This is a simplified check - you might want to inject UserManager and check roles properly
+            // For now, we'll check if the user is in the admin availability service (meaning they're an online admin)
+            return await _adminAvailability.IsAdminOnlineAsync(userId.ToString());
+        }
+    }
+}

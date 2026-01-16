@@ -33,7 +33,9 @@ string connectionString = defaultConn.GetString() ?? throw new InvalidOperationE
 string adminEmail = "admin@inveta.com";
 string adminPassword = "P@ssw0rd";
 string adminName = "Platform Admin";
-string adminRole = "OrgUser";
+using Investa.Domain.Entities.Security;
+
+string adminRole = nameof(UserRoles.Admin);
 
 try
 {
@@ -142,7 +144,7 @@ VALUES (@id,@un,@nun,@email,@nemail, @ec, @ph, @ss, @cs, @pc, @tf, @le, @af)", c
         cmd.Parameters.AddWithValue("@id", authId);
         cmd.Parameters.AddWithValue("@email", adminEmail);
         cmd.Parameters.AddWithValue("@ph", passwordHash);
-        cmd.Parameters.AddWithValue("@ut", adminRole);
+        cmd.Parameters.AddWithValue("@ut", (int)Investa.Domain.Entities.Enums.UserType.OrgUser);
         cmd.Parameters.AddWithValue("@st", true);
         cmd.ExecuteNonQuery();
     }

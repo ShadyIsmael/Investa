@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="10" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#333" />
+    </marker>
+    <style>
+      .table { fill: #fff; stroke: #333; stroke-width: 2px; rx:6; }
+      .table-title { font: bold 14px sans-serif; fill:#fff; }
+      .title-bar { fill: #2E7D32; }
+      .col { font: 12px monospace; fill:#111; }
+      .note { font: 12px sans-serif; fill:#555; }
+      .fk { stroke-dasharray: 4 2; }
+    </style>
+  </defs>
+
+  <!-- Conversations -->
+  <g id="conversations" transform="translate(60,40)">
+    <rect class="table" x="0" y="0" width="300" height="140" />
+    <rect class="title-bar" x="0" y="0" width="300" height="28" rx="6" />
+    <text x="12" y="19" class="table-title">Conversations</text>
+
+    <text x="12" y="44" class="col">Id (PK : uniqueidentifier)</text>
+    <text x="12" y="64" class="col">UserMobile (nvarchar(20))</text>
+    <text x="12" y="84" class="col">AdminEmail (nvarchar(256))</text>
+    <text x="12" y="104" class="col">CreatedAt (datetime)</text>
+    <text x="12" y="124" class="col">IsActive (bit)</text>
+  </g>
+
+  <!-- Messages -->
+  <g id="messages" transform="translate(420,40)">
+    <rect class="table" x="0" y="0" width="360" height="170" />
+    <rect class="title-bar" x="0" y="0" width="360" height="28" rx="6" />
+    <text x="12" y="19" class="table-title">Messages (Messages / ChatMessage)</text>
+
+    <text x="12" y="44" class="col">Id (PK : uniqueidentifier)</text>
+    <text x="12" y="64" class="col">ConversationId (FK → Conversations.Id)</text>
+    <text x="12" y="84" class="col">SenderId (Guid/string)</text>
+    <text x="12" y="104" class="col">MessageText / CipherText</text>
+    <text x="12" y="124" class="col">Timestamp / CreatedAt</text>
+    <text x="12" y="144" class="col">IsRead / IsDeleted</text>
+  </g>
+
+  <!-- ConversationParticipants -->
+  <g id="participants" transform="translate(60,220)">
+    <rect class="table" x="0" y="0" width="360" height="150" />
+    <rect class="title-bar" x="0" y="0" width="360" height="28" rx="6" />
+    <text x="12" y="19" class="table-title">ConversationParticipants</text>
+
+    <text x="12" y="44" class="col">ConversationId (PK part, FK)</text>
+    <text x="12" y="64" class="col">UserId (PK part)</text>
+    <text x="12" y="84" class="col">Role (byte)</text>
+    <text x="12" y="104" class="col">LastReadMessageId (Guid?)</text>
+    <text x="12" y="124" class="col">IsMuted, JoinedAt</text>
+  </g>
+
+  <!-- MessageAttachments -->
+  <g id="attachments" transform="translate(420,240)">
+    <rect class="table" x="0" y="0" width="340" height="120" />
+    <rect class="title-bar" x="0" y="0" width="340" height="28" rx="6" />
+    <text x="12" y="19" class="table-title">MessageAttachments</text>
+
+    <text x="12" y="44" class="col">Id (PK)</text>
+    <text x="12" y="64" class="col">MessageId (FK → Messages.Id)</text>
+    <text x="12" y="84" class="col">StoragePath, FileName, ContentType, SizeBytes</text>
+  </g>
+
+  <!-- MessageReactions -->
+  <g id="reactions" transform="translate(820,40)">
+    <rect class="table" x="0" y="0" width="340" height="140" />
+    <rect class="title-bar" x="0" y="0" width="340" height="28" rx="6" />
+    <text x="12" y="19" class="table-title">MessageReactions</text>
+
+    <text x="12" y="44" class="col">MessageId (PK part, FK → Messages.Id)</text>
+    <text x="12" y="64" class="col">UserId (PK part)</text>
+    <text x="12" y="84" class="col">Reaction (nvarchar(50))</text>
+    <text x="12" y="104" class="col">CreatedAt</text>
+  </g>
+
+  <!-- Relationships (arrows) -->
+  <!-- Conversations -> Messages -->
+  <line x1="360" y1="90" x2="420" y2="90" stroke="#333" stroke-width="2" marker-end="url(#arrow)" />
+  <text x="330" y="80" class="note">1..N</text>
+
+  <!-- Conversations -> ConversationParticipants -->
+  <line x1="220" y1="160" x2="220" y2="220" stroke="#333" stroke-width="2" marker-end="url(#arrow)" />
+  <text x="200" y="190" class="note">1..N</text>
+
+  <!-- Messages -> MessageAttachments -->
+  <line x1="680" y1="160" x2="420" y2="300" stroke="#333" stroke-width="2" marker-end="url(#arrow)" />
+  <text x="520" y="220" class="note">1..N</text>
+
+  <!-- Messages -> MessageReactions -->
+  <line x1="780" y1="120" x2="820" y2="120" stroke="#333" stroke-width="2" marker-end="url(#arrow)" />
+  <text x="770" y="110" class="note">1..N</text>
+
+  <!-- Notes -->
+  <g transform="translate(60,410)">
+    <rect x="0" y="0" width="1080" height="120" stroke="#ccc" fill="#fafafa" rx="6" />
+    <text x="12" y="20" class="note">Notes:</text>
+    <text x="12" y="40" class="note">• Cascade deletes: Conversations -> Messages -> (Attachments, Reactions)</text>
+    <text x="12" y="60" class="note">• ConversationParticipants and MessageReactions use composite primary keys</text>
+    <text x="12" y="80" class="note">• Messages indexed by (ConversationId, CreatedAt) for timeline queries</text>
+    <text x="12" y="100" class="note">• Sender/User references are GUIDs; consider adding FK to AuthUser/ApplicationUsers if desired</text>
+  </g>
+
+</svg>

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Investa.Application.DTOs;
 using Investa.Infrastructure.Persistence;
 using Investa.Application.Interfaces;
@@ -33,14 +34,63 @@ public class GroupService : IGroupService
 
     public async Task<IEnumerable<GroupDto>> GetAllAsync()
     {
-        return await Task.FromResult(_db.Groups.Select(g => new GroupDto { Id = g.Id, Name = g.Name, Description = g.Description, CreatedAt = g.CreatedAt }).ToList());
+        return await Task.FromResult(_db.Groups
+            .Include(g => g.GroupPermissions)
+            .ThenInclude(gp => gp.Permission)
+            .Select(g => new GroupDto 
+            { 
+                Id = g.Id, 
+                Name = g.Name, 
+                Description = g.Description, 
+                CreatedAt = g.CreatedAt,
+                Permissions = g.GroupPermissions.Select(gp => new PermissionDto
+                {
+                    Id = gp.Permission.Id,
+                    Key = gp.Permission.Key,
+                    Name = gp.Permission.Name,
+                    Description = gp.Permission.Description,
+                    CreatedAt = gp.Permission.CreatedAt
+                }).ToList()
+            })
+            .ToList());
+    }
+
+    public async Task<IEnumerable<GroupDto>> GetAllWithoutPermissionsAsync()
+    {
+        return await Task.FromResult(_db.Groups
+            .Select(g => new GroupDto 
+            { 
+                Id = g.Id, 
+                Name = g.Name, 
+                Description = g.Description, 
+                CreatedAt = g.CreatedAt,
+                Permissions = new List<PermissionDto>()
+            })
+            .ToList());
     }
 
     public async Task<GroupDto?> GetByIdAsync(int id)
     {
-        var g = await _db.Groups.FindAsync(id);
+        var g = await _db.Groups
+            .Include(g => g.GroupPermissions)
+            .ThenInclude(gp => gp.Permission)
+            .FirstOrDefaultAsync(g => g.Id == id);
         if (g == null) return null;
-        return new GroupDto { Id = g.Id, Name = g.Name, Description = g.Description, CreatedAt = g.CreatedAt };
+        return new GroupDto 
+        { 
+            Id = g.Id, 
+            Name = g.Name, 
+            Description = g.Description, 
+            CreatedAt = g.CreatedAt,
+            Permissions = g.GroupPermissions.Select(gp => new PermissionDto
+            {
+                Id = gp.Permission.Id,
+                Key = gp.Permission.Key,
+                Name = gp.Permission.Name,
+                Description = gp.Permission.Description,
+                CreatedAt = gp.Permission.CreatedAt
+            }).ToList()
+        };
     }
 
     public async Task AssignPermissionAsync(int groupId, int permissionId)

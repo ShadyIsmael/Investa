@@ -1,124 +1,210 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Investa.Application.DTOs;
 using Investa.Application.Interfaces;
 using Investa.Domain.Entities.Chat;
+using Investa.Domain.Entities;
 
 namespace Investa.Application.Services
 {
     public class ChatService : IChatService
     {
         private readonly IUnitOfWork _uow;
-        private readonly IKeyManagementService _kms;
-        private readonly ICryptoService _crypto;
+        private readonly Investa.Application.Interfaces.IAdminAvailabilityService _adminAvailability;
 
-        public ChatService(IUnitOfWork uow, IKeyManagementService kms, ICryptoService crypto)
+        public ChatService(IUnitOfWork uow, Investa.Application.Interfaces.IAdminAvailabilityService adminAvailability)
         {
             _uow = uow;
-            _kms = kms;
-            _crypto = crypto;
+            _adminAvailability = adminAvailability;
         }
 
-        public async Task<Guid> CreateConversationAsync(Guid createdBy, IEnumerable<Guid> participantIds, byte type, string? title = null)
+        // New SignalR Chat Methods
+        public async Task<SupportSession> RequestSupportAsync(string userMobile)
         {
-            var conv = new Conversation
+            // Check if there's already an active support session for this user
+            var existing = await _uow.Repository<SupportSession>()
+                .FindAsync(s => s.UserMobile == userMobile && s.Status == SupportSessionStatus.Open);
+
+            if (existing.Any())
+            {
+                return existing.First();
+            }
+
+            // Find available admin
+            var availableAdminEmail = await _adminAvailability.GetNextAvailableAdminAsync();
+
+            var session = new SupportSession
             {
                 Id = Guid.NewGuid(),
-                Type = (ConversationType)type,
-                CreatedBy = createdBy,
-                Title = title,
-                CreatedAt = DateTimeOffset.UtcNow
+                UserMobile = userMobile,
+                Category = null,
+                CreatedAt = DateTime.UtcNow,
+                Status = SupportSessionStatus.Open,
+                UnreadCount = 1
             };
 
-            // Generate DEK
-            var dek = new byte[32];
-            System.Security.Cryptography.RandomNumberGenerator.Fill(dek);
-
-            var wrap = await _kms.WrapDekAsync(dek);
-
-            conv.WrappedDek = wrap.WrappedDek;
-            conv.DekNonce = wrap.Nonce;
-            conv.DekTag = wrap.Tag;
-            conv.DekKeyId = wrap.KeyId;
-            conv.DekVersion = 1;
-
-            conv.Participants = participantIds.Select(pid => new ConversationParticipant { ConversationId = conv.Id, UserId = pid, JoinedAt = DateTimeOffset.UtcNow }).ToList();
-
-            await _uow.Repository<Conversation>().AddAsync(conv);
+            await _uow.Repository<SupportSession>().AddAsync(session);
             await _uow.SaveChangesAsync();
 
-            return conv.Id;
+            // Auto-insert an initial assistant message for new sessions (as ChatMessage)
+            var assistantMessage = new ChatMessage
+            {
+                Id = Guid.NewGuid(),
+                SupportSessionId = session.Id,
+                SenderId = "Investa Assistant",
+                MessageText = "Hello! I'm the Investa Assistant. We've received your request and an agent will be with you shortly.",
+                Timestamp = DateTime.UtcNow,
+                IsRead = false
+            };
+
+            await _uow.Repository<ChatMessage>().AddAsync(assistantMessage);
+            await _uow.SaveChangesAsync();
+
+            // If admin was assigned, increment their chat count
+            if (!string.IsNullOrEmpty(availableAdminEmail))
+            {
+                await _adminAvailability.IncrementAdminChatCountAsync(availableAdminEmail);
+            }
+
+            return session;
+        }
+
+        // New overload: accept type and message from mobile client, store initial message
+        public async Task<SupportSession> RequestSupportAsync(string userMobile, string? type, string? message)
+        {
+            var session = await RequestSupportAsync(userMobile);
+
+            // If a type (category) is provided, persist it on the support session and save as the first user message for admin context
+            if (!string.IsNullOrEmpty(type))
+            {
+                session.Category = type;
+                await _uow.SaveChangesAsync();
+
+                var categoryMessage = new ChatMessage
+                {
+                    Id = Guid.NewGuid(),
+                    SupportSessionId = session.Id,
+                    SenderId = userMobile,
+                    MessageText = type,
+                    Timestamp = DateTime.UtcNow,
+                    IsRead = false
+                };
+
+                await _uow.Repository<ChatMessage>().AddAsync(categoryMessage);
+                await _uow.SaveChangesAsync();
+            }
+
+            // If an initial message is provided, save it as the first chat message (after category when present)
+            if (!string.IsNullOrEmpty(message))
+            {
+                await SendChatMessageAsync(session.Id, userMobile, message);
+            }
+
+            return session;
+        }
+
+        public async Task<ChatMessage> SendChatMessageAsync(Guid supportSessionId, string senderId, string text)
+        {
+            var session = await _uow.Repository<SupportSession>().GetByIdAsync(supportSessionId);
+            if (session == null)
+                throw new InvalidOperationException("Support session not found");
+
+            var message = new ChatMessage
+            {
+                Id = Guid.NewGuid(),
+                SupportSessionId = supportSessionId,
+                SenderId = senderId,
+                MessageText = text,
+                Timestamp = DateTime.UtcNow,
+                IsRead = false
+            };
+
+            await _uow.Repository<ChatMessage>().AddAsync(message);
+            await _uow.SaveChangesAsync();
+
+            return message;
+        }
+
+        // Legacy methods - keeping for compatibility but simplified
+        public async Task<Guid> CreateConversationAsync(Guid createdBy, IEnumerable<Guid> participantIds, byte type, string? title = null)
+        {
+            // Simplified implementation for legacy compatibility
+            var conversation = new Conversation
+            {
+                Id = Guid.NewGuid(),
+                UserMobile = "legacy", // Placeholder
+                AdminEmail = null,
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true
+            };
+
+            await _uow.Repository<Conversation>().AddAsync(conversation);
+            await _uow.SaveChangesAsync();
+
+            return conversation.Id;
         }
 
         public async Task<Guid> SendMessageAsync(Guid conversationId, Guid senderId, string plaintext)
         {
-            var conv = await _uow.Repository<Conversation>().GetByIdAsync(conversationId);
-            if (conv == null) throw new InvalidOperationException("Conversation not found");
-
-            // Verify sender is a participant
-            var isParticipant = await _uow.Repository<ConversationParticipant>().ExistsAsync(p => p.ConversationId == conversationId && p.UserId == senderId);
-            if (!isParticipant) throw new UnauthorizedAccessException("Sender not a participant of conversation");
-
-            // Unwrap DEK
-            if (conv.WrappedDek == null || conv.DekNonce == null || conv.DekTag == null || conv.DekKeyId == null)
-                throw new InvalidOperationException("Conversation encryption metadata missing");
-
-            var dek = await _kms.UnwrapDekAsync(conv.WrappedDek, conv.DekNonce, conv.DekTag, conv.DekKeyId);
-
-            var plainBytes = Encoding.UTF8.GetBytes(plaintext);
-            var enc = await _crypto.EncryptAsync(plainBytes, dek, BitConverter.GetBytes(conversationId.GetHashCode()));
-
-            var message = new Message
-            {
-                Id = Guid.NewGuid(),
-                ConversationId = conversationId,
-                SenderId = senderId,
-                CipherText = enc.CipherText,
-                Nonce = enc.Nonce,
-                Tag = enc.Tag,
-                KeyId = conv.DekKeyId,
-                Algorithm = "AES-GCM",
-                CreatedAt = DateTimeOffset.UtcNow
-            };
-
-            await _uow.Repository<Message>().AddAsync(message);
-            await _uow.SaveChangesAsync();
-
+            var message = await SendChatMessageAsync(conversationId, senderId.ToString(), plaintext);
             return message.Id;
         }
 
-        public async Task<IEnumerable<ChatMessageDto>> GetMessagesAsync(Guid conversationId, int page = 1, int pageSize = 50)
+        public async Task<IEnumerable<ChatMessageDto>> GetMessagesAsync(Guid supportSessionId, int page = 1, int pageSize = 50)
         {
-            var conv = await _uow.Repository<Conversation>().GetByIdAsync(conversationId);
-            if (conv == null) throw new InvalidOperationException("Conversation not found");
+            var messages = await _uow.Repository<ChatMessage>()
+                .FindAsync(m => m.SupportSessionId == supportSessionId);
 
-            if (conv.WrappedDek == null || conv.DekNonce == null || conv.DekTag == null || conv.DekKeyId == null)
-                throw new InvalidOperationException("Conversation encryption metadata missing");
-
-            var dek = await _kms.UnwrapDekAsync(conv.WrappedDek, conv.DekNonce, conv.DekTag, conv.DekKeyId);
-
-            var messages = (await _uow.Repository<Message>().FindAsync(m => m.ConversationId == conversationId)).OrderByDescending(m => m.CreatedAt).Skip((page - 1) * pageSize).Take(pageSize).ToList();
-
-            var result = new List<ChatMessageDto>(messages.Count);
-
-            foreach (var m in messages)
-            {
-                var plainBytes = await _crypto.DecryptAsync(m.CipherText, m.Nonce, m.Tag, dek, BitConverter.GetBytes(conversationId.GetHashCode()));
-                var content = Encoding.UTF8.GetString(plainBytes);
-                result.Add(new ChatMessageDto
+            return messages
+                .OrderByDescending(m => m.Timestamp)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(m => new ChatMessageDto
                 {
                     Id = m.Id,
-                    ConversationId = m.ConversationId,
-                    SenderId = m.SenderId,
-                    Content = content,
-                    CreatedAt = m.CreatedAt
+                    // Keep property name for backward compatibility but set to the SupportSessionId
+                    ConversationId = m.SupportSessionId ?? Guid.Empty,
+                    SenderId = Guid.Parse(m.SenderId), // Assuming legacy compatibility
+                    Content = m.MessageText,
+                    CreatedAt = m.Timestamp
                 });
-            }
+        }
 
-            return result;
+        // Support Chat Methods - keeping for compatibility
+        public async Task<SupportChatResponse> StartSupportChatAsync(Guid userId, SupportChatRequest request)
+        {
+            // Simplified implementation
+            var response = new SupportChatResponse
+            {
+                Success = false,
+                Message = "Support chat functionality moved to SignalR RequestSupport method"
+            };
+            return response;
+        }
+
+        public async Task<bool> AssignAdminToSupportChatAsync(Guid supportSessionId, string adminId)
+        {
+            // Simplified implementation
+            return true;
+        }
+
+        public async Task<bool> EndSupportChatAsync(Guid supportSessionId)
+        {
+            var session = await _uow.Repository<SupportSession>().GetByIdAsync(supportSessionId);
+            if (session != null)
+            {
+                session.Status = SupportSessionStatus.Closed;
+                await _uow.SaveChangesAsync();
+                return true;
+            }
+            return false;
+        }
+
+        public async Task<IEnumerable<ChatQueueItem>> GetQueuedSupportRequestsAsync()
+        {
+            return new List<ChatQueueItem>();
         }
     }
 }

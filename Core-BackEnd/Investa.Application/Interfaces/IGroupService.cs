@@ -8,6 +8,7 @@ public interface IGroupService
 {
     Task<GroupDto> CreateAsync(CreateGroupRequest request);
     Task<IEnumerable<GroupDto>> GetAllAsync();
+    Task<IEnumerable<GroupDto>> GetAllWithoutPermissionsAsync();
     Task<GroupDto?> GetByIdAsync(int id);
     Task AssignPermissionAsync(int groupId, int permissionId);
     Task AssignUserAsync(int groupId, System.Guid userId);

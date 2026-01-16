@@ -1,15 +1,17 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Investa.Application.Interfaces;
 using Investa.Application.DTOs;
+using Investa.Domain.Entities.Security;
 
 namespace Investa.API.Controllers.Admin;
 
 [ApiController]
 [Route("api/v1/admin/groups")]
-[Authorize(Roles = "OrgUser")]
+// [Authorize(Roles = nameof(UserRoles.Admin))]
 public class GroupsAdminController : ControllerBase
 {
     private readonly IGroupService _groupService;
@@ -19,11 +21,46 @@ public class GroupsAdminController : ControllerBase
         _groupService = groupService;
     }
 
-    [HttpGet]
-    public async Task<IActionResult> GetAll()
+    [HttpGet("all")]
+    public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 25)
     {
         var groups = await _groupService.GetAllAsync();
-        return Ok(groups);
+        
+        var totalCount = groups.Count();
+        var pagedGroups = groups
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+            
+        return Ok(new
+        {
+            items = pagedGroups,
+            totalCount,
+            page,
+            pageSize,
+            totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+        });
+    }
+
+    [HttpGet("list")]
+    public async Task<IActionResult> GetAllWithoutPermissions([FromQuery] int page = 1, [FromQuery] int pageSize = 25)
+    {
+        var groups = await _groupService.GetAllWithoutPermissionsAsync();
+        
+        var totalCount = groups.Count();
+        var pagedGroups = groups
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+            
+        return Ok(new
+        {
+            items = pagedGroups,
+            totalCount,
+            page,
+            pageSize,
+            totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+        });
     }
 
     [HttpPost]
@@ -33,7 +70,7 @@ public class GroupsAdminController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = g.Id }, g);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
         var g = await _groupService.GetByIdAsync(id);

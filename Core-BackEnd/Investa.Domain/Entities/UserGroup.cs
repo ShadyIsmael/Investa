@@ -9,7 +9,12 @@ public class UserGroup
     public Group Group { get; set; } = null!;
 
     public Guid UserId { get; set; }
-    public User User { get; set; } = null!;
+    public AuthUser User { get; set; } = null!;
 
-    public DateTime AssignedAt { get; set; }
+    public DateTime AssignedAt { get; set; } = DateTime.UtcNow;
+    
+    /// <summary>
+    /// Who assigned the user to this group
+    /// </summary>
+    public Guid? AssignedBy { get; set; }
 }

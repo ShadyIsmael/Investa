@@ -6,6 +6,7 @@ using Investa.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Investa.Domain.Entities.Security;
 
 namespace Investa.API.Controllers
 {
@@ -118,7 +119,7 @@ namespace Investa.API.Controllers
         /// Disable client account (Admin only)
         /// </summary>
         [HttpPost("{userId:guid}/disable")]
-        [Authorize(Roles = "OrgUser")]
+        [Authorize(Roles = nameof(UserRoles.OrgUser))]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DisableUser(Guid userId)
@@ -138,7 +139,7 @@ namespace Investa.API.Controllers
         public class SuspendRequestDto { public DateTime? Until { get; set; } }
 
         [HttpPost("{userId:guid}/suspend")]
-        [Authorize(Roles = "OrgUser")]
+        [Authorize(Roles = nameof(UserRoles.OrgUser))]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> SuspendUser(Guid userId, [FromBody] SuspendRequestDto request)

@@ -1,0 +1,37 @@
+@Investa.API_HostAddress = http://192.168.1.15:5235
+
+GET {{Investa.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
+
+POST {{Investa.API_HostAddress}}/api/auth/signup
+Content-Type: application/json
+
+{
+  "phone": "01022322292",
+  "password": "TestPass123!",
+  "firstName": "shady",
+  "lastName": "Ismael"
+}
+
+###
+
+POST {{Investa.API_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "phone": "01022322292",
+  "password": "TestPass123!"
+}
+
+###
+
+POST {{Investa.API_HostAddress}}/api/clients/by-phone/01022322292
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "firstName": "shady",
+  "lastName": "Ismael"
+}

@@ -1,4 +1,5 @@
 using System;
+using Investa.Domain.Entities.Security;
 
 namespace Investa.Domain.Entities;
 
@@ -12,4 +13,5 @@ public class Permission
     public DateTime CreatedAt { get; set; }
 
     public ICollection<GroupPermission> GroupPermissions { get; set; } = new List<GroupPermission>();
+    public ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
 }
