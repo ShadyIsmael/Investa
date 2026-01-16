@@ -1,0 +1,57 @@
+# -----------------------------------------------------------------
+# Investa Project - Master .gitignore
+# -----------------------------------------------------------------
+
+# [1] .NET / ASP.NET Core
+# -----------------------
+bin/
+obj/
+*.exe
+*.dll
+*.pdb
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.dotnet/
+.vs/
+.vscode/
+# تجاهل قواعد البيانات المحلية لو موجودة
+*.db
+*.sqlite
+
+# [2] Flutter / Dart
+# -----------------------
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+# تجاهل ملفات الويب الناتجة عن البناء
+/flutter/
+
+# [3] OS & IDE Specific
+# -----------------------
+.DS_Store
+Thumbs.db
+*.swp
+desktop.ini
+.idea/
+
+# [4] Backups & Temporary Folders
+# -----------------------
+*- Copy/
+*.tmp
+*.bak
+*.log
+
+# [5] Environment Secrets (Very Important)
+# -----------------------
+.env
+appsettings.Development.json
+# ملحوظة: لا تتجاهل appsettings.json الأساسي، فقط ملفات الإعدادات الشخصية
+
+/flutter/  # ده هيخفي فولدر الـ SDK اللي نزل
+!flutter_dark_app/  # علامة التعجب دي بتقول للـ Git: "إظهر الفولدر ده حتى لو فيه شبه من الاسم اللي فوق"
