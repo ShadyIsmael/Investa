@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "997573340268",
+    "project_id": "investa-58438",
+    "storage_bucket": "investa-58438.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:997573340268:android:6072303f2b85aced8d7c49",
+        "android_client_info": {
+          "package_name": "com.investa58438.flutterdarkapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCjUXlhpReSb5PsBmDJZ0ZN7EUuUYSO334"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
