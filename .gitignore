@@ -76,3 +76,24 @@ Flutter_Investor/windows/flutter/ephemeral/
 Flutter_Investor/linux/flutter/ephemeral/
 # Also ignore plugin symlinks and other ephemeral dirs
 Flutter_Investor/**/.plugin_symlinks/
+
+# Ignore generated Flutter build artifacts for the Flutter_Founder app
+Flutter_Founder/.dart_tool/
+Flutter_Founder/build/
+Flutter_Founder/.flutter-plugins
+Flutter_Founder/.flutter-plugins-dependencies
+Flutter_Founder/.packages
+Flutter_Founder/.metadata
+Flutter_Founder/android/.gradle/
+Flutter_Founder/android/**/.cxx/
+Flutter_Founder/android/app/.cxx/
+Flutter_Founder/android/app/build/
+Flutter_Founder/android/local.properties
+Flutter_Founder/ios/Flutter/Generated.xcconfig
+Flutter_Founder/ios/Flutter/flutter_export_environment.sh
+Flutter_Founder/ios/Flutter/ephemeral/
+Flutter_Founder/macos/Flutter/ephemeral/
+Flutter_Founder/windows/flutter/ephemeral/
+Flutter_Founder/linux/flutter/ephemeral/
+# Also ignore plugin symlinks and other ephemeral dirs
+Flutter_Founder/**/.plugin_symlinks/
