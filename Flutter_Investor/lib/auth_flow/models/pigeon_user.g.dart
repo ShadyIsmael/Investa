@@ -82,11 +82,11 @@ class UserDetails {
     result as List<Object?>;
     return UserDetails(
       userInfo: result[0]! as UserInfo,
-      providerData: (result[1] as List<Object?>?)!.cast<Map<String?, Object?>?>(),
+      providerData:
+          (result[1] as List<Object?>?)!.cast<Map<String?, Object?>?>(),
     );
   }
 }
-
 
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
@@ -95,10 +95,10 @@ class _PigeonCodec extends StandardMessageCodec {
     if (value is int) {
       buffer.putUint8(4);
       buffer.putInt64(value);
-    }    else if (value is UserInfo) {
+    } else if (value is UserInfo) {
       buffer.putUint8(129);
       writeValue(buffer, value.encode());
-    }    else if (value is UserDetails) {
+    } else if (value is UserDetails) {
       buffer.putUint8(130);
       writeValue(buffer, value.encode());
     } else {
@@ -109,9 +109,9 @@ class _PigeonCodec extends StandardMessageCodec {
   @override
   Object? readValueOfType(int type, ReadBuffer buffer) {
     switch (type) {
-      case 129: 
+      case 129:
         return UserInfo.decode(readValue(buffer)!);
-      case 130: 
+      case 130:
         return UserDetails.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
@@ -123,9 +123,11 @@ class AuthBridge {
   /// Constructor for [AuthBridge].  The [binaryMessenger] named argument is
   /// available for dependency injection.  If it is left null, the default
   /// BinaryMessenger will be used which routes to the host platform.
-  AuthBridge({BinaryMessenger? binaryMessenger, String messageChannelSuffix = ''})
+  AuthBridge(
+      {BinaryMessenger? binaryMessenger, String messageChannelSuffix = ''})
       : pigeonVar_binaryMessenger = binaryMessenger,
-        pigeonVar_messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
+        pigeonVar_messageChannelSuffix =
+            messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
   final BinaryMessenger? pigeonVar_binaryMessenger;
 
   static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
@@ -133,8 +135,10 @@ class AuthBridge {
   final String pigeonVar_messageChannelSuffix;
 
   Future<UserDetails?> currentUser() async {
-    final String pigeonVar_channelName = 'dev.flutter.pigeon.flutter_investor.AuthBridge.currentUser$pigeonVar_messageChannelSuffix';
-    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+    final String pigeonVar_channelName =
+        'dev.flutter.pigeon.flutter_investor.AuthBridge.currentUser$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel =
+        BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
