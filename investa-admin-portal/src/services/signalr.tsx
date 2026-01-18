@@ -1,18 +1,14 @@
 /**
- * SignalR Service Provider
- * Centralized real-time communication via SignalR with dynamic URL resolution
+ * SignalR Stub
+ * Removed real SignalR dependency and replaced with a small no-op stub to keep APIs stable.
  */
 
-import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
-import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr';
-import { logger } from '@/utils/logger';
-import { getDynamicHubUrl, storage } from '@/utils/environment';
-import { toast } from 'react-toastify';
+import React, { createContext, useContext } from 'react';
 
 export type ConnectionState = 'Disconnected' | 'Connecting' | 'Connected' | 'Reconnecting';
 
 interface SignalRContextValue {
-  connection: HubConnection | null;
+  connection: null;
   connectionState: ConnectionState;
   start: () => Promise<void>;
   stop: () => Promise<void>;
@@ -20,184 +16,25 @@ interface SignalRContextValue {
   off: (eventName: string, cb?: (...args: any[]) => void) => void;
 }
 
-const SignalRContext = createContext<SignalRContextValue | undefined>(undefined);
+const defaultValue: SignalRContextValue = {
+  connection: null,
+  connectionState: 'Disconnected',
+  start: async () => {},
+  stop: async () => {},
+  on: () => {},
+  off: () => {}
+};
+
+const SignalRContext = createContext<SignalRContextValue>(defaultValue);
 
 export const SignalRProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const connectionRef = useRef<HubConnection | null>(null);
-  const [connectionState, setConnectionState] = useState<ConnectionState>('Disconnected');
-  const listenersRef = useRef<Map<string, Set<(...args: any[]) => void>>>(new Map());
+  return <SignalRContext.Provider value={defaultValue}>{children}</SignalRContext.Provider>;
+};
 
-  // Toast de-duplication and rate-limiting
-  // - Prevents duplicate toasts for the same conversation/number within a short window
-  // - Global rate limit to avoid spamming the admin UI
-  const toastHistoryRef = useRef<Record<string, number>>({}); // key -> lastShownTs
-  const toastTimestampsRef = useRef<number[]>([]); // timestamps of recent toasts
-  const suppressionShownRef = useRef<number | null>(null); // timestamp when suppression toast was shown
+export function useSignalR() {
+  return useContext(SignalRContext);
+}
 
-  const TOAST_DEDUPE_TTL = 30 * 1000; // 30s for same-key dedupe
-  const TOAST_RATE_WINDOW = 60 * 1000; // 1 minute sliding window
-  const MAX_TOASTS_PER_WINDOW = 6; // allow up to 6 toasts per window
-  const SUPPRESSION_TOAST_TTL = 5 * 60 * 1000; // 5 min gap between suppression notices
-
-  const createConnection = useCallback(() => {
-    // Dynamic Hub URL using window.location.hostname
-    const hubUrl = getDynamicHubUrl('/chathub');
-    logger.signalr.connecting(hubUrl);
-
-    const conn = new HubConnectionBuilder()
-      .withUrl(hubUrl, {
-        accessTokenFactory: () => storage.get('token') || ''
-      })
-      .withAutomaticReconnect([0, 2000, 5000, 10000])
-      .configureLogging(LogLevel.Information)
-      .build();
-
-    // Configure timeouts
-    try {
-      (conn as any).serverTimeoutInMilliseconds = 120000; // 2 minutes
-      (conn as any).keepAliveIntervalInMilliseconds = 15000; // 15 seconds
-      logger.debug('SignalR timeouts configured', {
-        serverTimeout: 120000,
-        keepAlive: 15000
-      });
-    } catch (e) {
-      logger.warn('Could not set SignalR timeouts', e);
-    }
-
-    // Store hub URL for debugging
-    (conn as any)._hubUrl = hubUrl;
-
-    // Global diagnostic: log any incoming event for debugging/troubleshooting
-    // This "spy" helps verify event names match exactly (case-sensitive)
-    try {
-      if (typeof (conn as any).onAny === 'function') {
-        (conn as any).onAny((eventName: string, ...args: any[]) => {
-          console.log(`🔍 [SignalR Spy] Event: ${eventName}`, args);
-          logger.signalr.event(eventName, args);
-        });
-        console.log('🔍 SignalR Spy activated - logging all incoming events');
-      } else {
-        // Fallback: manually hook into connection's internal event emitter
-        console.warn('⚠️ connection.onAny not available, using fallback spy');
-        const originalOn = conn.on.bind(conn);
-        (conn as any).on = (eventName: string, handler: any) => {
-          const wrappedHandler = (...args: any[]) => {
-            console.log(`🔍 [SignalR Spy] Event: ${eventName}`, args);
-            handler(...args);
-          };
-          return originalOn(eventName, wrappedHandler);
-        };
-      }
-    } catch (e) {
-      console.error('❌ Failed to activate SignalR Spy:', e);
-      logger.debug('onAny not available on this HubConnection', e);
-    }
-
-    // Lifecycle event handlers
-    conn.onreconnecting(() => {
-      console.log('⚠️ SignalR Reconnecting...');
-      logger.signalr.reconnecting();
-      setConnectionState('Reconnecting');
-    });
-
-    conn.onreconnected(async (connectionId?: string) => {
-      console.log('✅ SignalR Reconnected:', connectionId);
-      logger.signalr.reconnected(connectionId);
-      setConnectionState('Connected');
-
-      // ✅ CRUCIAL: Re-join Admins group after reconnection
-      console.log('🔌 SignalR Reconnected! Now attempting to re-join Admins group...');
-      conn.invoke('JoinGroup', 'Admins')
-        .then(() => {
-          console.log('✅ Successfully joined Admins group - ready to receive events');
-          logger.info('Re-joined Admins group after reconnection');
-        })
-        .catch(err => {
-          console.error('❌ Failed to join Admins group:', err);
-          logger.error('Failed to re-join Admins group', err);
-        });
-
-      // Request assignments refresh after reconnection
-      try {
-        await conn.invoke('RequestAssignments');
-        logger.debug('Requested assignments after reconnection');
-      } catch (e) {
-        logger.warn('RequestAssignments invoke failed', e);
-      }
-
-      // Emit reconnected event
-      try {
-        window.dispatchEvent(
-          new CustomEvent('investa:signalr:reconnected', { 
-            detail: { connectionId } 
-          })
-        );
-      } catch (e) {
-        // Ignore
-      }
-    });
-
-    conn.onclose((error?: Error | string) => {
-      console.log('❌ SignalR Connection Closed:', error);
-      logger.signalr.disconnected(error);
-      setConnectionState('Disconnected');
-    });
-
-    // Register event handlers
-    const registerEventHandler = (eventName: string, handler: (payload: any) => void) => {
-      try {
-        conn.on(eventName, (payload: any) => {
-          logger.signalr.event(eventName, payload);
-          handler(payload);
-        });
-      } catch (e) {
-        logger.error(`Failed to register handler for ${eventName}`, e);
-      }
-    };
-
-    // New chat request event
-    registerEventHandler('NewChatRequest', (payload) => {
-      try {
-        window.dispatchEvent(
-          new CustomEvent('investa:signalr:new-chat', { detail: payload })
-        );
-      } catch (e) {
-        // Ignore
-      }
-    });
-
-    registerEventHandler('newChatRequest', (payload) => {
-      try {
-        window.dispatchEvent(
-          new CustomEvent('investa:signalr:new-chat', { detail: payload })
-        );
-      } catch (e) {
-        // Ignore
-      }
-    });
-
-    // Assigned new user event
-    const handleAssignment = (payload: any) => {
-      try {
-        window.dispatchEvent(
-          new CustomEvent('investa:signalr:assigned-user', { detail: payload })
-        );
-      } catch (e) {
-        // Ignore
-      }
-    };
-
-    registerEventHandler('AssignedNewUser', handleAssignment);
-    registerEventHandler('assignedNewUser', handleAssignment);
-
-    // Receive message event
-    registerEventHandler('ReceiveMessage', (payload) => {
-      try {
-        window.dispatchEvent(
-          new CustomEvent('investa:signalr:receive-message', { detail: payload })
-        );
-      } catch (e) {
-        // Ignore
       }
     });
 

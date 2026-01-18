@@ -28,6 +28,7 @@ import { getUserProfile } from '@/services/profileService';
 import ChatRequestListener from '@/features/support/ChatRequestListener';
 import ChatConversationsListener from '@/features/support/ChatConversationsListener';
 import BackendHealthMonitor from '@/services/backendHealth';
+import Notifications from '@/components/common/Notifications';
 import { AuthProvider, usePermissions } from '@/context/AuthContext';
 
 const AppContent: React.FC = () => {
@@ -270,6 +271,8 @@ const AppContent: React.FC = () => {
     <div className={`${theme} h-screen flex overflow-hidden`}>
       {/* Backend health monitor runs in background and emits events for UI */}
       <BackendHealthMonitor />
+      {/* Firebase Cloud Messaging notifications */}
+      <Notifications />
       <div className="flex w-full h-full bg-slate-50 dark:bg-slate-950 transition-colors duration-300 font-sans antialiased text-slate-900 dark:text-slate-100 animate-in fade-in zoom-in-95 duration-700">
         <Sidebar 
           activeTab={activeTab} 

@@ -55,8 +55,7 @@ namespace Investa.API.Controllers
                     {
                         api = $"http://{serverName}:5000/api",
                         swagger = $"http://{serverName}:5000/swagger",
-                        chatHub = $"http://{serverName}:5000/hubs/chat",
-                        notificationHub = $"http://{serverName}:5000/hubs/notification"
+                        notifications = "Firebase Cloud Messaging (FCM)"
                     }
                 };
 

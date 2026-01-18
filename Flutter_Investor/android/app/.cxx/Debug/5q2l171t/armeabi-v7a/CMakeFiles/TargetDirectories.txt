@@ -1,0 +1,2 @@
+D:/projects/newMobile/flutter_dark_app/android/app/.cxx/Debug/5q2l171t/armeabi-v7a/CMakeFiles/edit_cache.dir
+D:/projects/newMobile/flutter_dark_app/android/app/.cxx/Debug/5q2l171t/armeabi-v7a/CMakeFiles/rebuild_cache.dir

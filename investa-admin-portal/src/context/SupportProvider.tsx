@@ -2,8 +2,7 @@
  * SupportProvider
  * Exposes high-level support state (SignalR connection status, host info)
  */
-import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
-import { useSignalR } from '../services/signalr';
+import React, { createContext, useContext, useMemo, useState, useCallback } from 'react';
 
 export type SupportConnectionStatus = 'Connected' | 'Connecting' | 'Disconnected' | 'Reconnecting';
 
@@ -17,16 +16,8 @@ interface SupportContextValue {
 const SupportContext = createContext<SupportContextValue | undefined>(undefined);
 
 export const SupportProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { connectionState, start, stop } = useSignalR();
+  // SignalR has been removed; provide a lightweight, no-op provider to preserve API
   const [connectionStatus, setConnectionStatus] = useState<SupportConnectionStatus>('Disconnected');
-
-  useEffect(() => {
-    // Map service state to provider state (they are the same shape but keep this layer for separation)
-    if (connectionState === 'Connected') setConnectionStatus('Connected');
-    else if (connectionState === 'Connecting') setConnectionStatus('Connecting');
-    else if (connectionState === 'Reconnecting') setConnectionStatus('Reconnecting');
-    else setConnectionStatus('Disconnected');
-  }, [connectionState]);
 
   const host = useMemo(() => {
     const hostname = typeof window !== 'undefined' ? window.location.hostname : 'unknown';
@@ -34,16 +25,14 @@ export const SupportProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   const connect = useCallback(async () => {
-    try {
-      await start();
-    } catch (e) {
-      // ignore - the signalR service will log
-    }
-  }, [start]);
+    // no-op
+    setConnectionStatus('Connected');
+  }, []);
 
   const disconnect = useCallback(async () => {
-    try { await stop(); } catch (e) { /* ignore */ }
-  }, [stop]);
+    // no-op
+    setConnectionStatus('Disconnected');
+  }, []);
 
   return (
     <SupportContext.Provider value={{ connectionStatus, host, connect, disconnect }}>

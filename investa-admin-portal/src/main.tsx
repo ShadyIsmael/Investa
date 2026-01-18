@@ -3,8 +3,6 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
-import { SignalRProvider } from './services/signalr';
-import { SupportProvider } from './context/SupportProvider';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -14,11 +12,7 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <SignalRProvider>
-      <SupportProvider>
-        <App />
-        <ToastContainer position="top-right" autoClose={4500} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
-      </SupportProvider>
-    </SignalRProvider>
+    <App />
+    <ToastContainer position="top-right" autoClose={4500} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
   </React.StrictMode>
 );

@@ -102,6 +102,9 @@ public class ApplicationDbContext : IdentityDbContext
     // Many-to-many join between Clients and BusinessCategories
     public DbSet<ClientBusinessCategory> ClientBusinessCategories { get; set; }
 
+    // Firebase Cloud Messaging device tokens for push notifications (new keyword hides Identity's UserTokens)
+    public new DbSet<UserToken> UserTokens { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

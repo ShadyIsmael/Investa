@@ -9,10 +9,8 @@ using Investa.Domain.Entities.Chat;
 using Investa.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Investa.API.Hubs;
 using Investa.Domain.Entities.Security;
 
 namespace Investa.API.Controllers
@@ -23,16 +21,13 @@ namespace Investa.API.Controllers
     public class SupportController : ControllerBase
     {
         private readonly ApplicationDbContext _db;
-        private readonly IHubContext<ChatHub> _hubContext;
         private readonly ILogger<SupportController> _logger;
 
         private const string AdminRole = nameof(UserRoles.Admin);
-        private const string SupportSessionGroupPrefix = "SupportSession:";
 
-        public SupportController(ApplicationDbContext db, IHubContext<ChatHub> hubContext, ILogger<SupportController> logger)
+        public SupportController(ApplicationDbContext db, ILogger<SupportController> logger)
         {
             _db = db;
-            _hubContext = hubContext;
             _logger = logger;
         }
 
@@ -217,15 +212,8 @@ namespace Investa.API.Controllers
             await _db.ChatMessages.AddAsync(chatMessage);
             await _db.SaveChangesAsync();
 
-            // Broadcast the message to the SignalR group
-            await _hubContext.Clients.Group($"{SupportSessionGroupPrefix}{id}").SendAsync("ReceiveMessage", new
-            {
-                MessageId = chatMessage.Id,
-                SupportSessionId = id,
-                Sender = chatMessage.SenderId,
-                Text = chatMessage.MessageText,
-                Time = chatMessage.Timestamp
-            });
+            // Note: Real-time notifications now handled via Firebase Cloud Messaging
+            // Clients should poll for new messages or register for FCM push notifications
 
             return Ok();
         }
