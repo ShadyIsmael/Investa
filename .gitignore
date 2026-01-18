@@ -55,3 +55,24 @@ appsettings.Development.json
 
 /flutter/  # ده هيخفي فولدر الـ SDK اللي نزل
 !Flutter_Investor/  # علامة التعجب دي بتقول للـ Git: "إظهر الفولدر ده حتى لو فيه شبه من الاسم اللي فوق"
+
+# Ignore generated Flutter build artifacts for the Flutter_Investor app
+Flutter_Investor/.dart_tool/
+Flutter_Investor/build/
+Flutter_Investor/.flutter-plugins
+Flutter_Investor/.flutter-plugins-dependencies
+Flutter_Investor/.packages
+Flutter_Investor/.metadata
+Flutter_Investor/android/.gradle/
+Flutter_Investor/android/**/.cxx/
+Flutter_Investor/android/app/.cxx/
+Flutter_Investor/android/app/build/
+Flutter_Investor/android/local.properties
+Flutter_Investor/ios/Flutter/Generated.xcconfig
+Flutter_Investor/ios/Flutter/flutter_export_environment.sh
+Flutter_Investor/ios/Flutter/ephemeral/
+Flutter_Investor/macos/Flutter/ephemeral/
+Flutter_Investor/windows/flutter/ephemeral/
+Flutter_Investor/linux/flutter/ephemeral/
+# Also ignore plugin symlinks and other ephemeral dirs
+Flutter_Investor/**/.plugin_symlinks/
