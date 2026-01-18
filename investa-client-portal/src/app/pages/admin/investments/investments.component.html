@@ -1,0 +1,235 @@
+<div class="container mx-auto p-6 lg:p-8">
+  <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+    <h1 class="text-3xl font-bold">{{ 'investments.title' | translate }}</h1>
+  </div>
+
+  <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl p-6 md:p-8">
+    
+    <form [formGroup]="filterForm">
+      <!-- Controls: Category Menu and Search -->
+      <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-6">
+        <!-- Category Menu -->
+        <nav class="relative flex p-1 bg-slate-800/60 rounded-full w-full md:w-auto">
+          @if (categories().length > 0) {
+            @let activeIndex = categories().indexOf(activeCategory());
+            <div class="absolute top-1 bottom-1 start-0 rounded-full bg-blue-600 shadow-md transition-transform duration-300 ease-in-out"
+                [style.width]="'calc(100% / ' + categories().length + ')'"
+                [style.transform]="'translateX(' + activeIndex * 100 + '%)'">
+            </div>
+          }
+          @for(cat of categories(); track cat) {
+            <button type="button" (click)="selectCategory(cat)"
+                    [class]="activeCategory() === cat ? 'text-white' : 'text-gray-400 hover:text-white'"
+                    class="relative z-10 flex-1 text-center px-4 py-2 rounded-full font-semibold text-sm transition-colors duration-300 focus:outline-none">
+              {{ (cat | lowercase) | translate }}
+            </button>
+          }
+        </nav>
+
+        <!-- Search Bar and Advanced Search Button -->
+        <div class="flex items-center gap-2 w-full md:w-auto">
+          <div class="relative flex-grow">
+              <input 
+                  type="text" 
+                  [placeholder]="'investments.filterPlaceholder' | translate"
+                  formControlName="searchTerm"
+                  class="w-full md:w-64 bg-slate-800 border border-slate-700 rounded-full shadow-sm py-2 ps-10 pe-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+              <div class="absolute inset-y-0 start-0 ps-4 flex items-center pointer-events-none">
+                  <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              </div>
+          </div>
+          <button (click)="toggleAdvancedSearch()" type="button" [title]="'investments.advancedSearch' | translate" class="p-2.5 bg-slate-800 border border-slate-700 rounded-full text-gray-400 hover:text-white hover:bg-slate-700 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 8a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm0 4a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"></path></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Advanced Search Panel -->
+      @if (isAdvancedSearchOpen()) {
+        <div class="bg-slate-800/50 border border-slate-700 rounded-lg p-6 mb-6 animate-fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-end">
+                <!-- Risk Level -->
+                <div formGroupName="riskLevels">
+                    <h4 class="font-semibold text-white mb-3">{{ 'investments.riskLevel' | translate }}</h4>
+                    <div class="flex items-center space-x-6 rtl:space-x-reverse">
+                        <label class="flex items-center space-x-2 rtl:space-x-reverse text-gray-300 cursor-pointer">
+                            <input type="checkbox" formControlName="low" class="h-4 w-4 bg-slate-700 border-slate-600 text-blue-500 focus:ring-blue-600 rounded">
+                            <span>{{ 'investments.risk.low' | translate }}</span>
+                        </label>
+                        <label class="flex items-center space-x-2 rtl:space-x-reverse text-gray-300 cursor-pointer">
+                            <input type="checkbox" formControlName="medium" class="h-4 w-4 bg-slate-700 border-slate-600 text-blue-500 focus:ring-blue-600 rounded">
+                            <span>{{ 'investments.risk.medium' | translate }}</span>
+                        </label>
+                        <label class="flex items-center space-x-2 rtl:space-x-reverse text-gray-300 cursor-pointer">
+                            <input type="checkbox" formControlName="high" class="h-4 w-4 bg-slate-700 border-slate-600 text-blue-500 focus:ring-blue-600 rounded">
+                            <span>{{ 'investments.risk.high' | translate }}</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Funding Progress -->
+                <div>
+                    <h4 class="font-semibold text-white mb-3">{{ 'investments.fundingProgress' | translate }} (%)</h4>
+                    <div class="flex items-center gap-2">
+                        <input type="number" formControlName="minFunding" min="0" max="100" [placeholder]="'investments.min' | translate" class="w-full bg-slate-700 border border-slate-600 rounded-md py-1.5 px-3 text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                        <span class="text-gray-400">{{ 'investments.to' | translate }}</span>
+                        <input type="number" formControlName="maxFunding" min="0" max="100" [placeholder]="'investments.max' | translate" class="w-full bg-slate-700 border border-slate-600 rounded-md py-1.5 px-3 text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    </div>
+                </div>
+                
+                <!-- Favorites & Reset -->
+                <div class="flex items-end justify-between md:justify-end gap-4 flex-wrap">
+                    <div>
+                        <h4 class="font-semibold text-white mb-3">{{ 'investments.showOnly' | translate }}</h4>
+                        <label for="onlyFavorites" class="flex items-center cursor-pointer">
+                            <div class="relative">
+                                <input type="checkbox" formControlName="onlyFavorites" id="onlyFavorites" class="sr-only peer">
+                                <div class="w-11 h-6 bg-slate-700 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-500/50 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </div>
+                            <div class="ms-3 text-gray-300">
+                                {{ 'investments.favorites' | translate }}
+                            </div>
+                        </label>
+                    </div>
+                    <button (click)="resetAdvancedFilters()" type="button" class="bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 px-4 rounded-md transition-colors">
+                        {{ 'investments.reset' | translate }}
+                    </button>
+                </div>
+            </div>
+        </div>
+      }
+    </form>
+    
+    <!-- Investment Cards Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-8 min-h-[550px]">
+      @for (investment of paginatedInvestments(); track investment.name) {
+        <div class="bg-slate-800/50 border border-slate-700 rounded-xl flex flex-col transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-500/50 transform hover:-translate-y-1 animate-fade-in group">
+          
+          <!-- Card Header: Author and Score -->
+          <div class="p-4 flex items-center justify-between border-b border-slate-700">
+              <div class="flex items-center gap-3">
+                  <img [src]="investment.authorImage" alt="{{ investment.author }}" class="w-10 h-10 rounded-full object-cover">
+                  <span class="font-semibold text-white truncate">{{ investment.author }}</span>
+              </div>
+              <div class="bg-blue-500/20 text-blue-300 text-xs font-bold px-2.5 py-1 rounded-full">
+                  {{ 'investments.score' | translate }} : {{ investment.score }}
+              </div>
+          </div>
+      
+          <!-- Card Body: Title, Description, Tags -->
+          <a [routerLink]="['/admin/investments', investment.id]" class="block p-4 flex-grow hover:bg-slate-800/20 transition-colors">
+              <h3 class="text-lg font-bold text-white mb-2 truncate group-hover:text-blue-400 transition-colors">{{ investment.name }}</h3>
+              <p class="text-gray-400 text-sm mb-4 min-h-16 line-clamp-3" [title]="investment.description">
+                  {{ investment.description }}
+              </p>
+              <div class="flex items-center gap-2 flex-wrap">
+                  <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full" [class]="investment.type === InvestmentType.Stock ? 'bg-blue-500/20 text-blue-300' : investment.type === InvestmentType.Crypto ? 'bg-yellow-500/20 text-yellow-300' : 'bg-purple-500/20 text-purple-300'">
+                      {{ (investment.type | lowercase) | translate }}
+                  </span>
+                  <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full" [class]="investment.riskLevel === RiskLevel.Low ? 'bg-green-500/20 text-green-300' : investment.riskLevel === RiskLevel.Medium ? 'bg-orange-500/20 text-orange-300' : 'bg-red-500/20 text-red-300'">
+                      {{ ('investments.risk.' + (investment.riskLevel | lowercase)) | translate }} {{ 'investments.risk.risk' | translate }}
+                  </span>
+              </div>
+          </a>
+      
+          <!-- Funding Progress -->
+          <div class="px-4 pb-4">
+              @let progress = (investment.currentFund / investment.targetFund) * 100;
+              <div class="w-full bg-slate-700 rounded-full h-2 mb-2">
+                  <div class="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full" [style.width]="progress + '%'"></div>
+              </div>
+              <div class="flex justify-between text-sm">
+                  <span class="text-gray-300 font-medium">
+                      <span class="text-white font-bold">{{ investment.currentFund | number }}</span> / {{ investment.targetFund | number }} USD
+                  </span>
+                  <span class="text-white font-bold">{{ progress | number:'1.0-0' }}%</span>
+              </div>
+          </div>
+
+          <!-- Investors -->
+          <div class="px-4 pb-4">
+            <h4 class="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">{{ 'investments.investors' | translate }}</h4>
+            <div class="flex items-center -space-x-2 rtl:space-x-reverse">
+                @for(investor of investment.investors.slice(0, 5); track investor.name) {
+                    <img class="inline-block h-8 w-8 rounded-full ring-2 ring-slate-800 object-cover" [src]="investor.imageUrl" [alt]="investor.name" [title]="investor.name">
+                }
+                @if(investment.investors.length > 5) {
+                    <div class="flex items-center justify-center h-8 w-8 rounded-full bg-slate-700 ring-2 ring-slate-800 text-xs font-bold text-white">
+                        +{{ investment.investors.length - 5 }}
+                    </div>
+                }
+            </div>
+          </div>
+          
+          <!-- Card Footer: Actions -->
+          <div class="p-4 border-t border-slate-700 flex justify-between items-center bg-slate-800/30 rounded-b-xl">
+              <div class="flex items-center gap-1">
+                  <button [attr.aria-label]="'investments.share' | translate" class="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-slate-700">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12s-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.368a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path></svg>
+                  </button>
+                  <button (click)="toggleFavorite(investment)" [class.favorited]="investment.favorited" [attr.aria-label]="'investments.addToFavorites' | translate" class="favorite-btn text-gray-400 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-slate-700">
+                      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg>
+                  </button>
+              </div>
+              <button (click)="promptEngage(investment)" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-5 rounded-full hover:opacity-90 transition-opacity duration-300 text-sm">
+                  {{ 'investments.engage' | translate }}
+              </button>
+          </div>
+      
+        </div>
+      } @empty {
+        <div class="col-span-full text-center py-20 text-gray-500 animate-fade-in flex flex-col items-center justify-center">
+          <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h10a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+          </svg>
+          <h3 class="mt-2 text-sm font-semibold text-white">{{ 'investments.noResultsTitle' | translate }}</h3>
+          <p class="mt-1 text-sm text-gray-500">{{ 'investments.noResultsSubtitle' | translate }}</p>
+        </div>
+      }
+    </div>
+    
+    <!-- Pagination -->
+    @if (totalPages() > 1) {
+      <div class="flex justify-between items-center mt-8 pt-6 border-t border-slate-800">
+        <button (click)="previousPage()" [disabled]="currentPage() === 1" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-full transition-colors duration-300">
+          <svg class="w-5 h-5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+          {{ 'investments.previous' | translate }}
+        </button>
+        <span class="text-sm text-gray-400">
+          {{ 'investments.page' | translate }} <span class="font-bold text-white">{{ currentPage() }}</span> {{ 'investments.of' | translate }} <span class="font-bold text-white">{{ totalPages() }}</span>
+        </span>
+        <button (click)="nextPage()" [disabled]="currentPage() === totalPages()" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded-full transition-colors duration-300">
+          {{ 'investments.next' | translate }}
+          <svg class="w-5 h-5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+        </button>
+      </div>
+    }
+
+  </div>
+</div>
+
+@if (investmentToEngage(); as investment) {
+  <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in" style="animation-duration: 0.2s;">
+    <div class="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl w-full max-w-lg m-4 p-8 text-center animate-fade-in" style="animation-delay: 0.1s; animation-duration: 0.3s;">
+      <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 border-2 border-blue-500/30">
+        <svg class="w-8 h-8 text-blue-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <h3 class="text-xl font-bold text-white mt-5">{{ 'investments.engageModal.title' | translate }}</h3>
+      <p class="text-gray-400 mt-2" [innerHTML]="('investments.engageModal.message' | translate)
+        .replace('{investmentName}', '<span class=\'font-bold text-white\'>' + investment.name + '</span>')
+        .replace('{creditCost}', '<span class=\'font-bold text-white\'>' + engagementCreditCost + '</span>')">
+      </p>
+      <div class="mt-8 flex justify-center gap-4">
+        <button (click)="cancelEngage()" class="bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2.5 px-6 rounded-full transition-colors">
+          {{ 'investments.engageModal.cancelButton' | translate }}
+        </button>
+        <button (click)="confirmEngage()" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2.5 px-6 rounded-full hover:opacity-90 transition-opacity">
+          {{ 'investments.engageModal.proceedButton' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

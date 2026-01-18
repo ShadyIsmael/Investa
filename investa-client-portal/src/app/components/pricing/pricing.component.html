@@ -1,0 +1,42 @@
+<section class="py-20 bg-gray-900">
+  <div class="container mx-auto px-6">
+    <div class="text-center mb-16 animate-fade-in">
+      <h2 class="text-3xl md:text-4xl font-bold text-white">{{ 'pricing.title' | translate }}</h2>
+      <p class="text-lg text-gray-400 mt-4 max-w-2xl mx-auto">{{ 'pricing.subtitle' | translate }}</p>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center lg:items-stretch">
+      @for(tier of tiers(); track tier.nameKey; let i = $index) {
+        <div class="bg-slate-800 p-8 rounded-lg border flex flex-col transition-transform duration-300 animate-fade-in" 
+             [class]="tier.isPopular ? 'border-blue-500 lg:scale-105' : 'border-slate-700'" 
+             [class.relative]="tier.isPopular"
+             [style.animation-delay]="150 * i + 'ms'">
+          @if(tier.isPopular) {
+            <div class="absolute top-0 end-6 -translate-y-1/2 bg-blue-500 text-white text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">{{ 'pricing.popular' | translate }}</div>
+          }
+          <div class="flex-grow">
+            <h3 class="text-2xl font-semibold text-white">{{ tier.nameKey | translate }}</h3>
+            <p class="text-gray-400 mt-2 h-12">{{ tier.descriptionKey | translate }}</p>
+            <div class="mt-6">
+              <span class="text-5xl font-bold text-white">{{ tier.price }}</span>
+              @if(tier.priceSuffixKey) {
+                <span class="text-gray-400">/ {{ tier.priceSuffixKey | translate }}</span>
+              }
+            </div>
+            <ul class="mt-8 space-y-4">
+              @for(feature of tier.features; track feature) {
+                <li class="flex items-center">
+                  <svg class="w-5 h-5 text-green-400 me-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                  <span class="text-gray-300">{{ feature | translate }}</span>
+                </li>
+              }
+            </ul>
+          </div>
+          <a routerLink="/signup" class="mt-8 w-full block text-center py-3 px-6 rounded-full font-semibold transition-colors duration-300"
+            [class]="tier.isPopular ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-slate-700 text-white hover:bg-slate-600'">
+            {{ tier.buttonKey | translate }}
+          </a>
+        </div>
+      }
+    </div>
+  </div>
+</section>

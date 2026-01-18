@@ -8,7 +8,7 @@ plugins {
 
 android {
     // namespace must be a valid Java package (no hyphens); avoid underscores if possible.
-    namespace = "com.investa.flutter_founder"
+    namespace = "com.investa58438.flutterdarkapp"
     compileSdk = flutter.compileSdkVersion
 
     compileOptions {
@@ -24,7 +24,7 @@ android {
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         // Application ID must match the package name you register in Firebase.
-        applicationId = "com.investa.flutter_founder"
+        applicationId = "com.investa58438.flutterdarkapp"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 26  // Increased to support firebase_messaging and other modern packages

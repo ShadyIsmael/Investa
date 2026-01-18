@@ -1,0 +1,131 @@
+<div class="h-[calc(100vh-61px)] flex">
+  <!-- Sidebar with contacts -->
+  <aside class="w-1/3 xl:w-1/4 bg-slate-900 border-e border-slate-800 flex flex-col">
+    <div class="p-4 border-b border-slate-800">
+      <h2 class="text-xl font-bold text-white">{{ 'chat.title' | translate }}</h2>
+      <div class="relative mt-4">
+        <input type="text" [placeholder]="'chat.searchPlaceholder' | translate" class="w-full bg-slate-800 border border-slate-700 rounded-full py-2 ps-10 pe-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <div class="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none">
+          <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </div>
+      </div>
+    </div>
+    <div class="flex-1 overflow-y-auto">
+      @for (contact of contacts(); track contact.id) {
+        <div (click)="selectContact(contact)" class="flex items-center p-4 cursor-pointer hover:bg-slate-800/50 transition-colors" [class.bg-blue-600/20]="selectedContact()?.id === contact.id">
+          <div class="relative flex-shrink-0">
+            <img class="w-12 h-12 rounded-full object-cover" [src]="contact.avatarUrl" [alt]="contact.name">
+            @if(contact.online) {
+              <span class="absolute bottom-0 end-0 block h-3 w-3 rounded-full bg-green-500 ring-2 ring-slate-900"></span>
+            }
+          </div>
+          <div class="ms-4 flex-1 truncate">
+            <p class="font-semibold text-white truncate">{{ contact.name }}</p>
+            <p class="text-sm text-gray-400 truncate">{{ contact.lastMessage }}</p>
+          </div>
+          <span class="text-xs text-gray-500 ms-2">{{ contact.timestamp }}</span>
+        </div>
+      }
+    </div>
+  </aside>
+
+  <!-- Main chat area -->
+  <main class="flex-1 flex flex-col bg-slate-950/80">
+    @if (selectedContact(); as contact) {
+      <!-- Chat Header -->
+      <header class="flex items-center justify-between p-4 bg-slate-900 border-b border-slate-800">
+        <div class="flex items-center">
+          <img class="w-10 h-10 rounded-full object-cover me-4" [src]="contact.avatarUrl" [alt]="contact.name">
+          <div>
+            <p class="font-semibold text-white">{{ contact.name }}</p>
+            <p class="text-sm text-gray-400">{{ contact.online ? ('chat.online' | translate) : ('chat.offline' | translate) }}</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button (click)="startAudioCall()" [title]="'chat.startAudioCall' | translate" class="text-gray-400 hover:text-white p-2 rounded-full hover:bg-slate-700 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+          </button>
+          <button (click)="startVideoCall()" [title]="'chat.startVideoCall' | translate" class="text-gray-400 hover:text-white p-2 rounded-full hover:bg-slate-700 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+          </button>
+        </div>
+      </header>
+      
+      <!-- Messages -->
+      <div class="flex-1 p-6 overflow-y-auto space-y-4">
+        @for(message of conversation(); track message.id) {
+          <div class="flex items-end gap-2 animate-fade-in" [class.justify-end]="message.isSender">
+            @if(!message.isSender) {
+               <img class="w-8 h-8 rounded-full object-cover self-end" [src]="contact.avatarUrl" [alt]="contact.name">
+            }
+            <div class="max-w-xs md:max-w-md lg:max-w-lg p-1 rounded-2xl" [class]="message.isSender ? 'bg-blue-600 text-white rounded-ee-none' : 'bg-slate-800 text-gray-200 rounded-es-none'">
+              <div class="p-2">
+                @if(message.file; as file) {
+                  <div class="flex items-center gap-3 bg-black/20 p-2 rounded-lg mb-2">
+                    <div class="flex-shrink-0 h-10 w-10 bg-slate-600 rounded-lg flex items-center justify-center">
+                      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </div>
+                    <div class="truncate">
+                      <p class="font-semibold text-sm truncate">{{ file.name }}</p>
+                      <p class="text-xs opacity-70">{{ formatFileSize(file.size) }}</p>
+                    </div>
+                  </div>
+                }
+                @if(message.text) {
+                  <p class="whitespace-pre-wrap break-words">{{ message.text }}</p>
+                }
+              </div>
+              <span class="text-xs mt-1 px-2 pb-1 block opacity-60" [class.text-end]="message.isSender">{{ message.timestamp }}</span>
+            </div>
+             @if(message.isSender) {
+               <img class="w-8 h-8 rounded-full object-cover self-end" src="https://picsum.photos/seed/admin/100/100" alt="You">
+            }
+          </div>
+        } @empty {
+          <div class="flex justify-center items-center h-full text-gray-500">
+            <p>{{ 'chat.noMessages' | translate }}</p>
+          </div>
+        }
+      </div>
+
+      <!-- Message Input -->
+      <footer class="p-4 bg-slate-900 border-t border-slate-800">
+        @if(attachedFile(); as file) {
+            <div class="px-1 pb-3">
+                <div class="bg-slate-800 p-2 rounded-lg flex items-center justify-between animate-fade-in">
+                    <div class="flex items-center gap-3 truncate">
+                         <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <span class="text-sm text-gray-300 truncate">{{ file.name }}</span>
+                    </div>
+                    <button (click)="removeAttachment()" [title]="'chat.removeAttachment' | translate" class="p-1 text-gray-400 hover:text-white hover:bg-slate-700 rounded-full">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+            </div>
+        }
+        <form (ngSubmit)="sendMessage()" class="flex items-center gap-4">
+          <input #fileInput type="file" class="hidden" (change)="onFileSelected($event)">
+          <button type="button" (click)="fileInput.click()" [title]="'chat.attachFile' | translate" class="text-gray-400 hover:text-white p-2 rounded-full hover:bg-slate-700 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+          </button>
+          <input 
+            [formControl]="messageControl"
+            type="text" 
+            [placeholder]="'chat.messagePlaceholder' | translate" 
+            class="flex-1 bg-slate-800 border border-slate-700 rounded-full py-3 px-5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <button type="submit" class="bg-blue-600 text-white rounded-full p-3 hover:bg-blue-700 transition-colors disabled:opacity-50" [disabled]="!messageControl.value?.trim() && !attachedFile()">
+            <svg class="w-6 h-6 transform rotate-90 rtl:-rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+          </button>
+        </form>
+      </footer>
+    } @else {
+       <div class="flex-1 flex items-center justify-center text-gray-500">
+        <div class="text-center">
+            <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 5.523-4.477 10-10 10S1 17.523 1 12 5.477 2 12 2s10 4.477 10 10z"></path></svg>
+            <h3 class="mt-2 text-sm font-semibold text-white">{{ 'chat.noConversationSelected.title' | translate }}</h3>
+            <p class="mt-1 text-sm text-gray-500">{{ 'chat.noConversationSelected.subtitle' | translate }}</p>
+        </div>
+    </div>
+    }
+  </main>
+</div>

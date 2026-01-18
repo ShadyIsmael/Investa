@@ -1,5 +1,2 @@
-package com.investa.flutter_founder
+// Duplicate MainActivity removed; use com.investa58438.flutterdarkapp.MainActivity instead
 
-import io.flutter.embedding.android.FlutterActivity
-
-class MainActivity : FlutterActivity()

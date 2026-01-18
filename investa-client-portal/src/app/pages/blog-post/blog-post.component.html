@@ -1,0 +1,100 @@
+<div class="relative overflow-x-hidden">
+  <app-header></app-header>
+  <main>
+    @if(post(); as p) {
+      <div>
+        <!-- Post Header -->
+        <header class="relative bg-gray-950 text-white pt-32 pb-16 lg:pt-40 lg:pb-24 overflow-hidden">
+          <div class="absolute inset-0 bg-cover bg-center opacity-20" [style.background-image]="'url(' + p.imageUrl + ')'"></div>
+          <div class="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/80 to-transparent"></div>
+          <div class="container mx-auto px-6 relative z-10 text-center animate-fade-in">
+            <p class="text-sm font-semibold text-blue-400 uppercase tracking-wider mb-4">{{ p.category }}</p>
+            <h1 class="text-4xl md:text-6xl font-bold mb-4 text-white max-w-4xl mx-auto">
+              {{ p.titleKey | translate }}
+            </h1>
+            <div class="mt-8 flex items-center justify-center gap-4">
+                <img [src]="p.authorAvatar" class="w-12 h-12 rounded-full ring-2 ring-slate-700"/>
+                <div>
+                    <p class="font-semibold text-white">{{ 'blogPostPage.publishedBy' | translate }} {{ p.author }}</p>
+                    <p class="text-sm text-gray-400">{{ 'blogPostPage.on' | translate }} {{ p.publishedDate }}</p>
+                </div>
+            </div>
+          </div>
+        </header>
+
+        <!-- Post Content -->
+        <div class="bg-gray-950 py-16 lg:py-24">
+          <div class="container mx-auto px-6 max-w-7xl">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+              
+              <!-- Left Sidebar: Social Share -->
+              <div class="hidden lg:block lg:col-span-2">
+                <div class="sticky top-28">
+                  <h3 class="font-semibold text-white mb-4 uppercase text-sm tracking-wider">{{ 'blogPostPage.shareArticle' | translate }}</h3>
+                  <div class="flex lg:flex-col gap-2">
+                    <a href="#" class="w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-blue-600 rounded-full text-gray-400 hover:text-white transition-colors"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"/></svg></a>
+                    <a href="#" class="w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-sky-500 rounded-full text-gray-400 hover:text-white transition-colors"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.223.085c.645 1.956 2.52 3.379 4.738 3.419a9.9 9.9 0 01-6.115 2.107c-.398 0-.79-.023-1.175-.068a13.963 13.963 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/></svg></a>
+                    <a href="#" class="w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-blue-700 rounded-full text-gray-400 hover:text-white transition-colors"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M21 2H3a1 1 0 00-1 1v18a1 1 0 001 1h18a1 1 0 001-1V3a1 1 0 00-1-1zM8.09 18.91H5.5V9.45h2.59v9.46zM6.79 8.35a1.56 1.56 0 110-3.12 1.56 1.56 0 010 3.12zm11.21 10.56h-2.58v-4.6c0-1.1-.02-2.51-1.53-2.51-1.53 0-1.77 1.2-1.77 2.43v4.68H9.53V9.45h2.47v1.14h.04a2.71 2.71 0 012.44-1.34c2.61 0 3.09 1.72 3.09 3.95v4.71z"/></svg></a>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Main Article Content -->
+              <main class="lg:col-span-7">
+                <article class="prose prose-invert prose-lg max-w-none text-gray-300 prose-h2:text-white prose-h2:font-bold prose-h2:border-b prose-h2:border-slate-700 prose-h2:pb-4 prose-strong:text-white prose-a:text-blue-400 hover:prose-a:text-blue-300 prose-ul:list-disc prose-ul:ms-6">
+                  @for(content of postContent(); track $index) {
+                    @if (content.type === 'p') {
+                      <p [innerHTML]="content.text | translate"></p>
+                    } @else if (content.type === 'h2') {
+                      <h2 [innerHTML]="content.text | translate"></h2>
+                    } @else if (content.type === 'ul') {
+                      <ul>
+                        @for(item of content.items; track item) {
+                          <li [innerHTML]="item"></li>
+                        }
+                      </ul>
+                    }
+                  } @empty {
+                    <p>{{ p.excerptKey | translate }}</p>
+                    <p class="mt-8 text-center text-gray-500">Full article coming soon...</p>
+                  }
+                </article>
+              </main>
+
+              <!-- Right Sidebar: Related Posts -->
+              <aside class="lg:col-span-3">
+                <div class="sticky top-28 space-y-8">
+                  <div>
+                    <h3 class="font-semibold text-white mb-4 text-xl">{{ 'blogPostPage.relatedPosts' | translate }}</h3>
+                    <div class="space-y-4">
+                      @for(related of relatedPosts(); track related.slug) {
+                        <a [routerLink]="['/blog', related.slug]" class="flex items-center gap-4 group">
+                          <img [src]="related.imageUrl" alt="" class="w-20 h-16 object-cover rounded-md flex-shrink-0">
+                          <div>
+                            <h4 class="font-semibold text-white group-hover:text-blue-400 transition-colors text-sm line-clamp-2">{{ related.titleKey | translate }}</h4>
+                            <p class="text-xs text-gray-500">{{ related.publishedDate }}</p>
+                          </div>
+                        </a>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </div>
+      </div>
+    } @else {
+      <div class="text-center py-40 text-white">
+        <h1 class="text-4xl font-bold mb-4">{{ 'blogPostPage.notFound.title' | translate }}</h1>
+        <p class="text-lg text-gray-400">{{ 'blogPostPage.notFound.subtitle' | translate }}</p>
+        <a routerLink="/blog" class="mt-8 inline-block bg-gradient-to-r from-blue-500 to-purple-600 font-semibold py-3 px-8 rounded-full hover:opacity-90 transition-opacity">
+          {{ 'blogPostPage.notFound.backButton' | translate }}
+        </a>
+      </div>
+    }
+
+    <app-cta></app-cta>
+  </main>
+  <app-footer></app-footer>
+</div>

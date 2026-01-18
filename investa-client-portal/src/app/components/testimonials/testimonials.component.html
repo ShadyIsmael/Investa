@@ -1,0 +1,22 @@
+<section class="py-20 bg-gray-900">
+  <div class="container mx-auto px-6">
+    <div class="text-center mb-12 animate-fade-in">
+      <h2 class="text-3xl md:text-4xl font-bold text-white">{{ 'testimonials.title' | translate }}</h2>
+      <p class="text-lg text-gray-400 mt-4 max-w-2xl mx-auto">{{ 'testimonials.subtitle' | translate }}</p>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      @for(testimonial of testimonials(); track testimonial.name; let i = $index) {
+        <div class="bg-slate-800 p-8 rounded-lg flex flex-col animate-fade-in" [style.animation-delay]="150 * i + 'ms'">
+          <p class="text-gray-300 italic mb-6 flex-grow">"{{ testimonial.quoteKey | translate }}"</p>
+          <div class="flex items-center mt-auto">
+            <img class="w-12 h-12 rounded-full me-4" [src]="testimonial.avatarUrl" alt="{{ testimonial.name }}">
+            <div>
+              <p class="font-semibold text-white">{{ testimonial.name }}</p>
+              <p class="text-sm text-gray-400">{{ testimonial.title }}</p>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</section>

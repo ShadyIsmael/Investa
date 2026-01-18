@@ -73,12 +73,7 @@ public class JwtTokenService : IJwtTokenService
             if (authUser != null)
             {
                 // Map UserType enum to our canonical UserRoles
-                if (authUser.UserType == UserType.Client)
-                {
-                    roleClaimValue = UserRoles.Client.ToString();
-                    userTypeValue = roleClaimValue;
-                }
-                else if (authUser.UserType == UserType.OrgUser)
+                if (authUser.UserType == UserType.OrgUser)
                 {
                     // Try to infer Admin role from domain user's Role string
                     if (domainUser != null && !string.IsNullOrWhiteSpace(domainUser.Role) &&
@@ -92,6 +87,13 @@ public class JwtTokenService : IJwtTokenService
                         roleClaimValue = UserRoles.OrgUser.ToString();
                         userTypeValue = roleClaimValue;
                     }
+                }
+                else
+                {
+                    // Client subtypes (Investor/Founder) map to Client role, but expose subtype in claim
+                    roleClaimValue = UserRoles.Client.ToString();
+                    // Normalize legacy 'Client' value to 'Investor' for claims
+                    userTypeValue = authUser.UserType == UserType.Founder ? UserType.Founder.ToString() : UserType.Investor.ToString();
                 }
             }
             
@@ -271,7 +273,7 @@ public class JwtTokenService : IJwtTokenService
                     Id = authUserGuid,
                     Email = user.Email ?? (user.UserName + "@phone.investa.local"),
                     PasswordHash = "", // placeholder; real hash should be created during sign-up flow
-                    UserType = UserType.Client,
+                    UserType = UserType.Investor,
                     Status = true,
                     CreatedAt = DateTime.UtcNow
                 };

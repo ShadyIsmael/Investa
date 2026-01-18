@@ -1,0 +1,38 @@
+<div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[99] flex items-center justify-center p-4 animate-fade-in" style="animation-duration: 0.3s;" (click)="closeModal()">
+  <div class="relative bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl m-4 p-8 md:p-12 text-center animate-fade-in" style="animation-delay: 0.1s; animation-duration: 0.4s;" (click)="$event.stopPropagation()">
+    
+    <button (click)="closeModal()" class="absolute top-4 end-4 text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-slate-700">
+      <span class="sr-only">Close</span>
+      <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+    </button>
+    
+    <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">{{ 'roleSelect.title' | translate }}</h2>
+    <p class="text-gray-400 mb-10 max-w-2xl mx-auto">{{ 'roleSelect.subtitle' | translate }}</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <!-- Investor Card -->
+      <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-8 flex flex-col items-center hover:bg-slate-800 hover:border-blue-500/50 transition-all duration-300 transform hover:-translate-y-1 cursor-pointer group" (click)="selectRole('investor')">
+        <div class="w-16 h-16 rounded-full bg-blue-500/10 flex items-center justify-center border-2 border-blue-500/20 text-blue-400 mb-6">
+          <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-3.75-3.75M21 12l-3.75-3.75" /></svg>
+        </div>
+        <h3 class="text-2xl font-bold text-white mb-3">{{ 'roleSelect.investor.title' | translate }}</h3>
+        <p class="text-gray-400 mb-6 flex-grow">{{ 'roleSelect.investor.description' | translate }}</p>
+        <button class="w-full bg-slate-700 group-hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-full transition-colors duration-300">
+          {{ 'roleSelect.investor.button' | translate }}
+        </button>
+      </div>
+
+      <!-- Founder Card -->
+      <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-8 flex flex-col items-center hover:bg-slate-800 hover:border-purple-500/50 transition-all duration-300 transform hover:-translate-y-1 cursor-pointer group" (click)="selectRole('founder')">
+        <div class="w-16 h-16 rounded-full bg-purple-500/10 flex items-center justify-center border-2 border-purple-500/20 text-purple-400 mb-6">
+           <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.512 1.424L6.25 13.5h11.5l-3.002-3.258a2.25 2.25 0 01-.512-1.424V3.104a2.25 2.25 0 00-4.5 0v.001zM9.75 3.104c0-.563.458-1.02 1.02-1.02h2.46c.563 0 1.02.457 1.02 1.02v.001M12 21a6.75 6.75 0 01-6.75-6.75v-1.5a6.75 6.75 0 0113.5 0v1.5a6.75 6.75 0 01-6.75 6.75z" /></svg>
+        </div>
+        <h3 class="text-2xl font-bold text-white mb-3">{{ 'roleSelect.founder.title' | translate }}</h3>
+        <p class="text-gray-400 mb-6 flex-grow">{{ 'roleSelect.founder.description' | translate }}</p>
+        <button class="w-full bg-slate-700 group-hover:bg-purple-600 text-white font-semibold py-3 px-6 rounded-full transition-colors duration-300">
+          {{ 'roleSelect.founder.button' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

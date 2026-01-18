@@ -1,0 +1,25 @@
+<section class="py-20 bg-gray-950">
+  <div class="container mx-auto px-6">
+    <div class="text-center mb-20">
+      <h2 class="text-3xl md:text-4xl font-bold text-white">{{ 'process.title' | translate }}</h2>
+      <p class="text-lg text-gray-400 mt-4 max-w-2xl mx-auto">{{ 'process.subtitle' | translate }}</p>
+    </div>
+    <div class="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-y-12 md:gap-x-8">
+      @for(step of steps(); track step.step; let i = $index) {
+        <div class="relative flex flex-col items-center text-center animate-fade-in" [style.animation-delay]="i * 200 + 'ms'">
+          <!-- Connecting line -->
+          @if (i < steps().length - 1) {
+            <div class="hidden lg:block absolute top-10 start-1/2 w-full h-px bg-slate-700 border-t border-dashed border-slate-600"></div>
+          }
+          <div class="relative z-10">
+            <div class="w-20 h-20 flex items-center justify-center bg-gray-950 border-2 border-slate-700 rounded-full mb-6">
+              <span class="text-3xl font-bold text-blue-400">{{ step.step }}</span>
+            </div>
+          </div>
+          <h3 class="text-xl font-semibold text-white mb-2">{{ step.titleKey | translate }}</h3>
+          <p class="text-gray-400 px-2">{{ step.descriptionKey | translate }}</p>
+        </div>
+      }
+    </div>
+  </div>
+</section>

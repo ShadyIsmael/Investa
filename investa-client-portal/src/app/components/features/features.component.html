@@ -1,0 +1,21 @@
+<section class="py-20 bg-gray-950">
+  <div class="container mx-auto px-6">
+    <div class="text-center mb-12 animate-fade-in">
+      <h2 class="text-3xl md:text-4xl font-bold text-white">{{ 'features.title' | translate }}</h2>
+      <p class="text-lg text-gray-400 mt-4 max-w-2xl mx-auto">{{ 'features.subtitle' | translate }}</p>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      @for(feature of features(); track feature.titleKey; let i = $index) {
+        <div class="bg-slate-900 p-8 rounded-lg border border-slate-800 transform hover:-translate-y-2 transition-all duration-300 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/10 animate-fade-in" [style.animation-delay]="150 * i + 'ms'">
+          <div class="text-blue-400">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10 mb-4">
+              <path stroke-linecap="round" stroke-linejoin="round" [attr.d]="feature.iconPath" />
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold text-white mt-4 mb-2">{{ feature.titleKey | translate }}</h3>
+          <p class="text-gray-400">{{ feature.descriptionKey | translate }}</p>
+        </div>
+      }
+    </div>
+  </div>
+</section>

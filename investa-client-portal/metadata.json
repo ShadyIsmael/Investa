@@ -1,0 +1,8 @@
+{
+  "name": "Investa",
+  "description": "A modern, visually appealing landing page for an AI-powered investment platform, designed to attract and inform potential users about its features, benefits, and services.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

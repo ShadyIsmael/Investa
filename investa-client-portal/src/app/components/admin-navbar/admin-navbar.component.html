@@ -1,0 +1,115 @@
+<nav class="bg-gray-900 shadow-md relative z-50">
+  <div class="container mx-auto px-6 py-3">
+    <div class="flex justify-between items-center">
+      <div class="flex items-center">
+        <a routerLink="/admin" class="flex items-center">
+          <svg class="h-8 w-8 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 16.75l-1.53 -1.22a2 2 0 0 0 -2.94 0l-3.53 2.82"></path>
+            <path d="M14 16.75l-1.53 -1.22a2 2 0 0 1 2.94 0l3.53 2.82"></path>
+            <path d="M10 14l2 -2l2 -2"></path>
+            <path d="M12 12l3.5 -4.5l2.5 -2.5"></path>
+            <path d="M12 12l-3.5 -4.5l-2.5 -2.5"></path>
+         </svg>
+          <span class="text-white text-xl font-bold ms-2">{{ 'adminNav.panel' | translate }}</span>
+        </a>
+        <div class="hidden md:flex items-center ms-10 space-x-4">
+          <a routerLink="/admin/dashboard" routerLinkActive="bg-gray-800 text-white" [routerLinkActiveOptions]="{exact: true}" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">{{ 'adminNav.dashboard' | translate }}</a>
+          
+          @if(userRole() === 'investor') {
+            <a routerLink="/admin/investments" routerLinkActive="bg-gray-800 text-white" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">{{ 'adminNav.investments' | translate }}</a>
+          } @else if (userRole() === 'founder') {
+            <a routerLink="/admin/start-investigation" routerLinkActive="bg-gray-800 text-white" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">{{ 'investments.startInvestingButton' | translate }}</a>
+          }
+          
+          <a routerLink="/admin/chat" routerLinkActive="bg-gray-800 text-white" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">{{ 'adminNav.communication' | translate }}</a>
+
+          <div class="border-s border-gray-700 h-6"></div>
+
+          <a routerLink="/" class="flex items-center text-gray-300 hover:bg-gray-700 hover:text-white ps-2 pe-3 py-2 rounded-md text-sm font-medium transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 me-2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h7.5" />
+            </svg>
+            <span>{{ 'adminNav.returnHome' | translate }}</span>
+          </a>
+        </div>
+      </div>
+      <div class="flex items-center space-x-4">
+        
+        <a href="#" (click)="toggleLanguage($event)" class="text-gray-300 hover:text-white font-semibold py-2 px-4 transition-colors duration-300 hidden sm:block">
+         {{ 'language.toggle' | translate }}
+        </a>
+
+        <!-- Notifications Bell -->
+        <div class="relative" (clickOutside)="isNotificationsOpen.set(false)">
+          <button (click)="toggleNotifications()" type="button" class="text-gray-400 hover:text-white p-2 rounded-full hover:bg-slate-700 transition-colors focus:outline-none">
+            <span class="sr-only">View notifications</span>
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
+            @if (unreadCount() > 0) {
+              <span class="absolute -top-1 -end-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">{{ unreadCount() }}</span>
+            }
+          </button>
+
+          @if (isNotificationsOpen()) {
+            <div class="origin-top-end absolute end-0 mt-2 w-80 rounded-md shadow-lg bg-slate-800 ring-1 ring-black ring-opacity-5 focus:outline-none">
+              <div class="py-1">
+                <div class="px-4 py-2 flex justify-between items-center border-b border-slate-700">
+                  <h3 class="text-base font-semibold text-white">{{ 'notifications.title' | translate }}</h3>
+                </div>
+                <ul class="max-h-80 overflow-y-auto divide-y divide-slate-700/50">
+                  @for(notification of recentNotifications(); track notification.id) {
+                    <li class="px-4 py-3 hover:bg-slate-700/50 transition-colors">
+                      <div class="flex items-start gap-3">
+                         <!-- Icon -->
+                        <div class="flex-shrink-0 mt-0.5">
+                           @if (notification.type === 'info') {
+                            <svg class="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                          } @else if (notification.type === 'success') {
+                            <svg class="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                          } @else if (notification.type === 'warning') {
+                            <svg class="w-5 h-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+                          }
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <p class="text-sm font-medium text-white truncate">{{ notification.title }}</p>
+                          <p class="text-xs text-gray-400 mt-1 truncate">{{ notification.message }}</p>
+                          <p class="text-xs text-gray-500 mt-1">{{ getTimeAgo(notification.timestamp) }}</p>
+                        </div>
+                        @if(!notification.read) {
+                          <div class="w-2 h-2 mt-1 bg-blue-500 rounded-full flex-shrink-0" [title]="'notifications.unread' | translate"></div>
+                        }
+                      </div>
+                    </li>
+                  } @empty {
+                    <li class="px-4 py-10 text-center text-sm text-gray-500">{{ 'notifications.noNotifications.subtitle' | translate }}</li>
+                  }
+                </ul>
+                <div class="border-t border-slate-700">
+                  <button (click)="viewAllNotifications()" class="block w-full text-center px-4 py-3 text-sm font-semibold text-blue-400 hover:bg-slate-700/50 rounded-b-md transition-colors">
+                    {{ 'notifications.all' | translate }} {{ 'notifications.title' | translate }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- User Menu -->
+        <div class="relative" (clickOutside)="isUserMenuOpen.set(false)">
+          <button (click)="toggleUserMenu()" type="button" class="flex text-sm bg-gray-800 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white" id="user-menu-button" aria-expanded="false" aria-haspopup="true">
+            <span class="sr-only">Open user menu</span>
+            <img class="h-8 w-8 rounded-full" src="https://picsum.photos/seed/admin/100/100" alt="">
+          </button>
+          @if (isUserMenuOpen()) {
+            <div class="origin-top-end absolute end-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button" tabindex="-1">
+              <a routerLink="/admin/profile" (click)="isUserMenuOpen.set(false)" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1">{{ 'adminNav.userMenu.profile' | translate }}</a>
+              <a href="#" (click)="isUserMenuOpen.set(false)" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1">{{ 'adminNav.userMenu.settings' | translate }}</a>
+            </div>
+          }
+        </div>
+        <button (click)="logout()" class="bg-gradient-to-r from-red-500 to-pink-600 text-white font-semibold py-2 px-4 rounded-full hover:opacity-90 transition-opacity duration-300">
+          {{ 'adminNav.logout' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+</nav>

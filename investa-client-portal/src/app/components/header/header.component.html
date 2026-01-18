@@ -1,0 +1,62 @@
+<header class="absolute top-0 start-0 end-0 z-50 bg-transparent py-4">
+  <div class="container mx-auto px-6 flex justify-between items-center">
+    <div class="flex items-center">
+      <svg class="h-8 w-8 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10 16.75l-1.53 -1.22a2 2 0 0 0 -2.94 0l-3.53 2.82"></path>
+        <path d="M14 16.75l-1.53 -1.22a2 2 0 0 1 2.94 0l3.53 2.82"></path>
+        <path d="M10 14l2 -2l2 -2"></path>
+        <path d="M12 12l3.5 -4.5l2.5 -2.5"></path>
+        <path d="M12 12l-3.5 -4.5l-2.5 -2.5"></path>
+     </svg>
+      <span class="text-white text-2xl font-bold ms-2">Investa</span>
+    </div>
+
+    <nav class="hidden md:flex items-center space-x-8">
+      @for(link of navLinks(); track link.label) {
+        <a [routerLink]="link.routerLink" [href]="link.href" class="text-gray-300 hover:text-white transition-colors duration-300">{{ 'header.nav.' + link.label.toLowerCase() | translate }}</a>
+      }
+    </nav>
+    
+    <div class="hidden md:flex items-center space-x-4">
+      <a href="#" (click)="toggleLanguage($event)" class="text-gray-300 hover:text-white font-semibold py-2 px-4 transition-colors duration-300">
+         {{ 'language.toggle' | translate }}
+      </a>
+      
+      <a href="#" (click)="openLoginModal($event)" class="text-gray-300 hover:text-white font-semibold py-2 px-4 transition-colors duration-300">
+        {{ 'header.login' | translate }}
+      </a>
+
+      <a routerLink="/signup" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 transition-opacity duration-300">
+        {{ 'header.signup' | translate }}
+      </a>
+    </div>
+
+    <div class="md:hidden">
+      <button (click)="toggleMobileMenu()" class="text-white focus:outline-none">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+  
+  @if (isMobileMenuOpen()) {
+    <div class="md:hidden absolute top-full start-0 w-full bg-gray-900 bg-opacity-95 backdrop-blur-sm">
+      <nav class="flex flex-col items-center space-y-2 py-6">
+        @for(link of navLinks(); track link.label) {
+          <a [routerLink]="link.routerLink" [href]="link.href" (click)="isMobileMenuOpen.set(false)" class="text-gray-300 hover:text-white transition-colors duration-300 py-2">{{ 'header.nav.' + link.label.toLowerCase() | translate }}</a>
+        }
+         <a href="#" (click)="toggleLanguage($event)" class="text-gray-300 hover:text-white font-semibold py-2 px-4 transition-colors duration-300">
+          {{ 'language.toggle' | translate }}
+        </a>
+        <div class="border-t border-slate-700 w-3/4 my-2"></div>
+        <a href="#" (click)="openLoginModal($event)" class="text-gray-300 hover:text-white font-semibold py-2 px-4 transition-colors duration-300">{{ 'header.login' | translate }}</a>
+        <div class="pt-4 w-full px-8">
+          <a routerLink="/signup" (click)="isMobileMenuOpen.set(false)" class="block text-center bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 transition-opacity duration-300">
+            {{ 'header.signup' | translate }}
+          </a>
+        </div>
+      </nav>
+    </div>
+  }
+</header>

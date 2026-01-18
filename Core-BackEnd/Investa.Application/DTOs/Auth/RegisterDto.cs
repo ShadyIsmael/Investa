@@ -1,3 +1,5 @@
+using Investa.Domain.Entities.Enums;
+
 namespace Investa.Application.DTOs.Auth;
 
 /// <summary>
@@ -32,4 +34,10 @@ public class RegisterDto
     /// the firebase uid as a claim on the Identity user.
     /// </summary>
     public string FirebaseUid { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Optional client classification: Investor, Founder or Both
+    /// Defaults to Investor for backwards compatibility
+    /// </summary>
+    public ClientType ClientType { get; set; } = ClientType.Investor;
 }
