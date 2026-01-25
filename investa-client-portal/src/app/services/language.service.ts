@@ -1468,77 +1468,77 @@ const TRANSLATIONS = {
     },
     // Admin Profile
     profile: {
-        title: 'تفاصيل الملف الشخصي',
-        trustScore: 'درجة الثقة',
-        subtitle: 'ابنِ الثقة وارفع مستوى مكافآتك! تحقق من هويتك لزيادة درجاتك إلى أقصى حد',
+        title: 'Profile details',
+        trustScore: 'Trust Score',
+        subtitle: 'Build trust and level up your rewards! Verify your identity to maximize your score',
         tabs: {
-            editProfile: 'تفاصيل الملف الشخصي',
-            communicationInfo: 'معلومات الاتصال',
-            security: 'الأمان',
-            changePassword: 'تغيير كلمة المرور',
-            notifications: 'الإشعارات'
+            editProfile: 'Profile Details',
+            communicationInfo: 'Communication',
+            security: 'Security',
+            changePassword: 'Change Password',
+            notifications: 'Notifications'
         },
         picture: {
-            title: 'الصورة الشخصية',
-            uploadButton: 'تحميل صورة جديدة',
-            hint: 'PNG, JPG, GIF بحجم يصل إلى 10 ميجابايت'
+            title: 'Profile Picture',
+            uploadButton: 'Upload New Picture',
+            hint: 'PNG, JPG, GIF up to 10MB'
         },
         personalInfo: {
-            title: 'المعلومات الشخصية',
-            firstName: 'الاسم الأول',
-            lastName: 'الاسم الأخير',
-            businessRole: 'الدور الوظيفي',
-            nationalId: 'الهوية الوطنية',
-            uploadId: 'تحميل نسخة من الهوية الوطنية',
-            chooseFile: 'اختر ملفًا',
-            noFileChosen: 'لم يتم اختيار ملف',
-            bio: 'نبذة تعريفية',
-            linkedin: 'ملف لينكدإن',
-            facebook: 'ملف فيسبوك'
+            title: 'Personal Information',
+            firstName: 'First Name',
+            lastName: 'Last Name',
+            businessRole: 'Business Role',
+            nationalId: 'National ID',
+            uploadId: 'Upload National ID Copy',
+            chooseFile: 'Choose File',
+            noFileChosen: 'No file chosen',
+            bio: 'Bio',
+            linkedin: 'LinkedIn Profile',
+            facebook: 'Facebook Profile'
         },
         communication: {
-            title: 'معلومات الاتصال',
-            personalContact: 'الاتصال الشخصي',
-            email: 'البريد الإلكتروني',
-            mobile: 'رقم الجوال',
-            address: 'العنوان',
-            city: 'المدينة',
-            state: 'المنطقة',
-            businessContact: 'الاتصال التجاري',
-            businessAddress: 'عنوان العمل',
-            businessLocation: 'موقع العمل',
-            searchLocation: 'ابحث عن موقع...'
+            title: 'Communication Information',
+            personalContact: 'Personal Contact',
+            email: 'Email Address',
+            mobile: 'Mobile Number',
+            address: 'Address',
+            city: 'City',
+            state: 'State',
+            businessContact: 'Business Contact',
+            businessAddress: 'Business Address',
+            businessLocation: 'Business Location',
+            searchLocation: 'Search for a location...'
         },
         password: {
-            title: 'تغيير كلمة المرور',
-            current: 'كلمة المرور الحالية',
-            new: 'كلمة المرور الجديدة',
-            confirm: 'تأكيد كلمة المرور الجديدة',
-            mismatch: 'كلمتا المرور الجديدتان غير متطابقتين.'
+            title: 'Change Password',
+            current: 'Current Password',
+            new: 'New Password',
+            confirm: 'Confirm New Password',
+            mismatch: 'New passwords do not match.'
         },
         notifications: {
-            title: 'إعدادات الإشعارات',
-            subtitle: 'اختر كيف تريد أن يتم إعلامك. سنعلمك دائمًا بالتغييرات المهمة، ولكن يمكنك اختيار ما تريد أن تسمع عنه أيضًا.',
+            title: 'Notification Settings',
+            subtitle: "Choose how you want to be notified. We'll always let you know about important changes, but you can pick what else you want to hear about.",
             opportunities: {
-                title: 'فرص استثمارية جديدة',
-                description: 'احصل على إشعارات عند إدراج صناديق أو أسهم جديدة تتوافق مع اهتماماتك.'
+                title: 'New Investment Opportunities',
+                description: 'Get notified when new funds or stocks that match your interests are listed.'
             },
             portfolio: {
-                title: 'تحديثات المحفظة',
-                description: 'استقبل ملخصات أسبوعية وإشعارات حول التغييرات الهامة في قيمة محفظتك.'
+                title: 'Portfolio Updates',
+                description: 'Receive weekly summaries and alerts about important changes in your portfolio value.'
             },
             security: {
-                title: 'تنبيهات أمنية',
-                description: 'احصل على إشعارات حول عمليات تسجيل الدخول الجديدة وتغييرات كلمة المرور والأحداث الأخرى المتعلقة بالأمان.'
+                title: 'Security Alerts',
+                description: 'Receive alerts about new logins and other security events.'
             },
             news: {
-                title: 'أخبار السوق والرؤى',
-                description: 'استقبل نشرتنا الإخبارية مع أحدث تحليلات السوق والرؤى من خبرائنا.'
+                title: 'Market News & Insights',
+                description: 'Receive our newsletter with market analysis and insights from our experts.'
             }
         },
-        verified: 'تم التحقق',
-        pending: 'في انتظار التحقق',
-        saveButton: 'حفظ التغييرات'
+        verified: 'Verified',
+        pending: 'Pending',
+        saveButton: 'Save Changes'
     },
     // Admin Notifications
     notifications: {

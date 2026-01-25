@@ -200,9 +200,9 @@
             <div class="bg-slate-900 p-6 rounded-lg border border-slate-800">
               <h3 class="text-lg font-semibold text-white mb-4">{{ 'dashboard.quickActions' | translate }}</h3>
               <div class="space-y-3">
-                <a [routerLink]="['/admin/start-investigation']" class="w-full flex items-center gap-3 text-start px-4 py-3 rounded-lg font-medium transition-colors bg-slate-800/50 hover:bg-slate-700/80">
+                <a [routerLink]="['/admin/investments/new']" class="w-full flex items-center gap-3 text-start px-4 py-3 rounded-lg font-medium transition-colors bg-slate-800/50 hover:bg-slate-700/80">
                   <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
-                  <span>{{ 'dashboard.editProject' | translate }}</span>
+                  <span>{{ 'dashboard.createInvestment' | translate }}</span>
                 </a>
                  <a [routerLink]="['/admin/investments', project.id]" class="w-full flex items-center gap-3 text-start px-4 py-3 rounded-lg font-medium transition-colors bg-slate-800/50 hover:bg-slate-700/80">
                   <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639l4.43-4.43a1.012 1.012 0 011.43 0l4.43 4.43a1.012 1.012 0 010 .639l-4.43 4.43a1.012 1.012 0 01-1.43 0l-4.43-4.43z" /><path stroke-linecap="round" stroke-linejoin="round" d="M12.036 12.322a1.012 1.012 0 010-.639l4.43-4.43a1.012 1.012 0 011.43 0l4.43 4.43a1.012 1.012 0 010 .639l-4.43 4.43a1.012 1.012 0 01-1.43 0l-4.43-4.43z" /></svg>
@@ -274,7 +274,7 @@
             <h3 class="mt-2 text-lg font-semibold text-white">{{ 'dashboard.noProject.title' | translate }}</h3>
             <p class="mt-1 text-sm text-gray-400 max-w-sm mx-auto">{{ 'dashboard.noProject.subtitle' | translate }}</p>
             <div class="mt-6">
-              <a routerLink="/admin/start-investigation" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-5 rounded-full hover:opacity-90 transition-opacity duration-300">
+              <a routerLink="/admin/investments/new" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-5 rounded-full hover:opacity-90 transition-opacity duration-300">
                 {{ 'dashboard.noProject.button' | translate }}
               </a>
             </div>
