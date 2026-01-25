@@ -11,6 +11,7 @@ import { TranslatePipe } from '../../pipes/translate.pipe';
 @Component({
   selector: 'app-services-page',
   templateUrl: './services.component.html',
+  styleUrls: ['./services.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     HeaderComponent,

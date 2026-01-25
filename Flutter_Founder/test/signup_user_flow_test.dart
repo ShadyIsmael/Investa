@@ -21,6 +21,12 @@ class FakeApiClient implements ApiClient {
   }
 
   @override
+  Future<Response> put(String url,
+      {Map<String, dynamic>? data, Map<String, dynamic>? headers}) async {
+    throw UnimplementedError();
+  }
+
+  @override
   void close() {}
 }
 
@@ -35,7 +41,6 @@ void main() {
     // Provided test credentials
     const phone = '01022322292';
     const password = 'P@ssw0rd';
-    const otp = '123456';
 
     // Server response simulation: successful sign-up returning a token
     final resp = makeResponse(200, {

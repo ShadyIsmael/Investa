@@ -19,8 +19,7 @@ class SimplePieChart extends StatefulWidget {
   final SliceTapCallback? onSliceTap;
 
   const SimplePieChart(
-      {Key? key, required this.categories, this.size = 180, this.onSliceTap})
-      : super(key: key);
+      {super.key, required this.categories, this.size = 180, this.onSliceTap});
 
   @override
   State<SimplePieChart> createState() => _SimplePieChartState();
@@ -114,10 +113,6 @@ class _PiePainter extends CustomPainter {
     // draw center hole
     final holePaint = Paint()..color = Colors.white;
     canvas.drawCircle(center, radius * 0.28, holePaint);
-  }
-
-  Color _colorForLabel(String label, ColorScheme scheme) {
-    return colorForLabel(label);
   }
 
   @override

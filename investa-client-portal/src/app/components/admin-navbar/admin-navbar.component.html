@@ -1,6 +1,5 @@
-<nav class="bg-gray-900 shadow-md relative z-50">
-  <div class="container mx-auto px-6 py-3">
-    <div class="flex justify-between items-center">
+<nav class="sticky top-0 z-[1060] bg-slate-900/95 backdrop-blur-md border-b border-slate-700/50 py-3">
+  <div class="container mx-auto px-6 flex justify-between items-center">
       <div class="flex items-center">
         <a routerLink="/admin" class="flex items-center">
           <svg class="h-8 w-8 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -12,16 +11,18 @@
          </svg>
           <span class="text-white text-xl font-bold ms-2">{{ 'adminNav.panel' | translate }}</span>
         </a>
-        <div class="hidden md:flex items-center ms-10 space-x-4">
+        <div class="flex items-center ms-6 space-x-4 overflow-x-auto">
           <a routerLink="/admin/dashboard" routerLinkActive="bg-gray-800 text-white" [routerLinkActiveOptions]="{exact: true}" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">{{ 'adminNav.dashboard' | translate }}</a>
           
           @if(userRole() === 'investor') {
             <a routerLink="/admin/investments" routerLinkActive="bg-gray-800 text-white" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">{{ 'adminNav.investments' | translate }}</a>
           } @else if (userRole() === 'founder') {
-            <a routerLink="/admin/start-investigation" routerLinkActive="bg-gray-800 text-white" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">{{ 'investments.startInvestingButton' | translate }}</a>
+            <a routerLink="/admin/investments/new" routerLinkActive="bg-gray-800 text-white" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">{{ 'adminNav.submitInvestment' | translate }}</a>
           }
           
           <a routerLink="/admin/chat" routerLinkActive="bg-gray-800 text-white" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">{{ 'adminNav.communication' | translate }}</a>
+
+          <a routerLink="/admin/requests" routerLinkActive="bg-gray-800 text-white" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">{{ 'adminNav.requests' | translate }}</a>
 
           <div class="border-s border-gray-700 h-6"></div>
 
@@ -35,7 +36,7 @@
       </div>
       <div class="flex items-center space-x-4">
         
-        <a href="#" (click)="toggleLanguage($event)" class="text-gray-300 hover:text-white font-semibold py-2 px-4 transition-colors duration-300 hidden sm:block">
+        <a href="#" (click)="toggleLanguage($event)" class="text-gray-300 hover:text-white font-semibold py-2 px-4 transition-colors duration-300">
          {{ 'language.toggle' | translate }}
         </a>
 
@@ -102,7 +103,7 @@
           @if (isUserMenuOpen()) {
             <div class="origin-top-end absolute end-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button" tabindex="-1">
               <a routerLink="/admin/profile" (click)="isUserMenuOpen.set(false)" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1">{{ 'adminNav.userMenu.profile' | translate }}</a>
-              <a href="#" (click)="isUserMenuOpen.set(false)" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1">{{ 'adminNav.userMenu.settings' | translate }}</a>
+              <a routerLink="/admin/settings" (click)="isUserMenuOpen.set(false)" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1">{{ 'adminNav.userMenu.settings' | translate }}</a>
             </div>
           }
         </div>
@@ -110,6 +111,5 @@
           {{ 'adminNav.logout' | translate }}
         </button>
       </div>
-    </div>
   </div>
 </nav>

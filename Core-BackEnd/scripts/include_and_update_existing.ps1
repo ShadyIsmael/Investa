@@ -1,5 +1,5 @@
 param(
-    [string]$BaseUrl = 'http://192.168.1.15:5235'
+    [string]$BaseUrl = 'http://DESKTOP-DIH7CQH:5235'
 )
 
 Write-Host "Using base URL: $BaseUrl"

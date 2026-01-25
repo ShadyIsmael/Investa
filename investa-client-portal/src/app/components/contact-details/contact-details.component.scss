@@ -1,0 +1,5 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.contact-details { padding: $spacing-4; }
+.contact-details .info { @include card($spacing-4); }

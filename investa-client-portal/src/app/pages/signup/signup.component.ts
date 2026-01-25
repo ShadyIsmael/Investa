@@ -19,6 +19,7 @@ export const passwordMatchValidator: ValidatorFn = (control: AbstractControl): V
   standalone: true,
   selector: 'app-signup',
   templateUrl: './signup.component.html',
+  styleUrls: ['./signup.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, RouterLink, ReactiveFormsModule, TranslatePipe]
 })
@@ -34,7 +35,6 @@ export class SignupComponent {
 
   onSubmit() {
     if (this.signupForm.valid) {
-      console.log('Form Submitted!', this.signupForm.value);
       // Handle signup logic here
     }
   }

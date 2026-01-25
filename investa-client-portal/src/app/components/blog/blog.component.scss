@@ -1,0 +1,5 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.blog-component { padding: $spacing-6; }
+.blog-post { @include card($spacing-4); }

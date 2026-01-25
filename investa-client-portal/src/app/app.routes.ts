@@ -1,44 +1,103 @@
 import { Routes } from '@angular/router';
-import { HomeComponent } from './pages/home/home.component';
-import { LoginComponent } from './pages/login/login.component';
-import { SignupComponent } from './pages/signup/signup.component';
-import { AdminLayoutComponent } from './pages/admin/admin-layout/admin-layout.component';
-import { DashboardComponent } from './pages/admin/dashboard/dashboard.component';
 import { authGuard } from './guards/auth.guard';
-import { InvestmentsComponent } from './pages/admin/investments/investments.component';
-import { ProfileComponent } from './pages/admin/profile/profile.component';
-import { ChatComponent } from './pages/admin/chat/chat.component';
-import { AboutPageComponent } from './pages/about/about.component';
-import { ServicesPageComponent } from './pages/services/services.component';
-import { BlogPageComponent } from './pages/blog/blog.component';
-import { ContactPageComponent } from './pages/contact/contact.component';
-import { BlogPostPageComponent } from './pages/blog-post/blog-post.component';
-import { InvestmentPreviewComponent } from './pages/admin/investment-details/investment-details.component';
-import { NotificationsComponent } from './pages/admin/notifications/notifications.component';
-import { StartInvestigationComponent } from './pages/admin/start-investigation/start-investigation.component';
 
 export const routes: Routes = [
-  { path: '', component: HomeComponent, title: 'Investa' },
-  { path: 'about', component: AboutPageComponent, title: 'About - Investa' },
-  { path: 'services', component: ServicesPageComponent, title: 'Services - Investa' },
-  { path: 'blog', component: BlogPageComponent, title: 'Blog - Investa' },
-  { path: 'blog/:slug', component: BlogPostPageComponent, title: 'Blog Post - Investa' },
-  { path: 'contact', component: ContactPageComponent, title: 'Contact - Investa' },
-  { path: 'login', component: LoginComponent, title: 'Login - Investa' },
-  { path: 'signup', component: SignupComponent, title: 'Sign Up - Investa' },
+  // Public routes - eager loaded for fast initial page load
+  { 
+    path: '', 
+    loadComponent: () => import('./pages/home/home.component').then(m => m.HomeComponent),
+    title: 'Investa' 
+  },
+  { 
+    path: 'about', 
+    loadComponent: () => import('./pages/about/about.component').then(m => m.AboutPageComponent),
+    title: 'About - Investa' 
+  },
+  { 
+    path: 'services', 
+    loadComponent: () => import('./pages/services/services.component').then(m => m.ServicesPageComponent),
+    title: 'Services - Investa' 
+  },
+  { 
+    path: 'blog', 
+    loadComponent: () => import('./pages/blog/blog.component').then(m => m.BlogPageComponent),
+    title: 'Blog - Investa' 
+  },
+  { 
+    path: 'blog/:slug', 
+    loadComponent: () => import('./pages/blog-post/blog-post.component').then(m => m.BlogPostPageComponent),
+    title: 'Blog Post - Investa' 
+  },
+  { 
+    path: 'contact', 
+    loadComponent: () => import('./pages/contact/contact.component').then(m => m.ContactPageComponent),
+    title: 'Contact - Investa' 
+  },
+  { 
+    path: 'login', 
+    loadComponent: () => import('./pages/login/login.component').then(m => m.LoginComponent),
+    title: 'Login - Investa' 
+  },
+  { 
+    path: 'signup', 
+    loadComponent: () => import('./pages/signup/signup.component').then(m => m.SignupComponent),
+    title: 'Sign Up - Investa' 
+  },
+  // Admin routes - lazy loaded (requires authentication)
   {
     path: 'admin',
-    component: AdminLayoutComponent,
+    loadComponent: () => import('./pages/admin/admin-layout/admin-layout.component').then(m => m.AdminLayoutComponent),
     canActivate: [authGuard],
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
-      { path: 'dashboard', component: DashboardComponent, title: 'Dashboard - Investa' },
-      { path: 'investments', component: InvestmentsComponent, title: 'Investments - Investa' },
-      { path: 'investments/:id', component: InvestmentPreviewComponent, title: 'Investment Preview - Investa' },
-      { path: 'start-investigation', component: StartInvestigationComponent, title: 'Start Investigation - Investa' },
-      { path: 'chat', component: ChatComponent, title: 'Communication - Investa' },
-      { path: 'profile', component: ProfileComponent, title: 'My Profile - Investa' },
-      { path: 'notifications', component: NotificationsComponent, title: 'Notifications - Investa' }
+      { 
+        path: 'dashboard', 
+        loadComponent: () => import('./pages/admin/dashboard/dashboard.component').then(m => m.DashboardComponent),
+        title: 'Dashboard - Investa' 
+      },
+      { 
+        path: 'investments', 
+        loadComponent: () => import('./pages/admin/investments/investments.component').then(m => m.InvestmentsComponent),
+        title: 'Investments - Investa' 
+      },
+      { 
+        path: 'investments/new', 
+        loadComponent: () => import('./pages/admin/submit-investment/submit-investment.component').then(m => m.SubmitInvestmentComponent),
+        title: 'Create Investment - Investa' 
+      },
+      { 
+        path: 'investments/:id', 
+        loadComponent: () => import('./pages/admin/investment-preview/investment-preview.component').then(m => m.InvestmentPreviewComponent),
+        title: 'Investment Preview - Investa' 
+      },
+
+      { 
+        path: 'chat', 
+        loadComponent: () => import('./pages/admin/chat/chat.component').then(m => m.ChatComponent),
+        title: 'Communication - Investa' 
+      },
+      { 
+        path: 'profile', 
+        loadComponent: () => import('./pages/admin/profile/profile.component').then(m => m.ProfileComponent),
+        title: 'My Profile - Investa' 
+      },
+      { 
+        path: 'notifications', 
+        loadComponent: () => import('./pages/admin/notifications/notifications.component').then(m => m.NotificationsComponent),
+        title: 'Notifications - Investa' 
+      }
+      ,
+      { 
+        path: 'requests', 
+        loadComponent: () => import('./pages/admin/requests/requests.component').then(m => m.RequestsComponent),
+        title: 'Requests - Investa' 
+      }
+      ,
+      { 
+        path: 'settings', 
+        loadComponent: () => import('./pages/admin/settings/settings.component').then(m => m.SettingsComponent),
+        title: 'Settings - Investa' 
+      }
     ]
   }
 ];

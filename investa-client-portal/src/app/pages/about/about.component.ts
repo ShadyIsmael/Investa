@@ -9,6 +9,7 @@ import { TranslatePipe } from '../../pipes/translate.pipe';
 @Component({
   selector: 'app-about-page',
   templateUrl: './about.component.html',
+  styleUrls: ['./about.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     HeaderComponent,

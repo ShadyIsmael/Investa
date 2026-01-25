@@ -9,8 +9,7 @@ class ChatWaitingScreen extends StatefulWidget {
   final Map<String, dynamic>? metadata;
   final LocalNotifier? notifier;
 
-  const ChatWaitingScreen({Key? key, this.metadata, this.notifier})
-      : super(key: key);
+  const ChatWaitingScreen({super.key, this.metadata, this.notifier});
 
   @override
   _ChatWaitingScreenState createState() => _ChatWaitingScreenState();

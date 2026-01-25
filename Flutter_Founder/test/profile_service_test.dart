@@ -23,6 +23,12 @@ class FakeApiClient implements ApiClient {
   }
 
   @override
+  Future<Response> put(String url,
+      {Map<String, dynamic>? data, Map<String, dynamic>? headers}) async {
+    throw UnimplementedError();
+  }
+
+  @override
   void close() {}
 }
 
@@ -46,6 +52,12 @@ class FakeApiClientDelayed implements ApiClient {
   }
 
   @override
+  Future<Response> put(String url,
+      {Map<String, dynamic>? data, Map<String, dynamic>? headers}) async {
+    throw UnimplementedError();
+  }
+
+  @override
   void close() {}
 }
 
@@ -61,6 +73,12 @@ class FakeApiClientTimeout implements ApiClient {
       {Map<String, dynamic>? headers,
       Map<String, dynamic>? queryParameters}) async {
     throw TimeoutException('simulated timeout');
+  }
+
+  @override
+  Future<Response> put(String url,
+      {Map<String, dynamic>? data, Map<String, dynamic>? headers}) async {
+    throw UnimplementedError();
   }
 
   @override

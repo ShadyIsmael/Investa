@@ -3,9 +3,9 @@ $ErrorActionPreference='Stop'
 [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
 
 $baseUrls = @(
-    'https://192.168.1.15:7292',
+    'https://DESKTOP-DIH7CQH:7292',
     'https://localhost:7292',
-    'http://192.168.1.15:5235',
+    'http://DESKTOP-DIH7CQH:5235',
     'http://localhost:5235',
     'https://127.0.0.1:7292',
     'http://127.0.0.1:5235',

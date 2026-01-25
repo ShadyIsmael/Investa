@@ -10,8 +10,49 @@
       window.tailwind = window.tailwind || {};
       window.tailwind.config = window.tailwind.config || {};
       window.tailwind.config.darkMode = 'class';
+      window.tailwind.config.theme = {
+        extend: {
+          colors: {
+            // Semantic colors from index.css variables
+            background: 'var(--bg)',
+            surface: 'var(--surface)',
+            primary: {
+              DEFAULT: 'var(--primary)',
+              foreground: '#ffffff',
+            },
+            secondary: 'var(--secondary)',
+            muted: 'var(--muted)',
+            border: 'var(--border)',
+            text: 'var(--text)',
+           success: '#10b981', // emerald-500
+           warning: '#f59e0b', // amber-500
+           error: '#ef4444',   // red-500
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          fontSize: {
+            xxs: '0.625rem', // 10px
+          }
+        }
+      };
     </script>
-    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Runtime API base override: set meta tag <meta name="investa-api-base" content="http://DESKTOP-DIH7CQH:5235" /> -->
+    <script>
+      (function(){
+        try {
+          var meta = document.querySelector('meta[name="investa-api-base"]');
+          var override = meta && meta.getAttribute('content');
+          if (override) {
+            window.__INVESTA_API_BASE = override;
+            console.info('[Investa Admin] API base overridden from meta:', override);
+          }
+        } catch (e) {
+          // ignore
+        }
+      })();
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
       body {

@@ -34,13 +34,13 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   } else {
     await Firebase.initializeApp();
   }
-  print('Handling background message: ${message.messageId}');
-  print('Data: ${message.data}');
+  AppLogger.logInfo('fcm', 'Handling background message: ${message.messageId}');
+  AppLogger.logInfo('fcm', 'Data: ${message.data}');
 
   // Process data payload
   if (message.data.containsKey('conversationId')) {
     final conversationId = message.data['conversationId'];
-    print('New message in conversation: $conversationId');
+    AppLogger.logInfo('fcm', 'New message in conversation: $conversationId');
   }
 }
 
@@ -89,7 +89,7 @@ Future<void> main() async {
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -156,7 +156,11 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> _logout() async {
     await FirebaseAuth.instance.signOut();
-    await GoogleSignIn().signOut();
+    try {
+      await GoogleSignIn.instance.disconnect();
+    } catch (_) {
+      // Ignore errors during Google sign-out
+    }
     await SecureStorage().deleteAll();
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();

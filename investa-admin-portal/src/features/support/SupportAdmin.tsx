@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supportService } from '../../services/supportService';
 import { Conversation } from '../../types';
-import { Icon } from '../../../components/Icons';
+import { Icon } from '@/components/common/Icons';
 
 export const SupportAdmin: React.FC = () => {
   const [loading, setLoading] = useState(true);

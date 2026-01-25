@@ -8,7 +8,7 @@ import 'chat_box_screen.dart';
 import 'user_profile_screen.dart';
 
 class EngagementScreen extends StatelessWidget {
-  EngagementScreen({Key? key}) : super(key: key);
+  EngagementScreen({super.key});
 
   final List<ChatUser> users = [
     ChatUser(

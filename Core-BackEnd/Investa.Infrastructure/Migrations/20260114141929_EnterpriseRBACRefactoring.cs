@@ -1,21 +1,5 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
-
-#nullable disable
-
-#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
-
-namespace Investa.Infrastructure.Migrations
-{
-    /// <inheritdoc />
-    public partial class EnterpriseRBACRefactoring : Migration
-    {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.DropForeignKey(
-                name: "FK_UserGroups_ApplicationUsers_UserId",
-                table: "UserGroups");
+﻿// FILE REMOVED: archived to ../ArchivedMigrations/20260123/20260114141929_EnterpriseRBACRefactoring.cs.original
+// Migration removed during consolidation.
 
             migrationBuilder.DropPrimaryKey(
                 name: "PK_GroupPermissions",

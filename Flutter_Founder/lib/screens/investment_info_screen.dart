@@ -17,8 +17,7 @@ const List<String> _kTestImages = [
 class InvestmentInfoScreen extends StatefulWidget {
   final Map<String, dynamic> item;
   final dynamic category;
-  const InvestmentInfoScreen({Key? key, required this.item, this.category})
-      : super(key: key);
+  const InvestmentInfoScreen({super.key, required this.item, this.category});
 
   @override
   State<InvestmentInfoScreen> createState() => _InvestmentInfoScreenState();

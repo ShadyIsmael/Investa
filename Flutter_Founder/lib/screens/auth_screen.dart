@@ -15,7 +15,7 @@ import '../widgets/app_background.dart';
 class AuthScreen extends StatefulWidget {
   final VoidCallback onLogin;
 
-  const AuthScreen({Key? key, required this.onLogin}) : super(key: key);
+  const AuthScreen({super.key, required this.onLogin});
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -173,7 +173,8 @@ class _AuthScreenState extends State<AuthScreen> {
                 const SizedBox(height: 8),
                 Text('Sign in to continue',
                     style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.7))),
+                        color: theme.colorScheme.onSurface
+                            .withAlpha((0.7 * 255).round()))),
                 const SizedBox(height: 24),
                 // Country selector integrated into the phone input
                 const SizedBox(height: 2),
@@ -185,7 +186,8 @@ class _AuthScreenState extends State<AuthScreen> {
                   textInputAction: TextInputAction.next,
                   onFieldSubmitted: (_) =>
                       FocusScope.of(context).requestFocus(_passFocus),
-                  onCountryCodeChanged: (v) => setState(() => _selectedCountryCode = v),
+                  onCountryCodeChanged: (v) =>
+                      setState(() => _selectedCountryCode = v),
                   labelText: 'Phone number',
                   validator: (v) => (v == null || v.trim().isEmpty)
                       ? AppMessages.enterPhone

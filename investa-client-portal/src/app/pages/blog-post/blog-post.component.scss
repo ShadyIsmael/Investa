@@ -1,0 +1,4 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.blog-post { padding: $spacing-8 0; }

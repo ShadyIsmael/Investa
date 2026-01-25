@@ -8,9 +8,49 @@ class EndpointResolver {
 
   static const _storageKey = 'resolved_api_index';
 
-  late final List<String> apiCandidates = _parseList(
+  late final List<String> apiCandidates = _expandCandidates(_parseList(
       const String.fromEnvironment('API_BASE_URL', defaultValue: ''),
-      dotenv.env['API_BASE_URL']);
+      dotenv.env['API_BASE_URL']));
+
+  /// Expand hostname-only candidates with sensible fallbacks (e.g. add
+  /// `.local` mDNS variant and lowercase host variant) to improve device
+  /// discovery when DNS resolution is flaky on mobile devices.
+  static List<String> _expandCandidates(List<String> candidates) {
+    final out = <String>[];
+    final seen = <String>{};
+    String normalize(String s) => s.trim().replaceAll(RegExp(r"/+\s*$"), '');
+
+    bool isIp(String h) => RegExp(r'^\d+\.\d+\.\d+\.\d+$').hasMatch(h);
+
+    for (var c in candidates) {
+      final norm = normalize(c);
+      if (norm.isEmpty) continue;
+      if (seen.add(norm)) out.add(norm);
+
+      // Try to expand hostnames (avoid expanding IPs or already .local hosts)
+      try {
+        final u = Uri.parse(norm);
+        final host = u.host;
+        if (host.isNotEmpty && !isIp(host)) {
+          // Add `.local` variant if not present
+          if (!host.toLowerCase().endsWith('.local')) {
+            final localHost = '$host.local';
+            final localUri = u.replace(host: localHost).toString();
+            if (seen.add(localUri)) out.add(localUri);
+          }
+
+          // Add lowercase host variant (some networks require lowercase)
+          final lowerHost = host.toLowerCase();
+          if (lowerHost != host) {
+            final lowerUri = u.replace(host: lowerHost).toString();
+            if (seen.add(lowerUri)) out.add(lowerUri);
+          }
+        }
+      } catch (_) {}
+    }
+
+    return out;
+  }
 
   late final List<String> signalrCandidates = _buildSignalrCandidates(
       const String.fromEnvironment('SIGNALR_HUB_URL', defaultValue: ''),

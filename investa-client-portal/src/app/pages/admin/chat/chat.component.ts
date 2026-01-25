@@ -31,6 +31,7 @@ interface Message {
   standalone: true,
   selector: 'app-chat',
   templateUrl: './chat.component.html',
+  styleUrls: ['./chat.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, ReactiveFormsModule, TranslatePipe]
 })
@@ -116,13 +117,11 @@ export class ChatComponent {
   }
 
   startVideoCall() {
-    console.log(`Starting video call with ${this.selectedContact()?.name}`);
-    // Placeholder for actual video call logic
+    // TODO: Implement video call functionality
   }
 
   startAudioCall() {
-    console.log(`Starting audio call with ${this.selectedContact()?.name}`);
-    // Placeholder for actual audio call logic
+    // TODO: Implement audio call functionality
   }
 
   formatFileSize(bytes: number): string {

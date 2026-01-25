@@ -3,7 +3,7 @@ import '../theme/color_extensions.dart';
 import '../widgets/app_background.dart';
 
 class TraceScoreScreen extends StatefulWidget {
-  const TraceScoreScreen({Key? key}) : super(key: key);
+  const TraceScoreScreen({super.key});
 
   @override
   State<TraceScoreScreen> createState() => _TraceScoreScreenState();

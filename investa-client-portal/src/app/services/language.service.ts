@@ -22,6 +22,7 @@ const TRANSLATIONS = {
         services: 'Services',
         blog: 'Blog',
         contact: 'Contact',
+        requests: 'Requests'
       },
       login: 'Login',
       loginAsInvestor: 'Login as Investor',
@@ -394,7 +395,9 @@ const TRANSLATIONS = {
         panel: 'Investa Panel',
         dashboard: 'Dashboard',
         investments: 'Investments',
+        submitInvestment: 'Submit Investment',
         communication: 'Communication',
+      requests: 'Requests',
         returnHome: 'Go Home',
         userMenu: {
             profile: 'Your Profile',
@@ -475,6 +478,7 @@ const TRANSLATIONS = {
         high: 'High',
         risk: 'Risk'
       },
+      funding: 'Funding',
       fundingProgress: 'Funding Progress',
       min: 'Min',
       to: 'to',
@@ -500,83 +504,70 @@ const TRANSLATIONS = {
         proceedButton: "Proceed & Engage"
       },
       engageSuccessTitle: "Request Sent",
-      engageSuccessMessage: "Your engagement request for {investmentName} has been sent. You will be notified upon acceptance."
+      engageSuccessMessage: "Your engagement request for {investmentName} has been sent. You will be notified upon acceptance.",
+      requestSubmittedTitle: "Request Sent",
+      requestSubmittedMessage: "Your request for {investmentName} was submitted. We will notify you once it is accepted.",
+      shareValidation: {
+        minError: "Shares must be at least 1",
+        maxError: "Maximum {available} shares available"
+      },
+      investDialog: {
+        title: "Invest in {investmentName}",
+        sharePrice: "Share Price",
+        available: "Available",
+        minLabel: "Min",
+        maxLabel: "Max",
+        sharesLabel: "Number of Shares",
+        availableLine: "Available: {available} shares",
+        totalInvestment: "Total Investment:",
+        expectedROI: "Expected ROI:",
+        cancel: "Cancel",
+        confirm: "Confirm Investment",
+        processing: "Processing..."
+      }
+    },
+    // Requests Page
+    requests: {
+      title: 'Requests',
+      incoming: 'Incoming',
+      outgoing: 'Outgoing',
+      from: 'From',
+      to: 'To',
+      accept: 'Accept',
+      decline: 'Decline',
+      withdraw: 'Withdraw',
+      noIncoming: 'No incoming requests.',
+      noOutgoing: 'No outgoing requests.'
     },
     investmentPreview: {
       backButton: "Back to Investments",
       fundingStatus: "Funding Status",
       author: "Author",
       noInvestors: "Be the first to invest!",
+      noTeamMembers: "No team members added yet.",
       investNowButton: "Invest Now",
       notFound: {
         title: "Investment Not Found",
         subtitle: "Sorry, we couldn't find the investment you were looking for."
       }
     },
-    // Start Investigation
-    startInvestigation: {
-      title: "Submit a New Investment Opportunity",
-      subtitle: "Provide the following details to begin the investigation and vetting process.",
-      steps: {
-        basic: "Basic Info",
-        details: "Project Details",
-        financials: "Financials",
-        team: "Team & Legal",
-        review: "Review"
-      },
-      basicInfo: {
-        title: "Basic Information",
-        projectName: "Project Name",
-        projectNamePlaceholder: "e.g., Quantum Leap AI",
-        tagline: "Project Tagline",
-        taglinePlaceholder: "A short, catchy phrase describing your project",
-        category: "Investment Category",
-        categorySelect: "Select a category",
-        realEstate: "Real Estate",
-        technology: "Technology",
-        logo: "Project Logo or Main Image",
-        logoHint: "Recommended size: 400x400px, PNG or JPG",
-        upload: "Upload Image"
-      },
-      projectDetails: {
-        title: "Project Details",
-        summary: "Executive Summary",
-        summaryPlaceholder: "Provide a concise overview of your project, its purpose, and its potential.",
-        problem: "Problem Statement",
-        problemPlaceholder: "Describe the problem or need your project addresses.",
-        solution: "Solution",
-        solutionPlaceholder: "Explain how your project solves this problem.",
-        usp: "Unique Selling Proposition (USP)",
-        uspPlaceholder: "What makes your project unique and better than competitors?"
-      },
-      financials: {
-        title: "Financial Information",
-        target: "Target Funding Amount (USD)",
-        targetPlaceholder: "e.g., 500000",
-        minInvestment: "Minimum Investment per User (USD)",
-        minInvestmentPlaceholder: "e.g., 500",
-        valuation: "Pre-Money Valuation (USD)",
-        valuationPlaceholder: "e.g., 2000000",
-        projections: "Revenue Projections or Financials Document",
-        projectionsHint: "Upload a PDF or spreadsheet with your financial model.",
-        upload: "Upload Document"
-      },
-      teamLegal: {
-        title: "Team & Legal",
-        team: "Founders & Core Team Members",
-        addMember: "Add Team Member",
-        removeMember: "Remove",
-        memberName: "Full Name",
-        memberRole: "Role / Title",
-        memberBio: "Short Bio & Experience",
-        memberLinkedin: "LinkedIn Profile URL (Optional)",
-        legalEntity: "Legal Entity Name",
-        legalEntityPlaceholder: "e.g., Quantum Leap AI, Inc.",
-        country: "Country of Registration",
         countryPlaceholder: "e.g., United States",
         businessPlan: "Whitepaper or Business Plan",
         businessPlanHint: "Upload your detailed project documentation (PDF).",
         upload: "Upload PDF"
+      },
+
+      actions: {
+        saveDraft: 'Save Draft',
+        loadDraft: 'Load Draft',
+        clearDraft: 'Clear Draft'
+      },
+
+      messages: {
+        draftSaved: 'Draft saved locally',
+        draftLoaded: 'Draft loaded',
+        noDraft: 'No saved draft found',
+        draftCleared: 'Draft cleared'
       },
       review: {
         title: "Review Your Submission",
@@ -696,6 +687,86 @@ const TRANSLATIONS = {
             subtitle: 'Your notifications will appear here.'
         }
     }
+    ,
+    // Settings Page
+    settings: {
+      title: 'Settings',
+      subtitle: 'Configure your preferences and personalize your experience.',
+      backToDashboard: 'Back to Dashboard',
+      menu: {
+        appearance: 'Appearance',
+        localization: 'Localization',
+        notifications: 'Notifications',
+        privacy: 'Privacy',
+        personalization: 'Personalization',
+        support: 'Support',
+        wallet: 'Wallet'
+      },
+      appearance: {
+        title: 'Appearance',
+        theme: {
+          label: 'Theme',
+          options: {
+            system: 'System',
+            light: 'Light',
+            dark: 'Dark'
+          }
+        }
+      },
+      localization: {
+        title: 'Localization',
+        language: {
+          label: 'Language',
+          options: { en: 'English', ar: 'Arabic' }
+        },
+        currency: {
+          label: 'Currency',
+          options: { USD: 'USD', EUR: 'EUR', SAR: 'SAR' }
+        }
+      },
+      notifications: {
+        title: 'Notifications',
+        email: 'Email notifications',
+        push: 'Push notifications',
+        sms: 'SMS notifications'
+      },
+      privacy: {
+        title: 'Privacy',
+        showPublicProfile: 'Show public profile',
+        sharePortfolioPerformance: 'Share portfolio performance with followers'
+      },
+      personalization: {
+        title: 'Personalization',
+        dashboardDensity: {
+          label: 'Dashboard density',
+          options: {
+            comfortable: 'Comfortable',
+            compact: 'Compact'
+          }
+        },
+        defaultInvestmentType: {
+          label: 'Default investment type',
+          options: {
+            any: 'Any',
+            founding: 'Founding',
+            equity: 'Equity'
+          }
+        },
+        showRiskIndicators: 'Show risk indicators'
+      },
+      support: {
+        title: 'Online Support',
+        available: 'Support availability',
+        hours: 'Support hours'
+      },
+      wallet: {
+        title: 'Balance',
+        balance: 'Current balance',
+        addFunds: 'Add funds',
+        amount: 'Amount',
+        addButton: 'Charge Balance'
+      }
+    }
   },
   ar: {
     // General
@@ -717,6 +788,7 @@ const TRANSLATIONS = {
         services: 'الخدمات',
         blog: 'المدونة',
         contact: 'اتصل بنا',
+        requests: 'الطلبات'
       },
       login: 'تسجيل الدخول',
       loginAsInvestor: 'تسجيل الدخول كمستثمر',
@@ -764,6 +836,86 @@ const TRANSLATIONS = {
         grow: {
           title: 'انطلق بأقل التكاليف',
           description: 'تجاوز الوسطاء المكلفين. توفر منصتنا الأدوات اللازمة للتواصل وتأمين التمويل بكفاءة، مما يمكّنك من تخصيص المزيد من الموارد لما يهم حقًا: النمو.'
+        }
+        ,
+        // Settings Page
+        settings: {
+          title: 'الإعدادات',
+          subtitle: 'قم بتكوين تفضيلاتك وتخصيص تجربتك.',
+          backToDashboard: 'العودة إلى لوحة التحكم',
+          menu: {
+            appearance: 'المظهر',
+            localization: 'التعريب',
+            notifications: 'الإشعارات',
+            privacy: 'الخصوصية',
+            personalization: 'التخصيص',
+            support: 'الدعم',
+            wallet: 'الرصيد'
+          },
+          appearance: {
+            title: 'المظهر',
+            theme: {
+              label: 'السمة',
+              options: {
+                system: 'النظام',
+                light: 'فاتح',
+                dark: 'داكن'
+              }
+            }
+          },
+          localization: {
+            title: 'التعريب',
+            language: {
+              label: 'اللغة',
+              options: { en: 'الإنجليزية', ar: 'العربية' }
+            },
+            currency: {
+              label: 'العملة',
+              options: { USD: 'دولار', EUR: 'يورو', SAR: 'ريال' }
+            }
+          },
+          notifications: {
+            title: 'الإشعارات',
+            email: 'إشعارات البريد الإلكتروني',
+            push: 'إشعارات الدفع',
+            sms: 'إشعارات الرسائل النصية'
+          },
+          privacy: {
+            title: 'الخصوصية',
+            showPublicProfile: 'عرض الملف العام',
+            sharePortfolioPerformance: 'مشاركة أداء المحفظة مع المتابعين'
+          },
+          personalization: {
+            title: 'التخصيص',
+            dashboardDensity: {
+              label: 'كثافة لوحة التحكم',
+              options: {
+                comfortable: 'مريح',
+                compact: 'مضغوط'
+              }
+            },
+            defaultInvestmentType: {
+              label: 'نوع الاستثمار الافتراضي',
+              options: {
+                any: 'أي',
+                founding: 'تمويل',
+                equity: 'أسهم'
+              }
+            },
+            showRiskIndicators: 'إظهار مؤشرات المخاطر'
+          },
+          support: {
+            title: 'الدعم عبر الإنترنت',
+            available: 'توفر الدعم',
+            hours: 'ساعات الدعم'
+          },
+          wallet: {
+            title: 'الرصيد',
+            balance: 'الرصيد الحالي',
+            addFunds: 'إضافة رصيد',
+            amount: 'المبلغ',
+            addButton: 'شحن الرصيد'
+          }
         }
       }
     },
@@ -1089,7 +1241,9 @@ const TRANSLATIONS = {
         panel: 'لوحة تحكم إنفستا',
         dashboard: 'لوحة التحكم',
         investments: 'الاستثمارات',
+        submitInvestment: 'تقديم استثمار',
         communication: 'التواصل',
+      requests: 'الطلبات',
         returnHome: 'الذهاب للرئيسية',
         userMenu: {
             profile: 'ملفك الشخصي',
@@ -1170,6 +1324,7 @@ const TRANSLATIONS = {
         high: 'مرتفع',
         risk: 'مخاطرة'
       },
+      funding: 'التمويل',
       fundingProgress: 'تقدم التمويل',
       min: 'الحد الأدنى',
       to: 'إلى',
@@ -1195,49 +1350,40 @@ const TRANSLATIONS = {
         proceedButton: "متابعة والتفاعل"
       },
       engageSuccessTitle: "تم إرسال الطلب",
-      engageSuccessMessage: "تم إرسال طلب التفاعل الخاص بك بخصوص {investmentName}. سيتم إعلامك عند القبول."
+      engageSuccessMessage: "تم إرسال طلب التفاعل الخاص بك بخصوص {investmentName}. سيتم إعلامك عند القبول.",
+      requestSubmittedTitle: "تم إرسال الطلب",
+      requestSubmittedMessage: "تم إرسال طلبك بخصوص {investmentName}. سنقوم بإعلامك عند القبول.",
+      shareValidation: {
+        minError: "يجب ألا يقل عدد الأسهم عن 1",
+        maxError: "الحد الأقصى {available} من الأسهم المتاحة"
+      },
+      investDialog: {
+        title: "استثمر في {investmentName}",
+        sharePrice: "سعر السهم",
+        available: "المتاح",
+        minLabel: "الحد الأدنى",
+        maxLabel: "الحد الأقصى",
+        sharesLabel: "عدد الأسهم",
+        availableLine: "المتاح: {available} سهم",
+        totalInvestment: "إجمالي الاستثمار:",
+        expectedROI: "العائد المتوقع:",
+        cancel: "إلغاء",
+        confirm: "تأكيد الاستثمار",
+        processing: "جاري المعالجة..."
+      }
     },
     investmentPreview: {
       backButton: "العودة إلى الاستثمارات",
       fundingStatus: "حالة التمويل",
       author: "المؤلف",
       noInvestors: "كن أول من يستثمر!",
+      noTeamMembers: 'لم يتم إضافة أعضاء فريق بعد.',
       investNowButton: "استثمر الآن",
       notFound: {
         title: "لم يتم العثور على الاستثمار",
         subtitle: "عذرًا، لم نتمكن من العثور على الاستثمار الذي تبحث عنه."
       }
     },
-    // Start Investigation
-    startInvestigation: {
-      title: "تقديم فرصة استثمارية جديدة",
-      subtitle: "قدم التفاصيل التالية لبدء عملية التحقيق والفحص.",
-      steps: {
-        basic: "المعلومات الأساسية",
-        details: "تفاصيل المشروع",
-        financials: "البيانات المالية",
-        team: "الفريق والشؤون القانونية",
-        review: "مراجعة"
-      },
-      basicInfo: {
-        title: "المعلومات الأساسية",
-        projectName: "اسم المشروع",
-        projectNamePlaceholder: "مثال: Quantum Leap AI",
-        tagline: "شعار المشروع",
-        taglinePlaceholder: "عبارة قصيرة وجذابة تصف مشروعك",
-        category: "فئة الاستثمار",
-        categorySelect: "اختر فئة",
-        realEstate: "عقارات",
-        technology: "تكنولوجيا",
-        logo: "شعار المشروع أو الصورة الرئيسية",
-        logoHint: "الحجم الموصى به: 400x400 بكسل، PNG أو JPG",
-        upload: "تحميل صورة"
-      },
-      projectDetails: {
-        title: "تفاصيل المشروع",
-        summary: "ملخص تنفيذي",
-        summaryPlaceholder: "قدم نظرة عامة موجزة عن مشروعك والغرض منه وإمكانياته.",
-        problem: "بيان المشكلة",
         problemPlaceholder: "صف المشكلة أو الحاجة التي يعالجها مشروعك.",
         solution: "الحل",
         solutionPlaceholder: "اشرح كيف يحل مشروعك هذه المشكلة.",
@@ -1259,6 +1405,8 @@ const TRANSLATIONS = {
       teamLegal: {
         title: "الفريق والشؤون القانونية",
         team: "المؤسسون وأعضاء الفريق الأساسيون",
+        noTeamMembers: 'لم يتم إضافة أعضاء فريق بعد.',
+        skipLabel: 'لا تتوفر لدي تفاصيل الفريق حتى الآن',
         addMember: "إضافة عضو فريق",
         removeMember: "إزالة",
         memberName: "الاسم الكامل",
@@ -1272,6 +1420,19 @@ const TRANSLATIONS = {
         businessPlan: "ورقة عمل أو خطة عمل",
         businessPlanHint: "قم بتحميل وثائق مشروعك التفصيلية (PDF).",
         upload: "تحميل PDF"
+      },
+
+      actions: {
+        saveDraft: 'حفظ المسودة',
+        loadDraft: 'تحميل المسودة',
+        clearDraft: 'مسح المسودة'
+      },
+
+      messages: {
+        draftSaved: 'تم حفظ المسودة محليًا',
+        draftLoaded: 'تم تحميل المسودة',
+        noDraft: 'لا توجد مسودة محفوظة',
+        draftCleared: 'تمت إزالة المسودة'
       },
       review: {
         title: "مراجعة طلبك",

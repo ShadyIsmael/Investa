@@ -21,16 +21,29 @@
                     transform="rotate(-90 50 50)" />
           </svg>
           <div class="absolute inset-0 flex items-center justify-center">
-              <img class="w-32 h-32 rounded-full ring-4 ring-slate-800" src="https://picsum.photos/seed/admin/200/200" alt="Admin User Avatar">
+              <img class="w-32 h-32 rounded-full ring-4 ring-slate-800" [src]="avatarUrl()" alt="User Avatar">
           </div>
         </div>
 
-        <h2 class="text-2xl font-bold text-white">Admin User</h2>
+        <h2 class="text-2xl font-bold text-white">{{ fullName() || ('profile.titleDefault' | translate) }}</h2>
         <p class="text-gray-400 mb-4">{{ profileForm.get('businessRole')?.value }}</p>
 
         <div class="bg-slate-800/50 p-3 rounded-lg text-center">
           <p class="text-sm font-semibold text-blue-400">{{ 'profile.trustScore' | translate }}</p>
-          <p class="text-3xl font-bold text-white">{{ trustScore() }}<span class="text-xl">%</span></p>
+
+          <div *ngIf="isLoading()" class="flex items-center justify-center py-4">
+            <div class="w-8 h-8 border-4 border-blue-400 border-t-transparent rounded-full animate-spin" aria-hidden="true"></div>
+          </div>
+
+          <div *ngIf="!isLoading()">
+            <p class="text-3xl font-bold text-white">{{ trustScore() }}<span class="text-xl">%</span></p>
+            <p class="text-xs text-gray-400 mt-1 flex items-center gap-3">KYC: <span class="font-semibold text-white">{{ kycStatus() }}</span>
+              <button *ngIf="kycStatus() === 'None'" (click)="onStartKyc()" [disabled]="isLoading()" class="ms-3 bg-blue-600 text-white px-3 py-1 rounded-md text-sm">Start KYC</button>
+              <span *ngIf="kycStatus() === 'Pending'" class="ms-3 text-yellow-300 text-sm">(Pending)</span>
+              <span *ngIf="kycStatus() === 'Verified'" class="ms-3 text-green-300 text-sm">(Verified)</span>
+            </p>
+            <p class="text-xs text-gray-400 mt-1">Credibility: <span class="font-semibold text-white">{{ profileService.profile()?.coreMetrics?.credibilityScore ?? '—' }}</span></p>
+          </div>
         </div>
         
         <div class="text-start mt-6">
@@ -106,6 +119,19 @@
 
     <!-- Right Column: Content -->
     <main class="lg:col-span-8 xl:col-span-9">
+
+      <div *ngIf="errorMessage()" class="mb-6 p-4 rounded-lg bg-red-800 text-white">
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="font-semibold">{{ 'profile.loadErrorTitle' | translate }}</p>
+            <p class="text-sm mt-1">{{ errorMessage() }}</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button (click)="loadProfile()" class="bg-white text-red-800 px-3 py-1 rounded-md">Retry</button>
+          </div>
+        </div>
+      </div>
+
       @switch (activeSection()) {
         @case ('details') {
           <form [formGroup]="profileForm" (ngSubmit)="onProfileSubmit()" class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl animate-fade-in">
@@ -157,7 +183,7 @@
                 </div>
             </div>
             <div class="p-6 bg-slate-900/50 border-t border-slate-800 text-end rounded-b-xl">
-              <button type="submit" [disabled]="profileForm.pristine || profileForm.invalid" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+              <button type="submit" [disabled]="profileForm.invalid || !isProfileChanged() || isLoading()" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
                 {{ 'profile.saveButton' | translate }}
               </button>
             </div>
@@ -308,6 +334,50 @@
           </form>
         }
       }
+
+      <!-- Credit History Section (Always visible below active section) -->
+      <div class="mt-8 bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl">
+        <div class="p-8">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold text-white">Credibility Score History</h2>
+            <div class="flex items-center gap-2">
+              <span class="text-sm text-gray-400">Current Score:</span>
+              <span class="text-2xl font-bold text-blue-400">{{ profileService.profile()?.coreMetrics?.currentCredibilityScore ?? 0 }}</span>
+            </div>
+          </div>
+
+          <div *ngIf="creditHistory().length === 0" class="text-center py-8">
+            <svg class="w-16 h-16 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p class="text-gray-400">No transaction history yet. Start KYC to earn your first credibility points!</p>
+          </div>
+
+          <div *ngIf="creditHistory().length > 0" class="space-y-4">
+            <div *ngFor="let transaction of creditHistory()" class="flex items-start gap-4 p-4 rounded-lg bg-slate-800/50 border border-slate-700 hover:border-slate-600 transition-colors">
+              <!-- Amount Badge -->
+              <div class="flex-shrink-0">
+                <div [class]="transaction.amount > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'" class="w-12 h-12 rounded-full flex items-center justify-center font-bold">
+                  {{ transaction.amount > 0 ? '+' : '' }}{{ transaction.amount }}
+                </div>
+              </div>
+
+              <!-- Transaction Details -->
+              <div class="flex-1 min-w-0">
+                <p class="text-white font-medium">{{ getJustification(transaction) }}</p>
+                <div class="flex items-center gap-2 mt-1 text-sm text-gray-400">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>{{ transaction.createdAt | date:'short' }}</span>
+                  <span *ngIf="transaction.adminName" class="ms-2 px-2 py-0.5 bg-purple-500/20 text-purple-300 rounded text-xs">By {{ transaction.adminName }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </main>
 
   </div>

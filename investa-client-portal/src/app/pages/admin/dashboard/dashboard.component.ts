@@ -6,6 +6,7 @@ import { InvestmentService } from '../../../services/investment.service';
 import { LanguageService } from '../../../services/language.service';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
 import { AuthService } from '../../../services/auth.service';
+import { ProfileService } from '../../../services/profile.service';
 import { Investment } from '../../../models/investment.model';
 import { NotificationService } from '../../../services/notification.service';
 import { get } from 'lodash-es';
@@ -52,6 +53,7 @@ interface SentRequest {
   standalone: true,
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
+  styleUrls: ['./dashboard.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, TranslatePipe, RouterLink]
 })
@@ -59,6 +61,7 @@ export class DashboardComponent {
   private investmentService = inject(InvestmentService);
   private languageService = inject(LanguageService);
   private authService = inject(AuthService);
+  private profileService = inject(ProfileService);
   private notificationService = inject(NotificationService);
   
   pieChart = viewChild<ElementRef>('pieChart');
@@ -69,21 +72,25 @@ export class DashboardComponent {
   allInvestments = this.investmentService.investments;
 
   // --- Investor-specific computed signals ---
-  myInvestments = computed(() => this.allInvestments().filter(inv => inv.investedAmount && inv.investedAmount > 0));
+  myInvestments = computed(() => this.allInvestments().filter(inv => (inv.investedAmount ?? 0) > 0));
   portfolioValue = computed(() => this.myInvestments().reduce((sum, inv) => sum + (inv.investedAmount ?? 0), 0));
   favoriteInvestments = computed(() => this.allInvestments().filter(inv => inv.favorited));
-  featuredInvestments = computed(() => this.allInvestments().sort((a, b) => b.score - a.score).slice(0, 3));
+  featuredInvestments = computed(() => this.allInvestments().sort((a, b) => b.credibilityScore - a.credibilityScore).slice(0, 3));
   investorScore = signal(85);
   availableCredits = signal(150);
   
   // --- Founder-specific computed signals & data ---
-  founderProjects = computed(() => this.allInvestments().filter(inv => inv.isOwnProject));
+  founderProjects = computed(() => {
+    const uid = this.profileService.profile()?.userId;
+    if (!uid) return [] as Investment[];
+    return this.allInvestments().filter(inv => inv.founderId === uid);
+  });
   selectedFounderProject = signal<Investment | null>(null);
 
   fundingProgress = computed(() => {
     const p = this.selectedFounderProject();
-    if (!p || p.targetFund === 0) return 0;
-    return (p.currentFund / p.targetFund) * 100;
+    if (!p || (p.targetFund ?? 0) === 0) return 0;
+    return ((p.currentFunding ?? 0) / (p.targetFund ?? 1)) * 100;
   });
   
   // Mock data for founder dashboard
@@ -206,14 +213,15 @@ export class DashboardComponent {
   // Fix: Correctly type `valueField` to ensure proper type inference for chart data.
   private getPieChartData(): ChartData[] {
     const investments = this.userRole() === 'investor' ? this.myInvestments() : this.allInvestments();
-    const valueField: 'investedAmount' | 'currentFund' = this.userRole() === 'investor' ? 'investedAmount' : 'currentFund';
+    const valueField: 'investedAmount' | 'currentFunding' = this.userRole() === 'investor' ? 'investedAmount' : 'currentFunding';
 
     // Fix: Replaced `reduce` with a `for...of` loop for clearer type handling and to resolve inference issues with the accumulator.
     const categoryTotals: Record<string, number> = {};
     for (const investment of investments) {
       const value = investment[valueField];
+      const categoryName = investment.businessCategoryName || 'Uncategorized';
       if (typeof value === 'number') {
-        categoryTotals[investment.type] = (categoryTotals[investment.type] || 0) + value;
+        categoryTotals[categoryName] = (categoryTotals[categoryName] || 0) + value;
       }
     }
 
@@ -352,6 +360,10 @@ export class DashboardComponent {
       .attr('class', 'd3-tooltip absolute bg-slate-800 text-white text-sm rounded-lg py-1 px-3 shadow-lg pointer-events-none')
       .style('opacity', 0);
 
+    // Role-aware label for tooltip (investor sees 'You invested')
+    const userRole = this.userRole();
+    const valueLabel = userRole === 'investor' ? 'You invested' : 'Amount';
+
     const sanitize = (name: string) => name.replace(/\s+/g, '-');
 
     svg
@@ -372,7 +384,7 @@ export class DashboardComponent {
         })
         .on('mousemove', function(event: MouseEvent, d: D3PieArcDatum) {
             tooltip
-              .html(`<b>${d.data.name}</b><br>$${d.data.value.toLocaleString()}`)
+              .html(`<b>${d.data.name}</b><br>${valueLabel}: <b>$${d.data.value.toLocaleString()}</b>`)
               .style('left', (event.pageX - element.getBoundingClientRect().left + 15) + 'px')
               .style('top', (event.pageY - element.getBoundingClientRect().top - 15) + 'px');
         })

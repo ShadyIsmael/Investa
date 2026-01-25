@@ -10,6 +10,7 @@ interface ServiceItem {
 @Component({
   selector: 'app-services-list',
   templateUrl: './services.component.html',
+  styleUrls: ['./services.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe]
 })

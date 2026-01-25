@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-// نستخدم 'as pg' لحل مشكلة تضارب الأسماء مع Firebase
-import '../auth_flow/models/pigeon_user.g.dart' as pg;
 import '../services/phone_auth_service.dart';
 import 'signup_screen.dart';
 
 class OTPScreen extends StatefulWidget {
-  const OTPScreen({Key? key}) : super(key: key);
+  const OTPScreen({super.key});
 
   @override
   _OTPScreenState createState() => _OTPScreenState();
@@ -228,24 +226,6 @@ class _OTPScreenState extends State<OTPScreen> {
       final firebaseUser = userCred.user;
 
       if (firebaseUser == null) throw Exception("Firebase user not found");
-
-      // تحويل بيانات Firebase لبيانات Pigeon باستخدام الـ Alias (pg)
-      final userInfo = pg.UserInfo(
-        uid: firebaseUser.uid,
-        phoneNumber: firebaseUser.phoneNumber,
-        email: firebaseUser.email,
-        displayName: firebaseUser.displayName,
-        isAnonymous: firebaseUser.isAnonymous,
-        isEmailVerified: firebaseUser.emailVerified,
-      );
-
-      final userDetails = pg.UserDetails(
-        userInfo: userInfo,
-        providerData: firebaseUser.providerData
-            .map((p) => {p.providerId: p.uid as Object?})
-            .cast<Map<String?, Object?>>()
-            .toList(),
-      );
 
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(

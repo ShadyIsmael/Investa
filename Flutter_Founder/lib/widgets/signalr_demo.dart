@@ -8,7 +8,7 @@ import '../services/auth_service.dart';
 import '../models/chat_message_dto.dart';
 
 class SignalrDemo extends StatefulWidget {
-  const SignalrDemo({Key? key}) : super(key: key);
+  const SignalrDemo({super.key});
 
   @override
   State<SignalrDemo> createState() => _SignalrDemoState();

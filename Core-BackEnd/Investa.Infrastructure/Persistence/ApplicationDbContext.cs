@@ -40,6 +40,15 @@ public class ApplicationDbContext : IdentityDbContext
 
     // Investments made by users
     public DbSet<Investment> Investments { get; set; }
+    
+    // Tracks individual investor participation in investment opportunities
+    public DbSet<InvestmentParticipant> InvestmentParticipants { get; set; }
+    
+    // Team members/founders associated with investment opportunities
+    public DbSet<InvestmentTeamMember> InvestmentTeamMembers { get; set; }
+
+    // Append-only events for investment lifecycle changes
+    public DbSet<InvestmentEvent> InvestmentEvents { get; set; }
 
     // Financial transactions tied to user wallets
     public DbSet<Transaction> Transactions { get; set; }
@@ -115,8 +124,111 @@ public class ApplicationDbContext : IdentityDbContext
             .HasPrecision(18, 2);
 
         modelBuilder.Entity<Investment>()
-            .Property(i => i.Amount)
+            .Property(i => i.InitialCapital)
             .HasPrecision(18, 2);
+            
+        // Configure new Investment equity crowdfunding fields
+        modelBuilder.Entity<Investment>()
+            .Property(i => i.SharePrice)
+            .HasPrecision(18, 2);
+            
+        modelBuilder.Entity<Investment>()
+            .Property(i => i.MinInvestment)
+            .HasPrecision(18, 2);
+            
+        modelBuilder.Entity<Investment>()
+            .Property(i => i.MaxInvestment)
+            .HasPrecision(18, 2);
+            
+        modelBuilder.Entity<Investment>()
+            .Property(i => i.ValuationCap)
+            .HasPrecision(18, 2);
+            
+        modelBuilder.Entity<Investment>()
+            .Property(i => i.ExpectedROI)
+            .HasPrecision(5, 2);
+            
+        modelBuilder.Entity<Investment>()
+            .Property(i => i.Status)
+            .HasDefaultValue("Draft");
+            
+        // Configure Investment navigation properties
+        modelBuilder.Entity<Investment>()
+            .HasOne(i => i.Founder)
+            .WithMany(u => u.Investments)
+            .HasForeignKey(i => i.FounderId)
+            .OnDelete(DeleteBehavior.Restrict);
+            
+        modelBuilder.Entity<Investment>()
+            .HasMany(i => i.Participants)
+            .WithOne(p => p.Investment)
+            .HasForeignKey(p => p.InvestmentId)
+            .OnDelete(DeleteBehavior.Cascade);
+            
+        // Configure InvestmentParticipant entity
+        modelBuilder.Entity<InvestmentParticipant>()
+            .Property(p => p.AmountInvested)
+            .HasPrecision(18, 2);
+            
+        modelBuilder.Entity<InvestmentParticipant>()
+            .Property(p => p.Status)
+            .HasDefaultValue("Confirmed");
+            
+        modelBuilder.Entity<InvestmentParticipant>()
+            .Property(p => p.CreatedAt)
+            .HasDefaultValueSql("GETDATE()");
+            
+        modelBuilder.Entity<InvestmentParticipant>()
+            .Property(p => p.InvestmentDate)
+            .HasDefaultValueSql("GETDATE()");
+            
+        modelBuilder.Entity<InvestmentParticipant>()
+            .HasOne(p => p.Investor)
+            .WithMany()
+            .HasForeignKey(p => p.InvestorId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Investment team member configuration
+        // Team members must be registered users (Founder or Both ClientType)
+        modelBuilder.Entity<InvestmentTeamMember>(tm =>
+        {
+            tm.HasKey(x => x.Id);
+            tm.Property(x => x.Role).HasMaxLength(100).IsRequired();
+            tm.Property(x => x.IsActive).HasDefaultValue(true);
+            tm.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+            
+            tm.HasIndex(x => x.InvestmentId);
+            tm.HasIndex(x => x.UserId);
+            tm.HasIndex(x => new { x.InvestmentId, x.SortOrder });
+            // Ensure one user can only be added once per investment
+            tm.HasIndex(x => new { x.InvestmentId, x.UserId }).IsUnique();
+            
+            tm.HasOne(x => x.Investment)
+                .WithMany(i => i.TeamMembers)
+                .HasForeignKey(x => x.InvestmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+                
+            // UserId is required - team members must be registered users
+            tm.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired();
+        });
+
+        // Investment event store mapping (append-only audit for investments)
+        modelBuilder.Entity<InvestmentEvent>(ev =>
+        {
+            ev.HasKey(x => x.Id);
+            ev.Property(x => x.EventType).HasMaxLength(100).IsRequired();
+            ev.Property(x => x.Payload).HasColumnType("nvarchar(max)").IsRequired(false);
+            ev.Property(x => x.Metadata).HasColumnType("nvarchar(max)").IsRequired(false);
+            ev.Property(x => x.OccurredAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            ev.HasIndex(x => x.InvestmentId);
+            ev.HasIndex(x => new { x.InvestmentId, x.Version }).IsUnique();
+            ev.HasIndex(x => new { x.InvestmentId, x.OccurredAt });
+            ev.HasOne(x => x.Investment).WithMany().HasForeignKey(x => x.InvestmentId).OnDelete(DeleteBehavior.Cascade);
+        });
 
         modelBuilder.Entity<Transaction>()
             .Property(t => t.Amount)
@@ -129,20 +241,27 @@ public class ApplicationDbContext : IdentityDbContext
             new ClientStatus { Id = 3, NameEn = "Suspended", NameAr = "معلق" }
         );
 
-            modelBuilder.Entity<CreditTransaction>()
-                .Property(ct => ct.Amount)
-                .HasPrecision(18, 2);
-
+            // CreditTransaction configuration for credibility score audit trail
             modelBuilder.Entity<CreditTransaction>(ctb =>
             {
                 ctb.HasKey(c => c.Id);
-                ctb.Property(c => c.Description).HasMaxLength(1000);
-                ctb.Property(c => c.CreatedAt).HasDefaultValueSql("GETDATE()");
+                ctb.Property(c => c.Amount).HasPrecision(18, 2).IsRequired();
+                ctb.Property(c => c.JustificationAr).HasMaxLength(500).IsRequired();
+                ctb.Property(c => c.JustificationEn).HasMaxLength(500).IsRequired();
+                ctb.Property(c => c.CreatedAt).HasDefaultValueSql("GETDATE()").IsRequired();
 
+                // Relationship to User (whose score is affected)
                 ctb.HasOne(c => c.User)
-                   .WithMany(u => u.CreditTransactions)
+                   .WithMany()
                    .HasForeignKey(c => c.UserId)
                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Relationship to Admin (who triggered the transaction, if manual)
+                ctb.HasOne(c => c.Admin)
+                   .WithMany()
+                   .HasForeignKey(c => c.AdminId)
+                   .OnDelete(DeleteBehavior.Restrict)
+                   .IsRequired(false);
             });
 
             // ScoreTransaction mapping
@@ -191,6 +310,12 @@ public class ApplicationDbContext : IdentityDbContext
         modelBuilder.Entity<UserProfile>()
             .Property(up => up.VerificationStatus)
             .HasConversion<int>();
+
+        // Configure CurrentCredibilityScore with default value
+        modelBuilder.Entity<UserProfile>()
+            .Property(up => up.CurrentCredibilityScore)
+            .HasPrecision(18, 2)
+            .HasDefaultValue(0);
 
         // Configure UserProfile timestamps
         modelBuilder.Entity<UserProfile>()
@@ -472,9 +597,9 @@ public class ApplicationDbContext : IdentityDbContext
 
         // Relationships
         modelBuilder.Entity<Investment>()
-            .HasOne(i => i.Investor)
+            .HasOne(i => i.Founder)
             .WithMany(u => u.Investments)
-            .HasForeignKey(i => i.InvestorId)
+            .HasForeignKey(i => i.FounderId)
             .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<Transaction>()
@@ -653,6 +778,124 @@ public class ApplicationDbContext : IdentityDbContext
             new GroupPermission { Id = 4, GroupId = 1000, PermissionId = 2003, AssignedAt = seedCreatedAt },
             new GroupPermission { Id = 5, GroupId = 1000, PermissionId = 2004, AssignedAt = seedCreatedAt },
             new GroupPermission { Id = 6, GroupId = 1000, PermissionId = 2005, AssignedAt = seedCreatedAt }
+        );
+
+        // Seed sample users (founders and investors) for equity testing
+        modelBuilder.Entity<User>().HasData(
+            new User {
+                Id = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                Name = "Alice Founder",
+                Email = "alice.founder@example.com",
+                Role = "Client",
+                ClientType = Investa.Domain.Entities.Enums.ClientType.Founder,
+                CredibilityScore = 4200,
+                WalletBalance = 100000m
+            },
+            new User {
+                Id = Guid.Parse("22222222-2222-2222-2222-222222222222"),
+                Name = "Bob Investor",
+                Email = "bob.investor@example.com",
+                Role = "Client",
+                ClientType = Investa.Domain.Entities.Enums.ClientType.Investor,
+                CredibilityScore = 3750,
+                WalletBalance = 25000m
+            },
+            new User {
+                Id = Guid.Parse("33333333-3333-3333-3333-333333333333"),
+                Name = "Clara Investor",
+                Email = "clara.investor@example.com",
+                Role = "Client",
+                ClientType = Investa.Domain.Entities.Enums.ClientType.Investor,
+                CredibilityScore = 3600,
+                WalletBalance = 15000m
+            }
+        );
+
+        // Seed sample investment opportunities for equity crowdfunding
+        modelBuilder.Entity<Investment>().HasData(
+            new Investment {
+                Id = 1000,
+                FounderId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                InitialCapital = 50000m,
+                Date = seedCreatedAt,
+                BusinessName = "SolarGrid Energy",
+                Description = "Distributed solar microgrid for emerging markets.",
+                SharePrice = 10.00m,
+                TotalShares = 10000,
+                AvailableShares = 8000,
+                MinInvestment = 100m,
+                MaxInvestment = 5000m,
+                ValuationCap = 5000000m,
+                ExpectedROI = 12.5m,
+                InvestmentTypeId = InvestmentType.Equity,
+                Status = "Active",
+                TargetFund = 100000m,
+                BusinessCategoryId = 100,
+                RiskLevel = "Medium",
+                Currency = "USD",
+                StartDate = seedCreatedAt.AddDays(-14),
+                EndDate = seedCreatedAt.AddDays(30)
+            },
+            new Investment {
+                Id = 1001,
+                FounderId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                InitialCapital = 20000m,
+                Date = seedCreatedAt,
+                BusinessName = "AquaPure",
+                Description = "Affordable water purification devices.",
+                SharePrice = 5.00m,
+                TotalShares = 5000,
+                AvailableShares = 1200,
+                MinInvestment = 50m,
+                MaxInvestment = 2000m,
+                ValuationCap = 2000000m,
+                ExpectedROI = 10.0m,
+                InvestmentTypeId = InvestmentType.Equity,
+                Status = "Active",
+                TargetFund = 25000m,
+                BusinessCategoryId = 101,
+                RiskLevel = "Low",
+                Currency = "USD",
+                StartDate = seedCreatedAt.AddDays(-7),
+                EndDate = seedCreatedAt.AddDays(14)
+            }
+        );
+
+        // Seed participants (investor contributions)
+        modelBuilder.Entity<InvestmentParticipant>().HasData(
+            new InvestmentParticipant {
+                Id = 5000,
+                InvestmentId = 1000,
+                InvestorId = Guid.Parse("22222222-2222-2222-2222-222222222222"),
+                SharesPurchased = 300,
+                AmountInvested = 300m * 10.00m,
+                InvestmentDate = seedCreatedAt.AddDays(-5),
+                Status = "Confirmed",
+                IsAnonymous = false,
+                CreatedAt = seedCreatedAt.AddDays(-5)
+            },
+            new InvestmentParticipant {
+                Id = 5001,
+                InvestmentId = 1000,
+                InvestorId = Guid.Parse("33333333-3333-3333-3333-333333333333"),
+                SharesPurchased = 200,
+                AmountInvested = 200m * 10.00m,
+                InvestmentDate = seedCreatedAt.AddDays(-3),
+                Status = "Confirmed",
+                IsAnonymous = false,
+                CreatedAt = seedCreatedAt.AddDays(-3)
+            },
+            new InvestmentParticipant {
+                Id = 5002,
+                InvestmentId = 1001,
+                InvestorId = Guid.Parse("22222222-2222-2222-2222-222222222222"),
+                SharesPurchased = 100,
+                AmountInvested = 100m * 5.00m,
+                InvestmentDate = seedCreatedAt.AddDays(-2),
+                Status = "Confirmed",
+                IsAnonymous = false,
+                CreatedAt = seedCreatedAt.AddDays(-2)
+            }
         );
     }
 }

@@ -12,6 +12,7 @@ import { get } from 'lodash-es';
 @Component({
   selector: 'app-blog-post-page',
   templateUrl: './blog-post.component.html',
+  styleUrls: ['./blog-post.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,

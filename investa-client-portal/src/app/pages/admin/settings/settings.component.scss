@@ -1,0 +1,19 @@
+@use 'variables' as *;
+
+.settings-section {
+  @media (min-width: 1024px) {
+    .grid { grid-template-columns: 1fr 1fr; }
+  }
+}
+
+.option-active {
+  background-color: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.6);
+  color: rgb(191, 219, 254);
+}
+
+.option-inactive {
+  background-color: rgba(51, 65, 85, 0.5);
+  border-color: rgba(71, 85, 105, 0.7);
+  color: rgb(203, 213, 225);
+}

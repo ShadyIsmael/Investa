@@ -6,6 +6,7 @@ import { TranslatePipe } from '../../pipes/translate.pipe';
   standalone: true,
   selector: 'app-hero',
   templateUrl: './hero.component.html',
+  styleUrls: ['./hero.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, TranslatePipe]
 })

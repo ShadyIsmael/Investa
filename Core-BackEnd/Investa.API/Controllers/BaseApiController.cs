@@ -19,7 +19,7 @@ public abstract class BaseApiController : ControllerBase
         return StatusCode(statusCode, new ApiResponse<T>
         {
             Success = true,
-            Message = message,
+            Message = message ?? "Operation completed successfully",
             Data = data
         });
     }
@@ -32,7 +32,7 @@ public abstract class BaseApiController : ControllerBase
         return StatusCode(statusCode, new ApiResponse<object>
         {
             Success = true,
-            Message = message,
+            Message = message ?? "Operation completed successfully",
             Data = null
         });
     }

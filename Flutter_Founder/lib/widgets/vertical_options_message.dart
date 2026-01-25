@@ -6,10 +6,10 @@ class VerticalOptionsMessage extends StatelessWidget {
   final void Function(String) onOptionSelected;
 
   const VerticalOptionsMessage({
-    Key? key,
+    super.key,
     required this.options,
     required this.onOptionSelected,
-  }) : super(key: key);
+  });
 
   String _emojiFor(String option) {
     final map = {

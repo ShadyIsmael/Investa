@@ -15,8 +15,7 @@ class ChatBoxScreen extends StatefulWidget {
   final ChatUser user;
   final bool autoJoin;
 
-  const ChatBoxScreen({Key? key, required this.user, this.autoJoin = true})
-      : super(key: key);
+  const ChatBoxScreen({super.key, required this.user, this.autoJoin = true});
 
   @override
   _ChatBoxScreenState createState() => _ChatBoxScreenState();

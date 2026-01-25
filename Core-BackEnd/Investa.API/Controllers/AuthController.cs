@@ -96,7 +96,8 @@ public class AuthController : BaseApiController
                     Email = $"{normalizedPhone}@phone.investa.local",
                     PasswordHash = passwordHasher.HashPassword(user, request.Password),
                     // Map client classification from DTO to AuthUser.UserType
-                    UserType = request.ClientType == ClientType.Founder ? UserType.Founder : UserType.Investor,
+                    // ClientType.Investor is treated as Founder by default (all clients are founders or partners)
+                    UserType = request.ClientType == ClientType.Founder ? UserType.Founder : UserType.Founder,
                     Status = true
                 };
                 await _unitOfWork.Repository<AuthUser>().AddAsync(authUser);
@@ -488,8 +489,8 @@ public class AuthController : BaseApiController
                         Id = authGuid,
                         Email = normalizedPhone + "@phone.investa.local",
                         PasswordHash = passwordHasher.HashPassword(user, request.Password),
-                        // Default to Investor for legacy sign-ups
-                        UserType = Investa.Domain.Entities.Enums.UserType.Investor,
+                        // Default to Founder for client sign-ups
+                        UserType = Investa.Domain.Entities.Enums.UserType.Founder,
                         Status = true
                     };
 

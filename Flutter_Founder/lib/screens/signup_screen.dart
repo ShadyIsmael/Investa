@@ -17,13 +17,13 @@ class SignupScreen extends StatefulWidget {
   final Map<String, dynamic>? firebaseResponse;
 
   const SignupScreen({
-    Key? key,
+    super.key,
     this.onSignedUp,
     this.prefilledPhone,
     this.phoneReadOnly = false,
     this.testSmsCode,
     this.firebaseResponse,
-  }) : super(key: key);
+  });
 
   @override
   State<SignupScreen> createState() => _SignupScreenState();
@@ -185,7 +185,8 @@ class _SignupScreenState extends State<SignupScreen> {
                                         color: isDarkMode
                                             ? Colors.white70
                                             : theme.colorScheme.onSurface
-                                                .withOpacity(0.7))),
+                                                .withAlpha(
+                                                    (0.7 * 255).round()))),
                               ],
                             ),
                           ),
@@ -214,7 +215,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                       borderRadius: BorderRadius.circular(16),
                                       border: Border.all(
                                           color: theme.colorScheme.outline
-                                              .withOpacityCompat(0.5)),
+                                              .withAlpha((0.5 * 255).round())),
                                     ),
                                     child: form,
                                   ),
@@ -245,7 +246,8 @@ class _SignupScreenState extends State<SignupScreen> {
                                         color: isDarkMode
                                             ? Colors.white70
                                             : theme.colorScheme.onSurface
-                                                .withOpacity(0.7))),
+                                                .withAlpha(
+                                                    (0.7 * 255).round()))),
                               ],
                             ),
                           ),
@@ -272,7 +274,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
                                         color: theme.colorScheme.outline
-                                            .withOpacity(0.5)),
+                                            .withAlpha((0.5 * 255).round())),
                                   ),
                                   child: form,
                                 ),
@@ -303,9 +305,11 @@ class _SignupScreenState extends State<SignupScreen> {
             controller: _phoneCtrl,
             initialCountryCode: _selectedCountryCode,
             readOnly: widget.phoneReadOnly || _loading,
-            onCountryCodeChanged: (v) => setState(() => _selectedCountryCode = v),
+            onCountryCodeChanged: (v) =>
+                setState(() => _selectedCountryCode = v),
             labelText: 'Phone number',
-            validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter phone number' : null,
+            validator: (v) =>
+                (v == null || v.trim().isEmpty) ? 'Enter phone number' : null,
           ),
           const SizedBox(height: 12),
           Row(children: [

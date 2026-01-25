@@ -23,18 +23,13 @@ public class CreditService : ICreditService
         var client = (await _unitOfWork.Repository<Client>().FindAsync(c => c.UserId == userId)).FirstOrDefault();
         if (client == null) throw new InvalidOperationException($"Client for user id {userId} not found");
 
-        if (!Enum.TryParse<CreditTransactionType>(type, true, out var txType))
-        {
-            txType = CreditTransactionType.Adjustment;
-        }
-
+        // Create transaction with bilingual justification (backward compatibility)
         var tx = new CreditTransaction
         {
             UserId = userId,
             Amount = amount,
-            Type = txType,
-            ReferenceId = referenceId,
-            Description = description,
+            JustificationAr = description ?? "تعديل الرصيد",
+            JustificationEn = description ?? "Credit adjustment",
             CreatedAt = DateTime.UtcNow
         };
 

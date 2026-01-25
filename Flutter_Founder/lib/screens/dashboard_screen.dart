@@ -9,7 +9,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'activities_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({Key? key}) : super(key: key);
+  const DashboardScreen({super.key});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -255,7 +255,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       style: theme.textTheme.bodySmall?.copyWith(
                           color: isLive
                               ? Colors.greenAccent
-                              : theme.colorScheme.onSurface.withOpacity(0.7))),
+                              : theme.colorScheme.onSurface
+                                  .withAlpha((0.7 * 255).round()))),
                 ],
               ),
               const SizedBox(height: 12),
@@ -400,8 +401,9 @@ class _LineChartCardState extends State<LineChartCard> {
           : BoxDecoration(
               color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(20),
-              border:
-                  Border.all(color: theme.colorScheme.outline.withOpacity(0.5)),
+              border: Border.all(
+                  color:
+                      theme.colorScheme.outline.withAlpha((0.5 * 255).round())),
             ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -419,7 +421,8 @@ class _LineChartCardState extends State<LineChartCard> {
                 children: [
                   Text(widget.fromServer ? 'Live' : 'Mock',
                       style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.7))),
+                          color: theme.colorScheme.onSurface
+                              .withAlpha((0.7 * 255).round()))),
                   if (!widget.fromServer && widget.serverAttempted)
                     Padding(
                       padding: const EdgeInsets.only(top: 4.0),
@@ -450,7 +453,7 @@ class _LineChartCardState extends State<LineChartCard> {
                 ? Container(
                     decoration: BoxDecoration(
                         color: theme.colorScheme.secondaryContainer
-                            .withOpacity(0.2),
+                            .withAlpha((0.2 * 255).round()),
                         borderRadius: BorderRadius.circular(12)),
                     child: Center(
                         child:
@@ -559,8 +562,7 @@ class _LineChartCardState extends State<LineChartCard> {
                           dotData: FlDotData(
                             show: true,
                             getDotPainter: (spot, percent, bar, index) {
-                              final i = index ?? 0;
-                              if (i == _touchedIndex) {
+                              if (index == _touchedIndex) {
                                 return FlDotCirclePainter(
                                     radius: 5,
                                     color: scheme.primary,
@@ -573,7 +575,8 @@ class _LineChartCardState extends State<LineChartCard> {
                           ),
                           belowBarData: BarAreaData(
                               show: true,
-                              color: scheme.primary.withOpacity(0.12)),
+                              color: scheme.primary
+                                  .withAlpha((0.12 * 255).round())),
                         ),
                         LineChartBarData(
                           spots: scoreSpots,
@@ -664,7 +667,7 @@ class _HeroHeaderDelegate extends SliverPersistentHeaderDelegate {
                 Text(
                   clampedProgress > 0.6 ? 'Balance' : 'Total Balance',
                   style: textTheme.bodyMedium?.copyWith(
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withAlpha((0.8 * 255).round()),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -804,14 +807,14 @@ class _StatCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: isDarkMode
             ? LinearGradient(colors: [
-                color.withOpacity(0.22),
-                Colors.white.withOpacity(0.08)
+                color.withAlpha((0.22 * 255).round()),
+                Colors.white.withAlpha((0.08 * 255).round())
               ], begin: Alignment.topLeft, end: Alignment.bottomRight)
             : null,
         color: isDarkMode ? null : theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
         border: isDarkMode
-            ? Border.all(color: Colors.white.withOpacity(0.06))
+            ? Border.all(color: Colors.white.withAlpha((0.06 * 255).round()))
             : null,
         boxShadow: AppShadows.soft,
       ),
@@ -820,7 +823,7 @@ class _StatCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.16),
+              color: color.withAlpha((0.16 * 255).round()),
               shape: BoxShape.circle,
             ),
             child:
@@ -836,7 +839,8 @@ class _StatCard extends StatelessWidget {
                     style: textTheme.bodySmall?.copyWith(
                         color: isDarkMode
                             ? Colors.white70
-                            : theme.colorScheme.onSurface.withOpacity(0.7))),
+                            : theme.colorScheme.onSurface
+                                .withAlpha((0.7 * 255).round()))),
                 const SizedBox(height: 6),
                 Text(value,
                     overflow: TextOverflow.ellipsis,
@@ -875,7 +879,7 @@ class _LegendEntry extends StatelessWidget {
         ? AppPalette.flame
         : (isDarkMode
             ? Colors.white70
-            : theme.colorScheme.onSurface.withOpacity(0.7));
+            : theme.colorScheme.onSurface.withAlpha((0.7 * 255).round()));
 
     return Row(
       children: [
@@ -940,14 +944,18 @@ class _ActivityItem extends StatelessWidget {
                     style: textTheme.bodyMedium
                         ?.copyWith(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
-                Text(subtitle,
-                    style: textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.7))),
+                Text(
+                  subtitle,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface
+                        .withAlpha((0.1 * 255).round()),
+                  ),
+                ),
               ],
             ),
           ),
           Icon(Icons.arrow_forward_ios,
-              color: Colors.grey.withOpacity(0.6), size: 16),
+              color: Colors.grey.withAlpha((0.6 * 255).round()), size: 16),
         ],
       ),
     );

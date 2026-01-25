@@ -19,16 +19,14 @@ abstract class Failure extends Equatable {
 
 /// Network-related failures (no connection, timeout, etc.)
 class NetworkFailure extends Failure {
-  const NetworkFailure(String message, [StackTrace? stackTrace])
-      : super(message, stackTrace);
+  const NetworkFailure(super.message, [super.stackTrace]);
 }
 
 /// Server-related failures (5xx errors, malformed responses, etc.)
 class ServerFailure extends Failure {
   final int? statusCode;
 
-  const ServerFailure(String message, [this.statusCode, StackTrace? stackTrace])
-      : super(message, stackTrace);
+  const ServerFailure(super.message, [this.statusCode, super.stackTrace]);
 
   @override
   List<Object?> get props => [message, statusCode, stackTrace];
@@ -36,17 +34,14 @@ class ServerFailure extends Failure {
 
 /// Authentication/Authorization failures
 class AuthenticationFailure extends Failure {
-  const AuthenticationFailure(String message, [StackTrace? stackTrace])
-      : super(message, stackTrace);
+  const AuthenticationFailure(super.message, [super.stackTrace]);
 }
 
 /// Validation failures (invalid input, business rules violated, etc.)
 class ValidationFailure extends Failure {
   final Map<String, String>? fieldErrors;
 
-  const ValidationFailure(String message,
-      [this.fieldErrors, StackTrace? stackTrace])
-      : super(message, stackTrace);
+  const ValidationFailure(super.message, [this.fieldErrors, super.stackTrace]);
 
   @override
   List<Object?> get props => [message, fieldErrors, stackTrace];
@@ -54,24 +49,20 @@ class ValidationFailure extends Failure {
 
 /// Cache-related failures
 class CacheFailure extends Failure {
-  const CacheFailure(String message, [StackTrace? stackTrace])
-      : super(message, stackTrace);
+  const CacheFailure(super.message, [super.stackTrace]);
 }
 
 /// SignalR-related failures
 class SignalRFailure extends Failure {
-  const SignalRFailure(String message, [StackTrace? stackTrace])
-      : super(message, stackTrace);
+  const SignalRFailure(super.message, [super.stackTrace]);
 }
 
 /// Firebase-related failures
 class FirebaseFailure extends Failure {
-  const FirebaseFailure(String message, [StackTrace? stackTrace])
-      : super(message, stackTrace);
+  const FirebaseFailure(super.message, [super.stackTrace]);
 }
 
 /// Generic unexpected failure
 class UnexpectedFailure extends Failure {
-  const UnexpectedFailure(String message, [StackTrace? stackTrace])
-      : super(message, stackTrace);
+  const UnexpectedFailure(super.message, [super.stackTrace]);
 }

@@ -1,4 +1,4 @@
-package com.investa58438.flutterdarkapp
+package com.investa.flutter_founder
 
 import io.flutter.embedding.android.FlutterActivity
 

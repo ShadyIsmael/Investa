@@ -7,12 +7,11 @@ public class CreateInvestmentDtoValidator : AbstractValidator<CreateInvestmentDt
 {
     public CreateInvestmentDtoValidator()
     {
-        // InvestorId will be taken from the authenticated user token; do not require it in payload
+        RuleFor(x => x.FounderId)
+            .NotEmpty().WithMessage("Founder ID is required.");
 
-        // ProjectId removed; not required in payload
-
-        RuleFor(x => x.Amount)
-            .GreaterThan(0m);
+        RuleFor(x => x.InitialCapital)
+            .GreaterThan(0m).WithMessage("Initial capital must be greater than zero.");
 
         // Opportunity required fields
         RuleFor(x => x.BusinessName)
@@ -41,5 +40,29 @@ public class CreateInvestmentDtoValidator : AbstractValidator<CreateInvestmentDt
 
         RuleFor(x => x.Currency)
             .NotEmpty().WithMessage("Currency is required.");
+
+        // Equity crowdfunding fields
+        RuleFor(x => x.SharePrice)
+            .GreaterThan(0m).WithMessage("Share price must be greater than zero.");
+
+        RuleFor(x => x.TotalShares)
+            .GreaterThan(0).WithMessage("Total shares must be greater than zero.");
+
+        RuleFor(x => x.MinInvestment)
+            .GreaterThan(0m)
+            .When(x => x.MinInvestment.HasValue)
+            .WithMessage("Minimum investment must be greater than zero.");
+
+        RuleFor(x => x.MaxInvestment)
+            .GreaterThan(x => x.MinInvestment ?? 0m)
+            .When(x => x.MaxInvestment.HasValue && x.MinInvestment.HasValue)
+            .WithMessage("Maximum investment must be greater than minimum investment.");
+
+        RuleFor(x => x.ExpectedROI)
+            .GreaterThanOrEqualTo(0m)
+            .When(x => x.ExpectedROI.HasValue)
+            .WithMessage("Expected ROI cannot be negative.");
+
+        // InvestmentTypeId is enum-based, so no string validation needed
     }
 }

@@ -1,0 +1,11 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+:host { display:block; }
+
+.footer {
+  padding: $spacing-6;
+  background: $color-background;
+  color: $color-text-secondary;
+  text-align: center;
+}

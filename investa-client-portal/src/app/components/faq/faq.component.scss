@@ -1,0 +1,5 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.faq { padding: $spacing-8 0; }
+.faq-item { border-bottom: 1px solid $color-border; padding: $spacing-4 0; }

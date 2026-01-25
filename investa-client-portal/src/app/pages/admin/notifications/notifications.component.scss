@@ -1,0 +1,5 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.notifications { padding: $spacing-6; }
+.notification-item { @include card($spacing-4); }

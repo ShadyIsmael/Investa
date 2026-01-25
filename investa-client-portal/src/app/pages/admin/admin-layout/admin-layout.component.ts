@@ -7,7 +7,8 @@ import { TranslatePipe } from '../../../pipes/translate.pipe';
   standalone: true,
   selector: 'app-admin-layout',
   templateUrl: './admin-layout.component.html',
+  styleUrls: ['./admin-layout.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, AdminNavbarComponent, TranslatePipe]
+  imports: [RouterOutlet, AdminNavbarComponent]
 })
 export class AdminLayoutComponent {}

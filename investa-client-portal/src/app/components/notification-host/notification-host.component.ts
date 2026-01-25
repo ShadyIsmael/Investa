@@ -5,6 +5,7 @@ import { NotificationService } from '../../services/notification.service';
 @Component({
   selector: 'app-notification-host',
   templateUrl: './notification-host.component.html',
+  styleUrls: ['./notification-host.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule]
 })

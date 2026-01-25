@@ -41,7 +41,7 @@ namespace Investa.Infrastructure.Services
             var nonce = RandomNumberGenerator.GetBytes(12);
             var ciphertext = new byte[dek.Length];
             var tag = new byte[16];
-            using (var aes = new AesGcm(_kek))
+            using (var aes = new AesGcm(_kek, AesGcm.TagByteSizes.MaxSize))
             {
                 aes.Encrypt(nonce, dek, ciphertext, tag, null);
             }
@@ -53,7 +53,7 @@ namespace Investa.Infrastructure.Services
         {
             // Ignore keyId for local implementation; in production use keyId to locate proper KEK in KMS
             var dek = new byte[wrappedDek.Length];
-            using (var aes = new AesGcm(_kek))
+            using (var aes = new AesGcm(_kek, AesGcm.TagByteSizes.MaxSize))
             {
                 aes.Decrypt(nonce, wrappedDek, tag, dek, null);
             }

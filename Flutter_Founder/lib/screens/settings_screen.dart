@@ -11,13 +11,12 @@ class SettingsScreen extends StatefulWidget {
   final VoidCallback? onLogout;
 
   const SettingsScreen(
-      {Key? key,
+      {super.key,
       required this.themeMode,
       this.currentLocale,
       this.onLocaleChanged,
       this.onThemeChanged,
-      this.onLogout})
-      : super(key: key);
+      this.onLogout});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -116,8 +115,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             color: theme.colorScheme.surface,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                                color:
-                                    theme.colorScheme.outline.withOpacity(0.5)),
+                                color: theme.colorScheme.outline
+                                    .withAlpha((0.5 * 255).round())),
                           ),
                     child: Icon(Icons.arrow_back_rounded,
                         color: isDarkMode
@@ -194,7 +193,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 }
 
 class _TermsScreen extends StatelessWidget {
-  const _TermsScreen({Key? key}) : super(key: key);
+  const _TermsScreen();
 
   @override
   Widget build(BuildContext context) {
@@ -252,7 +251,8 @@ class _TermsScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(20),
                   child: Text(loc.t('terms_content'),
                       style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.7))),
+                          color: theme.colorScheme.onSurface
+                              .withAlpha((0.7 * 255).round()))),
                 ),
               ),
             ),
@@ -274,7 +274,7 @@ class _TermsScreen extends StatelessWidget {
 class _SectionHeader extends StatelessWidget {
   final String title;
 
-  const _SectionHeader({Key? key, required this.title}) : super(key: key);
+  const _SectionHeader({required this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -285,7 +285,10 @@ class _SectionHeader extends StatelessWidget {
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
               fontWeight: FontWeight.bold,
               letterSpacing: 1.2,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withAlpha((0.5 * 255).round()),
             ),
       ),
     );
@@ -295,7 +298,7 @@ class _SectionHeader extends StatelessWidget {
 class _MenuContainer extends StatelessWidget {
   final List<Widget> children;
 
-  const _MenuContainer({Key? key, required this.children}) : super(key: key);
+  const _MenuContainer({required this.children});
 
   @override
   Widget build(BuildContext context) {
@@ -310,13 +313,13 @@ class _MenuContainer extends StatelessWidget {
             ? []
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
+                  color: Colors.black.withAlpha((0.03 * 255).round()),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
               ],
         border: isDarkMode
-            ? Border.all(color: Colors.white.withOpacity(0.05))
+            ? Border.all(color: Colors.white.withAlpha((0.05 * 255).round()))
             : null,
       ),
       child: Column(
@@ -336,7 +339,6 @@ class _MenuItem extends StatelessWidget {
   final Widget? trailing;
 
   const _MenuItem({
-    Key? key,
     required this.icon,
     required this.title,
     this.subtitle,
@@ -344,7 +346,7 @@ class _MenuItem extends StatelessWidget {
     this.textColor,
     this.onTap,
     this.trailing,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -362,7 +364,7 @@ class _MenuItem extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withAlpha((0.1 * 255).round()),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, size: 20, color: color),
@@ -385,7 +387,8 @@ class _MenuItem extends StatelessWidget {
                         child: Text(
                           subtitle!,
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            color: theme.colorScheme.onSurface
+                                .withAlpha((0.6 * 255).round()),
                           ),
                         ),
                       ),
@@ -398,7 +401,8 @@ class _MenuItem extends StatelessWidget {
                 Icon(
                   Icons.chevron_right_rounded,
                   size: 20,
-                  color: theme.colorScheme.onSurface.withOpacity(0.3),
+                  color: theme.colorScheme.onSurface
+                      .withAlpha((0.3 * 255).round()),
                 ),
             ],
           ),
@@ -409,7 +413,7 @@ class _MenuItem extends StatelessWidget {
 }
 
 class _Divider extends StatelessWidget {
-  const _Divider({Key? key}) : super(key: key);
+  const _Divider();
 
   @override
   Widget build(BuildContext context) {
@@ -417,7 +421,7 @@ class _Divider extends StatelessWidget {
       height: 1,
       thickness: 1,
       indent: 60,
-      color: Theme.of(context).dividerColor.withOpacity(0.1),
+      color: Theme.of(context).dividerColor.withAlpha((0.1 * 255).round()),
     );
   }
 }

@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_founder/services/api_client.dart';
 import 'package:flutter_founder/services/app_logger.dart';
-import 'package:flutter_founder/services/config.dart';
 import 'package:flutter_founder/services/secure_storage.dart';
 import 'endpoint_resolver.dart';
 
@@ -63,9 +62,7 @@ class InvestmentsService {
         _client = client ?? ApiClient();
 
   String get baseUrl =>
-      _baseOverride ??
-      EndpointResolver.instance.selectedApiBaseUrl ??
-      Env.apiBaseUrl;
+      _baseOverride ?? EndpointResolver.instance.selectedApiBaseUrl;
 
   Future<bool> createInvestment(InvestmentRequest req) async {
     var apiBase = baseUrl;

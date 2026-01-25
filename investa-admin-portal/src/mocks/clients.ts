@@ -27,8 +27,11 @@ async function refreshTopClientsFromApi() {
       if (stored === 'true') return;
     }
 
-    const base = (import.meta.env.VITE_API_BASE_URL as string) || 'http://192.168.1.5:5235/';
-    const url = `${base.replace(/\/+$/, '')}/api/v1/admin/clients/top`;
+    const base = (import.meta.env.VITE_API_BASE_URL as string) || 'http://DESKTOP-DIH7CQH:5235/';
+    // Normalize base and strip any trailing `/api` segment to avoid duplicated `/api/api` when
+    // VITE_API_BASE_URL is configured as e.g. `http://localhost:5000/api` (common in docs/examples)
+    const baseClean = base.replace(/\/api\/?$/, '').replace(/\/+$|\s+$/g, '');
+    const url = `${baseClean}/api/v1/admin/clients/top`;
     const resp = await fetch(url, { credentials: 'include' });
     if (!resp.ok) throw new Error(`Status ${resp.status}`);
     const json = await resp.json();

@@ -222,11 +222,12 @@ class _NewInvestmentScreenState extends State<NewInvestmentScreen> {
         children: [
           _stepCircle(0, 'Basics'),
           Expanded(
-              child: Container(
-                  height: 2,
-                  color: _currentStep >= 1
-                      ? AppPalette.flame
-                      : Colors.grey.withOpacity(0.3))),
+            child: Container(
+                height: 2,
+                color: _currentStep >= 1
+                    ? AppPalette.flame
+                    : Colors.grey.withAlpha((0.3 * 255).round())),
+          ),
           _stepCircle(1, 'Financials'),
         ],
       ),
@@ -245,13 +246,14 @@ class _NewInvestmentScreenState extends State<NewInvestmentScreen> {
             shape: BoxShape.circle,
             color: isActive ? AppPalette.flame : Colors.transparent,
             border: Border.all(
-                color:
-                    isActive ? AppPalette.flame : Colors.grey.withOpacity(0.5),
+                color: isActive
+                    ? AppPalette.flame
+                    : Colors.grey.withAlpha((0.5 * 255).round()),
                 width: 2),
             boxShadow: isActive
                 ? [
                     BoxShadow(
-                        color: AppPalette.flame.withOpacity(0.3),
+                        color: AppPalette.flame.withAlpha((0.3 * 255).round()),
                         blurRadius: 8,
                         spreadRadius: 2)
                   ]
@@ -488,7 +490,9 @@ class _NewInvestmentScreenState extends State<NewInvestmentScreen> {
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: icon != null
-                ? Icon(icon, size: 18, color: AppPalette.flame.withOpacity(0.7))
+                ? Icon(icon,
+                    size: 18,
+                    color: AppPalette.flame.withAlpha((0.7 * 255).round()))
                 : null,
             filled: true,
             fillColor: theme.colorScheme.surface,

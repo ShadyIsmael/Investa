@@ -3,7 +3,7 @@ import '../models/chat_user.dart';
 
 class UserProfileScreen extends StatelessWidget {
   final ChatUser user;
-  const UserProfileScreen({Key? key, required this.user}) : super(key: key);
+  const UserProfileScreen({super.key, required this.user});
 
   @override
   Widget build(BuildContext context) {

@@ -1,17 +1,19 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { supportService } from '../../services/supportService';
 import { useChatStore } from '@/services/chatStore';
 import { useSignalR } from '../../services/signalr';
 import { Message } from '../../types';
 
 // Note: This project doesn't use react-router by default; we'll support passing conversationId as prop
-export const ChatView: React.FC<{ supportSessionId?: string }> = ({ supportSessionId: propSessionId }) => {
+export const ChatView: React.FC<{ supportSessionId?: string }> = React.memo(({ supportSessionId: propSessionId }) => {
   // Extract conversation ID from URL path (e.g., /admin/support/chat/:id)
   const sessionId = propSessionId || (typeof window !== 'undefined' ? window.location.pathname.split('/').filter(Boolean).pop() : undefined) || '';
   const [loading, setLoading] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
   const [initialMessage, setInitialMessage] = useState<string>('');
   const [text, setText] = useState('');
+
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setText(e.target.value), []);
   const { connection } = useSignalR();
   const addConversation = useChatStore(s => s.addConversation);
   const receiveMessage = useChatStore(s => s.receiveMessage);
@@ -84,7 +86,7 @@ export const ChatView: React.FC<{ supportSessionId?: string }> = ({ supportSessi
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const send = async () => {
+  const send = useCallback(async () => {
     if (!text.trim()) return;
     const msgText = text.trim();
     setText('');
@@ -96,7 +98,7 @@ export const ChatView: React.FC<{ supportSessionId?: string }> = ({ supportSessi
     } catch (e) {
       console.warn('send failed', e);
     }
-  };
+  }, [text, sessionId]);
 
   if (!sessionId) return <div className="p-6">No conversation selected</div>;
   if (loading) return <div className="p-6">Loading conversation...</div>;
@@ -114,11 +116,13 @@ export const ChatView: React.FC<{ supportSessionId?: string }> = ({ supportSessi
       </div>
 
       <div className="flex items-center gap-3">
-        <input value={text} onChange={(e) => setText(e.target.value)} className="flex-1 px-3 py-2 rounded-lg border border-slate-200" placeholder="Type a message..." />
+        <input value={text} onChange={handleInputChange} className="flex-1 px-3 py-2 rounded-lg border border-slate-200" placeholder="Type a message..." />
         <button onClick={send} className="px-4 py-2 bg-indigo-600 text-white rounded-lg">Send</button>
       </div>
     </div>
   );
-};
+});
+
+(ChatView as unknown as React.FC).displayName = 'ChatView';
 
 export default ChatView;

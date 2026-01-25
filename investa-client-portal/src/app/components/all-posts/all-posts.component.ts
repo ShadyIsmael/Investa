@@ -6,6 +6,7 @@ import { RouterLink } from '@angular/router';
 @Component({
   selector: 'app-all-posts',
   templateUrl: './all-posts.component.html',
+  styleUrls: ['./all-posts.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe, RouterLink]
 })

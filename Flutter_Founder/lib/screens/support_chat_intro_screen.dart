@@ -9,7 +9,7 @@ import '../widgets/vertical_options_message.dart';
 import '../l10n/app_localizations.dart';
 
 class SupportChatIntroScreen extends StatefulWidget {
-  const SupportChatIntroScreen({Key? key}) : super(key: key);
+  const SupportChatIntroScreen({super.key});
 
   @override
   State<SupportChatIntroScreen> createState() => _SupportChatIntroScreenState();

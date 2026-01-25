@@ -34,15 +34,15 @@ void main() {
 
     await tester.pumpWidget(Provider<ChatController>.value(
       value: chatController,
-      child: MaterialApp(
-        localizationsDelegates: const [
+      child: const MaterialApp(
+        localizationsDelegates: [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        supportedLocales: const [Locale('en')],
-        home: const SupportChatIntroScreen(),
+        supportedLocales: [Locale('en')],
+        home: SupportChatIntroScreen(),
       ),
     ));
 

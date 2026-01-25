@@ -1,0 +1,5 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.admin-layout { min-height: 100vh; display: flex; }
+.admin-layout .content { flex: 1; padding: $spacing-6; }

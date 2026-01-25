@@ -4,12 +4,13 @@
 
 namespace Investa.Infrastructure.Migrations.ChatModule
 {
-    /// <inheritdoc />
+    // Migration neutralized during consolidation.
     public partial class AddStatusToConversation : Migration
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
+        protected override void Up(MigrationBuilder migrationBuilder) { }
+        protected override void Down(MigrationBuilder migrationBuilder) { }
+    }
+}
             migrationBuilder.AddColumn<string>(
                 name: "Category",
                 table: "Conversations",

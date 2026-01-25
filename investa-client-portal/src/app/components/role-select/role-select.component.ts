@@ -7,6 +7,7 @@ import { UiService } from '../../services/ui.service';
 @Component({
   selector: 'app-role-select',
   templateUrl: './role-select.component.html',
+  styleUrls: ['./role-select.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, TranslatePipe]
 })

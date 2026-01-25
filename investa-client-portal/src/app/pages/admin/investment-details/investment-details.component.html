@@ -14,8 +14,8 @@
             <!-- Left Column: Main Info -->
             <div class="lg:col-span-2">
               <div class="flex items-center justify-between mb-4">
-                <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full" [class]="inv.type === InvestmentType.Stock ? 'bg-blue-500/20 text-blue-300' : inv.type === InvestmentType.Crypto ? 'bg-yellow-500/20 text-yellow-300' : 'bg-purple-500/20 text-purple-300'">
-                  {{ (inv.type | lowercase) | translate }}
+                <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full" [ngClass]="getInvestmentTypeBadgeClass(inv.investmentType)">
+                  {{ getInvestmentTypeDisplay(inv.investmentType) }}
                 </span>
                 <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full" [class]="inv.riskLevel === RiskLevel.Low ? 'bg-green-500/20 text-green-300' : inv.riskLevel === RiskLevel.Medium ? 'bg-orange-500/20 text-orange-300' : 'bg-red-500/20 text-red-300'">
                   {{ ('investments.risk.' + (inv.riskLevel | lowercase)) | translate }} {{ 'investments.risk.risk' | translate }}
@@ -27,13 +27,16 @@
               <!-- Funding Progress -->
               <div class="mt-8">
                 <h3 class="text-lg font-semibold text-white mb-3">{{ 'investmentPreview.fundingStatus' | translate }}</h3>
-                @let progress = (inv.targetFund > 0) ? (inv.currentFund / inv.targetFund) * 100 : 0;
+                @let progress = (inv.targetFund > 0) ? ((inv.currentFunding ?? 0) / inv.targetFund) * 100 : 0;
                 <div class="w-full bg-slate-700 rounded-full h-3 mb-2">
                     <div class="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full" [style.width]="progress + '%'"></div>
                 </div>
                 <div class="flex justify-between text-sm">
                     <span class="text-gray-300 font-medium">
-                        <span class="text-white font-bold text-lg">{{ inv.currentFund | number }}</span> / {{ inv.targetFund | number }} USD
+                        <span class="text-white font-bold text-lg">{{ inv.currentFunding | number }}</span> / {{ inv.targetFund | number }} USD
+                        @if (inv.investedAmount && inv.investedAmount > 0) {
+                          <div class="text-xs text-gray-400">You invested: <span class="text-white font-medium">${{ inv.investedAmount | number }}</span></div>
+                        }
                     </span>
                     <span class="text-white font-bold text-lg">{{ progress | number:'1.0-0' }}%</span>
                 </div>
@@ -46,11 +49,11 @@
               <div class="bg-slate-800/50 p-6 rounded-lg">
                 <h3 class="text-lg font-semibold text-white mb-4">{{ 'investmentPreview.author' | translate }}</h3>
                 <div class="flex items-center gap-4">
-                  <img [src]="inv.authorImage" alt="{{ inv.author }}" class="w-16 h-16 rounded-full object-cover">
+                  <img [src]="inv.imageUrl" alt="{{ inv.founderDisplay }}" class="w-16 h-16 rounded-full object-cover">
                   <div>
-                    <p class="font-bold text-white text-xl">{{ inv.author }}</p>
+                    <p class="font-bold text-white text-xl">{{ inv.founderDisplay }}</p>
                      <div class="bg-blue-500/20 text-blue-300 text-xs font-bold px-2.5 py-1 rounded-full inline-block mt-2">
-                        {{ 'investments.score' | translate }} : {{ inv.score }}
+                        {{ 'investments.score' | translate }} : {{ inv.credibilityScore }}
                     </div>
                   </div>
                 </div>
@@ -58,10 +61,10 @@
 
               <!-- Investors List -->
               <div>
-                <h3 class="text-lg font-semibold text-white mb-4">{{ 'investments.investors' | translate }} ({{ inv.investors.length }})</h3>
-                @if (inv.investors.length > 0) {
+                <h3 class="text-lg font-semibold text-white mb-4">{{ 'investments.investors' | translate }} ({{ inv.investors?.length || 0 }})</h3>
+                @if (inv.investors && inv.investors.length > 0) {
                   <div class="flex items-center -space-x-3 rtl:space-x-reverse">
-                      @for(investor of inv.investors.slice(0, 7); track investor.name) {
+                      @for(investor of (inv.investors || []).slice(0, 7); track investor.name) {
                           <img class="inline-block h-12 w-12 rounded-full ring-2 ring-slate-900 object-cover" [src]="investor.imageUrl" [alt]="investor.name" [title]="investor.name">
                       }
                       @if(inv.investors.length > 7) {

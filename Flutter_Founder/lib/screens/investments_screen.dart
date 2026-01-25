@@ -25,7 +25,7 @@ class InvestmentFilter {
 }
 
 class InvestmentsScreen extends StatefulWidget {
-  const InvestmentsScreen({Key? key}) : super(key: key);
+  const InvestmentsScreen({super.key});
 
   @override
   State<InvestmentsScreen> createState() => _InvestmentsScreenState();
@@ -177,9 +177,7 @@ class _InvestmentsList extends StatefulWidget {
   final Category category;
   final ValueNotifier<InvestmentFilter?>? filterListenable;
 
-  const _InvestmentsList(
-      {Key? key, required this.category, this.filterListenable})
-      : super(key: key);
+  const _InvestmentsList({required this.category, this.filterListenable});
 
   @override
   State<_InvestmentsList> createState() => _InvestmentsListState();
@@ -245,8 +243,9 @@ class _InvestmentsListState extends State<_InvestmentsList>
       double target = 0.0;
       final tgt = item['targetFund'] ?? item['target'] ?? item['goal'];
       if (tgt is num) target = tgt.toDouble();
-      if (tgt is String)
+      if (tgt is String) {
         target = double.tryParse(tgt.replaceAll(',', '')) ?? 0.0;
+      }
       if (f.minAmount != null && target < f.minAmount!) return false;
       if (f.maxAmount != null && target > f.maxAmount!) return false;
 
@@ -292,8 +291,9 @@ class _InvestmentsListState extends State<_InvestmentsList>
           return Center(child: Text('Error: ${snap.error}'));
         }
         _original = snap.data ?? <dynamic>[];
-        if (_filtered.isEmpty && _original.isNotEmpty)
+        if (_filtered.isEmpty && _original.isNotEmpty) {
           _applyFilter(widget.filterListenable?.value);
+        }
 
         final list = _filtered;
         if (list.isEmpty) {
@@ -329,8 +329,7 @@ class _InvestmentsListState extends State<_InvestmentsList>
 class _InvestmentCard extends StatefulWidget {
   final Map<String, dynamic> item;
   final Category category;
-  const _InvestmentCard({Key? key, required this.item, required this.category})
-      : super(key: key);
+  const _InvestmentCard({required this.item, required this.category});
 
   @override
   State<_InvestmentCard> createState() => _InvestmentCardState();
@@ -716,7 +715,7 @@ class _InvestmentCardState extends State<_InvestmentCard> {
 // Advanced search bottom sheet
 class _AdvancedSearchSheet extends StatefulWidget {
   final InvestmentFilter? initial;
-  const _AdvancedSearchSheet({Key? key, this.initial}) : super(key: key);
+  const _AdvancedSearchSheet({this.initial});
 
   @override
   State<_AdvancedSearchSheet> createState() => _AdvancedSearchSheetState();

@@ -17,6 +17,7 @@ interface FooterLinkGroup {
   standalone: true,
   selector: 'app-footer',
   templateUrl: './footer.component.html',
+  styleUrls: ['./footer.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe, RouterLink]
 })

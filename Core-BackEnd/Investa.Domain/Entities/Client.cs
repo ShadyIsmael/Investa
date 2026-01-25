@@ -74,7 +74,7 @@ public class Client
     [StringLength(200)]
     public string? BusinessRole { get; set; }
 
-    [Column(TypeName = "decimal(5,2)")]
+    [Column(TypeName = "decimal(9,2)")]
     public decimal Score { get; set; } = 0m;
 
     [Column(TypeName = "decimal(18,2)")]

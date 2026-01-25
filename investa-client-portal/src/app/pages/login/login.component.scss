@@ -1,0 +1,241 @@
+@use "variables" as *;
+@use "sass:color" as color;
+@use "mixins" as *;
+@use "theme" as theme;
+
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.login-page {
+  min-height: 100vh;
+  @include flex-center;
+  background: linear-gradient(135deg, theme.$color-accent 0%, theme.$color-accent-alt 100%);
+  padding: $spacing-4;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');
+    opacity: 0.1;
+  }
+}
+
+.login-container {
+  position: relative;
+  z-index: theme.$z-dropdown;
+  width: 100%;
+  max-width: 440px;
+  @include fade-in(0.4s);
+}
+
+.login-card {
+  @include card($spacing-8);
+  background: rgba(theme.$color-surface, 0.98);
+  backdrop-filter: blur(10px);
+
+  @include respond-to('md') {
+    padding: $spacing-10;
+  }
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: $spacing-8;
+
+  h1 {
+    @include heading('lg');
+    color: $color-text-primary;
+    margin-bottom: $spacing-2;
+  }
+
+  p {
+    color: $color-text-secondary;
+    font-size: $font-size-sm;
+  }
+}
+
+.role-selector {
+  @include flex-between;
+  gap: $spacing-3;
+  margin-bottom: $spacing-6;
+  padding: $spacing-1;
+  background: $color-background-alt;
+  border-radius: $border-radius-md;
+
+  button {
+    flex: 1;
+    @include button-base;
+    @include button-size('md');
+    background: transparent;
+    color: $color-text-secondary;
+    font-weight: $font-weight-medium;
+    transition: all $transition-base;
+
+    &.active {
+      background: theme.$color-surface;
+      color: theme.$color-accent;
+      box-shadow: $shadow-sm;
+    }
+
+    &:hover:not(.active) {
+      background: rgba(theme.$color-surface, 0.5);
+    }
+  }
+}
+
+.form-group {
+  margin-bottom: $spacing-5;
+
+  label {
+    display: block;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    color: $color-text-primary;
+    margin-bottom: $spacing-2;
+  }
+
+  input, select {
+    @include input-base;
+
+    &.error {
+      border-color: $color-error;
+    }
+  }
+
+  .error-message {
+    display: block;
+    font-size: $font-size-xs;
+    color: $color-error;
+    margin-top: $spacing-2;
+  }
+}
+
+.country-selector {
+  position: relative;
+
+  .country-button {
+    @include input-base;
+    @include flex-between;
+    cursor: pointer;
+    transition: all $transition-base;
+
+    &:hover {
+      border-color: theme.$color-accent;
+    }
+
+    .fi-sm {
+      font-size: 0.95rem;
+      margin-right: $spacing-2;
+    }
+  }
+
+  .country-dropdown {
+    position: absolute;
+    top: calc(100% + $spacing-1);
+    left: 0;
+    right: 0;
+    max-height: 250px;
+    overflow-y: auto;
+    background: theme.$color-surface;
+    border: 1px solid $color-border;
+    border-radius: $border-radius-md;
+    box-shadow: $shadow-lg;
+    z-index: theme.$z-dropdown;
+    @include custom-scrollbar;
+
+    .country-option {
+      @include flex-start;
+      padding: $spacing-3 $spacing-4;
+      cursor: pointer;
+      transition: background $transition-fast;
+
+      &:hover {
+        background: $color-background-alt;
+      }
+
+      .fi-sm {
+        font-size: 0.95rem;
+        margin-right: $spacing-3;
+      }
+
+      span {
+        font-size: $font-size-sm;
+        color: $color-text-primary;
+      }
+    }
+  }
+}
+
+.forgot-password {
+  display: block;
+  text-align: right;
+  font-size: $font-size-sm;
+  color: $color-primary;
+  margin-bottom: $spacing-6;
+  transition: color $transition-base;
+
+  &:hover {
+    color: theme.$color-accent-alt;
+  }
+}
+
+.submit-button {
+  @include button-base;
+  @include button-variant(theme.$color-accent);
+  width: 100%;
+  padding: $spacing-4;
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+
+  &:disabled {
+    background: $color-text-muted;
+  }
+
+  .loading-spinner {
+    margin-right: $spacing-2;
+  }
+}
+
+.alert {
+  padding: $spacing-3 $spacing-4;
+  border-radius: $border-radius-md;
+  margin-bottom: $spacing-4;
+  font-size: $font-size-sm;
+
+  &.alert-error {
+    background: rgba($color-error, 0.1);
+    border: 1px solid rgba($color-error, 0.3);
+    color: color.adjust($color-error, $lightness: -10%);
+  }
+
+  &.alert-success {
+    background: rgba($color-success, 0.1);
+    border: 1px solid rgba($color-success, 0.3);
+    color: color.adjust($color-success, $lightness: -10%);
+  }
+}
+
+.signup-link {
+  text-align: center;
+  margin-top: $spacing-6;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+
+  a {
+    color: $color-primary;
+    font-weight: $font-weight-semibold;
+    margin-left: $spacing-1;
+
+    &:hover {
+      color: $color-primary-dark;
+    }
+  }
+}

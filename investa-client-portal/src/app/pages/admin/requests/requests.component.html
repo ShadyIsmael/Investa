@@ -1,0 +1,69 @@
+<section class="container mx-auto px-6 py-6">
+  <div class="flex items-center justify-between mb-6">
+    <h2 class="text-2xl font-semibold text-white">{{ 'requests.title' | translate }}</h2>
+  </div>
+
+  <div class="flex items-center space-x-2 mb-6">
+    <button (click)="switchTab('incoming')" [class.bg-gray-800]="tab() === 'incoming'" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">{{ 'requests.incoming' | translate }}</button>
+    <button (click)="switchTab('outgoing')" [class.bg-gray-800]="tab() === 'outgoing'" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">{{ 'requests.outgoing' | translate }}</button>
+  </div>
+
+  @if (tab() === 'incoming') {
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      @for (request of incoming(); track request.id) {
+        <div class="bg-slate-800 rounded-lg shadow p-4 border border-slate-700/50">
+          <div class="flex items-start gap-4">
+            <img [src]="request.projectImageUrl" alt="project" class="w-16 h-16 rounded-md object-cover" />
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <h3 class="text-white font-semibold truncate">{{ request.projectName }}</h3>
+                <span class="text-xs px-2 py-1 rounded-full"
+                  [class.bg-yellow-600]="request.status === 'Pending'"
+                  [class.bg-green-600]="request.status === 'Accepted'"
+                  [class.bg-red-600]="request.status === 'Declined'">
+                  {{ request.status }}
+                </span>
+              </div>
+              <p class="text-sm text-gray-400 mt-1 truncate">{{ 'requests.from' | translate }} {{ request.counterpartName }}</p>
+              <p class="text-xs text-gray-500 mt-1">{{ getTimeAgo(request.createdAt) }}</p>
+              <div class="flex gap-3 mt-4">
+                <button (click)="accept(request)" class="bg-green-600 text-white text-sm font-semibold px-3 py-2 rounded-md hover:opacity-90">{{ 'requests.accept' | translate }}</button>
+                <button (click)="decline(request)" class="bg-red-600 text-white text-sm font-semibold px-3 py-2 rounded-md hover:opacity-90">{{ 'requests.decline' | translate }}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      } @empty {
+        <div class="col-span-1 lg:col-span-2 text-center py-10 text-gray-500">{{ 'requests.noIncoming' | translate }}</div>
+      }
+    </div>
+  } @else {
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      @for (request of outgoing(); track request.id) {
+        <div class="bg-slate-800 rounded-lg shadow p-4 border border-slate-700/50">
+          <div class="flex items-start gap-4">
+            <img [src]="request.projectImageUrl" alt="project" class="w-16 h-16 rounded-md object-cover" />
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <h3 class="text-white font-semibold truncate">{{ request.projectName }}</h3>
+                <span class="text-xs px-2 py-1 rounded-full"
+                  [class.bg-yellow-600]="request.status === 'Pending' || request.status === 'Negotiating'"
+                  [class.bg-blue-600]="request.status === 'Partner'"
+                  [class.bg-red-600]="request.status === 'Rejected'">
+                  {{ request.status }}
+                </span>
+              </div>
+              <p class="text-sm text-gray-400 mt-1 truncate">{{ 'requests.to' | translate }} {{ request.counterpartName }}</p>
+              <p class="text-xs text-gray-500 mt-1">{{ getTimeAgo(request.createdAt) }}</p>
+              <div class="flex gap-3 mt-4">
+                <button (click)="withdraw(request)" class="bg-gray-600 text-white text-sm font-semibold px-3 py-2 rounded-md hover:opacity-90">{{ 'requests.withdraw' | translate }}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      } @empty {
+        <div class="col-span-1 lg:col-span-2 text-center py-10 text-gray-500">{{ 'requests.noOutgoing' | translate }}</div>
+      }
+    </div>
+  }
+</section>

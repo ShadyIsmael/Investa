@@ -5,9 +5,10 @@ namespace Investa.Application.Interfaces;
 
 public interface IInvestmentService
 {
-    Task<bool> InvestInProjectAsync(Guid investorId, int projectId, decimal amount);
+    Task<bool> PurchaseSharesAsync(Guid investorId, int investmentId, int sharesPurchased);
     Task<Investment> CreateAsync(CreateInvestmentDto dto);
     Task<bool> UpdateAsync(int id, UpdateInvestmentDto dto);
     Task<Investment?> GetByIdAsync(int id);
     Task<IEnumerable<Investment>> GetByCategoryAsync(int? categoryId);
+    Task<IEnumerable<InvestmentParticipant>> GetParticipantsAsync(int investmentId);
 }

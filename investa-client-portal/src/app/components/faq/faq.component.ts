@@ -10,6 +10,7 @@ interface FaqItem {
 @Component({
   selector: 'app-faq',
   templateUrl: './faq.component.html',
+  styleUrls: ['./faq.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe]
 })

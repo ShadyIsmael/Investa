@@ -5,6 +5,7 @@ import { TranslatePipe } from '../../pipes/translate.pipe';
 @Component({
   selector: 'app-cta',
   templateUrl: './cta.component.html',
+  styleUrls: ['./cta.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, TranslatePipe]
 })

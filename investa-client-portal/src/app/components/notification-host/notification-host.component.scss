@@ -1,0 +1,4 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.notification-host { position: fixed; bottom: $spacing-6; right: $spacing-6; display:flex; flex-direction:column; gap:$spacing-3; }

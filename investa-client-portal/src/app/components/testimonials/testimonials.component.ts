@@ -11,6 +11,7 @@ interface Testimonial {
 @Component({
   selector: 'app-testimonials',
   templateUrl: './testimonials.component.html',
+  styleUrls: ['./testimonials.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe]
 })

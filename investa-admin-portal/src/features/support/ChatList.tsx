@@ -1,14 +1,16 @@
-import React, { useRef, useLayoutEffect } from 'react';
+import React, { useRef, useLayoutEffect, useCallback } from 'react';
 import { useChatStore } from '@/services/chatStore';
 import { Icon } from '@/components/common/Icons';
 
-export const ChatList: React.FC = () => {
+export const ChatList: React.FC = React.memo(() => {
   const conversations = useChatStore(s => s.conversations);
   const activeConversationId = useChatStore(s => s.activeConversationId);
   const setActiveConversation = useChatStore(s => s.setActiveConversation);
 
   const listRef = useRef<HTMLDivElement | null>(null);
   const prevScrollHeightRef = React.useRef<number>(0);
+
+  const handleSelect = useCallback((id: string) => setActiveConversation(id), [setActiveConversation]);
 
   // Preserve scroll position when list content height changes to avoid visual jumps
   useLayoutEffect(() => {
@@ -35,7 +37,7 @@ export const ChatList: React.FC = () => {
         ) : (
           <ul className="p-2">
             {conversations.map(conv => (
-              <li key={conv.id} className={`cursor-pointer p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${activeConversationId === conv.id ? 'bg-indigo-50 dark:bg-indigo-900/10' : ''}`} onClick={() => setActiveConversation(conv.id)}>
+              <li key={conv.id} className={`cursor-pointer p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${activeConversationId === conv.id ? 'bg-indigo-50 dark:bg-indigo-900/10' : ''}`} onClick={() => handleSelect(conv.id)}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
@@ -63,6 +65,8 @@ export const ChatList: React.FC = () => {
       </div>
     </div>
   );
-};
+});
 
 export default ChatList;
+
+(ChatList as unknown as React.FC).displayName = 'ChatList';

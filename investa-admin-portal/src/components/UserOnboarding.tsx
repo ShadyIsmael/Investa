@@ -42,7 +42,7 @@ const UserOnboarding: React.FC<UserOnboardingProps> = ({ editingUser, onClose })
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border p-6 shadow-xl">
+    <div className="bg-surface rounded-2xl border border-border p-6 shadow-xl text-text">
       <h3 className="text-xl font-bold mb-4">{editingUser ? 'Edit User' : 'New User'}</h3>
       
       {error && (
@@ -53,33 +53,33 @@ const UserOnboarding: React.FC<UserOnboardingProps> = ({ editingUser, onClose })
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Name</label>
+          <label className="block text-sm font-medium mb-1 text-muted">Name</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-3 py-2 bg-background border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-muted/50"
             disabled={loading}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Email</label>
+          <label className="block text-sm font-medium mb-1 text-muted">Email</label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-3 py-2 bg-background border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-muted/50"
             disabled={loading}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Role</label>
+          <label className="block text-sm font-medium mb-1 text-muted">Role</label>
           <select
             value={role}
             onChange={(e) => setRole(e.target.value as 'Admin' | 'Editor' | 'Viewer')}
-            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-3 py-2 bg-background border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
             disabled={loading}
           >
             <option value="Admin">Admin</option>
@@ -89,11 +89,11 @@ const UserOnboarding: React.FC<UserOnboardingProps> = ({ editingUser, onClose })
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Status</label>
+          <label className="block text-sm font-medium mb-1 text-muted">Status</label>
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value as 'Active' | 'Inactive' | 'Pending')}
-            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-3 py-2 bg-background border border-border rounded-lg text-text focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
             disabled={loading}
           >
             <option value="Active">Active</option>
@@ -106,14 +106,14 @@ const UserOnboarding: React.FC<UserOnboardingProps> = ({ editingUser, onClose })
           <button
             type="button"
             onClick={() => onClose(false)}
-            className="px-4 py-2 border rounded-lg hover:bg-slate-50"
+            className="px-4 py-2 border border-border rounded-lg text-text hover:bg-background transition-colors"
             disabled={loading}
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 disabled:opacity-50 shadow-lg shadow-primary/20 transition-all"
             disabled={loading}
           >
             {loading ? 'Saving...' : editingUser ? 'Update User' : 'Create User'}

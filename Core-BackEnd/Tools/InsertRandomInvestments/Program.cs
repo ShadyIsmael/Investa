@@ -59,34 +59,58 @@ if (!categories.Any())
     categories = new[] { 100, 101, 102 };
 }
 
-for (int i = 0; i < 5; i++)
+int createCount = 20;
+if (args.Length > 1 && int.TryParse(args[1], out var provided)) createCount = Math.Max(1, provided);
+
+// pick founders from DB (ClientType Founder or Both)
+var founders = db.ApplicationUsers.Where(u => u.ClientType == Investa.Domain.Entities.Enums.ClientType.Founder || u.ClientType == Investa.Domain.Entities.Enums.ClientType.Both).Select(u => u.Id).ToArray();
+if (!founders.Any())
+{
+    // fallback to provided userId as founder
+    founders = new[] { userId };
+}
+
+for (int i = 0; i < createCount; i++)
 {
     var business = businessNames[rnd.Next(businessNames.Length)];
-    var amount = (decimal)(rnd.Next(1000, 20000) + rnd.NextDouble());
-    var target = (decimal)(rnd.Next(50000, 200000) + rnd.NextDouble());
-    var startDate = DateTime.UtcNow.AddDays(rnd.Next(-365, 365));
-    var catId = (int?)categories[rnd.Next(categories.Length)];
+    var initialCapital = (decimal)(rnd.Next(1000, 50000) + rnd.NextDouble());
+    var target = (decimal)(rnd.Next(50000, 500000) + rnd.NextDouble());
+    var startDate = DateTime.UtcNow.AddDays(rnd.Next(-90, 90));
+    var endDate = startDate.AddDays(rnd.Next(30, 365));
+    var catId = categories.Any() ? (int?)categories[rnd.Next(categories.Length)] : null;
+    var sharePrice = Math.Round((decimal)(rnd.NextDouble() * 50 + 0.5), 2);
+    var totalShares = rnd.Next(1000, 10000);
 
     var inv = new Investment
     {
-        InvestorId = userId,
-        Amount = Math.Round(amount, 2),
+        FounderId = founders[rnd.Next(founders.Length)],
+        InitialCapital = Math.Round(initialCapital, 2),
         Date = DateTime.UtcNow,
+        SharePrice = sharePrice,
+        TotalShares = totalShares,
+        AvailableShares = totalShares,
+        MinInvestment = Math.Round((decimal)(rnd.Next(50, 500) + rnd.NextDouble()), 2),
+        MaxInvestment = Math.Round((decimal)(rnd.Next(1000, 20000) + rnd.NextDouble()), 2),
+        ValuationCap = Math.Round(target * (decimal)(1.5 + rnd.NextDouble()), 2),
+        ExpectedROI = Math.Round((decimal)(rnd.Next(5, 50) + rnd.NextDouble()), 2),
+        InvestmentTypeId = Investa.Domain.Entities.Enums.InvestmentType.Founding,
+        Status = "Active",
         BusinessName = business + " " + Guid.NewGuid().ToString().Split('-')[0],
-        Description = "Seeded investment",
-        StartDate = startDate,
+        Description = "Auto-seeded investment opportunity for testing",
+        ImageUrl = null,
+        VideoUrl = null,
         BusinessCategoryId = catId,
-        BusinessStageId = null,
-        ProjectPhaseId = null,
         TargetFund = Math.Round(target, 2),
         Milestone = "Seed",
         RiskLevel = "Medium",
-        Currency = "USD"
+        Currency = "USD",
+        StartDate = startDate,
+        EndDate = endDate
     };
 
     db.Investments.Add(inv);
-    Console.WriteLine($"Adding investment: {inv.BusinessName}, amount={inv.Amount}, category={inv.BusinessCategoryId}");
+    Console.WriteLine($"Adding investment: {inv.BusinessName}, founder={inv.FounderId}, capital={inv.InitialCapital}, sharePrice={inv.SharePrice}, totalShares={inv.TotalShares}");
 }
 
 db.SaveChanges();
-Console.WriteLine("Inserted 5 investments.");
+Console.WriteLine($"Inserted {createCount} investments.");

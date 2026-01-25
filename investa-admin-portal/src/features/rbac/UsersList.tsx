@@ -1,11 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { userService } from '@/services/userService';
 import { User } from '@/types';
 import UserOnboarding from '@/components/UserOnboarding';
 import PermissionControl from '@/components/common/PermissionControl';
 import { toast } from 'react-toastify';
 
-export const UsersList: React.FC = () => {
+/**
+ * UsersList Component
+ * Displays and manages organizational users with filtering, pagination, and bulk actions
+ */
+export const UsersList: React.FC = React.memo(() => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showOnboard, setShowOnboard] = useState(false);
@@ -21,10 +25,14 @@ export const UsersList: React.FC = () => {
   const [total, setTotal] = useState(0);
 
   // Load users with current filters/page
-  const load = async (p = page, ps = pageSize, q = debouncedQuery, role = roleFilter, status = statusFilter) => {
+  const load = useCallback(async (p = page, ps = pageSize, q = debouncedQuery, role = roleFilter, status = statusFilter) => {
     setLoading(true);
     try {
-      const res = await userService.getUsers(p, ps, q || undefined, role || undefined, status || undefined);
+      const params: any = { page: p, pageSize: ps };
+      if (q) params.search = q;
+      if (role) params.roleId = role;
+      if (status) params.status = status.toLowerCase();
+      const res = await userService.getUsers(params);
       setUsers(res.items || []);
       setTotal(res.total || 0);
       setPage(res.page || p);
@@ -33,7 +41,7 @@ export const UsersList: React.FC = () => {
       setUsers([]);
       setTotal(0);
     } finally { setLoading(false); }
-  };
+  }, [page, pageSize, debouncedQuery, roleFilter, statusFilter]);
 
   useEffect(() => { load(1, pageSize, debouncedQuery, roleFilter, statusFilter); }, [debouncedQuery, roleFilter, statusFilter, pageSize]);
 
@@ -46,10 +54,10 @@ export const UsersList: React.FC = () => {
   // When page changes, load specific page
   useEffect(() => { load(page, pageSize, debouncedQuery, roleFilter, statusFilter); }, [page]);
 
-  const handleOpenNew = () => { setEditingUser(null); setShowOnboard(true); };
-  const handleEdit = (u: User) => { setEditingUser(u); setShowOnboard(true); };
+  const handleOpenNew = useCallback(() => { setEditingUser(null); setShowOnboard(true); }, []);
+  const handleEdit = useCallback((u: User) => { setEditingUser(u); setShowOnboard(true); }, []);
 
-  const handleDelete = async (u: User) => {
+  const handleDelete = useCallback(async (u: User) => {
     if (!confirm(`Delete user ${u.name}? This action cannot be undone.`)) return;
     try {
       await userService.deleteUser(u.id);
@@ -59,9 +67,9 @@ export const UsersList: React.FC = () => {
       console.warn('Failed to delete user', err);
       toast.error('Failed to delete user');
     }
-  };
+  }, []);
 
-  const handleToggleStatus = async (u: User) => {
+  const handleToggleStatus = useCallback(async (u: User) => {
     const nextStatus = u.status === 'Active' ? 'Inactive' : 'Active';
     try {
       await userService.updateUser(u.id, { status: nextStatus });
@@ -71,15 +79,15 @@ export const UsersList: React.FC = () => {
       console.warn('Failed to update status', err);
       toast.error('Failed to update status');
     }
-  };
+  }, []);
 
   // Bulk selection
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const toggleSelect = (id: number) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x=>x!==id) : [...prev, id]);
-  const selectAllVisible = () => setSelectedIds(users.map(u=>u.id));
-  const clearSelection = () => setSelectedIds([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const toggleSelect = useCallback((id: string) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x=>x!==id) : [...prev, id]), []);
+  const selectAllVisible = useCallback(() => setSelectedIds(users.map(u=>u.id)), [users]);
+  const clearSelection = useCallback(() => setSelectedIds([]), []);
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = useCallback(async () => {
     if (selectedIds.length === 0) return toast.info('No users selected');
     if (!confirm(`Delete ${selectedIds.length} selected users?`)) return;
     try {
@@ -91,9 +99,9 @@ export const UsersList: React.FC = () => {
       console.warn('Bulk delete failed', err);
       toast.error('Bulk delete failed');
     }
-  };
+  }, [selectedIds, clearSelection]);
 
-  const handleBulkUpdateStatus = async (status: string) => {
+  const handleBulkUpdateStatus = useCallback(async (status: 'Active' | 'Inactive') => {
     if (selectedIds.length === 0) return toast.info('No users selected');
     try {
       await userService.bulkUpdateStatus(selectedIds, status);
@@ -104,10 +112,10 @@ export const UsersList: React.FC = () => {
       console.warn('Bulk update failed', err);
       toast.error('Bulk update failed');
     }
-  };
+  }, [selectedIds, clearSelection]);
 
   // CSV Export
-  const exportCSV = (useSelection = true) => {
+  const exportCSV = useCallback((useSelection = true) => {
     const rows = (useSelection ? users.filter(u=>selectedIds.includes(u.id)) : users).map(u => ({
       id: u.id,
       name: u.name,
@@ -129,11 +137,16 @@ export const UsersList: React.FC = () => {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-  };
+  }, [users, selectedIds]);
 
   // Role / Status options (loaded dynamically)
   const [roleOptions, setRoleOptions] = useState<string[]>(['Admin','Editor','Viewer']);
   const [statusOptions, setStatusOptions] = useState<string[]>(['Active','Inactive','Pending']);
+
+  // Memoized computed values
+  const totalPages = useMemo(() => Math.max(1, Math.ceil((total || 0)/pageSize)), [total, pageSize]);
+  const isAllSelected = useMemo(() => selectedIds.length > 0 && selectedIds.length === users.length, [selectedIds.length, users.length]);
+  const hasSelection = useMemo(() => selectedIds.length > 0, [selectedIds.length]);
 
   useEffect(() => {
     const loadOptions = async () => {
@@ -152,26 +165,26 @@ export const UsersList: React.FC = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Users</h2>
-          <p className="text-slate-500 text-sm">Manage user accounts, assignments and statuses</p>
+          <h2 className="text-2xl font-bold text-text">Org Users</h2>
+          <p className="text-muted text-sm">Manage internal organizational users and staff</p>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border rounded-md p-2">
+          <div className="flex items-center gap-2 bg-surface border border-border rounded-md p-2">
             <input
               type="search"
               placeholder="Search by name or email"
               value={searchQuery}
               onChange={e => { setSearchQuery(e.target.value); setPage(1); }}
-              className="px-3 py-1 border rounded-md w-64 bg-transparent"
+              className="px-3 py-1 border border-border rounded-md w-64 bg-transparent text-text placeholder-muted"
             />
 
-            <select value={roleFilter} onChange={e => { setRoleFilter(e.target.value); setPage(1); }} className="px-2 py-1 border rounded-md bg-transparent">
+            <select value={roleFilter} onChange={e => { setRoleFilter(e.target.value); setPage(1); }} className="px-2 py-1 border border-border rounded-md bg-transparent text-text">
               <option value="">All Roles</option>
               {roleOptions.map(r => <option key={r} value={r}>{r}</option>)}
             </select>
 
-            <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }} className="px-2 py-1 border rounded-md bg-transparent">
+            <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }} className="px-2 py-1 border border-border rounded-md bg-transparent text-text">
               <option value="">All Statuses</option>
               {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
@@ -181,71 +194,71 @@ export const UsersList: React.FC = () => {
             {selectedIds.length > 0 && (
               <div className="flex items-center gap-2">
                 <button onClick={() => handleBulkUpdateStatus('Active')} className="px-3 py-1 bg-emerald-600 text-white rounded-md">Activate</button>
-                <button onClick={() => handleBulkUpdateStatus('Inactive')} className="px-3 py-1 bg-yellow-600 text-white rounded-md">Deactivate</button>
-                <button onClick={handleBulkDelete} className="px-3 py-1 bg-red-600 text-white rounded-md">Delete</button>
-                <button onClick={() => exportCSV(true)} className="px-3 py-1 bg-slate-200 dark:bg-slate-800 rounded-md">Export Selected</button>
-                <button onClick={clearSelection} className="px-3 py-1 border rounded-md">Clear</button>
+                <button onClick={() => handleBulkUpdateStatus('Inactive')} className="px-3 py-1 bg-warning text-white rounded-md">Deactivate</button>
+                <button onClick={handleBulkDelete} className="px-3 py-1 bg-error text-white rounded-md">Delete</button>
+                <button onClick={() => exportCSV(true)} className="px-3 py-1 bg-muted/20 rounded-md text-text">Export Selected</button>
+                <button onClick={clearSelection} className="px-3 py-1 border border-border rounded-md text-text">Clear</button>
               </div>
             )}
 
             <PermissionControl permission="User.Manage">
-              <button onClick={handleOpenNew} className="px-3 py-1 bg-indigo-600 text-white rounded-md">New User</button>
+              <button onClick={handleOpenNew} className="px-3 py-1 bg-primary text-white rounded-md">New User</button>
             </PermissionControl>
 
-            <button onClick={() => exportCSV(false)} className="px-3 py-1 border rounded-md">Export All</button>
+            <button onClick={() => exportCSV(false)} className="px-3 py-1 border border-border rounded-md text-text">Export All</button>
           </div>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border p-4">
+      <div className="bg-surface rounded-2xl border border-border p-4 shadow-sm">
         {loading ? (
-          <div className="h-40 flex items-center justify-center">Loading...</div>
+          <div className="h-40 flex items-center justify-center text-muted">Loading...</div>
         ) : (
           <div className="overflow-auto">
             <table className="min-w-full text-left">
-              <thead className="text-slate-500 text-sm uppercase text-[11px] tracking-widest">
+              <thead className="text-muted text-sm uppercase text-[11px] tracking-widest border-b border-border">
                 <tr>
-                  <th className="px-2 py-1"><input type="checkbox" checked={selectedIds.length > 0 && selectedIds.length === users.length} onChange={(e) => e.target.checked ? selectAllVisible() : clearSelection()} /></th>
-                  <th className="px-2 py-1">User</th>
-                  <th className="px-2 py-1">Department / Role</th>
-                  <th className="px-2 py-1">Status</th>
-                  <th className="px-2 py-1 text-right">Actions</th>
+                  <th className="px-3 py-2"><input type="checkbox" checked={selectedIds.length > 0 && selectedIds.length === users.length} onChange={(e) => e.target.checked ? selectAllVisible() : clearSelection()} /></th>
+                  <th className="px-3 py-2">User</th>
+                  <th className="px-3 py-2">Department / Role</th>
+                  <th className="px-3 py-2">Status</th>
+                  <th className="px-3 py-2 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-border">
                 {users.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-2 py-4 text-center text-sm text-slate-500">No users found.</td>
+                    <td colSpan={5} className="px-3 py-4 text-center text-sm text-muted">No users found.</td>
                   </tr>
                 )}
                 {users.map(u => (
-                  <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/20">
-                    <td className="px-2 py-2">
+                  <tr key={u.id} className="hover:bg-background/50 transition-colors">
+                    <td className="px-3 py-3">
                       <input type="checkbox" checked={selectedIds.includes(u.id)} onChange={() => toggleSelect(u.id)} />
                     </td>
-                    <td className="px-2 py-2">
-                      <div className="font-semibold">{u.name}</div>
-                      <div className="text-xs text-slate-500">{u.email}</div>
+                    <td className="px-3 py-3">
+                      <div className="font-semibold text-text">{u.name}</div>
+                      <div className="text-xs text-muted">{u.email}</div>
                     </td>
-                    <td className="px-2 py-2">
+                    <td className="px-3 py-3">
                       {u.groupName ? (
-                        <div className="text-sm">
+                        <div className="text-sm text-text">
                           <span className="font-semibold">{u.groupName}</span>
-                          {u.roleName && <span className="text-slate-500 ml-2">• {u.roleName}</span>}
+                          {u.roleName && <span className="text-muted ml-2">• {u.roleName}</span>}
                         </div>
                       ) : (
-                        <div className="text-sm text-slate-500">{u.role || '—'}</div>
+                        <div className="text-sm text-muted">{u.role || '—'}</div>
                       )}
                     </td>
-                    <td className="px-2 py-2">
-                      <span className={`px-2 py-0.5 rounded-full text-xs ${u.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>{u.status}</span>
+                    <td className="px-3 py-3">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${u.status === 'Active' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-surface text-muted border border-border'}`}>{u.status}</span>
                     </td>
-                    <td className="px-2 py-2 text-right">
+                    <td className="px-3 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <PermissionControl permission="User.Manage">
-                          <button onClick={() => handleEdit(u)} className="px-2 py-1 border rounded-md text-sm">Edit</button>
-                          <button onClick={() => handleToggleStatus(u)} className="px-2 py-1 border rounded-md text-sm">{u.status === 'Active' ? 'Deactivate' : 'Activate'}</button>
-                          <button onClick={() => handleDelete(u)} className="px-2 py-1 border rounded-md text-sm text-red-600">Delete</button>
+                          <button onClick={() => handleEdit(u)} className="px-2 py-1 border border-border rounded-md text-sm text-text hover:bg-background">Edit</button>
+                          <button onClick={() => handleToggleStatus(u)} className="px-2 py-1 border border-border rounded-md text-sm text-text hover:bg-background">{u.status === 'Active' ? 'Deactivate' : 'Activate'}</button>
+                          <button onClick={() => handleDelete(u)} className="px-2 py-1 border border-red-200 rounded-md text-sm text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:hover:bg-red-900/20">Delete</button>
                         </PermissionControl>
                       </div>
                     </td>
@@ -256,17 +269,17 @@ export const UsersList: React.FC = () => {
 
             {/* Pagination */}
             <div className="flex items-center justify-between mt-3">
-              <div className="text-sm text-slate-500">Showing {total === 0 ? 0 : (Math.min((page-1)*pageSize+1, total))} - {total === 0 ? 0 : Math.min(page*pageSize, total)} of {total} users</div>
+              <div className="text-sm text-muted">Showing {total === 0 ? 0 : (Math.min((page-1)*pageSize+1, total))} - {total === 0 ? 0 : Math.min(page*pageSize, total)} of {total} users</div>
               <div className="flex items-center gap-2">
-                <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }} className="px-2 py-1 border rounded-md bg-white dark:bg-slate-900">
+                <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }} className="px-2 py-1 border border-border rounded-md bg-surface text-text">
                   <option value={10}>10 / page</option>
                   <option value={25}>25 / page</option>
                   <option value={50}>50 / page</option>
                 </select>
 
                 <div className="flex items-center gap-2">
-                  <button disabled={page <= 1} onClick={() => setPage(1)} className="px-2 py-1 border rounded-md">First</button>
-                  <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p-1))} className="px-2 py-1 border rounded-md">Prev</button>
+                  <button disabled={page <= 1} onClick={() => setPage(1)} className="px-2 py-1 border border-border rounded-md bg-surface text-text hover:bg-background disabled:opacity-50">First</button>
+                  <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p-1))} className="px-2 py-1 border border-border rounded-md bg-surface text-text hover:bg-background disabled:opacity-50">Prev</button>
 
                   {/* Page numbers */}
                   <div className="flex items-center gap-1">
@@ -279,17 +292,17 @@ export const UsersList: React.FC = () => {
                       const pages: number[] = [];
                       for (let i = start; i <= end; i++) pages.push(i);
                       return pages.map(pn => (
-                        <button key={pn} onClick={() => setPage(pn)} className={`px-2 py-1 border rounded-md ${pn === page ? 'bg-indigo-600 text-white' : ''}`}>{pn}</button>
+                        <button key={pn} onClick={() => setPage(pn)} className={`px-2 py-1 border border-border rounded-md ${pn === page ? 'bg-primary text-white border-primary' : 'bg-surface text-text hover:bg-background'}`}>{pn}</button>
                       ));
                     })()}
                   </div>
 
-                  <button disabled={page >= Math.max(1, Math.ceil((total || 0)/pageSize))} onClick={() => setPage(p => Math.min(Math.max(1, Math.ceil((total || 0)/pageSize)), p+1))} className="px-2 py-1 border rounded-md">Next</button>
-                  <button disabled={page >= Math.max(1, Math.ceil((total || 0)/pageSize))} onClick={() => setPage(Math.max(1, Math.ceil((total || 0)/pageSize)))} className="px-2 py-1 border rounded-md">Last</button>
+                  <button disabled={page >= Math.max(1, Math.ceil((total || 0)/pageSize))} onClick={() => setPage(p => Math.min(Math.max(1, Math.ceil((total || 0)/pageSize)), p+1))} className="px-2 py-1 border border-border rounded-md bg-surface text-text hover:bg-background disabled:opacity-50">Next</button>
+                  <button disabled={page >= Math.max(1, Math.ceil((total || 0)/pageSize))} onClick={() => setPage(Math.max(1, Math.ceil((total || 0)/pageSize)))} className="px-2 py-1 border border-border rounded-md bg-surface text-text hover:bg-background disabled:opacity-50">Last</button>
 
                   <div className="flex items-center gap-1 ml-2">
-                    <input type="number" min={1} max={Math.max(1, Math.ceil((total || 0)/pageSize))} value={page} onChange={e => setPage(Math.min(Math.max(1, Number(e.target.value || 1)), Math.max(1, Math.ceil((total || 0)/pageSize))))} className="w-14 px-2 py-1 border rounded-md text-sm" />
-                    <div className="text-sm text-slate-400">/ {Math.max(1, Math.ceil((total || 0)/pageSize))}</div>
+                    <input type="number" min={1} max={Math.max(1, Math.ceil((total || 0)/pageSize))} value={page} onChange={e => setPage(Math.min(Math.max(1, Number(e.target.value || 1)), Math.max(1, Math.ceil((total || 0)/pageSize))))} className="w-14 px-2 py-1 border border-border rounded-md text-sm bg-surface text-text" />
+                    <div className="text-sm text-muted">/ {Math.max(1, Math.ceil((total || 0)/pageSize))}</div>
                   </div>
                 </div>
               </div>
@@ -308,6 +321,8 @@ export const UsersList: React.FC = () => {
       )}
     </div>
   );
-};
+});
+
+UsersList.displayName = 'UsersList';
 
 export default UsersList;

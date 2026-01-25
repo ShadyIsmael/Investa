@@ -56,11 +56,11 @@ SIGNALR_HUB_URL=https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev/hubs/
 The `.local` suffix enables mDNS (Multicast DNS) which allows devices on the same network to discover the server by hostname instead of IP address.
 
 **If mDNS doesn't work:**
-1. Find your PC's IP address (e.g., `192.168.1.100`)
+1. Use your machine name (e.g., `DESKTOP-DIH7CQH`) or its IP address.
 2. Update `.env`:
    ```env
-   API_BASE_URL=http://192.168.1.100:5000
-   SIGNALR_HUB_URL=http://192.168.1.100:5000/hubs/chat
+   API_BASE_URL=http://DESKTOP-DIH7CQH:5000
+   SIGNALR_HUB_URL=http://DESKTOP-DIH7CQH:5000/hubs/chat
    ```
 
 ---

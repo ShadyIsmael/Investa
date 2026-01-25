@@ -8,7 +8,7 @@ import '../l10n/app_localizations.dart';
 class EditProfileScreen extends StatefulWidget {
   final Profile? profile;
 
-  const EditProfileScreen({Key? key, this.profile}) : super(key: key);
+  const EditProfileScreen({super.key, this.profile});
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();

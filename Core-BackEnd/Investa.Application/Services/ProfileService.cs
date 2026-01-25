@@ -169,6 +169,67 @@ public class ProfileService : IProfileService
         return await MapToProfileDtoAsync(user)!;
     }
 
+    /// <inheritdoc/>
+    public async Task<UserProfileDto> StartKycAsync(Guid userId)
+    {
+        var user = await _unitOfWork.Repository<User>()
+            .GetSingleAsync(u => u.Id == userId, u => u.Profile);
+
+        if (user == null)
+            throw new InvalidOperationException($"User with ID {userId} not found.");
+
+        var profile = user.Profile ?? new UserProfile { UserId = userId, CreatedAt = DateTime.UtcNow };
+
+        if (user.Profile == null)
+        {
+            user.Profile = profile;
+            await _unitOfWork.Repository<UserProfile>().AddAsync(profile);
+        }
+
+        // Validation: User must not have already started KYC
+        if (profile.VerificationStatus != Domain.Entities.Enums.VerificationStatus.None)
+        {
+            throw new InvalidOperationException(
+                $"KYC already initiated. Current status: {profile.VerificationStatus}");
+        }
+
+        // Set verification status to Pending
+        profile.VerificationStatus = Domain.Entities.Enums.VerificationStatus.Pending;
+        profile.UpdatedAt = DateTime.UtcNow;
+
+        // Create credit transaction for KYC initiation reward (+10 points)
+        var creditTransaction = new CreditTransaction
+        {
+            UserId = userId,
+            Amount = 10m,
+            JustificationAr = "مكافأة بدء إجراءات توثيق الهوية",
+            JustificationEn = "Reward for initiating identity verification",
+            CreatedAt = DateTime.UtcNow,
+            AdminId = null // System-generated transaction
+        };
+
+        await _unitOfWork.Repository<CreditTransaction>().AddAsync(creditTransaction);
+
+        // Update user's current credibility score
+        profile.CurrentCredibilityScore += 10m;
+
+        // Save all changes atomically
+        await _unitOfWork.SaveChangesAsync();
+
+        return await MapToProfileDtoAsync(user)!;;
+    }
+
+    /// <inheritdoc/>
+    public async Task<List<CreditTransactionDto>> GetCreditHistoryAsync(Guid userId)
+    {
+        var transactions = (await _unitOfWork.Repository<CreditTransaction>()
+            .FindAsync(ct => ct.UserId == userId))
+            .OrderByDescending(ct => ct.CreatedAt)
+            .ToList();
+
+        return _mapper.Map<List<CreditTransactionDto>>(transactions);
+    }
+
     /// <summary>
     /// Maps User and UserProfile entities to UserProfileDto with all 4 sections.
     /// </summary>

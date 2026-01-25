@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/messages.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
-  const ForgotPasswordScreen({Key? key}) : super(key: key);
+  const ForgotPasswordScreen({super.key});
 
   @override
   State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
@@ -20,14 +20,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   Future<void> _sendReset() async {
     if (_phoneCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppMessages.enterPhone)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text(AppMessages.enterPhone)));
       return;
     }
     setState(() => _loading = true);
     await Future.delayed(const Duration(seconds: 1));
     setState(() => _loading = false);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppMessages.passwordResetSent)));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text(AppMessages.passwordResetSent)));
       Navigator.of(context).pop();
     }
   }
@@ -47,10 +49,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 TextField(
                   controller: _phoneCtrl,
                   keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(labelText: 'Phone number', border: OutlineInputBorder()),
+                  decoration: const InputDecoration(
+                      labelText: 'Phone number', border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 12),
-                ElevatedButton(onPressed: _loading ? null : _sendReset, child: _loading ? const CircularProgressIndicator() : const Text('Send reset code')),
+                ElevatedButton(
+                    onPressed: _loading ? null : _sendReset,
+                    child: _loading
+                        ? const CircularProgressIndicator()
+                        : const Text('Send reset code')),
               ],
             ),
           ),

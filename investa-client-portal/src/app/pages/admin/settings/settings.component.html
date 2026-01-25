@@ -1,0 +1,200 @@
+<div class="container mx-auto px-6 py-8">
+  <div class="mb-6">
+    <a routerLink="/admin/dashboard" class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
+      <svg class="w-5 h-5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+      {{ 'settings.backToDashboard' | translate }}
+    </a>
+  </div>
+
+  <h1 class="text-3xl font-bold text-white mb-2">{{ 'settings.title' | translate }}</h1>
+  <p class="text-gray-400 mb-8">{{ 'settings.subtitle' | translate }}</p>
+
+  <div class="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6">
+    <!-- Sidebar -->
+    <aside class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-4">
+      <nav class="space-y-1">
+        @for (item of menuItems; track item.id) {
+          <button type="button" (click)="selectSection(item.id)"
+            class="w-full text-left px-3 py-2 rounded-md border transition-colors"
+            [class.bg-blue-500/20]="activeSection === item.id"
+            [class.border-blue-500]="activeSection === item.id"
+            [class.text-blue-300]="activeSection === item.id"
+            [class.bg-slate-700/50]="activeSection !== item.id"
+            [class.border-slate-600]="activeSection !== item.id"
+            [class.text-gray-300]="activeSection !== item.id">
+            {{ item.labelKey | translate }}
+          </button>
+        }
+      </nav>
+    </aside>
+
+    <!-- Content -->
+    <section class="space-y-6">
+      @switch (activeSection) {
+        @case ('appearance') {
+          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
+            <h2 class="text-xl font-semibold text-white mb-4">{{ 'settings.appearance.title' | translate }}</h2>
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-300 mb-2">{{ 'settings.appearance.theme.label' | translate }}</label>
+              <div class="flex flex-wrap gap-2">
+                @for (opt of themeOptions; track opt) {
+                  <button type="button" (click)="setTheme(opt)"
+                    class="px-4 py-2 rounded-md border transition-colors"
+                    [class.bg-blue-500/20]="settings().theme === opt"
+                    [class.border-blue-500]="settings().theme === opt"
+                    [class.text-blue-300]="settings().theme === opt"
+                    [class.bg-slate-700/50]="settings().theme !== opt"
+                    [class.border-slate-600]="settings().theme !== opt"
+                    [class.text-gray-300]="settings().theme !== opt">
+                    {{ ('settings.appearance.theme.options.' + opt) | translate }}
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+        }
+        @case ('localization') {
+          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
+            <h2 class="text-xl font-semibold text-white mb-4">{{ 'settings.localization.title' | translate }}</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">{{ 'settings.localization.language.label' | translate }}</label>
+                <select class="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-gray-200"
+                  [value]="settings().language" (change)="setLanguage($any($event.target).value)">
+                  <option value="en">{{ 'settings.localization.language.options.en' | translate }}</option>
+                  <option value="ar">{{ 'settings.localization.language.options.ar' | translate }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">{{ 'settings.localization.currency.label' | translate }}</label>
+                <select class="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-gray-200"
+                  [value]="settings().currency" (change)="setCurrency($any($event.target).value)">
+                  @for (cur of currencyOptions; track cur) {
+                    <option [value]="cur">{{ ('settings.localization.currency.options.' + cur) | translate }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+          </div>
+        }
+        @case ('notifications') {
+          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
+            <h2 class="text-xl font-semibold text-white mb-4">{{ 'settings.notifications.title' | translate }}</h2>
+            <div class="space-y-3">
+              <label class="flex items-center gap-3">
+                <input type="checkbox" class="accent-blue-500" [checked]="settings().notifications.email" (change)="toggleNotifications('email', $any($event.target).checked)">
+                <span class="text-gray-300">{{ 'settings.notifications.email' | translate }}</span>
+              </label>
+              <label class="flex items-center gap-3">
+                <input type="checkbox" class="accent-blue-500" [checked]="settings().notifications.push" (change)="toggleNotifications('push', $any($event.target).checked)">
+                <span class="text-gray-300">{{ 'settings.notifications.push' | translate }}</span>
+              </label>
+              <label class="flex items-center gap-3">
+                <input type="checkbox" class="accent-blue-500" [checked]="settings().notifications.sms" (change)="toggleNotifications('sms', $any($event.target).checked)">
+                <span class="text-gray-300">{{ 'settings.notifications.sms' | translate }}</span>
+              </label>
+            </div>
+          </div>
+        }
+        @case ('privacy') {
+          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
+            <h2 class="text-xl font-semibold text-white mb-4">{{ 'settings.privacy.title' | translate }}</h2>
+            <div class="space-y-3">
+              <label class="flex items-center gap-3">
+                <input type="checkbox" class="accent-blue-500" [checked]="settings().privacy.showPublicProfile" (change)="togglePrivacy('showPublicProfile', $any($event.target).checked)">
+                <span class="text-gray-300">{{ 'settings.privacy.showPublicProfile' | translate }}</span>
+              </label>
+              <label class="flex items-center gap-3">
+                <input type="checkbox" class="accent-blue-500" [checked]="settings().privacy.sharePortfolioPerformance" (change)="togglePrivacy('sharePortfolioPerformance', $any($event.target).checked)">
+                <span class="text-gray-300">{{ 'settings.privacy.sharePortfolioPerformance' | translate }}</span>
+              </label>
+            </div>
+          </div>
+        }
+        @case ('personalization') {
+          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
+            <h2 class="text-xl font-semibold text-white mb-4">{{ 'settings.personalization.title' | translate }}</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">{{ 'settings.personalization.dashboardDensity.label' | translate }}</label>
+                <div class="flex flex-wrap gap-2">
+                  @for (opt of densityOptions; track opt) {
+                    <button type="button" (click)="setPersonalization({ dashboardDensity: opt })"
+                      class="px-4 py-2 rounded-md border transition-colors"
+                      [class.bg-blue-500/20]="settings().personalization.dashboardDensity === opt"
+                      [class.border-blue-500]="settings().personalization.dashboardDensity === opt"
+                      [class.text-blue-300]="settings().personalization.dashboardDensity === opt"
+                      [class.bg-slate-700/50]="settings().personalization.dashboardDensity !== opt"
+                      [class.border-slate-600]="settings().personalization.dashboardDensity !== opt"
+                      [class.text-gray-300]="settings().personalization.dashboardDensity !== opt">
+                      {{ ('settings.personalization.dashboardDensity.options.' + opt) | translate }}
+                    </button>
+                  }
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">{{ 'settings.personalization.defaultInvestmentType.label' | translate }}</label>
+                <div class="flex flex-wrap gap-2">
+                  @for (opt of investmentTypeOptions; track opt) {
+                    <button type="button" (click)="setPersonalization({ defaultInvestmentType: opt })"
+                      class="px-4 py-2 rounded-md border transition-colors"
+                      [class.bg-blue-500/20]="settings().personalization.defaultInvestmentType === opt"
+                      [class.border-blue-500]="settings().personalization.defaultInvestmentType === opt"
+                      [class.text-blue-300]="settings().personalization.defaultInvestmentType === opt"
+                      [class.bg-slate-700/50]="settings().personalization.defaultInvestmentType !== opt"
+                      [class.border-slate-600]="settings().personalization.defaultInvestmentType !== opt"
+                      [class.text-gray-300]="settings().personalization.defaultInvestmentType !== opt">
+                      {{ ('settings.personalization.defaultInvestmentType.options.' + opt) | translate }}
+                    </button>
+                  }
+                </div>
+              </div>
+              <div class="md:col-span-2">
+                <label class="flex items-center gap-3">
+                  <input type="checkbox" class="accent-blue-500" [checked]="settings().personalization.showRiskIndicators" (change)="setPersonalization({ showRiskIndicators: $any($event.target).checked })">
+                  <span class="text-gray-300">{{ 'settings.personalization.showRiskIndicators' | translate }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        }
+        @case ('support') {
+          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
+            <h2 class="text-xl font-semibold text-white mb-4">{{ 'settings.support.title' | translate }}</h2>
+            <div class="space-y-4">
+              <label class="flex items-center gap-3">
+                <input type="checkbox" class="accent-blue-500" [checked]="settings().support?.available" (change)="setSupportAvailability($any($event.target).checked)">
+                <span class="text-gray-300">{{ 'settings.support.available' | translate }}</span>
+              </label>
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">{{ 'settings.support.hours' | translate }}</label>
+                <input type="text" class="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-gray-200"
+                  [value]="settings().support?.hours || ''" (change)="setSupportHours($any($event.target).value)" placeholder="e.g. 9:00-17:00">
+              </div>
+            </div>
+          </div>
+        }
+        @case ('wallet') {
+          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
+            <h2 class="text-xl font-semibold text-white mb-4">{{ 'settings.wallet.title' | translate }}</h2>
+            <div class="space-y-4">
+              <div class="text-gray-300">
+                <span class="font-medium">{{ 'settings.wallet.balance' | translate }}:</span>
+                <span class="ml-2">{{ settings().walletBalance }}</span>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-center">
+                <div>
+                  <label class="block text-sm font-medium text-gray-300 mb-2">{{ 'settings.wallet.amount' | translate }}</label>
+                  <input #fundAmount type="number" min="1" step="0.01" class="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-gray-200" placeholder="0.00">
+                </div>
+                <button type="button" (click)="addFunds(fundAmount.value)" class="px-4 py-2 rounded-md border border-blue-500 text-blue-300 bg-blue-500/20 hover:bg-blue-500/30 transition-colors">
+                  {{ 'settings.wallet.addButton' | translate }}
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      }
+    </section>
+  </div>
+</div>

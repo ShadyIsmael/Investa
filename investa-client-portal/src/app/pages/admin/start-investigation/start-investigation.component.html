@@ -78,18 +78,46 @@
                <div>
                 <label for="summary" class="block text-sm font-medium text-gray-300">{{ 'startInvestigation.projectDetails.summary' | translate }}</label>
                 <textarea id="summary" formControlName="summary" rows="4" [placeholder]="'startInvestigation.projectDetails.summaryPlaceholder' | translate" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                <div class="flex justify-between items-center mt-1 text-xs">
+                  <div class="text-red-400" *ngIf="getStepControl(2, 'summary')?.invalid && (getStepControl(2, 'summary')?.touched || getStepControl(2, 'summary')?.dirty)">
+                    <span *ngIf="getStepControl(2, 'summary')?.errors?.['required']">{{ 'startInvestigation.validation.required' | translate }}</span>
+                    <span *ngIf="getStepControl(2, 'summary')?.errors?.['minlength']">{{ 'startInvestigation.validation.minLength' | translate:{count: getStepControl(2,'summary')?.errors?.['minlength'].requiredLength} }}</span>
+                  </div>
+                  <div class="text-gray-400">{{ getCharCount(2, 'summary') }} / 20</div>
+                </div>
               </div>
                <div>
                 <label for="problem" class="block text-sm font-medium text-gray-300">{{ 'startInvestigation.projectDetails.problem' | translate }}</label>
                 <textarea id="problem" formControlName="problem" rows="4" [placeholder]="'startInvestigation.projectDetails.problemPlaceholder' | translate" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                <div class="flex justify-between items-center mt-1 text-xs">
+                  <div class="text-red-400" *ngIf="getStepControl(2, 'problem')?.invalid && (getStepControl(2, 'problem')?.touched || getStepControl(2, 'problem')?.dirty)">
+                    <span *ngIf="getStepControl(2, 'problem')?.errors?.['required']">{{ 'startInvestigation.validation.required' | translate }}</span>
+                    <span *ngIf="getStepControl(2, 'problem')?.errors?.['minlength']">{{ 'startInvestigation.validation.minLength' | translate:{count: getStepControl(2,'problem')?.errors?.['minlength'].requiredLength} }}</span>
+                  </div>
+                  <div class="text-gray-400">{{ getCharCount(2, 'problem') }} / 20</div>
+                </div>
               </div>
                <div>
                 <label for="solution" class="block text-sm font-medium text-gray-300">{{ 'startInvestigation.projectDetails.solution' | translate }}</label>
                 <textarea id="solution" formControlName="solution" rows="4" [placeholder]="'startInvestigation.projectDetails.solutionPlaceholder' | translate" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                <div class="flex justify-between items-center mt-1 text-xs">
+                  <div class="text-red-400" *ngIf="getStepControl(2, 'solution')?.invalid && (getStepControl(2, 'solution')?.touched || getStepControl(2, 'solution')?.dirty)">
+                    <span *ngIf="getStepControl(2, 'solution')?.errors?.['required']">{{ 'startInvestigation.validation.required' | translate }}</span>
+                    <span *ngIf="getStepControl(2, 'solution')?.errors?.['minlength']">{{ 'startInvestigation.validation.minLength' | translate:{count: getStepControl(2,'solution')?.errors?.['minlength'].requiredLength} }}</span>
+                  </div>
+                  <div class="text-gray-400">{{ getCharCount(2, 'solution') }} / 20</div>
+                </div>
               </div>
               <div>
                 <label for="usp" class="block text-sm font-medium text-gray-300">{{ 'startInvestigation.projectDetails.usp' | translate }}</label>
                 <textarea id="usp" formControlName="usp" rows="3" [placeholder]="'startInvestigation.projectDetails.uspPlaceholder' | translate" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                <div class="flex justify-between items-center mt-1 text-xs">
+                  <div class="text-red-400" *ngIf="getStepControl(2, 'usp')?.invalid && (getStepControl(2, 'usp')?.touched || getStepControl(2, 'usp')?.dirty)">
+                    <span *ngIf="getStepControl(2, 'usp')?.errors?.['required']">{{ 'startInvestigation.validation.required' | translate }}</span>
+                    <span *ngIf="getStepControl(2, 'usp')?.errors?.['minlength']">{{ 'startInvestigation.validation.minLength' | translate:{count: getStepControl(2,'usp')?.errors?.['minlength'].requiredLength} }}</span>
+                  </div>
+                  <div class="text-gray-400">{{ getCharCount(2, 'usp') }} / 20</div>
+                </div>
               </div>
             </div>
           }
@@ -99,14 +127,35 @@
               <div>
                 <label for="targetFunding" class="block text-sm font-medium text-gray-300">{{ 'startInvestigation.financials.target' | translate }}</label>
                 <input id="targetFunding" type="number" formControlName="targetFunding" [placeholder]="'startInvestigation.financials.targetPlaceholder' | translate" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <div class="flex justify-between items-center mt-1 text-xs">
+                  <div class="text-red-400" *ngIf="getStepControl(3, 'targetFunding')?.invalid && (getStepControl(3, 'targetFunding')?.touched || getStepControl(3, 'targetFunding')?.dirty)">
+                    <span *ngIf="getStepControl(3, 'targetFunding')?.errors?.['required']">{{ 'startInvestigation.validation.required' | translate }}</span>
+                    <span *ngIf="getStepControl(3, 'targetFunding')?.errors?.['min']">{{ 'startInvestigation.validation.minValue' | translate:{min: getStepControl(3,'targetFunding')?.errors?.['min'].min} }}</span>
+                  </div>
+                  <div class="text-gray-400">USD</div>
+                </div>
               </div>
               <div>
                 <label for="minInvestment" class="block text-sm font-medium text-gray-300">{{ 'startInvestigation.financials.minInvestment' | translate }}</label>
                 <input id="minInvestment" type="number" formControlName="minInvestment" [placeholder]="'startInvestigation.financials.minInvestmentPlaceholder' | translate" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <div class="flex justify-between items-center mt-1 text-xs">
+                  <div class="text-red-400" *ngIf="getStepControl(3, 'minInvestment')?.invalid && (getStepControl(3, 'minInvestment')?.touched || getStepControl(3, 'minInvestment')?.dirty)">
+                    <span *ngIf="getStepControl(3, 'minInvestment')?.errors?.['required']">{{ 'startInvestigation.validation.required' | translate }}</span>
+                    <span *ngIf="getStepControl(3, 'minInvestment')?.errors?.['min']">{{ 'startInvestigation.validation.minValue' | translate:{min: getStepControl(3,'minInvestment')?.errors?.['min'].min} }}</span>
+                  </div>
+                  <div class="text-gray-400">USD</div>
+                </div>
               </div>
               <div>
                 <label for="valuation" class="block text-sm font-medium text-gray-300">{{ 'startInvestigation.financials.valuation' | translate }}</label>
                 <input id="valuation" type="number" formControlName="valuation" [placeholder]="'startInvestigation.financials.valuationPlaceholder' | translate" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <div class="flex justify-between items-center mt-1 text-xs">
+                  <div class="text-red-400" *ngIf="getStepControl(3, 'valuation')?.invalid && (getStepControl(3, 'valuation')?.touched || getStepControl(3, 'valuation')?.dirty)">
+                    <span *ngIf="getStepControl(3, 'valuation')?.errors?.['required']">{{ 'startInvestigation.validation.required' | translate }}</span>
+                    <span *ngIf="getStepControl(3, 'valuation')?.errors?.['min']">{{ 'startInvestigation.validation.minValue' | translate:{min: getStepControl(3,'valuation')?.errors?.['min'].min} }}</span>
+                  </div>
+                  <div class="text-gray-400">USD</div>
+                </div>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-300">{{ 'startInvestigation.financials.projections' | translate }}</label>
@@ -123,9 +172,16 @@
           @case (4) {
             <div [formGroupName]="'step4'" class="animate-fade-in space-y-8">
               <h2 class="text-xl font-semibold text-white mb-6">{{ 'startInvestigation.teamLegal.title' | translate }}</h2>
+              <div class="flex items-center gap-3 mb-4">
+                <input id="skipTeam" type="checkbox" class="accent-blue-500" (change)="skipTeam.set(!skipTeam())" [checked]="skipTeam()" />
+                <label for="skipTeam" class="text-sm text-gray-300">{{ 'startInvestigation.teamLegal.skipLabel' | translate }}</label>
+              </div>
               <!-- Team Members -->
               <div>
                   <h3 class="text-lg font-medium text-gray-200 mb-4">{{ 'startInvestigation.teamLegal.team' | translate }}</h3>
+                  @if (teamMembers.length === 0) {
+                      <p class="text-sm text-gray-400 mb-4">{{ 'startInvestigation.teamLegal.noTeamMembers' | translate }}</p>
+                  }
                   <div formArrayName="teamMembers" class="space-y-6">
                       @for(member of teamMembers.controls; track $index) {
                           <div [formGroupName]="$index" class="p-4 bg-slate-800/50 border border-slate-700 rounded-lg space-y-4 relative">
@@ -246,19 +302,30 @@
       </div>
 
       <!-- Form Actions Footer -->
-      <div class="p-6 bg-slate-900/50 border-t border-slate-800 flex justify-between items-center rounded-b-xl">
-        <button type="button" (click)="prevStep()" [class.invisible]="currentStep() === 1" class="bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 px-6 rounded-full transition-colors">
-          {{ 'startInvestigation.buttons.back' | translate }}
+      <div class="p-6 bg-slate-900/50 border-t border-slate-800 flex items-center gap-3 rounded-b-xl">
+        <button type="button" (click)="saveDraft()" class="bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 px-4 rounded-full transition-colors text-sm">
+          {{ 'startInvestigation.actions.saveDraft' | translate }}
         </button>
-        @if (currentStep() < totalSteps) {
-          <button type="button" (click)="nextStep()" [disabled]="!isStepValid(currentStep())" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-            {{ 'startInvestigation.buttons.next' | translate }}
+        <button type="button" (click)="loadDraft()" class="bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 px-4 rounded-full transition-colors text-sm">
+          {{ 'startInvestigation.actions.loadDraft' | translate }}
+        </button>
+        <button type="button" (click)="clearDraft()" class="bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 px-4 rounded-full transition-colors text-sm">
+          {{ 'startInvestigation.actions.clearDraft' | translate }}
+        </button>
+        <div class="ml-auto flex items-center gap-3">
+          <button type="button" (click)="prevStep()" [class.invisible]="currentStep() === 1" class="bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 px-6 rounded-full transition-colors">
+            {{ 'startInvestigation.buttons.back' | translate }}
           </button>
-        } @else {
-          <button type="submit" [disabled]="!investigationForm.valid" class="bg-gradient-to-r from-green-500 to-teal-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-            {{ 'startInvestigation.buttons.submit' | translate }}
-          </button>
-        }
+          @if (currentStep() < totalSteps) {
+            <button type="button" (click)="nextStep()" [disabled]="!isStepValid(currentStep())" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+              {{ 'startInvestigation.buttons.next' | translate }}
+            </button>
+          } @else {
+            <button type="submit" [disabled]="!investigationForm.valid" class="bg-gradient-to-r from-green-500 to-teal-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+              {{ 'startInvestigation.buttons.submit' | translate }}
+            </button>
+          }
+        </div>
       </div>
     </form>
   </div>

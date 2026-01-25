@@ -8,8 +8,8 @@ export default defineConfig(({ mode }) => {
     const host = env.VITE_HOST || '0.0.0.0';
     const port = env.VITE_PORT ? Number(env.VITE_PORT) : 5173; // Default to Vite's default port
 
-    // Prefer an explicit VITE_API_BASE_URL but fall back to localhost for local development
-    const proxyTarget = (env.VITE_API_BASE_URL as string)?.replace(/\/api\/?$/, '') || 'http://localhost:5000';
+    // Prefer an explicit VITE_API_BASE_URL but fall back to the development machine hostname for local development
+    const proxyTarget = (env.VITE_API_BASE_URL as string)?.replace(/\/api\/?$/, '') || 'http://DESKTOP-DIH7CQH:5235';
     return {
       server: {
         // Bind to all interfaces so the dev server is reachable on the LAN (DESKTOP-DIH7CQH.local)
@@ -95,6 +95,30 @@ export default defineConfig(({ mode }) => {
           '@/utils': path.resolve(__dirname, './src/utils'),
           '@/assets': path.resolve(__dirname, './src/assets'),
           '@/mocks': path.resolve(__dirname, './src/mocks'),
+        }
+      },
+      build: {
+        rollupOptions: {
+          output: {
+            manualChunks(id) {
+              if (!id) return undefined;
+              // Split important vendor libs into their own chunks to keep sizes under control
+              if (id.includes('node_modules/react-dom')) return 'vendor-react-dom';
+              if (id.includes('node_modules/react')) return 'vendor-react';
+              if (id.includes('node_modules/@google/genai')) return 'vendor-genai';
+              if (id.includes('node_modules/recharts')) return 'vendor-recharts';
+              if (id.includes('node_modules/react-toastify')) return 'vendor-toastify';
+              if (id.includes('node_modules/zustand')) return 'vendor-zustand';
+
+              // Feature-specific chunks
+              if (id.includes('/src/features/support/') || id.includes('features/support')) return 'support';
+              if (id.includes('/src/features/rbac/') || id.includes('features/rbac')) return 'rbac';
+              if (id.includes('/src/components/layout/') || id.includes('components/layout')) return 'layout';
+
+              // default for other node_modules
+              if (id.includes('node_modules')) return 'vendor-others';
+            }
+          }
         }
       }
     };

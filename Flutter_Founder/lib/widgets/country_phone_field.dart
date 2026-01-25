@@ -12,7 +12,7 @@ class CountryPhoneField extends StatefulWidget {
   final ValueChanged<String>? onFieldSubmitted;
 
   const CountryPhoneField({
-    Key? key,
+    super.key,
     required this.controller,
     this.initialCountryCode = '+1',
     this.onCountryCodeChanged,
@@ -22,7 +22,7 @@ class CountryPhoneField extends StatefulWidget {
     this.validator,
     this.textInputAction,
     this.onFieldSubmitted,
-  }) : super(key: key);
+  });
 
   @override
   State<CountryPhoneField> createState() => _CountryPhoneFieldState();
@@ -98,16 +98,18 @@ class _CountryPhoneFieldState extends State<CountryPhoneField> {
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
               color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white.withOpacity(0.04)
+                  ? Colors.white.withAlpha((0.04 * 255).round())
                   : Colors.grey.shade100,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(country['flag'] ?? '', style: const TextStyle(fontSize: 18)),
+                Text(country['flag'] ?? '',
+                    style: const TextStyle(fontSize: 18)),
                 const SizedBox(width: 6),
-                Text(country['code'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
+                Text(country['code'] ?? '',
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(width: 6),
                 const Icon(Icons.arrow_drop_down, size: 18),
               ],
@@ -115,7 +117,8 @@ class _CountryPhoneFieldState extends State<CountryPhoneField> {
           ),
         ),
         // Ensure input has enough left padding so text does not collide
-        contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        contentPadding:
+            const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
       ),
       validator: widget.validator,
       onFieldSubmitted: widget.onFieldSubmitted,

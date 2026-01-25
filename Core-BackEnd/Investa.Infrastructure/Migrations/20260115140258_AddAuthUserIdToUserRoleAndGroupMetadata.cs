@@ -1,16 +1,16 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace Investa.Infrastructure.Migrations
 {
-    /// <inheritdoc />
+    // Migration neutralized during consolidation.
     public partial class AddAuthUserIdToUserRoleAndGroupMetadata : Migration
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
+        protected override void Up(MigrationBuilder migrationBuilder) { }
+        protected override void Down(MigrationBuilder migrationBuilder) { }
+    }
+}
             migrationBuilder.AddColumn<Guid>(
                 name: "AuthUserId",
                 table: "UserRoles",

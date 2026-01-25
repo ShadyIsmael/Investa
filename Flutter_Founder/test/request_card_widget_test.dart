@@ -7,9 +7,9 @@ import 'package:flutter_founder/screens/requests_screen.dart';
 void main() {
   testWidgets('Requests screen shows integer amount and action buttons',
       (WidgetTester tester) async {
-    await tester.pumpWidget(MediaQuery(
-      data: const MediaQueryData(size: Size(1200, 800)),
-      child: const MaterialApp(
+    await tester.pumpWidget(const MediaQuery(
+      data: MediaQueryData(size: Size(1200, 800)),
+      child: MaterialApp(
         localizationsDelegates: [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,

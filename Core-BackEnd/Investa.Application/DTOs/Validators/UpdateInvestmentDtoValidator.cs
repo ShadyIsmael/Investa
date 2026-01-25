@@ -7,9 +7,9 @@ public class UpdateInvestmentDtoValidator : AbstractValidator<UpdateInvestmentDt
 {
     public UpdateInvestmentDtoValidator()
     {
-        RuleFor(x => x.Amount)
+        RuleFor(x => x.InitialCapital)
             .GreaterThan(0m)
-            .When(x => x.Amount.HasValue);
+            .When(x => x.InitialCapital.HasValue);
 
         RuleFor(x => x.BusinessName)
             .NotEmpty()
@@ -46,5 +46,38 @@ public class UpdateInvestmentDtoValidator : AbstractValidator<UpdateInvestmentDt
         RuleFor(x => x.Currency)
             .NotEmpty()
             .When(x => x.Currency != null);
+
+        // Equity crowdfunding validations
+        RuleFor(x => x.SharePrice)
+            .GreaterThan(0m)
+            .When(x => x.SharePrice.HasValue)
+            .WithMessage("Share price must be greater than zero.");
+
+        RuleFor(x => x.TotalShares)
+            .GreaterThan(0)
+            .When(x => x.TotalShares.HasValue)
+            .WithMessage("Total shares must be greater than zero.");
+
+        RuleFor(x => x.MinInvestment)
+            .GreaterThan(0m)
+            .When(x => x.MinInvestment.HasValue)
+            .WithMessage("Minimum investment must be greater than zero.");
+
+        RuleFor(x => x.MaxInvestment)
+            .GreaterThan(0m)
+            .When(x => x.MaxInvestment.HasValue)
+            .WithMessage("Maximum investment must be greater than zero.");
+
+        RuleFor(x => x.ExpectedROI)
+            .GreaterThanOrEqualTo(0m)
+            .When(x => x.ExpectedROI.HasValue)
+            .WithMessage("Expected ROI cannot be negative.");
+
+        // InvestmentTypeId is enum-based, so no string validation needed
+
+        RuleFor(x => x.Status)
+            .Must(x => x == "Draft" || x == "Active" || x == "Funded" || x == "Closed")
+            .When(x => x.Status != null)
+            .WithMessage("Status must be Draft, Active, Funded, or Closed.");
     }
 }

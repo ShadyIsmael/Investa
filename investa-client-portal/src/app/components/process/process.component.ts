@@ -10,6 +10,7 @@ interface ProcessStep {
 @Component({
   selector: 'app-process',
   templateUrl: './process.component.html',
+  styleUrls: ['./process.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe]
 })

@@ -10,6 +10,7 @@ interface Pillar {
 @Component({
   selector: 'app-about',
   templateUrl: './about.component.html',
+  styleUrls: ['./about.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe]
 })

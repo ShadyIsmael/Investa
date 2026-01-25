@@ -6,7 +6,7 @@ import '../core/services/logger_service.dart';
 import '../core/services/secure_storage_service.dart';
 
 class SignalRConfigScreen extends StatefulWidget {
-  const SignalRConfigScreen({Key? key}) : super(key: key);
+  const SignalRConfigScreen({super.key});
 
   @override
   _SignalRConfigScreenState createState() => _SignalRConfigScreenState();

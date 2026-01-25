@@ -1,16 +1,16 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Investa.Infrastructure.Migrations.ChatModule
+namespace Investa.Infrastructure.Migrations
 {
-    /// <inheritdoc />
+    // Migration neutralized during consolidation.
     public partial class UpdateChatEntities : Migration
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
+        protected override void Up(MigrationBuilder migrationBuilder) { }
+        protected override void Down(MigrationBuilder migrationBuilder) { }
+    }
+}
             migrationBuilder.DropForeignKey(
                 name: "FK_MessageAttachments_Messages_MessageId",
                 table: "MessageAttachments");

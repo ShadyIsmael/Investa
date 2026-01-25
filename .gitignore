@@ -97,3 +97,36 @@ Flutter_Founder/windows/flutter/ephemeral/
 Flutter_Founder/linux/flutter/ephemeral/
 # Also ignore plugin symlinks and other ephemeral dirs
 Flutter_Founder/**/.plugin_symlinks/
+
+# [6] Generated Pigeon/Dart files
+# -----------------------
+**/*.g.dart
+**/firebase_options.dart
+
+# [7] Temporary test/debug files
+# -----------------------
+temp_*.json
+temp_*.txt
+run-output.txt
+chat_repository.dart
+*.log
+flutter-debug.log
+
+# [8] Backend runtime files
+# -----------------------
+Core-BackEnd/server-stderr.txt
+Core-BackEnd/server-stdout.txt
+Core-BackEnd/startup-log.txt
+Core-BackEnd/backend-debug.log
+Core-BackEnd/run.log
+Core-BackEnd/migration_output.log
+Core-BackEnd/.tmp-*/
+Core-BackEnd/TestResults/
+Core-BackEnd/scripts/*_results.json
+Core-BackEnd/scripts/*_out.txt
+
+# [9] Node modules (web portals)
+# -----------------------
+node_modules/
+dist/
+.cache/

@@ -1,14 +1,23 @@
 namespace Investa.Domain.Entities.Enums;
 
+/// <summary>
+/// User type classification for authentication and authorization.
+/// Only three types are supported: OrgUser (internal users), Founder (business owners), Partner (external partners).
+/// </summary>
 public enum UserType
 {
-    // Legacy alias - kept so existing DB records with value "Client" still parse
-    Client = 0,
+    /// <summary>
+    /// Internal organization user (employees, admins, staff)
+    /// </summary>
+    OrgUser = 0,
 
-    // Canonical names
-    Investor = 0,
-    OrgUser = 1,
+    /// <summary>
+    /// Business founder/owner who creates investment opportunities
+    /// </summary>
+    Founder = 1,
 
-    // New subtype for client users
-    Founder = 2
+    /// <summary>
+    /// External partner user
+    /// </summary>
+    Partner = 2
 }

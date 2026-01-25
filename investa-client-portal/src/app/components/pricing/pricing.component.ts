@@ -15,6 +15,7 @@ interface PricingTier {
 @Component({
   selector: 'app-pricing',
   templateUrl: './pricing.component.html',
+  styleUrls: ['./pricing.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe, CommonModule]
 })

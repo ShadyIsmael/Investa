@@ -1,0 +1,5 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.services { padding: $spacing-8 0; }
+.service-item { @include card($spacing-4); }

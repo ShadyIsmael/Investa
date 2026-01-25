@@ -21,6 +21,12 @@ class FakeApiClient implements ApiClient {
   }
 
   @override
+  Future<Response> put(String url,
+      {Map<String, dynamic>? data, Map<String, dynamic>? headers}) async {
+    throw UnimplementedError();
+  }
+
+  @override
   void close() {}
 }
 

@@ -13,6 +13,7 @@ import { TranslatePipe } from '../../pipes/translate.pipe';
   standalone: true,
   selector: 'app-home',
   templateUrl: './home.component.html',
+  styleUrls: ['./home.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     HeaderComponent,
@@ -22,8 +23,7 @@ import { TranslatePipe } from '../../pipes/translate.pipe';
     CtaComponent,
     TestimonialsComponent,
     BlogComponent,
-    FooterComponent,
-    TranslatePipe
+    FooterComponent
   ]
 })
 export class HomeComponent {}

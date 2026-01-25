@@ -5,12 +5,13 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Investa.Infrastructure.Migrations.ChatModule
 {
-    /// <inheritdoc />
+    // Migration neutralized during consolidation.
     public partial class MakeSupportSessionIdNullable : Migration
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
+        protected override void Up(MigrationBuilder migrationBuilder) { }
+        protected override void Down(MigrationBuilder migrationBuilder) { }
+    }
+}
             migrationBuilder.AlterColumn<Guid>(
                 name: "SupportSessionId",
                 table: "ChatMessages",

@@ -1,0 +1,28 @@
+// Button Component Styles
+// Minimal SCSS - most styling is handled via Tailwind utilities
+// in button.component.ts
+
+:host {
+  display: inline-block;
+}
+
+button {
+  // Ensure button styling is reset
+  border: none;
+  
+  // Ensure text is centered and readable
+  text-align: center;
+  
+  // Prevent text selection during click
+  user-select: none;
+  
+  // Ensure smooth transitions
+  &:active {
+    transform: scale(0.98);
+  }
+  
+  // Disabled state
+  &:disabled {
+    pointer-events: none;
+  }
+}

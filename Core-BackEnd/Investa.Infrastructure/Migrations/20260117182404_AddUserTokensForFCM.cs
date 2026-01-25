@@ -1,16 +1,12 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
-
-#nullable disable
-
-namespace Investa.Infrastructure.Migrations
-{
-    /// <inheritdoc />
+﻿// FILE REMOVED: archived to ../ArchivedMigrations/20260123/20260117182404_AddUserTokensForFCM.cs.original
+// Migration removed during consolidation.
+    // Migration neutralized during consolidation.
     public partial class AddUserTokensForFCM : Migration
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
+        protected override void Up(MigrationBuilder migrationBuilder) { }
+        protected override void Down(MigrationBuilder migrationBuilder) { }
+    }
+}
             migrationBuilder.CreateTable(
                 name: "UserTokens",
                 columns: table => new

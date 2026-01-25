@@ -54,7 +54,7 @@ class Routes {
 
 // Placeholder screens - these should be properly implemented
 class SplashScreen extends StatelessWidget {
-  const SplashScreen({Key? key}) : super(key: key);
+  const SplashScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +65,7 @@ class SplashScreen extends StatelessWidget {
 }
 
 class LoginScreen extends StatelessWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -76,7 +76,7 @@ class LoginScreen extends StatelessWidget {
 }
 
 class SignupScreen extends StatelessWidget {
-  const SignupScreen({Key? key}) : super(key: key);
+  const SignupScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +87,7 @@ class SignupScreen extends StatelessWidget {
 }
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -98,7 +98,7 @@ class HomeScreen extends StatelessWidget {
 }
 
 class SupportRequestScreenClean extends StatelessWidget {
-  const SupportRequestScreenClean({Key? key}) : super(key: key);
+  const SupportRequestScreenClean({super.key});
 
   @override
   Widget build(BuildContext context) {

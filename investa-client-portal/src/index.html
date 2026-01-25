@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-t" />
@@ -6,12 +6,31 @@
   <base href="/" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" type="image/x-icon" href="favicon.ico" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts disabled for local build to avoid network font inlining issues -->
+  <!-- <link rel="preconnect" href="https://fonts.googleapis.com"> -->
+  <!-- <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> -->
+  <!-- <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"> -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@latest/css/flag-icons.min.css">
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
+    /*
+      If your backend runs on a different host/port during development,
+      override the runtime API base by adding this script above the app root
+      (uncomment and edit as needed):
+
+      <script>
+        // Example: backend on port 5235
+        // window.__INVESTA_API_BASE = 'http://DESKTOP-DIH7CQH:5235';
+      </script>
+
+      You can also set a server-inserted meta tag in the hosting HTML:
+      <meta name='investa-api-base' content='http://DESKTOP-DIH7CQH:5235' />
+
+      The client defaults to http://localhost:5000 as the API base. The
+      runtime script below will ensure a meta tag value (if present) populates
+      window.__INVESTA_API_BASE before the Angular app bootstraps.
+    */
+
     body {
       font-family: 'Poppins', sans-serif;
     }
@@ -93,6 +112,15 @@
     .animate-progress-bar {
       animation: progress-bar 5s linear forwards;
     }
+
+    /* Hide scrollbar for clean timeline look */
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
   </style>
 <script type="importmap">
 {
@@ -115,9 +143,37 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
+<!-- removed: /index.css (styles bundled by Angular) -->
 </head>
 <body class="bg-gray-950">
+  <script>
+    (function(){
+      try {
+        const meta = document.querySelector('meta[name="investa-api-base"]');
+        const override = meta && meta.getAttribute('content');
+        if (override) {
+          window.__INVESTA_API_BASE = override;
+          console.info('[Investa] API base overridden from meta:', override);
+        }
+      } catch (e) {
+        // ignore
+      }
+    })();
+  </script>
+
+  <!-- Dev helper: force Arabic (RTL) when running on localhost so developers can visually test RTL layouts -->
+  <script>
+    try {
+      if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+        localStorage.setItem('investa-lang', 'ar');
+        console.info('[Investa][Dev] forced language=ar for RTL checks');
+      }
+    } catch (e) {
+      // ignore
+    }
+  </script>
+
+
   <app-root></app-root>
 </body>
 </html>

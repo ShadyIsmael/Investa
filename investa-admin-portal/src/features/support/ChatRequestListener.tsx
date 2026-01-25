@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSignalR } from '../../services/signalr';
 import ChatRequestToast from './ChatRequestToast';
-import { ChatRequestPayload } from '../types';
+import { ChatRequestPayload } from '@/types';
 
 const AUTO_DISMISS_MS = 12000; // 12s per toast
 
@@ -41,14 +41,14 @@ export const ChatRequestListener: React.FC = () => {
     };
   }, [on, off, pushRequest]);
 
-  const handleClose = (id: string) => setRequests(prev => prev.filter(r => r.id !== id));
+  const handleClose = useCallback((id: string) => setRequests(prev => prev.filter(r => r.id !== id)), []);
 
   if (requests.length === 0) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 items-end">
+    <div className="fixed flex flex-col items-end gap-3 pointer-events-none" style={{ bottom: 'var(--spacing-6)', right: 'var(--spacing-6)', zIndex: 'var(--z-notification)' }}>
       {requests.map(req => (
-        <div key={req.id} className="animate-in fade-in slide-in-from-bottom-6 duration-200">
+        <div key={req.id} className="animate-in fade-in slide-in-from-bottom-6 duration-200 pointer-events-auto">
           <ChatRequestToast request={req} onClose={handleClose} />
         </div>
       ))}

@@ -61,7 +61,7 @@ const Notifications: React.FC = () => {
 
   if (status === 'denied') {
     return (
-      <div className="fixed right-4 top-16 z-50">
+      <div className="fixed top-16 z-50" style={{ right: 'var(--spacing-4)' }}>
         <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-3 py-2 rounded shadow-sm text-sm">
           Notifications blocked. Please enable in your browser settings.
         </div>
@@ -71,7 +71,7 @@ const Notifications: React.FC = () => {
 
   // status === 'default' -> show action button
   return (
-    <div className="fixed right-4 top-16 z-50">
+    <div className="fixed top-16 z-50" style={{ right: 'var(--spacing-4)' }}>
       <button
         onClick={enable}
         className="px-3 py-2 bg-indigo-600 text-white rounded shadow-md text-sm hover:bg-indigo-700 transition-colors"

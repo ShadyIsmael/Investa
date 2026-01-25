@@ -37,7 +37,7 @@ export const userService = {
     if (status) queryParams.set('status', status);
 
     try {
-      const res = await api.get<PaginatedUsers>(`/api/admin/users/list?${queryParams.toString()}`);
+      const res = await api.get<PaginatedUsers>(`/api/v1/admin/users/list?${queryParams.toString()}`);
       return res ?? { items: [], total: 0, page, pageSize };
     } catch (err) {
       console.warn('Backend users API unavailable, using mock data', err);
@@ -79,7 +79,7 @@ export const userService = {
    */
   async createUser(payload: Partial<User>) {
     try {
-      const res = await api.post<User>('/api/admin/users', payload);
+      const res = await api.post<User>('/api/v1/admin/users', payload);
       return res ?? null;
     } catch (err) {
       console.warn('Backend create user API unavailable, using mock', err);
@@ -114,7 +114,7 @@ export const userService = {
    */
   async updateUser(userId: string, payload: Partial<User>) {
     try {
-      const res = await api.put<User>(`/api/admin/users/${userId}`, payload);
+      const res = await api.put<User>(`/api/v1/admin/users/${userId}`, payload);
       return res ?? null;
     } catch (err) {
       console.warn('Backend update user API unavailable, using mock', err);
@@ -187,7 +187,7 @@ export const userService = {
    */
   async deleteUser(userId: string) {
     try {
-      const res = await api.delete<any>(`/api/admin/users/${userId}`);
+      const res = await api.delete<any>(`/api/v1/admin/users/${userId}`);
       return res?.data ?? res ?? null;
     } catch (err) {
       console.warn('Backend delete user API unavailable, using mock', err);
@@ -240,7 +240,7 @@ export const userService = {
    */
   async bulkDelete(userIds: string[]) {
     try {
-      const res = await api.post<any>('/api/admin/users/bulk-delete', { ids: userIds });
+      const res = await api.post<any>('/api/v1/admin/users/bulk-delete', { ids: userIds });
       return res?.data ?? res ?? null;
     } catch (err) {
       console.warn('Backend bulk delete API unavailable, using individual deletes', err);
@@ -262,7 +262,7 @@ export const userService = {
    */
   async bulkUpdateStatus(userIds: string[], status: 'Active' | 'Inactive') {
     try {
-      const res = await api.post<any>('/api/admin/users/bulk-update-status', { ids: userIds, status });
+      const res = await api.post<any>('/api/v1/admin/users/bulk-update-status', { ids: userIds, status });
       return res?.data ?? res ?? null;
     } catch (err) {
       console.warn('Backend bulk update status API unavailable, using individual updates', err);

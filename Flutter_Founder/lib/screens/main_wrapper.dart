@@ -15,20 +15,29 @@ class MainWrapper extends StatefulWidget {
   final VoidCallback? onLogout;
 
   const MainWrapper({
-    Key? key,
+    super.key,
     required this.themeMode,
     this.currentLocale,
     this.onLocaleChanged,
     this.onThemeChanged,
     this.onLogout,
-  }) : super(key: key);
+  });
 
   @override
   State<MainWrapper> createState() => _MainWrapperState();
 }
 
 class _MainWrapperState extends State<MainWrapper> {
-  int _selectedIndex = 0;
+  // CTO Note: Using constants prevents "Magic Numbers" and makes code readable.
+  static const int _tabDashboard = 0;
+  static const int _tabEngagement = 1;
+  static const int _tabInvestments = 2;
+  static const int _tabRequests = 3;
+  static const int _tabProfile = 4;
+
+  static const Color _investaOrange = Color(0xFFFF9800);
+
+  int _selectedIndex = _tabDashboard;
 
   void _onItemTapped(int index) {
     if (_selectedIndex == index) return;
@@ -37,13 +46,13 @@ class _MainWrapperState extends State<MainWrapper> {
 
   Widget _currentScreen() {
     switch (_selectedIndex) {
-      case 0:
+      case _tabDashboard:
         return const DashboardScreen(key: ValueKey('dashboard'));
-      case 1:
+      case _tabEngagement:
         return EngagementScreen(key: const ValueKey('engagement'));
-      case 2:
+      case _tabInvestments:
         return const InvestmentsScreen(key: ValueKey('investments'));
-      case 3:
+      case _tabRequests:
         return const RequestsScreen(key: ValueKey('requests'));
       default:
         return ProfileScreen(
@@ -62,7 +71,6 @@ class _MainWrapperState extends State<MainWrapper> {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
     final loc = AppLocalizations.of(context);
-    const orangeInvesta = Color(0xFFFF9800);
 
     return Scaffold(
       backgroundColor:
@@ -77,7 +85,7 @@ class _MainWrapperState extends State<MainWrapper> {
           ),
 
           // Right-side small Initiate FAB displayed only on Investments tab
-          if (_selectedIndex == 2)
+          if (_selectedIndex == _tabInvestments)
             SafeArea(
               child: Padding(
                 padding: EdgeInsets.only(
@@ -96,7 +104,7 @@ class _MainWrapperState extends State<MainWrapper> {
                             content: Text(loc.t('investment_created'))));
                       }
                     },
-                    backgroundColor: orangeInvesta,
+                    backgroundColor: _investaOrange,
                     icon: const Icon(Icons.rocket_launch),
                     label: Text(loc.t('initiation')),
                     tooltip: loc.t('initiation'),
@@ -117,8 +125,8 @@ class _MainWrapperState extends State<MainWrapper> {
             child: FloatingActionButton(
               heroTag: 'main_fab',
               onPressed: () async {
-                if (_selectedIndex != 2) {
-                  _onItemTapped(2);
+                if (_selectedIndex != _tabInvestments) {
+                  _onItemTapped(_tabInvestments);
                   return;
                 }
                 final res = await Navigator.of(context).push(MaterialPageRoute(
@@ -128,7 +136,7 @@ class _MainWrapperState extends State<MainWrapper> {
                       SnackBar(content: Text(loc.t('investment_created'))));
                 }
               },
-              backgroundColor: orangeInvesta,
+              backgroundColor: _investaOrange,
               elevation: 8,
               shape: const CircleBorder(),
               child: const Icon(Icons.trending_up_rounded,
@@ -153,19 +161,23 @@ class _MainWrapperState extends State<MainWrapper> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 // اليسار
-                _buildNavItem(Icons.dashboard_rounded, loc.t('dashboard'), 0,
-                    isSelected: _selectedIndex == 0),
-                _buildNavItem(Icons.people_alt_rounded, loc.t('engagement'), 1,
-                    isSelected: _selectedIndex == 1),
+                _buildNavItem(
+                    Icons.dashboard_rounded, loc.t('dashboard'), _tabDashboard,
+                    isSelected: _selectedIndex == _tabDashboard),
+                _buildNavItem(Icons.people_alt_rounded, loc.t('engagement'),
+                    _tabEngagement,
+                    isSelected: _selectedIndex == _tabEngagement),
 
                 // فراغ للـ Notch
                 const SizedBox(width: 80),
 
                 // اليمين
-                _buildNavItem(Icons.request_page_rounded, loc.t('requests'), 3,
-                    isSelected: _selectedIndex == 3),
-                _buildNavItem(Icons.person_rounded, loc.t('profile'), 4,
-                    isSelected: _selectedIndex == 4),
+                _buildNavItem(
+                    Icons.request_page_rounded, loc.t('requests'), _tabRequests,
+                    isSelected: _selectedIndex == _tabRequests),
+                _buildNavItem(
+                    Icons.person_rounded, loc.t('profile'), _tabProfile,
+                    isSelected: _selectedIndex == _tabProfile),
               ],
             ),
           ),
@@ -176,7 +188,7 @@ class _MainWrapperState extends State<MainWrapper> {
 
   Widget _buildNavItem(IconData icon, String label, int index,
       {required bool isSelected}) {
-    final color = isSelected ? const Color(0xFFFF9800) : Colors.grey;
+    final color = isSelected ? _investaOrange : Colors.grey;
     return Expanded(
       child: InkWell(
         onTap: () => _onItemTapped(index),

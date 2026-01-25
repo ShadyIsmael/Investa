@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_founder/services/api_client.dart';
 import 'package:flutter_founder/services/app_logger.dart';
-import 'package:flutter_founder/services/config.dart';
 import 'endpoint_resolver.dart';
 
 class BusinessStage {
@@ -50,9 +49,7 @@ class BusinessStagesService {
         _client = client ?? ApiClient();
 
   String get baseUrl =>
-      _baseOverride ??
-      EndpointResolver.instance.selectedApiBaseUrl ??
-      Env.apiBaseUrl;
+      _baseOverride ?? EndpointResolver.instance.selectedApiBaseUrl;
 
   Future<List<BusinessStage>> fetchStages() async {
     var apiBase = baseUrl;

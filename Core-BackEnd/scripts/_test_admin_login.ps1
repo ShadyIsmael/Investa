@@ -8,10 +8,10 @@ $body = @{ email='admin@investa.com'; password='P@ssw0rd' } | ConvertTo-Json
 $baseUrls = @(
     'https://localhost:7292',
     'https://127.0.0.1:7292',
-    'https://192.168.1.15:7292',
+    'https://DESKTOP-DIH7CQH:7292',
     'http://localhost:5235',
     'http://127.0.0.1:5235',
-    'http://192.168.1.15:5235'
+    'http://DESKTOP-DIH7CQH:5235'
 )
 
 $login = $null

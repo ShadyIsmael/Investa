@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import '../../services/app_logger.dart';
 
 /// Lightweight compatibility shim for SignalRService.
 /// This class provides the minimal API used by UI code so older
@@ -37,7 +38,7 @@ class SignalRService {
     _connected = true;
     if (kDebugMode) {
       // ignore: avoid_print
-      print('[SignalRShim] connect() called (no-op)');
+      AppLogger.logInfo('signalr', '[SignalRShim] connect() called (no-op)');
     }
   }
 
@@ -45,21 +46,21 @@ class SignalRService {
     _connected = false;
     if (kDebugMode) {
       // ignore: avoid_print
-      print('[SignalRShim] disconnect() called (no-op)');
+      AppLogger.logInfo('signalr', '[SignalRShim] disconnect() called (no-op)');
     }
   }
 
   Future<void> joinConversation(String id) async {
     if (kDebugMode) {
       // ignore: avoid_print
-      print('[SignalRShim] joinConversation($id) called (no-op)');
+      AppLogger.logInfo(
+          'signalr', '[SignalRShim] joinConversation($id) called (no-op)');
     }
   }
 
   Future<void> sendMessage(String conversationId, String message) async {
     if (kDebugMode) {
-      // ignore: avoid_print
-      print(
+      AppLogger.logInfo('signalr',
           '[SignalRShim] sendMessage($conversationId, $message) called (no-op)');
     }
   }
@@ -67,7 +68,8 @@ class SignalRService {
   Future<void> closeConversation(String conversationId) async {
     if (kDebugMode) {
       // ignore: avoid_print
-      print('[SignalRShim] closeConversation($conversationId) called (no-op)');
+      AppLogger.logInfo('signalr',
+          '[SignalRShim] closeConversation($conversationId) called (no-op)');
     }
   }
 

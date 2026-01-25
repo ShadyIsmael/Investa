@@ -94,10 +94,11 @@ export const Groups: React.FC = () => {
 
     try {
       if (editingGroup.id === 0) {
-        await groupService.createGroup({ name: editingGroup.name, description: editingGroup.description, members: editingGroup.members });
+        // API does not accept members in create payload - manage members separately
+        await groupService.createGroup({ name: editingGroup.name, description: editingGroup.description });
         showToast('Group created successfully', 'success');
       } else {
-        await groupService.updateGroup(editingGroup.id, { name: editingGroup.name, description: editingGroup.description, members: editingGroup.members });
+        await groupService.updateGroup(editingGroup.id, { name: editingGroup.name, description: editingGroup.description });
         showToast('Group updated successfully', 'success');
       }
       setShowModal(false);
@@ -150,18 +151,18 @@ export const Groups: React.FC = () => {
             placeholder="Search groups..."
             value={searchTerm}
             onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
-            className="px-3 py-2 rounded-md border text-sm w-full sm:w-64"
+            className="px-3 py-2 rounded-md border border-border bg-surface text-text text-sm w-full sm:w-64 placeholder-muted"
           />
         </div>
 
         {loading ? (
-          <div className="text-center py-8 text-slate-500">Loading groups...</div>
+          <div className="text-center py-8 text-muted">Loading groups...</div>
         ) : filteredGroups.length === 0 ? (
-          <div className="text-center py-8 text-slate-500">No groups found</div>
+          <div className="text-center py-8 text-muted">No groups found</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-left">
-              <thead className="text-slate-500 text-sm uppercase text-[11px] tracking-widest border-b">
+              <thead className="text-muted text-sm uppercase text-[11px] tracking-widest border-b border-border">
                 <tr>
                   <th className="px-3 py-2">Group Name</th>
                   <th className="px-3 py-2">Description</th>
@@ -171,10 +172,10 @@ export const Groups: React.FC = () => {
               </thead>
               <tbody>
                 {filteredGroups.map(group => (
-                  <tr key={group.id} className="border-b hover:bg-slate-50 dark:hover:bg-slate-800/20">
-                    <td className="px-3 py-3 font-semibold">{group.name}</td>
-                    <td className="px-3 py-3 text-slate-600 text-sm">{group.description}</td>
-                    <td className="px-3 py-3 text-sm">{(group as any).memberCount ?? (group.members?.length || 0)}</td>
+                  <tr key={group.id} className="border-b border-border hover:bg-background/50">
+                    <td className="px-3 py-3 font-semibold text-text">{group.name}</td>
+                    <td className="px-3 py-3 text-muted text-sm">{group.description}</td>
+                    <td className="px-3 py-3 text-sm text-text">{(group as any).memberCount ?? (group.members?.length || 0)}</td>
                     <td className="px-3 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button onClick={async () => { 
@@ -191,9 +192,9 @@ export const Groups: React.FC = () => {
                           } catch (e) {
                             setPermissionsList([]);
                           }
-                        }} className="px-2 py-1 text-slate-600 text-sm hover:underline">View</button>
+                        }} className="px-2 py-1 text-muted text-sm hover:text-primary hover:underline">View</button>
                         <PermissionControl permission="Group.Update">
-                          <button onClick={() => openModal(group)} className="px-2 py-1 text-indigo-600 text-sm hover:underline">
+                          <button onClick={() => openModal(group)} className="px-2 py-1 text-primary text-sm hover:underline">
                             Edit
                           </button>
                         </PermissionControl>
@@ -211,17 +212,17 @@ export const Groups: React.FC = () => {
 
             {/* Pagination */}
             <div className="flex items-center justify-between mt-3">
-              <div className="text-sm text-slate-500">Showing {total === 0 ? 0 : (Math.min((page-1)*pageSize+1, total))} - {total === 0 ? 0 : Math.min(page*pageSize, total)} of {total} groups</div>
+              <div className="text-sm text-muted">Showing {total === 0 ? 0 : (Math.min((page-1)*pageSize+1, total))} - {total === 0 ? 0 : Math.min(page*pageSize, total)} of {total} groups</div>
               <div className="flex items-center gap-2">
-                <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }} className="px-2 py-1 border rounded-md bg-white dark:bg-slate-900">
+                <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }} className="px-2 py-1 border border-border rounded-md bg-surface text-text">
                   <option value={10}>10 / page</option>
                   <option value={25}>25 / page</option>
                   <option value={50}>50 / page</option>
                 </select>
 
                 <div className="flex items-center gap-2">
-                  <button disabled={page <= 1} onClick={() => setPage(1)} className="px-2 py-1 border rounded-md">First</button>
-                  <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p-1))} className="px-2 py-1 border rounded-md">Prev</button>
+                  <button disabled={page <= 1} onClick={() => setPage(1)} className="px-2 py-1 border border-border rounded-md bg-surface text-text hover:bg-background disabled:opacity-50">First</button>
+                  <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p-1))} className="px-2 py-1 border border-border rounded-md bg-surface text-text hover:bg-background disabled:opacity-50">Prev</button>
 
                   {/* Page numbers */}
                   <div className="flex items-center gap-1">
@@ -234,17 +235,17 @@ export const Groups: React.FC = () => {
                       const pages: number[] = [];
                       for (let i = start; i <= end; i++) pages.push(i);
                       return pages.map(pn => (
-                        <button key={pn} onClick={() => setPage(pn)} className={`px-2 py-1 border rounded-md ${pn === page ? 'bg-indigo-600 text-white' : ''}`}>{pn}</button>
+                        <button key={pn} onClick={() => setPage(pn)} className={`px-2 py-1 border border-border rounded-md ${pn === page ? 'bg-primary text-white border-primary' : 'bg-surface text-text hover:bg-background'}`}>{pn}</button>
                       ));
                     })()}
                   </div>
 
-                  <button disabled={page >= Math.max(1, Math.ceil((total || 0)/pageSize))} onClick={() => setPage(p => Math.min(Math.max(1, Math.ceil((total || 0)/pageSize)), p+1))} className="px-2 py-1 border rounded-md">Next</button>
-                  <button disabled={page >= Math.max(1, Math.ceil((total || 0)/pageSize))} onClick={() => setPage(Math.max(1, Math.ceil((total || 0)/pageSize)))} className="px-2 py-1 border rounded-md">Last</button>
+                  <button disabled={page >= Math.max(1, Math.ceil((total || 0)/pageSize))} onClick={() => setPage(p => Math.min(Math.max(1, Math.ceil((total || 0)/pageSize)), p+1))} className="px-2 py-1 border border-border rounded-md bg-surface text-text hover:bg-background disabled:opacity-50">Next</button>
+                  <button disabled={page >= Math.max(1, Math.ceil((total || 0)/pageSize))} onClick={() => setPage(Math.max(1, Math.ceil((total || 0)/pageSize)))} className="px-2 py-1 border border-border rounded-md bg-surface text-text hover:bg-background disabled:opacity-50">Last</button>
 
                   <div className="flex items-center gap-1 ml-2">
-                    <input type="number" min={1} max={Math.max(1, Math.ceil((total || 0)/pageSize))} value={page} onChange={e => setPage(Math.min(Math.max(1, Number(e.target.value || 1)), Math.max(1, Math.ceil((total || 0)/pageSize))))} className="w-14 px-2 py-1 border rounded-md text-sm" />
-                    <div className="text-sm text-slate-400">/ {Math.max(1, Math.ceil((total || 0)/pageSize))}</div>
+                    <input type="number" min={1} max={Math.max(1, Math.ceil((total || 0)/pageSize))} value={page} onChange={e => setPage(Math.min(Math.max(1, Number(e.target.value || 1)), Math.max(1, Math.ceil((total || 0)/pageSize))))} className="w-14 px-2 py-1 border border-border rounded-md text-sm bg-surface text-text" />
+                    <div className="text-sm text-muted">/ {Math.max(1, Math.ceil((total || 0)/pageSize))}</div>
                   </div>
                 </div>
               </div>
@@ -256,24 +257,24 @@ export const Groups: React.FC = () => {
       {showModal && editingGroup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowModal(false)} />
-          <div className="relative bg-white dark:bg-slate-900 rounded-2xl border shadow-xl z-50 w-full max-w-md p-6">
-            <h3 className="font-bold text-lg mb-4">{editingGroup.id === 0 ? 'Create Group' : 'Edit Group'}</h3>
+          <div className="relative bg-surface rounded-2xl border border-border shadow-xl z-50 w-full max-w-md p-6">
+            <h3 className="font-bold text-lg mb-4 text-text">{editingGroup.id === 0 ? 'Create Group' : 'Edit Group'}</h3>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-bold">Name <span className="text-red-500">*</span></label>
+                <label className="text-sm font-bold text-text">Name <span className="text-red-500">*</span></label>
                 <input
                   value={editingGroup.name}
                   onChange={(e) => setEditingGroup({ ...editingGroup, name: e.target.value })}
-                  className="w-full mt-2 px-3 py-2 rounded-lg border"
+                  className="w-full mt-2 px-3 py-2 rounded-lg border border-border bg-background text-text"
                   placeholder="e.g., IT Department"
                 />
               </div>
               <div>
-                <label className="text-sm font-bold">Description</label>
+                <label className="text-sm font-bold text-text">Description</label>
                 <textarea
                   value={editingGroup.description}
                   onChange={(e) => setEditingGroup({ ...editingGroup, description: e.target.value })}
-                  className="w-full mt-2 px-3 py-2 rounded-lg border"
+                  className="w-full mt-2 px-3 py-2 rounded-lg border border-border bg-background text-text"
                   rows={3}
                   placeholder="Optional description"
                 />
@@ -281,25 +282,25 @@ export const Groups: React.FC = () => {
 
               {/* Members assignment (simplified) */}
               <div>
-                <label className="text-sm font-bold">Members (IDs comma separated)</label>
+                <label className="text-sm font-bold text-text">Members (IDs comma separated)</label>
                 <input
                   value={(editingGroup.members || []).map(m=>typeof m === 'number' ? m : m.userId).join(',')}
                   onChange={(e) => {
                     const vals = e.target.value.split(',').map(s=>s.trim()).filter(Boolean).map(s=>Number(s));
                     setEditingGroup({ ...editingGroup, members: vals.map(v=>({ userId: v })) });
                   }}
-                  className="w-full mt-2 px-3 py-2 rounded-lg border"
+                  className="w-full mt-2 px-3 py-2 rounded-lg border border-border bg-background text-text"
                   placeholder="e.g., 1,2,3"
                 />
               </div>
 
-              <div className="text-xs text-slate-400">Note: Members assignment is simplified here. Use the dedicated Group Details page for full member management.</div>
+              <div className="text-xs text-muted">Note: Members assignment is simplified here. Use the dedicated Group Details page for full member management.</div>
             </div>
             <div className="mt-6 flex items-center justify-end gap-2">
-              <button onClick={() => setShowModal(false)} className="px-4 py-2 border rounded-md text-sm">
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 border border-border rounded-md text-sm text-text hover:bg-background">
                 Cancel
               </button>
-              <button onClick={saveGroup} className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700">
+              <button onClick={saveGroup} className="px-4 py-2 bg-primary text-white rounded-md text-sm hover:opacity-90">
                 Save
               </button>
             </div>
@@ -310,9 +311,9 @@ export const Groups: React.FC = () => {
       {detailsGroup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setDetailsGroup(null)} />
-          <div className="relative bg-white dark:bg-slate-900 rounded-2xl border shadow-xl z-50 w-full max-w-2xl p-6">
+          <div className="relative bg-surface rounded-2xl border border-border shadow-xl z-50 w-full max-w-2xl p-6 text-text">
             <h3 className="font-bold text-lg mb-2">{detailsGroup.name}</h3>
-            <p className="text-sm text-slate-500 mb-4">{detailsGroup.description}</p>
+            <p className="text-sm text-muted mb-4">{detailsGroup.description}</p>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <h4 className="text-sm font-semibold">Members ({detailsGroup.memberCount || 0})</h4>
@@ -321,16 +322,16 @@ export const Groups: React.FC = () => {
                     <li key={m.id} className="flex items-center justify-between">
                       <div>
                         <div className="font-semibold">{m.name}</div>
-                        <div className="text-xs text-slate-500">{m.email}</div>
+                        <div className="text-xs text-muted">{m.email}</div>
                       </div>
-                      <div className="text-xs text-slate-400">{m.role || ''}</div>
+                      <div className="text-xs text-muted">{m.role || ''}</div>
                     </li>
                   ))}
                 </ul>
               </div>
               <div>
                 <h4 className="text-sm font-semibold">Permissions</h4>
-                <div className="mt-2 text-sm text-slate-600">
+                <div className="mt-2 text-sm text-muted">
                   {(detailsGroup.permissions || []).join(', ') || '—'}
                 </div>
 
@@ -346,16 +347,16 @@ export const Groups: React.FC = () => {
                     ))}
                   </div>
                   <div className="mt-3">
-                    <button onClick={savePermissions} disabled={!canEditPermissions} className={`px-3 py-1 rounded-md ${canEditPermissions ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>Save Permissions</button>
+                    <button onClick={savePermissions} disabled={!canEditPermissions} className={`px-3 py-1 rounded-md ${canEditPermissions ? 'bg-primary text-white' : 'bg-background text-muted cursor-not-allowed'}`}>Save Permissions</button>
                   </div>
                 </div>
 
                 <h4 className="text-sm font-semibold mt-4">Metadata</h4>
-                <pre className="mt-2 text-xs text-slate-500 bg-slate-50 dark:bg-slate-800 p-2 rounded">{JSON.stringify(detailsGroup.metadata || {}, null, 2)}</pre>
+                <pre className="mt-2 text-xs text-muted bg-background p-2 rounded border border-border">{JSON.stringify(detailsGroup.metadata || {}, null, 2)}</pre>
               </div>
             </div>
             <div className="mt-6 flex justify-end">
-              <button onClick={() => setDetailsGroup(null)} className="px-3 py-1 border rounded-md">Close</button>
+              <button onClick={() => setDetailsGroup(null)} className="px-3 py-1 border border-border rounded-md hover:bg-background">Close</button>
             </div>
           </div>
         </div>

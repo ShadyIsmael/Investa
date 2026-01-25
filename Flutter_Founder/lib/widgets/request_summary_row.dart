@@ -7,11 +7,11 @@ class RequestSummaryRow extends StatelessWidget {
   final int outcome;
 
   const RequestSummaryRow({
-    Key? key,
+    super.key,
     required this.total,
     required this.income,
     required this.outcome,
-  }) : super(key: key);
+  });
 
   Widget _buildTile(BuildContext context, IconData icon, String label,
       int count, Color color) {
@@ -34,7 +34,7 @@ class RequestSummaryRow extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 16,
-              backgroundColor: color.withOpacity(0.14),
+              backgroundColor: color.withAlpha((0.14 * 255).round()),
               child: Icon(icon, size: 16, color: color),
             ),
             const SizedBox(width: 12),
@@ -43,7 +43,8 @@ class RequestSummaryRow extends StatelessWidget {
               children: [
                 Text(label,
                     style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.7))),
+                        color: theme.colorScheme.onSurface
+                            .withAlpha((0.7 * 255).round()))),
                 const SizedBox(height: 4),
                 Text(count.toString(),
                     style: theme.textTheme.titleMedium

@@ -160,7 +160,7 @@
                       <div class="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full" [style.width.%]="fundingProgress()"></div>
                   </div>
                   <div class="flex justify-between text-sm mt-2">
-                      <span class="font-medium text-gray-300">Raised: <span class="text-white font-bold">${{ project.currentFund | number }}</span></span>
+                      <span class="font-medium text-gray-300">Raised: <span class="text-white font-bold">${{ project.currentFunding | number }}</span></span>
                       <span class="font-medium text-gray-300">Target: <span class="text-white font-bold">${{ project.targetFund | number }}</span></span>
                   </div>
                 </div>
@@ -251,13 +251,13 @@
                   <img [src]="p.authorImage" alt="{{ p.name }}" class="w-16 h-16 rounded-full object-cover border-2 border-slate-700">
                   <h2 class="text-xl font-bold text-white group-hover:text-blue-400 transition-colors">{{ p.name }}</h2>
                 </div>
-                @let progress = (p.targetFund > 0) ? (p.currentFund / p.targetFund) * 100 : 0;
+                @let progress = (p.targetFund > 0) ? (p.currentFunding / p.targetFund) * 100 : 0;
                 <div class="w-full bg-slate-700 rounded-full h-2 mb-2">
                   <div class="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full" [style.width.%]="progress"></div>
                 </div>
                 <div class="flex justify-between text-sm mb-4">
                   <span class="text-gray-300 font-medium">
-                      <span class="text-white font-bold">{{ p.currentFund | number }}</span> / {{ p.targetFund | number }} USD
+                      <span class="text-white font-bold">{{ p.currentFunding | number }}</span> / {{ p.targetFund | number }} USD
                   </span>
                   <span class="text-white font-bold">{{ progress | number:'1.0-0' }}%</span>
                 </div>

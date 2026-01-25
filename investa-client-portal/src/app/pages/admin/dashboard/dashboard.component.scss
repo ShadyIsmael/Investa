@@ -1,0 +1,355 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+:host {
+  display: block;
+  min-height: 100vh;
+  /* Use transparent so the global dark body/background shines through */
+  background: transparent;
+  /* Fallback for non-dark theme: use alt background */
+  @media (prefers-color-scheme: light) {
+    background: $color-background-alt;
+  }
+}
+
+.dashboard {
+  padding: $spacing-6;
+
+  @include respond-to('md') {
+    padding: $spacing-8;
+  }
+}
+
+.dashboard-header {
+  margin-bottom: $spacing-8;
+
+  h1 {
+    @include heading('lg');
+    margin-bottom: $spacing-2;
+  }
+
+  p {
+    color: $color-text-secondary;
+    font-size: $font-size-base;
+  }
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: $spacing-6;
+  margin-bottom: $spacing-8;
+}
+
+.stat-card {
+  @include card($spacing-6);
+  transition: all $transition-base;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: $shadow-lg;
+  }
+
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: $border-radius-lg;
+    @include flex-center;
+    margin-bottom: $spacing-4;
+    font-size: $font-size-2xl;
+
+    &.primary {
+      background: rgba($color-primary, 0.1);
+      color: $color-primary;
+    }
+
+    &.success {
+      background: rgba($color-success, 0.1);
+      color: $color-success;
+    }
+
+    &.warning {
+      background: rgba($color-warning, 0.1);
+      color: $color-warning;
+    }
+
+    &.info {
+      background: rgba($color-info, 0.1);
+      color: $color-info;
+    }
+  }
+
+  .stat-label {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+    margin-bottom: $spacing-2;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .stat-value {
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-bold;
+    color: $color-text-primary;
+    margin-bottom: $spacing-1;
+  }
+
+  .stat-change {
+    font-size: $font-size-sm;
+    @include flex-start;
+    gap: $spacing-1;
+
+    &.positive {
+      color: $color-success;
+    }
+
+    &.negative {
+      color: $color-error;
+    }
+  }
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: $spacing-6;
+  margin-bottom: $spacing-8;
+
+  @media (max-width: $breakpoint-md) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chart-card {
+  @include card($spacing-6);
+
+  .chart-header {
+    @include flex-between;
+    margin-bottom: $spacing-6;
+
+    h3 {
+      font-size: $font-size-xl;
+      font-weight: $font-weight-semibold;
+      margin: 0;
+    }
+
+    .chart-actions {
+      @include flex-center;
+      gap: $spacing-2;
+
+      button {
+        @include button-base;
+        padding: $spacing-2 $spacing-3;
+        font-size: $font-size-sm;
+        background: $color-background-alt;
+        color: $color-text-secondary;
+
+        &.active {
+          background: $color-primary;
+          color: white;
+        }
+      }
+    }
+  }
+
+  .chart-container {
+    min-height: 300px;
+    position: relative;
+  }
+}
+
+.investments-section {
+  margin-bottom: $spacing-8;
+
+  .section-header {
+    @include flex-between;
+    margin-bottom: $spacing-6;
+
+    h2 {
+      font-size: $font-size-2xl;
+      font-weight: $font-weight-bold;
+      margin: 0;
+    }
+
+    a {
+      @include button-base;
+      padding: $spacing-2 $spacing-4;
+      background: $color-primary;
+      color: white;
+      font-size: $font-size-sm;
+
+      &:hover {
+        background: $color-primary-dark;
+        text-decoration: none;
+      }
+    }
+  }
+}
+
+.investments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: $spacing-6;
+
+  @media (max-width: $breakpoint-sm) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.investment-card {
+  @include card($spacing-0);
+  overflow: hidden;
+  transition: all $transition-base;
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: $shadow-xl;
+  }
+
+  .investment-image {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    background: $color-background-alt;
+  }
+
+  .investment-content {
+    padding: $spacing-5;
+
+    .investment-title {
+      font-size: $font-size-lg;
+      font-weight: $font-weight-semibold;
+      margin-bottom: $spacing-2;
+      @include line-clamp(2);
+    }
+
+    .investment-description {
+      font-size: $font-size-sm;
+      color: $color-text-secondary;
+      margin-bottom: $spacing-4;
+      @include line-clamp(3);
+    }
+
+    .investment-meta {
+      @include flex-between;
+      padding-top: $spacing-4;
+      border-top: 1px solid $color-border;
+
+      .meta-item {
+        @include flex-column;
+
+        .label {
+          font-size: $font-size-xs;
+          color: $color-text-muted;
+          margin-bottom: $spacing-1;
+        }
+
+        .value {
+          font-size: $font-size-base;
+          font-weight: $font-weight-semibold;
+          color: $color-text-primary;
+        }
+      }
+    }
+  }
+
+  .investment-badge {
+    position: absolute;
+    top: $spacing-3;
+    right: $spacing-3;
+    padding: $spacing-1 $spacing-3;
+    border-radius: $border-radius-full;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    background: white;
+
+    &.active {
+      color: $color-success;
+    }
+
+    &.funded {
+      color: $color-info;
+    }
+
+    &.closed {
+      color: $color-text-muted;
+    }
+  }
+}
+
+.activity-feed {
+  @include card($spacing-6);
+
+  h3 {
+    font-size: $font-size-xl;
+    font-weight: $font-weight-semibold;
+    margin-bottom: $spacing-6;
+  }
+
+  .activity-list {
+    .activity-item {
+      @include flex-start;
+      gap: $spacing-4;
+      padding: $spacing-4 0;
+      border-bottom: 1px solid $color-border;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .activity-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: $border-radius-full;
+        @include flex-center;
+        flex-shrink: 0;
+        background: $color-background-alt;
+        color: $color-primary;
+      }
+
+      .activity-content {
+        flex: 1;
+
+        .activity-text {
+          font-size: $font-size-sm;
+          color: $color-text-primary;
+          margin-bottom: $spacing-1;
+        }
+
+        .activity-time {
+          font-size: $font-size-xs;
+          color: $color-text-muted;
+        }
+      }
+    }
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: $spacing-12;
+
+  .empty-icon {
+    font-size: 64px;
+    color: $color-text-muted;
+    margin-bottom: $spacing-4;
+  }
+
+  h3 {
+    font-size: $font-size-xl;
+    color: $color-text-secondary;
+    margin-bottom: $spacing-2;
+  }
+
+  p {
+    color: $color-text-muted;
+    margin-bottom: $spacing-6;
+  }
+
+  button {
+    @include button-base;
+    @include button-variant($color-primary);
+    padding: $spacing-3 $spacing-6;
+  }
+}

@@ -1,0 +1,5 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.testimonials { padding: $spacing-8 0; }
+.testimonial { @include card($spacing-4); }

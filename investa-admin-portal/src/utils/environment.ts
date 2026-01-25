@@ -8,8 +8,18 @@
  * Uses window.location.hostname to avoid hardcoded IPs
  */
 export function getDynamicBaseUrl(): string {
-  // Check for environment variable first
-  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  // Runtime meta/global override (allows swapping base URL without rebuild)
+  var runtimeOverride: string | undefined = undefined;
+  try {
+    // window.__INVESTA_API_BASE may be set from a meta tag or hosting environment
+    runtimeOverride = (window as any).__INVESTA_API_BASE as string | undefined;
+  } catch { /* ignore */ }
+  if (runtimeOverride) {
+    return runtimeOverride.replace(/\/+$/, '');
+  }
+
+  // Check for environment variable next
+  const envUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
   if (envUrl) {
     return envUrl.replace(/\/+$/, '');
   }

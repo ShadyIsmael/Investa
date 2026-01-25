@@ -78,7 +78,8 @@ namespace Investa.API.Controllers.Admin
             if (take > 100) take = 100;
 
             var query = _db.Clients.AsNoTracking()
-                        .Where(c => c.Score > 0)
+                        .Include(c => c.User)
+                        .Where(c => c.Score > 0 && c.User.UserType != Investa.Domain.Entities.Enums.UserType.OrgUser)
                         .OrderByDescending(c => c.Score)
                         .Take(take)
                         .Select(c => new Investa.Application.DTOs.TopClientDto
@@ -97,12 +98,16 @@ namespace Investa.API.Controllers.Admin
         [HttpGet("investments/stats/by-category")]
         public async Task<IActionResult> GetInvestmentsGroupedByCategory()
         {
-            var query = _db.Investments
-                .GroupBy(i => i.BusinessCategoryId)
+            var query = _db.InvestmentParticipants
+                .Join(_db.Investments,
+                    ip => ip.InvestmentId,
+                    inv => inv.Id,
+                    (ip, inv) => new { ip.AmountInvested, inv.BusinessCategoryId })
+                .GroupBy(x => x.BusinessCategoryId)
                 .Select(g => new
                 {
                     CategoryId = g.Key,
-                    TotalAmount = g.Sum(i => i.Amount)
+                    TotalAmount = g.Sum(x => x.AmountInvested)
                 });
 
             var grouped = await query.AsNoTracking().ToListAsync();

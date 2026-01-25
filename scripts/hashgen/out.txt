@@ -1,0 +1,12 @@
+Msg 2601, Level 14, State 1, Server DESKTOP-DIH7CQH, Line 5
+Cannot insert duplicate key row in object 'dbo.AspNetUsers' with unique index 'UserNameIndex'. The duplicate key value is (+2001022322292).
+The statement has been terminated.
+Msg 2601, Level 14, State 1, Server DESKTOP-DIH7CQH, Line 8
+Cannot insert duplicate key row in object 'dbo.AuthUsers' with unique index 'IX_AuthUsers_Email'. The duplicate key value is (+2001022322292@phone.investa.local).
+The statement has been terminated.
+Msg 547, Level 16, State 1, Server DESKTOP-DIH7CQH, Line 15
+The INSERT statement conflicted with the FOREIGN KEY constraint "FK_Clients_AuthUsers_UserId". The conflict occurred in database "InvestaDb", table "dbo.AuthUsers", column 'Id'.
+The statement has been terminated.
+Result UserId                              
+------ ------------------------------------
+OK     078ba8dd-c95c-46e9-a7af-ae1a27ee9d57

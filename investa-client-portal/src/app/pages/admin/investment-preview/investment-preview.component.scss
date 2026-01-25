@@ -1,0 +1,462 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+// Animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Utility Classes
+.animate-fade-in {
+  animation: fadeIn var(--animation-duration, 0.3s) ease-out forwards;
+}
+
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
+// Glassmorphism effect for cards
+.backdrop-blur-md {
+  backdrop-filter: blur(12px);
+}
+
+// Project Stages Timeline
+.project-stages {
+  position: relative;
+  
+  // Connecting line between stages
+  .stages-line {
+    position: absolute;
+    top: 1.5rem;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, rgb(51, 65, 85), rgb(71, 85, 105), rgb(51, 65, 85));
+    z-index: 0;
+  }
+  
+  // Individual stage containers
+  .stage-item {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    
+    // Stage circle indicator
+    .stage-circle {
+      width: 3rem;
+      height: 3rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      
+      // Active/completed stages
+      &.active {
+        background: linear-gradient(135deg, rgb(59, 130, 246), rgb(147, 51, 234));
+        color: white;
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+      }
+      
+      // Completed stages
+      &.completed {
+        background: linear-gradient(135deg, rgb(34, 197, 94), rgb(59, 130, 246));
+        color: white;
+        box-shadow: 0 0 15px rgba(34, 197, 94, 0.3);
+      }
+      
+      // Upcoming stages
+      &.upcoming {
+        background: rgb(51, 65, 85);
+        color: rgb(156, 163, 175);
+      }
+    }
+    
+    // Stage label
+    .stage-label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-align: center;
+      transition: color 0.3s ease;
+      
+      &.active {
+        color: white;
+      }
+      
+      &.completed {
+        color: rgb(156, 163, 175);
+      }
+      
+      &.upcoming {
+        color: rgb(107, 114, 128);
+      }
+    }
+    
+    // Current badge
+    .current-badge {
+      display: inline-block;
+      margin-top: 0.5rem;
+      padding: 0.25rem 0.75rem;
+      font-size: 0.75rem;
+      font-weight: bold;
+      background: rgba(59, 130, 246, 0.2);
+      color: rgb(147, 210, 255);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 9999px;
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    
+    // Completed checkmark
+    .completed-badge {
+      display: inline-block;
+      margin-top: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: rgb(74, 222, 128);
+    }
+  }
+  
+  // Milestone info box
+  .milestone-box {
+    margin-top: 2rem;
+    padding: 1rem;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 0.5rem;
+    
+    .milestone-label {
+      font-size: 0.875rem;
+      color: rgb(147, 210, 255);
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    
+    .milestone-value {
+      font-size: 1.125rem;
+      color: rgb(219, 234, 254);
+      font-weight: bold;
+    }
+  }
+}
+
+// Pulse animation for current stage
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+// Improved hero section with gradient overlay
+.investment-preview {
+  // Hero image overlay improvements
+  .hero-image {
+    position: relative;
+    
+    img {
+      object-fit: cover;
+      object-position: center;
+    }
+  }
+  
+  // Enhanced badge styling
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+  }
+  
+  // Enhanced metric cards
+  .metric-card {
+    background: rgba(30, 41, 59, 0.4);
+    border: 1px solid rgba(71, 85, 105, 0.5);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      background: rgba(30, 41, 59, 0.6);
+      border-color: rgba(71, 85, 105, 0.8);
+      transform: translateY(-2px);
+    }
+    
+    .label {
+      font-size: 0.875rem;
+      color: rgb(156, 163, 175);
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+    
+    .value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: inherit;
+    }
+  }
+  
+  // Section cards with subtle hover effect
+  .section-card {
+    background: rgba(30, 41, 59, 0.4);
+    border: 1px solid rgba(71, 85, 105, 0.5);
+    border-radius: 0.75rem;
+    padding: 2rem;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      background: rgba(30, 41, 59, 0.5);
+      border-color: rgba(71, 85, 105, 0.7);
+    }
+  }
+  
+  // Team member cards with interactive effects
+  .team-member {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(51, 65, 85, 0.3);
+    border: 1px solid rgba(71, 85, 105, 0.5);
+    border-radius: 0.5rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    
+    &:hover {
+      background: rgba(51, 65, 85, 0.5);
+      border-color: rgb(59, 130, 246);
+      transform: translateX(4px);
+    }
+    
+    .avatar {
+      flex-shrink: 0;
+      width: 3.5rem;
+      height: 3.5rem;
+      border-radius: 0.5rem;
+      object-fit: cover;
+    }
+    
+    .info {
+      flex: 1;
+      min-width: 0;
+      
+      .name {
+        font-weight: 600;
+        color: white;
+        margin-bottom: 0.25rem;
+      }
+      
+      .role {
+        font-size: 0.875rem;
+        color: rgb(156, 163, 175);
+      }
+      
+      .bio {
+        font-size: 0.75rem;
+        color: rgb(107, 114, 128);
+        margin-top: 0.25rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+  }
+  
+  // Investor list items
+  .investor-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+    
+    .avatar {
+      flex-shrink: 0;
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 9999px;
+      object-fit: cover;
+      border: 2px solid rgba(71, 85, 105, 0.5);
+    }
+    
+    .info {
+      flex: 1;
+      min-width: 0;
+      
+      .name {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: white;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      
+      .amount {
+        font-size: 0.75rem;
+        color: rgb(156, 163, 175);
+      }
+    }
+  }
+  
+  // Funding progress bar
+  .progress-bar {
+    height: 1rem;
+    background: rgba(51, 65, 85, 0.5);
+    border-radius: 9999px;
+    border: 1px solid rgba(71, 85, 105, 0.5);
+    overflow: hidden;
+    
+    .fill {
+      height: 100%;
+      background: linear-gradient(90deg, rgb(59, 130, 246), rgb(147, 51, 234), rgb(236, 72, 153));
+      border-radius: 9999px;
+      transition: width 0.5s ease-out;
+    }
+  }
+  
+  // Modal styles
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    padding: 1rem;
+  }
+  
+  .modal {
+    background: rgb(15, 23, 42);
+    border: 1px solid rgb(71, 85, 105);
+    border-radius: 1.5rem;
+    padding: 2rem;
+    width: 100%;
+    max-width: 32rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+    
+    .modal-icon {
+      width: 4rem;
+      height: 4rem;
+      background: rgba(59, 130, 246, 0.1);
+      border: 2px solid rgba(59, 130, 246, 0.3);
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+      
+      svg {
+        width: 2rem;
+        height: 2rem;
+        color: rgb(96, 165, 250);
+      }
+    }
+    
+    .modal-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: white;
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+    
+    .modal-message {
+      color: rgb(156, 163, 175);
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+  }
+  
+  // Button styling
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    &.btn-primary {
+      background: linear-gradient(135deg, rgb(59, 130, 246), rgb(147, 51, 234));
+      color: white;
+      
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4);
+      }
+      
+      &:active {
+        transform: translateY(0);
+      }
+    }
+    
+    &.btn-secondary {
+      background: rgb(51, 65, 85);
+      color: white;
+      
+      &:hover {
+        background: rgb(71, 85, 105);
+      }
+    }
+  }
+  
+  // Responsive improvements
+  @media (max-width: 1024px) {
+    .team-member {
+      grid-column: span 1;
+    }
+  }
+  
+  @media (max-width: 640px) {
+    .metric-card {
+      padding: 0.75rem;
+      
+      .label {
+        font-size: 0.75rem;
+      }
+      
+      .value {
+        font-size: 1.25rem;
+      }
+    }
+    
+    .team-member {
+      .avatar {
+        width: 2.5rem;
+        height: 2.5rem;
+      }
+    }
+  }
+}

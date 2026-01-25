@@ -18,7 +18,10 @@ public class ClientService : IClientService
 
     public async Task<(int total, List<ClientAdminDto> items)> GetClientsForAdminAsync(int page, int pageSize, string? search)
     {
-        var all = (await _uow.Repository<Client>().GetAllAsync()).ToList();
+        // Filter out OrgUsers
+        var all = (await _uow.Repository<Client>()
+            .FindAsync(c => c.User.UserType != Investa.Domain.Entities.Enums.UserType.OrgUser))
+            .ToList();
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -44,7 +47,10 @@ public class ClientService : IClientService
     {
         if (limit <= 0) limit = 100;
 
-        var all = (await _uow.Repository<Client>().GetAllAsync()).ToList();
+        // Filter out OrgUsers
+        var all = (await _uow.Repository<Client>()
+            .FindAsync(c => c.User.UserType != Investa.Domain.Entities.Enums.UserType.OrgUser))
+            .ToList();
 
         var top = all.OrderByDescending(c => c.Score)
                      .ThenByDescending(c => c.CreatedAt)

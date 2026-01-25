@@ -7,6 +7,7 @@ import { TranslatePipe } from '../../../pipes/translate.pipe';
   standalone: true,
   selector: 'app-notifications',
   templateUrl: './notifications.component.html',
+  styleUrls: ['./notifications.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, TranslatePipe]
 })

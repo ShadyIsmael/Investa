@@ -6,6 +6,7 @@ import { TranslatePipe } from '../../pipes/translate.pipe';
 @Component({
   selector: 'app-contact-form',
   templateUrl: './contact-form.component.html',
+  styleUrls: ['./contact-form.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, ReactiveFormsModule, TranslatePipe]
 })
@@ -19,9 +20,8 @@ export class ContactFormComponent {
 
   onSubmit() {
     if (this.contactForm.valid) {
-      console.log('Contact form submitted:', this.contactForm.value);
+      // TODO: Send contact form data to server
       this.contactForm.reset();
-      // Here you would typically send the data to a server
     }
   }
 }

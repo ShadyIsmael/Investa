@@ -1,15 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
-
-#nullable disable
-
-namespace Investa.Infrastructure.Migrations
-{
-    /// <inheritdoc />
+﻿// FILE REMOVED: archived to ../ArchivedMigrations/20260123/20260118152233_AddClientTypeToClient.cs.original
+// Migration removed during consolidation.
+    // Migration neutralized during consolidation.
     public partial class AddClientTypeToClient : Migration
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
+        protected override void Up(MigrationBuilder migrationBuilder) { }
+        protected override void Down(MigrationBuilder migrationBuilder) { }
+    }
+}
             migrationBuilder.AddColumn<int>(
                 name: "ClientType",
                 table: "Clients",

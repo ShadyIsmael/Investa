@@ -1,0 +1,36 @@
+name: Dart Analyzer CI
+
+on:
+  push:
+    paths:
+      - 'Flutter_Founder/**'
+      - 'Flutter_Investor/**'
+  pull_request:
+    paths:
+      - 'Flutter_Founder/**'
+      - 'Flutter_Investor/**'
+
+jobs:
+  dart-analyze:
+    name: Dart Analyze (Flutter projects)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Dart SDK
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: 'stable'
+
+      - name: Analyze Flutter_Founder
+        working-directory: Flutter_Founder
+        run: |
+          dart pub get
+          dart analyze --fatal-infos
+
+      - name: Analyze Flutter_Investor
+        working-directory: Flutter_Investor
+        run: |
+          dart pub get
+          dart analyze --fatal-infos

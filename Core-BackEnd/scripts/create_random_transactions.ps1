@@ -1,7 +1,7 @@
 param()
 
 # Config
-$BaseUrl = 'http://192.168.1.15:5235'
+$BaseUrl = 'http://DESKTOP-DIH7CQH:5235'
 $Phone = '01022322292'
 $Password = 'P@ssw0rd'
 

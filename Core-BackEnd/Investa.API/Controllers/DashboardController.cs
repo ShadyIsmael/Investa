@@ -131,14 +131,19 @@ public class DashboardController : ControllerBase
         if (client == null)
             return NotFound(new { message = "Client profile not found" });
 
-        // Query Investments directly (filter by InvestorId) and group by BusinessCategoryId
-        var query = _db.Investments
-            .Where(inv => inv.InvestorId == userId && inv.BusinessCategoryId != null)
-            .GroupBy(inv => inv.BusinessCategoryId)
+        // Query InvestmentParticipants and join with Investments to group by category
+        var query = _db.InvestmentParticipants
+            .Where(ip => ip.InvestorId == userId)
+            .Join(_db.Investments,
+                ip => ip.InvestmentId,
+                inv => inv.Id,
+                (ip, inv) => new { ip.AmountInvested, inv.BusinessCategoryId })
+            .Where(x => x.BusinessCategoryId != null)
+            .GroupBy(x => x.BusinessCategoryId)
             .Select(g => new
             {
                 BusinessCategoryId = g.Key!.Value,
-                TotalAmount = g.Sum(inv => inv.Amount),
+                TotalAmount = g.Sum(x => x.AmountInvested),
                 InvestmentCount = g.Count()
             })
             .OrderByDescending(x => x.TotalAmount)
@@ -175,12 +180,12 @@ public class DashboardController : ControllerBase
         if (client == null)
             return NotFound(new { message = "Client profile not found" });
 
-        var query = _db.Investments
-            .Where(iu => iu.InvestorId == userId)
+        var query = _db.InvestmentParticipants
+            .Where(ip => ip.InvestorId == userId)
             .Join(_db.Investments,
-                  iu => iu.Id,
+                  ip => ip.InvestmentId,
                   inv => inv.Id,
-                  (iu, inv) => new { iu.Id, inv.BusinessCategoryId })
+                  (ip, inv) => new { ip.Id, inv.BusinessCategoryId })
             .Where(x => x.BusinessCategoryId != null)
             .GroupBy(x => x.BusinessCategoryId)
             .Select(g => new

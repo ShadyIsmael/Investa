@@ -12,7 +12,7 @@ import '../../../../core/di/injection_container.dart';
 /// - Clean error handling with SnackBars
 /// - Loading states
 class SupportRequestScreen extends StatefulWidget {
-  const SupportRequestScreen({Key? key}) : super(key: key);
+  const SupportRequestScreen({super.key});
 
   @override
   State<SupportRequestScreen> createState() => _SupportRequestScreenState();

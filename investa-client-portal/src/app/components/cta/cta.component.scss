@@ -1,0 +1,5 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.cta { @include flex-center; padding: $spacing-8 0; }
+.cta__button { @include button-base; @include button-variant($color-primary); }

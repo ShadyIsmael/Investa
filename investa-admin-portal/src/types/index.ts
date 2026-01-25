@@ -86,12 +86,14 @@ export interface GroupUpdateDto {
 }
 
 export interface Role {
-  id: string; // GUID
+  id: string | number; // GUID or temporary numeric id when creating
   name: string;
   description: string | null;
-  groupId: number;
+  groupId: number | null;
+  groupName?: string;
   isActive: boolean;
   createdAt: string; // ISO 8601 datetime
+  members?: number[];
 }
 
 export interface RoleWithGroup extends Role {
@@ -212,6 +214,7 @@ export interface AiSearchResult {
   explanation: string;
 }
 
+
 export interface Account {
   id: string;
   code: string;
@@ -280,10 +283,10 @@ export interface ClientProfile {
 
 export interface ChatRequestPayload {
   id: string;
-  fromUserId: number | string | null;
+  fromUserId?: string | number | null;
   fromName?: string | null;
-  message: string;
-  createdAt: string; // ISO timestamp
+  message?: string;
+  createdAt?: string;
 }
 
 export interface Message {
