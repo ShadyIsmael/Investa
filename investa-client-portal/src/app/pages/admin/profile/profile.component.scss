@@ -1,0 +1,5 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.profile { padding: $spacing-6; }
+.profile__avatar { width: 96px; height: 96px; border-radius: $border-radius-full; }

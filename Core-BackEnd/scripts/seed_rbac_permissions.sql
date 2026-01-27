@@ -104,20 +104,32 @@ SET IDENTITY_INSERT GroupPermissions OFF;
 -- ===================================================
 -- Auto-assign existing users to groups based on UserType
 -- ===================================================
+-- Note: UserType enum values are:
+--   0 = OrgUser (internal organization users)
+--   1 = Founder (business founders/owners)
+--   2 = Partner (external partners)
 
--- Assign all Client users to Clients group
-INSERT INTO UserGroups (GroupId, UserId, AssignedAt)
-SELECT 1, au.Id, GETUTCDATE()
-FROM AuthUsers au
-WHERE au.UserType = 0 -- Client = 0
-  AND NOT EXISTS (SELECT 1 FROM UserGroups ug WHERE ug.UserId = au.Id AND ug.GroupId = 1);
-
--- Assign all Employee users to Employees group  
+-- Assign all OrgUser to Employees/Administrators group
+-- (OrgUsers should be manually assigned to appropriate groups based on their role)
 INSERT INTO UserGroups (GroupId, UserId, AssignedAt)
 SELECT 2, au.Id, GETUTCDATE()
 FROM AuthUsers au
-WHERE au.UserType = 1 -- Employee = 1
+WHERE au.UserType = 0 -- OrgUser = 0
   AND NOT EXISTS (SELECT 1 FROM UserGroups ug WHERE ug.UserId = au.Id AND ug.GroupId = 2);
+
+-- Assign all Founder users to Clients group
+INSERT INTO UserGroups (GroupId, UserId, AssignedAt)
+SELECT 1, au.Id, GETUTCDATE()
+FROM AuthUsers au
+WHERE au.UserType = 1 -- Founder = 1
+  AND NOT EXISTS (SELECT 1 FROM UserGroups ug WHERE ug.UserId = au.Id AND ug.GroupId = 1);
+
+-- Assign all Partner users to Clients group
+INSERT INTO UserGroups (GroupId, UserId, AssignedAt)
+SELECT 1, au.Id, GETUTCDATE()
+FROM AuthUsers au
+WHERE au.UserType = 2 -- Partner = 2
+  AND NOT EXISTS (SELECT 1 FROM UserGroups ug WHERE ug.UserId = au.Id AND ug.GroupId = 1);
 
 -- Optionally, assign specific users to Administrators group
 -- UPDATE: Manually assign administrator users

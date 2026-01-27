@@ -1,0 +1,41 @@
+<div class="project-phases-tracker">
+  <h3 class="text-lg font-semibold text-white mb-4">{{ 'projectPhases.title' | translate }}</h3>
+  
+  <div class="relative">
+    <!-- Progress line -->
+    <div class="absolute top-4 left-4 right-4 h-1 bg-slate-700">
+      <div class="absolute h-1 bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500" [style.width.%]="progressPercent()"></div>
+    </div>
+
+    <!-- Phase nodes -->
+    <div class="flex justify-between items-start">
+      @for (phase of phases(); track phase.id) {
+        <div class="flex flex-col items-center">
+          <!-- Phase node -->
+          <div class="relative z-10 w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-bold transition-all duration-300"
+               [class]="isCompleted(phase) ? 'bg-green-500 border-green-400 text-white' : isCurrentPhase(phase) ? 'bg-blue-500 border-blue-400 text-white' : 'bg-slate-700 border-slate-500 text-slate-400'">
+            {{ getPhaseIcon(phase) }}
+          </div>
+          
+          <!-- Phase info -->
+          <div class="mt-4 text-center">
+            <div class="px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors" [class]="getPhaseStatusClass(phase)">
+              {{ phase.value }}
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Current phase details -->
+  @if (currentPhase()) {
+    <div class="mt-8 p-4 bg-slate-800/50 rounded-lg border border-slate-700/50">
+      <p class="text-sm text-gray-400">{{ 'projectPhases.currentPhase' | translate }}</p>
+      <p class="text-lg font-semibold text-white">{{ currentPhase()!.value }}</p>
+      @if (currentPhase()!.description) {
+        <p class="text-sm text-gray-400 mt-2">{{ currentPhase()!.description }}</p>
+      }
+    </div>
+  }
+</div>

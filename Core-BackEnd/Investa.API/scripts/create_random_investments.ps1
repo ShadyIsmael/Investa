@@ -1,5 +1,5 @@
 # Create 20 random investments script
-$baseUrl = 'https://192.168.1.15:7292'
+$baseUrl = 'https://DESKTOP-DIH7CQH:7292'
 # allow self-signed certs for local dev
 [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
 

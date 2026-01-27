@@ -4,7 +4,7 @@ import json
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-BASE = "https://192.168.1.15:7292"
+BASE = "https://DESKTOP-DIH7CQH:7292"
 TOKEN_PATH = "/api/Auth/token"
 ADMIN_CLIENTS = "/api/v1/admin/clients"
 

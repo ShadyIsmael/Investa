@@ -1,0 +1,13 @@
+<section class="py-20 bg-gray-900">
+  <div class="container mx-auto px-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      @for(service of services(); track service.titleKey) {
+        <div class="bg-slate-800 p-8 rounded-lg border border-slate-700 text-center transform hover:-translate-y-2 transition-transform duration-300">
+          <div class="text-blue-400 w-12 h-12 mx-auto" [innerHTML]="service.icon"></div>
+          <h3 class="text-xl font-semibold text-white mt-6 mb-3">{{ service.titleKey | translate }}</h3>
+          <p class="text-gray-400">{{ service.descriptionKey | translate }}</p>
+        </div>
+      }
+    </div>
+  </div>
+</section>

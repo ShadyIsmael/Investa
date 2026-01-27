@@ -1,6 +1,6 @@
 import requests
 
-API_URL = "http://192.168.1.15:5235/api/Auth/sign-up"
+API_URL = "http://DESKTOP-DIH7CQH:5235/api/Auth/sign-up"
 
 # Test the problematic phone number
 payload = {

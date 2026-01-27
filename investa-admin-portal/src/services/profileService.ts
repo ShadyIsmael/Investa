@@ -26,15 +26,21 @@ export async function getUserProfile() {
     throw new Error('Failed to fetch user profile')
   }
 
+  // Defensive parsing - backend sometimes returns different shapes or nested wrappers
+  const anyRes: any = res as any;
+  const basic = anyRes.basicInfo ?? anyRes.basicinfo ?? {};
+  const contact = anyRes.contactInfo ?? anyRes.contactinfo ?? {};
+  const audit = anyRes.auditUsage ?? anyRes.auditusage ?? {};
+
   return {
-    id: res.id,
-    firstName: res.basicInfo.firstName,
-    lastName: res.basicInfo.lastName,
-    avatarUrl: res.basicInfo.avatarUrl,
-    email: res.contactInfo.email,
-    phone: res.contactInfo.phone1,
-    lastLoginIP: res.auditUsage.lastLoginIP,
-    registrationIP: res.auditUsage.registrationIP,
+    id: anyRes.id ?? anyRes.userId ?? anyRes.user_id ?? null,
+    firstName: basic.firstName ?? basic.first_name ?? basic.firstName ?? '',
+    lastName: basic.lastName ?? basic.last_name ?? '',
+    avatarUrl: basic.avatarUrl ?? basic.avatar_url ?? basic.avatar ?? '',
+    email: contact.email ?? contact.emailAddress ?? '',
+    phone: contact.phone1 ?? contact.phone ?? '',
+    lastLoginIP: audit.lastLoginIP ?? audit.last_login_ip ?? '',
+    registrationIP: audit.registrationIP ?? audit.registration_ip ?? '',
   }
 }
 

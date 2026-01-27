@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Icon } from '@/components/common/Icons';
 import { performAiSearch } from '@/services/geminiService';
 import { NAV_ITEMS } from '@/utils/constants';
@@ -6,24 +7,32 @@ import { MOCK_USERS, DASHBOARD_STATS, MOCK_COA } from '@/mocks';
 import { AiSearchResult, AiStatus, User } from '@/types';
 import { useSupport } from '@/context/SupportProvider';
 import { usePermissions } from '@/context/AuthContext';
+import ApiBaseSwitcher from '@/components/common/ApiBaseSwitcher';
 
 interface HeaderProps {
   toggleSidebar: () => void;
-  activeTabId: string;
   currentUser: User;
   onLogout: () => void;
-  setActiveTab: (tabId: string) => void;
   theme: 'light' | 'dark';
   toggleTheme: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ toggleSidebar, activeTabId, currentUser, onLogout, setActiveTab, theme, toggleTheme }) => {
+export const Header: React.FC<HeaderProps> = React.memo(({ toggleSidebar, currentUser, onLogout, theme, toggleTheme }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<AiSearchResult[]>([]);
   const [searchStatus, setSearchStatus] = useState<AiStatus>(AiStatus.IDLE);
   const [showResults, setShowResults] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [backendOnline, setBackendOnline] = useState<boolean>(true);
+  const location = useLocation();
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchQuery(value);
+    // debounce/side-effects handled elsewhere
+  }, []);
+
+  const handleToggleProfile = useCallback(() => setShowProfileMenu(v => !v), []);
+  const handleLogout = useCallback(() => { onLogout(); setShowProfileMenu(false); }, [onLogout]);
   
   const dropdownRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -71,21 +80,22 @@ export const Header: React.FC<HeaderProps> = ({ toggleSidebar, activeTabId, curr
   };
 
   const findBreadcrumbs = () => {
-    if (activeTabId === 'profile') {
-      return [{ label: 'Home', active: false }, { label: 'My Profile', active: true }];
+    const { pathname } = location;
+    if (pathname === '/profile') {
+      return [{ label: 'Home', path: '/', active: false }, { label: 'My Profile', active: true }];
     }
 
-    const crumbs: { label: string; active: boolean }[] = [{ label: 'Home', active: false }];
+    const crumbs: { label: string; path?: string; active: boolean }[] = [{ label: 'Home', path: '/', active: false }];
     
     for (const item of NAV_ITEMS) {
-      if (item.id === activeTabId) {
+      if (item.path === pathname) {
         crumbs.push({ label: item.label, active: true });
         return crumbs;
       }
       if (item.children) {
-        const child = item.children.find(c => c.id === activeTabId);
+        const child = item.children.find(c => pathname.startsWith(c.path || ''));
         if (child) {
-          crumbs.push({ label: item.label, active: false });
+          crumbs.push({ label: item.label, path: item.path, active: false });
           crumbs.push({ label: child.label, active: true });
           return crumbs;
         }
@@ -128,7 +138,7 @@ export const Header: React.FC<HeaderProps> = ({ toggleSidebar, activeTabId, curr
           </div>
         </button>
         {showMsg && (
-          <div className="absolute right-0 mt-2 w-max bg-slate-800 text-white text-[13px] px-3 py-2 rounded shadow-lg">
+          <div className="absolute right-0 mt-2 w-max bg-slate-800 text-white text-[13px] px-3 py-2 rounded shadow-lg" style={{ zIndex: 'var(--z-dropdown)' }}>
             {msg}
           </div>
         )}
@@ -137,7 +147,7 @@ export const Header: React.FC<HeaderProps> = ({ toggleSidebar, activeTabId, curr
   };
 
   return (
-    <header className="h-14 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 px-5 flex items-center justify-between transition-all duration-300">
+    <header className="h-14 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 px-5 flex items-center justify-between transition-all duration-300" style={{ zIndex: 'var(--z-fixed)' }}>
       <div className="flex items-center gap-5">
         <button 
           onClick={toggleSidebar}
@@ -153,12 +163,16 @@ export const Header: React.FC<HeaderProps> = ({ toggleSidebar, activeTabId, curr
           {breadcrumbs.map((crumb, idx) => (
             <React.Fragment key={idx}>
               {idx > 0 && <span className="mx-2 text-slate-300 dark:text-slate-700">/</span>}
-              <button 
-                onClick={() => !crumb.active && setActiveTab('dashboard')}
-                className={`transition-colors outline-none ${crumb.active ? 'text-slate-900 dark:text-slate-100 font-semibold cursor-default' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
-              >
-                {crumb.label}
-              </button>
+              {crumb.path ? (
+                <Link 
+                  to={crumb.path}
+                  className={`transition-colors outline-none ${crumb.active ? 'text-slate-900 dark:text-slate-100 font-semibold cursor-default' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                >
+                  {crumb.label}
+                </Link>
+              ) : (
+                <span className="text-slate-900 dark:text-slate-100 font-semibold cursor-default">{crumb.label}</span>
+              )}
             </React.Fragment>
           ))}
         </nav>
@@ -175,7 +189,7 @@ export const Header: React.FC<HeaderProps> = ({ toggleSidebar, activeTabId, curr
             <input 
               type="text" 
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="AI Neural Command..." 
               className="bg-transparent border-none outline-none text-[11px] w-full text-slate-700 dark:text-slate-300 placeholder-slate-400 font-medium"
             />
@@ -183,7 +197,7 @@ export const Header: React.FC<HeaderProps> = ({ toggleSidebar, activeTabId, curr
 
           {/* Search Results Dropdown */}
           {showResults && (
-            <div className="absolute top-full right-0 mt-2.5 w-[420px] max-h-[480px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-3 duration-200">
+            <div className="absolute top-full right-0 mt-2.5 w-[420px] max-h-[480px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-3 duration-200" style={{ zIndex: 'var(--z-dropdown)' }}>
               <div className="p-3.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/30 flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <Icon name="sparkles" className="w-3.5 h-3.5 text-indigo-500" />
@@ -249,6 +263,11 @@ export const Header: React.FC<HeaderProps> = ({ toggleSidebar, activeTabId, curr
             <span className={`inline-block w-2.5 h-2.5 rounded-full ${backendOnline ? 'bg-emerald-500' : 'bg-rose-500'} border-2 border-white dark:border-slate-900 shadow-sm`}></span>
           </div>
 
+          {/* API Base Switcher (dev) */}
+          <div className="ml-2">
+            <ApiBaseSwitcher />
+          </div>
+
           {/* SignalR Status Icon */}
           <SignalRIndicator />
 
@@ -289,16 +308,14 @@ export const Header: React.FC<HeaderProps> = ({ toggleSidebar, activeTabId, curr
               </div>
 
               <div className="py-1">
-                <button 
-                  onClick={() => {
-                    setActiveTab('profile');
-                    setShowProfileMenu(false);
-                  }}
+                <Link
+                  to="/profile"
+                  onClick={() => setShowProfileMenu(false)}
                   className="w-full flex items-center gap-2.5 px-4 py-1.5 text-[13px] text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
                 >
                   <Icon name="user-circle" className="w-3.5 h-3.5 text-slate-400" />
                   My Profile
-                </button>
+                </Link>
               </div>
               <div className="pt-1 mt-1 border-t border-slate-50 dark:border-slate-800">
                 <button 
@@ -315,4 +332,7 @@ export const Header: React.FC<HeaderProps> = ({ toggleSidebar, activeTabId, curr
       </div>
     </header>
   );
-};
+});
+
+// Set display name for debugging
+(Header as unknown as React.FC).displayName = 'Header';

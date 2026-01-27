@@ -1,21 +1,6 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿// REMOVED: Original migration archived to ../ArchivedMigrations/20260123/20260109131334_InitialCreate.cs.original
+// This file has been intentionally neutralized during migration consolidation and removed from active use.
 
-#nullable disable
-
-#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
-
-namespace Investa.Infrastructure.Migrations
-{
-    /// <inheritdoc />
-    public partial class InitialCreate : Migration
-    {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.CreateTable(
-                name: "ApplicationUsers",
-                columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),

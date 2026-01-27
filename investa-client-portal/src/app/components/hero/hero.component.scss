@@ -1,0 +1,13 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+:host { display:block; }
+
+.hero {
+  @include flex-center;
+  padding: $spacing-12 0;
+  text-align: center;
+
+  &__title { @include heading('xl'); color: $color-text-primary; }
+  &__subtitle { color: $color-text-secondary; }
+}

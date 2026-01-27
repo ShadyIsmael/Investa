@@ -1,13 +1,15 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { MOCK_INVOICES } from '@/mocks/finance';
 import { Icon } from '@/components/common/Icons';
 
-export const InvoicingBilling: React.FC = () => {
+export const InvoicingBilling: React.FC = React.memo(() => {
   const [filter, setFilter] = useState<'All' | 'Paid' | 'Unpaid' | 'Overdue'>('All');
 
-  const filtered = MOCK_INVOICES.filter(inv => filter === 'All' || inv.status === filter);
-  const outstanding = MOCK_INVOICES.filter(inv => inv.status !== 'Paid').reduce((s, i) => s + i.amount, 0);
+  const filtered = useMemo(() => MOCK_INVOICES.filter(inv => filter === 'All' || inv.status === filter), [filter]);
+  const outstanding = useMemo(() => MOCK_INVOICES.filter(inv => inv.status !== 'Paid').reduce((s, i) => s + i.amount, 0), []);
+
+  const handleSetFilter = useCallback((f: 'All' | 'Paid' | 'Unpaid' | 'Overdue') => setFilter(f), []);
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -42,7 +44,7 @@ export const InvoicingBilling: React.FC = () => {
           {['All', 'Paid', 'Unpaid', 'Overdue'].map(f => (
             <button 
               key={f}
-              onClick={() => setFilter(f as any)}
+              onClick={() => handleSetFilter(f as any)}
               className={`px-3 py-1.5 rounded-lg text-[11px] font-bold ${filter === f ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:bg-slate-50'}`}
             >
               {f}
@@ -87,4 +89,6 @@ export const InvoicingBilling: React.FC = () => {
       </div>
     </div>
   );
-};
+});
+
+(InvoicingBilling as unknown as React.FC).displayName = 'InvoicingBilling';

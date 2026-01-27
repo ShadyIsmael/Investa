@@ -1,0 +1,126 @@
+<div class="container mx-auto p-6 lg:p-8">
+  @if (investment(); as inv) {
+    <div class="animate-fade-in">
+      <div class="mb-6">
+        <a routerLink="/admin/investments" class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors duration-300">
+          <svg class="w-5 h-5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+          {{ 'investmentPreview.backButton' | translate }}
+        </a>
+      </div>
+
+      <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl overflow-hidden">
+        <div class="p-8">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column: Main Info -->
+            <div class="lg:col-span-2">
+              <div class="flex items-center justify-between mb-4">
+                <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full" [ngClass]="getInvestmentTypeBadgeClass(inv.investmentType)">
+                  {{ getInvestmentTypeDisplay(inv.investmentType) }}
+                </span>
+                <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full" [class]="inv.riskLevel === RiskLevel.Low ? 'bg-green-500/20 text-green-300' : inv.riskLevel === RiskLevel.Medium ? 'bg-orange-500/20 text-orange-300' : 'bg-red-500/20 text-red-300'">
+                  {{ ('investments.risk.' + (inv.riskLevel | lowercase)) | translate }} {{ 'investments.risk.risk' | translate }}
+                </span>
+              </div>
+              <h1 class="text-4xl font-bold text-white mb-4">{{ inv.name }}</h1>
+              <p class="text-gray-400 text-lg">{{ inv.description }}</p>
+
+              <!-- Funding Progress -->
+              <div class="mt-8">
+                <h3 class="text-lg font-semibold text-white mb-3">{{ 'investmentPreview.fundingStatus' | translate }}</h3>
+                @let progress = (inv.targetFund > 0) ? ((inv.currentFunding ?? 0) / inv.targetFund) * 100 : 0;
+                <div class="w-full bg-slate-700 rounded-full h-3 mb-2">
+                    <div class="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full" [style.width]="progress + '%'"></div>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-300 font-medium">
+                        <span class="text-white font-bold text-lg">{{ inv.currentFunding | number }}</span> / {{ inv.targetFund | number }} USD
+                        @if (inv.investedAmount && inv.investedAmount > 0) {
+                          <div class="text-xs text-gray-400">You invested: <span class="text-white font-medium">${{ inv.investedAmount | number }}</span></div>
+                        }
+                    </span>
+                    <span class="text-white font-bold text-lg">{{ progress | number:'1.0-0' }}%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Column: Author & Investors -->
+            <div class="lg:col-span-1 space-y-8">
+               <!-- Author Info -->
+              <div class="bg-slate-800/50 p-6 rounded-lg">
+                <h3 class="text-lg font-semibold text-white mb-4">{{ 'investmentPreview.author' | translate }}</h3>
+                <div class="flex items-center gap-4">
+                  <img [src]="inv.imageUrl" alt="{{ inv.founderDisplay }}" class="w-16 h-16 rounded-full object-cover">
+                  <div>
+                    <p class="font-bold text-white text-xl">{{ inv.founderDisplay }}</p>
+                     <div class="bg-blue-500/20 text-blue-300 text-xs font-bold px-2.5 py-1 rounded-full inline-block mt-2">
+                        {{ 'investments.score' | translate }} : {{ inv.credibilityScore }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Investors List -->
+              <div>
+                <h3 class="text-lg font-semibold text-white mb-4">{{ 'investments.investors' | translate }} ({{ inv.investors?.length || 0 }})</h3>
+                @if (inv.investors && inv.investors.length > 0) {
+                  <div class="flex items-center -space-x-3 rtl:space-x-reverse">
+                      @for(investor of (inv.investors || []).slice(0, 7); track investor.name) {
+                          <img class="inline-block h-12 w-12 rounded-full ring-2 ring-slate-900 object-cover" [src]="investor.imageUrl" [alt]="investor.name" [title]="investor.name">
+                      }
+                      @if(inv.investors.length > 7) {
+                          <div class="flex items-center justify-center h-12 w-12 rounded-full bg-slate-700 ring-2 ring-slate-900 text-sm font-bold text-white">
+                              +{{ inv.investors.length - 7 }}
+                          </div>
+                      }
+                  </div>
+                } @else {
+                  <p class="text-gray-500 text-sm">{{ 'investmentPreview.noInvestors' | translate }}</p>
+                }
+              </div>
+            </div>
+
+          </div>
+        </div>
+         <!-- Action Footer -->
+        <div class="p-6 bg-slate-900/50 border-t border-slate-800 text-end rounded-b-xl">
+          <button (click)="promptEngage(inv)" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-3 px-8 rounded-full hover:opacity-90 transition-opacity duration-300">
+            {{ 'investmentPreview.investNowButton' | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <div class="text-center py-40 text-white">
+      <h1 class="text-4xl font-bold mb-4">{{ 'investmentPreview.notFound.title' | translate }}</h1>
+      <p class="text-lg text-gray-400">{{ 'investmentPreview.notFound.subtitle' | translate }}</p>
+      <a routerLink="/admin/investments" class="mt-8 inline-block bg-gradient-to-r from-blue-500 to-purple-600 font-semibold py-3 px-8 rounded-full hover:opacity-90 transition-opacity">
+        {{ 'investmentPreview.backButton' | translate }}
+      </a>
+    </div>
+  }
+</div>
+
+@if (investmentToEngage(); as investment) {
+  <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in" style="animation-duration: 0.2s;">
+    <div class="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl w-full max-w-lg m-4 p-8 text-center animate-fade-in" style="animation-delay: 0.1s; animation-duration: 0.3s;">
+      <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 border-2 border-blue-500/30">
+        <svg class="w-8 h-8 text-blue-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <h3 class="text-xl font-bold text-white mt-5">{{ 'investments.engageModal.title' | translate }}</h3>
+      <p class="text-gray-400 mt-2" [innerHTML]="('investments.engageModal.message' | translate)
+        .replace('{investmentName}', '<span class=\'font-bold text-white\'>' + investment.name + '</span>')
+        .replace('{creditCost}', '<span class=\'font-bold text-white\'>' + engagementCreditCost + '</span>')">
+      </p>
+      <div class="mt-8 flex justify-center gap-4">
+        <button (click)="cancelEngage()" class="bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2.5 px-6 rounded-full transition-colors">
+          {{ 'investments.engageModal.cancelButton' | translate }}
+        </button>
+        <button (click)="confirmEngage()" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2.5 px-6 rounded-full hover:opacity-90 transition-opacity">
+          {{ 'investments.engageModal.proceedButton' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

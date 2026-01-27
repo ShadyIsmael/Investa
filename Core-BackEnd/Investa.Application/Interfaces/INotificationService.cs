@@ -26,7 +26,8 @@ namespace Investa.Application.Interfaces
         Task<(bool Success, int TokensFound, int SuccessCount, int FailureCount, string Message)> SendNotificationAsync(
             string userId, 
             string title, 
-            string body);
+            string body,
+            System.Collections.Generic.IDictionary<string, string>? data = null);
 
         /// <summary>
         /// Cleans up expired or invalid tokens for a specific user

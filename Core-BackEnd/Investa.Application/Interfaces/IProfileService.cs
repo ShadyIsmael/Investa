@@ -45,4 +45,18 @@ public interface IProfileService
     /// <param name="ipAddress">The registration IP address</param>
     /// <returns>The updated UserProfileDto</returns>
     Task<UserProfileDto> SetRegistrationIpAsync(Guid userId, string? ipAddress);
+
+    /// <summary>
+    /// Initiates the KYC flow for the user by setting identity verification status to Pending.
+    /// </summary>
+    /// <param name="userId">The user ID</param>
+    /// <returns>The updated UserProfileDto</returns>
+    Task<UserProfileDto> StartKycAsync(Guid userId);
+
+    /// <summary>
+    /// Retrieves the user's credibility score transaction history.
+    /// </summary>
+    /// <param name="userId">The user ID</param>
+    /// <returns>List of credit transactions ordered by creation date descending</returns>
+    Task<List<CreditTransactionDto>> GetCreditHistoryAsync(Guid userId);
 }

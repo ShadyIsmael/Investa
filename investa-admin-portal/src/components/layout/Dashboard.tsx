@@ -193,9 +193,10 @@ export const Dashboard: React.FC = () => {
              <Icon name="revenue" className="w-4 h-4 text-indigo-600" />
              Revenue Stream
           </h3>
-          <div className="h-[300px] w-full">
+          <div className="h-[300px] w-full min-h-[220px]">
             {Array.isArray(revenue) && revenue.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
+              // Use a fixed numeric height to avoid layout-measurement issues when the container is hidden initially
+              <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={revenue} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
@@ -226,9 +227,10 @@ export const Dashboard: React.FC = () => {
             <Icon name="chart" className="w-4 h-4 text-indigo-600" />
             Market Engagement
           </h3>
-          <div className="h-64 w-full">
+          <div className="h-64 w-full min-h-[240px]">
             {Array.isArray(investmentsByCategory) && investmentsByCategory.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
+              // Provide an explicit numeric height for the responsive container to prevent measurement issues
+              <ResponsiveContainer width="100%" height={256}>
                 <PieChart>
                   <Pie
                     data={investmentsByCategory}

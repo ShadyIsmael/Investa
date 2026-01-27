@@ -1,0 +1,5 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.process { padding: $spacing-6; }
+.process-step { @include card($spacing-4); }

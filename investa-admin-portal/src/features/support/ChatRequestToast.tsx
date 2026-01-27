@@ -7,9 +7,9 @@ interface Props {
   onClose: (id: string) => void;
 }
 
-export const ChatRequestToast: React.FC<Props> = ({ request, onClose }) => {
+export const ChatRequestToast: React.FC<Props> = React.memo(({ request, onClose }) => {
   return (
-    <div className="max-w-xs w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl shadow-lg p-3 flex items-start gap-3">
+    <div className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl shadow-lg p-3 flex items-start gap-3" style={{ maxWidth: '320px' }}>
       <div className="flex-shrink-0">
         <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center">
           <Icon name="users" className="w-5 h-5 text-indigo-600" />
@@ -31,6 +31,8 @@ export const ChatRequestToast: React.FC<Props> = ({ request, onClose }) => {
       </div>
     </div>
   );
-};
+});
 
 export default ChatRequestToast;
+
+(ChatRequestToast as unknown as React.FC).displayName = 'ChatRequestToast';

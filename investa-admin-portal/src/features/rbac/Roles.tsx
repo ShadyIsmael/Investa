@@ -228,11 +228,11 @@ export const Roles: React.FC = () => {
       await loadAllPermissions();
       await loadAvailableUsers();
       
-      const perms = await roleService.getRolePermissions(role.id);
+      const perms = await roleService.getRolePermissions(String(role.id));
       setRolePermissions(perms);
       setSelectedPermissionIds(perms.map(p => p.id));
       
-      const users = await roleService.getRoleUsers(role.id);
+      const users = await roleService.getRoleUsers(String(role.id));
       setRoleUsers(users);
     } catch (error) {
       console.error('Failed to load role details:', error);
@@ -243,13 +243,13 @@ export const Roles: React.FC = () => {
     if (!detailsRole) return;
     
     try {
-      await roleService.assignPermissions(detailsRole.id, {
+      await roleService.assignPermissions(String(detailsRole.id), {
         permissionIds: selectedPermissionIds,
       });
       toast.success('Permissions updated successfully');
       
       // Reload permissions
-      const perms = await roleService.getRolePermissions(detailsRole.id);
+      const perms = await roleService.getRolePermissions(String(detailsRole.id));
       setRolePermissions(perms);
     } catch (error: any) {
       console.error('Failed to update permissions:', error);
@@ -264,13 +264,13 @@ export const Roles: React.FC = () => {
     }
     
     try {
-      await roleService.assignUsers(detailsRole.id, {
+      await roleService.assignUsers(String(detailsRole.id), {
         userIds: selectedUserIds,
       });
       toast.success(`Assigned ${selectedUserIds.length} user(s) to role`);
       
       // Reload users
-      const users = await roleService.getRoleUsers(detailsRole.id);
+      const users = await roleService.getRoleUsers(String(detailsRole.id));
       setRoleUsers(users);
       setSelectedUserIds([]);
     } catch (error: any) {
@@ -291,7 +291,7 @@ export const Roles: React.FC = () => {
       toast.success('User removed from role');
       
       // Reload users
-      const users = await roleService.getRoleUsers(detailsRole.id);
+      const users = await roleService.getRoleUsers(String(detailsRole.id));
       setRoleUsers(users);
     } catch (error: any) {
       console.error('Failed to remove user:', error);

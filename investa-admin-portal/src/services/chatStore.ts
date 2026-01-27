@@ -1,4 +1,4 @@
-import create from 'zustand';
+import { create } from 'zustand';
 import { Conversation, Message } from '../types';
 import { supportService } from './supportService';
 

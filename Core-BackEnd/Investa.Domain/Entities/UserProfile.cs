@@ -129,6 +129,13 @@ public class UserProfile
     public VerificationStatus VerificationStatus { get; set; } = VerificationStatus.None;
 
     /// <summary>
+    /// Current total credibility score for this user
+    /// This is the accumulated sum of all CreditTransaction amounts
+    /// </summary>
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal CurrentCredibilityScore { get; set; } = 0;
+
+    /// <summary>
     /// URL/Path to the front image of the identity document (for Azure Blob Storage or local storage integration)
     /// </summary>
     [StringLength(500)]

@@ -1,6 +1,6 @@
 [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
 try {
-	$r = Invoke-WebRequest -Uri 'https://192.168.1.15:7292/api/v1/lookups/business-stages' -Method GET -UseBasicParsing -ErrorAction Stop
+	$r = Invoke-WebRequest -Uri 'https://DESKTOP-DIH7CQH:7292/api/v1/lookups/business-stages' -Method GET -UseBasicParsing -ErrorAction Stop
 	if ($r -ne $null) {
 		if ($r.StatusCode) { Write-Output $r.StatusCode.Value__ }
 		if ($r.Content) { Write-Output $r.Content }

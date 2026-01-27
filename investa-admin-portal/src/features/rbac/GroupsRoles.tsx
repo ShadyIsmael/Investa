@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { groupService, Group, Role } from '@/services/groupService';
+import { groupService } from '@/services/groupService';
+import type { Group, Role } from '@/types';
 import { userService } from '@/services/userService';
 import { User } from '@/types';
 import { Icon } from '@/components/common/Icons';
@@ -49,7 +50,7 @@ export const GroupsRoles: React.FC<{ mode?: 'groups' | 'roles' | 'all' }> = ({ m
       setRoles(rs || []);
       // try load up to 500 users for assignment
       try {
-        const u = await userService.getUsers(1, 500);
+        const u = await userService.getUsers({ page: 1, pageSize: 500 });
         setUsers(u.items || []);
       } catch (e) {
         setUsers([]);
@@ -68,7 +69,7 @@ export const GroupsRoles: React.FC<{ mode?: 'groups' | 'roles' | 'all' }> = ({ m
     if (duplicate) { showToast('Group name already exists', 'error'); return; }
 
     if (g.id === 0) {
-      const created = await groupService.createGroup({ name: g.name, description: g.description, roleIds: g.roleIds, members: g.members });
+      const created = await groupService.createGroup({ name: g.name, description: g.description });
       setGroups(prev => [created, ...prev]);
       showToast('Group created', 'success');
     } else {
@@ -109,7 +110,7 @@ export const GroupsRoles: React.FC<{ mode?: 'groups' | 'roles' | 'all' }> = ({ m
   const [movingToAssigned, setMovingToAssigned] = useState<Set<number>>(new Set());
   const [movingToAvailable, setMovingToAvailable] = useState<Set<number>>(new Set());
 
-  const getFiltersKey = (roleId: number) => `investa:role-filters:${roleId}`;
+  const getFiltersKey = (roleId: number | string) => `investa:role-filters:${roleId}`;
 
   const openRoleModal = (r?: Role) => {
     const initial = r ? { 
@@ -231,7 +232,7 @@ export const GroupsRoles: React.FC<{ mode?: 'groups' | 'roles' | 'all' }> = ({ m
   const saveRole = async (r: Role) => {
     if (!r.name.trim()) { showToast('Role name is required', 'error'); return; }
     // Validate group selection for newly created roles (must explicitly select Group or SuperAdmin)
-    if (r.id === 0 && (r.groupId === undefined)) {
+    if (!r.id || Number(r.id) === 0 || (r.groupId === undefined)) {
       showToast('Please select a Group or SuperAdmin', 'error'); 
       return;
     }
@@ -254,12 +255,12 @@ export const GroupsRoles: React.FC<{ mode?: 'groups' | 'roles' | 'all' }> = ({ m
       groupName: r.groupName,
       members 
     };
-    if (r.id === 0) {
+    if (!r.id || Number(r.id) === 0) {
       const created = await groupService.createRole(payload);
       setRoles(prev => [created, ...prev]);
       showToast('Role created', 'success');
     } else {
-      const updated = await groupService.updateRole(r.id, payload);
+      const updated = await groupService.updateRole(String(r.id), payload);
       setRoles(prev => prev.map(p => p.id === updated.id ? updated : p));
       showToast('Role updated', 'success');
     }
@@ -267,9 +268,9 @@ export const GroupsRoles: React.FC<{ mode?: 'groups' | 'roles' | 'all' }> = ({ m
     setEditingRole(null);
   };
 
-  const deleteRole = async (id: number) => {
+  const deleteRole = async (id: string | number) => {
     if (!confirm('Delete role?')) return;
-    await groupService.deleteRole(id);
+    await groupService.deleteRole(String(id));
     setRoles(prev => prev.filter(r=>r.id !== id));
     showToast('Role deleted', 'success');
   };

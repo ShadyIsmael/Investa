@@ -1,0 +1,38 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Angular build cache
+.angular/
+.angular/cache/
+
+# Flutter ephemeral and build artifacts
+Flutter_Founder/**/ephemeral/
+Flutter_Founder/android/.gradle/
+Flutter_Founder/android/app/build/
+Flutter_Founder/ios/Flutter/Generated.xcconfig
+Flutter_Founder/macos/Flutter/ephemeral/
+
+# Vite / Angular build cache
+/.angular/cache/

@@ -95,7 +95,9 @@ public class AuthController : BaseApiController
                     Id = authGuid,
                     Email = $"{normalizedPhone}@phone.investa.local",
                     PasswordHash = passwordHasher.HashPassword(user, request.Password),
-                    UserType = UserType.Client,
+                    // Map client classification from DTO to AuthUser.UserType
+                    // ClientType.Investor is treated as Founder by default (all clients are founders or partners)
+                    UserType = request.ClientType == ClientType.Founder ? UserType.Founder : UserType.Founder,
                     Status = true
                 };
                 await _unitOfWork.Repository<AuthUser>().AddAsync(authUser);
@@ -130,6 +132,7 @@ public class AuthController : BaseApiController
                     LastName = request.LastName,
                     MobileNumber = normalizedPhone,
                     FirebaseUid = request.FirebaseUid,
+                    ClientType = request.ClientType,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
                     StatusId = 1
@@ -486,7 +489,8 @@ public class AuthController : BaseApiController
                         Id = authGuid,
                         Email = normalizedPhone + "@phone.investa.local",
                         PasswordHash = passwordHasher.HashPassword(user, request.Password),
-                        UserType = Investa.Domain.Entities.Enums.UserType.Client,
+                        // Default to Founder for client sign-ups
+                        UserType = Investa.Domain.Entities.Enums.UserType.Founder,
                         Status = true
                     };
 
@@ -543,6 +547,7 @@ public class AuthController : BaseApiController
                 LastName = request.LastName,
                 MobileNumber = normalizedPhone,
                 FirebaseUid = request.FirebaseUid,
+                ClientType = request.ClientType,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 StatusId = 1 // default to Active status (seeded by migrations)

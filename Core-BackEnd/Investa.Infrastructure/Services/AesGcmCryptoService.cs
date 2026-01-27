@@ -12,7 +12,7 @@ namespace Investa.Infrastructure.Services
             var nonce = RandomNumberGenerator.GetBytes(12);
             var cipher = new byte[plain.Length];
             var tag = new byte[16];
-            using (var aes = new AesGcm(dek))
+            using (var aes = new AesGcm(dek, AesGcm.TagByteSizes.MaxSize))
             {
                 aes.Encrypt(nonce, plain, cipher, tag, associatedData);
             }
@@ -22,7 +22,7 @@ namespace Investa.Infrastructure.Services
         public Task<byte[]> DecryptAsync(byte[] cipherText, byte[] nonce, byte[] tag, byte[] dek, byte[]? associatedData = null)
         {
             var plain = new byte[cipherText.Length];
-            using (var aes = new AesGcm(dek))
+            using (var aes = new AesGcm(dek, AesGcm.TagByteSizes.MaxSize))
             {
                 aes.Decrypt(nonce, cipherText, tag, plain, associatedData);
             }

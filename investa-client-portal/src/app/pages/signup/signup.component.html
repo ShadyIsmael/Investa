@@ -1,0 +1,72 @@
+<div class="min-h-screen bg-gray-950 text-white flex items-center justify-center p-4">
+  <div class="absolute inset-0 bg-cover bg-center opacity-10" style="background-image: url('assets/boardroom-bg.jpg');"></div>
+  <div class="absolute -top-1/4 -start-1/4 w-1/2 h-1/2 bg-blue-500/10 rounded-full filter blur-3xl opacity-50 animate-pulse"></div>
+  <div class="absolute -bottom-1/4 -end-1/4 w-1/2 h-1/2 bg-purple-600/10 rounded-full filter blur-3xl opacity-50 animate-pulse animation-delay-4000"></div>
+
+  <div class="relative z-10 w-full max-w-md">
+    <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl p-8">
+      <div class="text-center mb-8">
+        <a routerLink="/" class="flex items-center justify-center mb-4">
+          <svg class="h-10 w-10 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 16.75l-1.53 -1.22a2 2 0 0 0 -2.94 0l-3.53 2.82"></path>
+            <path d="M14 16.75l1.53 -1.22a2 2 0 0 1 2.94 0l3.53 2.82"></path>
+            <path d="M10 14l2 -2l2 -2"></path>
+            <path d="M12 12l3.5 -4.5l2.5 -2.5"></path>
+            <path d="M12 12l-3.5 -4.5l-2.5 -2.5"></path>
+         </svg>
+          <span class="text-white text-3xl font-bold ms-2">Investa</span>
+        </a>
+        <h2 class="text-2xl font-bold text-white">{{ 'signup.title' | translate }}</h2>
+        <p class="text-gray-400">{{ 'signup.subtitle' | translate }}</p>
+      </div>
+
+      <form [formGroup]="signupForm" (ngSubmit)="onSubmit()" class="space-y-4">
+        <div>
+          <label for="mobile" class="block text-sm font-medium text-gray-300">{{ 'signup.mobileLabel' | translate }}</label>
+          <input id="mobile" type="tel" formControlName="mobile" [placeholder]="'signup.mobilePlaceholder' | translate" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="firstName" class="block text-sm font-medium text-gray-300">{{ 'signup.firstNameLabel' | translate }}</label>
+            <input id="firstName" type="text" formControlName="firstName" [placeholder]="'signup.firstNamePlaceholder' | translate" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          </div>
+          <div>
+            <label for="lastName" class="block text-sm font-medium text-gray-300">{{ 'signup.lastNameLabel' | translate }}</label>
+            <input id="lastName" type="text" formControlName="lastName" [placeholder]="'signup.lastNamePlaceholder' | translate" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          </div>
+        </div>
+        
+        <div>
+          <label for="email" class="block text-sm font-medium text-gray-300">{{ 'signup.emailLabel' | translate }} <span class="text-gray-500">({{ 'signup.optional' | translate }})</span></label>
+          <input id="email" type="email" formControlName="email" [placeholder]="'signup.emailPlaceholder' | translate" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div>
+          <label for="password" class="block text-sm font-medium text-gray-300">{{ 'signup.passwordLabel' | translate }}</label>
+          <input id="password" type="password" formControlName="password" [placeholder]="'signup.passwordPlaceholder' | translate" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div>
+          <label for="confirmPassword" class="block text-sm font-medium text-gray-300">{{ 'signup.confirmPasswordLabel' | translate }}</label>
+          <input id="confirmPassword" type="password" formControlName="confirmPassword" [placeholder]="'signup.confirmPasswordPlaceholder' | translate" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          @if (signupForm.hasError('passwordMismatch') && signupForm.get('confirmPassword')?.touched) {
+            <p class="text-red-400 text-sm mt-1">{{ 'signup.passwordMismatch' | translate }}</p>
+          }
+        </div>
+
+        <div class="pt-2">
+          <button type="submit" [disabled]="!signupForm.valid" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-purple-600 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity duration-300">
+            {{ 'signup.signUpButton' | translate }}
+          </button>
+        </div>
+      </form>
+
+      <p class="mt-6 text-center text-sm text-gray-400">
+        {{ 'signup.alreadyHaveAccount' | translate }}
+        <a routerLink="/login" class="font-medium text-blue-400 hover:text-blue-300">{{ 'signup.signIn' | translate }}</a>
+      </p>
+
+    </div>
+  </div>
+</div>

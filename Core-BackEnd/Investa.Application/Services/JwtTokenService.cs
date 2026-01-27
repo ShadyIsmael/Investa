@@ -73,12 +73,7 @@ public class JwtTokenService : IJwtTokenService
             if (authUser != null)
             {
                 // Map UserType enum to our canonical UserRoles
-                if (authUser.UserType == UserType.Client)
-                {
-                    roleClaimValue = UserRoles.Client.ToString();
-                    userTypeValue = roleClaimValue;
-                }
-                else if (authUser.UserType == UserType.OrgUser)
+                if (authUser.UserType == UserType.OrgUser)
                 {
                     // Try to infer Admin role from domain user's Role string
                     if (domainUser != null && !string.IsNullOrWhiteSpace(domainUser.Role) &&
@@ -92,6 +87,24 @@ public class JwtTokenService : IJwtTokenService
                         roleClaimValue = UserRoles.OrgUser.ToString();
                         userTypeValue = roleClaimValue;
                     }
+                }
+                else if (authUser.UserType == UserType.Founder)
+                {
+                    // Founder users map to Client role
+                    roleClaimValue = UserRoles.Client.ToString();
+                    userTypeValue = UserType.Founder.ToString();
+                }
+                else if (authUser.UserType == UserType.Partner)
+                {
+                    // Partner users map to Client role
+                    roleClaimValue = UserRoles.Client.ToString();
+                    userTypeValue = UserType.Partner.ToString();
+                }
+                else
+                {
+                    // Fallback to Client role
+                    roleClaimValue = UserRoles.Client.ToString();
+                    userTypeValue = authUser.UserType.ToString();
                 }
             }
             
@@ -271,7 +284,7 @@ public class JwtTokenService : IJwtTokenService
                     Id = authUserGuid,
                     Email = user.Email ?? (user.UserName + "@phone.investa.local"),
                     PasswordHash = "", // placeholder; real hash should be created during sign-up flow
-                    UserType = UserType.Client,
+                    UserType = UserType.Founder, // Default to Founder for client users
                     Status = true,
                     CreatedAt = DateTime.UtcNow
                 };

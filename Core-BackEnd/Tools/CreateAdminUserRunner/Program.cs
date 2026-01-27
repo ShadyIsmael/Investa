@@ -30,7 +30,7 @@ if (!connSection.TryGetProperty("DefaultConnection", out JsonElement defaultConn
 string connectionString = defaultConn.GetString() ?? throw new InvalidOperationException("Connection string empty");
 
 // Admin credentials
-string adminEmail = "admin@inveta.com";
+string adminEmail = "admin@investa.com"; // Corrected email (typo fix)
 string adminPassword = "P@ssw0rd";
 string adminName = "Platform Admin";
 using Investa.Domain.Entities.Security;
@@ -149,6 +149,26 @@ VALUES (@id,@un,@nun,@email,@nemail, @ec, @ph, @ss, @cs, @pc, @tf, @le, @af)", c
         cmd.ExecuteNonQuery();
     }
     Console.WriteLine("Created AuthUser record.");
+
+    // Verify assignment: ensure the user exists in role
+    using (var cmd = new NpgsqlCommand(@"SELECT COUNT(1) FROM \"AspNetUserRoles\" ur
+        JOIN \"AspNetUsers\" u ON ur.\"UserId\" = u.\"Id\"
+        JOIN \"AspNetRoles\" r ON ur.\"RoleId\" = r.\"Id\"
+        WHERE LOWER(u.\"Email\") = @email AND LOWER(r.\"Name\") = @role", conn))
+    {
+        cmd.Parameters.AddWithValue("@email", adminEmail.ToLowerInvariant());
+        cmd.Parameters.AddWithValue("@role", adminRole.ToLowerInvariant());
+        var count = Convert.ToInt32(cmd.ExecuteScalar());
+        if (count > 0)
+        {
+            Console.WriteLine($"Verification: user '{adminEmail}' is assigned role '{adminRole}'.");
+        }
+        else
+        {
+            Console.Error.WriteLine($"Verification FAILED: user '{adminEmail}' is not assigned role '{adminRole}'. Please check database.");
+            Environment.Exit(4);
+        }
+    }
 
     Console.WriteLine("Admin creation completed successfully.");
 }

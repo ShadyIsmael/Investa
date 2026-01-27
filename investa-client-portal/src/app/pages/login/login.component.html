@@ -1,0 +1,116 @@
+<div class="min-h-screen bg-gray-950 text-white flex items-center justify-center p-4">
+  <div class="absolute inset-0 bg-cover bg-center opacity-10" style="background-image: url('/assets/boardroom-bg.jpg');"></div>
+  <div class="absolute -top-1/4 -start-1/4 w-1/2 h-1/2 bg-blue-500/10 rounded-full filter blur-3xl opacity-50 animate-pulse"></div>
+  <div class="absolute -bottom-1/4 -end-1/4 w-1/2 h-1/2 bg-purple-600/10 rounded-full filter blur-3xl opacity-50 animate-pulse animation-delay-4000"></div>
+
+  <div class="relative z-10 w-full max-w-md">
+    <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl p-8">
+      <div class="text-center mb-8">
+        <a routerLink="/" class="flex items-center justify-center mb-4">
+          <svg class="h-10 w-10 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 16.75l-1.53 -1.22a2 2 0 0 0 -2.94 0l-3.53 2.82"></path>
+            <path d="M14 16.75l1.53 -1.22a2 2 0 0 1 2.94 0l3.53 2.82"></path>
+            <path d="M10 14l2 -2l2 -2"></path>
+            <path d="M12 12l3.5 -4.5l2.5 -2.5"></path>
+            <path d="M12 12l-3.5 -4.5l-2.5 -2.5"></path>
+         </svg>
+          <span class="text-white text-3xl font-bold ms-2">Investa</span>
+        </a>
+        <h2 class="text-2xl font-bold text-white">{{ 'login.title' | translate }}</h2>
+        <p class="text-gray-400">{{ 'login.subtitle' | translate }}</p>
+      </div>
+
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-6">
+        <div *ngIf="errorMessage()" class="mb-2">
+          <div class="rounded-md bg-red-600/20 border border-red-600 text-red-200 px-4 py-2 text-sm">
+            {{ errorMessage() }}
+          </div>
+        </div>
+
+        <div>
+          <label for="mobile" class="block text-sm font-medium text-gray-300">{{ 'login.mobileLabel' | translate }}</label>
+          <div class="mt-1 flex rounded-md shadow-sm">
+            <div class="relative">
+              <button type="button" (click)="isDropdownOpen.set(!isDropdownOpen())" class="relative z-10 w-full bg-slate-800 border border-slate-700 rounded-l-md shadow-sm pl-4 pr-12 py-3 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors duration-200">
+                  <span class="flex items-center country-button">
+                  <span class="fi fi-{{ selectedCountry()?.flag }} fi-sm country-flag rounded"></span>
+                  <span class="block truncate text-base text-white">{{ selectedCountry()?.code }}</span>
+                </span>
+                <span class="ms-3 absolute inset-y-0 end-0 flex items-center pr-3 pointer-events-none">
+                  <svg class="h-6 w-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                  </svg>
+                </span>
+              </button>
+              <div *ngIf="isDropdownOpen()" class="absolute z-20 mt-2 w-72 bg-slate-800 border border-slate-700 shadow-lg max-h-64 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+                <a *ngFor="let country of countries" (click)="selectCountry(country)" class="text-gray-200 cursor-pointer select-none relative px-4 py-3 hover:bg-slate-700 flex items-center transition-colors duration-150">
+                  <span class="fi fi-{{ country.flag }} fi-sm mr-4 rounded"></span>
+                  <span class="font-semibold block truncate">{{ country.name }}</span>
+                  <span class="text-gray-400 ml-auto pl-3">{{ country.code }}</span>
+                </a>
+              </div>
+            </div>
+            <input id="mobile" type="tel" formControlName="mobile" [placeholder]="'login.mobilePlaceholder' | translate" class="block w-full bg-slate-800 border-y border-r border-slate-700 rounded-r-md shadow-sm py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          </div>
+        </div>
+
+        <div>
+          <label for="password" class="block text-sm font-medium text-gray-300">{{ 'login.passwordLabel' | translate }}</label>
+          <input id="password" type="password" formControlName="password" [placeholder]="'login.passwordPlaceholder' | translate" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <input id="remember-me" name="remember-me" type="checkbox" class="h-4 w-4 bg-slate-700 border-slate-600 text-blue-500 focus:ring-blue-600 rounded">
+            <label for="remember-me" class="ms-2 block text-sm text-gray-400">{{ 'login.rememberMe' | translate }}</label>
+          </div>
+          <div class="text-sm">
+            <a href="#" class="font-medium text-blue-400 hover:text-blue-300">{{ 'login.forgotPassword' | translate }}</a>
+          </div>
+        </div>
+
+        <div>
+          <button type="submit" [disabled]="!loginForm.valid || isSubmitting()" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-purple-600 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity duration-300">
+            <span *ngIf="!isSubmitting()">{{ 'login.signInButton' | translate }}</span>
+            <span *ngIf="isSubmitting()">Signing in...</span>
+          </button>
+        </div>
+      </form>
+
+      <div class="mt-6">
+        <div class="relative">
+          <div class="absolute inset-0 flex items-center">
+            <div class="w-full border-t border-slate-700"></div>
+          </div>
+          <div class="relative flex justify-center text-sm">
+            <span class="px-2 bg-slate-900 text-gray-400">{{ 'login.orContinueWith' | translate }}</span>
+          </div>
+        </div>
+
+        <div class="mt-6 grid grid-cols-2 gap-4">
+          <a href="#" class="w-full inline-flex justify-center py-3 px-4 border border-slate-700 rounded-md shadow-sm bg-slate-800 text-sm font-medium text-gray-300 hover:bg-slate-700">
+            <span class="sr-only">Sign in with Google</span>
+            <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+          </a>
+          <a href="#" class="w-full inline-flex justify-center py-3 px-4 border border-slate-700 rounded-md shadow-sm bg-slate-800 text-sm font-medium text-gray-300 hover:bg-slate-700">
+            <span class="sr-only">Sign in with Facebook</span>
+            <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 24 24">
+                <path fill-rule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clip-rule="evenodd" />
+            </svg>
+          </a>
+        </div>
+
+        <p class="mt-8 text-center text-sm text-gray-400">
+          {{ 'login.notAMember' | translate }}
+          <a routerLink="/signup" class="font-medium text-blue-400 hover:text-blue-300">{{ 'login.signUpNow' | translate }}</a>
+        </p>
+
+      </div>
+    </div>
+  </div>
+</div>

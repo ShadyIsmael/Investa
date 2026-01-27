@@ -18,10 +18,12 @@ public class ProfileController : ControllerBase
 {
     private readonly IProfileService _profileService;
     private readonly ILogger<ProfileController> _logger;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public ProfileController(IProfileService profileService, ILogger<ProfileController> logger)
+    public ProfileController(IProfileService profileService, IUnitOfWork unitOfWork, ILogger<ProfileController> logger)
     {
         _profileService = profileService;
+        _unitOfWork = unitOfWork;
         _logger = logger;
     }
 
@@ -129,12 +131,65 @@ public class ProfileController : ControllerBase
     {
         try
         {
-            // Extract user ID from claims
-            var userIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
-            if (!Guid.TryParse(userIdClaim, out var userId))
+            // Log Authorization header and claims for debugging
+            try
             {
-                _logger.LogWarning("Unable to extract user ID from claims");
-                return Unauthorized("Unable to identify user from token");
+                var authHeader = Request.Headers["Authorization"].ToString();
+                _logger.LogInformation("Authorization header: {AuthHeader}", string.IsNullOrEmpty(authHeader) ? "<missing>" : authHeader);
+                _logger.LogInformation("Claims present: {Claims}", string.Join(", ", User.Claims.Select(c => $"{c.Type}={c.Value}")));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to read Authorization header or claims");
+            }
+
+            // Extract user ID claim value
+            var userIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
+            Guid userId;
+
+            if (!Guid.TryParse(userIdClaim, out userId))
+            {
+                // Fallback heuristics: try firebase uid, username, or domain users to resolve a GUID
+                var firebaseUid = User.FindFirst("firebase_uid")?.Value;
+                var userName = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+                Investa.Domain.Entities.AuthUser? authUser = null;
+
+                if (!string.IsNullOrEmpty(firebaseUid))
+                {
+                    authUser = (await _unitOfWork.Repository<Investa.Domain.Entities.AuthUser>()
+                        .FindAsync(a => a.FirebaseUid == firebaseUid)).FirstOrDefault();
+                }
+
+                if (authUser == null && !string.IsNullOrEmpty(userName))
+                {
+                    // Try phone-based placeholder email produced during sign-up
+                    var possibleEmail = userName + "@phone.investa.local";
+                    authUser = (await _unitOfWork.Repository<Investa.Domain.Entities.AuthUser>()
+                        .FindAsync(a => a.Email == possibleEmail)).FirstOrDefault();
+                }
+
+                if (authUser == null && !string.IsNullOrEmpty(userName))
+                {
+                    // Try domain User lookup by username or email placeholder
+                    var domainUser = (await _unitOfWork.Repository<Investa.Domain.Entities.User>()
+                        .FindAsync(u => u.Email == (userName + "@phone.investa.local") || u.Name == userName)).FirstOrDefault();
+
+                    if (domainUser != null)
+                    {
+                        authUser = (await _unitOfWork.Repository<Investa.Domain.Entities.AuthUser>()
+                            .FindAsync(a => a.Id == domainUser.Id)).FirstOrDefault();
+                    }
+                }
+
+                if (authUser == null)
+                {
+                    _logger.LogWarning("Unable to resolve AuthUser from token claims (sub/id not a GUID). sub: {Sub}, name: {Name}, firebase_uid: {Firebase}", userIdClaim, userName, firebaseUid);
+                    return Unauthorized("Unable to identify user from token");
+                }
+
+                _logger.LogInformation("Resolved AuthUser {AuthUserId} for request using fallback claims (sub not a GUID)", authUser.Id);
+                userId = authUser.Id;
             }
 
             // Get client IP and device info
@@ -161,6 +216,107 @@ public class ProfileController : ControllerBase
     }
 
     /// <summary>
+    /// Initiates the KYC flow for the current user (marks identity verification as Pending).
+    /// </summary>
+    [HttpPost("me/kyc/start")]
+    [ProducesResponseType(typeof(UserProfileDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> StartKyc()
+    {
+        try
+        {
+            // Extract user ID claim value
+            var userIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
+            Guid userId;
+
+            if (!Guid.TryParse(userIdClaim, out userId))
+            {
+                // Fallback heuristics (same as GetMyProfile)
+                var firebaseUid = User.FindFirst("firebase_uid")?.Value;
+                var userName = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+                Investa.Domain.Entities.AuthUser? authUser = null;
+
+                if (!string.IsNullOrEmpty(firebaseUid))
+                {
+                    authUser = (await _unitOfWork.Repository<Investa.Domain.Entities.AuthUser>()
+                        .FindAsync(a => a.FirebaseUid == firebaseUid)).FirstOrDefault();
+                }
+
+                if (authUser == null && !string.IsNullOrEmpty(userName))
+                {
+                    var possibleEmail = userName + "@phone.investa.local";
+                    authUser = (await _unitOfWork.Repository<Investa.Domain.Entities.AuthUser>()
+                        .FindAsync(a => a.Email == possibleEmail)).FirstOrDefault();
+                }
+
+                if (authUser == null && !string.IsNullOrEmpty(userName))
+                {
+                    var domainUser = (await _unitOfWork.Repository<Investa.Domain.Entities.User>()
+                        .FindAsync(u => u.Email == (userName + "@phone.investa.local") || u.Name == userName)).FirstOrDefault();
+
+                    if (domainUser != null)
+                    {
+                        authUser = (await _unitOfWork.Repository<Investa.Domain.Entities.AuthUser>()
+                            .FindAsync(a => a.Id == domainUser.Id)).FirstOrDefault();
+                    }
+                }
+
+                if (authUser == null)
+                {
+                    _logger.LogWarning("Unable to resolve AuthUser for KYC start. sub: {Sub}, name: {Name}, firebase_uid: {Firebase}", userIdClaim, userName, firebaseUid);
+                    return Unauthorized("Unable to identify user from token");
+                }
+
+                userId = authUser.Id;
+            }
+
+            var updated = await _profileService.StartKycAsync(userId);
+            _logger.LogInformation("User {UserId} started KYC", userId);
+            return Ok(updated);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning($"Start KYC failed: {ex.Message}");
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error starting KYC: {ex.Message}");
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while starting KYC" });
+        }
+    }
+
+    /// <summary>
+    /// Retrieves the current user's credibility score transaction history.
+    /// </summary>
+    [HttpGet("me/credits")]
+    [ProducesResponseType(typeof(List<CreditTransactionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetCreditHistory()
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
+            if (!Guid.TryParse(userIdClaim, out var userId))
+            {
+                _logger.LogWarning("Unable to identify user from token claims");
+                return Unauthorized("Unable to identify user from token");
+            }
+
+            var history = await _profileService.GetCreditHistoryAsync(userId);
+            return Ok(history);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error retrieving credit history: {ex.Message}");
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving credit history" });
+        }
+    }
+
+    /// <summary>
     /// Updates the user's profile information.
     /// Allows updating Basic Info, Contact Info, and Identity & Compliance sections.
     /// </summary>
@@ -178,17 +334,80 @@ public class ProfileController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> UpdateMyProfile([FromBody] UserProfileDto profileDto)
+    public async Task<IActionResult> UpdateMyProfile([FromBody] UpdateProfileRequestDto updateReq)
     {
         try
         {
-            if (profileDto == null)
+            if (updateReq == null)
                 return BadRequest("Profile data is required");
+
+            // Server-side validation (lengths, URL formats)
+            var errors = new List<string>();
+
+            if (updateReq.BasicInfo != null)
+            {
+                if (!string.IsNullOrEmpty(updateReq.BasicInfo.FullName) && updateReq.BasicInfo.FullName.Length > 200)
+                    errors.Add("FullName must be at most 200 characters.");
+
+                if (!string.IsNullOrEmpty(updateReq.BasicInfo.FirstName) && updateReq.BasicInfo.FirstName.Length > 100)
+                    errors.Add("FirstName must be at most 100 characters.");
+
+                if (!string.IsNullOrEmpty(updateReq.BasicInfo.LastName) && updateReq.BasicInfo.LastName.Length > 100)
+                    errors.Add("LastName must be at most 100 characters.");
+
+                if (!string.IsNullOrEmpty(updateReq.BasicInfo.Bio) && updateReq.BasicInfo.Bio.Length > 1000)
+                    errors.Add("Bio must be at most 1000 characters.");
+
+                // URL validation for Avatar if provided
+                bool IsValidUrl(string? u) => string.IsNullOrEmpty(u) || Uri.IsWellFormedUriString(u, UriKind.Absolute);
+
+                if (!IsValidUrl(updateReq.BasicInfo.AvatarUrl))
+                    errors.Add("AvatarUrl is not a valid absolute URL.");
+            }
+
+            if (updateReq.ContactInfo != null)
+            {
+                if (!string.IsNullOrEmpty(updateReq.ContactInfo.Email) && updateReq.ContactInfo.Email.Length > 150)
+                    errors.Add("Email must be at most 150 characters.");
+
+                if (!string.IsNullOrEmpty(updateReq.ContactInfo.Phone1) && updateReq.ContactInfo.Phone1.Length > 20)
+                    errors.Add("Phone1 must be at most 20 characters.");
+
+                if (!string.IsNullOrEmpty(updateReq.ContactInfo.LinkedInUrl) && !Uri.IsWellFormedUriString(updateReq.ContactInfo.LinkedInUrl, UriKind.Absolute))
+                    errors.Add("ContactInfo.LinkedInUrl is not a valid absolute URL.");
+
+                if (!string.IsNullOrEmpty(updateReq.ContactInfo.FacebookUrl) && !Uri.IsWellFormedUriString(updateReq.ContactInfo.FacebookUrl, UriKind.Absolute))
+                    errors.Add("ContactInfo.FacebookUrl is not a valid absolute URL.");
+            }
+
+            if (errors.Count > 0)
+                return BadRequest(new { errors });
 
             // Extract user ID from claims
             var userIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
             if (!Guid.TryParse(userIdClaim, out var userId))
                 return Unauthorized("Unable to identify user from token");
+
+            // Build a server-side DTO to reuse existing service method
+            var profileDto = new UserProfileDto
+            {
+                UserId = Guid.Empty, // service ignores this and uses userId from claims
+                BasicInfo = updateReq.BasicInfo,
+                ContactInfo = updateReq.ContactInfo,
+                IdentityCompliance = updateReq.IdentityCompliance,
+                CoreMetrics = new UserCoreMetricsDto
+                {
+                    Role = updateReq.BusinessRole,
+                    ClientType = updateReq.BusinessRole
+                }
+            };
+
+            // Server-side validation for BusinessRole and DocumentNumber
+            if (!string.IsNullOrEmpty(updateReq.BusinessRole) && updateReq.BusinessRole.Length > 200)
+                return BadRequest(new { errors = new[] { "BusinessRole must be at most 200 characters." } });
+
+            if (updateReq.IdentityCompliance != null && !string.IsNullOrEmpty(updateReq.IdentityCompliance.DocumentNumber) && updateReq.IdentityCompliance.DocumentNumber.Length > 50)
+                return BadRequest(new { errors = new[] { "DocumentNumber must be at most 50 characters." } });
 
             var updatedProfile = await _profileService.UpdateUserProfileAsync(userId, profileDto);
 
@@ -302,5 +521,17 @@ public class ProfileController : ControllerBase
             _logger.LogError($"Error retrieving user profile: {ex.Message}");
             return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving the profile" });
         }
+    }
+
+    /// <summary>
+    /// Debug endpoint to echo back Authorization header and any claims (development only)
+    /// </summary>
+    [HttpGet("debug")]
+    [AllowAnonymous]
+    public IActionResult Debug()
+    {
+        var auth = Request.Headers["Authorization"].ToString();
+        var claims = User?.Claims?.Select(c => new { c.Type, c.Value }).Select(x => (object)x).ToList() ?? new List<object>();
+        return Ok(new { authHeader = string.IsNullOrEmpty(auth) ? null : auth, claims });
     }
 }

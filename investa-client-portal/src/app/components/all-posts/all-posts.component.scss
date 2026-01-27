@@ -1,0 +1,4 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.all-posts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: $spacing-6; }

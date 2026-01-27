@@ -95,7 +95,8 @@ namespace Investa.Infrastructure.Services
         public async Task<(bool Success, int TokensFound, int SuccessCount, int FailureCount, string Message)> SendNotificationAsync(
             string userId,
             string title,
-            string body)
+            string body,
+            IDictionary<string, string>? data = null)
         {
             try
             {
@@ -117,6 +118,25 @@ namespace Investa.Infrastructure.Services
 
                 _logger.LogInformation("Found {TokenCount} active tokens for user {UserId}", userTokens.Count, userId);
 
+                // Prepare Data payload
+                var dataPayload = new Dictionary<string, string>
+                {
+                    { "timestamp", DateTime.UtcNow.ToString("o") },
+                    { "userId", userId }
+                };
+
+                // Merge custom data if provided
+                if (data != null)
+                {
+                    foreach (var kvp in data)
+                    {
+                        if (dataPayload.ContainsKey(kvp.Key))
+                            dataPayload[kvp.Key] = kvp.Value;
+                        else
+                            dataPayload.Add(kvp.Key, kvp.Value);
+                    }
+                }
+
                 // Build the message
                 var message = new FirebaseAdmin.Messaging.Message
                 {
@@ -126,11 +146,7 @@ namespace Investa.Infrastructure.Services
                         Body = body
                     },
                     // Add data payload for custom handling
-                    Data = new Dictionary<string, string>
-                    {
-                        { "timestamp", DateTime.UtcNow.ToString("o") },
-                        { "userId", userId }
-                    }
+                    Data = dataPayload
                 };
 
                 var tokensToSend = userTokens.Select(t => t.FcmToken).ToList();

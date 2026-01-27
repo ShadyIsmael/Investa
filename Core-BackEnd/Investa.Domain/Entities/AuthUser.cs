@@ -19,7 +19,7 @@ public class AuthUser
     public string PasswordHash { get; set; } = string.Empty;
 
     [Required]
-    public UserType UserType { get; set; } = UserType.Client;
+    public UserType UserType { get; set; } = UserType.Founder;
 
     public bool Status { get; set; } = true;
 

@@ -55,6 +55,14 @@ public class LookupsController : ControllerBase
         return Ok(new { success = true, data = items });
     }
 
+    [HttpGet("business-categories")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetBusinessCategories()
+    {
+        var items = await _lookupService.GetByTypeAsync(LookupType.BusinessCategory);
+        return Ok(new { success = true, data = items });
+    }
+
     [HttpGet("project-phases")]
     [AllowAnonymous]
     public async Task<IActionResult> GetProjectPhases()

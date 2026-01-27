@@ -1,0 +1,15 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'theme' as theme;
+
+:host { display: block; }
+
+.header {
+  @include flex-between;
+  padding: theme.$spacing-navbar-py theme.$spacing-card-p;
+  background: theme.$color-surface;
+  align-items: center;
+
+  .logo { font-weight: $font-weight-bold; }
+  .nav { @include flex-between; gap: $spacing-4; }
+}

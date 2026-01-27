@@ -9,10 +9,24 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const app = initializeApp(firebaseConfig);
+// Only initialize Firebase when required configuration values are present
+let app: any = null;
+if (firebaseConfig.projectId && firebaseConfig.appId) {
+  try {
+    app = initializeApp(firebaseConfig);
+  } catch (e) {
+    console.warn('Failed to initialize Firebase app:', e);
+    app = null;
+  }
+} else {
+  // Helpful dev-time warning without throwing runtime errors
+  // eslint-disable-next-line no-console
+  console.warn('[firebase] Incomplete configuration - Firebase services disabled (projectId/appId missing).');
+}
 
 export async function getFirebaseMessaging(): Promise<Messaging | null> {
   try {
+    if (!app) return null;
     const supported = await messagingIsSupported();
     if (!supported) return null;
     return getMessaging(app);

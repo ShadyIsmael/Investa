@@ -57,7 +57,7 @@ export async function requestPermissionAndGetToken(): Promise<string | null> {
 export async function sendTokenToServer(token: string) {
   try {
     // Backend endpoint to store user's FCM token
-    await api.post('/api/admin/users/fcm-token', { token });
+    await api.post('/api/users/fcm-token', { fcmToken: token });
     console.log('[FCM] Token sent to server');
   } catch (err) {
     console.warn('[FCM] Failed to send token to server:', err);

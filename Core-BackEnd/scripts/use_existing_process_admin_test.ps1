@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
 
-$base = 'http://192.168.1.15:5235'
+$base = 'http://DESKTOP-DIH7CQH:5235'
 
 Write-Output 'Requesting token via /api/auth/token'
 try {

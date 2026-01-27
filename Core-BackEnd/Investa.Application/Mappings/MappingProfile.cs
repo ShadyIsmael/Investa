@@ -17,17 +17,42 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.StatusNameAr, opt => opt.MapFrom(src => src.Status != null ? src.Status.NameAr : null))
             .ForMember(dest => dest.PenaltyDurationDays, opt => opt.MapFrom(src => src.PenaltyDurationDays));
         CreateMap<CreateInvestmentDto, Investment>();
-        CreateMap<Investment, InvestmentDto>();
+        CreateMap<Investment, InvestmentDto>()
+            .ForMember(dest => dest.TeamMembers, opt => opt.MapFrom(src => src.TeamMembers.Where(tm => tm.IsActive).OrderBy(tm => tm.SortOrder)));
         CreateMap<UpdateInvestmentDto, Investment>().ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+        CreateMap<InvestmentParticipant, InvestorParticipationDto>()
+            .ForMember(dest => dest.InvestorName, opt => opt.MapFrom(src => src.Investor != null ? (src.Investor.Profile != null && !string.IsNullOrWhiteSpace(src.Investor.Profile.FullName) ? src.Investor.Profile.FullName : src.Investor.Name) : null))
+            .ForMember(dest => dest.InvestorAvatar, opt => opt.MapFrom(src => src.Investor != null && src.Investor.Profile != null ? src.Investor.Profile.AvatarUrl : null));
+        
+        // Team member mapping - data comes from linked User/UserProfile
+        CreateMap<InvestmentTeamMember, TeamMemberDto>()
+            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId.ToString()))
+            .ForMember(dest => dest.Name, opt => opt.MapFrom(src => 
+                src.User != null 
+                    ? (src.User.Profile != null && !string.IsNullOrWhiteSpace(src.User.Profile.FullName) 
+                        ? src.User.Profile.FullName 
+                        : src.User.Name) 
+                    : string.Empty))
+            .ForMember(dest => dest.Avatar, opt => opt.MapFrom(src => 
+                src.User != null && src.User.Profile != null ? src.User.Profile.AvatarUrl : null))
+            .ForMember(dest => dest.LinkedIn, opt => opt.MapFrom(src => 
+                src.User != null && src.User.Profile != null ? src.User.Profile.LinkedInUrl : null))
+            .ForMember(dest => dest.Bio, opt => opt.MapFrom(src => 
+                src.User != null && src.User.Profile != null ? src.User.Profile.Bio : null))
+            .ForMember(dest => dest.ClientType, opt => opt.MapFrom(src => 
+                src.User != null ? src.User.ClientType.ToString() : null));
+        
         CreateMap<User, DTOs.UserDto>();
         CreateMap<Transaction, DTOs.TransactionDto>();
-        CreateMap<CreditTransaction, DTOs.CreditTransactionDto>()
-            .ForMember(d => d.Type, opt => opt.MapFrom(s => s.Type.ToString()))
-            .ForMember(d => d.UserId, opt => opt.MapFrom(s => s.UserId));
+        
+        // CreditTransaction mapping for credibility score audit trail
+        CreateMap<CreditTransaction, DTOs.Profile.CreditTransactionDto>()
+            .ForMember(d => d.AdminName, opt => opt.MapFrom(s => s.Admin != null ? (s.Admin.Name ?? s.Admin.Email) : null));
 
         // User core metrics mapping
         CreateMap<User, UserCoreMetricsDto>()
-            .ForMember(dest => dest.ClientType, opt => opt.MapFrom(src => src.ClientType.ToString()));
+            .ForMember(dest => dest.ClientType, opt => opt.MapFrom(src => src.ClientType.ToString()))
+            .ForMember(dest => dest.CurrentCredibilityScore, opt => opt.MapFrom(src => src.Profile != null ? src.Profile.CurrentCredibilityScore : 0));
 
         CreateMap<ScoreTransaction, ScoreTransactionDto>()
             .ForMember(d => d.TransactionTypeId, opt => opt.MapFrom(s => s.TransactionTypeId))

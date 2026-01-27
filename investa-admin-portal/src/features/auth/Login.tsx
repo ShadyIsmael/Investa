@@ -89,7 +89,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onForgotPassword }) => {
   };
 
   const quickConnectAndLogin = async () => {
-    const ip = 'http://192.168.1.5:5235';
+    const ip = 'http://DESKTOP-DIH7CQH:5235';
     setApiUrlInput(ip);
     setBaseUrl(ip);
     setUseMocks(false);
@@ -105,14 +105,14 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onForgotPassword }) => {
       <div className="absolute bottom-0 -right-20 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] pointer-events-none"></div>
 
       <div className="w-full max-w-md animate-in fade-in zoom-in duration-700">
-        <div className="bg-white dark:bg-slate-900 rounded-[32px] shadow-2xl shadow-indigo-500/10 border border-slate-200 dark:border-slate-800 p-8 md:p-10 relative z-10">
+        <div className="bg-surface rounded-[32px] shadow-2xl shadow-indigo-500/10 border border-border p-8 md:p-10 relative z-10">
           {/* Logo Area */}
           <div className="flex flex-col items-center mb-10">
             <div className="w-14 h-14 bg-gradient-to-br from-indigo-600 to-indigo-500 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-600/20 mb-4 transform hover:scale-110 transition-transform duration-300">
               <Icon name="hands" className="text-white w-8 h-8" />
             </div>
-            <h1 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight">Investa Portal</h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mt-1">Institutional Grade Financial Access</p>
+            <h1 className="text-2xl font-black text-text tracking-tight">Investa Portal</h1>
+            <p className="text-muted text-sm font-medium mt-1">Institutional Grade Financial Access</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -122,16 +122,16 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onForgotPassword }) => {
               </div>
             )}
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] ml-1">Corporate Email</label>
+              <label className="text-xxs font-black text-muted uppercase tracking-[0.2em] ml-1">Corporate Email</label>
               <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-500 transition-colors">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-muted group-focus-within:text-primary transition-colors">
                   <Icon name="user-circle" className="w-4 h-4" />
                 </div>
                 <input 
                   type="email" 
                   required
                   placeholder="name@investa.com"
-                  className="w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-600 outline-none transition-all dark:text-slate-200"
+                  className="w-full pl-11 pr-4 py-3.5 bg-background border border-border rounded-2xl text-sm font-medium focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all text-text"
                   value={formData.email}
                   onChange={e => setFormData({ ...formData, email: e.target.value })}
                 />
@@ -140,24 +140,24 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onForgotPassword }) => {
 
             <div className="space-y-2">
               <div className="flex justify-between items-center ml-1">
-                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Security Key</label>
+                <label className="text-xxs font-black text-muted uppercase tracking-[0.2em]">Security Key</label>
                 <button 
                   type="button"
                   onClick={onForgotPassword}
-                  className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest hover:underline"
+                  className="text-xxs font-black text-primary uppercase tracking-widest hover:underline"
                 >
                   Lost Access?
                 </button>
               </div>
               <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-500 transition-colors">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-muted group-focus-within:text-primary transition-colors">
                   <Icon name="shield-check" className="w-4 h-4" />
                 </div>
                 <input 
                   type="password" 
                   required
                   placeholder="••••••••••••"
-                  className="w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-600 outline-none transition-all dark:text-slate-200"
+                  className="w-full pl-11 pr-4 py-3.5 bg-background border border-border rounded-2xl text-sm font-medium focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all text-text"
                   value={formData.password}
                   onChange={e => setFormData({ ...formData, password: e.target.value })}
                 />
@@ -172,7 +172,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onForgotPassword }) => {
             <button 
               type="submit"
               disabled={loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-2xl text-sm font-black uppercase tracking-[0.15em] shadow-xl shadow-indigo-600/20 transition-all flex items-center justify-center gap-3 disabled:opacity-50 active:scale-[0.98]"
+              className="w-full bg-primary hover:opacity-90 text-white py-4 rounded-2xl text-sm font-black uppercase tracking-[0.15em] shadow-xl shadow-primary/20 transition-all flex items-center justify-center gap-3 disabled:opacity-50 active:scale-[0.98]"
             >
               {loading ? (
                 <div className="w-5 h-5 border-[3px] border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -185,17 +185,17 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onForgotPassword }) => {
             </button>
           </form>
 
-          <div className="mt-10 pt-8 border-t border-slate-100 dark:border-slate-800/50 flex items-center justify-between gap-6">
+          <div className="mt-10 pt-8 border-t border-border flex items-center justify-between gap-6">
             <div className="flex items-center gap-6">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Enterprise Auth v3.1</span>
+              <span className="text-xxs font-black text-muted uppercase tracking-widest">Enterprise Auth v3.1</span>
               <div className="flex gap-2">
-                 <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-                 <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Network Stable</span>
+                 <div className="w-1.5 h-1.5 bg-success rounded-full animate-pulse"></div>
+                 <span className="text-xxs font-black text-emerald-600 uppercase tracking-widest">Network Stable</span>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              <button type="button" onClick={() => setShowApiSettings(s => !s)} className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest hover:underline">
+              <button type="button" onClick={() => setShowApiSettings(s => !s)} className="text-xxs font-black text-primary uppercase tracking-widest hover:underline">
                 API Settings
               </button>
             </div>

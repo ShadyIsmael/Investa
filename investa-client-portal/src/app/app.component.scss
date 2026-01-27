@@ -1,0 +1,10 @@
+@use 'variables' as *;
+
+/* Base app styles (minimal placeholder) */
+:host {
+  display: block;
+  min-height: 100vh;
+  background: $color-background;
+}
+
+/* Keep empty — component-specific styles live in child components */

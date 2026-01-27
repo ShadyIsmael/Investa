@@ -1,0 +1,1 @@
+import{J as t,da as o}from"./chunk-A3EMFNQA.js";var l=class e{constructor(){this.isRoleSelectOpen=o(!1)}openRoleSelectModal(){this.isRoleSelectOpen.set(!0)}closeRoleSelectModal(){this.isRoleSelectOpen.set(!1)}static{this.\u0275fac=function(c){return new(c||e)}}static{this.\u0275prov=t({token:e,factory:e.\u0275fac,providedIn:"root"})}};export{l as a};

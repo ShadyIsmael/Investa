@@ -274,6 +274,15 @@ public class RolesAdminController : ControllerBase
 
             foreach (var uid in userIds)
             {
+                // Enforce OrgUser constraint
+                // We use GetByIdAsync(Guid) assuming AuthUser uses Guid as key
+                var user = await _unitOfWork.Repository<Investa.Domain.Entities.AuthUser>().GetByIdAsync(uid);
+                if (user == null || user.UserType != Investa.Domain.Entities.Enums.UserType.OrgUser)
+                {
+                    _logger.LogWarning("Attempted to assign non-OrgUser {UserId} to role {RoleId}", uid, roleId);
+                    continue;
+                }
+
                 var exists = (await _unitOfWork.Repository<Investa.Domain.Entities.Security.UserRole>()
                     .FindAsync(ur => ur.RoleId == roleId && ur.UserId == uid)).FirstOrDefault();
                 if (exists == null)

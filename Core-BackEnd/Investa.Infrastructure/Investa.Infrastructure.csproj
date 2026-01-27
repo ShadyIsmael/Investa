@@ -24,4 +24,17 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <!-- Exclude legacy migrations and compile only the consolidated migration -->
+  <ItemGroup>
+    <Compile Remove="Migrations\**\*.cs" />
+    <Compile Include="Migrations\20260123125914_InitialConsolidated.cs" />
+    <Compile Include="Migrations\20260123125914_InitialConsolidated.Designer.cs" />
+    <Compile Include="Migrations\20260125213807_AddInvestmentTeamMembers.cs" />
+    <Compile Include="Migrations\20260125213807_AddInvestmentTeamMembers.Designer.cs" />
+    <Compile Include="Migrations\20260125215353_RequireTeamMemberUser.cs" />
+    <Compile Include="Migrations\20260125215353_RequireTeamMemberUser.Designer.cs" />
+    <Compile Include="Migrations\ApplicationDbContextModelSnapshot.cs" />
+  </ItemGroup>
+
+
 </Project>

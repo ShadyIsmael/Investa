@@ -11,7 +11,7 @@ import time
 import uuid
 import requests
 
-BASE_URL = "http://192.168.1.15:5235"
+BASE_URL = "http://DESKTOP-DIH7CQH:5235"
 PHONE = "01022322292"
 PASSWORD = "P@ssw0rd"
 

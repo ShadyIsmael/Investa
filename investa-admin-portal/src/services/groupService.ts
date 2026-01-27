@@ -1,5 +1,5 @@
 import { api } from '@/api/api';
-import { Group, PaginatedGroups, GroupCreateDto, GroupUpdateDto, MemberSample } from '@/types';
+import { Group, PaginatedGroups, GroupCreateDto, GroupUpdateDto, MemberSample, Role } from '@/types';
 
 const GROUPS_KEY = 'investa:mock:groups';
 
@@ -152,9 +152,9 @@ export const groupService = {
    * Create a new group.
    * Endpoint: POST /api/admin/groups
    */
-  async createGroup(payload: GroupCreateDto): Promise<{ id: number } | null> {
+  async createGroup(payload: GroupCreateDto): Promise<Group | null> {
     try {
-      const res = await api.post<{ id: number }>('/api/v1/admin/groups', payload);
+      const res = await api.post<Group>('/api/v1/admin/groups', payload);
       return res ?? null;
     } catch (err) {
       console.warn('Backend create group API unavailable, using mock', err);
@@ -179,7 +179,7 @@ export const groupService = {
       groups.push(newGroup);
       writeMockGroups(groups);
       
-      return { id: nextId };
+      return newGroup;
     }
   },
 
@@ -187,9 +187,10 @@ export const groupService = {
    * Update an existing group.
    * Endpoint: PUT /api/admin/groups/{id}
    */
-  async updateGroup(groupId: number, payload: GroupUpdateDto): Promise<void> {
+  async updateGroup(groupId: number, payload: GroupUpdateDto): Promise<Group> {
     try {
-      await api.put(`/api/admin/groups/${groupId}`, payload);
+      const res = await api.put<Group>(`/api/admin/groups/${groupId}`, payload);
+      return res as Group;
     } catch (err) {
       console.warn('Backend update group API unavailable, using mock', err);
       const groups = readMockGroups();
@@ -206,6 +207,7 @@ export const groupService = {
           updatedAt: new Date().toISOString()
         };
         writeMockGroups(groups);
+        return groups[idx];
       } else {
         throw new Error('Group not found');
       }
@@ -296,6 +298,98 @@ export const groupService = {
           throw new Error('Group not found');
         }
       }
+    }
+  },
+
+  // Convenience helper: return all groups (unpaginated) — used by admin UI
+  async getGroups(): Promise<Group[]> {
+    try {
+      const first = await this.getGroupsList(1, 1000);
+      return first.items || [];
+    } catch (err) {
+      return readMockGroups();
+    }
+  },
+
+  // Role management helpers (simple mock backing store)
+  async getRoles(): Promise<Role[]> {
+    try {
+      const res = await api.get<any>('/api/v1/admin/roles');
+      const data = res?.data ?? res ?? [];
+      return Array.isArray(data) ? data : (data.items || []);
+    } catch (err) {
+      console.warn('Roles API unavailable, using mock roles', err);
+      const raw = localStorage.getItem('investa:mock:roles');
+      if (raw) return JSON.parse(raw);
+      // seed defaults
+      const defaults: Role[] = [
+        { id: 'role-1', name: 'Admin', description: 'System Administrators', groupId: 1, isActive: true, createdAt: new Date().toISOString() },
+        { id: 'role-2', name: 'Editor', description: 'Content Editors', groupId: 2, isActive: true, createdAt: new Date().toISOString() },
+      ];
+      localStorage.setItem('investa:mock:roles', JSON.stringify(defaults));
+      return defaults;
+    }
+  },
+
+  async createRole(payload: any): Promise<Role> {
+    try {
+      const res = await api.post<Role>('/api/v1/admin/roles', payload);
+      return res as Role;
+    } catch (err) {
+      console.warn('Roles create API unavailable, using mock', err);
+      const raw = localStorage.getItem('investa:mock:roles');
+      const list: Role[] = raw ? JSON.parse(raw) : [];
+      const nextId = `role-${Date.now()}`;
+      const role: Role = { id: nextId, name: payload.name, description: payload.description || null, groupId: payload.groupId || 0, isActive: true, createdAt: new Date().toISOString() };
+      list.unshift(role);
+      localStorage.setItem('investa:mock:roles', JSON.stringify(list));
+      return role;
+    }
+  },
+
+  async updateRole(roleId: string, payload: any): Promise<Role> {
+    try {
+      const res = await api.put<Role>(`/api/v1/admin/roles/${roleId}`, payload);
+      return res as Role;
+    } catch (err) {
+      console.warn('Roles update API unavailable, using mock', err);
+      const raw = localStorage.getItem('investa:mock:roles');
+      const list: Role[] = raw ? JSON.parse(raw) : [];
+      const idx = list.findIndex(r => r.id === roleId);
+      if (idx === -1) throw new Error('Role not found');
+      list[idx] = { ...list[idx], ...payload, updatedAt: new Date().toISOString() } as any;
+      localStorage.setItem('investa:mock:roles', JSON.stringify(list));
+      return list[idx];
+    }
+  },
+
+  async deleteRole(roleId: string): Promise<void> {
+    try {
+      await api.delete(`/api/v1/admin/roles/${roleId}`);
+    } catch (err) {
+      console.warn('Roles delete API unavailable, using mock', err);
+      const raw = localStorage.getItem('investa:mock:roles');
+      const list: Role[] = raw ? JSON.parse(raw) : [];
+      const filtered = list.filter(r => r.id !== roleId);
+      localStorage.setItem('investa:mock:roles', JSON.stringify(filtered));
+    }
+  },
+
+  async assignMembersToGroup(groupId: number, members: any[]): Promise<Group> {
+    try {
+      const res = await api.post<Group>(`/api/v1/admin/groups/${groupId}/members`, { members });
+      return res as Group;
+    } catch (err) {
+      console.warn('assignMembersToGroup API unavailable, using mock', err);
+      const groups = readMockGroups();
+      const idx = groups.findIndex(g => g.id === groupId);
+      if (idx === -1) throw new Error('Group not found');
+      // For mock, just update memberCount and membersSample with user ids
+      groups[idx].memberCount = members.length;
+      groups[idx].membersSample = members.slice(0, 3).map((m:any) => ({ id: String(m.userId), name: m.name || `${m.userId}`, email: m.email || null, role: '' }));
+      groups[idx].updatedAt = new Date().toISOString();
+      writeMockGroups(groups);
+      return groups[idx];
     }
   }
 };

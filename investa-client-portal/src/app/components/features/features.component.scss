@@ -1,0 +1,5 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.features { padding: $spacing-8 0; }
+.features__item { @include card($spacing-4); }

@@ -1,0 +1,70 @@
+<div class="container mx-auto p-6 lg:p-8">
+  <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+    <h1 class="text-3xl font-bold">{{ 'notifications.title' | translate }}</h1>
+    <div class="flex items-center gap-2 p-1 bg-slate-800 rounded-lg">
+      <button (click)="setFilter('all')" [class]="activeFilter() === 'all' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-slate-700'" class="px-4 py-1.5 rounded-md font-semibold text-sm transition-colors">
+        {{ 'notifications.all' | translate }}
+      </button>
+      <button (click)="setFilter('unread')" [class]="activeFilter() === 'unread' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-slate-700'" class="px-4 py-1.5 rounded-md font-semibold text-sm transition-colors">
+        {{ 'notifications.unread' | translate }}
+      </button>
+    </div>
+  </div>
+
+  <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl">
+    <ul class="divide-y divide-slate-800">
+      @for(notification of filteredNotifications(); track notification.id) {
+        <li (click)="markAsRead(notification)" 
+            class="p-4 sm:p-6 flex items-start gap-4 transition-colors duration-200"
+            [class.hover:bg-slate-800/50]="!notification.read"
+            [class.cursor-pointer]="!notification.read"
+            [class.opacity-50]="notification.read">
+          
+          <div class="flex-shrink-0 mt-1">
+            @if (notification.type === 'info') {
+               <div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center"><svg class="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
+            }
+            @if (notification.type === 'success') {
+               <div class="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center"><svg class="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
+            }
+            @if (notification.type === 'warning') {
+              <div class="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center"><svg class="w-5 h-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg></div>
+            }
+          </div>
+
+          <div class="flex-1">
+            <div class="flex justify-between items-center">
+              <h3 class="text-base font-semibold text-white">{{ notification.title }}</h3>
+              <p class="text-xs text-gray-500">{{ formatDate(notification.timestamp) }}</p>
+            </div>
+            <p class="text-sm text-gray-400 mt-1">{{ notification.message }}</p>
+          </div>
+
+          <div class="flex-shrink-0 flex items-center gap-2">
+            @if(!notification.read) {
+               <div class="w-2.5 h-2.5 bg-blue-500 rounded-full" [title]="'notifications.unread' | translate"></div>
+            }
+            <button (click)="deleteNotification(notification.id, $event)" [title]="'notifications.delete' | translate" class="text-gray-500 hover:text-white p-2 rounded-full hover:bg-slate-700 transition-colors">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+          </div>
+
+        </li>
+      } @empty {
+        <div class="text-center py-20 text-gray-500">
+          <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+          <h3 class="mt-2 text-sm font-semibold text-white">{{ 'notifications.noNotifications.title' | translate }}</h3>
+          <p class="mt-1 text-sm text-gray-500">
+            @if(activeFilter() === 'unread') {
+              {{ 'notifications.noNotifications.allCaughtUp' | translate }}
+            } @else {
+              {{ 'notifications.noNotifications.subtitle' | translate }}
+            }
+          </p>
+        </div>
+      }
+    </ul>
+  </div>
+</div>

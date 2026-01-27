@@ -1,0 +1,179 @@
+{
+  "stocks": "Stocks",
+  "crypto": "Crypto",
+  "fund": "Fund",
+  "funds": "Funds",
+  "stock": "Stock",
+  "language": {
+    "toggle": "العربية"
+  },
+  "investmentPreview": {
+    "backButton": "Back to Investments",
+    "fundingStatus": "Funding Status",
+    "author": "Author",
+    "noInvestors": "Be the first to invest!",
+    "noTeamMembers": "No team members added yet.",
+    "investNowButton": "Invest Now",
+    "notFound": {
+      "title": "Investment Not Found",
+      "subtitle": "Sorry, we couldn't find the investment you were looking for."
+    }
+  },
+  "countryPlaceholder": "e.g., United States",
+  "businessPlan": "Whitepaper or Business Plan",
+  "businessPlanHint": "Upload your detailed project documentation (PDF).",
+  "upload": "Upload PDF",
+  "requests": {
+    "title": "Requests",
+    "incoming": "Incoming",
+    "outgoing": "Outgoing",
+    "from": "From",
+    "to": "To",
+    "accept": "Accept",
+    "decline": "Decline",
+    "withdraw": "Withdraw",
+    "noIncoming": "No incoming requests.",
+    "noOutgoing": "No outgoing requests."
+  },
+  "problemPlaceholder": "صف المشكلة أو الحاجة التي يعالجها مشروعك.",
+  "solution": "الحل",
+  "solutionPlaceholder": "اشرح كيف يحل مشروعك هذه المشكلة.",
+  "usp": "عرض البيع الفريد (USP)",
+  "uspPlaceholder": "ما الذي يجعل مشروعك فريدًا وأفضل من المنافسين؟",
+
+  "about": {
+    "title": "Building the Future of Investment, Together.",
+    "description": "Investa is more than a platform; it’s a curated ecosystem where innovation meets capital. We unite ambitious founders, savvy investors, and skilled co-founders in a trusted environment, making it easier than ever to discover, fund, and build the next generation of groundbreaking ventures.",
+    "pillars": {
+      "discover": {
+        "title": "Discover Vetted Opportunities",
+        "description": "Explore a curated selection of high-potential startups and investment deals. Our rigorous screening process ensures you only see trusted opportunities, saving you time and effort."
+      },
+      "connect": {
+        "title": "Find Your Next Partner",
+        "description": "Whether you're an investor seeking talent or a founder looking for a co-founder, our community is your gateway to meaningful connections with industry experts and visionaries."
+      },
+      "grow": {
+        "title": "Grow with Minimal Cost",
+        "description": "Bypass the expensive intermediaries. Our platform provides the tools to connect and secure funding efficiently, empowering you to allocate more resources towards what truly matters: growth."
+      }
+    }
+  },
+
+  "cta": {
+    "title": "Ready to Elevate Your Trading?",
+    "subtitle": "Join thousands of investors who are leveraging AI to build their wealth. Get started in minutes.",
+    "button": "Create Your Account"
+  },
+
+  "testimonials": {
+    "title": "What Our Users Say",
+    "subtitle": "Real stories from investors who trust Investa.",
+    "sarah": "Investa has completely transformed my approach to the markets. The AI insights are incredibly accurate and have saved me countless hours of research.",
+    "michael": "As a long-term investor, the portfolio optimization tool is a game-changer. It helps me stay diversified and manage risk effectively. Highly recommended!",
+    "jessica": "The automated trading bots are fantastic. I can set my strategy and let the platform do the heavy lifting. My portfolio has never been healthier."
+  },
+
+  "blog": {
+    "title": "Latest Insights",
+    "subtitle": "Stay informed with our latest articles and market news.",
+    "readMore": "Read More",
+    "post1": { "title": "Understanding the Impact of AI on Forex Trading", "excerpt": "Discover how machine learning algorithms are predicting currency fluctuations with unprecedented accuracy." },
+    "post2": { "title": "Our 2024 Tech Stack: Building a Resilient Platform", "excerpt": "A deep dive into the infrastructure that powers Investa's real-time data processing and AI engines." },
+    "post3": { "title": "Risk Management Strategies for Automated Trading", "excerpt": "Learn how to set up effective stop-losses and risk parameters for your trading bots." },
+    "post4": { "title": "The Psychology of Investing: Avoiding Emotional Decisions", "excerpt": "Explore common cognitive biases that affect investors and learn strategies to maintain a rational approach." },
+    "post5": { "title": "Beginner's Guide to Cryptocurrency Staking", "excerpt": "Understand the basics of staking, how it works, and how you can earn passive income from your crypto assets." },
+    "post6": { "title": "Diversification is Key: Building a Balanced Portfolio", "excerpt": "A look into the importance of asset allocation and how to spread risk across different investment types." }
+  },
+
+  "investments": {
+    "title": "استكشف الفرص",
+    "startInvestingButton": "قدم مشروعك",
+    "filterPlaceholder": "تصفية الاستثمارات...",
+    "advancedSearch": "بحث متقدم",
+    "riskLevel": "مستوى المخاطرة",
+    "risk": {
+      "low": "منخفض",
+      "medium": "متوسط",
+      "high": "مرتفع",
+      "risk": "مخاطرة"
+    },
+    "funding": "التمويل",
+    "fundingProgress": "تقدم التمويل",
+    "min": "الحد الأدنى",
+    "to": "إلى",
+    "max": "الحد الأقصى",
+    "showOnly": "عرض فقط",
+    "favorites": "المفضلة",
+    "reset": "إعادة تعيين",
+    "score": "التقييم",
+    "investors": "المستثمرون",
+    "share": "مشاركة الاستثمار",
+    "addToFavorites": "إضافة إلى المفضلة",
+    "engage": "تفاعل",
+    "noResultsTitle": "لم يتم العثور على استثمارات",
+    "noResultsSubtitle": "لا توجد أصول تطابق الفلتر الحالي. جرب فئة مختلفة أو مصطلح بحث آخر.",
+    "previous": "السابق",
+    "page": "صفحة",
+    "of": "من",
+    "next": "التالي",
+    "engageModal": {
+      "title": "تأكيد التفاعل",
+      "message": "التفاعل مع {investmentName} سيكلفك {creditCost} رصيدًا. هل أنت متأكد أنك تريد المتابعة؟",
+      "cancelButton": "إلغاء",
+      "proceedButton": "متابعة والتفاعل"
+    },
+    "engageSuccessTitle": "تم إرسال الطلب",
+    "engageSuccessMessage": "تم إرسال طلب التفاعل الخاص بك بخصوص {investmentName}. سيتم إعلامك عند القبول.",
+    "requestSubmittedTitle": "تم إرسال الطلب",
+    "requestSubmittedMessage": "تم إرسال طلبك بخصوص {investmentName}. سنقوم بإعلامك عند القبول.",
+    "shareValidation": {
+      "minError": "يجب ألا يقل عدد الأسهم عن 1",
+      "maxError": "الحد الأقصى {available} من الأسهم المتاحة"
+    },
+    "investDialog": {
+      "title": "استثمر في {investmentName}",
+      "sharePrice": "سعر السهم",
+      "available": "المتاح",
+      "minLabel": "الحد الأدنى",
+      "maxLabel": "الحد الأقصى",
+      "sharesLabel": "عدد الأسهم",
+      "availableLine": "المتاح: {available} سهم",
+      "totalInvestment": "إجمالي الاستثمار:",
+      "expectedROI": "العائد المتوقع:",
+      "cancel": "إلغاء",
+      "confirm": "تأكيد الاستثمار",
+      "processing": "جاري المعالجة..."
+    }
+  },
+  "dashboard": {
+    "uncategorized": "Uncategorized"
+  },
+  "common": {
+    "months": {
+      "jan": "Jan",
+      "feb": "Feb",
+      "mar": "Mar",
+      "apr": "Apr",
+      "may": "May",
+      "jun": "Jun",
+      "jul": "Jul",
+      "aug": "Aug",
+      "sep": "Sep"
+    },
+    "timeAgo": {
+      "year": "{count} year ago",
+      "years": "{count} years ago",
+      "month": "{count} month ago",
+      "months": "{count} months ago",
+      "day": "{count} day ago",
+      "days": "{count} days ago",
+      "hour": "{count} hour ago",
+      "hours": "{count} hours ago",
+      "minute": "{count} minute ago",
+      "minutes": "{count} minutes ago",
+      "second": "{count} second ago",
+      "seconds": "{count} seconds ago"
+    }
+  }
+}
