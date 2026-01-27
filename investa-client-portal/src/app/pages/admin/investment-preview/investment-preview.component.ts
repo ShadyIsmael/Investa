@@ -7,12 +7,25 @@ import { TranslatePipe } from '../../../pipes/translate.pipe';
 import { Investment, RiskLevel, InvestmentType, getInvestmentTypeDisplay, getInvestmentTypeBadgeClass } from '../../../models/investment.model';
 import { NotificationService } from '../../../services/notification.service';
 import { LanguageService } from '../../../services/language.service';
+import { RequestsService } from '../../../services/requests.service';
+import { UserService } from '../../../services/user.service';
 import { get } from 'lodash-es';
 
 /**
  * Investment Preview Component
  * 
- * Shows a preview view of a single investment with engagement options
+ * Displays detailed investment information with engagement and investment actions
+ * Integrates with:
+ * - InvestmentService: Load investment data from API
+ * - UserService: Manage user credits
+ * - RequestsService: Create investment requests
+ * - NotificationService: User feedback
+ * 
+ * Business Logic:
+ * - Validates user credits before investment
+ * - Creates investment requests for founder approval
+ * - Handles both equity (share-based) and funding investments
+ * - Provides real-time credit balance updates
  */
 @Component({
   standalone: true,
@@ -26,9 +39,14 @@ export class InvestmentPreviewComponent {
   private investmentService = inject(InvestmentService);
   private notificationService = inject(NotificationService);
   private languageService = inject(LanguageService);
+  private requestsService = inject(RequestsService);
+  private userService = inject(UserService);
   
   protected readonly RiskLevel = RiskLevel;
   protected readonly InvestmentType = InvestmentType;
+
+  // User credits from UserService
+  userCredits = this.userService.credits;
 
   /**
    * Navigate to a team member's profile if an id is available
@@ -143,10 +161,38 @@ export class InvestmentPreviewComponent {
     return (investment.sharePrice || 0) * this.sharesToPurchaseValue;
   }
 
+  /**
+   * Confirm investment request
+   * 
+   * Validates user has sufficient credits, then creates investment request
+   * Credits are deducted immediately and request is sent to founder for approval
+   * If founder accepts, investment is processed; if declined, credits are refunded
+   */
   confirmInvestment(investment: Investment): void {
     this.investmentProcessing.set(true);
-    // Simulate API call
-    setTimeout(() => {
+    this.investmentError.set(null);
+
+    const investmentAmount = this.calculateInvestmentAmount(investment);
+    const currentCredits = this.userCredits();
+
+    // Validate sufficient credits
+    if (currentCredits < investmentAmount) {
+      this.investmentError.set('Insufficient credits. Please add more credits to your account.');
+      this.investmentProcessing.set(false);
+      this.notificationService.showToast({
+        title: 'Insufficient Credits',
+        message: 'You do not have enough credits to complete this investment.',
+        type: 'error'
+      });
+      return;
+    }
+
+    // Create investment request via API
+    this.requestsService.createInvestmentRequest(
+      investment,
+      investmentAmount,
+      this.sharesToPurchaseValue
+    ).then(() => {
       const { title, message } = this.getRequestSubmittedCopy(investment);
 
       this.notificationService.showToast({
@@ -156,17 +202,51 @@ export class InvestmentPreviewComponent {
       });
       
       this.closeInvestDialog();
+    }).catch(error => {
+      console.error('Investment request failed:', error);
+      this.investmentError.set(error.message || 'Failed to submit investment request');
+      this.notificationService.showToast({
+        title: 'Request Failed',
+        message: error.message || 'Failed to submit investment request. Please try again.',
+        type: 'error'
+      });
+    }).finally(() => {
       this.investmentProcessing.set(false);
-    }, 1000);
+    });
   }
 
   cancelEngage(): void {
     this.investmentToEngage.set(null);
   }
 
+  /**
+   * Confirm engagement for funding-based investments
+   * 
+   * For funding/debt investments, engagement costs a fixed credit amount
+   * Creates investment request similar to equity investment
+   */
   confirmEngage(): void {
     const investment = this.investmentToEngage();
-    if (investment) {
+    if (!investment) return;
+
+    const currentCredits = this.userCredits();
+
+    // Validate sufficient credits for engagement
+    if (currentCredits < this.engagementCreditCost) {
+      this.notificationService.showToast({
+        title: 'Insufficient Credits',
+        message: 'You do not have enough credits for engagement.',
+        type: 'error'
+      });
+      return;
+    }
+
+    // Create investment request for funding-based investments
+    this.requestsService.createInvestmentRequest(
+      investment,
+      this.engagementCreditCost,
+      0 // No shares for funding-based investments
+    ).then(() => {
       const { title, message } = this.getRequestSubmittedCopy(investment);
 
       this.notificationService.showToast({
@@ -176,7 +256,14 @@ export class InvestmentPreviewComponent {
       });
       
       this.investmentToEngage.set(null);
-    }
+    }).catch(error => {
+      console.error('Engagement request failed:', error);
+      this.notificationService.showToast({
+        title: 'Request Failed',
+        message: error.message || 'Failed to submit engagement request. Please try again.',
+        type: 'error'
+      });
+    });
   }
 
   private getRequestSubmittedCopy(investment: Investment): { title: string; message: string } {

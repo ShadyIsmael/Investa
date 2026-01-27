@@ -8,7 +8,8 @@
     "build": "ng build",
     "preview": "ng serve --configuration=production",
     "check:styleurls": "node scripts/check-style-urls.js",
-    "check:sass-deprecations": "node scripts/check-sass-deprecations.js"
+    "check:sass-deprecations": "node scripts/check-sass-deprecations.js",
+    "validate:i18n": "node scripts/validate-i18n.cjs"
   },
   "dependencies": {
     "@angular/build": "^21.0.0",

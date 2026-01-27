@@ -7,6 +7,7 @@ import { LanguageService } from '../../../services/language.service';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
 import { AuthService } from '../../../services/auth.service';
 import { ProfileService } from '../../../services/profile.service';
+import { UserService } from '../../../services/user.service';
 import { Investment } from '../../../models/investment.model';
 import { NotificationService } from '../../../services/notification.service';
 import { get } from 'lodash-es';
@@ -62,7 +63,12 @@ export class DashboardComponent {
   private languageService = inject(LanguageService);
   private authService = inject(AuthService);
   private profileService = inject(ProfileService);
+  private userService = inject(UserService);
   private notificationService = inject(NotificationService);
+
+  private t(path: string, fallback: string): string {
+    return get(this.languageService.dictionary(), path, fallback);
+  }
   
   pieChart = viewChild<ElementRef>('pieChart');
   lineChart = viewChild<ElementRef>('lineChart');
@@ -77,7 +83,7 @@ export class DashboardComponent {
   favoriteInvestments = computed(() => this.allInvestments().filter(inv => inv.favorited));
   featuredInvestments = computed(() => this.allInvestments().sort((a, b) => b.credibilityScore - a.credibilityScore).slice(0, 3));
   investorScore = signal(85);
-  availableCredits = signal(150);
+  availableCredits = this.userService.credits; // Use UserService for credits
   
   // --- Founder-specific computed signals & data ---
   founderProjects = computed(() => {
@@ -185,29 +191,36 @@ export class DashboardComponent {
     let interval = seconds / 31536000;
     if (interval > 1) {
       const years = Math.floor(interval);
-      return `${years} year${years > 1 ? 's' : ''} ago`;
+      const key = years > 1 ? 'common.timeAgo.years' : 'common.timeAgo.year';
+      return this.t(key, '{count} years ago').replace('{count}', String(years));
     }
     interval = seconds / 2592000;
     if (interval > 1) {
       const months = Math.floor(interval);
-      return `${months} month${months > 1 ? 's' : ''} ago`;
+      const key = months > 1 ? 'common.timeAgo.months' : 'common.timeAgo.month';
+      return this.t(key, '{count} months ago').replace('{count}', String(months));
     }
     interval = seconds / 86400;
     if (interval > 1) {
       const days = Math.floor(interval);
-      return `${days} day${days > 1 ? 's' : ''} ago`;
+      const key = days > 1 ? 'common.timeAgo.days' : 'common.timeAgo.day';
+      return this.t(key, '{count} days ago').replace('{count}', String(days));
     }
     interval = seconds / 3600;
     if (interval > 1) {
       const hours = Math.floor(interval);
-      return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+      const key = hours > 1 ? 'common.timeAgo.hours' : 'common.timeAgo.hour';
+      return this.t(key, '{count} hours ago').replace('{count}', String(hours));
     }
     interval = seconds / 60;
     if (interval > 1) {
       const minutes = Math.floor(interval);
-      return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+      const key = minutes > 1 ? 'common.timeAgo.minutes' : 'common.timeAgo.minute';
+      return this.t(key, '{count} minutes ago').replace('{count}', String(minutes));
     }
-    return `${Math.floor(seconds)} second${seconds > 1 ? 's' : ''} ago`;
+    const secs = Math.floor(seconds);
+    const key = secs > 1 ? 'common.timeAgo.seconds' : 'common.timeAgo.second';
+    return this.t(key, '{count} seconds ago').replace('{count}', String(secs));
   }
 
   // Fix: Correctly type `valueField` to ensure proper type inference for chart data.
@@ -219,7 +232,7 @@ export class DashboardComponent {
     const categoryTotals: Record<string, number> = {};
     for (const investment of investments) {
       const value = investment[valueField];
-      const categoryName = investment.businessCategoryName || 'Uncategorized';
+      const categoryName = investment.businessCategoryName || this.t('dashboard.uncategorized', 'Uncategorized');
       if (typeof value === 'number') {
         categoryTotals[categoryName] = (categoryTotals[categoryName] || 0) + value;
       }
@@ -233,19 +246,26 @@ export class DashboardComponent {
   private getLineChartData(): LineChartData[] {
     // Mock data for personal portfolio performance
     return [
-      { month: 'Jan', value: 78000 }, { month: 'Feb', value: 81000 },
-      { month: 'Mar', value: 85000 }, { month: 'Apr', value: 83000 },
-      { month: 'May', value: 90000 }, { month: 'Jun', value: 92000 },
-      { month: 'Jul', value: 95000 }, { month: 'Aug', value: 98000 },
+      { month: this.t('common.months.jan', 'Jan'), value: 78000 },
+      { month: this.t('common.months.feb', 'Feb'), value: 81000 },
+      { month: this.t('common.months.mar', 'Mar'), value: 85000 },
+      { month: this.t('common.months.apr', 'Apr'), value: 83000 },
+      { month: this.t('common.months.may', 'May'), value: 90000 },
+      { month: this.t('common.months.jun', 'Jun'), value: 92000 },
+      { month: this.t('common.months.jul', 'Jul'), value: 95000 },
+      { month: this.t('common.months.aug', 'Aug'), value: 98000 },
     ];
   }
 
   private getBarChartData(): BarChartData[] {
      // Mock data for new investors over time
     return [
-      { label: 'Apr', value: 5 }, { label: 'May', value: 8 },
-      { label: 'Jun', value: 12 }, { label: 'Jul', value: 7 },
-      { label: 'Aug', value: 15 }, { label: 'Sep', value: 11 },
+      { label: this.t('common.months.apr', 'Apr'), value: 5 },
+      { label: this.t('common.months.may', 'May'), value: 8 },
+      { label: this.t('common.months.jun', 'Jun'), value: 12 },
+      { label: this.t('common.months.jul', 'Jul'), value: 7 },
+      { label: this.t('common.months.aug', 'Aug'), value: 15 },
+      { label: this.t('common.months.sep', 'Sep'), value: 11 },
     ];
   }
   

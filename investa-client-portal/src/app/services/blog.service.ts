@@ -9,7 +9,7 @@ export interface BlogPostContent {
 export interface BlogPost {
   slug: string;
   imageUrl: string;
-  category: string;
+  categoryKey: string;
   titleKey: string;
   excerptKey: string;
   contentKey?: string;
@@ -26,7 +26,7 @@ export class BlogService {
     {
       slug: 'from-idea-to-impact',
       imageUrl: 'https://picsum.photos/seed/blog10/800/400',
-      category: 'Business Strategy',
+      categoryKey: 'blog.post10.category',
       titleKey: 'blog.post10.title',
       excerptKey: 'blog.post10.excerpt',
       contentKey: 'blog.post10.content',
@@ -37,7 +37,7 @@ export class BlogService {
     {
       slug: 'ai-on-forex-trading',
       imageUrl: 'https://picsum.photos/seed/blog1/800/400',
-      category: 'Market Analysis',
+      categoryKey: 'blog.post1.category',
       titleKey: 'blog.post1.title',
       excerptKey: 'blog.post1.excerpt',
       author: 'John Smith',
@@ -47,7 +47,7 @@ export class BlogService {
     {
       slug: '2024-tech-stack',
       imageUrl: 'https://picsum.photos/seed/blog2/800/400',
-      category: 'Technology',
+      categoryKey: 'blog.post2.category',
       titleKey: 'blog.post2.title',
       excerptKey: 'blog.post2.excerpt',
       author: 'Alex Johnson',
@@ -57,7 +57,7 @@ export class BlogService {
     {
       slug: 'risk-management-strategies',
       imageUrl: 'https://picsum.photos/seed/blog3/800/400',
-      category: 'Investing 101',
+      categoryKey: 'blog.post3.category',
       titleKey: 'blog.post3.title',
       excerptKey: 'blog.post3.excerpt',
       author: 'Emily White',
@@ -67,7 +67,7 @@ export class BlogService {
     {
       slug: 'psychology-of-investing',
       imageUrl: 'https://picsum.photos/seed/blog4/800/400',
-      category: 'Strategy',
+      categoryKey: 'blog.post4.category',
       titleKey: 'blog.post4.title',
       excerptKey: 'blog.post4.excerpt',
       author: 'Chris Green',
@@ -77,7 +77,7 @@ export class BlogService {
     {
       slug: 'guide-to-crypto-staking',
       imageUrl: 'https://picsum.photos/seed/blog5/800/400',
-      category: 'Crypto',
+      categoryKey: 'blog.post5.category',
       titleKey: 'blog.post5.title',
       excerptKey: 'blog.post5.excerpt',
       author: 'Sarah J.',
@@ -87,7 +87,7 @@ export class BlogService {
     {
       slug: 'diversification-is-key',
       imageUrl: 'https://picsum.photos/seed/blog6/800/400',
-      category: 'Portfolio Management',
+      categoryKey: 'blog.post6.category',
       titleKey: 'blog.post6.title',
       excerptKey: 'blog.post6.excerpt',
       author: 'Michael B.',
@@ -97,7 +97,7 @@ export class BlogService {
      {
       slug: 'ai-in-real-estate',
       imageUrl: 'https://picsum.photos/seed/blog7/800/400',
-      category: 'Real Estate',
+      categoryKey: 'blog.post7.category',
       titleKey: 'blog.post7.title',
       excerptKey: 'blog.post7.excerpt',
       author: 'Jessica L.',
@@ -107,7 +107,7 @@ export class BlogService {
     {
       slug: 'etfs-vs-mutual-funds',
       imageUrl: 'https://picsum.photos/seed/blog8/800/400',
-      category: 'Funds',
+      categoryKey: 'blog.post8.category',
       titleKey: 'blog.post8.title',
       excerptKey: 'blog.post8.excerpt',
       author: 'David Brown',
@@ -117,7 +117,7 @@ export class BlogService {
     {
       slug: 'the-rise-of-esg-investing',
       imageUrl: 'https://picsum.photos/seed/blog9/800/400',
-      category: 'Trends',
+      categoryKey: 'blog.post9.category',
       titleKey: 'blog.post9.title',
       excerptKey: 'blog.post9.excerpt',
       author: 'Laura Wilson',

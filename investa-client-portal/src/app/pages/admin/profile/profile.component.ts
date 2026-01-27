@@ -2,9 +2,10 @@ import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, D
 import { NotificationService } from '../../../services/notification.service';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormControl, FormGroup, Validators, AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
 import { ProfileService, CreditTransaction } from '../../../services/profile.service';
+import { LanguageService } from '../../../services/language.service';
 
 export const passwordMatchValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
   const password = control.get('newPassword');
@@ -30,9 +31,22 @@ export class ProfileComponent {
   private destroyRef = inject(DestroyRef);
   public profileService = inject(ProfileService);
   private notificationService = inject(NotificationService);
+  private languageService = inject(LanguageService);
+
+  private t(path: string): string {
+    return this.languageService.translate(path);
+  }
 
   // Derived fields from loaded profile
   fullName = computed(() => {
+    // Use form values for real-time updates, fall back to backend profile
+    const formFirst = this.profileForm.get('firstName')?.value || '';
+    const formLast = this.profileForm.get('lastName')?.value || '';
+    
+    if (formFirst || formLast) {
+      return `${formFirst} ${formLast}`.trim();
+    }
+    
     const p = this.profileService.profile();
     if (!p) return '';
     if (p.basicInfo?.fullName) return p.basicInfo.fullName;
@@ -63,15 +77,36 @@ export class ProfileComponent {
   profileSnapshot = signal<string>('');
 
   isProfileChanged = computed(() => {
+    const formValues = this.profileFormValues();
     const current = {
-      firstName: this.profileForm.get('firstName')?.value ?? '',
-      lastName: this.profileForm.get('lastName')?.value ?? '',
-      bio: this.profileForm.get('bio')?.value ?? '',
-      linkedinUrl: this.profileForm.get('linkedinUrl')?.value ?? '',
-      facebookUrl: this.profileForm.get('facebookUrl')?.value ?? ''
+      firstName: formValues.firstName ?? '',
+      lastName: formValues.lastName ?? '',
+      businessRole: formValues.businessRole ?? '',
+      nationalId: formValues.nationalId ?? '',
+      bio: formValues.bio ?? '',
+      linkedinUrl: formValues.linkedinUrl ?? '',
+      facebookUrl: formValues.facebookUrl ?? ''
     };
     try {
       return JSON.stringify(current) !== this.profileSnapshot();
+    } catch {
+      return false;
+    }
+  });
+
+  communicationSnapshot = signal<string>('');
+
+  isCommunicationChanged = computed(() => {
+    const formValues = this.communicationFormValues();
+    const current = {
+      email: formValues.email ?? '',
+      address: formValues.address ?? '',
+      city: formValues.city ?? '',
+      state: formValues.state ?? '',
+      businessAddress: formValues.businessAddress ?? ''
+    };
+    try {
+      return JSON.stringify(current) !== this.communicationSnapshot();
     } catch {
       return false;
     }
@@ -81,27 +116,32 @@ export class ProfileComponent {
     return this.currentLanguage() === 'ar' ? transaction.justificationAr : transaction.justificationEn;
   };
 
-  // Pre-fill with some dummy data
   profileForm = new FormGroup({
-    firstName: new FormControl('Admin', [Validators.required]),
-    lastName: new FormControl('User', [Validators.required]),
-    businessRole: new FormControl('Lead Investor', [Validators.required]),
-    nationalId: new FormControl('123-456-789', [Validators.required]),
+    firstName: new FormControl('', [Validators.required]),
+    lastName: new FormControl('', [Validators.required]),
+    businessRole: new FormControl(''),
+    nationalId: new FormControl(''),
     nationalIdCopy: new FormControl<File | null>(null),
-    bio: new FormControl('Experienced investor with a passion for AI-driven strategies.', [Validators.maxLength(500)]),
-    linkedinUrl: new FormControl('https://linkedin.com/in/admin', [Validators.pattern('https?://.+')]),
-    facebookUrl: new FormControl('https://facebook.com/admin', [Validators.pattern('https?://.+')]),
+    bio: new FormControl('', [Validators.maxLength(500)]),
+    linkedinUrl: new FormControl(''),
+    facebookUrl: new FormControl(''),
   });
 
+  // Convert form values to signal for reactive change detection
+  profileFormValues = toSignal(this.profileForm.valueChanges, { initialValue: this.profileForm.value });
+
   communicationForm = new FormGroup({
-    email: new FormControl({ value: 'admin@investa.com', disabled: true }),
-    mobile: new FormControl({ value: '1234567890', disabled: true }),
-    address: new FormControl('123 Tech Lane', [Validators.required]),
-    city: new FormControl('Future City', [Validators.required]),
-    state: new FormControl('CA', [Validators.required]),
-    businessAddress: new FormControl('456 Business Blvd', [Validators.required]),
+    email: new FormControl(''),
+    mobile: new FormControl({ value: '', disabled: true }),
+    address: new FormControl(''),
+    city: new FormControl(''),
+    state: new FormControl(''),
+    businessAddress: new FormControl(''),
     businessLocationSearch: new FormControl(''),
   });
+
+  // Convert form values to signal for reactive change detection
+  communicationFormValues = toSignal(this.communicationForm.valueChanges, { initialValue: this.communicationForm.value });
 
   passwordForm = new FormGroup({
     currentPassword: new FormControl('', [Validators.required]),
@@ -118,15 +158,16 @@ export class ProfileComponent {
 
   trustScore = computed(() => {
     const p = this.profileService.profile();
-    // Prefer backend-provided credibilityScore when available (scale to 0-100)
-    if (p?.coreMetrics?.credibilityScore != null) {
-      const percent = Math.min(100, Math.round((p.coreMetrics.credibilityScore / 5000) * 100));
-      return percent;
+    const backendScore = p?.coreMetrics?.currentCredibilityScore ?? p?.coreMetrics?.credibilityScore;
+    if (backendScore != null) {
+      return Math.min(100, Math.max(0, backendScore));
     }
 
-    let score = 10; // Base score
-    if (this.isNationalIdVerified()) score += 30;
-    if (this.isIdCopyVerified()) score += 30;
+    let score = 10; // Base score when backend not provided
+    const kycVerified = this.kycStatus() === 'Verified';
+    if (kycVerified) score += 60;
+    if (this.isNationalIdVerified()) score += 20;
+    if (this.isIdCopyVerified()) score += 20;
     if (this.profileForm.get('bio')?.value) score += 15;
     if (this.profileForm.get('linkedinUrl')?.value || this.profileForm.get('facebookUrl')?.value) score += 15;
     return Math.min(score, 100);
@@ -147,32 +188,68 @@ export class ProfileComponent {
     // Load profile from API on component init
     this.loadProfile();
 
-    // Patch forms whenever the profile signal updates
+    // Patch forms once when profile first loads
     effect(() => {
       const p = this.profileService.profile();
-      if (!p) return;
+      if (!p || this.profileSnapshot()) return; // Only sync if snapshot not initialized
 
-      // Patch personal details
-      this.profileForm.patchValue({
-        firstName: p.basicInfo?.firstName ?? '',
-        lastName: p.basicInfo?.lastName ?? '',
-        bio: p.basicInfo?.bio ?? '',
-        linkedinUrl: p.basicInfo?.linkedInUrl ?? p.contactInfo?.linkedInUrl ?? '',
-        facebookUrl: p.basicInfo?.facebookUrl ?? p.contactInfo?.facebookUrl ?? '',
-      }, { emitEvent: false });
-
-      // Patch communication info
-      this.communicationForm.patchValue({
-        email: p.contactInfo?.email ?? '',
-        mobile: p.contactInfo?.phone1 ?? '',
-      }, { emitEvent: false });
-
-      // Sync identity verification flags from backend
-      const vs = p.identityCompliance?.verificationStatus;
-      this.isNationalIdVerified.set(vs === 'Verified');
-      this.isIdCopyVerified.set(vs === 'Verified');
+      this.syncProfileToForms(p);
+      this.initializeSnapshots(p);
 
     });
+  }
+
+  private syncProfileToForms(p: ReturnType<typeof this.profileService.profile>): void {
+    // Patch personal details
+    this.profileForm.patchValue({
+      firstName: p?.basicInfo?.firstName ?? '',
+      lastName: p?.basicInfo?.lastName ?? '',
+      businessRole: p?.coreMetrics?.clientType ?? p?.coreMetrics?.role ?? '',
+      nationalId: p?.identityCompliance?.documentNumber ?? '',
+      bio: p?.basicInfo?.bio ?? '',
+      linkedinUrl: p?.basicInfo?.linkedInUrl ?? p?.contactInfo?.linkedInUrl ?? '',
+      facebookUrl: p?.basicInfo?.facebookUrl ?? p?.contactInfo?.facebookUrl ?? '',
+    }, { emitEvent: false });
+
+    // Patch communication info
+    this.communicationForm.patchValue({
+      email: p?.contactInfo?.email ?? '',
+      mobile: p?.contactInfo?.phone1 ?? '',
+      address: p?.contactInfo?.address ?? '',
+      city: p?.contactInfo?.workAddress ?? '',
+      state: p?.contactInfo?.phone2 ?? '',
+      businessAddress: p?.contactInfo?.workAddress ?? '',
+    }, { emitEvent: false });
+
+    // Sync identity verification flags from backend
+    const vs = p?.identityCompliance?.verificationStatus;
+    const verified = vs === 'Verified';
+    this.isNationalIdVerified.set(verified);
+    this.isIdCopyVerified.set(verified);
+  }
+
+  private initializeSnapshots(p: ReturnType<typeof this.profileService.profile>): void {
+    // Initialize profile snapshot for change detection
+    const snapshotObj = {
+      firstName: p?.basicInfo?.firstName ?? '',
+      lastName: p?.basicInfo?.lastName ?? '',
+      businessRole: p?.coreMetrics?.clientType ?? p?.coreMetrics?.role ?? '',
+      nationalId: p?.identityCompliance?.documentNumber ?? '',
+      bio: p?.basicInfo?.bio ?? '',
+      linkedinUrl: p?.basicInfo?.linkedInUrl ?? p?.contactInfo?.linkedInUrl ?? '',
+      facebookUrl: p?.basicInfo?.facebookUrl ?? p?.contactInfo?.facebookUrl ?? ''
+    };
+    this.profileSnapshot.set(JSON.stringify(snapshotObj));
+
+    // Initialize communication snapshot for change detection
+    const commSnapshotObj = {
+      email: p?.contactInfo?.email ?? '',
+      address: p?.contactInfo?.address ?? '',
+      city: p?.contactInfo?.workAddress ?? '',
+      state: p?.contactInfo?.phone2 ?? '',
+      businessAddress: p?.contactInfo?.workAddress ?? ''
+    };
+    this.communicationSnapshot.set(JSON.stringify(commSnapshotObj));
   }
 
   async onStartKyc(): Promise<void> {
@@ -180,12 +257,21 @@ export class ProfileComponent {
       this.isLoading.set(true);
       this.errorMessage.set(null);
       await this.profileService.startKyc();
-      // Reload credit history after starting KYC
+      await this.profileService.loadMyProfile();
       await this.loadCreditHistory();
-      this.errorMessage.set('KYC started successfully. You earned +10 credibility points!');
+      this.notificationService.showToast({
+        title: this.t('profile.toasts.kycStartedTitle'),
+        message: this.t('profile.toasts.kycStartedMessage'),
+        type: 'success'
+      });
     } catch (e: any) {
-      const message = e?.error?.message || 'Failed to start KYC. Please try again.';
+      const message = e?.error?.message || this.t('profile.toasts.kycFailedMessage');
       this.errorMessage.set(message);
+      this.notificationService.showToast({
+        title: this.t('profile.toasts.kycFailedTitle'),
+        message,
+        type: 'error'
+      });
     } finally {
       this.isLoading.set(false);
     }
@@ -206,23 +292,13 @@ export class ProfileComponent {
       this.errorMessage.set(null);
       const p = await this.profileService.loadMyProfile();
       if (!p) {
-        this.errorMessage.set('Profile not found');
+        this.errorMessage.set(this.t('profile.errors.notFound'));
       } else {
         // Load credit history after loading profile
         await this.loadCreditHistory();
-
-        // Initialize profile snapshot for change detection
-        const snapshotObj = {
-          firstName: p.basicInfo?.firstName ?? '',
-          lastName: p.basicInfo?.lastName ?? '',
-          bio: p.basicInfo?.bio ?? '',
-          linkedinUrl: p.basicInfo?.linkedInUrl ?? p.contactInfo?.linkedInUrl ?? '',
-          facebookUrl: p.basicInfo?.facebookUrl ?? p.contactInfo?.facebookUrl ?? ''
-        };
-        this.profileSnapshot.set(JSON.stringify(snapshotObj));
       }
     } catch (e) {
-      this.errorMessage.set('Failed to load profile. Please try again.');
+      this.errorMessage.set(this.t('profile.errors.loadFailed'));
       // Clear any stale profile data
       this.profileService.clear();
     } finally {
@@ -247,59 +323,61 @@ export class ProfileComponent {
   async onProfileSubmit(): Promise<void> {
     if (this.profileForm.invalid) return;
 
-    // Build profile DTO to send (merge with existing profile where available)
-    const existing = this.profileService.profile() ?? { userId: '', coreMetrics: null, basicInfo: null, contactInfo: null, identityCompliance: null };
-
-    const profileDto = {
-      ...existing,
-      basicInfo: {
-        ...(existing.basicInfo ?? {}),
-        firstName: this.profileForm.get('firstName')?.value ?? '',
-        lastName: this.profileForm.get('lastName')?.value ?? '',
-        bio: this.profileForm.get('bio')?.value ?? '',
-        linkedInUrl: this.profileForm.get('linkedinUrl')?.value ?? '',
-        facebookUrl: this.profileForm.get('facebookUrl')?.value ?? '',
-      },
-      contactInfo: {
-        ...(existing.contactInfo ?? {}),
-        linkedInUrl: this.profileForm.get('linkedinUrl')?.value ?? '',
-        facebookUrl: this.profileForm.get('facebookUrl')?.value ?? ''
-      }
-    } as any;
+    const profileDto = this.buildProfileUpdatePayload();
 
     try {
       this.isLoading.set(true);
       this.errorMessage.set(null);
 
-      // show a transient saving toast
-      this.notificationService.showToast({ title: 'Saving', message: 'Saving your profile…', type: 'info' });
+      this.notificationService.showToast({
+        title: this.t('profile.toasts.savingTitle'),
+        message: this.t('profile.toasts.savingMessage'),
+        type: 'info'
+      });
 
       const updated = await this.profileService.updateMyProfile(profileDto);
       if (updated) {
-        // update snapshot and mark pristine
-        const snapshotObj = {
-          firstName: updated.basicInfo?.firstName ?? '',
-          lastName: updated.basicInfo?.lastName ?? '',
-          bio: updated.basicInfo?.bio ?? '',
-          linkedinUrl: updated.basicInfo?.linkedInUrl ?? updated.contactInfo?.linkedInUrl ?? '',
-          facebookUrl: updated.basicInfo?.facebookUrl ?? updated.contactInfo?.facebookUrl ?? ''
-        };
-        this.profileSnapshot.set(JSON.stringify(snapshotObj));
+        // Reload profile to get fresh data from backend
+        await this.profileService.loadMyProfile();
+        
+        // Reinitialize snapshots with updated data
+        const p = this.profileService.profile();
+        if (p) this.initializeSnapshots(p);
         this.profileForm.markAsPristine();
-        this.errorMessage.set('Profile saved successfully');
 
-        // show success toast
+        // Verify server persisted client-side changes (role, national id)
+        const submittedRole = profileDto.coreMetrics?.clientType ?? profileDto.coreMetrics?.role ?? null;
+        const submittedNationalId = profileDto.identityCompliance?.documentNumber ?? null;
+        if (p) {
+          const persistedRole = p.coreMetrics?.clientType ?? p.coreMetrics?.role ?? null;
+          const persistedNationalId = p.identityCompliance?.documentNumber ?? null;
+          if (submittedRole && persistedRole !== submittedRole) {
+            console.warn('Role was not persisted by server', { submittedRole, persistedRole });
+            this.notificationService.showToast({ title: this.t('profile.toasts.roleNotPersistedTitle'), message: this.t('profile.toasts.roleNotPersistedMessage'), type: 'warning' });
+          }
+          if (submittedNationalId && persistedNationalId !== submittedNationalId) {
+            console.warn('National ID was not persisted by server', { submittedNationalId, persistedNationalId });
+            this.notificationService.showToast({ title: this.t('profile.toasts.nationalIdNotPersistedTitle'), message: this.t('profile.toasts.nationalIdNotPersistedMessage'), type: 'warning' });
+          }
+
+          // If the submitted national id was persisted and differs from previous, notify user that change is recorded and under review
+          const previousNationalId = existing.identityCompliance?.documentNumber ?? null;
+          if (submittedNationalId && persistedNationalId === submittedNationalId && submittedNationalId !== previousNationalId) {
+            this.notificationService.showToast({ title: this.t('profile.toasts.nationalIdChangeRecordedTitle'), message: this.t('profile.toasts.nationalIdChangeRecordedMessage'), type: 'info' });
+          }
+        }
+
         this.notificationService.showToast({
-          title: 'Profile Saved',
-          message: 'Your profile was updated successfully.',
+          title: this.t('profile.toasts.savedTitle'),
+          message: this.t('profile.toasts.savedMessage'),
           type: 'success'
         });
       }
     } catch (e) {
-      const message = e && e.error && e.error.message ? e.error.message : 'Failed to save profile. Please try again.';
+      const message = e && e.error && e.error.message ? e.error.message : this.t('profile.toasts.saveFailedMessage');
       this.errorMessage.set(message);
       this.notificationService.showToast({
-        title: 'Save Failed',
+        title: this.t('profile.toasts.saveFailedTitle'),
         message: message,
         type: 'error'
       });
@@ -310,8 +388,31 @@ export class ProfileComponent {
 
   onCommunicationSubmit() {
     if (this.communicationForm.invalid) return;
-    // TODO: Implement communication settings update
-    this.communicationForm.markAsPristine();
+    const profileDto = this.buildProfileUpdatePayload();
+    this.profileService.updateMyProfile(profileDto)
+      .then(async () => {
+        // Reload profile to get fresh data from backend
+        await this.profileService.loadMyProfile();
+        
+        // Reinitialize communication snapshot with updated data
+        const p = this.profileService.profile();
+        if (p) this.initializeSnapshots(p);
+        
+        this.communicationForm.markAsPristine();
+        this.notificationService.showToast({
+          title: this.t('profile.toasts.savedTitle'),
+          message: this.t('profile.toasts.savedMessage'),
+          type: 'success'
+        });
+      })
+      .catch((e) => {
+        const message = e && e.error && e.error.message ? e.error.message : this.t('profile.toasts.saveFailedMessage');
+        this.notificationService.showToast({
+          title: this.t('profile.toasts.saveFailedTitle'),
+          message,
+          type: 'error'
+        });
+      });
   }
 
   onPasswordSubmit() {
@@ -324,5 +425,56 @@ export class ProfileComponent {
     if (this.notificationSettingsForm.invalid) return;
     // TODO: Implement notification settings update
     this.notificationSettingsForm.markAsPristine();
+  }
+
+  private buildProfileUpdatePayload() {
+    const existing = this.profileService.profile() ?? { userId: '', coreMetrics: null, basicInfo: null, contactInfo: null, identityCompliance: null };
+    const communicationRaw = this.communicationForm.getRawValue();
+
+    return {
+      ...existing,
+      coreMetrics: {
+        ...(existing.coreMetrics ?? {}),
+        clientType: this.profileForm.get('businessRole')?.value ?? existing.coreMetrics?.clientType ?? null,
+        role: this.profileForm.get('businessRole')?.value ?? existing.coreMetrics?.role ?? null,
+        // Try to provide a numeric clientType when a known role is used (backend may expect enum int)
+        clientTypeId: this.mapBusinessRoleToClientTypeId(this.profileForm.get('businessRole')?.value) ?? null
+      },
+      // Also include a top-level nationalId (some backend versions use this field)
+      nationalId: this.profileForm.get('nationalId')?.value ?? existing.identityCompliance?.documentNumber ?? null,
+      basicInfo: {
+        ...(existing.basicInfo ?? {}),
+        firstName: this.profileForm.get('firstName')?.value ?? '',
+        lastName: this.profileForm.get('lastName')?.value ?? '',
+        bio: this.profileForm.get('bio')?.value ?? '',
+        linkedInUrl: this.profileForm.get('linkedinUrl')?.value ?? '',
+        facebookUrl: this.profileForm.get('facebookUrl')?.value ?? '',
+      },
+      contactInfo: {
+        ...(existing.contactInfo ?? {}),
+        email: communicationRaw.email ?? existing.contactInfo?.email ?? null,
+        phone1: existing.contactInfo?.phone1 ?? null,
+        phone2: communicationRaw.state ?? existing.contactInfo?.phone2 ?? null,
+        address: communicationRaw.address ?? existing.contactInfo?.address ?? null,
+        workAddress: communicationRaw.businessAddress ?? existing.contactInfo?.workAddress ?? null,
+        linkedInUrl: this.profileForm.get('linkedinUrl')?.value ?? existing.contactInfo?.linkedInUrl ?? null,
+        facebookUrl: this.profileForm.get('facebookUrl')?.value ?? existing.contactInfo?.facebookUrl ?? null
+      },
+      identityCompliance: {
+        ...(existing.identityCompliance ?? {}),
+        documentNumber: this.profileForm.get('nationalId')?.value ?? existing.identityCompliance?.documentNumber ?? null
+      }
+    };
+  }
+
+  private mapBusinessRoleToClientTypeId(role?: string | null): number | null {
+    if (!role) return null;
+    const normalized = role.trim().toLowerCase();
+    const map: Record<string, number> = {
+      'investor': 0,
+      'founder': 1,
+      'both': 2
+    };
+    return map[normalized] ?? null;
   }
 }

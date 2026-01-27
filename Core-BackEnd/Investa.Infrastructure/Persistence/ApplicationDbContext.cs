@@ -85,6 +85,9 @@ public class ApplicationDbContext : IdentityDbContext
     // Business category taxonomy used for client classification
     public DbSet<BusinessCategory> BusinessCategories { get; set; }
 
+    // Profile change audit trail for sensitive profile modifications (national id, business role)
+    public DbSet<ProfileChangeAudit> ProfileChangeAudits { get; set; }
+
     // Chat module entities (conversations, messages, attachments, reactions)
     public DbSet<Investa.Domain.Entities.Chat.Conversation> Conversations { get; set; }
     public DbSet<Investa.Domain.Entities.Chat.ChatMessage> ChatMessages { get; set; }
@@ -415,6 +418,22 @@ public class ApplicationDbContext : IdentityDbContext
              .WithMany()
              .HasForeignKey(x => x.ClientId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ProfileChangeAudit mapping
+        modelBuilder.Entity<ProfileChangeAudit>(a =>
+        {
+            a.HasKey(x => x.Id);
+            a.Property(x => x.UserId).IsRequired();
+            a.Property(x => x.FieldName).HasMaxLength(100).IsRequired();
+            a.Property(x => x.OldValue).HasMaxLength(500);
+            a.Property(x => x.NewValue).HasMaxLength(500);
+            a.Property(x => x.Reason).HasMaxLength(500);
+            a.Property(x => x.ChangedBy);
+            a.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+
+            a.HasIndex(x => x.UserId);
+            a.ToTable("ProfileChangeAudits");
         });
 
         // Groups & Permissions mapping

@@ -17,8 +17,12 @@
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.json",
             "assets": [
-              "src/favicon.ico",
-              "src/assets"
+              {
+                "glob": "**/*",
+                "input": "src/assets",
+                "output": "assets"
+              },
+              "src/favicon.ico"
             ],
             "styles": [
               "src/tailwind.css",

@@ -1,0 +1,542 @@
+{
+  "stocks": "أسهم",
+  "crypto": "عملات رقمية",
+  "fund": "صندوق",
+  "funds": "صناديق",
+  "stock": "سهم",
+  "language": {
+    "toggle": "الإنجليزية"
+  },
+  "header": {
+    "nav": {
+      "home": "الرئيسية",
+      "about": "من نحن",
+      "services": "الخدمات",
+      "blog": "المدونة",
+      "contact": "اتصل بنا",
+      "requests": "الطلبات"
+    },
+    "login": "تسجيل الدخول",
+    "signup": "إنشاء حساب"
+  },
+  "adminNav": {
+    "panel": "لوحة تحكم إنفستا",
+    "dashboard": "لوحة التحكم",
+    "investments": "الاستثمارات",
+    "submitInvestment": "تقديم استثمار",
+    "communication": "التواصل",
+    "requests": "الطلبات",
+    "returnHome": "العودة للصفحة الرئيسية",
+    "userMenu": {
+      "profile": "ملفك الشخصي",
+      "settings": "الإعدادات",
+      "srOpen": "فتح قائمة المستخدم"
+    },
+    "notifications": {
+      "srView": "عرض الإشعارات"
+    },
+    "logout": "تسجيل الخروج"
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "all": "الكل",
+    "unread": "غير مقروءة",
+    "delete": "حذف الإشعار",
+    "noNotifications": {
+      "title": "لا توجد إشعارات",
+      "subtitle": "ليس لديك إشعارات في الوقت الحالي.",
+      "allCaughtUp": "لقد اطّلعت على كل شيء!"
+    }
+  },
+  "investmentPreview": {
+    "backButton": "العودة إلى الاستثمارات",
+    "fundingStatus": "حالة التمويل",
+    "author": "المؤلف",
+    "noInvestors": "كن أول من يستثمر!",
+    "noTeamMembers": "لم يتم إضافة أعضاء فريق بعد.",
+    "investNowButton": "استثمر الآن",
+    "notFound": {
+      "title": "لم يتم العثور على الاستثمار",
+      "subtitle": "عذرًا، لم نتمكن من العثور على الاستثمار الذي تبحث عنه."
+    }
+  },
+  "problemPlaceholder": "صف المشكلة أو الحاجة التي يعالجها مشروعك.",
+  "solution": "الحل",
+  "solutionPlaceholder": "اشرح كيف يحل مشروعك هذه المشكلة.",
+  "usp": "عرض البيع الفريد (USP)",
+  "uspPlaceholder": "ما الذي يجعل مشروعك فريدًا وأفضل من المنافسين؟",
+
+  "about": {
+    "title": "نبني مستقبل الاستثمار، معًا.",
+    "description": "إنفستا أكثر من مجرد منصة؛ إنها نظام بيئي منسق يجمع الابتكار برأس المال. نُوَفِّر فرصًا للمؤسسين الطموحين والمستثمرين الماهرين للعمل معًا في بيئة موثوقة لتسهيل اكتشاف وتمويل وبناء الجيل القادم من المشاريع الرائدة.",
+    "pillars": {
+      "discover": {
+        "title": "اكتشف فرصًا موثوقة",
+        "description": "استكشف مجموعة من الشركات الناشئة والصفقات ذات الإمكانات العالية؛ تضمن عملية الفحص الصارمة لدينا ظهور فرص موثوقة فقط."
+      },
+      "connect": {
+        "title": "اعثر على شريكك التالي",
+        "description": "سواء كنت مستثمرًا يبحث عن موهبة أو مؤسسًا يبحث عن شريك، مجتمعنا هو مدخلك لبدء علاقات قيمة مع خبراء الصناعة."
+      },
+      "grow": {
+        "title": "نمّ بأقل التكاليف",
+        "description": "تجاوز الوسطاء المكلفين؛ منصتنا توفر أدوات الاتصال وتأمين التمويل بكفاءة، مما يمكّنك من تخصيص مواردك لما يهم."
+      }
+    }
+  },
+
+  "cta": {
+    "title": "هل أنت مستعد للارتقاء بتداولاتك؟",
+    "subtitle": "انضم إلى آلاف المستثمرين الذين يستفيدون من الذكاء الاصطناعي لبناء ثرواتهم. ابدأ الآن.",
+    "button": "أنشئ حسابك"
+  },
+
+  "hero": {
+    "title_part1": "استثمار ذكي،",
+    "title_part2": "مدعوم بالذكاء الاصطناعي",
+    "description": "انضم إلى مستقبل الاستثمار مع منصتنا المدعومة بالذكاء الاصطناعي. اتخذ قرارات مستندة إلى البيانات، وأتمتة تداولاتك، وعظّم عوائدك.",
+    "getStartedButton": "ابدأ الآن",
+    "watchDemoButton": "شاهد العرض التوضيحي"
+  },
+  "features": {
+    "title": "لماذا تختار إنفستا؟",
+    "subtitle": "تقنية متطورة تلتقي بتصميم بديهي.",
+    "realTime": {
+      "title": "بيانات السوق في الوقت الفعلي",
+      "description": "احصل على بيانات السوق المباشرة ورؤى مدعومة بالذكاء الاصطناعي للبقاء في الصدارة."
+    },
+    "automatedTrading": {
+      "title": "روبوتات التداول الآلي",
+      "description": "حدد استراتيجيتك ودع روبوتاتنا الذكية تنفذ الصفقات على مدار الساعة."
+    },
+    "portfolioOptimization": {
+      "title": "تحسين المحفظة",
+      "description": "عظّم العوائد مع إدارة المخاطر من خلال توصيات المحفظة المدعومة بالذكاء الاصطناعي."
+    }
+  },
+  "testimonials": {
+    "title": "ماذا يقول مستخدمونا",
+    "subtitle": "قصص حقيقية من مستثمرين يثقون في إنفستا.",
+    "sarah": "غيّرت إنفستا نهجي في التعامل مع الأسواق؛ رؤى الذكاء الاصطناعي دقيقة للغاية وقد وفرت عليّ ساعات من البحث.",
+    "sarahName": "سارة ج.",
+    "sarahTitle": "متداولة يومية",
+    "michael": "كخبير استثمارات طويل الأجل، أداة تحسين المحفظة غيّرت قواعد اللعبة؛ تساعدني على البقاء متنوعًا وإدارة المخاطر بفعالية. أوصي بها بشدة!",
+    "michaelName": "مايكل ب.",
+    "michaelTitle": "مستشار مالي",
+    "jessica": "روبوتات التداول الآلي رائعة؛ أضع استراتيجيتي وتقوم المنصة بالباقي. لم تكن محفظتي أفضل من قبل.",
+    "jessicaName": "جيسيكا ل.",
+    "jessicaTitle": "رائدة أعمال تقنية"
+  },
+
+  "blog": {
+    "title": "أحدث الرؤى",
+    "subtitle": "ابقَ على اطلاع بأحدث مقالاتنا وأخبار السوق.",
+    "readMore": "اقرأ المزيد",
+    "post1": { "title": "فهم تأثير الذكاء الاصطناعي على تداول الفوركس", "excerpt": "اكتشف كيف تتنبأ خوارزميات التعلم الآلي بتقلبات العملات بدقة غير مسبوقة.", "category": "تحليل السوق" },
+    "post2": { "title": "بنية التكنولوجيا الخاصة بنا 2024: بناء منصة مرنة", "excerpt": "نظرة معمقة على البنية التحتية التي تدعم معالجة البيانات في الوقت الحقيقي ومحركات الذكاء الاصطناعي.", "category": "التكنولوجيا" },
+    "post3": { "title": "استراتيجيات إدارة المخاطر للتداول الآلي", "excerpt": "تعلم كيفية إعداد أوامر وقف خسارة فعّالة ومعايير المخاطر لروبوتات التداول الخاصة بك.", "category": "استراتيجية الأعمال" },
+    "post4": { "title": "سيكولوجية الاستثمار: تجنب القرارات العاطفية", "excerpt": "استكشف التحيزات المعرفية الشائعة التي تؤثر على المستثمرين وتعلّم استراتيجيات للحفاظ على نهج عقلاني.", "category": "تحليل السوق" },
+    "post5": { "title": "دليل المبتدئين لتخزين العملات المشفرة", "excerpt": "افهم أساسيات التخزين، وكيف يعمل، وكيف يمكنك كسب دخل سلبي من أصولك المشفرة.", "category": "التكنولوجيا" },
+    "post6": { "title": "التنويع هو المفتاح: بناء محفظة متوازنة", "excerpt": "نظرة على أهمية تخصيص الأصول وكيفية توزيع المخاطر عبر أنواع الاستثمار المختلفة.", "category": "استراتيجية الأعمال" },
+    "post7": { "title": "الذكاء الاصطناعي في الاستثمار العقاري", "excerpt": "استكشف كيف يُحدث الذكاء الاصطناعي تحولاً في قرارات الاستثمار العقاري.", "category": "العقارات" },
+    "post8": { "title": "صناديق الاستثمار المتداولة مقابل صناديق الاستثمار المشتركة: أيهما مناسب لك؟", "excerpt": "قارن الاختلافات الرئيسية بين صناديق الاستثمار المتداولة والصناديق المشتركة لاتخاذ خيارات استثمارية مستنيرة.", "category": "الصناديق" },
+    "post9": { "title": "صعود الاستثمار ESG", "excerpt": "افهم الأهمية المتزايدة للعوامل البيئية والاجتماعية والحوكمة في قرارات الاستثمار.", "category": "الاتجاهات" },
+    "post10": { "title": "التخطيط الاستثماري الاستراتيجي لعام 2026", "excerpt": "استكشف الاستراتيجيات الرئيسية واتجاهات السوق لوضع محفظتك في موضع النجاح للعام القادم.", "category": "استراتيجية الأعمال" }
+  },
+  "footer": {
+    "tagline": "تمكين المستثمرين برؤى مدعومة بالذكاء الاصطناعي.",
+    "solutions": {
+      "title": "الحلول",
+      "ai": "التداول بالذكاء الاصطناعي",
+      "analytics": "التحليلات",
+      "portfolio": "المحفظة",
+      "api": "واجهة برمجة التطبيقات"
+    },
+    "support": {
+      "title": "الدعم",
+      "pricing": "الأسعار",
+      "docs": "التوثيق",
+      "guides": "الأدلة",
+      "center": "مركز الدعم"
+    },
+    "company": {
+      "title": "الشركة",
+      "about": "من نحن",
+      "blog": "المدونة",
+      "careers": "الوظائف",
+      "press": "الصحافة"
+    },
+    "legal": {
+      "title": "قانوني",
+      "claim": "المطالبات",
+      "privacy": "الخصوصية",
+      "terms": "الشروط",
+      "risk": "الإفصاح عن المخاطر"
+    },
+    "copyright": "إنفستا. جميع الحقوق محفوظة."
+  },
+
+  "investments": {
+    "title": "استكشف الفرص",
+    "startInvestingButton": "قدم مشروعك",
+    "filterPlaceholder": "تصفية الاستثمارات...",
+    "advancedSearch": "بحث متقدم",
+    "refresh": "تحديث",
+    "exportCsv": "تصدير CSV",
+    "anonymousInvestor": "مستثمر مجهول",
+    "moreInvestors": "{count} مستثمرين إضافيين",
+    "moreTeamMembers": "{count} أعضاء فريق إضافيين",
+    "investor": "مستثمر",
+    "investors": "مستثمرون",
+    "riskLevel": "مستوى المخاطرة",
+    "risk": {
+      "low": "منخفض",
+      "medium": "متوسط",
+      "high": "مرتفع",
+      "risk": "مخاطرة"
+    },
+    "funding": "التمويل",
+    "fundingProgress": "تقدم التمويل",
+    "min": "الحد الأدنى",
+    "to": "إلى",
+    "max": "الحد الأقصى",
+    "showOnly": "عرض فقط",
+    "favorites": "المفضلة",
+    "reset": "إعادة تعيين",
+    "score": "التقييم",
+    "investors": "المستثمرون",
+    "share": "مشاركة الاستثمار",
+    "addToFavorites": "إضافة إلى المفضلة",
+    "engage": "تفاعل",
+    "noResultsTitle": "لم يتم العثور على استثمارات",
+    "noResultsSubtitle": "لا توجد أصول تطابق الفلتر الحالي. جرب فئة مختلفة أو مصطلح بحث آخر.",
+    "previous": "السابق",
+    "page": "صفحة",
+    "of": "من",
+    "next": "التالي",
+    "engageModal": {
+      "title": "تأكيد التفاعل",
+      "message": "التفاعل مع {investmentName} سيكلفك {creditCost} رصيدًا. هل أنت متأكد أنك تريد المتابعة؟",
+      "cancelButton": "إلغاء",
+      "proceedButton": "متابعة والتفاعل"
+    },
+    "engageSuccessTitle": "تم إرسال الطلب",
+    "engageSuccessMessage": "تم إرسال طلب التفاعل الخاص بك بخصوص {investmentName}. سيتم إعلامك عند القبول.",
+    "requestSubmittedTitle": "تم إرسال الطلب",
+    "requestSubmittedMessage": "تم إرسال طلبك بخصوص {investmentName}. سنقوم بإعلامك عند القبول.",
+    "shareValidation": {
+      "minError": "يجب ألا يقل عدد الأسهم عن 1",
+      "maxError": "الحد الأقصى {available} من الأسهم المتاحة"
+    },
+    "investDialog": {
+      "title": "استثمر في {investmentName}",
+      "sharePrice": "سعر السهم",
+      "available": "المتاح",
+      "minLabel": "الحد الأدنى",
+      "maxLabel": "الحد الأقصى",
+      "sharesLabel": "عدد الأسهم",
+      "availableLine": "المتاح: {available} سهم",
+      "totalInvestment": "إجمالي الاستثمار:",
+      "expectedROI": "العائد المتوقع:",
+      "cancel": "إلغاء",
+      "confirm": "تأكيد الاستثمار",
+      "processing": "جاري المعالجة..."
+    }
+  },
+  "investmentPreview": {
+    "backButton": "العودة إلى الاستثمارات",
+    "investmentType": "نوع الاستثمار",
+    "earlyStage": "جولة تمويل مبكرة",
+    "equityOpportunity": "فرصة ملكية الأسهم",
+    "riskLevel": "مستوى المخاطرة",
+    "conservativeProfile": "ملف تعريف متحفظ",
+    "moderateExposure": "تعرض معتدل",
+    "highVolatility": "تقلب عالي",
+    "campaignStatus": "حالة الحملة",
+    "currentlyAccepting": "يقبل الاستثمارات حاليًا",
+    "targetReached": "تم الوصول إلى الهدف",
+    "campaignEnded": "انتهت الحملة",
+    "projectRoadmap": "خارطة طريق المشروع",
+    "current": "الحالي",
+    "complete": "مكتمل",
+    "currentMilestone": "المعلم الحالي",
+    "sharePrice": "سعر السهم",
+    "minInvestment": "الحد الأدنى للاستثمار",
+    "expectedROI": "العائد المتوقع",
+    "totalShares": "إجمالي الأسهم",
+    "available": "متاح",
+    "valuationCap": "سقف التقييم",
+    "fundingProgress": "تقدم التمويل",
+    "amountRaised": "المبلغ المجمع",
+    "target": "الهدف",
+    "funded": "ممول",
+    "yourInvestment": "استثمارك",
+    "projectTeam": "فريق المشروع",
+    "noTeamMembers": "لا يوجد أعضاء فريق متاحين",
+    "timeline": "الجدول الزمني",
+    "started": "بدأ",
+    "targetEnd": "نهاية الهدف",
+    "posted": "تم النشر",
+    "quickStats": "إحصائيات سريعة",
+    "credibilityScore": "درجة المصداقية",
+    "activeInvestors": "المستثمرون النشطون",
+    "currency": "العملة",
+    "founder": "المؤسس",
+    "contactFounder": "اتصل بالمؤسس",
+    "viewProfile": "عرض الملف الشخصي",
+    "investNow": "استثمر الآن",
+    "fullyFunded": "ممول بالكامل",
+    "closed": "مغلق",
+    "daysLeft": "أيام متبقية",
+    "learnMore": "اعرف المزيد",
+    "valuation": "التقييم",
+    "author": "المؤلف"
+  },
+  "dashboard": {
+    "investorTitle": "لوحة تحكم المستثمر",
+    "portfolioValue": "قيمة المحفظة",
+    "myInvestments": "استثماراتي",
+    "watchlist": "قائمة المراقبة",
+    "investorScore": "درجة المستثمر",
+    "availableCredits": "الأرصدة المتاحة",
+    "myAllocation": "توزيعي",
+    "portfolioPerformance": "أداء المحفظة",
+    "viewAll": "عرض الكل",
+    "featuredOpportunities": "الفرص المميزة",
+    "sentRequestsTitle": "طلبات التفاعل المرسلة",
+    "requestStatus": {
+      "pending": "قيد الانتظار",
+      "negotiating": "قيد التفاوض",
+      "partner": "شريك",
+      "rejected": "مرفوض"
+    },
+    "withdraw": "سحب",
+    "noSentRequests": "لا توجد طلبات مرسلة بعد.",
+    "switchProject": "تبديل المشروع",
+    "myProjectOverview": "نظرة عامة على مشروعي",
+    "totalInvestors": "إجمالي المستثمرين",
+    "profileViews": "مشاهدات الملف الشخصي",
+    "engagementScore": "درجة التفاعل",
+    "investorInterest": "اهتمام المستثمرين",
+    "quickActions": "إجراءات سريعة",
+    "createInvestment": "إنشاء استثمار",
+    "viewPublicPage": "عرض الصفحة العامة",
+    "postUpdate": "نشر تحديث",
+    "recentActivity": "النشاط الأخير",
+    "selectProjectTitle": "اختر مشروعًا",
+    "selectProjectSubtitle": "اختر المشروع الذي تريد عرض لوحة التحكم الخاصة به.",
+    "uncategorized": "غير مصنف",
+    "emptyWatchlist": "لا توجد عناصر في قائمة المراقبة.",
+    "noProject": {
+      "title": "لا توجد مشاريع بعد",
+      "subtitle": "لم تقم بإنشاء أي مشاريع استثمارية. ابدأ بتقديم مشروعك الأول!",
+      "button": "أنشئ مشروعك الأول"
+    },
+    "withdrawModal": {
+      "title": "سحب الطلب؟",
+      "message": "هل أنت متأكد أنك تريد سحب طلب التفاعل الخاص بك لـ {projectName}؟ لا يمكن التراجع عن هذا الإجراء.",
+      "cancelButton": "إلغاء",
+      "confirmButton": "سحب الطلب"
+    },
+    "withdrawSuccess": {
+      "title": "تم سحب الطلب",
+      "message": "تم سحب طلبك الخاص بـ {projectName} بنجاح."
+    }
+  },
+  "chat": {
+    "altTextYou": "أنت",
+    "startAudioCall": "بدء مكالمة صوتية",
+    "startVideoCall": "بدء مكالمة فيديو",
+    "attachFile": "إرفاق ملف",
+    "removeAttachment": "إزالة المرفق"
+  },
+  "profile": {
+    "kyc": "التحقق من الهوية",
+    "startKyc": "بدء التحقق من الهوية",
+    "pending": "قيد الانتظار",
+    "verified": "موثق",
+    "credibility": "المصداقية",
+    "currentScore": "الدرجة الحالية",
+    "noHistory": "لا يوجد سجل معاملات بعد. ابدأ التحقق من الهوية لتحصل على نقاط المصداقية الأولى!",
+    "byAdmin": "بواسطة {adminName}",
+    "avatarAlt": "صورة المستخدم",
+    "titleDefault": "الملف الشخصي",
+    "trustScore": "نقاط الثقة",
+    "saveButton": "حفظ",
+    "communication": {
+      "title": "معلومات الاتصال",
+      "personalContact": "بيانات التواصل الشخصية",
+      "businessContact": "بيانات التواصل للأعمال",
+      "email": "البريد الإلكتروني",
+      "mobile": "الهاتف المحمول",
+      "address": "العنوان",
+      "city": "المدينة",
+      "state": "المنطقة",
+      "businessAddress": "عنوان العمل",
+      "businessLocation": "موقع العمل",
+      "searchLocation": "ابحث عن موقع"
+    },
+    "personalInfo": {
+      "title": "المعلومات الشخصية",
+      "firstName": "الاسم الأول",
+      "lastName": "اسم العائلة",
+      "businessRole": "الدور الوظيفي",
+      "nationalId": "الهوية الوطنية",
+      "uploadId": "تحميل الهوية",
+      "chooseFile": "اختر ملفًا",
+      "noFileChosen": "لم يتم اختيار ملف",
+      "bio": "نبذة",
+      "linkedin": "لينكدإن",
+      "facebook": "فيسبوك"
+    },
+    "tabs": {
+      "editProfile": "تعديل الملف الشخصي",
+      "communicationInfo": "معلومات الاتصال",
+      "security": "الأمان",
+      "notifications": "الإشعارات"
+    },
+    "loadErrorTitle": "فشل تحميل الملف الشخصي",
+    "buttons": {
+      "retry": "إعادة المحاولة"
+    },
+    "errors": {
+      "notFound": "لم يتم العثور على الملف الشخصي.",
+      "loadFailed": "فشل تحميل الملف الشخصي. يرجى المحاولة مرة أخرى."
+    },
+    "toasts": {
+      "savingTitle": "جاري الحفظ",
+      "savingMessage": "جاري حفظ ملفك الشخصي…",
+      "savedTitle": "تم حفظ الملف الشخصي",
+      "savedMessage": "تم تحديث ملفك الشخصي بنجاح.",
+      "saveFailedTitle": "فشل الحفظ",
+      "saveFailedMessage": "فشل حفظ الملف الشخصي. يرجى المحاولة مرة أخرى.",
+      "kycStartedTitle": "تم بدء التحقق",
+      "kycStartedMessage": "تم بدء التحقق من الهوية بنجاح. حصلت على +10 نقاط مصداقية!",
+      "kycFailedTitle": "فشل التحقق",
+      "kycFailedMessage": "فشل بدء التحقق من الهوية. يرجى المحاولة مرة أخرى.",
+      "roleNotPersistedTitle": "فشل حفظ الدور",
+      "roleNotPersistedMessage": "لم نتمكن من حفظ دورك. قد يكون هذا الحقل مقصورًا على الإدارة. اتصل بالدعم إذا كان هذا خطأ.",
+      "nationalIdNotPersistedTitle": "فشل حفظ الهوية الوطنية",
+      "nationalIdNotPersistedMessage": "لم نتمكن من حفظ هويتك الوطنية. قد يكون هذا الحقل مقصورًا أو خاضعًا للتحقق من الخادم. اتصل بالدعم إذا كان هذا خطأ.",
+      "nationalIdChangeRecordedTitle": "تم تسجيل الهوية الوطنية",
+      "nationalIdChangeRecordedMessage": "تم تسجيل تغيير هويتك الوطنية وسيتم مراجعته من قبل فريقنا. تم ضبط حالة التوثيق على قيد الانتظار."
+    },
+    "notifications": {
+      "title": "الإشعارات",
+      "subtitle": "اختر ما ترغب في استلامه من إشعارات.",
+      "saving": "جاري الحفظ",
+      "savingMessage": "جاري حفظ ملفك الشخصي…",
+      "saved": "تم حفظ الملف الشخصي",
+      "savedMessage": "تم تحديث ملفك الشخصي بنجاح.",
+      "saveFailed": "فشل الحفظ",
+      "saveFailedMessage": "فشل حفظ الملف الشخصي. يرجى المحاولة مرة أخرى.",
+      "opportunities": {
+        "title": "فرص جديدة",
+        "description": "تنبيهات عند توفر فرص استثمارية جديدة تناسب اهتماماتك."
+      },
+      "portfolio": {
+        "title": "تحديثات المحفظة",
+        "description": "تنبيهات مهمة حول استثماراتك النشطة وأدائها."
+      },
+      "security": {
+        "title": "تنبيهات الأمان",
+        "description": "تنبيهات تسجيل الدخول، تغيير كلمة المرور، والنشاط المشبوه."
+      },
+      "news": {
+        "title": "أخبار السوق",
+        "description": "حركات السوق، التقارير، والرؤى المختارة."
+      }
+    },
+    "password": {
+      "title": "الأمان",
+      "current": "كلمة المرور الحالية",
+      "new": "كلمة المرور الجديدة",
+      "confirm": "تأكيد كلمة المرور الجديدة",
+      "mismatch": "كلمتا المرور غير متطابقتين"
+    },
+    "placeholders": {
+      "linkedin": "https://linkedin.com/in/...",
+      "facebook": "https://facebook.com/..."
+    },
+    "credibilityHistory": "تاريخ نقاط المصداقية"
+  },
+  "apiSwitcher": {
+    "apiLabel": "واجهة برمجية:",
+    "change": "تغيير",
+    "use": "استخدام",
+    "apply": "تطبيق",
+    "customPlaceholder": "عنوان مخصص"
+  },
+  "settings": {
+    "placeholders": {
+      "supportHours": "مثال: 9:00-17:00",
+      "walletAmount": "0.00"
+    },
+    "notifications": {
+      "title": "إعدادات الإشعارات"
+    }
+  },
+  "requests": {
+    "title": "الطلبات",
+    "incoming": "واردة",
+    "outgoing": "مرسلة",
+    "from": "من",
+    "to": "إلى",
+    "accept": "قبول",
+    "decline": "رفض",
+    "withdraw": "سحب",
+    "noIncoming": "لا توجد طلبات واردة.",
+    "noOutgoing": "لا توجد طلبات مرسلة.",
+    "notifications": {
+      "accepted": "تم قبول الطلب",
+      "acceptedMessage": "تم قبول دعوة {projectName}.",
+      "declined": "تم رفض الطلب",
+      "declinedMessage": "تم رفض دعوة {projectName}.",
+      "withdrawn": "تم سحب الطلب",
+      "withdrawnMessage": "تم سحب طلب {projectName}."
+    }
+  },
+  "common": {
+    "months": {
+      "jan": "يناير",
+      "feb": "فبراير",
+      "mar": "مارس",
+      "apr": "أبريل",
+      "may": "مايو",
+      "jun": "يونيو",
+      "jul": "يوليو",
+      "aug": "أغسطس",
+      "sep": "سبتمبر"
+    },
+    "timeAgo": {
+      "year": "قبل {count} سنة",
+      "years": "قبل {count} سنوات",
+      "month": "قبل {count} شهر",
+      "months": "قبل {count} أشهر",
+      "day": "قبل {count} يوم",
+      "days": "قبل {count} أيام",
+      "hour": "قبل {count} ساعة",
+      "hours": "قبل {count} ساعات",
+      "minute": "قبل {count} دقيقة",
+      "minutes": "قبل {count} دقائق",
+      "second": "قبل {count} ثانية",
+      "seconds": "قبل {count} ثوانٍ"
+    }
+  },
+  "countryPlaceholder": "مثال: الولايات المتحدة",
+  "businessPlan": "ورقة عمل أو خطة عمل",
+  "businessPlanHint": "قم بتحميل وثائق مشروعك التفصيلية (PDF).",
+  "upload": "تحميل PDF",
+  "requests": {
+    "title": "الطلبات",
+    "incoming": "واردة",
+    "outgoing": "مرسلة",
+    "from": "من",
+    "to": "إلى",
+    "accept": "قبول",
+    "decline": "رفض",
+    "withdraw": "سحب",
+    "noIncoming": "لا توجد طلبات واردة.",
+    "noOutgoing": "لا توجد طلبات مرسلة."
+  }
+}

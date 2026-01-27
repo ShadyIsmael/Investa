@@ -3,8 +3,8 @@ import { TranslatePipe } from '../../pipes/translate.pipe';
 
 interface Testimonial {
   quoteKey: string;
-  name: string;
-  title: string;
+  nameKey: string;
+  titleKey: string;
   avatarUrl: string;
 }
 
@@ -19,20 +19,20 @@ export class TestimonialsComponent {
   testimonials = signal<Testimonial[]>([
     {
       quoteKey: 'testimonials.sarah',
-      name: 'Sarah J.',
-      title: 'Day Trader',
+      nameKey: 'testimonials.sarahName',
+      titleKey: 'testimonials.sarahTitle',
       avatarUrl: 'https://picsum.photos/seed/person1/100/100'
     },
     {
       quoteKey: 'testimonials.michael',
-      name: 'Michael B.',
-      title: 'Financial Advisor',
+      nameKey: 'testimonials.michaelName',
+      titleKey: 'testimonials.michaelTitle',
       avatarUrl: 'https://picsum.photos/seed/person2/100/100'
     },
     {
       quoteKey: 'testimonials.jessica',
-      name: 'Jessica L.',
-      title: 'Tech Entrepreneur',
+      nameKey: 'testimonials.jessicaName',
+      titleKey: 'testimonials.jessicaTitle',
       avatarUrl: 'https://picsum.photos/seed/person3/100/100'
     }
   ]);

@@ -6,6 +6,7 @@ import { TranslatePipe } from '../../pipes/translate.pipe';
 import { LanguageService } from '../../services/language.service';
 import { NotificationService } from '../../services/notification.service';
 import { ClickOutsideDirective } from '../../directives/click-outside.directive';
+import { get } from 'lodash-es';
 
 /**
  * AdminNavbarComponent
@@ -100,39 +101,48 @@ export class AdminNavbarComponent {
   }
 
   /**
-   * Calculates human-readable time difference from current time
+   * Calculates human-readable time difference from current time (localized)
    * @param date The date to calculate time difference from
-   * @returns String like "2 hours ago", "3 days ago", etc.
+   * @returns Localized string like "2 hours ago", "3 days ago", etc.
    */
   getTimeAgo(date: Date): string {
     const now = new Date();
     const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
+    const dictionary = this.languageService.dictionary();
+
     let interval = seconds / 31536000;
     if (interval > 1) {
       const years = Math.floor(interval);
-      return `${years} year${years > 1 ? 's' : ''} ago`;
+      const key = years > 1 ? 'common.timeAgo.years' : 'common.timeAgo.year';
+      return get(dictionary, key, `${years} year${years > 1 ? 's' : ''} ago`).replace('{count}', String(years));
     }
     interval = seconds / 2592000;
     if (interval > 1) {
       const months = Math.floor(interval);
-      return `${months} month${months > 1 ? 's' : ''} ago`;
+      const key = months > 1 ? 'common.timeAgo.months' : 'common.timeAgo.month';
+      return get(dictionary, key, `${months} month${months > 1 ? 's' : ''} ago`).replace('{count}', String(months));
     }
     interval = seconds / 86400;
     if (interval > 1) {
       const days = Math.floor(interval);
-      return `${days} day${days > 1 ? 's' : ''} ago`;
+      const key = days > 1 ? 'common.timeAgo.days' : 'common.timeAgo.day';
+      return get(dictionary, key, `${days} day${days > 1 ? 's' : ''} ago`).replace('{count}', String(days));
     }
     interval = seconds / 3600;
     if (interval > 1) {
       const hours = Math.floor(interval);
-      return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+      const key = hours > 1 ? 'common.timeAgo.hours' : 'common.timeAgo.hour';
+      return get(dictionary, key, `${hours} hour${hours > 1 ? 's' : ''} ago`).replace('{count}', String(hours));
     }
     interval = seconds / 60;
     if (interval > 1) {
       const minutes = Math.floor(interval);
-      return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+      const key = minutes > 1 ? 'common.timeAgo.minutes' : 'common.timeAgo.minute';
+      return get(dictionary, key, `${minutes} minute${minutes > 1 ? 's' : ''} ago`).replace('{count}', String(minutes));
     }
-    return `${Math.floor(seconds)} second${seconds > 1 ? 's' : ''} ago`;
+    const secs = Math.floor(seconds);
+    const key = secs > 1 ? 'common.timeAgo.seconds' : 'common.timeAgo.second';
+    return get(dictionary, key, `${secs} second${secs > 1 ? 's' : ''} ago`).replace('{count}', String(secs));
   }
 }

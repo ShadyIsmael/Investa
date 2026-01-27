@@ -21,7 +21,7 @@
                     transform="rotate(-90 50 50)" />
           </svg>
           <div class="absolute inset-0 flex items-center justify-center">
-              <img class="w-32 h-32 rounded-full ring-4 ring-slate-800" [src]="avatarUrl()" alt="User Avatar">
+              <img class="w-32 h-32 rounded-full ring-4 ring-slate-800" [src]="avatarUrl()" [alt]="('profile.avatarAlt' | translate)">
           </div>
         </div>
 
@@ -37,12 +37,12 @@
 
           <div *ngIf="!isLoading()">
             <p class="text-3xl font-bold text-white">{{ trustScore() }}<span class="text-xl">%</span></p>
-            <p class="text-xs text-gray-400 mt-1 flex items-center gap-3">KYC: <span class="font-semibold text-white">{{ kycStatus() }}</span>
-              <button *ngIf="kycStatus() === 'None'" (click)="onStartKyc()" [disabled]="isLoading()" class="ms-3 bg-blue-600 text-white px-3 py-1 rounded-md text-sm">Start KYC</button>
-              <span *ngIf="kycStatus() === 'Pending'" class="ms-3 text-yellow-300 text-sm">(Pending)</span>
-              <span *ngIf="kycStatus() === 'Verified'" class="ms-3 text-green-300 text-sm">(Verified)</span>
+            <p class="text-xs text-gray-400 mt-1 flex items-center gap-3">{{ 'profile.kyc' | translate }}: <span class="font-semibold text-white">{{ kycStatus() }}</span>
+              <button *ngIf="kycStatus() === 'None'" (click)="onStartKyc()" [disabled]="isLoading()" class="ms-3 bg-blue-600 text-white px-3 py-1 rounded-md text-sm">{{ 'profile.startKyc' | translate }}</button>
+              <span *ngIf="kycStatus() === 'Pending'" class="ms-3 text-yellow-300 text-sm">({{ 'profile.pending' | translate }})</span>
+              <span *ngIf="kycStatus() === 'Verified'" class="ms-3 text-green-300 text-sm">({{ 'profile.verified' | translate }})</span>
             </p>
-            <p class="text-xs text-gray-400 mt-1">Credibility: <span class="font-semibold text-white">{{ profileService.profile()?.coreMetrics?.credibilityScore ?? '—' }}</span></p>
+            <p class="text-xs text-gray-400 mt-1">{{ 'profile.credibility' | translate }}: <span class="font-semibold text-white">{{ profileService.profile()?.coreMetrics?.credibilityScore ?? '—' }}</span></p>
           </div>
         </div>
         
@@ -127,7 +127,7 @@
             <p class="text-sm mt-1">{{ errorMessage() }}</p>
           </div>
           <div class="flex items-center gap-2">
-            <button (click)="loadProfile()" class="bg-white text-red-800 px-3 py-1 rounded-md">Retry</button>
+            <button (click)="loadProfile()" class="bg-white text-red-800 px-3 py-1 rounded-md">{{ 'profile.buttons.retry' | translate }}</button>
           </div>
         </div>
       </div>
@@ -183,7 +183,7 @@
                 </div>
             </div>
             <div class="p-6 bg-slate-900/50 border-t border-slate-800 text-end rounded-b-xl">
-              <button type="submit" [disabled]="profileForm.invalid || !isProfileChanged() || isLoading()" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+              <button type="submit" [disabled]="!isProfileChanged() || isLoading()" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
                 {{ 'profile.saveButton' | translate }}
               </button>
             </div>
@@ -198,8 +198,11 @@
                 <h3 class="text-lg font-medium text-gray-200">{{ 'profile.communication.personalContact' | translate }}</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label for="email" class="block text-sm font-medium text-gray-300">{{ 'profile.communication.email' | translate }}</label>
-                    <input id="email" type="email" formControlName="email" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-gray-400 cursor-not-allowed">
+                    <label for="email" class="block text-sm font-medium text-gray-300 mb-1 flex items-center justify-between">
+                      <span>{{ 'profile.communication.email' | translate }}</span>
+                      <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-green-500/20 text-green-300">{{ 'profile.verified' | translate }}</span>
+                    </label>
+                    <input id="email" type="email" formControlName="email" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                   </div>
                   <div>
                     <label for="mobile" class="block text-sm font-medium text-gray-300">{{ 'profile.communication.mobile' | translate }}</label>
@@ -245,7 +248,7 @@
               </div>
             </div>
              <div class="p-6 bg-slate-900/50 border-t border-slate-800 text-end rounded-b-xl">
-              <button type="submit" [disabled]="communicationForm.pristine || communicationForm.invalid" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+              <button type="submit" [disabled]="!isCommunicationChanged() || communicationForm.invalid" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
                 {{ 'profile.saveButton' | translate }}
               </button>
             </div>
@@ -339,9 +342,9 @@
       <div class="mt-8 bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl">
         <div class="p-8">
           <div class="flex items-center justify-between mb-6">
-            <h2 class="text-2xl font-bold text-white">Credibility Score History</h2>
+            <h2 class="text-2xl font-bold text-white">{{ 'profile.credibilityHistory' | translate }}</h2>
             <div class="flex items-center gap-2">
-              <span class="text-sm text-gray-400">Current Score:</span>
+              <span class="text-sm text-gray-400">{{ 'profile.currentScore' | translate }}</span>
               <span class="text-2xl font-bold text-blue-400">{{ profileService.profile()?.coreMetrics?.currentCredibilityScore ?? 0 }}</span>
             </div>
           </div>
@@ -350,7 +353,7 @@
             <svg class="w-16 h-16 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <p class="text-gray-400">No transaction history yet. Start KYC to earn your first credibility points!</p>
+            <p class="text-gray-400">{{ 'profile.noHistory' | translate }}</p>
           </div>
 
           <div *ngIf="creditHistory().length > 0" class="space-y-4">
@@ -370,7 +373,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <span>{{ transaction.createdAt | date:'short' }}</span>
-                  <span *ngIf="transaction.adminName" class="ms-2 px-2 py-0.5 bg-purple-500/20 text-purple-300 rounded text-xs">By {{ transaction.adminName }}</span>
+                  <span *ngIf="transaction.adminName" class="ms-2 px-2 py-0.5 bg-purple-500/20 text-purple-300 rounded text-xs">{{ 'profile.byAdmin' | translate:{adminName: transaction.adminName} }}</span>
                 </div>
               </div>
             </div>

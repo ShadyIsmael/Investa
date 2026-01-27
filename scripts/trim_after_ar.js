@@ -1,0 +1,4 @@
+const fs=require('fs'); const p='d:/projects/Investa/gitInvesta/investa-client-portal/src/app/services/language.service.ts'; let s=fs.readFileSync(p,'utf8'); const start = s.indexOf("ar: { language"); if(start===-1){console.error('start not found'); process.exit(1);} const end = s.lastIndexOf('\n};'); if(end===-1){console.error('end not found'); process.exit(1);} const before = s.slice(0, start); const tail = s.slice(end); // include final closing
+// Build new content: keep up to start, then ar minimal, then final tail
+const newContent = before + 'ar: { language: { toggle: \"English\" } }' + tail;
+fs.writeFileSync(p,newContent,'utf8'); console.log('Trimmed file after ar');

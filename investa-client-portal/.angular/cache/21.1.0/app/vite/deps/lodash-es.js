@@ -7618,7 +7618,7 @@ function lazyValue() {
 var lazyValue_default = lazyValue;
 
 // node_modules/lodash-es/lodash.default.js
-var VERSION = "4.17.22";
+var VERSION = "4.17.23";
 var WRAP_BIND_KEY_FLAG7 = 2;
 var LAZY_FILTER_FLAG2 = 1;
 var LAZY_WHILE_FLAG = 3;

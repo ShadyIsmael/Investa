@@ -12,6 +12,10 @@ export class TranslatePipe implements PipeTransform {
   
   transform(key: string): string {
     const currentDictionary = this.languageService.dictionary();
+    // Return the key if dictionary is empty (still loading)
+    if (!currentDictionary || Object.keys(currentDictionary).length === 0) {
+      return key;
+    }
     return get(currentDictionary, key, key);
   }
 }

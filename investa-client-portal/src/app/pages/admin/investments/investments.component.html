@@ -11,10 +11,10 @@
           {{ 'investments.refresh' | translate }}
         </button>
 
-        <button (click)="exportCsv()" type="button" title="Export CSV" 
+        <button (click)="exportCsv()" type="button" [title]="'investments.exportCsv' | translate" 
                 class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M3 3a1 1 0 011-1h12a1 1 0 011 1v12a1 1 0 01-1 1H9l-4 4v-4H4a1 1 0 01-1-1V3z"/></svg>
-          {{ 'investments.exportCsv' | translate:'Export CSV' }}
+          {{ 'investments.exportCsv' | translate }}
         </button>
       </div>
     }
@@ -209,7 +209,7 @@
                   }
                   @if (investment.teamMembers.length > 5) {
                     <div class="w-8 h-8 rounded-full border-2 border-slate-800 bg-slate-700 flex items-center justify-center text-gray-300 text-xs font-bold"
-                         [title]="(investment.teamMembers.length - 5) + ' more team members'">
+                         [title]="t('investments.moreTeamMembers', '{count} more team members').replace('{count}', String(investment.teamMembers.length - 5))">
                       +{{ investment.teamMembers.length - 5 }}
                     </div>
                   }
@@ -232,24 +232,24 @@
                 <div class="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-lg p-3 mb-4">
                   <div class="flex items-center justify-between mb-2">
                     <div>
-                      <p class="text-xs text-gray-400 uppercase tracking-wide">Share Price</p>
+                      <p class="text-xs text-gray-400 uppercase tracking-wide">{{ 'investmentPreview.sharePrice' | translate }}</p>
                       <p class="text-2xl font-bold text-white">{{ investment.sharePrice | currency:(investment.currency || 'USD') }}</p>
                     </div>
                     <div class="text-right">
-                      <p class="text-xs text-gray-400 uppercase tracking-wide">Available</p>
+                      <p class="text-xs text-gray-400 uppercase tracking-wide">{{ 'investmentPreview.available' | translate }}</p>
                       <p class="text-lg font-semibold text-blue-300">{{ investment.availableShares | number }} / {{ investment.totalShares | number }}</p>
                     </div>
                   </div>
                   @if (investment.minInvestment || investment.maxInvestment) {
                     <div class="flex items-center gap-2 text-xs text-gray-400 pt-2 border-t border-slate-700/30">
                       @if (investment.minInvestment) {
-                        <span>Min: {{ investment.minInvestment | currency:(investment.currency || 'USD'):'symbol':'1.0-0' }}</span>
+                        <span>{{ 'investments.min' | translate }}: {{ investment.minInvestment | currency:(investment.currency || 'USD'):'symbol':'1.0-0' }}</span>
                       }
                       @if (investment.minInvestment && investment.maxInvestment) {
                         <span>•</span>
                       }
                       @if (investment.maxInvestment) {
-                        <span>Max: {{ investment.maxInvestment | currency:(investment.currency || 'USD'):'symbol':'1.0-0' }}</span>
+                        <span>{{ 'investments.max' | translate }}: {{ investment.maxInvestment | currency:(investment.currency || 'USD'):'symbol':'1.0-0' }}</span>
                       }
                     </div>
                   }
@@ -275,18 +275,18 @@
                             </button>
                           }
                         } @else {
-                          <div class="w-7 h-7 rounded-full border-2 border-slate-800 bg-slate-700 flex items-center justify-center text-gray-300 text-xs font-bold" [title]="'Anonymous Investor'">
+                          <div class="w-7 h-7 rounded-full border-2 border-slate-800 bg-slate-700 flex items-center justify-center text-gray-300 text-xs font-bold" [title]="'investments.anonymousInvestor' | translate">
                             ?
                           </div>
                         }
                       }
                       @if (investment.investorCount > 3) {
-                        <div class="w-7 h-7 rounded-full border-2 border-slate-800 bg-slate-700 flex items-center justify-center text-gray-300 text-xs font-bold" [title]="(investment.investorCount - 3) + ' more investors'">
+                        <div class="w-7 h-7 rounded-full border-2 border-slate-800 bg-slate-700 flex items-center justify-center text-gray-300 text-xs font-bold" [title]="t('investments.moreInvestors', '{count} more investors').replace('{count}', String(investment.investorCount - 3))">
                           +{{ investment.investorCount - 3 }}
                         </div>
                       }
                     </div>
-                    <span class="text-xs text-gray-400">{{ investment.investorCount }} {{ investment.investorCount === 1 ? 'investor' : 'investors' }}</span>
+                    <span class="text-xs text-gray-400">{{ investment.investorCount }} {{ t(investment.investorCount === 1 ? 'investments.investor' : 'investments.investors', investment.investorCount === 1 ? 'investor' : 'investors') }}</span>
                   </div>
                 }
                 @if (investment.investmentType === InvestmentType.Equity && investment.expectedROI && investment.expectedROI > 0) {
@@ -306,7 +306,7 @@
                     <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
                   </svg>
-                  <span class="text-xs text-gray-400">Valuation: <span class="font-semibold text-purple-300">{{ investment.valuationCap | currency:(investment.currency || 'USD'):'symbol':'1.0-0' }}</span></span>
+                  <span class="text-xs text-gray-400">{{ 'investmentPreview.valuation' | translate }}: <span class="font-semibold text-purple-300">{{ investment.valuationCap | currency:(investment.currency || 'USD'):'symbol':'1.0-0' }}</span></span>
                 </div>
               }
 
@@ -354,13 +354,13 @@
                       }
                       <span class="text-gray-500 text-xs ml-1">{{ investment.currency || 'USD' }}</span>
                       @if (investment.investedAmount && investment.investedAmount > 0) {
-                        <div class="text-xs text-gray-400 mt-1">You invested: <span class="text-white font-medium">${{ investment.investedAmount | number:'1.0-0' }}</span></div>
+                        <div class="text-xs text-gray-400 mt-1">{{ 'investmentPreview.yourInvestment' | translate }}: <span class="text-white font-medium">${{ investment.investedAmount | number:'1.0-0' }}</span></div>
                       }
                   </div>
                   @if (investment.endDate) {
                     <span class="text-xs text-gray-500 flex items-center gap-1">
                       <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
-                      {{ getDaysRemaining(investment.endDate) }} days left
+                      {{ getDaysRemaining(investment.endDate) }} {{ 'investmentPreview.daysLeft' | translate }}
                     </span>
                   } @else if (investment.startDate) {
                     <span class="text-xs text-gray-500">
@@ -393,7 +393,7 @@
                       [disabled]="investment.status === 'Funded' || investment.status === 'Closed'">
                   <span class="flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                    {{ investment.status === 'Funded' ? 'Fully Funded' : investment.status === 'Closed' ? 'Closed' : 'Learn More' }}
+                    {{ investment.status === 'Funded' ? ('investmentPreview.fullyFunded' | translate) : investment.status === 'Closed' ? ('investmentPreview.closed' | translate) : ('investmentPreview.learnMore' | translate) }}
                   </span>
               </button>
           </div>

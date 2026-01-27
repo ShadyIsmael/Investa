@@ -89,6 +89,11 @@ export class InvestmentsComponent {
   Math = Math;
   String = String;
 
+  /** Helper method to retrieve localized strings with fallback */
+  t(path: string, fallback: string): string {
+    return get(this.languageService.dictionary(), path, fallback);
+  }
+
   // Infinite scroll
   itemsLoaded = signal(ITEMS_PER_PAGE);
   displayedInvestments = computed(() => this.filteredInvestments().slice(0, this.itemsLoaded()));

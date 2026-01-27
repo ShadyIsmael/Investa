@@ -111,7 +111,57 @@ public class ProfileService : IProfileService
             profile.DocumentBackImageUrl = profileDto.IdentityCompliance.DocumentBackImageUrl;
         }
 
+        // Update client-level fields (BusinessRole, NationalId) when provided
+        var client = await _unitOfWork.Repository<Client>().GetSingleAsync(c => c.UserId == userId);
+        if (client != null)
+        {
+            if (profileDto.CoreMetrics != null)
+            {
+                var role = profileDto.CoreMetrics.Role ?? profileDto.CoreMetrics.ClientType;
+                if (!string.IsNullOrEmpty(role) && role != client.BusinessRole)
+                {
+                    // Audit business role change
+                    var audit = new ProfileChangeAudit
+                    {
+                        UserId = userId,
+                        FieldName = "BusinessRole",
+                        OldValue = client.BusinessRole,
+                        NewValue = role,
+                        Reason = "User updated business role",
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    await _unitOfWork.Repository<ProfileChangeAudit>().AddAsync(audit);
+
+                    client.BusinessRole = role;
+                }
+            }
+
+            if (profileDto.IdentityCompliance != null && !string.IsNullOrEmpty(profileDto.IdentityCompliance.DocumentNumber))
+            {
+                if (client.NationalId != profileDto.IdentityCompliance.DocumentNumber)
+                {
+                    // Audit national id change
+                    var audit = new ProfileChangeAudit
+                    {
+                        UserId = userId,
+                        FieldName = "NationalId",
+                        OldValue = client.NationalId,
+                        NewValue = profileDto.IdentityCompliance.DocumentNumber,
+                        Reason = "User updated national ID",
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    await _unitOfWork.Repository<ProfileChangeAudit>().AddAsync(audit);
+
+                    // Reset verification status and set to Pending for review
+                    profile.VerificationStatus = Domain.Entities.Enums.VerificationStatus.Pending;
+
+                    client.NationalId = profileDto.IdentityCompliance.DocumentNumber;
+                }
+            }
+        }
+
         profile.UpdatedAt = DateTime.UtcNow;
+
         await _unitOfWork.SaveChangesAsync();
 
         return await MapToProfileDtoAsync(user)!;

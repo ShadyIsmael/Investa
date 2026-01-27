@@ -5,7 +5,6 @@ import { Router } from '@angular/router';
 import { ApiService } from '../../../services/api.service';
 import { NotificationService } from '../../../services/notification.service';
 import { LanguageService } from '../../../services/language.service';
-import { TranslatePipe } from '../../../pipes/translate.pipe';
 import { CreateInvestmentDto, BusinessCategory, BusinessStage, ProjectPhase } from '../../../models/api-response.model';
 import { InvestmentType } from '../../../models/investment.model';
 
@@ -39,7 +38,7 @@ const CURRENCIES = [
   templateUrl: './submit-investment.component.html',
   styleUrls: ['./submit-investment.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, TranslatePipe]
+  imports: [CommonModule, ReactiveFormsModule]
 })
 export class SubmitInvestmentComponent implements OnInit {
   private fb = inject(FormBuilder);

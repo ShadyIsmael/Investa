@@ -939,7 +939,7 @@ class _ProjectStagesTimeline extends StatelessWidget {
               final done = i < cur;
               final active = i == cur;
               return Container(
-                margin: EdgeInsets.only(right: 12),
+                margin: const EdgeInsets.only(right: 12),
                 child: Column(
                   children: [
                     CircleAvatar(
@@ -950,9 +950,11 @@ class _ProjectStagesTimeline extends StatelessWidget {
                               ? const Color(0xFF10B981)
                               : theme.colorScheme.surfaceContainerHighest,
                       child: active
-                          ? Icon(Icons.adjust, color: Colors.white, size: 16)
+                          ? const Icon(Icons.adjust,
+                              color: Colors.white, size: 16)
                           : done
-                              ? Icon(Icons.check, color: Colors.white, size: 16)
+                              ? const Icon(Icons.check,
+                                  color: Colors.white, size: 16)
                               : Text('${i + 1}',
                                   style: GoogleFonts.dmSans(
                                       color: theme.colorScheme.onSurface,

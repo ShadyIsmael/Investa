@@ -1,0 +1,540 @@
+{
+  "stocks": "Stocks",
+  "crypto": "Crypto",
+  "fund": "Fund",
+  "funds": "Funds",
+  "stock": "Stock",
+  "language": {
+    "toggle": "العربية"
+  },
+  "header": {
+    "nav": {
+      "home": "Home",
+      "about": "About",
+      "services": "Services",
+      "blog": "Blog",
+      "contact": "Contact",
+      "requests": "Requests"
+    },
+    "login": "Login",
+    "signup": "Sign Up"
+  },
+  "adminNav": {
+    "panel": "Investa Panel",
+    "dashboard": "Dashboard",
+    "investments": "Investments",
+    "submitInvestment": "Submit Investment",
+    "communication": "Communication",
+    "requests": "Requests",
+    "returnHome": "Go Home",
+    "userMenu": {
+      "profile": "Your Profile",
+      "settings": "Settings",
+      "srOpen": "Open user menu"
+    },
+    "notifications": {
+      "srView": "View notifications"
+    },
+    "logout": "Logout"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "all": "All",
+    "unread": "Unread",
+    "delete": "Delete notification",
+    "noNotifications": {
+      "title": "No notifications",
+      "subtitle": "You have no notifications at this time.",
+      "allCaughtUp": "You're all caught up!"
+    }
+  },
+  "investmentPreview": {
+    "backButton": "Back to Investments",
+    "fundingStatus": "Funding Status",
+    "author": "Author",
+    "noInvestors": "Be the first to invest!",
+    "noTeamMembers": "No team members added yet.",
+    "investNowButton": "Invest Now",
+    "notFound": {
+      "title": "Investment Not Found",
+      "subtitle": "Sorry, we couldn't find the investment you were looking for."
+    }
+  },
+  "countryPlaceholder": "e.g., United States",
+  "businessPlan": "Whitepaper or Business Plan",
+  "businessPlanHint": "Upload your detailed project documentation (PDF).",
+  "upload": "Upload PDF",
+  "requests": {
+    "title": "Requests",
+    "incoming": "Incoming",
+    "outgoing": "Outgoing",
+    "from": "From",
+    "to": "To",
+    "accept": "Accept",
+    "decline": "Decline",
+    "withdraw": "Withdraw",
+    "noIncoming": "No incoming requests.",
+    "noOutgoing": "No outgoing requests."
+  },
+  "problemPlaceholder": "صف المشكلة أو الحاجة التي يعالجها مشروعك.",
+  "solution": "الحل",
+  "solutionPlaceholder": "اشرح كيف يحل مشروعك هذه المشكلة.",
+  "usp": "عرض البيع الفريد (USP)",
+  "uspPlaceholder": "ما الذي يجعل مشروعك فريدًا وأفضل من المنافسين؟",
+
+  "about": {
+    "title": "Building the Future of Investment, Together.",
+    "description": "Investa is more than a platform; it’s a curated ecosystem where innovation meets capital. We unite ambitious founders, savvy investors, and skilled co-founders in a trusted environment, making it easier than ever to discover, fund, and build the next generation of groundbreaking ventures.",
+    "pillars": {
+      "discover": {
+        "title": "Discover Vetted Opportunities",
+        "description": "Explore a curated selection of high-potential startups and investment deals. Our rigorous screening process ensures you only see trusted opportunities, saving you time and effort."
+      },
+      "connect": {
+        "title": "Find Your Next Partner",
+        "description": "Whether you're an investor seeking talent or a founder looking for a co-founder, our community is your gateway to meaningful connections with industry experts and visionaries."
+      },
+      "grow": {
+        "title": "Grow with Minimal Cost",
+        "description": "Bypass the expensive intermediaries. Our platform provides the tools to connect and secure funding efficiently, empowering you to allocate more resources towards what truly matters: growth."
+      }
+    }
+  },
+
+  "cta": {
+    "title": "Ready to Elevate Your Trading?",
+    "subtitle": "Join thousands of investors who are leveraging AI to build their wealth. Get started in minutes.",
+    "button": "Create Your Account"
+  },
+
+  "hero": {
+    "title_part1": "Smart Investing,",
+    "title_part2": "Powered by AI",
+    "description": "Join the future of investment with our AI-powered platform. Make data-driven decisions, automate your trading, and maximize your returns.",
+    "getStartedButton": "Get Started",
+    "watchDemoButton": "Watch Demo"
+  },
+  "features": {
+    "title": "Why Choose Investa?",
+    "subtitle": "Cutting-edge technology meets intuitive design.",
+    "realTime": {
+      "title": "Real-Time Market Data",
+      "description": "Access live market data and AI-powered insights to stay ahead of the curve."
+    },
+    "automatedTrading": {
+      "title": "Automated Trading Bots",
+      "description": "Set your strategy and let our intelligent bots execute trades 24/7."
+    },
+    "portfolioOptimization": {
+      "title": "Portfolio Optimization",
+      "description": "Maximize returns while managing risk with AI-driven portfolio recommendations."
+    }
+  },
+  "testimonials": {
+    "title": "What Our Users Say",
+    "subtitle": "Real stories from investors who trust Investa.",
+    "sarah": "Investa has completely transformed my approach to the markets. The AI insights are incredibly accurate and have saved me countless hours of research.",
+    "sarahName": "Sarah J.",
+    "sarahTitle": "Day Trader",
+    "michael": "As a long-term investor, the portfolio optimization tool is a game-changer. It helps me stay diversified and manage risk effectively. Highly recommended!",
+    "michaelName": "Michael B.",
+    "michaelTitle": "Financial Advisor",
+    "jessica": "The automated trading bots are fantastic. I can set my strategy and let the platform do the heavy lifting. My portfolio has never been healthier.",
+    "jessicaName": "Jessica L.",
+    "jessicaTitle": "Tech Entrepreneur"
+  },
+
+  "blog": {
+    "title": "Latest Insights",
+    "subtitle": "Stay informed with our latest articles and market news.",
+    "readMore": "Read More",
+    "post1": { "title": "Understanding the Impact of AI on Forex Trading", "excerpt": "Discover how machine learning algorithms are predicting currency fluctuations with unprecedented accuracy.", "category": "Market Analysis" },
+    "post2": { "title": "Our 2024 Tech Stack: Building a Resilient Platform", "excerpt": "A deep dive into the infrastructure that powers Investa's real-time data processing and AI engines.", "category": "Technology" },
+    "post3": { "title": "Risk Management Strategies for Automated Trading", "excerpt": "Learn how to set up effective stop-losses and risk parameters for your trading bots.", "category": "Business Strategy" },
+    "post4": { "title": "The Psychology of Investing: Avoiding Emotional Decisions", "excerpt": "Explore common cognitive biases that affect investors and learn strategies to maintain a rational approach.", "category": "Market Analysis" },
+    "post5": { "title": "Beginner's Guide to Cryptocurrency Staking", "excerpt": "Understand the basics of staking, how it works, and how you can earn passive income from your crypto assets.", "category": "Technology" },
+    "post6": { "title": "Diversification is Key: Building a Balanced Portfolio", "excerpt": "A look into the importance of asset allocation and how to spread risk across different investment types.", "category": "Business Strategy" },
+    "post7": { "title": "AI in Real Estate Investment", "excerpt": "Explore how artificial intelligence is transforming property investment decisions.", "category": "Real Estate" },
+    "post8": { "title": "ETFs vs. Mutual Funds: Which is Right for You?", "excerpt": "Compare the key differences between ETFs and mutual funds to make informed investment choices.", "category": "Funds" },
+    "post9": { "title": "The Rise of ESG Investing", "excerpt": "Understand the growing importance of environmental, social, and governance factors in investment decisions.", "category": "Trends" },
+    "post10": { "title": "Strategic Investment Planning for 2026", "excerpt": "Explore key strategies and market trends to position your portfolio for success in the coming year.", "category": "Business Strategy" }
+  },
+  "footer": {
+    "tagline": "Empowering investors with AI-driven insights.",
+    "solutions": {
+      "title": "Solutions",
+      "ai": "AI Trading",
+      "analytics": "Analytics",
+      "portfolio": "Portfolio",
+      "api": "API"
+    },
+    "support": {
+      "title": "Support",
+      "pricing": "Pricing",
+      "docs": "Documentation",
+      "guides": "Guides",
+      "center": "Support Center"
+    },
+    "company": {
+      "title": "Company",
+      "about": "About",
+      "blog": "Blog",
+      "careers": "Careers",
+      "press": "Press"
+    },
+    "legal": {
+      "title": "Legal",
+      "claim": "Claims",
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "risk": "Risk Disclosure"
+    },
+    "copyright": "Investa. All rights reserved."
+  },
+
+  "investments": {
+    "title": "Explore Opportunities",
+    "startInvestingButton": "Submit Your Project",
+    "filterPlaceholder": "Filter investments...",
+    "advancedSearch": "Advanced Search",
+    "refresh": "Refresh",
+    "exportCsv": "Export CSV",
+    "anonymousInvestor": "Anonymous Investor",
+    "moreInvestors": "{count} more investors",
+    "moreTeamMembers": "{count} more team members",
+    "investor": "investor",
+    "investors": "investors",
+    "riskLevel": "Risk Level",
+    "risk": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "funding": "Funding",
+    "fundingProgress": "Funding Progress",
+    "min": "Min",
+    "to": "to",
+    "max": "Max",
+    "showOnly": "Show Only",
+    "favorites": "Favorites",
+    "reset": "Reset",
+    "score": "Score",
+    "share": "Share",
+    "addToFavorites": "Add to Favorites",
+    "engage": "Engage",
+    "noResultsTitle": "No investments found",
+    "noResultsSubtitle": "No assets match the current filter. Try a different category or search term.",
+    "previous": "Previous",
+    "page": "Page",
+    "of": "of",
+    "next": "Next",
+    "engageModal": {
+      "title": "تأكيد التفاعل",
+      "message": "التفاعل مع {investmentName} سيكلفك {creditCost} رصيدًا. هل أنت متأكد أنك تريد المتابعة؟",
+      "cancelButton": "إلغاء",
+      "proceedButton": "متابعة والتفاعل"
+    },
+    "engageSuccessTitle": "تم إرسال الطلب",
+    "engageSuccessMessage": "تم إرسال طلب التفاعل الخاص بك بخصوص {investmentName}. سيتم إعلامك عند القبول.",
+    "requestSubmittedTitle": "تم إرسال الطلب",
+    "requestSubmittedMessage": "تم إرسال طلبك بخصوص {investmentName}. سنقوم بإعلامك عند القبول.",
+    "shareValidation": {
+      "minError": "يجب ألا يقل عدد الأسهم عن 1",
+      "maxError": "الحد الأقصى {available} من الأسهم المتاحة"
+    },
+    "investDialog": {
+      "title": "استثمر في {investmentName}",
+      "sharePrice": "سعر السهم",
+      "available": "المتاح",
+      "minLabel": "الحد الأدنى",
+      "maxLabel": "الحد الأقصى",
+      "sharesLabel": "عدد الأسهم",
+      "availableLine": "المتاح: {available} سهم",
+      "totalInvestment": "إجمالي الاستثمار:",
+      "expectedROI": "العائد المتوقع:",
+      "cancel": "إلغاء",
+      "confirm": "تأكيد الاستثمار",
+      "processing": "جاري المعالجة..."
+    }
+  },
+  "dashboard": {
+    "investorTitle": "Investor Dashboard",
+    "portfolioValue": "Portfolio Value",
+    "myInvestments": "My Investments",
+    "watchlist": "Watchlist",
+    "investorScore": "Investor Score",
+    "availableCredits": "Available Credits",
+    "myAllocation": "My Allocation",
+    "portfolioPerformance": "Portfolio Performance",
+    "viewAll": "View All",
+    "featuredOpportunities": "Featured Opportunities",
+    "sentRequestsTitle": "Sent Engagement Requests",
+    "requestStatus": {
+      "pending": "Pending",
+      "negotiating": "Negotiating",
+      "partner": "Partner",
+      "rejected": "Rejected"
+    },
+    "withdraw": "Withdraw",
+    "noSentRequests": "No sent requests yet.",
+    "switchProject": "Switch Project",
+    "myProjectOverview": "My Project Overview",
+    "totalInvestors": "Total Investors",
+    "profileViews": "Profile Views",
+    "engagementScore": "Engagement Score",
+    "investorInterest": "Investor Interest",
+    "quickActions": "Quick Actions",
+    "createInvestment": "Create Investment",
+    "viewPublicPage": "View Public Page",
+    "postUpdate": "Post Update",
+    "recentActivity": "Recent Activity",
+    "selectProjectTitle": "Select a Project",
+    "selectProjectSubtitle": "Choose which project you want to view the dashboard for.",
+    "uncategorized": "Uncategorized",
+    "emptyWatchlist": "No items in your watchlist.",
+    "noProject": {
+      "title": "No Projects Yet",
+      "subtitle": "You haven't created any investment projects. Start by submitting your first project!",
+      "button": "Create Your First Project"
+    },
+    "withdrawModal": {
+      "title": "Withdraw Request?",
+      "message": "Are you sure you want to withdraw your engagement request for {projectName}? This action cannot be undone.",
+      "cancelButton": "Cancel",
+      "confirmButton": "Withdraw Request"
+    },
+    "withdrawSuccess": {
+      "title": "Request Withdrawn",
+      "message": "Your request for {projectName} has been successfully withdrawn."
+    }
+  },
+  "chat": {
+    "altTextYou": "You",
+    "startAudioCall": "Start audio call",
+    "startVideoCall": "Start video call",
+    "attachFile": "Attach file",
+    "removeAttachment": "Remove attachment"
+  },
+  "profile": {
+    "kyc": "KYC",
+    "startKyc": "Start KYC",
+    "pending": "Pending",
+    "verified": "Verified",
+    "credibility": "Credibility",
+    "currentScore": "Current Score",
+    "noHistory": "No transaction history yet. Start KYC to earn your first credibility points!",
+    "byAdmin": "By {adminName}",
+    "avatarAlt": "User Avatar",
+    "titleDefault": "User Profile",
+    "trustScore": "Trust Score",
+    "saveButton": "Save",
+    "communication": {
+      "title": "Communication Information",
+      "personalContact": "Personal Contact",
+      "businessContact": "Business Contact",
+      "email": "Email",
+      "mobile": "Mobile",
+      "address": "Address",
+      "city": "City",
+      "state": "State",
+      "businessAddress": "Business Address",
+      "businessLocation": "Business Location",
+      "searchLocation": "Search location"
+    },
+    "personalInfo": {
+      "title": "Personal Information",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "businessRole": "Business Role",
+      "nationalId": "National ID",
+      "uploadId": "Upload ID",
+      "chooseFile": "Choose File",
+      "noFileChosen": "No file chosen",
+      "bio": "Bio",
+      "linkedin": "LinkedIn",
+      "facebook": "Facebook"
+    },
+    "tabs": {
+      "editProfile": "Edit Profile",
+      "communicationInfo": "Communication Info",
+      "security": "Security",
+      "notifications": "Notifications"
+    },
+    "loadErrorTitle": "Failed to Load Profile",
+    "buttons": {
+      "retry": "Retry"
+    },
+    "errors": {
+      "notFound": "Profile not found.",
+      "loadFailed": "Failed to load profile. Please try again."
+    },
+    "toasts": {
+      "savingTitle": "Saving",
+      "savingMessage": "Saving your profile…",
+      "savedTitle": "Profile Saved",
+      "savedMessage": "Your profile was updated successfully.",
+      "saveFailedTitle": "Save Failed",
+      "saveFailedMessage": "Failed to save profile. Please try again.",
+      "kycStartedTitle": "KYC Started",
+      "kycStartedMessage": "KYC started successfully. You earned +10 credibility points!",
+      "kycFailedTitle": "KYC Failed",
+      "kycFailedMessage": "Failed to start KYC. Please try again.",
+      "roleNotPersistedTitle": "Role Not Saved",
+      "roleNotPersistedMessage": "We couldn't save your role. This field may be restricted. Contact support if you think this is an error.",
+      "nationalIdNotPersistedTitle": "National ID Not Saved",
+      "nationalIdNotPersistedMessage": "We couldn't save your national ID. This field may be restricted or validated by the backend. Contact support if you think this is an error.",
+      "nationalIdChangeRecordedTitle": "National ID Recorded",
+      "nationalIdChangeRecordedMessage": "Your national ID change has been recorded and is under review by our team. Verification status has been set to pending."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "subtitle": "Choose what you want to hear about.",
+      "saving": "Saving",
+      "savingMessage": "Saving your profile…",
+      "saved": "Profile Saved",
+      "savedMessage": "Your profile was updated successfully.",
+      "saveFailed": "Save Failed",
+      "saveFailedMessage": "Failed to save profile. Please try again.",
+      "opportunities": {
+        "title": "New Opportunities",
+        "description": "Alerts when new investment opportunities match your interests."
+      },
+      "portfolio": {
+        "title": "Portfolio Updates",
+        "description": "Important updates about your active investments and performance."
+      },
+      "security": {
+        "title": "Security Alerts",
+        "description": "Login alerts, password changes, and suspicious activity notifications."
+      },
+      "news": {
+        "title": "Market News",
+        "description": "Market movements, reports, and curated insights."
+      }
+    },
+    "password": {
+      "title": "Security",
+      "current": "Current Password",
+      "new": "New Password",
+      "confirm": "Confirm New Password",
+      "mismatch": "Passwords do not match"
+    },
+    "placeholders": {
+      "linkedin": "https://linkedin.com/in/...",
+      "facebook": "https://facebook.com/..."
+    },
+    "credibilityHistory": "Credibility Score History"
+  },
+  "apiSwitcher": {
+    "apiLabel": "API:",
+    "change": "Change",
+    "use": "Use",
+    "apply": "Apply",
+    "customPlaceholder": "Custom URL"
+  },
+  "settings": {
+    "placeholders": {
+      "supportHours": "e.g. 9:00-17:00",
+      "walletAmount": "0.00"
+    },
+    "notifications": {
+      "title": "Notification Settings"
+    }
+  },
+  "requests": {
+    "title": "Requests",
+    "incoming": "Incoming",
+    "outgoing": "Outgoing",
+    "from": "From",
+    "to": "To",
+    "accept": "Accept",
+    "decline": "Decline",
+    "withdraw": "Withdraw",
+    "noIncoming": "No incoming requests.",
+    "noOutgoing": "No outgoing requests.",
+    "notifications": {
+      "accepted": "Request Accepted",
+      "acceptedMessage": "{projectName} invitation accepted.",
+      "declined": "Request Declined",
+      "declinedMessage": "{projectName} invitation declined.",
+      "withdrawn": "Request Withdrawn",
+      "withdrawnMessage": "{projectName} request withdrawn."
+    }
+  },
+  "investmentPreview": {
+    "backButton": "Back to Investments",
+    "investmentType": "Investment Type",
+    "earlyStage": "Early-stage funding round",
+    "equityOpportunity": "Equity ownership opportunity",
+    "riskLevel": "Risk Level",
+    "conservativeProfile": "Conservative profile",
+    "moderateExposure": "Moderate exposure",
+    "highVolatility": "High volatility",
+    "campaignStatus": "Campaign Status",
+    "currentlyAccepting": "Currently accepting investments",
+    "targetReached": "Target reached",
+    "campaignEnded": "Campaign ended",
+    "projectRoadmap": "Project Roadmap",
+    "current": "Current",
+    "complete": "Complete",
+    "currentMilestone": "Current Milestone",
+    "sharePrice": "Share Price",
+    "minInvestment": "Min Investment",
+    "expectedROI": "Expected ROI",
+    "totalShares": "Total Shares",
+    "available": "Available",
+    "valuationCap": "Valuation Cap",
+    "fundingProgress": "Funding Progress",
+    "amountRaised": "Amount Raised",
+    "target": "Target",
+    "funded": "Funded",
+    "yourInvestment": "Your Investment",
+    "projectTeam": "Project Team",
+    "noTeamMembers": "No team members available",
+    "timeline": "Timeline",
+    "started": "Started",
+    "targetEnd": "Target End",
+    "posted": "Posted",
+    "quickStats": "Quick Stats",
+    "credibilityScore": "Credibility Score",
+    "activeInvestors": "Active Investors",
+    "currency": "Currency",
+    "founder": "Founder",
+    "contactFounder": "Contact Founder",
+    "viewProfile": "View Profile",
+    "investNow": "Invest Now",
+    "fullyFunded": "Fully Funded",
+    "closed": "Closed",
+    "daysLeft": "days left",
+    "learnMore": "Learn More",
+    "valuation": "Valuation",
+    "author": "Author"
+  },
+  "common": {
+    "months": {
+      "jan": "Jan",
+      "feb": "Feb",
+      "mar": "Mar",
+      "apr": "Apr",
+      "may": "May",
+      "jun": "Jun",
+      "jul": "Jul",
+      "aug": "Aug",
+      "sep": "Sep"
+    },
+    "timeAgo": {
+      "year": "{count} year ago",
+      "years": "{count} years ago",
+      "month": "{count} month ago",
+      "months": "{count} months ago",
+      "day": "{count} day ago",
+      "days": "{count} days ago",
+      "hour": "{count} hour ago",
+      "hours": "{count} hours ago",
+      "minute": "{count} minute ago",
+      "minutes": "{count} minutes ago",
+      "second": "{count} second ago",
+      "seconds": "{count} seconds ago"
+    }
+  }
+}

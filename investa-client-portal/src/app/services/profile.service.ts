@@ -106,6 +106,15 @@ export class ProfileService {
     try {
       const url = `${this.apiBase}/api/profile/me`;
       const payload = {
+        businessRole: profile.coreMetrics?.clientType ?? profile.coreMetrics?.role ?? null,
+        coreMetrics: {
+          clientType: profile.coreMetrics?.clientType ?? null,
+          role: profile.coreMetrics?.role ?? null,
+          credibilityScore: profile.coreMetrics?.credibilityScore ?? null,
+          currentCredibilityScore: profile.coreMetrics?.currentCredibilityScore ?? null,
+          walletBalance: profile.coreMetrics?.walletBalance ?? null,
+          email: profile.coreMetrics?.email ?? null
+        },
         basicInfo: {
           fullName: profile.basicInfo?.fullName ?? null,
           firstName: profile.basicInfo?.firstName ?? null,
@@ -123,12 +132,21 @@ export class ProfileService {
           address: profile.contactInfo?.address ?? null,
           linkedInUrl: profile.contactInfo?.linkedInUrl ?? null,
           facebookUrl: profile.contactInfo?.facebookUrl ?? null
+        },
+        identityCompliance: {
+          documentNumber: profile.identityCompliance?.documentNumber ?? null,
+          documentExpiryDate: profile.identityCompliance?.documentExpiryDate ?? null,
+          verificationStatus: profile.identityCompliance?.verificationStatus ?? null,
+          documentFrontImageUrl: profile.identityCompliance?.documentFrontImageUrl ?? null,
+          documentBackImageUrl: profile.identityCompliance?.documentBackImageUrl ?? null
         }
       };
 
       const token = this.getAccessTokenFromLocalStorage();
       const options = token ? { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) } : undefined;
+      console.debug('updateMyProfile payload:', payload);
       const resp = await firstValueFrom(this.http.put<UserProfile>(url, payload, options));
+      console.debug('updateMyProfile response:', resp);
       if (resp) {
         this._profile.set(resp);
         return resp;
