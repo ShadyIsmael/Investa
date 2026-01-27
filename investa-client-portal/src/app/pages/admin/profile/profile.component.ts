@@ -335,6 +335,9 @@ export class ProfileComponent {
         type: 'info'
       });
 
+      // Capture the current profile state before submitting so we can compare previous values after save
+      const existing = this.profileService.profile();
+
       const updated = await this.profileService.updateMyProfile(profileDto);
       if (updated) {
         // Reload profile to get fresh data from backend
