@@ -164,9 +164,11 @@
   <!-- Dev helper: force Arabic (RTL) when running on localhost so developers can visually test RTL layouts -->
   <script>
     try {
-      if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+      // Only force Arabic in dev when no explicit language choice exists.
+      // This avoids overwriting a developer or tester's saved preference.
+      if ((location.hostname === 'localhost' || location.hostname === '127.0.0.1') && !localStorage.getItem('investa-lang')) {
         localStorage.setItem('investa-lang', 'ar');
-        console.info('[Investa][Dev] forced language=ar for RTL checks');
+        console.info('[Investa][Dev] forced language=ar for RTL checks (no saved preference)');
       }
     } catch (e) {
       // ignore

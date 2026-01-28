@@ -81,7 +81,6 @@ export class ProfileComponent {
     const current = {
       firstName: formValues.firstName ?? '',
       lastName: formValues.lastName ?? '',
-      businessRole: formValues.businessRole ?? '',
       nationalId: formValues.nationalId ?? '',
       bio: formValues.bio ?? '',
       linkedinUrl: formValues.linkedinUrl ?? '',
@@ -119,7 +118,10 @@ export class ProfileComponent {
   profileForm = new FormGroup({
     firstName: new FormControl('', [Validators.required]),
     lastName: new FormControl('', [Validators.required]),
-    businessRole: new FormControl(''),
+    dateOfBirth: new FormControl<string | null>(null),
+    gender: new FormControl(''),
+    nationality: new FormControl(''),
+    country: new FormControl(''),
     nationalId: new FormControl(''),
     nationalIdCopy: new FormControl<File | null>(null),
     bio: new FormControl('', [Validators.maxLength(500)]),
@@ -155,6 +157,104 @@ export class ProfileComponent {
     securityAlerts: new FormControl(true),
     marketNews: new FormControl(true),
   });
+
+  // DOB calendar popup state
+  dobCalendarOpen = signal(false);
+  dobCalendarMonth = signal<number>(new Date().getMonth());
+  dobCalendarYear = signal<number>(new Date().getFullYear());
+  dobCalendarDay = signal<number | null>(null);
+  isRtl = computed(() => this.languageService.direction() === 'rtl');
+
+  // nationality options (could be loaded from API or assets)
+  nationalityOptions = [
+    'Egypt','United States','United Kingdom','United Arab Emirates','Saudi Arabia','Canada','Australia','Other'
+  ];
+
+  toggleDobCalendar(): void {
+    const current = this.profileForm.get('dateOfBirth')?.value;
+    if (!this.dobCalendarOpen()) {
+      if (current) {
+        const d = new Date(current);
+        if (!isNaN(d.getTime())) {
+          this.dobCalendarMonth.set(d.getMonth());
+          this.dobCalendarYear.set(d.getFullYear());
+        }
+      }
+    }
+    this.dobCalendarOpen.set(!this.dobCalendarOpen());
+  }
+
+  closeDobCalendar(): void {
+    this.dobCalendarOpen.set(false);
+  }
+
+  prevDobMonth(): void {
+    let m = this.dobCalendarMonth();
+    let y = this.dobCalendarYear();
+    m -= 1;
+    if (m < 0) { m = 11; y -= 1; }
+    this.dobCalendarMonth.set(m);
+    this.dobCalendarYear.set(y);
+  }
+
+  nextDobMonth(): void {
+    let m = this.dobCalendarMonth();
+    let y = this.dobCalendarYear();
+    m += 1;
+    if (m > 11) { m = 0; y += 1; }
+    this.dobCalendarMonth.set(m);
+    this.dobCalendarYear.set(y);
+  }
+
+  selectDob(day: Date): void {
+    const iso = new Date(Date.UTC(day.getFullYear(), day.getMonth(), day.getDate())).toISOString().substr(0,10);
+    this.profileForm.patchValue({ dateOfBirth: iso });
+    this.profileForm.get('dateOfBirth')?.markAsDirty();
+    this.closeDobCalendar();
+  }
+  // Years / months / days helpers for scrollable picker
+  getYears(rangePast = 100, rangeFuture = 10): number[] {
+    const current = new Date().getFullYear();
+    const years: number[] = [];
+    for (let y = current - rangePast; y <= current + rangeFuture; y++) years.push(y);
+    return years;
+  }
+
+  getMonths(): { idx: number; name: string }[] {
+    const dict = this.languageService.dictionary();
+    const m = dict?.common?.months;
+    const names = [m?.jan ?? 'Jan', m?.feb ?? 'Feb', m?.mar ?? 'Mar', m?.apr ?? 'Apr', m?.may ?? 'May', m?.jun ?? 'Jun', m?.jul ?? 'Jul', m?.aug ?? 'Aug', m?.sep ?? 'Sep', m?.oct ?? 'Oct', m?.nov ?? 'Nov', m?.dec ?? 'Dec'];
+    return names.map((n, i) => ({ idx: i, name: n }));
+  }
+
+  getDaysForMonth(year: number, month: number): number[] {
+    const last = new Date(year, month + 1, 0).getDate();
+    const days: number[] = [];
+    for (let d = 1; d <= last; d++) days.push(d);
+    return days;
+  }
+
+  onSelectYear(y: number): void {
+    this.dobCalendarYear.set(y);
+  }
+
+  onSelectMonth(m: number): void {
+    this.dobCalendarMonth.set(m);
+  }
+
+  onSelectDayNumber(d: number): void {
+    const y = this.dobCalendarYear();
+    const m = this.dobCalendarMonth();
+    this.selectDob(new Date(y, m, d));
+  }
+
+  isSelectedDob(day: number): boolean {
+    const v = this.profileForm.get('dateOfBirth')?.value;
+    if (!v) return false;
+    const dt = new Date(v);
+    if (isNaN(dt.getTime())) return false;
+    return dt.getFullYear() === this.dobCalendarYear() && dt.getMonth() === this.dobCalendarMonth() && dt.getDate() === day;
+  }
 
   trustScore = computed(() => {
     const p = this.profileService.profile();
@@ -204,7 +304,10 @@ export class ProfileComponent {
     this.profileForm.patchValue({
       firstName: p?.basicInfo?.firstName ?? '',
       lastName: p?.basicInfo?.lastName ?? '',
-      businessRole: p?.coreMetrics?.clientType ?? p?.coreMetrics?.role ?? '',
+      dateOfBirth: p?.basicInfo?.dateOfBirth ? new Date(p.basicInfo.dateOfBirth).toISOString().substr(0,10) : null,
+      gender: p?.basicInfo?.gender ?? '',
+      nationality: p?.basicInfo?.nationality ?? '',
+      country: p?.basicInfo?.country ?? '',
       nationalId: p?.identityCompliance?.documentNumber ?? '',
       bio: p?.basicInfo?.bio ?? '',
       linkedinUrl: p?.basicInfo?.linkedInUrl ?? p?.contactInfo?.linkedInUrl ?? '',
@@ -233,7 +336,10 @@ export class ProfileComponent {
     const snapshotObj = {
       firstName: p?.basicInfo?.firstName ?? '',
       lastName: p?.basicInfo?.lastName ?? '',
-      businessRole: p?.coreMetrics?.clientType ?? p?.coreMetrics?.role ?? '',
+      dateOfBirth: p?.basicInfo?.dateOfBirth ? new Date(p.basicInfo.dateOfBirth).toISOString().substr(0,10) : null,
+      gender: p?.basicInfo?.gender ?? '',
+      nationality: p?.basicInfo?.nationality ?? '',
+      country: p?.basicInfo?.country ?? '',
       nationalId: p?.identityCompliance?.documentNumber ?? '',
       bio: p?.basicInfo?.bio ?? '',
       linkedinUrl: p?.basicInfo?.linkedInUrl ?? p?.contactInfo?.linkedInUrl ?? '',
@@ -335,6 +441,9 @@ export class ProfileComponent {
         type: 'info'
       });
 
+      // Capture the current profile state before submitting so we can compare previous values after save
+      const existing = this.profileService.profile();
+
       const updated = await this.profileService.updateMyProfile(profileDto);
       if (updated) {
         // Reload profile to get fresh data from backend
@@ -345,22 +454,15 @@ export class ProfileComponent {
         if (p) this.initializeSnapshots(p);
         this.profileForm.markAsPristine();
 
-        // Verify server persisted client-side changes (role, national id)
-        const submittedRole = profileDto.coreMetrics?.clientType ?? profileDto.coreMetrics?.role ?? null;
+        // Verify server persisted client-side changes (national id)
         const submittedNationalId = profileDto.identityCompliance?.documentNumber ?? null;
         if (p) {
-          const persistedRole = p.coreMetrics?.clientType ?? p.coreMetrics?.role ?? null;
           const persistedNationalId = p.identityCompliance?.documentNumber ?? null;
-          if (submittedRole && persistedRole !== submittedRole) {
-            console.warn('Role was not persisted by server', { submittedRole, persistedRole });
-            this.notificationService.showToast({ title: this.t('profile.toasts.roleNotPersistedTitle'), message: this.t('profile.toasts.roleNotPersistedMessage'), type: 'warning' });
-          }
           if (submittedNationalId && persistedNationalId !== submittedNationalId) {
             console.warn('National ID was not persisted by server', { submittedNationalId, persistedNationalId });
             this.notificationService.showToast({ title: this.t('profile.toasts.nationalIdNotPersistedTitle'), message: this.t('profile.toasts.nationalIdNotPersistedMessage'), type: 'warning' });
           }
 
-          // If the submitted national id was persisted and differs from previous, notify user that change is recorded and under review
           const previousNationalId = existing.identityCompliance?.documentNumber ?? null;
           if (submittedNationalId && persistedNationalId === submittedNationalId && submittedNationalId !== previousNationalId) {
             this.notificationService.showToast({ title: this.t('profile.toasts.nationalIdChangeRecordedTitle'), message: this.t('profile.toasts.nationalIdChangeRecordedMessage'), type: 'info' });
@@ -434,11 +536,7 @@ export class ProfileComponent {
     return {
       ...existing,
       coreMetrics: {
-        ...(existing.coreMetrics ?? {}),
-        clientType: this.profileForm.get('businessRole')?.value ?? existing.coreMetrics?.clientType ?? null,
-        role: this.profileForm.get('businessRole')?.value ?? existing.coreMetrics?.role ?? null,
-        // Try to provide a numeric clientType when a known role is used (backend may expect enum int)
-        clientTypeId: this.mapBusinessRoleToClientTypeId(this.profileForm.get('businessRole')?.value) ?? null
+        ...(existing.coreMetrics ?? {})
       },
       // Also include a top-level nationalId (some backend versions use this field)
       nationalId: this.profileForm.get('nationalId')?.value ?? existing.identityCompliance?.documentNumber ?? null,
@@ -446,6 +544,10 @@ export class ProfileComponent {
         ...(existing.basicInfo ?? {}),
         firstName: this.profileForm.get('firstName')?.value ?? '',
         lastName: this.profileForm.get('lastName')?.value ?? '',
+        dateOfBirth: this.profileForm.get('dateOfBirth')?.value ? new Date(this.profileForm.get('dateOfBirth')?.value).toISOString() : null,
+        gender: this.profileForm.get('gender')?.value ?? null,
+        nationality: this.profileForm.get('nationality')?.value ?? null,
+        country: this.profileForm.get('country')?.value ?? null,
         bio: this.profileForm.get('bio')?.value ?? '',
         linkedInUrl: this.profileForm.get('linkedinUrl')?.value ?? '',
         facebookUrl: this.profileForm.get('facebookUrl')?.value ?? '',
@@ -465,16 +567,5 @@ export class ProfileComponent {
         documentNumber: this.profileForm.get('nationalId')?.value ?? existing.identityCompliance?.documentNumber ?? null
       }
     };
-  }
-
-  private mapBusinessRoleToClientTypeId(role?: string | null): number | null {
-    if (!role) return null;
-    const normalized = role.trim().toLowerCase();
-    const map: Record<string, number> = {
-      'investor': 0,
-      'founder': 1,
-      'both': 2
-    };
-    return map[normalized] ?? null;
   }
 }

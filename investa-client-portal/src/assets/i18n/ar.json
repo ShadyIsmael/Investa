@@ -19,6 +19,22 @@
     "login": "تسجيل الدخول",
     "signup": "إنشاء حساب"
   },
+  "login": {
+    "title": "مرحبًا بعودتك",
+    "subtitle": "تسجيل الدخول للمتابعة إلى حسابك.",
+    "mobileLabel": "رقم الجوال",
+    "mobilePlaceholder": "أدخل رقم جوالك",
+    "passwordLabel": "كلمة المرور",
+    "passwordPlaceholder": "أدخل كلمة المرور",
+    "rememberMe": "تذكرني",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "signInButton": "تسجيل الدخول",
+    "orContinueWith": "أو المتابعة عبر",
+    "notAMember": "لست عضوًا؟",
+    "signUpNow": "سجل الآن",
+    "founder": "مؤسس",
+    "partner": "شريك"
+  },
   "adminNav": {
     "panel": "لوحة تحكم إنفستا",
     "dashboard": "لوحة التحكم",
@@ -381,6 +397,14 @@
       "firstName": "الاسم الأول",
       "lastName": "اسم العائلة",
       "businessRole": "الدور الوظيفي",
+      "dateOfBirth": "تاريخ الميلاد",
+      "gender": "الجنس",
+      "genderSelect": "اختر الجنس",
+      "male": "ذكر",
+      "female": "أنثى",
+      "nationality": "الجنسية",
+      "country": "البلد",
+      "countrySelect": "اختر البلد",
       "nationalId": "الهوية الوطنية",
       "uploadId": "تحميل الهوية",
       "chooseFile": "اختر ملفًا",
@@ -472,9 +496,31 @@
       "supportHours": "مثال: 9:00-17:00",
       "walletAmount": "0.00"
     },
-    "notifications": {
-      "title": "إعدادات الإشعارات"
-    }
+    "backToDashboard": "العودة إلى لوحة التحكم",
+    "title": "الإعدادات",
+    "subtitle": "ضبط تفضيلاتك وإعدادات الحساب.",
+    "appearance": {
+      "title": "المظهر",
+      "theme": {
+        "label": "السمة",
+        "options": { "system": "النظام", "light": "فاتح", "dark": "داكن" }
+      }
+    },
+    "localization": {
+      "title": "اللغة والعملة",
+      "language": { "label": "اللغة", "options": { "en": "الإنجليزية", "ar": "العربية" } },
+      "currency": { "label": "العملة", "options": { "USD": "دولار", "EUR": "يورو", "SAR": "ريال" } }
+    },
+    "privacy": { "title": "الخصوصية" },
+    "personalization": {
+      "title": "التخصيص",
+      "dashboardDensity": { "label": "كثافة اللوحة", "options": { "comfortable": "مريحة", "compact": "مضغوطة" } },
+      "defaultInvestmentType": { "label": "نوع الاستثمار الافتراضي", "options": { "any": "أي", "founding": "تأسيس", "equity": "أسهم" } },
+      "showRiskIndicators": "عرض مؤشرات المخاطر"
+    },
+    "support": { "title": "الدعم", "available": "الدعم متاح", "hours": "ساعات الدعم" },
+    "wallet": { "title": "المحفظة", "balance": "الرصيد", "amount": "المبلغ", "addButton": "إضافة رصيد" },
+    "notifications": { "title": "إعدادات الإشعارات" }
   },
   "requests": {
     "title": "الطلبات",
@@ -507,6 +553,9 @@
       "jul": "يوليو",
       "aug": "أغسطس",
       "sep": "سبتمبر"
+      ,"oct": "أكتوبر",
+      "nov": "نوفمبر",
+      "dec": "ديسمبر"
     },
     "timeAgo": {
       "year": "قبل {count} سنة",

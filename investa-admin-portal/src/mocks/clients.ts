@@ -1,13 +1,18 @@
 
 import { Client } from '../types';
+import { getDynamicBaseUrl } from '../utils/environment';
+
+/** Default avatar placeholder - uses UI Avatars service for initials-based avatars */
+const getDefaultAvatar = (name: string, seed: number) => 
+  `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&size=100`;
 
 export const MOCK_CLIENTS: Client[] = [
-  { id: 'C-101', name: "Global Tech Solutions", email: "contact@globaltech.com", registrationDate: "2023-10-12", status: "Active", verificationPercent: 95, avatar: "https://picsum.photos/100/100?random=10" },
-  { id: 'C-102', name: "Apex Marketing Group", email: "billing@apex.io", registrationDate: "2023-11-05", status: "Active", verificationPercent: 100, avatar: "https://picsum.photos/100/100?random=11" },
-  { id: 'C-103', name: "Nebula Systems", email: "support@nebula.net", registrationDate: "2024-01-20", status: "Pending", verificationPercent: 45, avatar: "https://picsum.photos/100/100?random=12" },
-  { id: 'C-104', name: "Quantum Logistics", email: "ops@quantum.com", registrationDate: "2023-08-15", status: "Suspended", verificationPercent: 88, avatar: "https://picsum.photos/100/100?random=13" },
-  { id: 'C-105', name: "EcoFlow Energy", email: "hi@ecoflow.org", registrationDate: "2024-02-01", status: "Active", verificationPercent: 72, avatar: "https://picsum.photos/100/100?random=14" },
-  { id: 'C-106', name: "Starlight Venture", email: "invest@starlight.co", registrationDate: "2023-12-28", status: "Inactive", verificationPercent: 15, avatar: "https://picsum.photos/100/100?random=15" },
+  { id: 'C-101', name: "Global Tech Solutions", email: "contact@globaltech.com", registrationDate: "2023-10-12", status: "Active", verificationPercent: 95, avatar: getDefaultAvatar("Global Tech", 10) },
+  { id: 'C-102', name: "Apex Marketing Group", email: "billing@apex.io", registrationDate: "2023-11-05", status: "Active", verificationPercent: 100, avatar: getDefaultAvatar("Apex Marketing", 11) },
+  { id: 'C-103', name: "Nebula Systems", email: "support@nebula.net", registrationDate: "2024-01-20", status: "Pending", verificationPercent: 45, avatar: getDefaultAvatar("Nebula Systems", 12) },
+  { id: 'C-104', name: "Quantum Logistics", email: "ops@quantum.com", registrationDate: "2023-08-15", status: "Suspended", verificationPercent: 88, avatar: getDefaultAvatar("Quantum Logistics", 13) },
+  { id: 'C-105', name: "EcoFlow Energy", email: "hi@ecoflow.org", registrationDate: "2024-02-01", status: "Active", verificationPercent: 72, avatar: getDefaultAvatar("EcoFlow Energy", 14) },
+  { id: 'C-106', name: "Starlight Venture", email: "invest@starlight.co", registrationDate: "2023-12-28", status: "Inactive", verificationPercent: 15, avatar: getDefaultAvatar("Starlight Venture", 15) },
 ];
 
 export let TOP_SCORED_CLIENTS: Client[] = [...MOCK_CLIENTS]
@@ -42,9 +47,10 @@ async function refreshTopClientsFromApi() {
         .slice(0, 5);
     }
   } catch (e) {
-    // keep mocks if anything goes wrong
-    // eslint-disable-next-line no-console
-    console.debug('[mocks/clients] could not refresh top clients from API, using mock data', e);
+    // keep mocks if anything goes wrong - only log in development
+    if (import.meta.env.DEV) {
+      console.debug('[mocks/clients] could not refresh top clients from API, using mock data', e);
+    }
   }
 }
 

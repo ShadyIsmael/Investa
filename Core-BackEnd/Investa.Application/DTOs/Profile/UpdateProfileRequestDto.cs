@@ -10,11 +10,6 @@ public class UpdateProfileRequestDto
     public ContactInfoDto? ContactInfo { get; set; }
 
     /// <summary>
-    /// Optional business role or client type (e.g., Investor, Founder, Both)
-    /// </summary>
-    public string? BusinessRole { get; set; }
-
-    /// <summary>
     /// Optional identity/compliance section for KYC (DocumentNumber etc.)
     /// </summary>
     public IdentityComplianceDto? IdentityCompliance { get; set; }

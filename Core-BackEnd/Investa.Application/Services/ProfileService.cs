@@ -85,6 +85,8 @@ public class ProfileService : IProfileService
             profile.FirstName = profileDto.BasicInfo.FirstName;
             profile.LastName = profileDto.BasicInfo.LastName;
             profile.Gender = profileDto.BasicInfo.Gender;
+            profile.DateOfBirth = profileDto.BasicInfo.DateOfBirth;
+            profile.Country = profileDto.BasicInfo.Country;
             profile.Nationality = profileDto.BasicInfo.Nationality;
             profile.Bio = profileDto.BasicInfo.Bio;
             profile.AvatarUrl = profileDto.BasicInfo.AvatarUrl;
@@ -111,31 +113,10 @@ public class ProfileService : IProfileService
             profile.DocumentBackImageUrl = profileDto.IdentityCompliance.DocumentBackImageUrl;
         }
 
-        // Update client-level fields (BusinessRole, NationalId) when provided
+        // Update client-level fields (NationalId) when provided. BusinessRole is no longer part of profile updates.
         var client = await _unitOfWork.Repository<Client>().GetSingleAsync(c => c.UserId == userId);
         if (client != null)
         {
-            if (profileDto.CoreMetrics != null)
-            {
-                var role = profileDto.CoreMetrics.Role ?? profileDto.CoreMetrics.ClientType;
-                if (!string.IsNullOrEmpty(role) && role != client.BusinessRole)
-                {
-                    // Audit business role change
-                    var audit = new ProfileChangeAudit
-                    {
-                        UserId = userId,
-                        FieldName = "BusinessRole",
-                        OldValue = client.BusinessRole,
-                        NewValue = role,
-                        Reason = "User updated business role",
-                        CreatedAt = DateTime.UtcNow
-                    };
-                    await _unitOfWork.Repository<ProfileChangeAudit>().AddAsync(audit);
-
-                    client.BusinessRole = role;
-                }
-            }
-
             if (profileDto.IdentityCompliance != null && !string.IsNullOrEmpty(profileDto.IdentityCompliance.DocumentNumber))
             {
                 if (client.NationalId != profileDto.IdentityCompliance.DocumentNumber)

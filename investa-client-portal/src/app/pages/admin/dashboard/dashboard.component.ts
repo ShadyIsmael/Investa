@@ -10,6 +10,7 @@ import { ProfileService } from '../../../services/profile.service';
 import { UserService } from '../../../services/user.service';
 import { Investment } from '../../../models/investment.model';
 import { NotificationService } from '../../../services/notification.service';
+import { TIME_INTERVALS } from '../../../config/constants';
 import { get } from 'lodash-es';
 
 declare var d3: any;
@@ -188,31 +189,31 @@ export class DashboardComponent {
     const now = new Date();
     const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-    let interval = seconds / 31536000;
+    let interval = seconds / TIME_INTERVALS.YEAR;
     if (interval > 1) {
       const years = Math.floor(interval);
       const key = years > 1 ? 'common.timeAgo.years' : 'common.timeAgo.year';
       return this.t(key, '{count} years ago').replace('{count}', String(years));
     }
-    interval = seconds / 2592000;
+    interval = seconds / TIME_INTERVALS.MONTH;
     if (interval > 1) {
       const months = Math.floor(interval);
       const key = months > 1 ? 'common.timeAgo.months' : 'common.timeAgo.month';
       return this.t(key, '{count} months ago').replace('{count}', String(months));
     }
-    interval = seconds / 86400;
+    interval = seconds / TIME_INTERVALS.DAY;
     if (interval > 1) {
       const days = Math.floor(interval);
       const key = days > 1 ? 'common.timeAgo.days' : 'common.timeAgo.day';
       return this.t(key, '{count} days ago').replace('{count}', String(days));
     }
-    interval = seconds / 3600;
+    interval = seconds / TIME_INTERVALS.HOUR;
     if (interval > 1) {
       const hours = Math.floor(interval);
       const key = hours > 1 ? 'common.timeAgo.hours' : 'common.timeAgo.hour';
       return this.t(key, '{count} hours ago').replace('{count}', String(hours));
     }
-    interval = seconds / 60;
+    interval = seconds / TIME_INTERVALS.MINUTE;
     if (interval > 1) {
       const minutes = Math.floor(interval);
       const key = minutes > 1 ? 'common.timeAgo.minutes' : 'common.timeAgo.minute';

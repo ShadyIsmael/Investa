@@ -16,7 +16,7 @@ import { LanguageService } from '../../../services/language.service';
 })
 export class SettingsComponent {
   private settingsService = inject(SettingsService);
-  private languageService = inject(LanguageService);
+  languageService = inject(LanguageService);
 
   ThemePreference = ThemePreference;
   DashboardDensity = DashboardDensity;

@@ -7,10 +7,15 @@ export interface BasicInfo {
   firstName?: string | null;
   lastName?: string | null;
   fullName?: string | null;
+  birthDate?: string | null;
+  dateOfBirth?: string | null;
   bio?: string | null;
   avatarUrl?: string | null;
   linkedInUrl?: string | null;
   facebookUrl?: string | null;
+  gender?: string | null;
+  nationality?: string | null;
+  country?: string | null;
 }
 
 export interface ContactInfo {
@@ -106,18 +111,11 @@ export class ProfileService {
     try {
       const url = `${this.apiBase}/api/profile/me`;
       const payload = {
-        businessRole: profile.coreMetrics?.clientType ?? profile.coreMetrics?.role ?? null,
-        coreMetrics: {
-          clientType: profile.coreMetrics?.clientType ?? null,
-          role: profile.coreMetrics?.role ?? null,
-          credibilityScore: profile.coreMetrics?.credibilityScore ?? null,
-          currentCredibilityScore: profile.coreMetrics?.currentCredibilityScore ?? null,
-          walletBalance: profile.coreMetrics?.walletBalance ?? null,
-          email: profile.coreMetrics?.email ?? null
-        },
         basicInfo: {
           fullName: profile.basicInfo?.fullName ?? null,
           firstName: profile.basicInfo?.firstName ?? null,
+            birthDate: profile.basicInfo?.birthDate ?? null,
+            dateOfBirth: profile.basicInfo?.dateOfBirth ?? profile.basicInfo?.birthDate ?? null,
           lastName: profile.basicInfo?.lastName ?? null,
           bio: profile.basicInfo?.bio ?? null,
           avatarUrl: profile.basicInfo?.avatarUrl ?? null,
