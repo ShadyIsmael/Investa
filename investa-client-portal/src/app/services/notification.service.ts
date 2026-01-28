@@ -1,4 +1,5 @@
 import { Injectable, signal, computed } from '@angular/core';
+import { TOAST_DURATION_MS } from '../config/constants';
 
 export type NotificationType = 'success' | 'info' | 'warning' | 'error';
 
@@ -13,44 +14,30 @@ export interface Notification {
 
 export interface Toast extends Omit<Notification, 'timestamp' | 'read'> {}
 
+/**
+ * Service for managing in-app notifications and toast messages.
+ * Notifications are persisted in component state; toasts auto-dismiss.
+ */
 @Injectable({
   providedIn: 'root'
 })
 export class NotificationService {
-  private nextId = 4;
+  private nextId = 1;
   private nextToastId = 1;
   
-  notifications = signal<Notification[]>([
-    {
-      id: 1,
-      title: 'New Investment Opportunity',
-      message: 'Quantum Leap AI stock has been added. Check it out!',
-      timestamp: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
-      read: false,
-      type: 'info'
-    },
-    {
-      id: 2,
-      title: 'Portfolio Milestone',
-      message: 'Congratulations! Your portfolio has reached a new high of $150,000.',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-      read: false,
-      type: 'success'
-    },
-    {
-      id: 3,
-      title: 'Security Alert',
-      message: 'A new device has logged into your account. If this was not you, please secure your account immediately.',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
-      read: true,
-      type: 'warning'
-    }
-  ]);
+  /** All notifications - fetched from backend on init */
+  notifications = signal<Notification[]>([]);
 
+  /** Active toast messages */
   toasts = signal<Toast[]>([]);
 
+  /** Count of unread notifications */
   unreadCount = computed(() => this.notifications().filter(n => !n.read).length);
 
+  /**
+   * Displays a toast notification that auto-dismisses.
+   * @param toastData - Toast content without id
+   */
   showToast(toastData: Omit<Toast, 'id'>) {
     const newToast: Toast = {
       ...toastData,
@@ -60,13 +47,21 @@ export class NotificationService {
     
     setTimeout(() => {
       this.removeToast(newToast.id);
-    }, 5000);
+    }, TOAST_DURATION_MS);
   }
   
+  /**
+   * Removes a toast by its id.
+   * @param id - Toast identifier
+   */
   removeToast(id: number) {
     this.toasts.update(toasts => toasts.filter(t => t.id !== id));
   }
 
+  /**
+   * Adds a new notification to the list.
+   * @param notificationData - Notification content
+   */
   addNotification(notificationData: Omit<Notification, 'id' | 'timestamp' | 'read'>) {
     const newNotification: Notification = {
       ...notificationData,
@@ -77,18 +72,40 @@ export class NotificationService {
     this.notifications.update(current => [newNotification, ...current]);
   }
 
+  /**
+   * Sets the notifications list (e.g., from backend fetch).
+   * @param notifications - Array of notifications
+   */
+  setNotifications(notifications: Notification[]) {
+    this.notifications.set(notifications);
+    // Update nextId to avoid collisions
+    const maxId = notifications.reduce((max, n) => Math.max(max, n.id), 0);
+    this.nextId = maxId + 1;
+  }
+
+  /**
+   * Marks a single notification as read.
+   * @param id - Notification identifier
+   */
   markAsRead(id: number) {
     this.notifications.update(notifications => 
       notifications.map(n => n.id === id ? { ...n, read: true } : n)
     );
   }
 
+  /**
+   * Marks all notifications as read.
+   */
   markAllAsRead() {
     this.notifications.update(notifications => 
       notifications.map(n => ({ ...n, read: true }))
     );
   }
 
+  /**
+   * Deletes a notification by id.
+   * @param id - Notification identifier
+   */
   deleteNotification(id: number) {
     this.notifications.update(notifications => 
       notifications.filter(n => n.id !== id)

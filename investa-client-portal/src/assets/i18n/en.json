@@ -19,6 +19,22 @@
     "login": "Login",
     "signup": "Sign Up"
   },
+  "login": {
+    "title": "Welcome Back",
+    "subtitle": "Sign in to continue to your account.",
+    "mobileLabel": "Mobile Number",
+    "mobilePlaceholder": "Enter your mobile number",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "rememberMe": "Remember me",
+    "forgotPassword": "Forgot password?",
+    "signInButton": "Sign In",
+    "orContinueWith": "Or continue with",
+    "notAMember": "Not a member?",
+    "signUpNow": "Sign Up Now",
+    "founder": "Founder",
+    "partner": "Partner"
+  },
   "adminNav": {
     "panel": "Investa Panel",
     "dashboard": "Dashboard",
@@ -346,6 +362,14 @@
       "firstName": "First Name",
       "lastName": "Last Name",
       "businessRole": "Business Role",
+      "dateOfBirth": "Date of Birth",
+      "gender": "Gender",
+      "genderSelect": "Select gender",
+      "male": "Male",
+      "female": "Female",
+      "nationality": "Nationality",
+      "country": "Country",
+      "countrySelect": "Select country",
       "nationalId": "National ID",
       "uploadId": "Upload ID",
       "chooseFile": "Choose File",
@@ -437,6 +461,50 @@
       "supportHours": "e.g. 9:00-17:00",
       "walletAmount": "0.00"
     },
+    "backToDashboard": "Back to Dashboard",
+    "title": "Settings",
+    "subtitle": "Adjust your preferences and account settings.",
+    "appearance": {
+      "title": "Appearance",
+      "theme": {
+        "label": "Theme",
+        "options": {
+          "system": "System",
+          "light": "Light",
+          "dark": "Dark"
+        }
+      }
+    },
+    "localization": {
+      "title": "Localization",
+      "language": {
+        "label": "Language",
+        "options": {
+          "en": "English",
+          "ar": "Arabic"
+        }
+      },
+      "currency": {
+        "label": "Currency",
+        "options": {
+          "USD": "USD",
+          "EUR": "EUR",
+          "SAR": "SAR"
+        }
+      }
+    },
+    "privacy": { "title": "Privacy" },
+    "personalization": {
+      "title": "Personalization",
+      "dashboardDensity": {
+        "label": "Dashboard Density",
+        "options": { "comfortable": "Comfortable", "compact": "Compact" }
+      },
+      "defaultInvestmentType": { "label": "Default Investment Type", "options": { "any": "Any", "founding": "Founding", "equity": "Equity" } },
+      "showRiskIndicators": "Show risk indicators"
+    },
+    "support": { "title": "Support", "available": "Support Available", "hours": "Support Hours" },
+    "wallet": { "title": "Wallet", "balance": "Balance", "amount": "Amount", "addButton": "Add Funds" },
     "notifications": {
       "title": "Notification Settings"
     }
@@ -521,6 +589,9 @@
       "jul": "Jul",
       "aug": "Aug",
       "sep": "Sep"
+      ,"oct": "Oct",
+      "nov": "Nov",
+      "dec": "Dec"
     },
     "timeAgo": {
       "year": "{count} year ago",

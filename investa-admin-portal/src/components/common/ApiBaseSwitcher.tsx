@@ -22,7 +22,7 @@ export default function ApiBaseSwitcher() {
   function updateRuntime(url: string) {
     try {
       // set global and meta tag for runtime pickup
-      (window as any).__INVESTA_API_BASE = url;
+      (window as unknown as { __INVESTA_API_BASE?: string }).__INVESTA_API_BASE = url;
       let m = document.querySelector('meta[name="investa-api-base"]');
       if (!m) {
         m = document.createElement('meta');
@@ -30,9 +30,14 @@ export default function ApiBaseSwitcher() {
         document.head.appendChild(m);
       }
       m.setAttribute('content', url);
-      console.info('[Admin] API base set to', url);
+      // Only log in development
+      if (import.meta.env.DEV) {
+        console.info('[Admin] API base set to', url);
+      }
     } catch (e) {
-      console.warn('Failed to set runtime API base', e);
+      if (import.meta.env.DEV) {
+        console.warn('Failed to set runtime API base', e);
+      }
     }
   }
 

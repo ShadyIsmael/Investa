@@ -1,11 +1,23 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+/// Environment configuration for the Investa Partner app.
+///
+/// Configuration priority (highest to lowest):
+/// 1. Compile-time: `--dart-define=KEY=value`
+/// 2. Runtime: `.env` file
+/// 3. Default values (only for non-sensitive settings)
+///
+/// IMPORTANT: For local development, create a `.env` file with:
+/// ```
+/// BASE_HOST_NAME=your-hostname
+/// API_BASE_URL=http://your-hostname:5000
+/// ```
 class Env {
   /// Compile-time override via `--dart-define=API_BASE_URL=...`
   static const _apiBaseUrlConst =
       String.fromEnvironment('API_BASE_URL', defaultValue: '');
 
-  /// Optional base host name for local desktop discovery (default provided)
+  /// Optional base host name for local desktop discovery.
   static const _baseHostNameConst =
       String.fromEnvironment('BASE_HOST_NAME', defaultValue: 'DESKTOP-DIH7CQH');
 
@@ -17,7 +29,8 @@ class Env {
     return 'DESKTOP-DIH7CQH';
   }
 
-  /// Runtime value: prefer compile-time, then `.env`, then default.
+  /// Runtime value: prefer compile-time, then `.env`, then return empty.
+  /// An empty return indicates that API URL is not configured.
   static String get apiBaseUrl {
     if (_apiBaseUrlConst.isNotEmpty) return _apiBaseUrlConst;
     final fromDot = dotenv.env['API_BASE_URL'];
@@ -25,10 +38,11 @@ class Env {
 
     // No override provided – API base URL is not configured. Set `API_BASE_URL` in
     // your `.env` file or provide `--dart-define=API_BASE_URL=...` at compile time.
-    // Returning an empty string encourages explicit configuration and avoids
-    // relying on a hard-coded host in the source.
     return '';
   }
+
+  /// Whether the API is properly configured.
+  static bool get isApiConfigured => apiBaseUrl.isNotEmpty;
 
   /// How many credits are consumed when the user "Engages" with an investment.
   /// Can be set at compile-time with `--dart-define=ENGAGE_CREDIT_COST=5` or

@@ -50,6 +50,17 @@ public class UserProfile
     public string? Nationality { get; set; }
 
     /// <summary>
+    /// User's date of birth
+    /// </summary>
+    public DateTime? DateOfBirth { get; set; }
+
+    /// <summary>
+    /// Country selection for the user (used for dropdown selection)
+    /// </summary>
+    [StringLength(100)]
+    public string? Country { get; set; }
+
+    /// <summary>
     /// User's biography or profile description
     /// </summary>
     [StringLength(1000)]

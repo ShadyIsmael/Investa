@@ -26,6 +26,23 @@ export class LoginComponent {
   isSubmitting = signal<boolean>(false);
   isDropdownOpen = signal<boolean>(false);
 
+  theme = computed(() => {
+    const isFounder = this.role() === 'founder';
+    return {
+      primaryGradient: isFounder 
+        ? 'from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700' 
+        : 'from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700',
+      textAccent: isFounder ? 'text-violet-400' : 'text-emerald-400',
+      textHover: isFounder ? 'hover:text-violet-300' : 'hover:text-emerald-300',
+      ringFocus: isFounder ? 'focus:ring-violet-500' : 'focus:ring-emerald-500', 
+      borderFocus: isFounder ? 'focus:border-violet-500' : 'focus:border-emerald-500',
+      bgGlow: isFounder ? 'bg-violet-500/10' : 'bg-emerald-500/10',
+      bgGlowSecond: isFounder ? 'bg-indigo-500/10' : 'bg-teal-500/10',
+      iconColor: isFounder ? 'text-violet-400' : 'text-emerald-400',
+      checkboxText: isFounder ? 'text-violet-500 focus:ring-violet-600' : 'text-emerald-500 focus:ring-emerald-600'
+    };
+  });
+
   countries = [
     { code: '+20', flag: 'eg', name: 'Egypt' },
     { code: '+1', flag: 'us', name: 'USA' },

@@ -1,4 +1,4 @@
-<div class="container mx-auto px-6 py-8">
+<div class="container mx-auto px-4 py-6">
   <div class="mb-6">
     <a routerLink="/admin/dashboard" class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
       <svg class="w-5 h-5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
@@ -6,10 +6,10 @@
     </a>
   </div>
 
-  <h1 class="text-3xl font-bold text-white mb-2">{{ 'settings.title' | translate }}</h1>
-  <p class="text-gray-400 mb-8">{{ 'settings.subtitle' | translate }}</p>
+  <h1 class="text-2xl font-bold text-white mb-2">{{ 'settings.title' | translate }}</h1>
+  <p class="text-gray-300 mb-6 text-sm">{{ 'settings.subtitle' | translate }}</p>
 
-  <div class="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6">
+  <div class="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-5">
     <!-- Sidebar -->
     <aside class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-4">
       <nav class="space-y-1">
@@ -32,8 +32,8 @@
     <section class="space-y-6">
       @switch (activeSection) {
         @case ('appearance') {
-          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-            <h2 class="text-xl font-semibold text-white mb-4">{{ 'settings.appearance.title' | translate }}</h2>
+          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
+            <h2 class="text-lg font-semibold text-white mb-3">{{ 'settings.appearance.title' | translate }}</h2>
             <div class="mb-4">
               <label class="block text-sm font-medium text-gray-300 mb-2">{{ 'settings.appearance.theme.label' | translate }}</label>
               <div class="flex flex-wrap gap-2">
@@ -54,13 +54,13 @@
           </div>
         }
         @case ('localization') {
-          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-            <h2 class="text-xl font-semibold text-white mb-4">{{ 'settings.localization.title' | translate }}</h2>
+          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
+            <h2 class="text-lg font-semibold text-white mb-3">{{ 'settings.localization.title' | translate }}</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-300 mb-2">{{ 'settings.localization.language.label' | translate }}</label>
                 <select class="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-gray-200"
-                  [value]="settings().language" (change)="setLanguage($any($event.target).value)">
+                  [value]="languageService.language()" (change)="setLanguage($any($event.target).value)">
                   <option value="en">{{ 'settings.localization.language.options.en' | translate }}</option>
                   <option value="ar">{{ 'settings.localization.language.options.ar' | translate }}</option>
                 </select>
@@ -78,8 +78,8 @@
           </div>
         }
         @case ('notifications') {
-          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-            <h2 class="text-xl font-semibold text-white mb-4">{{ 'settings.notifications.title' | translate }}</h2>
+          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
+            <h2 class="text-lg font-semibold text-white mb-3">{{ 'settings.notifications.title' | translate }}</h2>
             <div class="space-y-3">
               <label class="flex items-center gap-3">
                 <input type="checkbox" class="accent-blue-500" [checked]="settings().notifications.email" (change)="toggleNotifications('email', $any($event.target).checked)">
@@ -97,8 +97,8 @@
           </div>
         }
         @case ('privacy') {
-          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-            <h2 class="text-xl font-semibold text-white mb-4">{{ 'settings.privacy.title' | translate }}</h2>
+          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
+            <h2 class="text-lg font-semibold text-white mb-3">{{ 'settings.privacy.title' | translate }}</h2>
             <div class="space-y-3">
               <label class="flex items-center gap-3">
                 <input type="checkbox" class="accent-blue-500" [checked]="settings().privacy.showPublicProfile" (change)="togglePrivacy('showPublicProfile', $any($event.target).checked)">
@@ -112,8 +112,8 @@
           </div>
         }
         @case ('personalization') {
-          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-            <h2 class="text-xl font-semibold text-white mb-4">{{ 'settings.personalization.title' | translate }}</h2>
+          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
+            <h2 class="text-lg font-semibold text-white mb-3">{{ 'settings.personalization.title' | translate }}</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-300 mb-2">{{ 'settings.personalization.dashboardDensity.label' | translate }}</label>
@@ -159,8 +159,8 @@
           </div>
         }
         @case ('support') {
-          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-            <h2 class="text-xl font-semibold text-white mb-4">{{ 'settings.support.title' | translate }}</h2>
+          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
+            <h2 class="text-lg font-semibold text-white mb-3">{{ 'settings.support.title' | translate }}</h2>
             <div class="space-y-4">
               <label class="flex items-center gap-3">
                 <input type="checkbox" class="accent-blue-500" [checked]="settings().support?.available" (change)="setSupportAvailability($any($event.target).checked)">
@@ -175,8 +175,8 @@
           </div>
         }
         @case ('wallet') {
-          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-            <h2 class="text-xl font-semibold text-white mb-4">{{ 'settings.wallet.title' | translate }}</h2>
+          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
+            <h2 class="text-lg font-semibold text-white mb-3">{{ 'settings.wallet.title' | translate }}</h2>
             <div class="space-y-4">
               <div class="text-gray-300">
                 <span class="font-medium">{{ 'settings.wallet.balance' | translate }}:</span>

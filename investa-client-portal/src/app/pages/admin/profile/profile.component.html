@@ -26,7 +26,7 @@
         </div>
 
         <h2 class="text-2xl font-bold text-white">{{ fullName() || ('profile.titleDefault' | translate) }}</h2>
-        <p class="text-gray-400 mb-4">{{ profileForm.get('businessRole')?.value }}</p>
+        <p class="text-gray-400 mb-4">{{ profileForm.get('nationality')?.value || profileService.profile()?.basicInfo?.nationality }}</p>
 
         <div class="bg-slate-800/50 p-3 rounded-lg text-center">
           <p class="text-sm font-semibold text-blue-400">{{ 'profile.trustScore' | translate }}</p>
@@ -147,9 +147,69 @@
                     <input id="lastName" type="text" formControlName="lastName" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                   </div>
                 </div>
-                <div>
-                  <label for="businessRole" class="block text-sm font-medium text-gray-300">{{ 'profile.personalInfo.businessRole' | translate }}</label>
-                  <input id="businessRole" type="text" formControlName="businessRole" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label for="dateOfBirth" class="block text-sm font-medium text-gray-300">{{ 'profile.personalInfo.dateOfBirth' | translate }}</label>
+                    <div class="relative mt-1">
+                      <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                      </div>
+                      <input id="dateOfBirth" type="text" readonly (click)="toggleDobCalendar()" [value]="profileForm.get('dateOfBirth')?.value || ''" class="cursor-pointer block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm h-10 py-2 pl-10 pr-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <div *ngIf="dobCalendarOpen()" class="absolute z-50 mt-2 bg-white text-slate-900 rounded-md shadow-lg border border-slate-200 w-[28rem] p-3">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-sm font-semibold">{{ dobCalendarYear() }}</div>
+                          <div class="text-sm font-semibold">{{ getMonths()[dobCalendarMonth()].name }} {{ dobCalendarYear() }}</div>
+                          <div></div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                          <div class="h-52 overflow-y-auto border rounded-md p-1 bg-white">
+                            <div *ngFor="let y of getYears()" class="py-1">
+                              <button type="button" (click)="onSelectYear(y)" [class]="(y === dobCalendarYear() ? 'font-semibold text-blue-600' : 'text-slate-600') + ' w-full text-left px-2 py-1 rounded'">{{ y }}</button>
+                            </div>
+                          </div>
+                          <div class="h-52 overflow-y-auto border rounded-md p-1 bg-white" [attr.dir]="isRtl ? 'rtl' : 'ltr'">
+                            <div *ngFor="let m of getMonths()" class="py-1">
+                              <button type="button" (click)="onSelectMonth(m.idx)" [class]="(m.idx === dobCalendarMonth() ? 'font-semibold text-blue-600' : 'text-slate-600') + ' w-full text-left px-2 py-1 rounded'">{{ m.name }}</button>
+                            </div>
+                          </div>
+                          <div class="h-52 overflow-y-auto border rounded-md p-1 bg-white">
+                            <div class="grid grid-cols-7 gap-1">
+                              <ng-container *ngFor="let d of getDaysForMonth(dobCalendarYear(), dobCalendarMonth())">
+                                  <button type="button" (click)="onSelectDayNumber(d)" [class]="(isSelectedDob(d) ? 'bg-blue-600 text-white' : 'text-slate-700') + ' rounded py-1'">{{ d }}</button>
+                              </ng-container>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="text-end mt-2">
+                          <button type="button" (click)="closeDobCalendar()" class="text-sm text-slate-500">Close</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label for="gender" class="block text-sm font-medium text-gray-300">{{ 'profile.personalInfo.gender' | translate }}</label>
+                    <select id="gender" formControlName="gender" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="">{{ 'profile.personalInfo.genderSelect' | translate }}</option>
+                      <option value="Male">{{ 'profile.personalInfo.male' | translate }}</option>
+                      <option value="Female">{{ 'profile.personalInfo.female' | translate }}</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label for="nationality" class="block text-sm font-medium text-gray-300 mb-1">{{ 'profile.personalInfo.nationality' | translate }}</label>
+                    <input id="nationality" type="text" formControlName="nationality" class="block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  </div>
+                  <div>
+                    <label for="country" class="block text-sm font-medium text-gray-300 mb-1">{{ 'profile.personalInfo.country' | translate }}</label>
+                    <select id="country" formControlName="country" class="block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="">{{ 'profile.personalInfo.countrySelect' | translate }}</option>
+                      <option value="Egypt">Egypt</option>
+                      <option value="United States">United States</option>
+                      <option value="United Kingdom">United Kingdom</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
                 </div>
                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                   <div>

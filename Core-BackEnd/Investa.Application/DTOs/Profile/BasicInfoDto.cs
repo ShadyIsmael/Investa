@@ -10,6 +10,10 @@ public class BasicInfoDto
     public string? FullName { get; set; }
     public string? Gender { get; set; }
     public string? Nationality { get; set; }
+    // Birth date to support age verification and KYC
+    public DateTime? DateOfBirth { get; set; }
+    // Country selection (dropdown) separate from nationality
+    public string? Country { get; set; }
     public string? Bio { get; set; }
     public string? AvatarUrl { get; set; }
     public decimal Score { get; set; }

@@ -394,17 +394,10 @@ public class ProfileController : ControllerBase
                 UserId = Guid.Empty, // service ignores this and uses userId from claims
                 BasicInfo = updateReq.BasicInfo,
                 ContactInfo = updateReq.ContactInfo,
-                IdentityCompliance = updateReq.IdentityCompliance,
-                CoreMetrics = new UserCoreMetricsDto
-                {
-                    Role = updateReq.BusinessRole,
-                    ClientType = updateReq.BusinessRole
-                }
+                IdentityCompliance = updateReq.IdentityCompliance
             };
 
-            // Server-side validation for BusinessRole and DocumentNumber
-            if (!string.IsNullOrEmpty(updateReq.BusinessRole) && updateReq.BusinessRole.Length > 200)
-                return BadRequest(new { errors = new[] { "BusinessRole must be at most 200 characters." } });
+            // Server-side validation for DocumentNumber (BusinessRole has been removed from profile payload)
 
             if (updateReq.IdentityCompliance != null && !string.IsNullOrEmpty(updateReq.IdentityCompliance.DocumentNumber) && updateReq.IdentityCompliance.DocumentNumber.Length > 50)
                 return BadRequest(new { errors = new[] { "DocumentNumber must be at most 50 characters." } });
