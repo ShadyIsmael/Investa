@@ -405,7 +405,7 @@
             <h2 class="text-2xl font-bold text-white">{{ 'profile.credibilityHistory' | translate }}</h2>
             <div class="flex items-center gap-2">
               <span class="text-sm text-gray-400">{{ 'profile.currentScore' | translate }}</span>
-              <span class="text-2xl font-bold text-blue-400">{{ profileService.profile()?.coreMetrics?.currentCredibilityScore ?? 0 }}</span>
+              <span class="text-2xl font-bold text-blue-400">{{ currentScore() }}</span>
             </div>
           </div>
 

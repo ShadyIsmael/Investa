@@ -39,14 +39,6 @@ public class CreditService : ICreditService
         client.Credit += amount;
         await _unitOfWork.Repository<Client>().UpdateAsync(client);
 
-        // Update UserProfile CurrentCredibilityScore
-        var userProfile = (await _unitOfWork.Repository<UserProfile>().FindAsync(up => up.UserId == userId)).FirstOrDefault();
-        if (userProfile != null)
-        {
-            userProfile.CurrentCredibilityScore += amount;
-            await _unitOfWork.Repository<UserProfile>().UpdateAsync(userProfile);
-        }
-
         await _unitOfWork.SaveChangesAsync();
 
         return _mapper.Map<CreditTransactionDto>(tx);

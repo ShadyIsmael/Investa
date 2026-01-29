@@ -281,17 +281,6 @@ public class ProfileService : IProfileService
             dto.BasicInfo.Credit = client.Credit;
         }
 
-        // Calculate CurrentCredibilityScore as sum of all CreditTransaction amounts
-        var creditTransactions = await _unitOfWork.Repository<CreditTransaction>()
-            .FindAsync(ct => ct.UserId == user.Id);
-        var totalCreditScore = creditTransactions.Sum(ct => ct.Amount);
-
-        // Update the CurrentCredibilityScore in CoreMetrics
-        if (dto.CoreMetrics != null)
-        {
-            dto.CoreMetrics.CurrentCredibilityScore = totalCreditScore;
-        }
-
         return dto;
     }
 }

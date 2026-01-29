@@ -70,6 +70,13 @@ export class ProfileComponent {
   // Credit history
   creditHistory = signal<CreditTransaction[]>([]);
 
+  // Current score calculated as sum of all credit transaction amounts
+  currentScore = computed(() => {
+    const transactions = this.creditHistory();
+    if (!transactions || transactions.length === 0) return 0;
+    return transactions.reduce((sum, tx) => sum + tx.amount, 0);
+  });
+
   // Current language preference (detect from navigator or user settings)
   currentLanguage = signal<'ar' | 'en'>('en');
 
