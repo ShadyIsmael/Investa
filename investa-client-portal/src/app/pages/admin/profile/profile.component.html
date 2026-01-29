@@ -42,7 +42,7 @@
               <span *ngIf="kycStatus() === 'Pending'" class="ms-3 text-yellow-300 text-sm">({{ 'profile.pending' | translate }})</span>
               <span *ngIf="kycStatus() === 'Verified'" class="ms-3 text-green-300 text-sm">({{ 'profile.verified' | translate }})</span>
             </p>
-            <p class="text-xs text-gray-400 mt-1">{{ 'profile.credibility' | translate }}: <span class="font-semibold text-white">{{ profileService.profile()?.coreMetrics?.credibilityScore ?? '—' }}</span></p>
+            <p class="text-xs text-gray-400 mt-1">{{ 'profile.credit' | translate }}: <span class="font-semibold text-white">{{ currentScore() }}</span></p>
           </div>
         </div>
         
