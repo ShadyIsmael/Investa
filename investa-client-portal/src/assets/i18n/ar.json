@@ -482,7 +482,12 @@
       "linkedin": "https://linkedin.com/in/...",
       "facebook": "https://facebook.com/..."
     },
-    "credibilityHistory": "تاريخ درجات الائتمان"
+    "credibilityHistory": "تاريخ درجات الائتمان",
+    "viewAll": "عرض جميع المعاملات"
+  },
+  "transactions": {
+    "total": "إجمالي المعاملات",
+    "pages": "إجمالي الصفحات"
   },
   "apiSwitcher": {
     "apiLabel": "واجهة برمجية:",
@@ -543,6 +548,9 @@
     }
   },
   "common": {
+    "loading": "جاري التحميل...",
+    "previous": "السابق",
+    "next": "التالي",
     "months": {
       "jan": "يناير",
       "feb": "فبراير",

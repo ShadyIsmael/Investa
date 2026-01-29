@@ -82,6 +82,11 @@ export const routes: Routes = [
         title: 'My Profile - Investa' 
       },
       { 
+        path: 'transactions', 
+        loadComponent: () => import('./pages/admin/transactions/transactions.component').then(m => m.TransactionsComponent),
+        title: 'Transactions - Investa' 
+      },
+      { 
         path: 'notifications', 
         loadComponent: () => import('./pages/admin/notifications/notifications.component').then(m => m.NotificationsComponent),
         title: 'Notifications - Investa' 

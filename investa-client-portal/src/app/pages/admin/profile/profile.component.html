@@ -417,7 +417,7 @@
           </div>
 
           <div *ngIf="creditHistory().length > 0" class="space-y-4">
-            <div *ngFor="let transaction of creditHistory()" class="flex items-start gap-4 p-4 rounded-lg bg-slate-800/50 border border-slate-700 hover:border-slate-600 transition-colors">
+            <div *ngFor="let transaction of limitedCreditHistory()" class="flex items-start gap-4 p-4 rounded-lg bg-slate-800/50 border border-slate-700 hover:border-slate-600 transition-colors">
               <!-- Amount Badge -->
               <div class="flex-shrink-0">
                 <div [class]="transaction.amount > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'" class="w-12 h-12 rounded-full flex items-center justify-center font-bold">
@@ -436,6 +436,13 @@
                   <span *ngIf="transaction.adminName" class="ms-2 px-2 py-0.5 bg-purple-500/20 text-purple-300 rounded text-xs">{{ 'profile.byAdmin' | translate:{adminName: transaction.adminName} }}</span>
                 </div>
               </div>
+            </div>
+
+            <!-- View All Link -->
+            <div *ngIf="creditHistory().length > 5" class="flex justify-center pt-4">
+              <button (click)="viewAllTransactions()" class="text-blue-400 hover:text-blue-300 font-medium transition-colors">
+                {{ 'profile.viewAll' | translate }} →
+              </button>
             </div>
           </div>
         </div>

@@ -447,7 +447,12 @@
       "linkedin": "https://linkedin.com/in/...",
       "facebook": "https://facebook.com/..."
     },
-    "credibilityHistory": "Credit Score History"
+    "credibilityHistory": "Credit Score History",
+    "viewAll": "View All Transactions"
+  },
+  "transactions": {
+    "total": "Total Transactions",
+    "pages": "Total Pages"
   },
   "apiSwitcher": {
     "apiLabel": "API:",
@@ -579,6 +584,9 @@
     "author": "Author"
   },
   "common": {
+    "loading": "Loading...",
+    "previous": "Previous",
+    "next": "Next",
     "months": {
       "jan": "Jan",
       "feb": "Feb",

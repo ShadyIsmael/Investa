@@ -6,6 +6,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
 import { ProfileService, CreditTransaction } from '../../../services/profile.service';
 import { LanguageService } from '../../../services/language.service';
+import { Router } from '@angular/router';
 
 export const passwordMatchValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
   const password = control.get('newPassword');
@@ -32,6 +33,7 @@ export class ProfileComponent {
   public profileService = inject(ProfileService);
   private notificationService = inject(NotificationService);
   private languageService = inject(LanguageService);
+  private router = inject(Router);
 
   private t(path: string): string {
     return this.languageService.translate(path);
@@ -76,7 +78,12 @@ export class ProfileComponent {
     if (!transactions || transactions.length === 0) return 0;
     return transactions.reduce((sum, tx) => sum + tx.amount, 0);
   });
+Limited to 5 transactions for display in profile
+  limitedCreditHistory = computed(() => {
+    return this.creditHistory().slice(0, 5);
+  });
 
+  // 
   // Current language preference (detect from navigator or user settings)
   currentLanguage = signal<'ar' | 'en'>('en');
 
@@ -421,6 +428,10 @@ export class ProfileComponent {
 
   selectSection(section: ActiveSection) {
     this.activeSection.set(section);
+  }
+
+  viewAllTransactions() {
+    this.router.navigate(['/admin/transactions']);
   }
 
   onFileChange(event: Event) {
