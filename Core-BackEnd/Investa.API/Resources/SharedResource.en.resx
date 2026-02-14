@@ -238,6 +238,9 @@
   <data name="MinimumInvestmentRequired" xml:space="preserve">
     <value>Minimum investment is {0}</value>
   </data>
+  <data name="ImageNotFound" xml:space="preserve">
+    <value>Image not found</value>
+  </data>
   <data name="MaximumInvestmentExceeded" xml:space="preserve">
     <value>Maximum investment is {0}</value>
   </data>
@@ -255,6 +258,33 @@
   </data>
   <data name="FcmTokenRequired" xml:space="preserve">
     <value>FCM token is required.</value>
+  </data>
+  <data name="RoleNameRequired" xml:space="preserve">
+    <value>Role name is required</value>
+  </data>
+  <data name="GroupIdRequired" xml:space="preserve">
+    <value>GroupId is required (roles must belong to a group)</value>
+  </data>
+  <data name="RoleNotFound" xml:space="preserve">
+    <value>Role not found</value>
+  </data>
+  <data name="FailedToCreateInvestmentRequest" xml:space="preserve">
+    <value>Failed to create investment request</value>
+  </data>
+  <data name="FailedToFetchInvestmentRequests" xml:space="preserve">
+    <value>Failed to fetch investment requests</value>
+  </data>
+  <data name="ErrorFetchingRoles" xml:space="preserve">
+    <value>Error fetching roles</value>
+  </data>
+  <data name="ErrorCreatingRole" xml:space="preserve">
+    <value>Error creating role</value>
+  </data>
+  <data name="GroupNotFoundOrInactive" xml:space="preserve">
+    <value>Group with ID {0} not found or inactive</value>
+  </data>
+  <data name="RoleAlreadyExistsInGroup" xml:space="preserve">
+    <value>Role '{0}' already exists in this group</value>
   </data>
   <data name="FailedToSyncToken" xml:space="preserve">
     <value>Failed to sync token.</value>

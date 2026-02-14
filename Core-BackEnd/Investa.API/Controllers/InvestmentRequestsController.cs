@@ -2,6 +2,8 @@ using Investa.Application.DTOs.Requests;
 using Investa.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
+using Investa.API.Resources;
 
 namespace Investa.API.Controllers;
 
@@ -12,11 +14,13 @@ public class InvestmentRequestsController : ControllerBase
 {
     private readonly IInvestmentRequestService _investmentRequestService;
     private readonly ILogger<InvestmentRequestsController> _logger;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
-    public InvestmentRequestsController(IInvestmentRequestService investmentRequestService, ILogger<InvestmentRequestsController> logger)
+    public InvestmentRequestsController(IInvestmentRequestService investmentRequestService, ILogger<InvestmentRequestsController> logger, IStringLocalizer<SharedResource> localizer)
     {
         _investmentRequestService = investmentRequestService;
         _logger = logger;
+        _localizer = localizer;
     }
 
     /// <summary>
@@ -59,7 +63,7 @@ public class InvestmentRequestsController : ControllerBase
         {
             _logger.LogError(ex, "Unexpected error creating investment request");
             return StatusCode(StatusCodes.Status500InternalServerError, 
-                new { message = "Failed to create investment request", error = ex.Message });
+                new { message = _localizer["FailedToCreateInvestmentRequest"].Value, error = ex.Message });
         }
     }
 
@@ -95,7 +99,7 @@ public class InvestmentRequestsController : ControllerBase
         {
             _logger.LogError(ex, "Unexpected error fetching investment requests");
             return StatusCode(StatusCodes.Status500InternalServerError, 
-                new { message = "Failed to fetch investment requests", error = ex.Message });
+                new { message = _localizer["FailedToFetchInvestmentRequests"].Value, error = ex.Message });
         }
     }
 }

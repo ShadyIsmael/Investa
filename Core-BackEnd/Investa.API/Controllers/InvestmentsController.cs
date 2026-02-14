@@ -44,7 +44,7 @@ public class InvestmentsController : ControllerBase
         var userIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
         if (!Guid.TryParse(userIdClaim, out var userId))
         {
-            return Unauthorized(new { success = false, message = "Unable to identify user from token" });
+            return Unauthorized(new { success = false, message = _localizer["UnableToIdentifyUserFromToken"].Value });
         }
         dto.FounderId = userId;
         var created = await _service.CreateAsync(dto);
@@ -88,7 +88,7 @@ public class InvestmentsController : ControllerBase
     public async Task<IActionResult> Get(int id)
     {
         var entity = await _service.GetByIdAsync(id);
-        if (entity == null) return NotFound(new { success = false, message = "Not found" });
+        if (entity == null) return NotFound(new { success = false, message = _localizer["InvestmentNotFound"].Value });
         var outDto = _mapper.Map<InvestmentDto>(entity);
 
         // Enrich with founder display and credibility score
