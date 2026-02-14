@@ -257,6 +257,16 @@
       "cancel": "إلغاء",
       "confirm": "تأكيد الاستثمار",
       "processing": "جاري المعالجة..."
+    },
+    "confirmDialog": {
+      "title": "تأكيد الاستثمار",
+      "subtitle": "يرجى مراجعة وتأكيد طلب الاستثمار الخاص بك",
+      "investmentLabel": "الاستثمار:",
+      "sharesLabel": "الأسهم:",
+      "totalCostLabel": "التكلفة الإجمالية:",
+      "warning": "إشعار مهم",
+      "warningMessage": "سيؤدي هذا الإجراء إلى خصم الأرصدة من حسابك وتقديم طلب إلى المؤسس. لا يمكن التراجع عن هذا الإجراء.",
+      "confirmButton": "تأكيد والمتابعة"
     }
   },
   "investmentPreview": {
@@ -367,7 +377,18 @@
     "removeAttachment": "إزالة المرفق"
   },
   "profile": {
+        "company": {
+          "title": "الشركة",
+          "name": "اسم الشركة",
+          "email": "بريد الشركة",
+          "address": "عنوان الشركة",
+          "hrLetter": "خطاب الموارد البشرية"
+        },
     "kyc": "التحقق من الهوية",
+    "kycCompletion": "اكتمال التحقق من الهوية",
+    "kycComplete": "تم التحقق من هويتك بنجاح",
+    "kycAlmostThere": "أوشكت على الانتهاء! أكمل ملفك الشخصي للتوثيق",
+    "kycCompleteProfile": "أكمل ملفك الشخصي لفتح التوثيق",
     "startKyc": "بدء التحقق من الهوية",
     "pending": "قيد الانتظار",
     "verified": "موثق",
@@ -403,8 +424,20 @@
       "male": "ذكر",
       "female": "أنثى",
       "nationality": "الجنسية",
+      "nationalitySelect": "اختر الجنسية",
       "country": "البلد",
       "countrySelect": "اختر البلد",
+      "country_egypt": "مصر",
+      "country_saudi_arabia": "المملكة العربية السعودية",
+      "country_uae": "الإمارات العربية المتحدة",
+      "country_jordan": "الأردن",
+      "country_lebanon": "لبنان",
+      "country_usa": "الولايات المتحدة",
+      "country_uk": "المملكة المتحدة",
+      "country_india": "الهند",
+      "country_canada": "كندا",
+      "country_australia": "أستراليا",
+      "country_other": "أخرى",
       "nationalId": "الهوية الوطنية",
       "uploadId": "تحميل الهوية",
       "chooseFile": "اختر ملفًا",
@@ -549,6 +582,8 @@
   },
   "common": {
     "loading": "جاري التحميل...",
+    "cancel": "إلغاء",
+    "processing": "جاري المعالجة...",
     "previous": "السابق",
     "next": "التالي",
     "months": {

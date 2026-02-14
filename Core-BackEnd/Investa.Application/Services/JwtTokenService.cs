@@ -72,39 +72,16 @@ public class JwtTokenService : IJwtTokenService
             var authUser = (await _unitOfWork.Repository<AuthUser>().FindAsync(a => a.Id == userGuid)).FirstOrDefault();
             if (authUser != null)
             {
-                // Map UserType enum to our canonical UserRoles
+                // Simplified two-type mapping: OrgUser or Client
                 if (authUser.UserType == UserType.OrgUser)
                 {
-                    // Try to infer Admin role from domain user's Role string
-                    if (domainUser != null && !string.IsNullOrWhiteSpace(domainUser.Role) &&
-                        Enum.TryParse<UserRoles>(domainUser.Role, true, out var parsedRole))
-                    {
-                        roleClaimValue = parsedRole.ToString();
-                        userTypeValue = roleClaimValue;
-                    }
-                    else
-                    {
-                        roleClaimValue = UserRoles.OrgUser.ToString();
-                        userTypeValue = roleClaimValue;
-                    }
+                    roleClaimValue = UserRoles.OrgUser.ToString();
+                    userTypeValue = UserRoles.OrgUser.ToString();
                 }
-                else if (authUser.UserType == UserType.Founder)
+                else // UserType.Client
                 {
-                    // Founder users map to Client role
                     roleClaimValue = UserRoles.Client.ToString();
-                    userTypeValue = UserType.Founder.ToString();
-                }
-                else if (authUser.UserType == UserType.Partner)
-                {
-                    // Partner users map to Client role
-                    roleClaimValue = UserRoles.Client.ToString();
-                    userTypeValue = UserType.Partner.ToString();
-                }
-                else
-                {
-                    // Fallback to Client role
-                    roleClaimValue = UserRoles.Client.ToString();
-                    userTypeValue = authUser.UserType.ToString();
+                    userTypeValue = UserRoles.Client.ToString();
                 }
             }
             
@@ -172,7 +149,7 @@ public class JwtTokenService : IJwtTokenService
         }
 
         // If user is Admin, add wildcard permission from central constant
-        if (roleClaimValue == UserRoles.Admin.ToString())
+        if (string.Equals(roleClaimValue, "Admin", StringComparison.OrdinalIgnoreCase))
         {
             claims.Add(new Claim("permission", SystemPermissions.SuperAccess));
         }
@@ -284,7 +261,7 @@ public class JwtTokenService : IJwtTokenService
                     Id = authUserGuid,
                     Email = user.Email ?? (user.UserName + "@phone.investa.local"),
                     PasswordHash = "", // placeholder; real hash should be created during sign-up flow
-                    UserType = UserType.Founder, // Default to Founder for client users
+                    UserType = UserType.Client, // Default to Client for external users
                     Status = true,
                     CreatedAt = DateTime.UtcNow
                 };

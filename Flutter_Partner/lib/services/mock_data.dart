@@ -253,8 +253,8 @@ Future<DashboardData> fetchDashboardData({String interval = 'month'}) async {
 
       if (profile.credit != null) {
         credits = profile.credit!;
-      } else if (profile.coreMetrics?.walletBalance != null) {
-        credits = profile.coreMetrics!.walletBalance!.round();
+      } else {
+        credits = (profile.coreMetrics?.walletBalance ?? 0).round();
       }
     } else {
       // attempt to fetch profile from API and store it
@@ -273,8 +273,8 @@ Future<DashboardData> fetchDashboardData({String interval = 'month'}) async {
 
         if (p.credit != null) {
           credits = p.credit!;
-        } else if (p.coreMetrics?.walletBalance != null) {
-          credits = p.coreMetrics!.walletBalance!.round();
+        } else {
+          credits = (p.coreMetrics?.walletBalance ?? 0).round();
         }
       }
     }

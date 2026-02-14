@@ -13,7 +13,7 @@ namespace Investa.API.Controllers.Admin;
 /// </summary>
 [ApiController]
 [Route("api/v1/admin")]
-[Authorize(Roles = nameof(UserRoles.Admin))]
+[Authorize(Roles = "Admin")]
 public class RolesAdminController : ControllerBase
 {
     private readonly IUnitOfWork _unitOfWork;

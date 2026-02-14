@@ -35,7 +35,7 @@ string adminPassword = "P@ssw0rd";
 string adminName = "Platform Admin";
 using Investa.Domain.Entities.Security;
 
-string adminRole = nameof(UserRoles.Admin);
+string adminRole = "Admin";
 
 try
 {

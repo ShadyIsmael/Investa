@@ -10,5 +10,6 @@ public interface IInvestmentService
     Task<bool> UpdateAsync(int id, UpdateInvestmentDto dto);
     Task<Investment?> GetByIdAsync(int id);
     Task<IEnumerable<Investment>> GetByCategoryAsync(int? categoryId);
+    Task<IEnumerable<Investment>> GetMyInvestmentsAsync(Guid founderId);
     Task<IEnumerable<InvestmentParticipant>> GetParticipantsAsync(int investmentId);
 }

@@ -56,6 +56,11 @@ public class InvestmentDto
     public string? RiskLevel { get; set; }
     public string? Currency { get; set; }
     
+    // Founding-specific fields
+    public int? DurationMonths { get; set; }
+    public decimal? ProfitPercentage { get; set; }
+    public string? PayoutFrequency { get; set; }
+    
     // Social Proof
     public int CredibilityScore { get; set; }
     
@@ -72,4 +77,9 @@ public class InvestmentDto
     public decimal? InvestedAmount { get; set; }
 
     public List<InvestorParticipationDto>? Participants { get; set; }
+
+    /// <summary>
+    /// Image gallery associated with the investment opportunity
+    /// </summary>
+    public List<InvestmentImageDto>? Images { get; set; }
 }

@@ -35,9 +35,19 @@
               <h1 class="text-5xl font-bold text-white mb-2">{{ inv.name }}</h1>
               <p class="text-gray-400 text-lg max-w-2xl">{{ inv.businessCategoryName }}</p>
             </div>
-            <button type="button" class="p-3 rounded-full hover:bg-white/10 transition-colors text-gray-400 hover:text-white">
-              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M11.645 20.761A9.865 9.865 0 015.12 5.12a9.865 9.865 0 0115.625 13.625 9.865 9.865 0 01-9.1 1.016zM12 1a11 11 0 110 22 11 11 0 010-22z"></path></svg>
-            </button>
+            <div class="flex items-center gap-3">
+              <button type="button" class="p-3 rounded-full hover:bg-white/10 transition-colors text-gray-400 hover:text-white" (click)="openManageImages(inv)">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M4 6h16v12H4z" /></svg>
+              </button>
+              <button type="button" class="p-3 rounded-full hover:bg-white/10 transition-colors text-gray-400 hover:text-white">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M11.645 20.761A9.865 9.865 0 015.12 5.12a9.865 9.865 0 0115.625 13.625 9.865 9.865 0 01-9.1 1.016zM12 1a11 11 0 110 22 11 11 0 010-22z"></path></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Gallery Thumbnails -->
+          <div class="flex gap-2 overflow-auto">
+            <img *ngFor="let img of inv.images || []; let i = index" [src]="img.url" class="h-28 w-auto rounded-md object-cover" [attr.alt]="'Image ' + (i+1)" />
           </div>
         </div>
       </div>
@@ -378,28 +388,111 @@
 
 <!-- Engagement Modal -->
 @if (investmentToEngage(); as investment) {
-  <div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" style="animation-duration: 0.2s;">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg p-8 animate-fade-in" style="animation-delay: 0.1s; animation-duration: 0.3s;">
-      <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 border-2 border-blue-500/30 mb-4">
-        <svg class="w-8 h-8 text-blue-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      </div>
-      <h3 class="text-2xl font-bold text-white text-center mb-2">{{ 'investments.engageModal.title' | translate }}</h3>
-      <p class="text-gray-400 text-center mb-6" [innerHTML]="('investments.engageModal.message' | translate)
-        .replace('{investmentName}', '<span class=\'font-bold text-blue-300\'>' + investment.name + '</span>')
-        .replace('{creditCost}', '<span class=\'font-bold text-white\'>' + engagementCreditCost + '</span>')">
-      </p>
-      <div class="space-y-3">
-        <button (click)="confirmEngage()" class="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-all">
-          {{ 'investments.engageModal.proceedButton' | translate }}
-        </button>
-        <button (click)="cancelEngage()" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors">
-          {{ 'investments.engageModal.cancelButton' | translate }}
-        </button>
+  @if (engagementConfirmationOpen()) {
+    <!-- Confirmation Dialog -->
+    <div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+      <div class="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md animate-fade-in" (click)="$event.stopPropagation()">
+        <!-- Header -->
+        <div class="p-6 border-b border-slate-700 bg-gradient-to-r from-blue-500/10 to-purple-500/10">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
+              <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+              </svg>
+            </div>
+            <div class="flex-1">
+              <h3 class="text-xl font-bold text-white">Confirm Engagement</h3>
+              <p class="text-sm text-gray-400 mt-1">Please review and confirm your engagement request</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Body -->
+        <div class="p-6 space-y-4">
+          <!-- Investment Details -->
+          <div class="bg-slate-800/50 border border-slate-700 rounded-lg p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-gray-400">Investment:</span>
+              <span class="text-white font-semibold">{{ investment.name }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-gray-400">Engagement Cost:</span>
+              <span class="text-white font-bold text-lg">{{ engagementCreditCost }} Credits</span>
+            </div>
+            <div class="flex items-center justify-between pt-3 border-t border-slate-700/50">
+              <span class="text-gray-400">Current Credits:</span>
+              <span class="text-blue-300 font-semibold">{{ userCredits() | number:'1.2-2' }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-gray-400">Remaining After:</span>
+              <span [class]="(userCredits() - engagementCreditCost) >= 0 ? 'text-green-300' : 'text-red-300'" class="font-semibold">
+                {{ (userCredits() - engagementCreditCost) | number:'1.2-2' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Warning Message -->
+          <div class="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
+            <div class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+              </svg>
+              <div>
+                <p class="text-sm font-semibold text-orange-300 mb-1">Important Notice</p>
+                <p class="text-sm text-orange-200/80">This action will deduct credits from your account and submit a request to the founder. This action cannot be undone.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="p-6 border-t border-slate-700 flex items-center justify-between gap-3 bg-slate-800/50">
+          <button (click)="cancelEngagementConfirmation()" 
+                  [disabled]="engagementProcessing()"
+                  class="flex-1 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-colors">
+            Cancel
+          </button>
+          <button (click)="confirmEngage()" 
+                  [disabled]="engagementProcessing()"
+                  class="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg transition-all flex items-center justify-center gap-2">
+            @if (engagementProcessing()) {
+              <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Processing...
+            } @else {
+              Confirm and Proceed
+            }
+          </button>
+        </div>
       </div>
     </div>
-  </div>
+  } @else {
+    <!-- Initial Engagement Modal -->
+    <div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" style="animation-duration: 0.2s;">
+      <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg p-8 animate-fade-in" style="animation-delay: 0.1s; animation-duration: 0.3s;">
+        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 border-2 border-blue-500/30 mb-4">
+          <svg class="w-8 h-8 text-blue-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h3 class="text-2xl font-bold text-white text-center mb-2">{{ 'investments.engageModal.title' | translate }}</h3>
+        <p class="text-gray-400 text-center mb-6" [innerHTML]="('investments.engageModal.message' | translate)
+          .replace('{investmentName}', '<span class=\'font-bold text-blue-300\'>' + investment.name + '</span>')
+          .replace('{creditCost}', '<span class=\'font-bold text-white\'>' + engagementCreditCost + '</span>')">
+        </p>
+        <div class="space-y-3">
+          <button (click)="engagementConfirmationOpen.set(true)" class="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-all">
+            {{ 'investments.engageModal.proceedButton' | translate }}
+          </button>
+          <button (click)="cancelEngage()" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors">
+            {{ 'investments.engageModal.cancelButton' | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
 }
 
 <!-- Invest Now Dialog (Shares Selection for Equity) -->

@@ -26,7 +26,7 @@ class Env {
     if (_baseHostNameConst.isNotEmpty) return _baseHostNameConst;
     final fromDot = dotenv.env['BASE_HOST_NAME'];
     if (fromDot != null && fromDot.isNotEmpty) return fromDot;
-    return 'DESKTOP-DIH7CQH';
+    return 'desktop-dih7cqh';
   }
 
   /// Runtime value: prefer compile-time, then `.env`, then return empty.

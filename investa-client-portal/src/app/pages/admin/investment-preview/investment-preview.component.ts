@@ -75,6 +75,8 @@ export class InvestmentPreviewComponent {
   sharesToPurchase = signal(1);
   investmentError = signal<string | null>(null);
   investmentProcessing = signal(false);
+  engagementConfirmationOpen = signal(false);
+  engagementProcessing = signal(false);
 
   constructor() {
     this.loadInvestment();
@@ -104,19 +106,104 @@ export class InvestmentPreviewComponent {
     }
   }
   
-  promptEngage(investment: Investment): void {
+  async promptEngage(investment: Investment): Promise<void> {
+    // Ensure profile is fresh so dialog shows correct credits
+    try {
+      await this.userService.refreshUser();
+    } catch (err) {
+      console.warn('Failed to refresh user before engagement dialog:', err);
+    }
+
+    // Set investment and open initial engagement modal
     this.investmentToEngage.set(investment);
+  }
+
+  // --- Image Management ---
+  async openManageImages(investment: Investment): Promise<void> {
+    // Open a simple dialog via prompt for demo (replace with modal in future)
+    try {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = async () => {
+        const file = input.files?.[0];
+        if (!file) return;
+        try {
+          await this.investmentService.uploadInvestmentImage(investment.id, file as File);
+          this.notificationService.showToast({ title: 'Success', message: 'Image uploaded', type: 'success' });
+          await this.loadInvestment();
+        } catch (err: any) {
+          this.notificationService.showToast({ title: 'Upload failed', message: err?.message || 'Failed to upload', type: 'error' });
+        }
+      };
+      input.click();
+    } catch (err) {
+      console.error('Failed to open image picker', err);
+      this.notificationService.showToast({ title: 'Error', message: 'Unable to open file picker', type: 'error' });
+    }
+  }
+
+  async deleteImage(investment: Investment, imageId: number): Promise<void> {
+    try {
+      await this.investmentService.deleteInvestmentImage(investment.id, imageId);
+      this.notificationService.showToast({ title: 'Deleted', message: 'Image deleted', type: 'success' });
+      await this.loadInvestment();
+    } catch (err: any) {
+      this.notificationService.showToast({ title: 'Failed', message: err?.message || 'Delete failed', type: 'error' });
+    }
+  }
+
+  async setPrimaryImage(investment: Investment, imageId: number): Promise<void> {
+    try {
+      await this.investmentService.setPrimaryInvestmentImage(investment.id, imageId);
+      this.notificationService.showToast({ title: 'Updated', message: 'Primary image set', type: 'success' });
+      await this.loadInvestment();
+    } catch (err: any) {
+      this.notificationService.showToast({ title: 'Failed', message: err?.message || 'Operation failed', type: 'error' });
+    }
+  }
+
+  async reorderImage(investment: Investment, fromIndex: number, toIndex: number): Promise<void> {
+    const imgs = [...(investment.images || [])];
+    if (fromIndex < 0 || toIndex < 0 || fromIndex >= imgs.length || toIndex >= imgs.length) return;
+    const [item] = imgs.splice(fromIndex, 1);
+    imgs.splice(toIndex, 0, item);
+    const ordering = imgs.map((img, idx) => ({ imageId: img.id, sortOrder: idx }));
+    try {
+      await this.investmentService.reorderInvestmentImages(investment.id, ordering);
+      this.notificationService.showToast({ title: 'Reordered', message: 'Images reordered', type: 'success' });
+      await this.loadInvestment();
+    } catch (err: any) {
+      this.notificationService.showToast({ title: 'Failed', message: err?.message || 'Reorder failed', type: 'error' });
+    }
   }
 
   /**
    * Open invest dialog for equity, or engagement for funding
    */
-  promptInvest(investment: Investment): void {
+  async promptInvest(investment: Investment): Promise<void> {
+    // Refresh profile first so credits are up-to-date
+    try {
+      await this.userService.refreshUser();
+    } catch (err) {
+      console.warn('Failed to refresh user before invest dialog:', err);
+    }
+
+    // Show user info
+    const user = this.userService.user();
+    if (user) {
+      this.notificationService.showToast({
+        title: 'User Information',
+        message: `User ID: ${user.userId} | Credits: ${this.userCredits()}`,
+        type: 'info'
+      });
+    }
+
     if (investment.investmentType === InvestmentType.Equity) {
       this.sharesToPurchaseValue = 1;
       this.investmentToInvest.set(investment);
     } else {
-      this.promptEngage(investment);
+      await this.promptEngage(investment);
     }
   }
 
@@ -168,9 +255,18 @@ export class InvestmentPreviewComponent {
    * Credits are deducted immediately and request is sent to founder for approval
    * If founder accepts, investment is processed; if declined, credits are refunded
    */
-  confirmInvestment(investment: Investment): void {
+  async confirmInvestment(investment: Investment): Promise<void> {
+    if (this.investmentProcessing() || this.investmentError()) return;
+
     this.investmentProcessing.set(true);
     this.investmentError.set(null);
+
+    // Refresh user profile to get latest credits before checking
+    try {
+      await this.userService.refreshUser();
+    } catch (err) {
+      console.warn('Failed to refresh user before confirming investment:', err);
+    }
 
     const investmentAmount = this.calculateInvestmentAmount(investment);
     const currentCredits = this.userCredits();
@@ -188,35 +284,36 @@ export class InvestmentPreviewComponent {
     }
 
     // Create investment request via API
-    this.requestsService.createInvestmentRequest(
-      investment,
-      investmentAmount,
-      this.sharesToPurchaseValue
-    ).then(() => {
-      const { title, message } = this.getRequestSubmittedCopy(investment);
+    try {
+      await this.requestsService.createInvestmentRequest(
+        investment,
+        investmentAmount,
+        this.sharesToPurchaseValue
+      );
 
-      this.notificationService.showToast({
-        title,
-        message,
-        type: 'success'
-      });
-      
+      const { title, message } = this.getRequestSubmittedCopy(investment);
+      this.notificationService.showToast({ title, message, type: 'success' });
       this.closeInvestDialog();
-    }).catch(error => {
+    } catch (error: any) {
       console.error('Investment request failed:', error);
-      this.investmentError.set(error.message || 'Failed to submit investment request');
-      this.notificationService.showToast({
-        title: 'Request Failed',
-        message: error.message || 'Failed to submit investment request. Please try again.',
-        type: 'error'
-      });
-    }).finally(() => {
+      const apiMessage = error?.error?.message || error?.message;
+      this.investmentError.set(apiMessage || 'Failed to submit investment request');
+      this.notificationService.showToast({ title: 'Request Failed', message: apiMessage || 'Failed to submit investment request. Please try again.', type: 'error' });
+    } finally {
       this.investmentProcessing.set(false);
-    });
+    }
   }
 
   cancelEngage(): void {
     this.investmentToEngage.set(null);
+    this.engagementConfirmationOpen.set(false);
+  }
+
+  /**
+   * Cancel engagement confirmation and return to initial modal
+   */
+  cancelEngagementConfirmation(): void {
+    this.engagementConfirmationOpen.set(false);
   }
 
   /**
@@ -225,9 +322,16 @@ export class InvestmentPreviewComponent {
    * For funding/debt investments, engagement costs a fixed credit amount
    * Creates investment request similar to equity investment
    */
-  confirmEngage(): void {
+  async confirmEngage(): Promise<void> {
     const investment = this.investmentToEngage();
-    if (!investment) return;
+    if (!investment || this.engagementProcessing()) return;
+
+    // Refresh user profile to ensure latest credits
+    try {
+      await this.userService.refreshUser();
+    } catch (err) {
+      console.warn('Failed to refresh user before engagement confirmation:', err);
+    }
 
     const currentCredits = this.userCredits();
 
@@ -241,29 +345,20 @@ export class InvestmentPreviewComponent {
       return;
     }
 
-    // Create investment request for funding-based investments
-    this.requestsService.createInvestmentRequest(
-      investment,
-      this.engagementCreditCost,
-      0 // No shares for funding-based investments
-    ).then(() => {
-      const { title, message } = this.getRequestSubmittedCopy(investment);
+    this.engagementProcessing.set(true);
 
-      this.notificationService.showToast({
-        title,
-        message,
-        type: 'success'
-      });
-      
+    try {
+      await this.requestsService.createInvestmentRequest(investment, this.engagementCreditCost, 0);
+      const { title, message } = this.getRequestSubmittedCopy(investment);
+      this.notificationService.showToast({ title, message, type: 'success' });
       this.investmentToEngage.set(null);
-    }).catch(error => {
+      this.engagementConfirmationOpen.set(false);
+    } catch (error: any) {
       console.error('Engagement request failed:', error);
-      this.notificationService.showToast({
-        title: 'Request Failed',
-        message: error.message || 'Failed to submit engagement request. Please try again.',
-        type: 'error'
-      });
-    });
+      this.notificationService.showToast({ title: 'Request Failed', message: error.message || 'Failed to submit engagement request. Please try again.', type: 'error' });
+    } finally {
+      this.engagementProcessing.set(false);
+    }
   }
 
   private getRequestSubmittedCopy(investment: Investment): { title: string; message: string } {

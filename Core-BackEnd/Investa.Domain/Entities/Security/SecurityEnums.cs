@@ -5,12 +5,13 @@ namespace Investa.Domain.Entities.Security
     /// <summary>
     /// Canonical user roles used across the system.
     /// Keep values in sync with AspNetRoles.Name
+    /// Two roles only: OrgUser (internal staff) and Client (external users).
+    /// Admin privileges are managed via RBAC Groups and Permissions.
     /// </summary>
     public enum UserRoles
     {
-        Admin,
-        OrgUser,
-        Client
+        OrgUser = 0,
+        Client = 1
     }
 
     /// <summary>

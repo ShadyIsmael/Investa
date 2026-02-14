@@ -6,6 +6,11 @@ import '../services/app_logger.dart';
 import '../services/profile_service.dart';
 import '../services/secure_storage.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../controllers/chat_controller.dart';
 import '../core/services/signalr_service.dart';
 import '../core/services/logger_service.dart';
@@ -15,11 +20,9 @@ import '../services/app_state.dart';
 import 'settings_screen.dart';
 import 'edit_profile_screen.dart';
 import 'investments_screen.dart';
-import 'dashboard_screen.dart';
 import 'trace_score_screen.dart';
 import 'trace_credit_screen.dart';
 import 'support_choice_screen.dart';
-import 'kyc_verification_screen.dart';
 import '../widgets/credibility_score_badge.dart';
 import '../services/messages.dart';
 import '../models/chat_user.dart';
@@ -56,7 +59,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _logAuthToken();
+    // Keep UI in sync with AppState changes (profile updates elsewhere)
+    AppState.instance.addListener(_onAppStateChanged);
     _loadProfile();
+  }
+
+  void _onAppStateChanged() {
+    if (!mounted) return;
+    setState(() {
+      _profile = AppState.instance.profile;
+    });
+  }
+
+  @override
+  void dispose() {
+    AppState.instance.removeListener(_onAppStateChanged);
+    _adminSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _logAuthToken() async {
@@ -82,9 +101,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
         AppLogger.logInfo(
             'ProfileScreen._loadProfile', 'Loaded profile from AppState');
-        return;
       }
 
+      // Always refresh from API to ensure real data (even if cache exists)
       final profile = await ProfileService().fetchProfile();
       AppLogger.logInfo('ProfileScreen._loadProfile',
           'fetchProfile returned ${profile == null ? 'null' : 'Profile object'}');
@@ -93,7 +112,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         await AppState.instance.setProfile(profile, raw);
       }
       setState(() {
-        _profile = profile;
+        _profile = profile ?? AppState.instance.profile;
         _isLoading = false;
       });
 
@@ -157,15 +176,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  @override
-  void dispose() {
-    _adminSub?.cancel();
-    super.dispose();
-  }
-
   Future<void> _handleLogout() async {
     final loc = AppLocalizations.of(context);
-    if (widget.onLogout == null) return;
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -182,7 +194,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
     if (shouldLogout == true) {
-      widget.onLogout!.call();
+      if (widget.onLogout != null) {
+        widget.onLogout!.call();
+      } else {
+        // Fallback local logout if no parent-provided handler exists
+        try {
+          await FirebaseAuth.instance.signOut();
+        } catch (e, s) {
+          AppLogger.logError(
+              'ProfileScreen._handleLogout', 'Firebase signOut failed: $e', s);
+        }
+        try {
+          if (!kIsWeb) {
+            final googleSignIn = GoogleSignIn();
+            await googleSignIn.disconnect();
+          } else {
+            AppLogger.logInfo('ProfileScreen._handleLogout',
+                'Skipping GoogleSignIn.disconnect on web: clientId not configured');
+          }
+        } catch (e) {
+          AppLogger.logInfo('ProfileScreen._handleLogout',
+              'GoogleSignIn disconnect skipped: $e');
+        }
+        try {
+          await SecureStorage().deleteAll();
+        } catch (_) {}
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.clear();
+        } catch (_) {}
+        try {
+          await AppState.instance.clear();
+        } catch (_) {}
+      }
+
       // Clear navigation stack and return to the login screen/root.
       Navigator.of(context).popUntil((route) => route.isFirst);
       ScaffoldMessenger.of(context)
@@ -191,7 +236,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _openEdit() async {
-    final result = await Navigator.push<Map<String, String?>>(
+    final result = await Navigator.push<Map<String, dynamic>>(
         context,
         MaterialPageRoute(
             builder: (_) => EditProfileScreen(profile: _profile)));
@@ -254,17 +299,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         MaterialPageRoute(
                             builder: (_) => const InvestmentsScreen())),
                   ),
-                  const _Divider(),
-                  _MenuItem(
-                    icon: Icons.folder_shared_rounded,
-                    title: loc.t('projects'),
-                    color: AppPalette.aqua,
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const DashboardScreen())),
-                  ),
-                  const _Divider(),
                   _MenuItem(
                     icon: Icons.show_chart_rounded,
                     title: loc.t('trace_score'),
@@ -291,25 +325,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 12),
               _MenuContainer(
                 children: [
-                  _MenuItem(
-                    icon: Icons.verified_user_rounded,
-                    title: loc.t('kyc_verification'),
-                    color: AppPalette.flame,
-                    onTap: () async {
-                      final result = await Navigator.push<bool>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              KycVerificationScreen(profile: _profile),
-                        ),
-                      );
-                      // If KYC was started, reload profile
-                      if (result == true) {
-                        _loadProfile();
-                      }
-                    },
-                  ),
-                  const _Divider(),
                   _MenuItem(
                     icon: Icons.support_agent_rounded,
                     title: loc.t('customer_support'),
@@ -433,11 +448,26 @@ class _ProfileHeader extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 16),
-        Text(
-          profile?.fullName ?? 'User',
-          style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
+        // Compute display name safely with null checks
+        Builder(builder: (ctx) {
+          final basic = profile?.basicInfo;
+          final displayName = (basic != null &&
+                  (basic.fullName?.isNotEmpty == true))
+              ? basic.fullName!
+              : ((basic != null &&
+                      ((basic.firstName?.isNotEmpty == true) ||
+                          (basic.lastName?.isNotEmpty == true)))
+                  ? '${basic.firstName ?? ''} ${basic.lastName ?? ''}'.trim()
+                  : (profile?.fullName.isNotEmpty == true
+                      ? profile!.fullName
+                      : 'User'));
+          return Text(
+            displayName,
+            style:
+                textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          );
+        }),
         const SizedBox(height: 24),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -470,7 +500,145 @@ class _ProfileHeader extends StatelessWidget {
               ),
             ],
           ),
+        // KYC Completion Progress
+        const SizedBox(height: 24),
+        _KycCompletionCard(
+          completionPercentage:
+              profile?.basicInfo?.kycCompletionPercentage ?? 0,
+          isVerified: profile?.basicInfo?.isKycVerified ?? false,
+          isDarkMode: isDarkMode,
+        ),
       ],
+    );
+  }
+}
+
+class _KycCompletionCard extends StatelessWidget {
+  final int completionPercentage;
+  final bool isVerified;
+  final bool isDarkMode;
+
+  const _KycCompletionCard({
+    Key? key,
+    required this.completionPercentage,
+    required this.isVerified,
+    required this.isDarkMode,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final loc = AppLocalizations.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDarkMode ? Colors.grey[850] : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isVerified
+              ? Colors.green.withOpacity(0.5)
+              : theme.colorScheme.primary.withOpacity(0.3),
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha((0.1 * 255).round()),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    isVerified ? Icons.verified : Icons.pending_outlined,
+                    color: isVerified ? Colors.green : AppPalette.flame,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    loc.t('KYC Completion'),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              if (isVerified)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.green.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.check_circle,
+                          color: Colors.green, size: 14),
+                      const SizedBox(width: 4),
+                      Text(
+                        loc.t('verified'),
+                        style: const TextStyle(
+                          color: Colors.green,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(
+                    value: completionPercentage / 100,
+                    minHeight: 8,
+                    backgroundColor:
+                        isDarkMode ? Colors.grey[700] : Colors.grey[300],
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      isVerified ? Colors.green : AppPalette.flame,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                '$completionPercentage%',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: isVerified ? Colors.green : AppPalette.flame,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            isVerified
+                ? loc.t('Your KYC is complete and verified')
+                : completionPercentage >= 80
+                    ? loc.t('Almost there! Complete your profile to verify')
+                    : loc.t('Complete your profile to unlock verification'),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

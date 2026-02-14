@@ -11,6 +11,7 @@ export class TranslatePipe implements PipeTransform {
   private languageService = inject(LanguageService);
   
   transform(key: string): string {
+    const currentLanguage = this.languageService.language();
     const currentDictionary = this.languageService.dictionary();
     // Return the key if dictionary is empty (still loading)
     if (!currentDictionary || Object.keys(currentDictionary).length === 0) {

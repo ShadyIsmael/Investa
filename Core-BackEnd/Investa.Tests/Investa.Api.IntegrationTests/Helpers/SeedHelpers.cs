@@ -19,7 +19,8 @@ public static class SeedHelpers
         var role = new Investa.Domain.Entities.Security.Role { Id = Guid.NewGuid(), Name = "Account Editor", NormalizedName = "ACCOUNT EDITOR", GroupId = 1 };
         db.Roles.Add(role);
 
-        var user1Id = Guid.NewGuid();
+        // Use deterministic seeded user id so integration test auth can resolve the current user
+        var user1Id = Guid.Parse("11111111-1111-1111-1111-111111111111");
         var au1 = new AuthUser { Id = user1Id, Email = "jane.doe@example.com", UserType = UserType.OrgUser, Status = true, CreatedAt = DateTime.UtcNow.AddYears(-2) };
         db.AuthUsers.Add(au1);
 

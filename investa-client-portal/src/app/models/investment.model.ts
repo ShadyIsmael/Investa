@@ -160,4 +160,5 @@ export interface Investment {
   
   // UI state
   favorited: boolean;
+  images?: Array<{ id: number; url: string; caption?: string; sortOrder?: number; isPrimary?: boolean }>
 }

@@ -28,10 +28,24 @@ class MainWrapper extends StatefulWidget {
 
 class _MainWrapperState extends State<MainWrapper> {
   int _selectedIndex = 0;
+  int _pendingRequestsCount = 0;
+  int _unreadMessagesCount = 0;
 
   void _onItemTapped(int index) {
     if (_selectedIndex == index) return;
     setState(() => _selectedIndex = index);
+  }
+
+  void _updatePendingRequestsCount(int count) {
+    if (_pendingRequestsCount != count) {
+      setState(() => _pendingRequestsCount = count);
+    }
+  }
+
+  void _updateUnreadMessagesCount(int count) {
+    if (_unreadMessagesCount != count) {
+      setState(() => _unreadMessagesCount = count);
+    }
   }
 
   Widget _currentScreen() {
@@ -39,11 +53,17 @@ class _MainWrapperState extends State<MainWrapper> {
       case 0:
         return const DashboardScreen(key: ValueKey('dashboard'));
       case 1:
-        return EngagementScreen(key: const ValueKey('engagement'));
+        return EngagementScreen(
+          key: const ValueKey('engagement'),
+          onUnreadCountChanged: _updateUnreadMessagesCount,
+        );
       case 2:
         return const InvestmentsScreen(key: ValueKey('investments'));
       case 3:
-        return const RequestsScreen(key: ValueKey('requests'));
+        return RequestsScreen(
+          key: const ValueKey('requests'),
+          onPendingCountChanged: _updatePendingRequestsCount,
+        );
       default:
         return ProfileScreen(
           key: const ValueKey('profile'),
@@ -121,20 +141,128 @@ class _MainWrapperState extends State<MainWrapper> {
                 // اليسار
                 _buildNavItem(Icons.dashboard_rounded, loc.t('dashboard'), 0,
                     isSelected: _selectedIndex == 0),
-                _buildNavItem(Icons.people_alt_rounded, loc.t('engagement'), 1,
+                _buildEngagementNavItem(loc.t('engagement'), 1,
                     isSelected: _selectedIndex == 1),
 
                 // فراغ للـ Notch
                 const SizedBox(width: 80),
 
                 // اليمين
-                _buildNavItem(Icons.request_page_rounded, loc.t('requests'), 3,
+                _buildRequestsNavItem(loc.t('requests'), 3,
                     isSelected: _selectedIndex == 3),
                 _buildNavItem(Icons.person_rounded, loc.t('profile'), 4,
                     isSelected: _selectedIndex == 4),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEngagementNavItem(String label, int index,
+      {required bool isSelected}) {
+    final color = isSelected ? const Color(0xFFFF9800) : Colors.grey;
+    return Expanded(
+      child: InkWell(
+        onTap: () => _onItemTapped(index),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Stack(
+              children: [
+                Icon(Icons.people_alt_rounded, color: color, size: 26),
+                if (_unreadMessagesCount > 0)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        _unreadMessagesCount > 99
+                            ? '99+'
+                            : _unreadMessagesCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            Text(label,
+                style: TextStyle(
+                    color: color,
+                    fontSize: 11,
+                    fontWeight:
+                        isSelected ? FontWeight.bold : FontWeight.normal)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRequestsNavItem(String label, int index,
+      {required bool isSelected}) {
+    final color = isSelected ? const Color(0xFFFF9800) : Colors.grey;
+    return Expanded(
+      child: InkWell(
+        onTap: () => _onItemTapped(index),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Stack(
+              children: [
+                Icon(Icons.request_page_rounded, color: color, size: 26),
+                if (_pendingRequestsCount > 0)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        _pendingRequestsCount > 99
+                            ? '99+'
+                            : _pendingRequestsCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            Text(label,
+                style: TextStyle(
+                    color: color,
+                    fontSize: 11,
+                    fontWeight:
+                        isSelected ? FontWeight.bold : FontWeight.normal)),
+          ],
         ),
       ),
     );

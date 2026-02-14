@@ -24,7 +24,17 @@
                   {{ request.status }}
                 </span>
               </div>
-              <p class="text-sm text-gray-400 mt-1 truncate">{{ 'requests.from' | translate }} {{ request.counterpartName }}</p>
+              @if (request.businessName) {
+                <p class="text-sm text-blue-400 mt-1 font-medium truncate">{{ request.businessName }}</p>
+              }
+              @if (request.shortDescription) {
+                <p class="text-xs text-gray-500 mt-1 truncate">{{ request.shortDescription }}</p>
+              }
+              <div class="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                <span>{{ 'requests.from' | translate }} {{ request.senderName || request.counterpartName }}</span>
+                <span>•</span>
+                <span>{{ 'requests.to' | translate }} {{ request.receiverName || 'You' }}</span>
+              </div>
               <p class="text-xs text-gray-500 mt-1">{{ getTimeAgo(request.createdAt) }}</p>
               <div class="flex gap-3 mt-4">
                 <button (click)="accept(request)" class="bg-green-600 text-white text-sm font-semibold px-3 py-2 rounded-md hover:opacity-90">{{ 'requests.accept' | translate }}</button>
@@ -53,7 +63,17 @@
                   {{ request.status }}
                 </span>
               </div>
-              <p class="text-sm text-gray-400 mt-1 truncate">{{ 'requests.to' | translate }} {{ request.counterpartName }}</p>
+              @if (request.businessName) {
+                <p class="text-sm text-blue-400 mt-1 font-medium truncate">{{ request.businessName }}</p>
+              }
+              @if (request.shortDescription) {
+                <p class="text-xs text-gray-500 mt-1 truncate">{{ request.shortDescription }}</p>
+              }
+              <div class="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                <span>{{ 'requests.from' | translate }} {{ request.senderName || 'You' }}</span>
+                <span>•</span>
+                <span>{{ 'requests.to' | translate }} {{ request.receiverName || request.counterpartName }}</span>
+              </div>
               <p class="text-xs text-gray-500 mt-1">{{ getTimeAgo(request.createdAt) }}</p>
               <div class="flex gap-3 mt-4">
                 <button (click)="withdraw(request)" class="bg-gray-600 text-white text-sm font-semibold px-3 py-2 rounded-md hover:opacity-90">{{ 'requests.withdraw' | translate }}</button>

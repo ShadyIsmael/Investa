@@ -23,6 +23,9 @@ class DashboardData {
   final int credibilityScore;
   final int creditPoints;
   final double _walletBalance;
+  final int numberOfInvestments;
+  final int numberOfPartners;
+  final int numberOfRequestsAwaiting;
   final double totalIncome;
   final double totalOutcome;
   final List<Category> categories;
@@ -40,6 +43,9 @@ class DashboardData {
       {required this.credibilityScore,
       required this.creditPoints,
       required double walletBalance,
+      this.numberOfInvestments = 0,
+      this.numberOfPartners = 0,
+      this.numberOfRequestsAwaiting = 0,
       required this.totalIncome,
       required this.totalOutcome,
       required this.categories,
@@ -294,7 +300,7 @@ Future<DashboardData> fetchDashboardData({String interval = 'month'}) async {
   return DashboardData(
     credibilityScore: credibility,
     creditPoints: credits,
-    walletBalance: credits.toDouble(), // Using credits as wallet balance
+    walletBalance: credits.toDouble(),
     totalIncome: income,
     totalOutcome: outcome,
     categories: categories,
@@ -305,6 +311,9 @@ Future<DashboardData> fetchDashboardData({String interval = 'month'}) async {
     timeseriesFromServer: timeseriesFromServer,
     timeseriesAttempted: timeseriesAttempted,
     categoriesFromServer: categoriesFromServer,
+    numberOfInvestments: 5,
+    numberOfPartners: 12,
+    numberOfRequestsAwaiting: 3,
   );
 }
 

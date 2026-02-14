@@ -77,7 +77,7 @@ VITE_FIREBASE_VAPID_KEY=BNDummyVapidKeyForDevelopment
 **Current Configuration:**
 ```typescript
 // vite.config.ts proxies requests to:
-const proxyTarget = env.VITE_API_BASE_URL?.replace(/\/api\/?$/, '') || 'http://DESKTOP-DIH7CQH:5235';
+const proxyTarget = env.VITE_API_BASE_URL?.replace(/\/api\/?$/, '') || 'http://desktop-dih7cqh:5235';
 ```
 
 **What to Check:**

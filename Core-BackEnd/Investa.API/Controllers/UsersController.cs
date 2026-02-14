@@ -6,6 +6,8 @@ using Investa.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Localization;
+using Investa.API.Resources;
 
 namespace Investa.API.Controllers
 {
@@ -16,13 +18,16 @@ namespace Investa.API.Controllers
     {
         private readonly INotificationService _notificationService;
         private readonly ILogger<UsersController> _logger;
+        private readonly IStringLocalizer<SharedResource> _localizer;
 
         public UsersController(
             INotificationService notificationService,
-            ILogger<UsersController> logger)
+            ILogger<UsersController> logger,
+            IStringLocalizer<SharedResource> localizer)
         {
             _notificationService = notificationService;
             _logger = logger;
+            _localizer = localizer;
         }
 
         /// <summary>
@@ -37,12 +42,12 @@ namespace Investa.API.Controllers
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 if (string.IsNullOrEmpty(userId))
                 {
-                    return Unauthorized("User not authenticated");
+                    return Unauthorized(_localizer["UnableToIdentifyUserFromToken"].Value);
                 }
 
                 if (string.IsNullOrEmpty(request.FcmToken))
                 {
-                    return BadRequest("FCM Token is required");
+                    return BadRequest(_localizer["FcmTokenRequired"].Value);
                 }
 
                 // Default to "Mobile" if not specified, or infer from User-Agent if needed
@@ -52,15 +57,15 @@ namespace Investa.API.Controllers
 
                 if (success)
                 {
-                    return Ok(new { message = "Token synced successfully" });
+                    return Ok(new { message = _localizer["TokenSyncedSuccessfully"].Value });
                 }
                 
-                return BadRequest("Failed to sync token");
+                return BadRequest(_localizer["FailedToSyncToken"].Value);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error syncing FCM token");
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, _localizer["InternalServerError"].Value);
             }
         }
     }

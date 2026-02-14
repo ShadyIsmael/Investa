@@ -93,7 +93,7 @@ VITE_FIREBASE_VAPID_KEY=BNDummyVapidKeyForDevelopment
 **Status:** VERIFIED (issues are backend-related)
 
 **Finding:** Vite proxy configuration is correctly set up in `vite.config.ts`:
-- `/api` → forwards to `proxyTarget` (localhost:5000 or DESKTOP-DIH7CQH:5235)
+- `/api` → forwards to `proxyTarget` (localhost:5000 or desktop-dih7cqh:5235)
 - `/v1`, `/analytics`, `/support`, `/moderation` → properly proxied
 - WebSocket support enabled for SignalR hubs
 

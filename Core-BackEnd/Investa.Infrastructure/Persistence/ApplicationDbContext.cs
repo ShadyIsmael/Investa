@@ -111,11 +111,17 @@ public class ApplicationDbContext : IdentityDbContext
     // Records score/points transactions for users (e.g., reward points)
     public DbSet<ScoreTransaction> ScoreTransactions { get; set; }
 
+    // Investment requests between investors and founders
+    public DbSet<InvestmentRequest> InvestmentRequests { get; set; }
+
     // Many-to-many join between Clients and BusinessCategories
     public DbSet<ClientBusinessCategory> ClientBusinessCategories { get; set; }
 
     // Firebase Cloud Messaging device tokens for push notifications (new keyword hides Identity's UserTokens)
     public new DbSet<UserToken> UserTokens { get; set; }
+
+    // Images associated with investments (gallery)
+    public DbSet<InvestmentImage> InvestmentImages { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -231,6 +237,23 @@ public class ApplicationDbContext : IdentityDbContext
             ev.HasIndex(x => new { x.InvestmentId, x.Version }).IsUnique();
             ev.HasIndex(x => new { x.InvestmentId, x.OccurredAt });
             ev.HasOne(x => x.Investment).WithMany().HasForeignKey(x => x.InvestmentId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Investment images mapping (gallery)
+        modelBuilder.Entity<InvestmentImage>(img =>
+        {
+            img.HasKey(x => x.Id);
+            img.Property(x => x.Url).HasMaxLength(500).IsRequired();
+            img.Property(x => x.Caption).HasMaxLength(250).IsRequired(false);
+            img.Property(x => x.SortOrder).HasDefaultValue(0);
+            img.Property(x => x.IsPrimary).HasDefaultValue(false);
+            img.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+
+            img.HasIndex(x => x.InvestmentId);
+            img.HasOne(x => x.Investment)
+               .WithMany(i => i.Images)
+               .HasForeignKey(x => x.InvestmentId)
+               .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Transaction>()
@@ -406,6 +429,20 @@ public class ApplicationDbContext : IdentityDbContext
             cb.HasIndex(c => c.Phone);
                         cb.HasIndex(c => c.Email).IsUnique(false);
         });
+
+                    // InvestmentRequest mapping
+                    modelBuilder.Entity<InvestmentRequest>(ir =>
+                    {
+                        ir.HasKey(x => x.Id);
+                        ir.Property(x => x.Amount).HasPrecision(18, 2).IsRequired();
+                        ir.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+                        ir.Property(x => x.Direction).HasConversion<string>().HasMaxLength(20).IsRequired();
+                        ir.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+                        ir.Property(x => x.UpdatedAt).IsRequired(false);
+                        ir.HasIndex(x => x.InvestmentId);
+                        ir.HasIndex(x => x.InvestorId);
+                        ir.HasIndex(x => x.FounderId);
+                    });
 
         // ClientStatusHistory mapping
         modelBuilder.Entity<ClientStatusHistory>(h =>

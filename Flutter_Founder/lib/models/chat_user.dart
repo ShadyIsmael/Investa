@@ -8,6 +8,7 @@ class ChatUser {
   final String? email;
   final String? phone;
   final String? address;
+  int unreadCount;
 
   ChatUser({
     required this.id,
@@ -19,5 +20,6 @@ class ChatUser {
     this.email,
     this.phone,
     this.address,
+    this.unreadCount = 0,
   });
 }

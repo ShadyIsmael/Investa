@@ -5,6 +5,11 @@ import '../theme/app_theme.dart';
 import '../theme/color_extensions.dart';
 import '../services/messages.dart';
 import '../services/config.dart';
+import '../services/requests_service.dart';
+import '../services/profile_service.dart';
+import '../services/app_state.dart';
+import '../services/app_logger.dart';
+import '../widgets/engagement_confirmation_dialog.dart';
 
 // A small set of public test images (Unsplash) used when no images available.
 const List<String> _kTestImages = [
@@ -101,34 +106,98 @@ class _InvestmentInfoScreenState extends State<InvestmentInfoScreen> {
         ));
       }
     } else {
-      final cost = Env.engageCreditCost;
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text('Start Engagement',
-              style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-          content: Text(
-              'This action will deduct $cost credits from your balance to open a secure channel with the founder. Continue?'),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel')),
-            ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppPalette.flame,
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Confirm')),
-          ],
-        ),
-      );
+      // Engagement flow with two-step confirmation (mirrors Angular client portal)
+      try {
+        // Step 1: Refresh user profile to get latest wallet balance
+        AppLogger.logInfo('InvestmentInfoScreen',
+            'Refreshing user profile before engagement');
 
-      if (confirmed == true && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: const Text(AppMessages.engageRequestSent),
-          backgroundColor: Theme.of(context).colorScheme.secondary,
-        ));
+        final profileService = ProfileService();
+        await profileService.fetchProfile();
+
+        if (!mounted) return;
+
+        // Step 2: Show confirmation dialog with credit details
+        final profile = AppState.instance.profile;
+        final initialCredits = (profile?.credit?.toDouble()) ??
+            profile?.coreMetrics?.walletBalance ??
+            0.0;
+
+        // Debug: log values passed to dialog
+        try {
+          AppLogger.logInfo('InvestmentInfoScreen',
+              'Opening engagement dialog - initialCredits=$initialCredits, investmentKeys=${item.keys.toList()}');
+        } catch (_) {}
+
+        final confirmed = await showEngagementConfirmationDialog(
+          context: context,
+          investment: item,
+          initialCredits: initialCredits,
+          onConfirm: () async {
+            // Step 3: Create investment request via API
+            final requestsService = RequestsService();
+            final engagementCost = Env.engageCreditCost.toDouble();
+
+            await requestsService.createInvestmentRequest(
+              investment: item,
+              amount: engagementCost,
+              shares: 0, // Engagement/Funding type has 0 shares
+            );
+
+            AppLogger.logInfo('InvestmentInfoScreen',
+                'Engagement request created successfully');
+          },
+        );
+
+        if (!mounted) return;
+
+        // Step 4: Show success message
+        if (confirmed == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(AppMessages.engageRequestSent),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        AppLogger.logError(
+            'InvestmentInfoScreen', 'Failed to create engagement request: $e');
+
+        if (!mounted) return;
+
+        // Show user-friendly error message
+        String errorMessage = 'Failed to create engagement request.';
+
+        if (e.toString().contains('500')) {
+          errorMessage =
+              'Server error occurred. Please try again later or contact support if the issue persists.';
+        } else if (e.toString().contains('insufficient_credits') ||
+            e.toString().contains('Insufficient credits')) {
+          errorMessage =
+              'Insufficient credits. Please add more credits to your account.';
+        } else if (e.toString().contains('not_authenticated') ||
+            e.toString().contains('401')) {
+          errorMessage = 'Session expired. Please log in again.';
+        } else if (e.toString().contains('InvestmentRequestException:')) {
+          errorMessage =
+              e.toString().replaceFirst('InvestmentRequestException: ', '');
+        } else if (e.toString().contains('Exception:')) {
+          errorMessage = e.toString().replaceFirst('Exception: ', '');
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Dismiss',
+              textColor: Colors.white,
+              onPressed: () {},
+            ),
+          ),
+        );
       }
     }
   }
@@ -141,6 +210,7 @@ class _InvestmentInfoScreenState extends State<InvestmentInfoScreen> {
     double? expectedRoi,
   }) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -209,11 +279,33 @@ class _InvestmentInfoScreenState extends State<InvestmentInfoScreen> {
                         color: theme.colorScheme.onSurface)),
                 const SizedBox(height: 16),
                 Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: isDark
+                          ? [
+                              const Color(0xFF1E293B).withOpacity(0.6),
+                              const Color(0xFF0F172A).withOpacity(0.4)
+                            ]
+                          : [
+                              Colors.white.withOpacity(0.9),
+                              const Color(0xFFF9FAFB).withOpacity(0.8)
+                            ],
+                    ),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: theme.dividerColor),
+                    border: Border.all(
+                      color: theme.colorScheme.outline.withOpacity(0.15),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: theme.colorScheme.primary.withOpacity(0.06),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
                   child: Row(
                     children: [
@@ -222,16 +314,19 @@ class _InvestmentInfoScreenState extends State<InvestmentInfoScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(AppMessages.sharePriceLabel,
-                                style: GoogleFonts.dmSans(
+                                style: GoogleFonts.inter(
                                     fontSize: 12,
-                                    color: theme.disabledColor,
-                                    fontWeight: FontWeight.w600)),
-                            const SizedBox(height: 4),
+                                    color: theme.colorScheme.onSurface
+                                        .withOpacity(0.6),
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.3)),
+                            const SizedBox(height: 6),
                             Text('$currency${sharePrice.toStringAsFixed(2)}',
                                 style: GoogleFonts.outfit(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: theme.colorScheme.onSurface)),
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w700,
+                                    color: theme.colorScheme.onSurface,
+                                    letterSpacing: -0.5)),
                           ],
                         ),
                       ),
@@ -239,16 +334,19 @@ class _InvestmentInfoScreenState extends State<InvestmentInfoScreen> {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(AppMessages.sharesAvailableLabel,
-                              style: GoogleFonts.dmSans(
+                              style: GoogleFonts.inter(
                                   fontSize: 12,
-                                  color: theme.disabledColor,
-                                  fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 4),
+                                  color: theme.colorScheme.onSurface
+                                      .withOpacity(0.6),
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.3)),
+                          const SizedBox(height: 6),
                           Text('$availableShares',
                               style: GoogleFonts.outfit(
-                                  fontSize: 18,
+                                  fontSize: 20,
                                   fontWeight: FontWeight.w700,
-                                  color: theme.colorScheme.primary)),
+                                  color: theme.colorScheme.primary,
+                                  letterSpacing: -0.3)),
                         ],
                       )
                     ],
@@ -306,10 +404,33 @@ class _InvestmentInfoScreenState extends State<InvestmentInfoScreen> {
                         fontSize: 12, color: theme.disabledColor)),
                 const SizedBox(height: 16),
                 Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: isDark
+                          ? [
+                              const Color(0xFF1E293B).withOpacity(0.6),
+                              const Color(0xFF0F172A).withOpacity(0.4)
+                            ]
+                          : [
+                              Colors.white.withOpacity(0.9),
+                              const Color(0xFFF9FAFB).withOpacity(0.8)
+                            ],
+                    ),
                     borderRadius: BorderRadius.circular(14),
-                    color: theme.colorScheme.surfaceContainerHighest,
+                    border: Border.all(
+                      color: theme.colorScheme.outline.withOpacity(0.15),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: theme.colorScheme.primary.withOpacity(0.06),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -318,30 +439,38 @@ class _InvestmentInfoScreenState extends State<InvestmentInfoScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(AppMessages.totalInvestmentLabel,
-                              style: GoogleFonts.dmSans(
-                                  color: theme.disabledColor,
-                                  fontWeight: FontWeight.w600)),
+                              style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  color: theme.colorScheme.onSurface
+                                      .withOpacity(0.65),
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.3)),
                           Text('$currency${total.toStringAsFixed(2)}',
                               style: GoogleFonts.outfit(
-                                  fontSize: 20,
+                                  fontSize: 22,
                                   fontWeight: FontWeight.w700,
-                                  color: theme.colorScheme.onSurface)),
+                                  color: theme.colorScheme.onSurface,
+                                  letterSpacing: -0.5)),
                         ],
                       ),
                       if (expectedRoi != null && expectedRoi > 0) ...[
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 12),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(AppMessages.expectedRoiLabel,
-                                style: GoogleFonts.dmSans(
-                                    color: theme.disabledColor,
-                                    fontWeight: FontWeight.w600)),
+                                style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: theme.colorScheme.onSurface
+                                        .withOpacity(0.6),
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.3)),
                             Text('${expectedRoi.toStringAsFixed(1)}%',
                                 style: GoogleFonts.outfit(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: const Color(0xFF10B981))),
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF10B981),
+                                    letterSpacing: -0.3)),
                           ],
                         ),
                       ]
@@ -852,35 +981,73 @@ class _InvestmentInfoScreenState extends State<InvestmentInfoScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacityCompat(isDark ? 0.2 : 0.05),
-                offset: const Offset(0, 4),
-                blurRadius: 12)
-          ],
-          border: Border.all(
-              color: theme.colorScheme.outline
-                  .withOpacityCompat(isDark ? 0.1 : 0.05))),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+              : [Colors.white, const Color(0xFFF9FAFB)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.primary.withOpacity(0.08),
+            offset: const Offset(0, 8),
+            blurRadius: 24,
+            spreadRadius: 0,
+          ),
+          BoxShadow(
+            color: isDark
+                ? Colors.white.withOpacity(0.03)
+                : Colors.white.withOpacity(0.9),
+            offset: const Offset(-2, -2),
+            blurRadius: 8,
+          ),
+        ],
+        border: Border.all(
+          color: theme.colorScheme.outline.withOpacity(isDark ? 0.15 : 0.08),
+          width: 1,
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: theme.colorScheme.primary, size: 24),
-          const SizedBox(height: 12),
-          Text(title,
-              style: GoogleFonts.dmSans(
-                  fontSize: 12,
-                  color: theme.colorScheme.onSurface.withOpacityCompat(0.6),
-                  fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          Text(value,
-              style: GoogleFonts.outfit(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.onSurface)),
+          // Icon with gradient background
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  theme.colorScheme.primary.withOpacity(0.15),
+                  theme.colorScheme.primary.withOpacity(0.05),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: theme.colorScheme.primary, size: 24),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            title,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: GoogleFonts.outfit(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: theme.colorScheme.onSurface,
+              letterSpacing: -0.5,
+            ),
+          ),
         ],
       ),
     );
@@ -1147,41 +1314,77 @@ Widget _metricCard(
   final theme = Theme.of(context);
   final isDark = theme.brightness == Brightness.dark;
   return Container(
-    padding: const EdgeInsets.all(12),
+    padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: isDark
+            ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+            : [Colors.white, const Color(0xFFF9FAFB)],
+      ),
       borderRadius: BorderRadius.circular(12),
       border: Border.all(
-          color:
-              theme.colorScheme.outline.withOpacityCompat(isDark ? 0.1 : 0.05)),
+        color: theme.colorScheme.outline.withOpacity(isDark ? 0.15 : 0.08),
+        width: 1,
+      ),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacityCompat(isDark ? 0.15 : 0.05),
-          blurRadius: 10,
+          color: theme.colorScheme.primary.withOpacity(0.06),
+          blurRadius: 16,
           offset: const Offset(0, 4),
-        )
+          spreadRadius: 0,
+        ),
+        BoxShadow(
+          color: isDark
+              ? Colors.white.withOpacity(0.02)
+              : Colors.white.withOpacity(0.8),
+          blurRadius: 6,
+          offset: const Offset(-1, -1),
+        ),
       ],
     ),
     child: Row(
       children: [
-        Icon(icon, color: theme.colorScheme.primary),
-        const SizedBox(width: 10),
+        // Icon with gradient background
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                theme.colorScheme.primary.withOpacity(0.12),
+                theme.colorScheme.primary.withOpacity(0.04),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: theme.colorScheme.primary, size: 20),
+        ),
+        const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(title,
-                  style: GoogleFonts.dmSans(
-                      fontSize: 12,
-                      color: theme.disabledColor,
-                      fontWeight: FontWeight.w600)),
-              const SizedBox(height: 2),
-              Text(value,
-                  style: GoogleFonts.outfit(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: theme.colorScheme.onSurface)),
+              Text(
+                title,
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: GoogleFonts.outfit(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: theme.colorScheme.onSurface,
+                  letterSpacing: -0.3,
+                ),
+              ),
             ],
           ),
         )

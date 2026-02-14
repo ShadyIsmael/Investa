@@ -167,7 +167,11 @@ public class InvestmentService : IInvestmentService
             Status = "Draft",
             EndDate = dto.EndDate,
             ImageUrl = dto.ImageUrl,
-            VideoUrl = dto.VideoUrl
+            VideoUrl = dto.VideoUrl,
+            // Founding-specific fields
+            DurationMonths = dto.DurationMonths,
+            ProfitPercentage = dto.ProfitPercentage,
+            PayoutFrequency = dto.PayoutFrequency
         };
 
         await _unitOfWork.Repository<Investment>().AddAsync(entity);
@@ -224,6 +228,10 @@ public class InvestmentService : IInvestmentService
         if (dto.EndDate.HasValue) entity.EndDate = dto.EndDate;
         if (dto.ImageUrl != null) entity.ImageUrl = dto.ImageUrl;
         if (dto.VideoUrl != null) entity.VideoUrl = dto.VideoUrl;
+        // Founding-specific fields
+        if (dto.DurationMonths.HasValue) entity.DurationMonths = dto.DurationMonths;
+        if (dto.ProfitPercentage.HasValue) entity.ProfitPercentage = dto.ProfitPercentage;
+        if (dto.PayoutFrequency != null) entity.PayoutFrequency = dto.PayoutFrequency;
 
         await repo.UpdateAsync(entity);
         await _unitOfWork.SaveChangesAsync();
@@ -263,6 +271,14 @@ public class InvestmentService : IInvestmentService
             return await _investmentRepository.GetAllWithFullDetailsAsync();
 
         return await _investmentRepository.GetByCategoryWithFullDetailsAsync(categoryId.Value);
+    }
+
+    /// <summary>
+    /// Gets all investments created by a specific founder.
+    /// </summary>
+    public async Task<IEnumerable<Investment>> GetMyInvestmentsAsync(Guid founderId)
+    {
+        return await _investmentRepository.FindAsync(i => i.FounderId == founderId);
     }
 
     public async Task<IEnumerable<InvestmentParticipant>> GetParticipantsAsync(int investmentId)

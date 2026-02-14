@@ -4,45 +4,59 @@
     <!-- Left Column: User Card & Navigation -->
     <aside class="lg:col-span-4 xl:col-span-3 lg:sticky top-8">
       <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl p-6 text-center">
-        <!-- Trust Score Circle -->
-        <div class="relative w-40 h-40 mx-auto mb-4 group">
-          <svg class="w-full h-full" viewBox="0 0 100 100">
-            <circle class="text-slate-700" stroke-width="8" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" />
-            <circle class="text-blue-500 drop-shadow-[0_0_5px_rgba(59,130,246,0.5)] transition-all duration-1000 ease-out"
-                    stroke-width="8"
-                    [attr.stroke-dasharray]="circumference"
-                    [attr.stroke-dashoffset]="strokeOffset()"
-                    stroke-linecap="round"
-                    stroke="currentColor"
-                    fill="transparent"
-                    r="45"
-                    cx="50"
-                    cy="50"
-                    transform="rotate(-90 50 50)" />
-          </svg>
-          <div class="absolute inset-0 flex items-center justify-center">
-              <img class="w-32 h-32 rounded-full ring-4 ring-slate-800" [src]="avatarUrl()" [alt]="('profile.avatarAlt' | translate)">
-          </div>
+        <div class="w-32 h-32 mx-auto mb-4">
+          <img class="w-32 h-32 rounded-full ring-4 ring-slate-800" [src]="avatarUrl()" [alt]="('profile.avatarAlt' | translate)">
         </div>
 
         <h2 class="text-2xl font-bold text-white">{{ fullName() || ('profile.titleDefault' | translate) }}</h2>
-        <p class="text-gray-400 mb-4">{{ profileForm.get('nationality')?.value || profileService.profile()?.basicInfo?.nationality }}</p>
+        <p class="text-gray-400 mb-4">{{ getCountryLabel(profileForm.get('nationality')?.value) || getCountryLabel(profileService.profile()?.basicInfo?.nationality) }}</p>
 
         <div class="bg-slate-800/50 p-3 rounded-lg text-center">
-          <p class="text-sm font-semibold text-blue-400">{{ 'profile.trustScore' | translate }}</p>
-
+          <p class="text-sm font-semibold text-blue-400">{{ 'profile.kyc' | translate }}</p>
           <div *ngIf="isLoading()" class="flex items-center justify-center py-4">
             <div class="w-8 h-8 border-4 border-blue-400 border-t-transparent rounded-full animate-spin" aria-hidden="true"></div>
           </div>
-
           <div *ngIf="!isLoading()">
-            <p class="text-3xl font-bold text-white">{{ trustScore() }}<span class="text-xl">%</span></p>
             <p class="text-xs text-gray-400 mt-1 flex items-center gap-3">{{ 'profile.kyc' | translate }}: <span class="font-semibold text-white">{{ kycStatus() }}</span>
               <button *ngIf="kycStatus() === 'None'" (click)="onStartKyc()" [disabled]="isLoading()" class="ms-3 bg-blue-600 text-white px-3 py-1 rounded-md text-sm">{{ 'profile.startKyc' | translate }}</button>
               <span *ngIf="kycStatus() === 'Pending'" class="ms-3 text-yellow-300 text-sm">({{ 'profile.pending' | translate }})</span>
               <span *ngIf="kycStatus() === 'Verified'" class="ms-3 text-green-300 text-sm">({{ 'profile.verified' | translate }})</span>
             </p>
-            <p class="text-xs text-gray-400 mt-1">{{ 'profile.credit' | translate }}: <span class="font-semibold text-white">{{ currentScore() }}</span></p>
+          </div>
+        </div>
+
+        <!-- KYC Completion Progress -->
+        <div class="bg-slate-800/50 p-4 rounded-lg mt-4">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-semibold" [ngClass]="profileService.profile()?.basicInfo?.isKycVerified ? 'text-green-400' : 'text-blue-400'">
+                <i class="fas" [ngClass]="profileService.profile()?.basicInfo?.isKycVerified ? 'fa-check-circle' : 'fa-clock'"></i>
+                {{ 'profile.kycCompletion' | translate }}
+              </span>
+            </div>
+            <span *ngIf="profileService.profile()?.basicInfo?.isKycVerified" class="px-3 py-1 bg-green-500/20 border border-green-500/30 rounded-full text-xs text-green-400 font-semibold flex items-center gap-1">
+              <i class="fas fa-check-circle"></i>
+              {{ 'profile.verified' | translate }}
+            </span>
+          </div>
+          <div class="relative w-full bg-gray-700 rounded-full h-2 mb-2">
+            <div 
+              class="absolute top-0 left-0 h-2 rounded-full transition-all duration-300"
+              [ngClass]="profileService.profile()?.basicInfo?.isKycVerified ? 'bg-green-500' : 'bg-blue-500'"
+              [style.width.%]="profileService.profile()?.basicInfo?.kycCompletionPercentage || 0">
+            </div>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-gray-400">
+              {{ profileService.profile()?.basicInfo?.isKycVerified 
+                ? ('profile.kycComplete' | translate) 
+                : (profileService.profile()?.basicInfo?.kycCompletionPercentage || 0) >= 80
+                  ? ('profile.kycAlmostThere' | translate)
+                  : ('profile.kycCompleteProfile' | translate) }}
+            </span>
+            <span class="text-sm font-bold" [ngClass]="profileService.profile()?.basicInfo?.isKycVerified ? 'text-green-400' : 'text-blue-400'">
+              {{ profileService.profile()?.basicInfo?.kycCompletionPercentage || 0 }}%
+            </span>
           </div>
         </div>
         
@@ -190,15 +204,18 @@
                     <label for="gender" class="block text-sm font-medium text-gray-300">{{ 'profile.personalInfo.gender' | translate }}</label>
                     <select id="gender" formControlName="gender" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                       <option value="">{{ 'profile.personalInfo.genderSelect' | translate }}</option>
-                      <option value="Male">{{ 'profile.personalInfo.male' | translate }}</option>
-                      <option value="Female">{{ 'profile.personalInfo.female' | translate }}</option>
+                      <option value="M">{{ 'profile.personalInfo.male' | translate }}</option>
+                      <option value="F">{{ 'profile.personalInfo.female' | translate }}</option>
                     </select>
                   </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label for="nationality" class="block text-sm font-medium text-gray-300 mb-1">{{ 'profile.personalInfo.nationality' | translate }}</label>
-                    <input id="nationality" type="text" formControlName="nationality" class="block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select id="nationality" formControlName="nationality" class="block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="">{{ 'profile.personalInfo.nationalitySelect' | translate }}</option>
+                      <option *ngFor="let c of nationalityOptions" [value]="c.code">{{ c.key | translate }}</option>
+                    </select>
                   </div>
                   <div>
                     <label for="country" class="block text-sm font-medium text-gray-300 mb-1">{{ 'profile.personalInfo.country' | translate }}</label>
@@ -224,6 +241,33 @@
                       </label>
                       <input id="nationalIdCopy" type="file" class="hidden" (change)="onFileChange($event)">
                       <span class="ms-3 text-gray-400 text-sm truncate">{{ nationalIdFileName() || ('profile.personalInfo.noFileChosen' | translate) }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="space-y-6 pt-6 border-t border-slate-800">
+                  <h3 class="text-lg font-medium text-gray-200">{{ 'profile.company.title' | translate }}</h3>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label for="companyName" class="block text-sm font-medium text-gray-300">{{ 'profile.company.name' | translate }}</label>
+                      <input id="companyName" type="text" formControlName="companyName" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                      <label for="companyEmail" class="block text-sm font-medium text-gray-300">{{ 'profile.company.email' | translate }}</label>
+                      <input id="companyEmail" type="email" formControlName="companyEmail" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                  </div>
+                  <div>
+                    <label for="companyAddress" class="block text-sm font-medium text-gray-300">{{ 'profile.company.address' | translate }}</label>
+                    <input id="companyAddress" type="text" formControlName="companyAddress" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">{{ 'profile.company.hrLetter' | translate }}</label>
+                    <div class="flex items-center">
+                      <label for="hrLetterCopy" class="cursor-pointer bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                        <span>{{ 'profile.personalInfo.chooseFile' | translate }}</span>
+                      </label>
+                      <input id="hrLetterCopy" type="file" class="hidden" (change)="onHrLetterChange($event)">
+                      <span class="ms-3 text-gray-400 text-sm truncate">{{ hrLetterFileName() || ('profile.personalInfo.noFileChosen' | translate) }}</span>
                     </div>
                   </div>
                 </div>
@@ -398,55 +442,6 @@
         }
       }
 
-      <!-- Credit History Section (Always visible below active section) -->
-      <div class="mt-8 bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl">
-        <div class="p-8">
-          <div class="flex items-center justify-between mb-6">
-            <h2 class="text-2xl font-bold text-white">{{ 'profile.credibilityHistory' | translate }}</h2>
-            <div class="flex items-center gap-2">
-              <span class="text-sm text-gray-400">{{ 'profile.currentScore' | translate }}</span>
-              <span class="text-2xl font-bold text-blue-400">{{ currentScore() }}</span>
-            </div>
-          </div>
-
-          <div *ngIf="creditHistory().length === 0" class="text-center py-8">
-            <svg class="w-16 h-16 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <p class="text-gray-400">{{ 'profile.noHistory' | translate }}</p>
-          </div>
-
-          <div *ngIf="creditHistory().length > 0" class="space-y-4">
-            <div *ngFor="let transaction of limitedCreditHistory()" class="flex items-start gap-4 p-4 rounded-lg bg-slate-800/50 border border-slate-700 hover:border-slate-600 transition-colors">
-              <!-- Amount Badge -->
-              <div class="flex-shrink-0">
-                <div [class]="transaction.amount > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'" class="w-12 h-12 rounded-full flex items-center justify-center font-bold">
-                  {{ transaction.amount > 0 ? '+' : '' }}{{ transaction.amount }}
-                </div>
-              </div>
-
-              <!-- Transaction Details -->
-              <div class="flex-1 min-w-0">
-                <p class="text-white font-medium">{{ getJustification(transaction) }}</p>
-                <div class="flex items-center gap-2 mt-1 text-sm text-gray-400">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>{{ transaction.createdAt | date:'short' }}</span>
-                  <span *ngIf="transaction.adminName" class="ms-2 px-2 py-0.5 bg-purple-500/20 text-purple-300 rounded text-xs">{{ 'profile.byAdmin' | translate:{adminName: transaction.adminName} }}</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- View All Link -->
-            <div *ngIf="creditHistory().length > 5" class="flex justify-center pt-4">
-              <button (click)="viewAllTransactions()" class="text-blue-400 hover:text-blue-300 font-medium transition-colors">
-                {{ 'profile.viewAll' | translate }} →
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
 
     </main>
 

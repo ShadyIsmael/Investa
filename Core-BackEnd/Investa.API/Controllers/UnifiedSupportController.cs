@@ -14,6 +14,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Investa.Domain.Entities.Security;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Localization;
+using Investa.API.Resources;
 
 namespace Investa.API.Controllers
 {
@@ -27,26 +29,29 @@ namespace Investa.API.Controllers
         private readonly INotificationService _notificationService;
         private readonly UserManager<IdentityUser> _userManager;
         private readonly ILogger<SupportController> _logger;
+        private readonly IStringLocalizer<SharedResource> _localizer;
 
-        private const string AdminRole = nameof(UserRoles.Admin);
+        private const string AdminRole = "Admin";
 
         public SupportController(
             ApplicationDbContext db,
             IChatService chatService,
             INotificationService notificationService,
             UserManager<IdentityUser> userManager,
-            ILogger<SupportController> logger)
+            ILogger<SupportController> logger,
+            IStringLocalizer<SharedResource> localizer)
         {
             _db = db;
             _chatService = chatService;
             _notificationService = notificationService;
             _userManager = userManager;
             _logger = logger;
+            _localizer = localizer;
         }
 
         // GET: api/support/conversations/active
         [HttpGet("conversations/active")]
-        [Authorize(Roles = nameof(UserRoles.OrgUser) + "," + nameof(UserRoles.Admin))]
+        [Authorize(Roles = nameof(UserRoles.OrgUser) + "," + "Admin")]
         public async Task<IActionResult> GetActiveConversations()
         {
             // Using SupportSessions as the source of truth for active support conversations
@@ -79,12 +84,12 @@ namespace Investa.API.Controllers
 
         // POST: api/support/sessions (Legacy)
         [HttpPost("sessions")]
-        [Authorize(Roles = nameof(UserRoles.OrgUser) + "," + nameof(UserRoles.Admin))]
+        [Authorize(Roles = nameof(UserRoles.OrgUser) + "," + "Admin")]
         public async Task<IActionResult> CreateSupportSession([FromBody] SupportSessionDto dto)
         {
             if (dto == null || string.IsNullOrEmpty(dto.UserMobile))
             {
-                return BadRequest("Invalid support session data.");
+                return BadRequest(_localizer["InvalidSupportSessionData"].Value);
             }
 
             var supportSession = new SupportSession
@@ -109,7 +114,7 @@ namespace Investa.API.Controllers
             try
             {
                 if (string.IsNullOrEmpty(request.UserMobile))
-                    return BadRequest("User Mobile is required");
+                    return BadRequest(_localizer["UserMobileRequired"].Value);
 
                 var session = await _chatService.RequestSupportAsync(request.UserMobile, request.Category, request.Message);
 
@@ -127,7 +132,7 @@ namespace Investa.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating support request");
-                return StatusCode(500, "Internal Server Error");
+                return StatusCode(500, _localizer["InternalServerError"].Value);
             }
         }
 
@@ -150,7 +155,7 @@ namespace Investa.API.Controllers
                         if (user != null)
                         {
                             // Check if admin
-                            if (User.IsInRole(nameof(UserRoles.Admin)) || User.IsInRole(nameof(UserRoles.OrgUser)))
+                            if (User.IsInRole("Admin") || User.IsInRole(nameof(UserRoles.OrgUser)))
                             {
                                 senderId = user.Email ?? user.UserName ?? user.Id;
                                 isFromAdmin = true;
@@ -168,7 +173,7 @@ namespace Investa.API.Controllers
                 }
 
                 if (string.IsNullOrEmpty(senderId))
-                    return BadRequest("Could not determine sender");
+                    return BadRequest(_localizer["CouldNotDetermineSender"].Value);
 
                 await _chatService.SendChatMessageAsync(conversationId, senderId, request.Message);
 
@@ -217,7 +222,7 @@ namespace Investa.API.Controllers
         {
             try
             {
-                var adminUsers = await _userManager.GetUsersInRoleAsync(nameof(UserRoles.Admin));
+                var adminUsers = await _userManager.GetUsersInRoleAsync("Admin");
 
                 // This might be slow if many admins, but fine for now. Better to use Topics.
                 foreach (var admin in adminUsers)
@@ -272,7 +277,7 @@ namespace Investa.API.Controllers
         public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] StatusUpdateDto dto)
         {
             if (dto == null || string.IsNullOrWhiteSpace(dto.Status))
-                return BadRequest("Status is required");
+                return BadRequest(_localizer["StatusRequired"].Value);
 
             var session = await _db.SupportSessions.FindAsync(id);
             if (session == null)
@@ -294,9 +299,8 @@ namespace Investa.API.Controllers
             }
             else
             {
-                return BadRequest("Invalid status value");
+                    return BadRequest(_localizer["InvalidStatusValue"].Value);
             }
-
             _db.SupportSessions.Update(session);
             await _db.SaveChangesAsync();
 
@@ -332,14 +336,14 @@ namespace Investa.API.Controllers
         {
             if (dto == null || string.IsNullOrEmpty(dto.Message))
             {
-                return ErrorResponse("Invalid message data.");
+                return ErrorResponse(_localizer["InvalidMessageData"].Value);
             }
 
             var supportSession = await GetSupportSessionByIdAsync(id);
 
             if (supportSession == null)
             {
-                return ErrorResponse("Support session not found.", 404);
+                return ErrorResponse(_localizer["SupportSessionNotFound"].Value, 404);
             }
 
             // Update the status of the SupportSession to Open

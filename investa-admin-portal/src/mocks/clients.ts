@@ -32,7 +32,7 @@ async function refreshTopClientsFromApi() {
       if (stored === 'true') return;
     }
 
-    const base = (import.meta.env.VITE_API_BASE_URL as string) || 'http://DESKTOP-DIH7CQH:5235/';
+    const base = (import.meta.env.VITE_API_BASE_URL as string) || 'http://desktop-dih7cqh:5235/';
     // Normalize base and strip any trailing `/api` segment to avoid duplicated `/api/api` when
     // VITE_API_BASE_URL is configured as e.g. `http://localhost:5000/api` (common in docs/examples)
     const baseClean = base.replace(/\/api\/?$/, '').replace(/\/+$|\s+$/g, '');

@@ -19,7 +19,7 @@ class Constants {
   /// Base host name for local discovery.
   /// Override with `--dart-define=BASE_HOST_NAME=your-hostname` or `.env` file.
   static const String BASE_HOST_NAME =
-      String.fromEnvironment('BASE_HOST_NAME', defaultValue: 'DESKTOP-DIH7CQH');
+      String.fromEnvironment('BASE_HOST_NAME', defaultValue: 'desktop-dih7cqh');
 
   /// Primary SignalR hub URL built from the host name
   static String signalRPrimaryUrl(

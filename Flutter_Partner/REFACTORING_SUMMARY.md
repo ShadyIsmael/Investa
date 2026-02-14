@@ -232,7 +232,7 @@ config.baseUrl  // https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev
 config.signalRHuburl  // https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev/hubs/chat
 
 // Override if needed
-config.setCustomBaseUrl('http://DESKTOP-DIH7CQH:5000');
+config.setCustomBaseUrl('http://desktop-dih7cqh:5000');
 
 // Get fallback candidates
 config.getBaseUrlCandidates()  // [mDNS, direct hostname, localhost]

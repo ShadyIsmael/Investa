@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 
 const PRESET_URLS = [
-  'http://DESKTOP-DIH7CQH:5235',
-  'http://DESKTOP-DIH7CQH:5000',
+  'http://desktop-dih7cqh:5235',
+  'http://desktop-dih7cqh:5000',
   'http://localhost:5235',
   'http://localhost:5000'
 ];
 
 export default function ApiBaseSwitcher() {
-  const [apiBase, setApiBase] = useLocalStorage<string>('apiBase', 'http://DESKTOP-DIH7CQH:5235');
+  const [apiBase, setApiBase] = useLocalStorage<string>('apiBase', 'http://desktop-dih7cqh:5235');
   const [open, setOpen] = useState(false);
   const [custom, setCustom] = useState(apiBase);
 

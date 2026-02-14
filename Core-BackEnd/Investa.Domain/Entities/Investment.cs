@@ -129,6 +129,25 @@ public class Investment
     /// </summary>
     public DateTime? EndDate { get; set; }
 
+    // ==================== Founding-Specific Fields ====================
+    
+    /// <summary>
+    /// Duration of the investment in months (Founding type only)
+    /// </summary>
+    public int? DurationMonths { get; set; }
+
+    /// <summary>
+    /// Profit percentage for investors (Founding type only)
+    /// </summary>
+    [Column(TypeName = "decimal(5,2)")]
+    public decimal? ProfitPercentage { get; set; }
+
+    /// <summary>
+    /// Payout frequency: Monthly, Quarterly, Semi-Annually, Annually, At Maturity (Founding type only)
+    /// </summary>
+    [StringLength(50)]
+    public string? PayoutFrequency { get; set; }
+
     // ==================== Navigation Properties ====================
     
     /// <summary>
@@ -146,4 +165,9 @@ public class Investment
     /// Team members/founders associated with this investment opportunity
     /// </summary>
     public ICollection<InvestmentTeamMember> TeamMembers { get; set; } = new List<InvestmentTeamMember>();
+
+    /// <summary>
+    /// Images associated with this investment opportunity (gallery)
+    /// </summary>
+    public ICollection<InvestmentImage> Images { get; set; } = new List<InvestmentImage>();
 }

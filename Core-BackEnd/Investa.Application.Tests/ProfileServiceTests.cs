@@ -37,5 +37,37 @@ namespace Investa.Application.Tests
             Assert.Equal("Founder", updated.CoreMetrics?.Role ?? updated.CoreMetrics?.ClientType);
             Assert.Equal("NID-123456", updated.IdentityCompliance?.DocumentNumber);
         }
+
+        [Fact]
+        public async Task UpdateUserProfile_Should_Reject_Under18()
+        {
+            var testUserId = TestFixture.SeededUserId;
+            var under18Dob = DateTime.UtcNow.Date.AddYears(-17); // clearly under 18
+
+            var update = new UserProfileDto
+            {
+                BasicInfo = new BasicInfoDto { DateOfBirth = under18Dob }
+            };
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => _profileService.UpdateUserProfileAsync(testUserId, update));
+        }
+
+        [Fact]
+        public async Task UpdateUserProfile_Should_Accept_Adult()
+        {
+            var testUserId = TestFixture.SeededUserId;
+            var adultDob = DateTime.UtcNow.Date.AddYears(-25);
+
+            var update = new UserProfileDto
+            {
+                BasicInfo = new BasicInfoDto { DateOfBirth = adultDob }
+            };
+
+            var updated = await _profileService.UpdateUserProfileAsync(testUserId, update);
+
+            Assert.NotNull(updated);
+            Assert.True(updated.BasicInfo.DateOfBirth.HasValue);
+            Assert.Equal(adultDob, updated.BasicInfo.DateOfBirth.Value.Date);
+        }
     }
 }

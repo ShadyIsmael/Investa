@@ -89,7 +89,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onForgotPassword }) => {
   };
 
   const quickConnectAndLogin = async () => {
-    const ip = 'http://DESKTOP-DIH7CQH:5235';
+    const ip = 'http://desktop-dih7cqh:5235';
     setApiUrlInput(ip);
     setBaseUrl(ip);
     setUseMocks(false);

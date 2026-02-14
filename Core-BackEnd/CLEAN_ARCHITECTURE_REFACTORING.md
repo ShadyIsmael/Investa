@@ -85,7 +85,7 @@ await Clients.All.SendAsync("ReceiveSupportRequest", notificationPayload);
   "adminAssigned": true/false,
   "adminEmail": "string",
   "requestedAt": "datetime",
-  "serverName": "DESKTOP-DIH7CQH"
+  "serverName": "desktop-dih7cqh"
 }
 ```
 
@@ -112,14 +112,14 @@ await Clients.Group("Admins").SendAsync("ConversationClosed", new { convId = con
 
 ### Logging
 Every hub invocation logs:
-- `Environment.MachineName` (DESKTOP-DIH7CQH)
+- `Environment.MachineName` (desktop-dih7cqh)
 - Connection ID
 - User identity
 - Action performed
 
 **Example Log:**
 ```
-[DESKTOP-DIH7CQH] SignalR.RequestSupport called. ConnectionId=abc123, User=+1234567890
+[desktop-dih7cqh] SignalR.RequestSupport called. ConnectionId=abc123, User=+1234567890
 ```
 
 ---
@@ -145,8 +145,8 @@ builder.WebHost.ConfigureKestrel(options =>
 ### Access Methods
 The server is now accessible via:
 - `http://localhost:5000`
-- `http://DESKTOP-DIH7CQH:5000`
-- `http://DESKTOP-DIH7CQH.local:5000`
+- `http://desktop-dih7cqh:5000`
+- `http://desktop-dih7cqh:5000`
 - `http://[IP_ADDRESS]:5000` (any IP on the machine)
 
 ### CORS Policy: AllowLocalNetwork
@@ -196,18 +196,18 @@ app.UseCors("AllowLocalNetwork");
 ```json
 {
   "status": "Healthy",
-  "deviceName": "DESKTOP-DIH7CQH",
-  "hostName": "DESKTOP-DIH7CQH",
+  "deviceName": "desktop-dih7cqh",
+  "hostName": "desktop-dih7cqh",
   "binding": "0.0.0.0:5000",
   "ipAddresses": ["192.168.x.x", "10.x.x.x"],
   "timestamp": "2026-01-12T18:15:00Z",
   "environment": "Development",
   "version": "1.0.0",
   "endpoints": {
-    "api": "http://DESKTOP-DIH7CQH:5000/api",
-    "swagger": "http://DESKTOP-DIH7CQH:5000/swagger",
-    "chatHub": "http://DESKTOP-DIH7CQH:5000/hubs/chat",
-    "notificationHub": "http://DESKTOP-DIH7CQH:5000/hubs/notification"
+    "api": "http://desktop-dih7cqh:5000/api",
+    "swagger": "http://desktop-dih7cqh:5000/swagger",
+    "chatHub": "http://desktop-dih7cqh:5000/hubs/chat",
+    "notificationHub": "http://desktop-dih7cqh:5000/hubs/notification"
   }
 }
 ```
@@ -216,7 +216,7 @@ app.UseCors("AllowLocalNetwork");
 ```json
 {
   "pong": true,
-  "server": "DESKTOP-DIH7CQH",
+  "server": "desktop-dih7cqh",
   "timestamp": "2026-01-12T18:15:00Z"
 }
 ```
@@ -335,16 +335,16 @@ dotnet run
 Invoke-RestMethod http://localhost:5000/api/health
 
 # From network device
-Invoke-RestMethod http://DESKTOP-DIH7CQH:5000/api/health
+Invoke-RestMethod http://desktop-dih7cqh:5000/api/health
 ```
 
 ### Access Swagger:
 - Local: `http://localhost:5000/swagger`
-- Network: `http://DESKTOP-DIH7CQH:5000/swagger`
+- Network: `http://desktop-dih7cqh:5000/swagger`
 
 ### Connect SignalR:
-- Primary: `ws://DESKTOP-DIH7CQH:5000/hubs/chat`
-- Legacy: `ws://DESKTOP-DIH7CQH:5000/chatHub`
+- Primary: `ws://desktop-dih7cqh:5000/hubs/chat`
+- Legacy: `ws://desktop-dih7cqh:5000/chatHub`
 
 ---
 
@@ -353,7 +353,7 @@ Invoke-RestMethod http://DESKTOP-DIH7CQH:5000/api/health
 ### SignalR Connection (JavaScript/TypeScript):
 ```typescript
 const connection = new HubConnectionBuilder()
-    .withUrl("http://DESKTOP-DIH7CQH:5000/hubs/chat", {
+    .withUrl("http://desktop-dih7cqh:5000/hubs/chat", {
         accessTokenFactory: () => yourJwtToken
     })
     .build();
@@ -376,10 +376,10 @@ connection.on("ReceiveSupportRequest", (notification) => {
 ### API Calls:
 ```typescript
 // All responses are camelCase
-const response = await fetch("http://DESKTOP-DIH7CQH:5000/api/health");
+const response = await fetch("http://desktop-dih7cqh:5000/api/health");
 const data = await response.json();
-console.log(data.deviceName); // "DESKTOP-DIH7CQH"
-console.log(data.endpoints.chatHub); // "http://DESKTOP-DIH7CQH:5000/hubs/chat"
+console.log(data.deviceName); // "desktop-dih7cqh"
+console.log(data.endpoints.chatHub); // "http://desktop-dih7cqh:5000/hubs/chat"
 ```
 
 ---
@@ -397,7 +397,7 @@ console.log(data.endpoints.chatHub); // "http://DESKTOP-DIH7CQH:5000/hubs/chat"
 
 ✅ Build: **Successful**
 ⚠️ Warnings: 4 (nullable reference warnings - non-critical)
-🚀 Status: **Running on DESKTOP-DIH7CQH:5000**
+🚀 Status: **Running on desktop-dih7cqh:5000**
 
 ---
 

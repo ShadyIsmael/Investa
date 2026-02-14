@@ -245,32 +245,42 @@
     "of": "of",
     "next": "Next",
     "engageModal": {
-      "title": "تأكيد التفاعل",
-      "message": "التفاعل مع {investmentName} سيكلفك {creditCost} رصيدًا. هل أنت متأكد أنك تريد المتابعة؟",
-      "cancelButton": "إلغاء",
-      "proceedButton": "متابعة والتفاعل"
+      "title": "Confirm Engagement",
+      "message": "Engaging with {investmentName} will cost you {creditCost} credits. Are you sure you want to proceed?",
+      "cancelButton": "Cancel",
+      "proceedButton": "Proceed and Engage"
     },
-    "engageSuccessTitle": "تم إرسال الطلب",
-    "engageSuccessMessage": "تم إرسال طلب التفاعل الخاص بك بخصوص {investmentName}. سيتم إعلامك عند القبول.",
-    "requestSubmittedTitle": "تم إرسال الطلب",
-    "requestSubmittedMessage": "تم إرسال طلبك بخصوص {investmentName}. سنقوم بإعلامك عند القبول.",
+    "engageSuccessTitle": "Request Sent",
+    "engageSuccessMessage": "Your engagement request for {investmentName} was sent. You will be notified upon acceptance.",
+    "requestSubmittedTitle": "Request Sent",
+    "requestSubmittedMessage": "Your request for {investmentName} was submitted. We will notify you once it is accepted.",
     "shareValidation": {
-      "minError": "يجب ألا يقل عدد الأسهم عن 1",
-      "maxError": "الحد الأقصى {available} من الأسهم المتاحة"
+      "minError": "You must purchase at least 1 share",
+      "maxError": "Maximum available is {available} shares"
     },
     "investDialog": {
-      "title": "استثمر في {investmentName}",
-      "sharePrice": "سعر السهم",
-      "available": "المتاح",
-      "minLabel": "الحد الأدنى",
-      "maxLabel": "الحد الأقصى",
-      "sharesLabel": "عدد الأسهم",
-      "availableLine": "المتاح: {available} سهم",
-      "totalInvestment": "إجمالي الاستثمار:",
-      "expectedROI": "العائد المتوقع:",
-      "cancel": "إلغاء",
-      "confirm": "تأكيد الاستثمار",
-      "processing": "جاري المعالجة..."
+      "title": "Invest in {investmentName}",
+      "sharePrice": "Share Price",
+      "available": "Available",
+      "minLabel": "Minimum",
+      "maxLabel": "Maximum",
+      "sharesLabel": "Number of Shares",
+      "availableLine": "Available: {available} shares",
+      "totalInvestment": "Total Investment:",
+      "expectedROI": "Expected ROI:",
+      "cancel": "Cancel",
+      "confirm": "Confirm Investment",
+      "processing": "Processing..."
+    },
+    "confirmDialog": {
+      "title": "Confirm Investment",
+      "subtitle": "Please review and confirm your investment request",
+      "investmentLabel": "Investment:",
+      "sharesLabel": "Shares:",
+      "totalCostLabel": "Total Cost:",
+      "warning": "Important Notice",
+      "warningMessage": "This action will deduct credits from your account and submit a request to the founder. This action cannot be undone.",
+      "confirmButton": "Confirm and Proceed"
     }
   },
   "dashboard": {
@@ -332,7 +342,18 @@
     "removeAttachment": "Remove attachment"
   },
   "profile": {
+        "company": {
+          "title": "Company",
+          "name": "Company Name",
+          "email": "Company Email",
+          "address": "Company Address",
+          "hrLetter": "HR Letter"
+        },
     "kyc": "KYC",
+    "kycCompletion": "KYC Completion",
+    "kycComplete": "Your KYC is complete and verified",
+    "kycAlmostThere": "Almost there! Complete your profile to verify",
+    "kycCompleteProfile": "Complete your profile to unlock verification",
     "startKyc": "Start KYC",
     "pending": "Pending",
     "verified": "Verified",
@@ -368,8 +389,20 @@
       "male": "Male",
       "female": "Female",
       "nationality": "Nationality",
+      "nationalitySelect": "Select nationality",
       "country": "Country",
       "countrySelect": "Select country",
+      "country_egypt": "Egypt",
+      "country_saudi_arabia": "Saudi Arabia",
+      "country_uae": "United Arab Emirates",
+      "country_jordan": "Jordan",
+      "country_lebanon": "Lebanon",
+      "country_usa": "United States",
+      "country_uk": "United Kingdom",
+      "country_india": "India",
+      "country_canada": "Canada",
+      "country_australia": "Australia",
+      "country_other": "Other",
       "nationalId": "National ID",
       "uploadId": "Upload ID",
       "chooseFile": "Choose File",
@@ -585,6 +618,8 @@
   },
   "common": {
     "loading": "Loading...",
+    "cancel": "Cancel",
+    "processing": "Processing...",
     "previous": "Previous",
     "next": "Next",
     "months": {

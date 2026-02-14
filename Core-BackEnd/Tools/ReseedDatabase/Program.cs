@@ -92,7 +92,7 @@ catch (Exception ex)
 }
 
 // Create canonical AspNet roles if missing (direct SQL to avoid model dependency when using EnsureCreated fallback)
-var roleNames = new[] { nameof(UserRoles.Admin), nameof(UserRoles.OrgUser), nameof(UserRoles.Client) };
+var roleNames = new[] { "Admin", nameof(UserRoles.OrgUser), nameof(UserRoles.Client) };
 var now = DateTime.UtcNow;
 foreach (var rn in roleNames)
 {

@@ -73,4 +73,265 @@
   <data name="InternalServerError" xml:space="preserve">
     <value>An internal server error occurred.</value>
   </data>
+  <data name="RequestBodyRequired" xml:space="preserve">
+    <value>Request body is required.</value>
+  </data>
+  <data name="UnableToIdentifyUserFromToken" xml:space="preserve">
+    <value>Unable to identify user from token</value>
+  </data>
+  <data name="NoChangesDetected" xml:space="preserve">
+    <value>No changes detected</value>
+  </data>
+  <data name="ErrorUpdatingBasicProfile" xml:space="preserve">
+    <value>An error occurred while updating basic profile</value>
+  </data>
+  <data name="ErrorRetrievingProfile" xml:space="preserve">
+    <value>An error occurred while retrieving the profile</value>
+  </data>
+  <data name="ErrorStartingKyc" xml:space="preserve">
+    <value>An error occurred while starting KYC</value>
+  </data>
+  <data name="ErrorRetrievingCreditHistory" xml:space="preserve">
+    <value>An error occurred while retrieving credit history</value>
+  </data>
+  <data name="ProfileDataRequired" xml:space="preserve">
+    <value>Profile data is required</value>
+  </data>
+  <data name="FullNameMaxLength" xml:space="preserve">
+    <value>FullName must be at most 200 characters.</value>
+  </data>
+  <data name="FirstNameMaxLength" xml:space="preserve">
+    <value>FirstName must be at most 100 characters.</value>
+  </data>
+  <data name="LastNameMaxLength" xml:space="preserve">
+    <value>LastName must be at most 100 characters.</value>
+  </data>
+  <data name="CompanyNameMaxLength" xml:space="preserve">
+    <value>CompanyName must be at most 200 characters.</value>
+  </data>
+  <data name="BioMaxLength" xml:space="preserve">
+    <value>Bio must be at most 1000 characters.</value>
+  </data>
+  <data name="UserMustBeAtLeast18" xml:space="preserve">
+    <value>User must be at least 18 years old.</value>
+  </data>
+  <data name="AvatarUrlInvalid" xml:space="preserve">
+    <value>AvatarUrl is not a valid absolute URL.</value>
+  </data>
+  <data name="EmailMaxLength" xml:space="preserve">
+    <value>Email must be at most 150 characters.</value>
+  </data>
+  <data name="CompanyEmailMaxLength" xml:space="preserve">
+    <value>CompanyEmail must be at most 150 characters.</value>
+  </data>
+  <data name="CompanyEmailInvalid" xml:space="preserve">
+    <value>CompanyEmail is not a valid email address.</value>
+  </data>
+  <data name="CompanyAddressMaxLength" xml:space="preserve">
+    <value>CompanyAddress must be at most 500 characters.</value>
+  </data>
+  <data name="Phone1MaxLength" xml:space="preserve">
+    <value>Phone1 must be at most 20 characters.</value>
+  </data>
+  <data name="LinkedInUrlInvalid" xml:space="preserve">
+    <value>ContactInfo.LinkedInUrl is not a valid absolute URL.</value>
+  </data>
+  <data name="FacebookUrlInvalid" xml:space="preserve">
+    <value>ContactInfo.FacebookUrl is not a valid absolute URL.</value>
+  </data>
+  <data name="DocumentNumberMaxLength" xml:space="preserve">
+    <value>DocumentNumber must be at most 50 characters.</value>
+  </data>
+  <data name="HrLetterFileNameMaxLength" xml:space="preserve">
+    <value>HrLetterFileName must be at most 260 characters.</value>
+  </data>
+  <data name="DeviceMacAddressMaxLength" xml:space="preserve">
+    <value>DeviceMacAddress must be at most 100 characters.</value>
+  </data>
+  <data name="ErrorUpdatingProfile" xml:space="preserve">
+    <value>An error occurred while updating the profile</value>
+  </data>
+  <data name="ErrorInitializingProfile" xml:space="preserve">
+    <value>An error occurred while initializing the profile</value>
+  </data>
+  <data name="UserProfileNotFound" xml:space="preserve">
+    <value>User profile not found</value>
+  </data>
+  <data name="ValidationFailed" xml:space="preserve">
+    <value>Validation failed</value>
+  </data>
+  <data name="ProfileUpdated" xml:space="preserve">
+    <value>Profile updated</value>
+  </data>
+  <data name="ClientProfileNotFound" xml:space="preserve">
+    <value>Client profile not found</value>
+  </data>
+  <data name="PhoneNumberPasswordRequired" xml:space="preserve">
+    <value>Phone number and password are required</value>
+  </data>
+  <data name="PhoneNumberAlreadyRegistered" xml:space="preserve">
+    <value>This phone number is already registered</value>
+  </data>
+  <data name="RegistrationFailed" xml:space="preserve">
+    <value>Registration failed</value>
+  </data>
+  <data name="UserRegisteredSuccessfully" xml:space="preserve">
+    <value>User registered successfully</value>
+  </data>
+  <data name="ErrorDuringRegistration" xml:space="preserve">
+    <value>An error occurred during registration</value>
+  </data>
+  <data name="InvalidCredentials" xml:space="preserve">
+    <value>Invalid credentials</value>
+  </data>
+  <data name="AccountDisabled" xml:space="preserve">
+    <value>Account is disabled</value>
+  </data>
+  <data name="AccountSuspended" xml:space="preserve">
+    <value>Account is suspended</value>
+  </data>
+  <data name="LoginSuccessful" xml:space="preserve">
+    <value>Login successful</value>
+  </data>
+  <data name="EmailPasswordRequired" xml:space="preserve">
+    <value>Email and password are required</value>
+  </data>
+  <data name="PhoneRequired" xml:space="preserve">
+    <value>Phone is required</value>
+  </data>
+  <data name="ClientNotFound" xml:space="preserve">
+    <value>Client not found</value>
+  </data>
+  <data name="IdentityUserNotFound" xml:space="preserve">
+    <value>Identity user not found for provided phone</value>
+  </data>
+  <data name="InvalidGuid" xml:space="preserve">
+    <value>Identity user id is not a valid GUID</value>
+  </data>
+  <data name="ClientProfileAlreadyExists" xml:space="preserve">
+    <value>Client profile already exists for this user</value>
+  </data>
+  <data name="UserNotFound" xml:space="preserve">
+    <value>User not found</value>
+  </data>
+  <data name="CategoryNotFound" xml:space="preserve">
+    <value>Category not found</value>
+  </data>
+  <data name="OperationCompletedSuccessfully" xml:space="preserve">
+    <value>Operation completed successfully</value>
+  </data>
+  <data name="SharesMustBePositive" xml:space="preserve">
+    <value>Shares must be positive</value>
+  </data>
+  <data name="InvestmentOpportunityNotFound" xml:space="preserve">
+    <value>Investment opportunity not found</value>
+  </data>
+  <data name="InvestmentOpportunityNotActive" xml:space="preserve">
+    <value>Investment opportunity is not active</value>
+  </data>
+  <data name="InvestmentOpportunityNotConfigured" xml:space="preserve">
+    <value>Investment opportunity is not properly configured</value>
+  </data>
+  <data name="NotEnoughShares" xml:space="preserve">
+    <value>Only {0} shares available</value>
+  </data>
+  <data name="MinimumInvestmentRequired" xml:space="preserve">
+    <value>Minimum investment is {0}</value>
+  </data>
+  <data name="MaximumInvestmentExceeded" xml:space="preserve">
+    <value>Maximum investment is {0}</value>
+  </data>
+  <data name="InvestmentNotFound" xml:space="preserve">
+    <value>Investment not found</value>
+  </data>
+  <data name="ClientAccountNotFound" xml:space="preserve">
+    <value>Client account not found</value>
+  </data>
+  <data name="InsufficientCredits" xml:space="preserve">
+    <value>Insufficient credits</value>
+  </data>
+  <data name="SupportSessionNotFound" xml:space="preserve">
+    <value>Support session not found</value>
+  </data>
+  <data name="FcmTokenRequired" xml:space="preserve">
+    <value>FCM token is required.</value>
+  </data>
+  <data name="FailedToSyncToken" xml:space="preserve">
+    <value>Failed to sync token.</value>
+  </data>
+  <data name="TokenSyncedSuccessfully" xml:space="preserve">
+    <value>Token synced successfully</value>
+  </data>
+  <data name="InvalidSupportSessionData" xml:space="preserve">
+    <value>Invalid support session data.</value>
+  </data>
+  <data name="UserMobileRequired" xml:space="preserve">
+    <value>User mobile is required</value>
+  </data>
+  <data name="CouldNotDetermineSender" xml:space="preserve">
+    <value>Could not determine sender</value>
+  </data>
+  <data name="StatusRequired" xml:space="preserve">
+    <value>Status is required</value>
+  </data>
+  <data name="InvalidStatusValue" xml:space="preserve">
+    <value>Invalid status value</value>
+  </data>
+  <data name="InvalidPayload" xml:space="preserve">
+    <value>Invalid payload</value>
+  </data>
+  <data name="NoFileUploaded" xml:space="preserve">
+    <value>No file uploaded</value>
+  </data>
+  <data name="EmptyFile" xml:space="preserve">
+    <value>Empty file</value>
+  </data>
+  <data name="InvalidSharesAmount" xml:space="preserve">
+    <value>Invalid shares amount</value>
+  </data>
+  <data name="PurchaseFailed" xml:space="preserve">
+    <value>Purchase failed</value>
+  </data>
+  <data name="FailedToCreateUser" xml:space="preserve">
+    <value>Failed to create user</value>
+  </data>
+  <data name="NoUserIdsProvided" xml:space="preserve">
+    <value>No user IDs provided</value>
+  </data>
+  <data name="FailedToUpdateUsers" xml:space="preserve">
+    <value>Failed to update users</value>
+  </data>
+  <data name="ErrorRetrievingUsers" xml:space="preserve">
+    <value>Error retrieving users</value>
+  </data>
+  <data name="UserIdNotFoundInToken" xml:space="preserve">
+    <value>User ID not found in token</value>
+  </data>
+  <data name="InvalidMetric" xml:space="preserve">
+    <value>Invalid metric. Allowed: balance, net, count</value>
+  </data>
+  <data name="OnlyMonthIntervalSupported" xml:space="preserve">
+    <value>Only 'month' interval is supported</value>
+  </data>
+  <data name="FailedToUploadImage" xml:space="preserve">
+    <value>Failed to upload image</value>
+  </data>
+  <data name="FailedToDeleteImage" xml:space="preserve">
+    <value>Failed to delete image</value>
+  </data>
+  <data name="FailedToSetPrimaryImage" xml:space="preserve">
+    <value>Failed to set primary image</value>
+  </data>
+  <data name="FailedToReorderImages" xml:space="preserve">
+    <value>Failed to reorder images</value>
+  </data>
+  <data name="InvalidMessageData" xml:space="preserve">
+    <value>Invalid message data</value>
+  </data>
+  <data name="SharesPurchasedSuccessfully" xml:space="preserve">
+    <value>Shares purchased successfully</value>
+  </data>
+  <data name="SuccessfullyUpdatedUsers" xml:space="preserve">
+    <value>Successfully updated {0} users</value>
+  </data>
 </root>

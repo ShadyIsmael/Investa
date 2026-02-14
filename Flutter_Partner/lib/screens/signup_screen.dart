@@ -303,9 +303,11 @@ class _SignupScreenState extends State<SignupScreen> {
             controller: _phoneCtrl,
             initialCountryCode: _selectedCountryCode,
             readOnly: widget.phoneReadOnly || _loading,
-            onCountryCodeChanged: (v) => setState(() => _selectedCountryCode = v),
+            onCountryCodeChanged: (v) =>
+                setState(() => _selectedCountryCode = v),
             labelText: 'Phone number',
-            validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter phone number' : null,
+            validator: (v) =>
+                (v == null || v.trim().isEmpty) ? 'Enter phone number' : null,
           ),
           const SizedBox(height: 12),
           Row(children: [

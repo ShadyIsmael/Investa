@@ -64,7 +64,9 @@ class InvestmentsService {
   String get baseUrl =>
       _baseOverride ?? EndpointResolver.instance.selectedApiBaseUrl;
 
-  Future<bool> createInvestment(InvestmentRequest req) async {
+  /// Creates an investment and returns the created investment payload on success.
+  /// Returns `null` on failure.
+  Future<Map<String, dynamic>?> createInvestment(dynamic req) async {
     var apiBase = baseUrl;
     if (!apiBase.startsWith('http')) apiBase = 'http://$apiBase';
     final uri = Uri.parse('$apiBase/api/v1/investments');
@@ -89,14 +91,41 @@ class InvestmentsService {
       }
       AppLogger.logInfo('InvestmentsService',
           'Request headers keys=${headers.keys.toList()}');
-      final resp = await _client.post(uri.toString(),
-          data: req.toJson(), headers: headers);
+      final payload = req is Map<String, dynamic> ? req : req.toJson();
+      final resp =
+          await _client.post(uri.toString(), data: payload, headers: headers);
       final status = resp.statusCode ?? 0;
       AppLogger.logInfo('InvestmentsService', 'Response status=$status');
       try {
         AppLogger.logInfo('InvestmentsService', 'Response body=${resp.data}');
       } catch (_) {}
-      return status >= 200 && status < 300;
+
+      if (status >= 200 && status < 300) {
+        try {
+          final body = resp.data is Map
+              ? resp.data as Map<String, dynamic>
+              : jsonDecode(resp.toString()) as Map<String, dynamic>;
+          final data = body['data'] is Map<String, dynamic>
+              ? Map<String, dynamic>.from(body['data'] as Map)
+              : (body['data'] != null ? {'result': body['data']} : null);
+          return data ?? <String, dynamic>{};
+        } catch (e, s) {
+          AppLogger.logError('InvestmentsService', 'Parse error: $e', s);
+          return <String, dynamic>{};
+        }
+      }
+
+      // Try to parse server error details
+      try {
+        final body = resp.data is Map
+            ? resp.data as Map<String, dynamic>
+            : jsonDecode(resp.toString()) as Map<String, dynamic>;
+        final message = body['message'] ?? body['errors'] ?? body;
+        return {'error': message};
+      } catch (_) {
+        AppLogger.logError('InvestmentsService', 'Server error: $status', null);
+        return {'error': 'Server error: $status'};
+      }
     } on DioException catch (e) {
       // Log detailed response info when available to help debug 403/401 cases
       try {
@@ -114,10 +143,10 @@ class InvestmentsService {
         AppLogger.logError('InvestmentsService',
             'Network error (no response): ${e.message}', e.stackTrace);
       }
-      return false;
+      return null;
     } catch (e, s) {
       AppLogger.logError('InvestmentsService', 'Unexpected: $e', s);
-      return false;
+      return null;
     }
   }
 

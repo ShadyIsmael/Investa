@@ -24,8 +24,8 @@ export class TransactionsComponent {
   // Credit history
   creditHistory = signal<CreditTransaction[]>([]);
 
-  // Current language preference
-  currentLanguage = signal<'ar' | 'en'>('en');
+  // Current language preference from LanguageService
+  currentLanguage = computed<'ar' | 'en'>(() => this.languageService.language());
 
   // Loading and error state
   isLoading = signal<boolean>(false);

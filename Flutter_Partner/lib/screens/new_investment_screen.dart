@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../services/investments_service.dart';
+import 'investment_info_screen.dart';
 import '../services/categories_service.dart';
 import '../services/business_stages_service.dart';
 import '../services/project_phases_service.dart';
@@ -125,35 +126,52 @@ class _NewInvestmentScreenState extends State<NewInvestmentScreen> {
       final val =
           double.tryParse(_targetController.text.replaceAll(',', '')) ?? 0.0;
 
-      final req = InvestmentRequest(
-        investorId: uid,
-        projectId: 0,
-        amount: val,
-        businessName: _nameController.text.trim(),
-        description: _descController.text.trim(),
-        startDate: _dateController.text.isEmpty
-            ? DateTime.now().toIso8601String().split('T')[0]
-            : _dateController.text,
-        businessStageId: _stageId ?? 0,
-        businessCategoryId: _catId ?? 0,
-        projectPhaseId: _phaseId ?? 0,
-        milestone: _phaseId != null
+      // Build a CreateInvestment payload compatible with backend CreateInvestmentDto
+      final payload = <String, dynamic>{
+        'businessName': _nameController.text.trim(),
+        'description': _descController.text.trim(),
+        'businessCategoryId': _catId ?? 0,
+        'businessStageId': _stageId ?? 0,
+        'projectPhaseId': _phaseId ?? 0,
+        'milestone': _phaseId != null
             ? _phases
                 .firstWhere((p) => p.id == _phaseId,
                     orElse: () =>
                         ProjectPhase(id: 0, key: '', value: '', valueAr: ''))
                 .value
-            : '',
-        riskLevel: _risk,
-        targetFund: val,
-        currency: _currency,
-      );
+            : null,
+        'riskLevel': _risk,
+        'currency': _currency,
+        'targetFund': val > 0 ? val : null,
+        'startDate': _dateController.text.isEmpty
+            ? DateTime.now().toIso8601String().split('T')[0]
+            : _dateController.text,
+        // Provide minimal required equity fields with safe defaults so backend validation passes
+        'initialCapital': val > 0 ? val : 1.0,
+        'sharePrice': 1.0,
+        'totalShares': 1,
+        'investmentTypeId': 2, // default to Equity
+      };
 
-      await InvestmentsService().createInvestment(req);
+      final created = await InvestmentsService().createInvestment(payload);
       if (!mounted) return;
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Opportunity published successfully!')));
+      if (created == null || created['error'] != null) {
+        final msg = created != null && created['error'] != null
+            ? created['error'].toString()
+            : 'Failed to publish opportunity';
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(msg)));
+      } else {
+        // Navigate to the investment details screen showing the newly created item
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (ctx) => InvestmentInfoScreen(item: created),
+          ),
+        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Opportunity published successfully!')));
+      }
     } catch (e) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('Error: $e')));

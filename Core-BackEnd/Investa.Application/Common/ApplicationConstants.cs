@@ -114,12 +114,18 @@ public static class ApplicationConstants
 
     /// <summary>
     /// User types/roles in the system.
+    /// Two types only: OrgUser (internal staff/admins) and Client (external users).
     /// </summary>
     public static class UserTypes
     {
-        public const string Investor = "investor";
-        public const string Founder = "founder";
-        public const string Partner = "partner";
-        public const string Admin = "admin";
+        /// <summary>
+        /// Internal organization user (employees, admins, staff) - for Admin Portal
+        /// </summary>
+        public const string OrgUser = "OrgUser";
+        
+        /// <summary>
+        /// External client user (investors, founders, partners) - for Client Portal and Mobile Apps
+        /// </summary>
+        public const string Client = "Client";
     }
 }

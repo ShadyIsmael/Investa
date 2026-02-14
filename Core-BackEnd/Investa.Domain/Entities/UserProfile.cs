@@ -50,6 +50,12 @@ public class UserProfile
     public string? Nationality { get; set; }
 
     /// <summary>
+    /// Company name for the user's profile
+    /// </summary>
+    [StringLength(200)]
+    public string? CompanyName { get; set; }
+
+    /// <summary>
     /// User's date of birth
     /// </summary>
     public DateTime? DateOfBirth { get; set; }
@@ -90,16 +96,29 @@ public class UserProfile
     public string? Phone2 { get; set; }
 
     /// <summary>
-    /// Work/Business address
-    /// </summary>
-    [StringLength(500)]
-    public string? WorkAddress { get; set; }
-
-    /// <summary>
     /// General address or location details (city, street, coordinates, etc.)
     /// </summary>
     [StringLength(500)]
     public string? Address { get; set; }
+
+    /// <summary>
+    /// City associated with the contact address
+    /// </summary>
+    [StringLength(100)]
+    public string? City { get; set; }
+
+    /// <summary>
+    /// Company address
+    /// </summary>
+    [StringLength(500)]
+    public string? CompanyAddress { get; set; }
+
+    /// <summary>
+    /// Company email address
+    /// </summary>
+    [EmailAddress]
+    [StringLength(150)]
+    public string? CompanyEmail { get; set; }
 
     /// <summary>
     /// URL to the user's avatar/profile image
@@ -140,6 +159,16 @@ public class UserProfile
     public VerificationStatus VerificationStatus { get; set; } = VerificationStatus.None;
 
     /// <summary>
+    /// Indicates whether KYC is fully verified (100% complete and marked as verified)
+    /// </summary>
+    public bool IsKycVerified { get; set; } = false;
+
+    /// <summary>
+    /// KYC completion percentage (0-100) based on filled required fields
+    /// </summary>
+    public int KycCompletionPercentage { get; set; } = 0;
+
+    /// <summary>
     /// Current total credibility score for this user
     /// This is the accumulated sum of all CreditTransaction amounts
     /// </summary>
@@ -157,6 +186,24 @@ public class UserProfile
     /// </summary>
     [StringLength(500)]
     public string? DocumentBackImageUrl { get; set; }
+
+    /// <summary>
+    /// HR letter original filename (upload metadata)
+    /// </summary>
+    [StringLength(260)]
+    public string? HrLetterFileName { get; set; }
+
+    /// <summary>
+    /// HR letter content (Base64). Stored as text for now.
+    /// </summary>
+    [Column(TypeName = "nvarchar(max)")]
+    public string? HrLetterBase64 { get; set; }
+
+    /// <summary>
+    /// Device MAC address captured on client side (best-effort)
+    /// </summary>
+    [StringLength(100)]
+    public string? DeviceMacAddress { get; set; }
 
     #endregion
 

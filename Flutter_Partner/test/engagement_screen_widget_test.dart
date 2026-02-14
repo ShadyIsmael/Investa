@@ -7,14 +7,14 @@ import 'package:flutter_partner/screens/engagement_screen.dart';
 void main() {
   testWidgets('Engagement screen shows header and actions',
       (WidgetTester tester) async {
-    await tester.pumpWidget(MaterialApp(
-      localizationsDelegates: const [
+    await tester.pumpWidget(const MaterialApp(
+      localizationsDelegates: [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [Locale('en')],
+      supportedLocales: [Locale('en')],
       home: EngagementScreen(),
     ));
 

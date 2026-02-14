@@ -69,7 +69,7 @@ Create a `.env` file (optional - auto-detects if not set):
 
 ```env
 # API Configuration
-VITE_API_BASE_URL=http://DESKTOP-DIH7CQH:5235
+VITE_API_BASE_URL=http://desktop-dih7cqh:5235
 
 Note: The admin portal prefers the following precedence for API base URL:
 1) A runtime meta tag in `index.html`: `<meta name="investa-api-base" content="http://localhost:5000" />` (picked up at page load),

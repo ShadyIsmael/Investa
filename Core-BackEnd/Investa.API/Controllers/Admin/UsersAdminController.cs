@@ -7,6 +7,8 @@ using Investa.Application.Interfaces;
 using Investa.Application.DTOs;
 using Investa.Domain.Entities.Security;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Localization;
+using Investa.API.Resources;
 
 namespace Investa.API.Controllers.Admin
 {
@@ -16,21 +18,24 @@ namespace Investa.API.Controllers.Admin
     /// </summary>
     [ApiController]
     [Route("api/v1/admin/users")]
-    [Authorize(Roles = nameof(UserRoles.Admin))]
+    [Authorize(Roles = "Admin")]
     public class UsersAdminController : ControllerBase
     {
         private readonly IOrgUserService _orgUserService;
         private readonly IProfileService _profileService;
         private readonly ILogger<UsersAdminController> _logger;
+        private readonly IStringLocalizer<SharedResource> _localizer;
 
         public UsersAdminController(
             IOrgUserService orgUserService,
             IProfileService profileService,
-            ILogger<UsersAdminController> logger)
+            ILogger<UsersAdminController> logger,
+            IStringLocalizer<SharedResource> localizer)
         {
             _orgUserService = orgUserService;
             _profileService = profileService;
             _logger = logger;
+            _localizer = localizer;
         }
 
         /// <summary>
@@ -53,7 +58,7 @@ namespace Investa.API.Controllers.Admin
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving organizational users");
-                return StatusCode(500, new { message = "Error retrieving users" });
+                return StatusCode(500, new { message = _localizer["ErrorRetrievingUsers"].Value });
             }
         }
 
@@ -109,7 +114,7 @@ namespace Investa.API.Controllers.Admin
 
             if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
             {
-                return Unauthorized(new { message = "User ID not found in token" });
+                return Unauthorized(new { message = _localizer["UserIdNotFoundInToken"].Value });
             }
 
             try
@@ -132,7 +137,7 @@ namespace Investa.API.Controllers.Admin
 
                 if (!createIfNotExists)
                 {
-                    return NotFound(new { message = "Profile not found" });
+                    return NotFound(new { message = _localizer["UserProfileNotFound"].Value });
                 }
 
                 profile = await _profileService.GetOrCreateUserProfileAsync(userId);
@@ -171,7 +176,7 @@ namespace Investa.API.Controllers.Admin
             {
                 var user = await _orgUserService.CreateOrgUserAsync(dto);
                 if (user == null)
-                    return BadRequest(new { message = "Failed to create user" });
+                    return BadRequest(new { message = _localizer["FailedToCreateUser"].Value });
 
                 return CreatedAtAction(nameof(GetUsersList), new { id = user.Id }, user);
             }
@@ -182,7 +187,7 @@ namespace Investa.API.Controllers.Admin
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating organizational user");
-                return StatusCode(500, new { message = "Error creating user" });
+                return StatusCode(500, new { message = _localizer["ErrorCreatingUser"].Value });
             }
         }
 
@@ -198,7 +203,7 @@ namespace Investa.API.Controllers.Admin
             {
                 var user = await _orgUserService.UpdateOrgUserAsync(userId, dto);
                 if (user == null)
-                    return NotFound(new { message = "User not found" });
+                    return NotFound(new { message = _localizer["UserNotFound"].Value });
 
                 return Ok(user);
             }
@@ -209,7 +214,7 @@ namespace Investa.API.Controllers.Admin
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating user {UserId}", userId);
-                return StatusCode(500, new { message = "Error updating user" });
+                return StatusCode(500, new { message = _localizer["ErrorUpdatingUser"].Value });
             }
         }
 
@@ -249,7 +254,7 @@ namespace Investa.API.Controllers.Admin
         public async Task<IActionResult> BulkUpdateStatus([FromBody] BulkUpdateStatusRequest request)
         {
             if (request.Ids == null || !request.Ids.Any())
-                return BadRequest(new { message = "No user IDs provided" });
+                return BadRequest(new { message = _localizer["NoUserIdsProvided"].Value });
 
             try
             {
@@ -257,14 +262,14 @@ namespace Investa.API.Controllers.Admin
                 var success = await _orgUserService.BulkUpdateStatusAsync(request.Ids, isActive);
                 
                 if (!success)
-                    return BadRequest(new { message = "Failed to update users" });
+                    return BadRequest(new { message = _localizer["FailedToUpdateUsers"].Value });
 
-                return Ok(new { message = $"Successfully updated {request.Ids.Count} users" });
+                return Ok(new { message = _localizer["SuccessfullyUpdatedUsers", request.Ids.Count].Value });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error bulk updating user status");
-                return StatusCode(500, new { message = "Error updating users" });
+                return StatusCode(500, new { message = _localizer["ErrorUpdatingUsers"].Value });
             }
         }
     }

@@ -19,13 +19,19 @@ void main() {
     });
 
     test('falls back to coreMetrics when score/credit missing', () async {
-      final cm = CoreMetrics(email: 'e', role: 'r', clientType: 'c', credibilityScore: 45.5, walletBalance: 77.0);
+      final cm = CoreMetrics(
+          email: 'e',
+          role: 'r',
+          clientType: 'c',
+          credibilityScore: 45.5,
+          walletBalance: 77.0);
       final p = Profile(coreMetrics: cm);
       await AppState.instance.setProfile(p, null);
 
       final data = await fetchDashboardData();
 
-      expect(data.credibilityScore, equals((45.5 * 10).round())); // same logic as dashboard
+      expect(data.credibilityScore,
+          equals((45.5 * 10).round())); // same logic as dashboard
       expect(data.creditPoints, equals(77));
 
       await AppState.instance.clear();

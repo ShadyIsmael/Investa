@@ -95,9 +95,7 @@ public class AuthController : BaseApiController
                     Id = authGuid,
                     Email = $"{normalizedPhone}@phone.investa.local",
                     PasswordHash = passwordHasher.HashPassword(user, request.Password),
-                    // Map client classification from DTO to AuthUser.UserType
-                    // ClientType.Investor is treated as Founder by default (all clients are founders or partners)
-                    UserType = request.ClientType == ClientType.Founder ? UserType.Founder : UserType.Founder,
+                    UserType = UserType.Client, // All external users are Client type
                     Status = true
                 };
                 await _unitOfWork.Repository<AuthUser>().AddAsync(authUser);
@@ -132,7 +130,6 @@ public class AuthController : BaseApiController
                     LastName = request.LastName,
                     MobileNumber = normalizedPhone,
                     FirebaseUid = request.FirebaseUid,
-                    ClientType = request.ClientType,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
                     StatusId = 1
@@ -168,6 +165,38 @@ public class AuthController : BaseApiController
 
         var normalizedPhone = request.PhoneNumber.Trim().Replace(" ", "");
         var identityUser = await _userManager.FindByNameAsync(normalizedPhone);
+
+        // Fallback: try common phone variants so users who updated their profile
+        // to international format (e.g., +2010...) can still log in with that number.
+        // Examples handled: '+20xxxxxxxxxx', '0020xxxxxxxxxx', '20xxxxxxxxxx' -> '0xxxxxxxxxx'
+        if (identityUser == null)
+        {
+            var candidates = new List<string> { normalizedPhone };
+            var noPlus = normalizedPhone.StartsWith("+") ? normalizedPhone.Substring(1) : normalizedPhone;
+            if (!candidates.Contains(noPlus)) candidates.Add(noPlus);
+
+            var prefixes = new[] { "20", "0020" };
+            foreach (var p in prefixes)
+            {
+                if (noPlus.StartsWith(p))
+                {
+                    var rest = noPlus.Substring(p.Length);
+                    if (!rest.StartsWith("0")) rest = "0" + rest;
+                    if (!candidates.Contains(rest)) candidates.Add(rest);
+                }
+            }
+
+            foreach (var candidate in candidates)
+            {
+                identityUser = await _userManager.FindByNameAsync(candidate);
+                if (identityUser != null)
+                {
+                    _logger.LogInformation("Login resolved using phone candidate: {Candidate}", candidate);
+                    break;
+                }
+            }
+        }
+
         if (identityUser == null)
             return ErrorResponse("Invalid credentials", 401);
 
@@ -326,7 +355,7 @@ public class AuthController : BaseApiController
     /// Create an admin user (restricted endpoint)
     /// </summary>
     [HttpPost("create-admin")]
-    [Authorize(Roles = nameof(UserRoles.Admin))]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> CreateAdminAsync([FromBody] CreateAdminDto request)
     {
         if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
@@ -489,8 +518,8 @@ public class AuthController : BaseApiController
                         Id = authGuid,
                         Email = normalizedPhone + "@phone.investa.local",
                         PasswordHash = passwordHasher.HashPassword(user, request.Password),
-                        // Default to Founder for client sign-ups
-                        UserType = Investa.Domain.Entities.Enums.UserType.Founder,
+                        // Default to Client for client sign-ups
+                        UserType = Investa.Domain.Entities.Enums.UserType.Client,
                         Status = true
                     };
 
@@ -547,7 +576,6 @@ public class AuthController : BaseApiController
                 LastName = request.LastName,
                 MobileNumber = normalizedPhone,
                 FirebaseUid = request.FirebaseUid,
-                ClientType = request.ClientType,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 StatusId = 1 // default to Active status (seeded by migrations)

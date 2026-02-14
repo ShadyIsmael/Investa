@@ -16,6 +16,9 @@ export interface BasicInfo {
   gender?: string | null;
   nationality?: string | null;
   country?: string | null;
+  companyName?: string | null;
+  isKycVerified?: boolean;
+  kycCompletionPercentage?: number;
 }
 
 export interface ContactInfo {
@@ -26,6 +29,8 @@ export interface ContactInfo {
   address?: string | null;
   linkedInUrl?: string | null;
   facebookUrl?: string | null;
+  companyAddress?: string | null;
+  companyEmail?: string | null;
 }
 
 export interface CoreMetrics {
@@ -43,6 +48,9 @@ export interface IdentityCompliance {
   verificationStatus?: string | null; // None | Pending | Verified
   documentFrontImageUrl?: string | null;
   documentBackImageUrl?: string | null;
+  hrLetterFileName?: string | null;
+  hrLetterBase64?: string | null;
+  deviceMacAddress?: string | null;
 }
 
 export interface CreditTransaction {
@@ -79,6 +87,7 @@ export class ProfileService {
       const token = this.getAccessTokenFromLocalStorage();
       const options = token ? { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) } : undefined;
       const resp = await firstValueFrom(this.http.get<UserProfile>(url, options));
+      console.debug('loadMyProfile response walletBalance:', resp?.coreMetrics?.walletBalance);
       if (resp) {
         this._profile.set(resp);
         return resp;
@@ -119,6 +128,7 @@ export class ProfileService {
           lastName: profile.basicInfo?.lastName ?? null,
           bio: profile.basicInfo?.bio ?? null,
           avatarUrl: profile.basicInfo?.avatarUrl ?? null,
+          companyName: profile.basicInfo?.companyName ?? null,
           linkedInUrl: profile.basicInfo?.linkedInUrl ?? null,
           facebookUrl: profile.basicInfo?.facebookUrl ?? null
         },
@@ -128,6 +138,8 @@ export class ProfileService {
           phone2: profile.contactInfo?.phone2 ?? null,
           workAddress: profile.contactInfo?.workAddress ?? null,
           address: profile.contactInfo?.address ?? null,
+          companyAddress: profile.contactInfo?.companyAddress ?? null,
+          companyEmail: profile.contactInfo?.companyEmail ?? null,
           linkedInUrl: profile.contactInfo?.linkedInUrl ?? null,
           facebookUrl: profile.contactInfo?.facebookUrl ?? null
         },
@@ -136,7 +148,10 @@ export class ProfileService {
           documentExpiryDate: profile.identityCompliance?.documentExpiryDate ?? null,
           verificationStatus: profile.identityCompliance?.verificationStatus ?? null,
           documentFrontImageUrl: profile.identityCompliance?.documentFrontImageUrl ?? null,
-          documentBackImageUrl: profile.identityCompliance?.documentBackImageUrl ?? null
+          documentBackImageUrl: profile.identityCompliance?.documentBackImageUrl ?? null,
+          hrLetterFileName: profile.identityCompliance?.hrLetterFileName ?? null,
+          hrLetterBase64: profile.identityCompliance?.hrLetterBase64 ?? null,
+          deviceMacAddress: profile.identityCompliance?.deviceMacAddress ?? null
         }
       };
 

@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import 'dashboard_screen.dart';
-import 'investments_screen.dart';
 import 'requests_screen.dart';
 import 'engagement_screen.dart';
 import 'profile_screen.dart';
-import 'new_investment_screen.dart';
+import 'investments_screen.dart';
 
 class MainWrapper extends StatefulWidget {
   final ThemeMode themeMode;
@@ -38,10 +37,24 @@ class _MainWrapperState extends State<MainWrapper> {
   static const Color _investaOrange = Color(0xFFFF9800);
 
   int _selectedIndex = _tabDashboard;
+  int _pendingRequestsCount = 0;
+  int _unreadMessagesCount = 0;
 
   void _onItemTapped(int index) {
     if (_selectedIndex == index) return;
     setState(() => _selectedIndex = index);
+  }
+
+  void _updatePendingRequestsCount(int count) {
+    if (_pendingRequestsCount != count) {
+      setState(() => _pendingRequestsCount = count);
+    }
+  }
+
+  void _updateUnreadMessagesCount(int count) {
+    if (_unreadMessagesCount != count) {
+      setState(() => _unreadMessagesCount = count);
+    }
   }
 
   Widget _currentScreen() {
@@ -49,11 +62,17 @@ class _MainWrapperState extends State<MainWrapper> {
       case _tabDashboard:
         return const DashboardScreen(key: ValueKey('dashboard'));
       case _tabEngagement:
-        return EngagementScreen(key: const ValueKey('engagement'));
+        return EngagementScreen(
+          key: const ValueKey('engagement'),
+          onUnreadCountChanged: _updateUnreadMessagesCount,
+        );
       case _tabInvestments:
         return const InvestmentsScreen(key: ValueKey('investments'));
       case _tabRequests:
-        return const RequestsScreen(key: ValueKey('requests'));
+        return RequestsScreen(
+          key: const ValueKey('requests'),
+          onPendingCountChanged: _updatePendingRequestsCount,
+        );
       default:
         return ProfileScreen(
           key: const ValueKey('profile'),
@@ -83,105 +102,39 @@ class _MainWrapperState extends State<MainWrapper> {
             duration: const Duration(milliseconds: 300),
             child: _currentScreen(),
           ),
-
-          // Right-side small Initiate FAB displayed only on Investments tab
-          if (_selectedIndex == _tabInvestments)
-            SafeArea(
-              child: Padding(
-                padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).viewPadding.bottom + 16,
-                    right: 16),
-                child: Align(
-                  alignment: Alignment.bottomRight,
-                  child: FloatingActionButton.extended(
-                    heroTag: 'initiate_right_fab',
-                    onPressed: () async {
-                      final res = await Navigator.of(context).push(
-                          MaterialPageRoute(
-                              builder: (_) => const NewInvestmentScreen()));
-                      if (res == true && mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content: Text(loc.t('investment_created'))));
-                      }
-                    },
-                    backgroundColor: _investaOrange,
-                    icon: const Icon(Icons.rocket_launch),
-                    label: Text(loc.t('initiation')),
-                    tooltip: loc.t('initiation'),
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
 
-      // الزرار الكبير (Investments) مع زر صغير 'Initiate' تحته عندما نكون على تاب Investments
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            height: 70,
-            width: 70,
-            child: FloatingActionButton(
-              heroTag: 'main_fab',
-              onPressed: () async {
-                if (_selectedIndex != _tabInvestments) {
-                  _onItemTapped(_tabInvestments);
-                  return;
-                }
-                final res = await Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => const NewInvestmentScreen()));
-                if (res == true && mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(loc.t('investment_created'))));
-                }
-              },
-              backgroundColor: _investaOrange,
-              elevation: 8,
-              shape: const CircleBorder(),
-              child: const Icon(Icons.trending_up_rounded,
-                  color: Colors.white, size: 35),
-            ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: (index) {
+          _onItemTapped(index);
+        },
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: _investaOrange,
+        unselectedItemColor: Colors.grey,
+        items: [
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.dashboard_rounded),
+            label: loc.t('dashboard'),
+          ),
+          BottomNavigationBarItem(
+            icon: _buildEngagementBadge(loc),
+            label: loc.t('engagement'),
+          ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.trending_up_rounded),
+            label: loc.t('investments'),
+          ),
+          BottomNavigationBarItem(
+            icon: _buildRequestsBadge(loc),
+            label: loc.t('requests'),
+          ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.person_rounded),
+            label: loc.t('profile'),
           ),
         ],
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-
-      bottomNavigationBar: BottomAppBar(
-        color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-        padding: EdgeInsets.zero,
-        notchMargin: 10, // المسافة بين الزرار والبار (الكيرف)
-        shape:
-            const CircularNotchedRectangle(), // ده اللي بيعمل "الدلعة" أو الكيرف بتاع أنا فودافون
-        clipBehavior: Clip.antiAlias,
-        child: SizedBox(
-          height: 70,
-          child: SafeArea(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                // اليسار
-                _buildNavItem(
-                    Icons.dashboard_rounded, loc.t('dashboard'), _tabDashboard,
-                    isSelected: _selectedIndex == _tabDashboard),
-                _buildNavItem(Icons.people_alt_rounded, loc.t('engagement'),
-                    _tabEngagement,
-                    isSelected: _selectedIndex == _tabEngagement),
-
-                // فراغ للـ Notch
-                const SizedBox(width: 80),
-
-                // اليمين
-                _buildNavItem(
-                    Icons.request_page_rounded, loc.t('requests'), _tabRequests,
-                    isSelected: _selectedIndex == _tabRequests),
-                _buildNavItem(
-                    Icons.person_rounded, loc.t('profile'), _tabProfile,
-                    isSelected: _selectedIndex == _tabProfile),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -206,6 +159,76 @@ class _MainWrapperState extends State<MainWrapper> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildEngagementBadge(AppLocalizations loc) {
+    return Stack(
+      children: [
+        const Icon(Icons.people_alt_rounded),
+        if (_unreadMessagesCount > 0)
+          Positioned(
+            right: 0,
+            top: 0,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              constraints: const BoxConstraints(
+                minWidth: 18,
+                minHeight: 18,
+              ),
+              child: Text(
+                _unreadMessagesCount > 99
+                    ? '99+'
+                    : _unreadMessagesCount.toString(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildRequestsBadge(AppLocalizations loc) {
+    return Stack(
+      children: [
+        const Icon(Icons.request_page_rounded),
+        if (_pendingRequestsCount > 0)
+          Positioned(
+            right: 0,
+            top: 0,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              constraints: const BoxConstraints(
+                minWidth: 18,
+                minHeight: 18,
+              ),
+              child: Text(
+                _pendingRequestsCount > 99
+                    ? '99+'
+                    : _pendingRequestsCount.toString(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

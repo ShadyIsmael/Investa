@@ -241,7 +241,7 @@ class ApiClient {
   }
 
   Future<Response> post(String url,
-      {Map<String, dynamic>? data, Map<String, dynamic>? headers}) {
+      {dynamic data, Map<String, dynamic>? headers}) {
     return _dio.post(url, data: data, options: Options(headers: headers));
   }
 
@@ -252,8 +252,12 @@ class ApiClient {
   }
 
   Future<Response> put(String url,
-      {Map<String, dynamic>? data, Map<String, dynamic>? headers}) {
+      {dynamic data, Map<String, dynamic>? headers}) {
     return _dio.put(url, data: data, options: Options(headers: headers));
+  }
+
+  Future<Response> delete(String url, {Map<String, dynamic>? headers}) {
+    return _dio.delete(url, options: Options(headers: headers));
   }
 
   void close() => _dio.close();

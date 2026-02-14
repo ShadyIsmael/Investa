@@ -31,4 +31,9 @@ public class CreateInvestmentDto
     public DateTime? EndDate { get; set; }
     public string? ImageUrl { get; set; }
     public string? VideoUrl { get; set; }
+
+    // Founding-specific fields (fixed duration with profit-based returns)
+    public int? DurationMonths { get; set; }
+    public decimal? ProfitPercentage { get; set; }
+    public string? PayoutFrequency { get; set; } // Monthly, Quarterly, Semi-Annually, Annually, At Maturity
 }

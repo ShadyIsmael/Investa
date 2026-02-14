@@ -173,8 +173,17 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> _logout() async {
     await FirebaseAuth.instance.signOut();
-    final googleSignIn = GoogleSignIn();
-    await googleSignIn.signOut();
+    try {
+      if (!kIsWeb) {
+        final googleSignIn = GoogleSignIn();
+        await googleSignIn.signOut();
+      } else {
+        AppLogger.logInfo('main._logout',
+            'Skipping GoogleSignIn.signOut on web: clientId not configured');
+      }
+    } catch (e) {
+      AppLogger.logInfo('main._logout', 'GoogleSignIn signOut skipped: $e');
+    }
     await SecureStorage().deleteAll();
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();

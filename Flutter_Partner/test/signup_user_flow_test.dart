@@ -9,7 +9,7 @@ class FakeApiClient implements ApiClient {
 
   @override
   Future<Response> post(String url,
-      {Map<String, dynamic>? data, Map<String, dynamic>? headers}) async {
+      {dynamic data, Map<String, dynamic>? headers}) async {
     return _response;
   }
 

@@ -7,6 +7,11 @@ import '../services/categories_service.dart';
 import '../services/investments_service.dart';
 import '../services/config.dart';
 import '../services/messages.dart';
+import '../services/requests_service.dart';
+import '../services/profile_service.dart';
+import '../services/app_state.dart';
+import '../services/app_logger.dart';
+import '../widgets/engagement_confirmation_dialog.dart';
 import 'investment_info_screen.dart';
 
 class InvestmentFilter {
@@ -362,28 +367,109 @@ class _InvestmentCardState extends State<_InvestmentCard> {
     });
   }
 
+  /// Handles engagement flow with two-step confirmation.
+  ///
+  /// Mirrors the Angular client portal flow:
+  /// 1. Refresh user profile to get latest credits
+  /// 2. Show confirmation dialog with credit details
+  /// 3. On confirm, call API to create investment request
+  /// 4. Refresh profile again after API call
+  /// 5. Show success/error message
   Future<void> _handleEngage() async {
-    final cost = Env.engageCreditCost;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Confirm Interest'),
-        content: Text('Engaging will consume $cost credits. Proceed?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Engage',
-                  style: TextStyle(fontWeight: FontWeight.bold))),
-        ],
-      ),
-    );
+    try {
+      // Step 1: Refresh user profile to get latest wallet balance
+      // This mirrors Angular's refreshUser() call before showing engagement modal
+      AppLogger.logInfo(
+          'InvestmentsScreen', 'Refreshing user profile before engagement');
 
-    if (confirmed == true && mounted) {
+      final profileService = ProfileService();
+      await profileService.fetchProfile();
+
+      if (!mounted) return;
+
+      // Step 2: Show confirmation dialog with credit details
+      // This mirrors Angular's engagementConfirmationOpen signal
+      final profile = AppState.instance.profile;
+      final initialCredits = (profile?.credit?.toDouble()) ??
+          profile?.coreMetrics?.walletBalance ??
+          0.0;
+
+      // Debug: log the values passed to the confirmation dialog
+      try {
+        AppLogger.logInfo('InvestmentsScreen',
+            'Opening engagement dialog - initialCredits=$initialCredits, investmentKeys=${widget.item.keys.toList()}');
+      } catch (_) {}
+
+      final confirmed = await showEngagementConfirmationDialog(
+        context: context,
+        investment: widget.item,
+        initialCredits: initialCredits,
+        onConfirm: () async {
+          // Step 3: Create investment request via API
+          // This mirrors Angular's createInvestmentRequest() call
+          final requestsService = RequestsService();
+          final engagementCost = Env.engageCreditCost.toDouble();
+
+          await requestsService.createInvestmentRequest(
+            investment: widget.item,
+            amount: engagementCost,
+            shares: 0, // Engagement/Funding type has 0 shares
+          );
+
+          AppLogger.logInfo(
+              'InvestmentsScreen', 'Engagement request created successfully');
+        },
+      );
+
+      if (!mounted) return;
+
+      // Step 4: Show success message
+      if (confirmed == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(AppMessages.engageRequestSent),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      AppLogger.logError(
+          'InvestmentsScreen', 'Failed to create engagement request: $e');
+
+      if (!mounted) return;
+
+      // Show user-friendly error message
+      String errorMessage = 'Failed to create engagement request.';
+
+      if (e.toString().contains('500')) {
+        errorMessage =
+            'Server error occurred. Please try again later or contact support if the issue persists.';
+      } else if (e.toString().contains('insufficient_credits') ||
+          e.toString().contains('Insufficient credits')) {
+        errorMessage =
+            'Insufficient credits. Please add more credits to your account.';
+      } else if (e.toString().contains('not_authenticated') ||
+          e.toString().contains('401')) {
+        errorMessage = 'Session expired. Please log in again.';
+      } else if (e.toString().contains('InvestmentRequestException:')) {
+        errorMessage =
+            e.toString().replaceFirst('InvestmentRequestException: ', '');
+      } else if (e.toString().contains('Exception:')) {
+        errorMessage = e.toString().replaceFirst('Exception: ', '');
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppMessages.engageRequestSent)));
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: 'Dismiss',
+            textColor: Colors.white,
+            onPressed: () {},
+          ),
+        ),
+      );
     }
   }
 
@@ -829,22 +915,69 @@ class _InvestmentCardState extends State<_InvestmentCard> {
     final progress = target > 0 ? (raised / target).clamp(0.0, 1.0) : 0.0;
     final percentStr = '${(progress * 100).toStringAsFixed(0)}%';
 
+    // Modern color scheme based on risk level
+    Color riskColor;
+    Color riskBgColor;
+    switch (risk.toLowerCase()) {
+      case 'low':
+        riskColor = const Color(0xFF10B981);
+        riskBgColor = const Color(0xFF10B981).withOpacity(0.1);
+        break;
+      case 'high':
+        riskColor = const Color(0xFFEF4444);
+        riskBgColor = const Color(0xFFEF4444).withOpacity(0.1);
+        break;
+      default:
+        riskColor = const Color(0xFFF59E0B);
+        riskBgColor = const Color(0xFFF59E0B).withOpacity(0.1);
+    }
+
     return Container(
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [
+                  const Color(0xFF1E293B),
+                  const Color(0xFF0F172A),
+                ]
+              : [
+                  Colors.white,
+                  const Color(0xFFF8FAFC),
+                ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark
+              ? const Color(0xFF334155).withOpacity(0.3)
+              : Colors.grey.shade200,
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacityCompat(isDark ? 0.3 : 0.05),
-            offset: const Offset(0, 8),
-            blurRadius: 20,
-          )
+            color: isDark
+                ? Colors.black.withOpacity(0.4)
+                : const Color(0xFF3B82F6).withOpacity(0.08),
+            offset: const Offset(0, 4),
+            blurRadius: 24,
+            spreadRadius: 0,
+          ),
+          BoxShadow(
+            color: isDark
+                ? const Color(0xFF0F172A).withOpacity(0.5)
+                : Colors.white.withOpacity(0.8),
+            offset: const Offset(0, -2),
+            blurRadius: 12,
+            spreadRadius: 0,
+          ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(20),
           onTap: () {
             Navigator.push(
                 context,
@@ -852,169 +985,454 @@ class _InvestmentCardState extends State<_InvestmentCard> {
                     builder: (_) => InvestmentInfoScreen(
                         item: item, category: widget.category)));
           },
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    _buildAvatar(avatar),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.outfit(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                              color: theme.colorScheme.onSurface,
-                            ),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              // Subtle inner glow effect
+              boxShadow: [
+                BoxShadow(
+                  color: theme.colorScheme.primary.withOpacity(0.05),
+                  offset: const Offset(0, 0),
+                  blurRadius: 8,
+                  spreadRadius: -2,
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header with Avatar and Status
+                  Row(
+                    children: [
+                      // Enhanced Avatar with gradient border
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              theme.colorScheme.primary,
+                              theme.colorScheme.primary.withOpacity(0.5),
+                            ],
                           ),
-                          const SizedBox(height: 4),
-                          _buildRiskBadge(risk, theme),
-                        ],
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        padding: const EdgeInsets.all(2),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color:
+                                isDark ? const Color(0xFF1E293B) : Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: _buildAvatar(avatar),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.outfit(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 17,
+                                letterSpacing: -0.3,
+                                color: theme.colorScheme.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: riskBgColor,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: riskColor.withOpacity(0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: BoxDecoration(
+                                      color: riskColor,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '$risk Risk',
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: riskColor,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Favorite button with modern styling
+                      Container(
+                        decoration: BoxDecoration(
+                          color: _fav
+                              ? AppPalette.flame.withOpacity(0.1)
+                              : theme.colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: IconButton(
+                          icon: Icon(
+                            _fav ? Icons.favorite : Icons.favorite_border,
+                            size: 20,
+                          ),
+                          color: _fav ? AppPalette.flame : theme.disabledColor,
+                          onPressed: _toggleFav,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // Description with better styling
+                  Text(
+                    desc,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color:
+                          theme.colorScheme.onSurface.withOpacityCompat(0.65),
+                      height: 1.6,
+                      letterSpacing: 0.1,
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Equity-only quick metrics with enhanced styling
+                  if (_isEquity(widget.item))
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: isDark
+                              ? [
+                                  const Color(0xFF334155).withOpacity(0.3),
+                                  const Color(0xFF1E293B).withOpacity(0.2),
+                                ]
+                              : [
+                                  const Color(0xFFF1F5F9),
+                                  const Color(0xFFE2E8F0),
+                                ],
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: isDark
+                              ? const Color(0xFF475569).withOpacity(0.2)
+                              : const Color(0xFFCBD5E1),
+                          width: 1,
+                        ),
+                      ),
+                      child: _EquityQuickMetrics(item: widget.item),
+                    ),
+
+                  if (_isEquity(widget.item)) const SizedBox(height: 18),
+
+                  // Funding Progress with modern design
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? const Color(0xFF0F172A).withOpacity(0.5)
+                          : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: isDark
+                            ? const Color(0xFF334155).withOpacity(0.3)
+                            : const Color(0xFFE2E8F0),
+                        width: 1,
                       ),
                     ),
-                    IconButton(
-                      icon: Icon(_fav ? Icons.favorite : Icons.favorite_border),
-                      color: _fav ? AppPalette.flame : theme.disabledColor,
-                      onPressed: _toggleFav,
-                    )
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                // Description
-                Text(
-                  desc,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.dmSans(
-                    fontSize: 14,
-                    color: theme.colorScheme.onSurface.withOpacityCompat(0.7),
-                    height: 1.5,
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                // Equity-only quick metrics
-                if (_isEquity(widget.item))
-                  _EquityQuickMetrics(item: widget.item),
-
-                const SizedBox(height: 20),
-
-                // Funding Progress
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Funded ($percentStr)',
-                          style: GoogleFonts.dmSans(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: theme.disabledColor),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: progress >= 0.75
+                                        ? const Color(0xFF10B981)
+                                            .withOpacity(0.1)
+                                        : progress >= 0.4
+                                            ? AppPalette.amber.withOpacity(0.1)
+                                            : AppPalette.flame.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    Icons.trending_up_rounded,
+                                    size: 16,
+                                    color: progress >= 0.75
+                                        ? const Color(0xFF10B981)
+                                        : progress >= 0.4
+                                            ? AppPalette.amber
+                                            : AppPalette.flame,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  'Funded',
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: theme.colorScheme.onSurface
+                                        .withOpacity(0.7),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    theme.colorScheme.primary.withOpacity(0.1),
+                                    theme.colorScheme.primary.withOpacity(0.05),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: theme.colorScheme.primary
+                                      .withOpacity(0.2),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                percentStr,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        RichText(
-                          text: TextSpan(
-                            style: GoogleFonts.outfit(
-                                color: theme.colorScheme.onSurface),
-                            children: [
-                              TextSpan(
-                                  text:
-                                      '$currency${raised.toStringAsFixed(0)} ',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold)),
-                              TextSpan(
-                                  text:
-                                      '/ $currency${target.toStringAsFixed(0)}',
-                                  style: TextStyle(color: theme.disabledColor)),
-                            ],
+                        const SizedBox(height: 14),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Raised',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    color: theme.disabledColor,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '$currency${raised.toStringAsFixed(0)}',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    color: theme.colorScheme.onSurface,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'Target',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    color: theme.disabledColor,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '$currency${target.toStringAsFixed(0)}',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: theme.disabledColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        // Enhanced progress bar with gradient
+                        Container(
+                          height: 8,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(6),
+                            color: isDark
+                                ? const Color(0xFF1E293B)
+                                : const Color(0xFFE2E8F0),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: Stack(
+                              children: [
+                                LinearProgressIndicator(
+                                  value: progress,
+                                  minHeight: 8,
+                                  backgroundColor: Colors.transparent,
+                                  valueColor: AlwaysStoppedAnimation(
+                                    progress >= 0.75
+                                        ? const Color(0xFF10B981)
+                                        : progress >= 0.4
+                                            ? AppPalette.amber
+                                            : AppPalette.flame,
+                                  ),
+                                ),
+                                // Animated shimmer effect on progress
+                                if (progress > 0)
+                                  Positioned.fill(
+                                    child: FractionallySizedBox(
+                                      alignment: Alignment.centerLeft,
+                                      widthFactor: progress,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            colors: [
+                                              Colors.white.withOpacity(0.0),
+                                              Colors.white.withOpacity(0.2),
+                                              Colors.white.withOpacity(0.0),
+                                            ],
+                                            stops: const [0.0, 0.5, 1.0],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: progress,
-                        minHeight: 6,
-                        backgroundColor:
-                            theme.colorScheme.surfaceContainerHighest,
-                        valueColor: AlwaysStoppedAnimation(progress >= 0.75
-                            ? const Color(0xFF10B981)
-                            : progress >= 0.4
-                                ? AppPalette.amber
-                                : AppPalette.flame),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
 
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
-                  child: Divider(height: 1),
-                ),
+                  const SizedBox(height: 20),
 
-                // Actions
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _showReviews,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: theme.colorScheme.onSurface,
-                          side: BorderSide(color: theme.dividerColor),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                  // Actions with modern button design
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _showReviews,
+                          icon: const Icon(Icons.star_border_rounded, size: 18),
+                          label: const Text('Reviews'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: theme.colorScheme.onSurface,
+                            side: BorderSide(
+                              color: isDark
+                                  ? const Color(0xFF475569)
+                                  : const Color(0xFFCBD5E1),
+                              width: 1.5,
+                            ),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
                         ),
-                        child: const Text('Reviews'),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      onPressed: _share,
-                      icon: const Icon(Icons.share_rounded, size: 20),
-                      style: IconButton.styleFrom(
-                        backgroundColor:
-                            theme.colorScheme.surfaceContainerHighest,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.all(12),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      flex: 2,
-                      child: ElevatedButton(
-                        onPressed: _handleInvest,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: theme.colorScheme.primary,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          textStyle:
-                              GoogleFonts.outfit(fontWeight: FontWeight.w600),
+                      const SizedBox(width: 10),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isDark
+                                ? const Color(0xFF475569).withOpacity(0.3)
+                                : const Color(0xFFE2E8F0),
+                            width: 1,
+                          ),
                         ),
-                        child: const Text('Invest Now'),
+                        child: IconButton(
+                          onPressed: _share,
+                          icon: const Icon(Icons.ios_share_rounded, size: 20),
+                          padding: const EdgeInsets.all(12),
+                          constraints: const BoxConstraints(
+                            minWidth: 48,
+                            minHeight: 48,
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 10),
+                      Expanded(
+                        flex: 2,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                theme.colorScheme.primary,
+                                theme.colorScheme.primary.withOpacity(0.8),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color:
+                                    theme.colorScheme.primary.withOpacity(0.4),
+                                offset: const Offset(0, 4),
+                                blurRadius: 12,
+                                spreadRadius: 0,
+                              ),
+                            ],
+                          ),
+                          child: ElevatedButton.icon(
+                            onPressed: _handleInvest,
+                            icon: const Icon(Icons.rocket_launch_rounded,
+                                size: 18),
+                            label: const Text('Invest'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              foregroundColor: Colors.white,
+                              shadowColor: Colors.transparent,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              textStyle: GoogleFonts.outfit(
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -1025,21 +1443,43 @@ class _InvestmentCardState extends State<_InvestmentCard> {
   Widget _buildAvatar(String? url) {
     if (url == null || url.isEmpty) {
       return Container(
-        width: 48,
-        height: 48,
+        width: 56,
+        height: 56,
         decoration: BoxDecoration(
-          color: AppPalette.midnight.withOpacityCompat(0.5),
-          borderRadius: BorderRadius.circular(12),
+          gradient: LinearGradient(
+            colors: [
+              AppPalette.midnight.withOpacityCompat(0.8),
+              AppPalette.midnight.withOpacityCompat(0.5),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(14),
         ),
-        child: const Icon(Icons.business, color: Colors.white70),
+        child: const Icon(Icons.apartment_rounded,
+            color: Colors.white70, size: 28),
       );
     }
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        image: DecorationImage(image: NetworkImage(url), fit: BoxFit.cover),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: Image.network(
+        url,
+        width: 56,
+        height: 56,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppPalette.midnight.withOpacityCompat(0.8),
+                AppPalette.midnight.withOpacityCompat(0.5),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: const Icon(Icons.apartment_rounded,
+              color: Colors.white70, size: 28),
+        ),
       ),
     );
   }
