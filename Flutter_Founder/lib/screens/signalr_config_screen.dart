@@ -9,7 +9,7 @@ class SignalRConfigScreen extends StatefulWidget {
   const SignalRConfigScreen({super.key});
 
   @override
-  _SignalRConfigScreenState createState() => _SignalRConfigScreenState();
+  State<SignalRConfigScreen> createState() => _SignalRConfigScreenState();
 }
 
 class _SignalRConfigScreenState extends State<SignalRConfigScreen> {
@@ -54,6 +54,7 @@ class _SignalRConfigScreenState extends State<SignalRConfigScreen> {
     }
 
     setState(() => _saving = false);
+    if (!mounted) return;
 
     if (!ok) {
       await showDialog<void>(
@@ -72,6 +73,7 @@ class _SignalRConfigScreenState extends State<SignalRConfigScreen> {
       return;
     }
 
+    if (!mounted) return;
     Navigator.of(context).pop(true);
   }
 

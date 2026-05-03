@@ -356,11 +356,21 @@ class RequestsService {
             'Invalid investment ID', 'invalid_investment_id');
       }
 
-      final resp = await _apiClient.post(endpoint, data: {
+      final payload = <String, dynamic>{
         'investmentId': investmentIdInt,
+        // Keep amount as numeric value expected by backend DTO (decimal)
         'amount': amount,
-        if (shares > 0) 'shares': shares,
-      });
+      };
+
+      // For engagement/founding flows, shares should be omitted (or null).
+      // Some backend variants reject explicit 0 due to legacy constraints.
+      if (shares > 0) {
+        payload['shares'] = shares;
+        // Backward-compat alias used by some older API variants.
+        payload['numberOfShares'] = shares;
+      }
+
+      final resp = await _apiClient.post(endpoint, data: payload);
 
       final status = resp.statusCode ?? 0;
       if (status < 200 || status >= 300) {
@@ -465,20 +475,38 @@ class RequestsService {
       try {
         if (e is DioException) {
           final statusCode = e.response?.statusCode;
+          AppLogger.logError(
+              'RequestsService',
+              'Create request failed: status=$statusCode, response=${e.response?.data}, payload={investmentId:${investment['id']}, amount:$amount, shares:$shares}',
+              st);
 
           // Extract error message from backend response
           if (e.response?.data != null) {
             try {
               final responseData = e.response!.data;
               if (responseData is Map) {
-                message = responseData['message']?.toString() ??
-                    responseData['error']?.toString() ??
-                    responseData['detail']?.toString() ??
-                    message;
+                // For 5xx prefer explicit `error` details over generic `message`
+                if ((statusCode ?? 0) >= 500) {
+                  message = responseData['error']?.toString() ??
+                      responseData['detail']?.toString() ??
+                      responseData['message']?.toString() ??
+                      message;
+                } else {
+                  message = responseData['message']?.toString() ??
+                      responseData['error']?.toString() ??
+                      responseData['detail']?.toString() ??
+                      message;
+                }
               } else if (responseData is String) {
                 message = responseData;
               }
             } catch (_) {}
+          }
+
+          // Normalize generic internal error labels
+          if (message.toLowerCase() == 'internalservererror') {
+            message =
+                'Server error occurred while creating investment request. Please try again in a moment.';
           }
 
           // Add HTTP status context if still generic

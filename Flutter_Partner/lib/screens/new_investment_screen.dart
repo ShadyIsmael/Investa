@@ -8,6 +8,7 @@ import '../services/business_stages_service.dart';
 import '../services/project_phases_service.dart';
 import '../services/secure_storage.dart';
 import '../services/app_logger.dart';
+import '../l10n/app_localizations.dart';
 
 class NewInvestmentScreen extends StatefulWidget {
   const NewInvestmentScreen({super.key});
@@ -318,7 +319,11 @@ class _NewInvestmentScreenState extends State<NewInvestmentScreen> {
           label: 'Industry Category',
           value: _catId,
           items: _categories
-              .map((c) => DropdownMenuItem(value: c.id, child: Text(c.value)))
+              .map((c) => DropdownMenuItem(
+                  value: c.id,
+                  child: Text(context.isArabic && c.valueAr.isNotEmpty
+                      ? c.valueAr
+                      : c.value)))
               .toList(),
           onChanged: (v) => setState(() => _catId = v),
           hint: 'e.g. FinTech, AgriTech',
@@ -366,7 +371,10 @@ class _NewInvestmentScreenState extends State<NewInvestmentScreen> {
                 value: _stageId,
                 items: _stages
                     .map((s) => DropdownMenuItem(
-                        value: s.id, child: Text(s.displayName ?? s.value)))
+                        value: s.id,
+                        child: Text(context.isArabic && s.valueAr.isNotEmpty
+                            ? s.valueAr
+                            : (s.displayName ?? s.value))))
                     .toList(),
                 onChanged: (v) => setState(() => _stageId = v),
                 hint: 'Seed / MVP',
@@ -406,7 +414,10 @@ class _NewInvestmentScreenState extends State<NewInvestmentScreen> {
           value: _phaseId,
           items: _phases
               .map((p) => DropdownMenuItem(
-                  value: p.id, child: Text(p.displayName ?? p.value)))
+                  value: p.id,
+                  child: Text(context.isArabic && p.valueAr.isNotEmpty
+                      ? p.valueAr
+                      : (p.displayName ?? p.value))))
               .toList(),
           onChanged: (v) => setState(() => _phaseId = v),
           hint: 'Next big milestone',

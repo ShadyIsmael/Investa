@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../providers/support_provider.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../services/app_state.dart';
 
 /// Responsive Support Request Screen with Clean Architecture.
 ///
@@ -43,8 +45,9 @@ class _SupportRequestScreenState extends State<SupportRequestScreen> {
 
   Future<void> _initiateSupportSession(
       BuildContext context, SupportProvider provider) async {
-    const userMobile =
-        '0123456789'; // TODO: Replace with actual user mobile retrieval logic
+    final userMobile = AppState.instance.profile?.contactInfo?.phone1 ??
+        FirebaseAuth.instance.currentUser?.phoneNumber ??
+        '';
 
     final sessionId = await provider.initiateSupportSession(
       userMobile: userMobile,
@@ -71,8 +74,9 @@ class _SupportRequestScreenState extends State<SupportRequestScreen> {
     }
 
     final success = await provider.sendSupportRequest(
-      userMobile:
-          '0123456789', // TODO: Replace with actual user mobile retrieval logic
+      userMobile: AppState.instance.profile?.contactInfo?.phone1 ??
+          FirebaseAuth.instance.currentUser?.phoneNumber ??
+          '',
       message: _messageController.text.trim(),
       type: _selectedType,
       sessionId: _supportSessionId!,

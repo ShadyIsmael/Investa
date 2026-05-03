@@ -33,7 +33,24 @@
     "notAMember": "Not a member?",
     "signUpNow": "Sign Up Now",
     "founder": "Founder",
-    "partner": "Partner"
+    "partner": "Partner",
+    "investor": "Investor",
+    "signingIn": "Signing in...",
+    "errorGeneric": "Login failed"
+  },
+  "roleSelect": {
+    "title": "Choose Your Role",
+    "subtitle": "Select your path to get started with Investa. Are you here to find opportunities or to create them?",
+    "investor": {
+      "title": "Investor",
+      "description": "I am looking to discover and fund promising new ventures.",
+      "button": "Login as Investor"
+    },
+    "founder": {
+      "title": "Founder",
+      "description": "I am seeking funding and partners to build my business.",
+      "button": "Login as Founder"
+    }
   },
   "adminNav": {
     "panel": "Investa Panel",
@@ -480,12 +497,40 @@
       "linkedin": "https://linkedin.com/in/...",
       "facebook": "https://facebook.com/..."
     },
+    "credits": {
+      "title": "Credits",
+      "available": "Available Credits",
+      "chargeNow": "Charge Now"
+    },
     "credibilityHistory": "Credit Score History",
     "viewAll": "View All Transactions"
   },
   "transactions": {
     "total": "Total Transactions",
     "pages": "Total Pages"
+  },
+  "credits": {
+    "chargeTitle": "Charge Credits",
+    "chargeSubtitle": "Purchase credits to unlock investment opportunities and features",
+    "currentBalance": "Current Balance",
+    "credits": "Credits",
+    "selectPackage": "Select Credit Package",
+    "popular": "Popular",
+    "off": "OFF",
+    "customAmount": "Custom Amount",
+    "enterAmount": "Enter Amount",
+    "price": "Price",
+    "discount": "Discount",
+    "invalidAmount": "Please enter an amount between 100 and 100,000",
+    "purchaseCustom": "Purchase Custom Amount",
+    "processing": "Processing",
+    "orderSummary": "Order Summary",
+    "selectPackagePrompt": "Select a package or enter a custom amount to continue",
+    "total": "Total",
+    "purchaseNow": "Purchase Now",
+    "securePayment": "Secure payment powered by Stripe",
+    "successTitle": "Purchase Successful!",
+    "successMessage": "Credits have been added to your account"
   },
   "apiSwitcher": {
     "apiLabel": "API:",
@@ -619,6 +664,7 @@
   "common": {
     "loading": "Loading...",
     "cancel": "Cancel",
+    "back": "Back",
     "processing": "Processing...",
     "previous": "Previous",
     "next": "Next",

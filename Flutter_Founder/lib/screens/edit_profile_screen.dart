@@ -35,7 +35,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     'AU',
     'OT',
   ];
-  final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _roleController;
   late TextEditingController _phoneController;
@@ -46,7 +45,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _genderController;
   String? _selectedGender;
   String? _selectedNationalityCode;
-  String? _selectedNationality;
   late TextEditingController _nationalityController;
   late TextEditingController _avatarController;
   late TextEditingController _dobController;
@@ -109,6 +107,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _pickHrLetter() async {
     final loc = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -124,7 +123,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           _hrLetterFileName = file.name;
           _hrLetterBase64 = base64Encode(bytes);
         });
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text(loc.t('file_selected'))),
         );
       } else {
@@ -132,12 +131,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           _hrLetterFileName = file.name;
           _hrLetterBase64 = null;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text(loc.t('file_selected'))),
         );
       }
     } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(content: Text(loc.t('file_select_failed'))),
       );
     }
@@ -162,6 +161,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             '${p?.basicInfo?.firstName ?? ''} ${p?.basicInfo?.lastName ?? ''}'
                 .trim());
     _roleController = TextEditingController(text: p?.coreMetrics?.role ?? '');
+    _phoneController =
+        TextEditingController(text: p?.contactInfo?.phone1 ?? '');
     _phone2Controller = TextEditingController(text: '');
     _phone2Raw = p?.contactInfo?.phone2 ?? '';
     _phone2Controller.text = _maskPhone(_phone2Raw);
@@ -196,10 +197,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _selectedNationalityCode = _isKnownNationalityCode(rawNationality)
         ? rawNationality.toUpperCase()
         : null;
-    _selectedNationality =
-        _selectedNationalityCode == null && rawNationality.isNotEmpty
-            ? rawNationality
-            : null;
     _avatarController =
         TextEditingController(text: p?.basicInfo?.avatarUrl ?? '');
 
@@ -299,6 +296,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _save() async {
     AppLogger.logInfo('EditProfileScreen._save', 'invoked');
     final loc = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     // Validation removed — allow saving regardless of field contents
     setState(() => _isSaving = true);
 
@@ -375,8 +373,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if ((_selectedDob != null || _dobController.text.trim().isNotEmpty)) {
       final dob = _selectedDob ?? DateTime.tryParse(_dobController.text.trim());
       if (dob == null) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(loc.t('invalid_dob'))));
+        messenger.showSnackBar(SnackBar(content: Text(loc.t('invalid_dob'))));
         if (mounted) setState(() => _isSaving = false);
         return;
       }
@@ -388,8 +385,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ? 1
               : 0);
       if (age < 18) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(loc.t('must_be_18'))));
+        messenger.showSnackBar(SnackBar(content: Text(loc.t('must_be_18'))));
         if (mounted) setState(() => _isSaving = false);
         return;
       }
@@ -398,8 +394,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (docExpiryText.isNotEmpty) {
       final parsed = DateTime.tryParse(docExpiryText);
       if (parsed == null) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(loc.t('invalid_date'))));
+        messenger.showSnackBar(SnackBar(content: Text(loc.t('invalid_date'))));
         if (mounted) setState(() => _isSaving = false);
         return;
       }
@@ -416,8 +411,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'EditProfileScreen._save', 'Payload: ${payload.toString()}');
 
     if (payload.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(loc.t('no_changes'))));
+      messenger.showSnackBar(SnackBar(content: Text(loc.t('no_changes'))));
       if (mounted) setState(() => _isSaving = false);
       return;
     }
@@ -429,7 +423,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       await _popToProfile(saved: true);
       return;
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(content: Text(loc.t('save_failed'))),
       );
     } finally {
@@ -442,10 +436,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final theme = Theme.of(context);
     final loc = AppLocalizations.of(context);
 
-    return WillPopScope(
-      onWillPop: () async {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, _) async {
+        if (didPop) return;
         await _handleBackNavigation();
-        return false;
       },
       child: Scaffold(
         extendBodyBehindAppBar: true,
@@ -735,7 +730,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   },
                   onSelected: (selection) {
                     setState(() {
-                      _selectedNationality = selection;
                       _nationalityController.text = selection;
                       _selectedNationalityCode =
                           _mapNationalityLabelToCode(selection, loc);
@@ -838,12 +832,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 key: const Key('edit_profile_verify_email_button'),
                 onPressed: () async {
                   final service = widget.service ?? ProfileService();
+                  final messenger = ScaffoldMessenger.of(context);
                   final success = await service.startEmailVerification();
+                  if (!context.mounted) return;
                   final msg = success
                       ? loc.t('verification_sent')
                       : loc.t('verification_failed');
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(SnackBar(content: Text(msg)));
+                  messenger.showSnackBar(SnackBar(content: Text(msg)));
                 },
                 child: Text(loc.t('verify')),
               )

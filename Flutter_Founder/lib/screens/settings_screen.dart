@@ -81,11 +81,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         context, MaterialPageRoute(builder: (_) => const _TermsScreen()));
   }
 
-  void _logout() {
-    widget.onLogout?.call();
-    Navigator.popUntil(context, (route) => route.isFirst);
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

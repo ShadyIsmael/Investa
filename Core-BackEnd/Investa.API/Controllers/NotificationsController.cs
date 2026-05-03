@@ -42,8 +42,8 @@ namespace Investa.API.Controllers
         {
             try
             {
-                // Get the current user's ID from claims
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                // Use "sub" claim which holds the user GUID (ClaimTypes.NameIdentifier holds the username)
+                var userId = User.FindFirstValue("sub") ?? User.FindFirstValue("id");
                 
                 if (string.IsNullOrWhiteSpace(userId))
                 {
@@ -171,7 +171,7 @@ namespace Investa.API.Controllers
         {
             try
             {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var userId = User.FindFirstValue("sub") ?? User.FindFirstValue("id");
                 
                 if (string.IsNullOrWhiteSpace(userId))
                 {

@@ -102,6 +102,11 @@ export const routes: Routes = [
         path: 'settings', 
         loadComponent: () => import('./pages/admin/settings/settings.component').then(m => m.SettingsComponent),
         title: 'Settings - Investa' 
+      },
+      { 
+        path: 'credit-charge', 
+        loadComponent: () => import('./pages/admin/credit-charge/credit-charge.component').then(m => m.CreditChargeComponent),
+        title: 'Charge Credits - Investa' 
       }
     ]
   }

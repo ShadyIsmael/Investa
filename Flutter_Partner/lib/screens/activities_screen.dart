@@ -95,9 +95,9 @@ class _ActivityTile extends StatelessWidget {
           : BoxDecoration(
               color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(22),
-              border:
-                  Border.all(color: theme.colorScheme.outline.withAlpha((0.5 * 255).round())),
-            )
+              border: Border.all(
+                  color:
+                      theme.colorScheme.outline.withAlpha((0.5 * 255).round())),
             ),
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       child: Row(
@@ -119,11 +119,13 @@ class _ActivityTile extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text('$subtitle • ${_timeAgo(context, time)}',
                     style: textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withAlpha((0.7 * 255).round()))),
+                        color: theme.colorScheme.onSurface
+                            .withAlpha((0.7 * 255).round()))),
               ],
             ),
           ),
-          Icon(Icons.chevron_right, color: Colors.grey.withAlpha((0.6 * 255).round())),
+          Icon(Icons.chevron_right,
+              color: Colors.grey.withAlpha((0.6 * 255).round())),
         ],
       ),
     );
@@ -132,10 +134,12 @@ class _ActivityTile extends StatelessWidget {
   String _timeAgo(BuildContext context, DateTime t) {
     final loc = AppLocalizations.of(context);
     final diff = DateTime.now().difference(t);
-    if (diff.inHours < 24)
+    if (diff.inHours < 24) {
       return loc.t('hours_ago').replaceFirst('{0}', diff.inHours.toString());
-    if (diff.inDays < 7)
+    }
+    if (diff.inDays < 7) {
       return loc.t('days_ago').replaceFirst('{0}', diff.inDays.toString());
+    }
     return loc
         .t('weeks_ago')
         .replaceFirst('{0}', ((diff.inDays / 7).floor()).toString());

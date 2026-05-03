@@ -306,7 +306,7 @@ class _ActivityTile extends StatelessWidget {
           : BoxDecoration(
               color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: theme.dividerColor.withAlpha((0.1 * 255).round())),)
+              border: Border.all(color: theme.dividerColor.withAlpha((0.1 * 255).round())),
             ),
       child: Row(
         children: [
@@ -379,7 +379,6 @@ class LineChartCard extends StatelessWidget {
                     belowBarData: BarAreaData(
                         show: true,
                         color: theme.colorScheme.primary.withAlpha((0.1 * 255).round())),
-                    }
                   ),
                 ],
               ),

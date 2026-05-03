@@ -158,8 +158,10 @@ class InvestmentsService {
         '$apiBase/api/v1/investments/GetByCategory${categoryId != null ? '?categoryId=$categoryId' : ''}');
     try {
       AppLogger.logInfo('InvestmentsService', 'GET ${uri.toString()}');
-      final resp = await _client
-          .get(uri.toString(), headers: {'accept': 'application/json'});
+      final resp = await _client.get(
+        uri.toString(),
+        headers: {'accept': 'application/json'},
+      );
       final status = resp.statusCode ?? 0;
       AppLogger.logInfo('InvestmentsService', 'Response status=$status');
       if (status >= 200 && status < 300) {
@@ -199,6 +201,71 @@ class InvestmentsService {
           return data;
         } catch (_) {
           // Fallback: if response is a raw list
+          if (resp.data is List) return resp.data as List<dynamic>;
+          return <dynamic>[];
+        }
+      }
+      AppLogger.logError('InvestmentsService', 'Server error: $status', null);
+      return <dynamic>[];
+    } on DioException catch (e) {
+      AppLogger.logError(
+          'InvestmentsService', 'Network error: ${e.message}', e.stackTrace);
+      return <dynamic>[];
+    } catch (e, s) {
+      AppLogger.logError('InvestmentsService', 'Unexpected: $e', s);
+      return <dynamic>[];
+    }
+  }
+
+  /// Fetch investments the current user has engaged/joined.
+  Future<List<dynamic>> fetchMyInvestments() async {
+    var apiBase = baseUrl;
+    if (!apiBase.startsWith('http')) apiBase = 'http://$apiBase';
+    final uri = Uri.parse('$apiBase/api/v1/investments/GetMyInvestments');
+    try {
+      AppLogger.logInfo('InvestmentsService', 'GET ${uri.toString()}');
+      final token = await SecureStorage().read('auth_token');
+      final headers = {'accept': 'application/json'};
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+      final resp = await _client.get(uri.toString(), headers: headers);
+      final status = resp.statusCode ?? 0;
+      AppLogger.logInfo('InvestmentsService', 'Response status=$status');
+      if (status >= 200 && status < 300) {
+        try {
+          final body = resp.data is Map
+              ? resp.data as Map<String, dynamic>
+              : jsonDecode(resp.toString()) as Map<String, dynamic>;
+          final data = body['data'] as List? ?? (body['items'] as List?);
+          if (data == null) return <dynamic>[];
+          // Normalize investment item keys
+          for (var i = 0; i < data.length; i++) {
+            final item = data[i];
+            if (item is Map) {
+              final m = Map<String, dynamic>.from(item);
+              final founder = m['FounderDisplay'] ??
+                  m['founderDisplay'] ??
+                  m['founderName'] ??
+                  m['authorName'];
+              if (founder != null) m['FounderDisplay'] = founder;
+              final cred = m['CredibilityScore'] ??
+                  m['credibilityScore'] ??
+                  m['credibility'] ??
+                  m['authorScore'];
+              if (cred != null) {
+                if (cred is num) {
+                  m['CredibilityScore'] = cred;
+                } else if (cred is String) {
+                  final parsed = double.tryParse(cred);
+                  if (parsed != null) m['CredibilityScore'] = parsed;
+                }
+              }
+              data[i] = m;
+            }
+          }
+          return data;
+        } catch (_) {
           if (resp.data is List) return resp.data as List<dynamic>;
           return <dynamic>[];
         }

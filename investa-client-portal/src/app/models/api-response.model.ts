@@ -72,6 +72,8 @@ export interface InvestmentDto {
   startDate?: string;
   businessStageId?: number;
   businessCategoryId?: number;
+  businessCategoryName?: string;
+  businessCategoryNameAr?: string;
   projectPhaseId?: number;
   targetFund?: number;
   milestone?: string;

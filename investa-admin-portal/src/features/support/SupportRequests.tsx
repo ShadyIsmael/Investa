@@ -51,7 +51,6 @@ export const SupportRequests: React.FC = () => {
     // Listen for real-time support requests from SignalR
     const onSupport = (e: any) => {
       const payload = e?.detail || e;
-      console.log('DATA RECEIVED (component):', payload);
 
       // Map incoming fields to the table model, ensuring nulls are cleaned
       const mapped = {

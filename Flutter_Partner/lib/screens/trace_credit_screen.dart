@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../theme/color_extensions.dart';
 import '../widgets/app_background.dart';
+import 'credit_charge_screen.dart';
+import '../l10n/app_localizations.dart';
 
 class TraceCreditScreen extends StatelessWidget {
   const TraceCreditScreen({Key? key}) : super(key: key);
@@ -8,6 +10,7 @@ class TraceCreditScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final loc = AppLocalizations.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
     final transactions = List.generate(
         25,
@@ -34,40 +37,42 @@ class TraceCreditScreen extends StatelessWidget {
 
     void showTransactionDetails(BuildContext context, Map<String, dynamic> tx) {
       final theme = Theme.of(context);
+      final loc = AppLocalizations.of(context);
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           backgroundColor: theme.colorScheme.surface,
-          title:
-              Text('Transaction Details', style: theme.textTheme.titleMedium),
+          title: Text(loc.t('transaction_details'),
+              style: theme.textTheme.titleMedium),
           content: Padding(
             padding: const EdgeInsets.all(8.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Date: ${tx['date']}',
+                Text('${loc.t('date')}: ${tx['date']}',
                     style: theme.textTheme.bodyMedium
                         ?.copyWith(fontWeight: FontWeight.w500)),
                 const SizedBox(height: 8),
-                Text('Credit Amount: ${tx['credit']}',
+                Text('${loc.t('credit_amount')}: ${tx['credit']}',
                     style: theme.textTheme.bodyMedium
                         ?.copyWith(color: theme.colorScheme.primary)),
                 const SizedBox(height: 8),
-                Text('Pay Amount: ${tx['pay']}',
+                Text('${loc.t('pay_amount')}: ${tx['pay']}',
                     style: theme.textTheme.bodyMedium
                         ?.copyWith(color: theme.colorScheme.error)),
                 const SizedBox(height: 8),
-                Text('Type: ${tx['type']}', style: theme.textTheme.bodyMedium),
+                Text('${loc.t('type')}: ${tx['type']}',
+                    style: theme.textTheme.bodyMedium),
               ],
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: Text('Close',
+              child: Text(loc.t('close'),
                   style: theme.textTheme.labelLarge
                       ?.copyWith(color: theme.colorScheme.primary)),
             ),
@@ -89,15 +94,17 @@ class TraceCreditScreen extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  Text('Credit tracing and details will appear here.',
+                  Text(loc.t('credit_tracing_message'),
                       style: Theme.of(context).textTheme.bodyLarge),
                   const SizedBox(height: 24),
                   ElevatedButton.icon(
                     icon: const Icon(Icons.add_card_rounded),
                     onPressed: () {
-                      // TODO: Implement charge action
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Charge Now pressed!')),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const CreditChargeScreen(),
+                        ),
                       );
                     },
                     style: ElevatedButton.styleFrom(
@@ -106,14 +113,14 @@ class TraceCreditScreen extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
-                    label: const Text('Charge Now'),
+                    label: Text(loc.t('charge_now')),
                   ),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 32),
-          Text('Previous Transactions',
+          Text(loc.t('previous_transactions'),
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 12),
           // Transactions table: fills available space and keeps pagination row at the bottom
@@ -155,19 +162,19 @@ class TraceCreditScreen extends StatelessWidget {
                                         (states) => theme
                                             .colorScheme.surfaceContainerHighest
                                             .withOpacityCompat(0.08)),
-                                columns: const [
+                                columns: [
                                   DataColumn(
-                                      label: Text('Credit',
-                                          style: TextStyle(
+                                      label: Text(loc.t('credit'),
+                                          style: const TextStyle(
                                               fontWeight: FontWeight.bold)),
                                       numeric: true),
                                   DataColumn(
-                                      label: Text('Date',
-                                          style: TextStyle(
+                                      label: Text(loc.t('date'),
+                                          style: const TextStyle(
                                               fontWeight: FontWeight.bold))),
                                   DataColumn(
-                                      label: Text('View',
-                                          style: TextStyle(
+                                      label: Text(loc.t('view'),
+                                          style: const TextStyle(
                                               fontWeight: FontWeight.bold))),
                                 ],
                                 rows: pagedTransactions
@@ -188,7 +195,7 @@ class TraceCreditScreen extends StatelessWidget {
                                                   Icons.visibility_rounded,
                                                   color: theme
                                                       .colorScheme.secondary),
-                                              tooltip: 'View Details',
+                                              tooltip: loc.t('view_details'),
                                               onPressed: () =>
                                                   showTransactionDetails(
                                                       context, tx))),
@@ -212,7 +219,11 @@ class TraceCreditScreen extends StatelessWidget {
                             ? () => setPage(currentPage - 1)
                             : null,
                       ),
-                      Text('Page ${currentPage + 1} of $pageCount',
+                      Text(
+                          loc
+                              .t('page_indicator')
+                              .replaceAll('{current}', '${currentPage + 1}')
+                              .replaceAll('{total}', '$pageCount'),
                           style: theme.textTheme.bodyMedium),
                       IconButton(
                         icon: const Icon(Icons.chevron_right),
@@ -232,7 +243,7 @@ class TraceCreditScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Trace Credit'),
+        title: Text(loc.t('credit_records')),
       ),
       backgroundColor:
           isDarkMode ? Colors.transparent : theme.scaffoldBackgroundColor,

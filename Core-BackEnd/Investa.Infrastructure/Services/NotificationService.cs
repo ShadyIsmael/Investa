@@ -105,6 +105,16 @@ namespace Investa.Infrastructure.Services
                     return (false, 0, 0, 0, "Invalid user ID");
                 }
 
+                // Guard: Firebase Admin SDK must be initialized (requires valid ServiceAccountPath in appsettings)
+                if (FirebaseApp.DefaultInstance == null)
+                {
+                    _logger.LogError(
+                        "[FCM] Firebase Admin SDK is not initialized. " +
+                        "Set a valid path in appsettings.json → Firebase:ServiceAccountPath " +
+                        "pointing to your Firebase service account JSON downloaded from the Firebase Console.");
+                    return (false, 0, 0, 0, "Firebase Admin SDK not initialized");
+                }
+
                 // Fetch all active tokens for the user
                 var userTokens = await _context.UserTokens
                     .Where(t => t.UserId == userId && t.IsActive)

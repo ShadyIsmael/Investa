@@ -34,7 +34,6 @@ export const Dashboard: React.FC = () => {
         try {
           const r = await financeService.getRevenueData();
           setRevenue(r);
-          console.debug('[Dashboard] fetched revenue:', r);
         } catch (err) {
           console.warn('[Dashboard] revenue fetch failed:', err);
           setRevenue([]);
@@ -51,28 +50,24 @@ export const Dashboard: React.FC = () => {
         let baseStats: any[] = [];
         if (settled[0].status === 'fulfilled') {
           baseStats = settled[0].value ?? [];
-          console.debug('[Dashboard] stats:', settled[0].value);
         } else {
           console.warn('[Dashboard] stats load failed', settled[0]);
         }
 
         if (settled[1].status === 'fulfilled') {
           setUsers(settled[1].value);
-          console.debug('[Dashboard] users:', settled[1].value);
         } else {
           console.warn('[Dashboard] users load failed', settled[1]);
         }
 
         if (settled[2].status === 'fulfilled') {
           setTopClients(settled[2].value);
-          console.debug('[Dashboard] topClients:', settled[2].value);
         } else {
           console.warn('[Dashboard] topClients load failed', settled[2]);
         }
 
         if (settled[3].status === 'fulfilled') {
           setReportedUsers(settled[3].value);
-          console.debug('[Dashboard] reportedUsers:', settled[3].value);
         } else {
           console.warn('[Dashboard] reportedUsers load failed', settled[3]);
         }

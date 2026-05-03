@@ -4,65 +4,78 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Light mode - Premium Fintech Slate & Blue styling */
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary: Vibrant Blue (3B82F6) */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary: Deep Slate (0F172A) */
+    --secondary: 222 47% 11%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 217 91% 60%;
 
-    --radius: 0.5rem;
+    --radius: 0.85rem;
+    
+    /* Custom semantic colors */
+    --surface: 0 0% 100%;
+    --surface-hover: 210 40% 96%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* Dark mode - Deep Luxury Slate (#0F172A) */
+    --background: 222 47% 11%;   /* Slate 900 */
+    --foreground: 210 40% 98%;   /* Slate 50 */
 
-    --card: 222.2 84% 4.9%;
+    --card: 217 33% 18%;         /* Slate 800 */
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 4.9%;
+    --popover: 217 33% 18%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    /* Primary: Vibrant Blue (3B82F6) */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217.2 32.6% 17.5%;
+    --secondary: 215 28% 22%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 215 28% 22%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
+    --accent: 215 28% 22%;
     --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 63% 51%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 215 28% 22%;
+    --input: 215 28% 22%;
+    --ring: 217 91% 60%;
+    
+    /* Custom semantic colors for dark mode */
+    --surface: 217 33% 18%;
+    --surface-hover: 215 28% 22%;
   }
 }
 
@@ -70,12 +83,34 @@
   * {
     @apply border-border;
   }
+  
+  html {
+    @apply antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+  
   body {
     @apply bg-background text-foreground;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Smooth color transitions for theme changes */
+  html,
+  body,
+  body * {
+    transition-property: background-color, border-color, color;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+  }
+  
+  /* Exclude elements that shouldn't animate */
+  *:where([class*="animate-"], [class*="transition-"]) {
+    transition-property: all !important;
   }
 }
-
-/* Override Tailwind defaults with design tokens for consistency */
 
 @layer components {
   /* Focus ring consistency across all interactive elements */
@@ -83,9 +118,7 @@
   button:focus,
   select:focus,
   textarea:focus {
-    @apply outline-none;
-    box-shadow: 0 0 0 4px var(--focus);
-    transition: var(--transition-fast);
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 
   /* Disabled state consistency */
@@ -94,38 +127,57 @@
   select:disabled {
     @apply opacity-50 cursor-not-allowed;
   }
+  
+  /* Custom scrollbar styling */
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted hover:bg-muted-foreground/30 rounded-md;
+  }
 }
 
 /* Component-specific utilities */
 .btn {
-  @apply inline-flex items-center justify-center px-4 py-2 rounded-md transition-all duration-150 font-medium text-sm;
+  @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition-all;
+  @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+  @apply disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
 .btn-primary {
-  @apply bg-indigo-500 text-white hover:bg-indigo-600 dark:bg-indigo-400 dark:hover:bg-indigo-300;
+  @apply bg-primary text-primary-foreground hover:bg-primary/90;
 }
 
 .btn-secondary {
-  @apply bg-slate-100 text-slate-900 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600;
+  @apply bg-secondary text-secondary-foreground hover:bg-secondary/80;
+}
+
+.btn-destructive {
+  @apply bg-destructive text-destructive-foreground hover:bg-destructive/90;
 }
 
 .btn-ghost {
-  @apply text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800;
+  @apply hover:bg-accent hover:text-accent-foreground;
 }
 
-.input-base {
-  @apply w-full px-3 py-2 rounded-md border border-slate-300 bg-white text-slate-900 transition-all duration-150 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100;
+.btn-outline {
+  @apply border border-input bg-background hover:bg-accent hover:text-accent-foreground;
 }
 
-.input-base:focus {
-  @apply outline-none border-indigo-500;
-  box-shadow: 0 0 0 4px var(--focus);
+/* Card styles */
+.card {
+  @apply rounded-lg border bg-card text-card-foreground shadow-sm;
 }
 
-.card-base {
-  @apply rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800 transition-all duration-150;
-}
-
-.card-base:hover {
-  @apply shadow-md;
+/* Input styles */
+.input {
+  @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm;
+  @apply ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium;
+  @apply placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2;
+  @apply focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
 }

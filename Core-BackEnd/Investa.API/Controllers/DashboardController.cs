@@ -202,6 +202,7 @@ public class DashboardController : ControllerBase
                   {
                       BusinessCategoryId = bc.Id,
                       BusinessCategoryName = bc.Value,
+                      BusinessCategoryNameAr = string.IsNullOrWhiteSpace(bc.ValueAr) ? bc.Value : bc.ValueAr,
                       InvestmentCount = g.InvestmentCount
                   });
 

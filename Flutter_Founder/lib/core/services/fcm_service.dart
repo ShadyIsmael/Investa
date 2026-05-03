@@ -6,6 +6,7 @@ import '../services/logger_service.dart';
 import '../services/secure_storage_service.dart';
 import '../network/network_config.dart';
 import '../../services/app_logger.dart';
+import '../../services/endpoint_resolver.dart';
 import 'package:http/http.dart' as http;
 
 /// Background message handler - must be a top-level function
@@ -167,7 +168,14 @@ class FCMService {
   /// Sync FCM token with backend
   Future<void> _syncTokenWithBackend(String token) async {
     try {
-      final baseUrl = networkConfig.baseUrl;
+      var baseUrl = EndpointResolver.instance.selectedApiBaseUrl;
+      if (baseUrl.isEmpty) {
+        baseUrl = networkConfig.baseUrl;
+      }
+      if (!baseUrl.startsWith('http')) {
+        baseUrl = 'http://$baseUrl';
+      }
+      baseUrl = baseUrl.replaceAll(RegExp(r'/+\s*$'), '');
       final url = Uri.parse('$baseUrl/api/users/fcm-token');
 
       // Get auth token
@@ -282,7 +290,6 @@ class FCMService {
 
     if (messageType == 'investment_request') {
       final requestId = message.data['requestId'];
-      final investmentId = message.data['investmentId'];
       final investorName = message.data['investorName'] ?? 'Investor';
       final amount = message.data['amount'] ?? '0';
 

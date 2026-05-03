@@ -107,17 +107,20 @@ class DashboardSummary {
 class TopCategoryDto {
   final int businessCategoryId;
   final String businessCategoryName;
+  final String businessCategoryNameAr;
   final int investmentCount;
 
   TopCategoryDto(
       {required this.businessCategoryId,
       required this.businessCategoryName,
+      required this.businessCategoryNameAr,
       required this.investmentCount});
 
   factory TopCategoryDto.fromJson(Map<String, dynamic> json) {
     return TopCategoryDto(
       businessCategoryId: (json['businessCategoryId'] as num?)?.toInt() ?? 0,
       businessCategoryName: json['businessCategoryName'] as String? ?? '',
+      businessCategoryNameAr: json['businessCategoryNameAr'] as String? ?? '',
       investmentCount: (json['investmentCount'] as num?)?.toInt() ?? 0,
     );
   }

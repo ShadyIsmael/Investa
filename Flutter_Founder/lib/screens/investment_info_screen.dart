@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../theme/color_extensions.dart';
 import '../services/messages.dart';
-import '../services/config.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../services/investments_service.dart';
@@ -94,38 +93,6 @@ class _InvestmentInfoScreenState extends State<InvestmentInfoScreen> {
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text(AppMessages.copiedShareText)));
-  }
-
-  Future<void> _handleInvest() async {
-    final cost = Env.engageCreditCost;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Start Engagement',
-            style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-        content: Text(
-            'This action will deduct $cost credits from your balance to open a secure channel with the founder. Continue?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
-          ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppPalette.flame,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Confirm')),
-        ],
-      ),
-    );
-
-    if (confirmed == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text(AppMessages.engageRequestSent),
-        backgroundColor: Theme.of(context).colorScheme.secondary,
-      ));
-    }
   }
 
   @override
@@ -636,6 +603,7 @@ class _InvestmentInfoScreenState extends State<InvestmentInfoScreen> {
                                       }
                                       await _refreshImages();
                                       setStateModal(() {});
+                                      if (!bctx.mounted) return;
                                       ScaffoldMessenger.of(bctx).showSnackBar(
                                         SnackBar(
                                             content: Text(anySuccess
@@ -689,6 +657,9 @@ class _InvestmentInfoScreenState extends State<InvestmentInfoScreen> {
                                                   ? (foundMap['id'] as int?)
                                                   : null;
                                               if (id != null) {
+                                                final messenger =
+                                                    ScaffoldMessenger.of(
+                                                        context);
                                                 final ok =
                                                     await _investmentsService
                                                         .setPrimaryImage(
@@ -696,8 +667,8 @@ class _InvestmentInfoScreenState extends State<InvestmentInfoScreen> {
                                                 if (ok) {
                                                   await _refreshImages();
                                                   setStateModal(() {});
-                                                  ScaffoldMessenger.of(context)
-                                                      .showSnackBar(const SnackBar(
+                                                  messenger.showSnackBar(
+                                                      const SnackBar(
                                                           content: Text(
                                                               'Set as primary')));
                                                 }
@@ -719,17 +690,19 @@ class _InvestmentInfoScreenState extends State<InvestmentInfoScreen> {
                                                   ? (foundMap['id'] as int?)
                                                   : null;
                                               if (id != null) {
+                                                final messenger =
+                                                    ScaffoldMessenger.of(
+                                                        context);
                                                 final ok =
                                                     await _investmentsService
                                                         .deleteImage(invId, id);
                                                 if (ok) {
                                                   await _refreshImages();
                                                   setStateModal(() {});
-                                                  ScaffoldMessenger.of(context)
-                                                      .showSnackBar(
-                                                          const SnackBar(
-                                                              content: Text(
-                                                                  'Deleted')));
+                                                  messenger.showSnackBar(
+                                                      const SnackBar(
+                                                          content:
+                                                              Text('Deleted')));
                                                 }
                                               }
                                             },

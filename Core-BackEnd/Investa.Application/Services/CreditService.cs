@@ -19,9 +19,27 @@ public class CreditService : ICreditService
 
     public async Task<CreditTransactionDto> CreateTransactionAsync(Guid userId, decimal amount, string type, string? description = null, int? referenceId = null)
     {
-        // Find client record by user id
+        // Prefer client credit ledger, but support wallet-only users as fallback.
         var client = (await _unitOfWork.Repository<Client>().FindAsync(c => c.UserId == userId)).FirstOrDefault();
-        if (client == null) throw new InvalidOperationException($"Client for user id {userId} not found");
+        var user = await _unitOfWork.Repository<User>().GetByIdAsync(userId);
+        if (client == null && user == null)
+        {
+            throw new InvalidOperationException($"User for id {userId} not found");
+        }
+
+        // Validate balance before creating transaction.
+        if (amount < 0)
+        {
+            if (client != null && client.Credit + amount < 0)
+            {
+                throw new InvalidOperationException("Insufficient credits");
+            }
+
+            if (client == null && user != null && user.WalletBalance + amount < 0)
+            {
+                throw new InvalidOperationException("Insufficient credits");
+            }
+        }
 
         // Create transaction with bilingual justification (backward compatibility)
         var tx = new CreditTransaction
@@ -35,9 +53,18 @@ public class CreditService : ICreditService
 
         await _unitOfWork.Repository<CreditTransaction>().AddAsync(tx);
 
-        // Update client credit sum
-        client.Credit += amount;
-        await _unitOfWork.Repository<Client>().UpdateAsync(client);
+        // Update balances (keep both in sync when available)
+        if (client != null)
+        {
+            client.Credit += amount;
+            await _unitOfWork.Repository<Client>().UpdateAsync(client);
+        }
+
+        if (user != null)
+        {
+            user.WalletBalance += amount;
+            await _unitOfWork.Repository<User>().UpdateAsync(user);
+        }
 
         await _unitOfWork.SaveChangesAsync();
 

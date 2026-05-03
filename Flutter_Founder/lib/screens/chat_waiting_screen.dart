@@ -12,7 +12,7 @@ class ChatWaitingScreen extends StatefulWidget {
   const ChatWaitingScreen({super.key, this.metadata, this.notifier});
 
   @override
-  _ChatWaitingScreenState createState() => _ChatWaitingScreenState();
+  State<ChatWaitingScreen> createState() => _ChatWaitingScreenState();
 }
 
 class _ChatWaitingScreenState extends State<ChatWaitingScreen> {
@@ -52,15 +52,12 @@ class _ChatWaitingScreenState extends State<ChatWaitingScreen> {
 
     // Capture context and navigator before the async gap to avoid using
     // BuildContext across awaits.
-    final localContext = context;
-    final localNavigator = Navigator.of(context);
-
     try {
       await _controller.startNewConversation(metadata: widget.metadata);
     } catch (e) {
       if (!mounted) return;
       await showDialog<void>(
-        context: localContext,
+        context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('Could not start chat'),
           content: Text('Failed to start a chat session: $e'),
@@ -71,7 +68,8 @@ class _ChatWaitingScreenState extends State<ChatWaitingScreen> {
           ],
         ),
       );
-      localNavigator.pop();
+      if (!mounted) return;
+      Navigator.of(context).pop();
     }
   }
 
@@ -98,7 +96,7 @@ class _ChatWaitingScreenState extends State<ChatWaitingScreen> {
             TextButton.icon(
                 onPressed: () async {
                   await _controller.cancel();
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   Navigator.of(context).pop();
                 },
                 icon: const Icon(Icons.cancel),

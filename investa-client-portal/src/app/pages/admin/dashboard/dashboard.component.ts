@@ -231,9 +231,12 @@ export class DashboardComponent {
 
     // Fix: Replaced `reduce` with a `for...of` loop for clearer type handling and to resolve inference issues with the accumulator.
     const categoryTotals: Record<string, number> = {};
+    const lang = this.languageService.language();
     for (const investment of investments) {
       const value = investment[valueField];
-      const categoryName = investment.businessCategoryName || this.t('dashboard.uncategorized', 'Uncategorized');
+      const categoryName = lang === 'ar'
+        ? (investment.businessCategoryNameAr || investment.businessCategoryName || this.t('dashboard.uncategorized', 'Uncategorized'))
+        : (investment.businessCategoryName || this.t('dashboard.uncategorized', 'Uncategorized'));
       if (typeof value === 'number') {
         categoryTotals[categoryName] = (categoryTotals[categoryName] || 0) + value;
       }

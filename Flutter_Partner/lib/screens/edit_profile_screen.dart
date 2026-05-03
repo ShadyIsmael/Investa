@@ -305,8 +305,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (v.isEmpty) return '';
     final s = v.trim();
     if (s.length <= 5) return s;
-    final start = 3;
-    final end = 2;
+    const start = 3;
+    const end = 2;
     final maskedLen = s.length - start - end;
     if (maskedLen <= 0) return s;
     final stars = List.filled(maskedLen, '*').join();
@@ -451,10 +451,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final theme = Theme.of(context);
     final loc = AppLocalizations.of(context);
 
-    return WillPopScope(
-      onWillPop: () async {
-        await _handleBackNavigation();
-        return false;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, _) async {
+        if (!didPop) await _handleBackNavigation();
       },
       child: Scaffold(
         extendBodyBehindAppBar: true,

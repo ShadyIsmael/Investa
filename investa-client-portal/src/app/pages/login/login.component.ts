@@ -1,4 +1,5 @@
 import { Component, ChangeDetectionStrategy, inject, signal, computed } from '@angular/core';
+import { LanguageService } from '../../services/language.service';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { ReactiveFormsModule, FormControl, FormGroup, Validators } from '@angular/forms';
@@ -20,6 +21,7 @@ export class LoginComponent {
   private router: Router = inject(Router);
   private route: ActivatedRoute = inject(ActivatedRoute);
   private profileService: ProfileService = inject(ProfileService);
+  private languageService: LanguageService = inject(LanguageService);
 
   role = signal<UserRole>('investor');
   errorMessage = signal<string | null>(null);
@@ -105,7 +107,8 @@ export class LoginComponent {
       const redirectPath = role === 'investor' ? '/admin/investments' : '/admin/dashboard';
       this.router.navigate([redirectPath]);
     } catch (err: any) {
-      this.errorMessage.set(err?.message || 'Login failed');
+      const generic = this.languageService.translate('login.errorGeneric');
+      this.errorMessage.set(err?.message || generic);
     } finally {
       this.isSubmitting.set(false);
     }

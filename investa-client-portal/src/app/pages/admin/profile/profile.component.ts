@@ -487,6 +487,10 @@ export class ProfileComponent {
     this.router.navigate(['/admin/transactions']);
   }
 
+  navigateToChargeCredits() {
+    this.router.navigate(['/admin/credit-charge']);
+  }
+
   onFileChange(event: Event) {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
@@ -656,9 +660,9 @@ export class ProfileComponent {
       identityCompliance: {
         ...(existing.identityCompliance ?? {}),
         documentNumber: this.profileForm.get('nationalId')?.value ?? existing.identityCompliance?.documentNumber ?? null,
-        hrLetterFileName: this.hrLetterFileName() || existing.identityCompliance?.hrLetterFileName ?? null,
-        hrLetterBase64: this.hrLetterBase64() || existing.identityCompliance?.hrLetterBase64 ?? null,
-        deviceMacAddress: this.deviceMacAddress() || existing.identityCompliance?.deviceMacAddress ?? null
+        hrLetterFileName: (this.hrLetterFileName() || existing.identityCompliance?.hrLetterFileName) ?? null,
+        hrLetterBase64: (this.hrLetterBase64() || existing.identityCompliance?.hrLetterBase64) ?? null,
+        deviceMacAddress: (this.deviceMacAddress() || existing.identityCompliance?.deviceMacAddress) ?? null
       }
     };
   }

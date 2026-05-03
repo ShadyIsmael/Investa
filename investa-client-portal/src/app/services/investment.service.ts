@@ -178,6 +178,7 @@ export class InvestmentService {
 
       businessCategoryId: dto.businessCategoryId,
       businessCategoryName: category?.value,
+      businessCategoryNameAr: category?.valueAr ?? category?.value,
       businessStageId: dto.businessStageId,
       projectPhaseId: dto.projectPhaseId,
 
@@ -261,7 +262,7 @@ export class InvestmentService {
           id: inv.businessCategoryId,
           key: `category_${inv.businessCategoryId}`,
           value: inv.businessCategoryName,
-          valueAr: inv.businessCategoryName  // TODO: Add Arabic support
+          valueAr: inv.businessCategoryNameAr ?? inv.businessCategoryName
         });
       }
     });

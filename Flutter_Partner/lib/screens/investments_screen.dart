@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/color_extensions.dart';
 import '../services/categories_service.dart';
@@ -172,7 +173,12 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
         labelColor: theme.colorScheme.primary,
         unselectedLabelColor:
             theme.textTheme.bodyMedium?.color?.withOpacityCompat(0.5),
-        tabs: categories.map((c) => Tab(text: c.value)).toList(),
+        tabs: categories
+            .map((c) => Tab(
+                text: context.isArabic && c.valueAr.isNotEmpty
+                    ? c.valueAr
+                    : c.value))
+            .toList(),
       ),
     );
   }
@@ -1506,6 +1512,152 @@ class _InvestmentCardState extends State<_InvestmentCard> {
       child: Text(level.toUpperCase(),
           style: GoogleFonts.dmSans(
               fontSize: 10, fontWeight: FontWeight.bold, color: color)),
+    );
+  }
+}
+
+/// Screen that shows the investments the logged-in user has engaged with.
+class MyInvestmentsScreen extends StatefulWidget {
+  const MyInvestmentsScreen({Key? key}) : super(key: key);
+
+  @override
+  State<MyInvestmentsScreen> createState() => _MyInvestmentsScreenState();
+}
+
+class _MyInvestmentsScreenState extends State<MyInvestmentsScreen> {
+  late Future<List<dynamic>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  void _load() {
+    _future = InvestmentsService().fetchMyInvestments();
+  }
+
+  Future<void> _refresh() async {
+    _load();
+    setState(() {});
+    await _future;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final loc = AppLocalizations.of(context);
+
+    return Scaffold(
+      backgroundColor:
+          isDark ? AppPalette.midnightDeep : const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: false,
+        title: Text(
+          loc.t('investments'),
+          style: GoogleFonts.outfit(
+            fontWeight: FontWeight.bold,
+            fontSize: 28,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+      ),
+      body: FutureBuilder<List<dynamic>>(
+        future: _future,
+        builder: (ctx, snap) {
+          if (snap.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator.adaptive());
+          }
+          if (snap.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.error_outline,
+                        size: 44,
+                        color:
+                            theme.colorScheme.onSurface.withOpacityCompat(0.5)),
+                    const SizedBox(height: 12),
+                    Text('Failed to load investments.',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurface
+                                .withOpacityCompat(0.7))),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: _refresh,
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          final items = snap.data ?? <dynamic>[];
+          if (items.isEmpty) {
+            return RefreshIndicator(
+              onRefresh: _refresh,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.18),
+                  Center(
+                    child: Column(
+                      children: [
+                        Icon(Icons.inbox,
+                            size: 72,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.25)),
+                        const SizedBox(height: 12),
+                        Text('No engaged investments found',
+                            style: Theme.of(context).textTheme.titleMedium),
+                        const SizedBox(height: 8),
+                        Text('Pull to refresh',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withOpacity(0.6))),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: _refresh,
+            child: ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: items.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 20),
+              physics: const BouncingScrollPhysics(),
+              itemBuilder: (ctx, i) {
+                final item = items[i] as Map<String, dynamic>;
+                final category = Category(
+                    id: -1,
+                    key: 'my',
+                    value: loc.t('investments'),
+                    valueAr: '????');
+                return _InvestmentCard(item: item, category: category);
+              },
+            ),
+          );
+        },
+      ),
     );
   }
 }

@@ -54,7 +54,6 @@ export const ChatView: React.FC<{ supportSessionId?: string }> = React.memo(({ s
     if (connection) {
       try { 
         connection.invoke('JoinGroup', 'Admins').catch(() => {});
-        console.log("Joined the Admins notification group successfully.");
       } catch { /* ignore */ }
     }
 

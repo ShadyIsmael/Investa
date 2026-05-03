@@ -35,26 +35,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onForgotPassword }) => {
       const resp = await api.post<any>('/api/v1/Auth/login-email', payload);
 
       // Try common token fields (support nested data)
-      // Log the full server response for debugging (backend token/claims)
-      try { console.info('Login response:', resp); } catch (e) {}
-
       const token = resp?.token || resp?.access_token || resp?.data?.token || resp?.authToken || resp?.tokenId || resp?.data?.accessToken;
       if (token) {
-        // Try to decode token payload for immediate debugging
-        try {
-          const base64Url = token.split('.')[1];
-          if (base64Url) {
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const json = decodeURIComponent(
-              atob(base64)
-                .split('')
-                .map((c: string) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-                .join('')
-            );
-            try { console.info('Decoded token payload (login):', JSON.parse(json)); } catch (e) { console.info('Token payload (raw):', json); }
-          }
-        } catch (e) { /* ignore */ }
-
         // Use new permission-based login (this persists token via AuthContext)
         login(token, 'dashboard');
         

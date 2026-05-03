@@ -86,12 +86,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadProfile() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
     });
     try {
       await AppState.instance.loadFromStorage();
+      if (!mounted) return;
       if (AppState.instance.profile != null) {
         setState(() {
           _profile = AppState.instance.profile;
@@ -102,12 +104,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       final profile = await ProfileService().fetchProfile();
+      if (!mounted) return;
       AppLogger.logInfo('ProfileScreen._loadProfile',
           'fetchProfile returned ${profile == null ? 'null' : 'Profile object'}');
       if (profile != null) {
         final raw = AppState.instance.profileJson;
         await AppState.instance.setProfile(profile, raw);
       }
+      if (!mounted) return;
       setState(() {
         _profile = profile ?? AppState.instance.profile;
         _isLoading = false;
@@ -122,6 +126,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         await service.connect();
         // Initialize chat controller if provided via Provider
         try {
+          if (!mounted) return;
           final controller =
               Provider.of<ChatController>(context, listen: false);
           await controller.init();
@@ -166,6 +171,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         debugPrint('SignalR connect from ProfileScreen failed: $e');
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = 'Failed to load profile: $e';
         _isLoading = false;
@@ -220,6 +226,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       // Clear navigation stack and return to the login screen/root.
+      if (!mounted) return;
       Navigator.of(context).popUntil((route) => route.isFirst);
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text(AppMessages.signedOut)));
@@ -231,6 +238,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         context,
         MaterialPageRoute(
             builder: (_) => EditProfileScreen(profile: _profile)));
+    if (!mounted) return;
     if (result != null) {
       _loadProfile();
       ScaffoldMessenger.of(context).showSnackBar(

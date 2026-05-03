@@ -33,7 +33,24 @@
     "notAMember": "لست عضوًا؟",
     "signUpNow": "سجل الآن",
     "founder": "مؤسس",
-    "partner": "شريك"
+    "partner": "شريك",
+    "investor": "مستثمر",
+    "signingIn": "جاري تسجيل الدخول...",
+    "errorGeneric": "فشل تسجيل الدخول"
+  },
+  "roleSelect": {
+    "title": "╪º╪«╪¬╪▒ ╪»┘ê╪▒┘â",
+    "subtitle": "╪¡╪»╪» ┘à╪│╪º╪▒┘â ┘ä╪¬╪¿╪»╪ú ┘à╪╣ ╪Ñ┘å┘ü╪│╪¬╪º. ┘ç┘ä ╪ú┘å╪¬ ┘ç┘å╪º ┘ä┘ä╪╣╪½┘ê╪▒ ╪╣┘ä┘ë ╪º┘ä┘ü╪▒╪╡ ╪ú┘à ┘ä╪╡┘å╪╣┘ç╪º╪ƒ",
+    "investor": {
+      "title": "┘à╪│╪¬╪½┘à╪▒",
+      "description": "╪ú╪¿╪¡╪½ ╪╣┘å ╪º┘â╪¬╪┤╪º┘ü ┘ê╪¬┘à┘ê┘è┘ä ╪º┘ä┘à╪┤╪º╪▒┘è╪╣ ╪º┘ä┘ê╪º╪╣╪»╪⌐ ╪º┘ä╪¼╪»┘è╪»╪⌐.",
+      "button": "╪¬╪│╪¼┘è┘ä ╪º┘ä╪»╪«┘ê┘ä ┘â┘à╪│╪¬╪½┘à╪▒"
+    },
+    "founder": {
+      "title": "┘à╪ñ╪│╪│",
+      "description": "╪ú╪│╪╣┘ë ┘ä┘ä╪¡╪╡┘ê┘ä ╪╣┘ä┘ë ╪¬┘à┘ê┘è┘ä ┘ê╪┤╪▒┘â╪º╪í ┘ä╪¿┘å╪º╪í ╪╣┘à┘ä┘è.",
+      "button": "╪¬╪│╪¼┘è┘ä ╪º┘ä╪»╪«┘ê┘ä ┘â┘à╪ñ╪│╪│"
+    }
   },
   "adminNav": {
     "panel": "لوحة تحكم إنفستا",
@@ -515,12 +532,40 @@
       "linkedin": "https://linkedin.com/in/...",
       "facebook": "https://facebook.com/..."
     },
+    "credits": {
+      "title": "الأرصدة",
+      "available": "الأرصدة المتاحة",
+      "chargeNow": "شحن الآن"
+    },
     "credibilityHistory": "تاريخ درجات الائتمان",
     "viewAll": "عرض جميع المعاملات"
   },
   "transactions": {
     "total": "إجمالي المعاملات",
     "pages": "إجمالي الصفحات"
+  },
+  "credits": {
+    "chargeTitle": "شحن الأرصدة",
+    "chargeSubtitle": "اشترِ أرصدة لفتح فرص الاستثمار والميزات",
+    "currentBalance": "الرصيد الحالي",
+    "credits": "أرصدة",
+    "selectPackage": "اختر باقة الأرصدة",
+    "popular": "الأكثر شعبية",
+    "off": "خصم",
+    "customAmount": "مبلغ مخصص",
+    "enterAmount": "أدخل المبلغ",
+    "price": "السعر",
+    "discount": "الخصم",
+    "invalidAmount": "الرجاء إدخال مبلغ بين 100 و 100,000",
+    "purchaseCustom": "شراء مبلغ مخصص",
+    "processing": "جاري المعالجة",
+    "orderSummary": "ملخص الطلب",
+    "selectPackagePrompt": "اختر باقة أو أدخل مبلغًا مخصصًا للمتابعة",
+    "total": "الإجمالي",
+    "purchaseNow": "اشترِ الآن",
+    "securePayment": "دفع آمن مدعوم بواسطة Stripe",
+    "successTitle": "تم الشراء بنجاح!",
+    "successMessage": "تمت إضافة الأرصدة إلى حسابك"
   },
   "apiSwitcher": {
     "apiLabel": "واجهة برمجية:",
@@ -583,6 +628,7 @@
   "common": {
     "loading": "جاري التحميل...",
     "cancel": "إلغاء",
+    "back": "رجوع",
     "processing": "جاري المعالجة...",
     "previous": "السابق",
     "next": "التالي",

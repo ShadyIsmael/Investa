@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import '../l10n/app_localizations.dart';
 import 'dashboard_screen.dart';
 import 'investments_screen.dart';
@@ -31,20 +32,33 @@ class _MainWrapperState extends State<MainWrapper> {
   int _pendingRequestsCount = 0;
   int _unreadMessagesCount = 0;
 
+  void _safeSetState(VoidCallback updater) {
+    if (!mounted) return;
+    final phase = SchedulerBinding.instance.schedulerPhase;
+    if (phase == SchedulerPhase.persistentCallbacks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(updater);
+      });
+      return;
+    }
+    setState(updater);
+  }
+
   void _onItemTapped(int index) {
     if (_selectedIndex == index) return;
-    setState(() => _selectedIndex = index);
+    _safeSetState(() => _selectedIndex = index);
   }
 
   void _updatePendingRequestsCount(int count) {
     if (_pendingRequestsCount != count) {
-      setState(() => _pendingRequestsCount = count);
+      _safeSetState(() => _pendingRequestsCount = count);
     }
   }
 
   void _updateUnreadMessagesCount(int count) {
     if (_unreadMessagesCount != count) {
-      setState(() => _unreadMessagesCount = count);
+      _safeSetState(() => _unreadMessagesCount = count);
     }
   }
 

@@ -149,6 +149,11 @@ class _MyAppState extends State<MyApp> {
     try {
       await _fcmService.initialize();
       _fcmInitialized = true;
+
+      // If user is already logged in, re-sync token now that auth may exist.
+      if (_isLoggedIn) {
+        unawaited(_fcmService.refreshToken());
+      }
     } catch (e, s) {
       AppLogger.logError('FCM', 'Failed to initialize FCM: $e', s);
     }
@@ -157,9 +162,11 @@ class _MyAppState extends State<MyApp> {
     _fcmService.onMessage.listen((message) {
       try {
         final type = message.data['type'] as String? ?? '';
-        if (type == 'investment_created') {
+        if (type == 'investment_created' ||
+            type == 'investment_request' ||
+            type == 'investment_request_updated') {
           AppLogger.logInfo(
-              'FCM', 'Investment created event received: ${message.data}');
+              'FCM', 'Investment notification event received: ${message.data}');
           AppState.instance.triggerRefresh();
         }
       } catch (e) {
@@ -212,6 +219,12 @@ class _MyAppState extends State<MyApp> {
     final resolved = (user != null) || prefLoggedIn;
     if (mounted) {
       setState(() => _isLoggedIn = resolved);
+
+      // Token sync in initialize() can run before auth token exists.
+      // Re-sync after login so backend can deliver notifications to this user.
+      if (resolved && _fcmInitialized) {
+        unawaited(_fcmService.refreshToken());
+      }
     }
   }
 
@@ -261,16 +274,6 @@ class _MyAppState extends State<MyApp> {
         ),
       );
     }
-
-    // Initialize FCM service
-    final logger = LoggerService();
-    final secureStorage = SecureStorageService();
-    final networkConfig = NetworkConfig();
-    final fcmService = FCMService(
-      networkConfig: networkConfig,
-      secureStorage: secureStorage,
-      logger: logger,
-    );
 
     return MultiProvider(
       providers: [

@@ -379,11 +379,6 @@ class InvestmentsService {
     if (!apiBase.startsWith('http')) apiBase = 'http://$apiBase';
     final url = '$apiBase/api/v1/investments/$investmentId/images/$imageId';
     try {
-      final resp = await _client.post(
-          url.replaceFirst('api/v1/investments',
-              'api/v1/investments') /* placeholder to use post? */,
-          headers: {});
-      // The API expects DELETE; using _client.post would be incorrect here. Use Dio directly via _client.post with method override.
       final r = await _client.delete(url);
       final status = r.statusCode ?? 0;
       return status >= 200 && status < 300;

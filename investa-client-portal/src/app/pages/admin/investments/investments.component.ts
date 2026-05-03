@@ -34,12 +34,12 @@ const ENGAGEMENT_CREDIT_COST = 5;
   imports: [CommonModule, ReactiveFormsModule, FormsModule, TranslatePipe]
 })
 export class InvestmentsComponent {
-  private investmentService = inject(InvestmentService);
+  protected investmentService = inject(InvestmentService);
   private fb: FormBuilder = inject(FormBuilder);
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
   private notificationService = inject(NotificationService);
-  private languageService = inject(LanguageService);
+  protected languageService = inject(LanguageService);
   private requestsService = inject(RequestsService);
   private userService = inject(UserService);
   
@@ -269,6 +269,19 @@ export class InvestmentsComponent {
     } catch (err) {
       console.error('Failed to load investments for category', category, err);
     }
+  }
+
+  /**
+   * Return a localized label for an API category value.
+   * Falls back to the provided `cat` when no Arabic translation is available.
+   */
+  getCategoryLabel(cat: string): string {
+    const lang = this.languageService.language();
+    if (lang === 'ar') {
+      const found = this.investmentService.categories().find(c => c.value === cat);
+      return found?.valueAr || cat;
+    }
+    return cat;
   }
   
   /**

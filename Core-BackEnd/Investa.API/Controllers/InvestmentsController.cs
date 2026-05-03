@@ -9,6 +9,7 @@ using Investa.Domain.Entities;
 using Investa.API.Controllers.Dtos;
 using Microsoft.Extensions.Localization;
 using Investa.API.Resources;
+using Microsoft.Extensions.Logging;
 
 namespace Investa.API.Controllers;
 
@@ -23,8 +24,16 @@ public class InvestmentsController : ControllerBase
     private readonly IScoreService _scoreService;
     private readonly INotificationService _notificationService;
     private readonly IStringLocalizer<SharedResource> _localizer;
+    private readonly ILogger<InvestmentsController> _logger;
 
-    public InvestmentsController(IInvestmentService service, IMapper mapper, IUnitOfWork unitOfWork, IScoreService scoreService, INotificationService notificationService, IStringLocalizer<SharedResource> localizer)
+    public InvestmentsController(
+        IInvestmentService service, 
+        IMapper mapper, 
+        IUnitOfWork unitOfWork, 
+        IScoreService scoreService, 
+        INotificationService notificationService, 
+        IStringLocalizer<SharedResource> localizer,
+        ILogger<InvestmentsController> logger)
     {
         _service = service;
         _mapper = mapper;
@@ -32,6 +41,7 @@ public class InvestmentsController : ControllerBase
         _scoreService = scoreService;
         _notificationService = notificationService;
         _localizer = localizer;
+        _logger = logger;
     }
 
     [HttpPost]
@@ -49,6 +59,24 @@ public class InvestmentsController : ControllerBase
         dto.FounderId = userId;
         var created = await _service.CreateAsync(dto);
         var outDto = _mapper.Map<InvestmentDto>(created);
+
+        // Populate BusinessCategory names (English + Arabic) for response when available
+        try
+        {
+            if (outDto.BusinessCategoryId.HasValue)
+            {
+                var bc = await _unitOfWork.Repository<Investa.Domain.Entities.BusinessCategory>().GetByIdAsync(outDto.BusinessCategoryId.Value);
+                if (bc != null)
+                {
+                    outDto.BusinessCategoryName = bc.Value;
+                    outDto.BusinessCategoryNameAr = string.IsNullOrWhiteSpace(bc.ValueAr) ? bc.Value : bc.ValueAr;
+                }
+            }
+        }
+        catch
+        {
+            // ignore lookup failures for create response
+        }
 
         // Notify the founder's devices about the newly created investment so mobile apps can mirror it
         try
@@ -100,15 +128,37 @@ public class InvestmentsController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> GetByCategory([FromQuery] int? categoryId)
     {
-        var entities = await _service.GetByCategoryAsync(categoryId);
-        var outDtos = _mapper.Map<IEnumerable<InvestmentDto>>(entities).ToList();
-
-        // Enrich each DTO
-        foreach (var dto in outDtos)
+        try
         {
-            await EnrichInvestmentDtoAsync(dto);
+            var entities = await _service.GetByCategoryAsync(categoryId);
+            var outDtos = _mapper.Map<IEnumerable<InvestmentDto>>(entities).ToList();
+
+            // Enrich each DTO
+            foreach (var dto in outDtos)
+            {
+                try
+                {
+                    await EnrichInvestmentDtoAsync(dto);
+                }
+                catch (Exception ex)
+                {
+                    // Log but continue with other DTOs
+                    _logger.LogError(ex, "Failed to enrich investment DTO {InvestmentId}", dto?.Id);
+                    // Set default values for enrichment fields
+                    if (dto != null)
+                    {
+                        dto.FounderDisplay = dto.FounderDisplay ?? "Unknown";
+                        dto.CredibilityScore = dto.CredibilityScore;
+                    }
+                }
+            }
+            return Ok(new { success = true, data = outDtos });
         }
-        return Ok(new { success = true, data = outDtos });
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in GetByCategory with categoryId: {CategoryId}", categoryId);
+            return StatusCode(500, new { success = false, message = "An error occurred while fetching investments", error = ex.Message });
+        }
     }
 
     /// <summary>
@@ -331,26 +381,43 @@ public class InvestmentsController : ControllerBase
     {
         if (dto == null) return;
 
-        // Try to find Client record for this user
-        var client = (await _unitOfWork.Repository<Investa.Domain.Entities.Client>().FindAsync(c => c.UserId == dto.FounderId)).FirstOrDefault();
-
         string? founderName = null;
         string? businessRole = null;
 
-        if (client != null)
+        try
         {
-            founderName = string.Join(' ', new[] { client.FirstName, client.LastName }.Where(s => !string.IsNullOrWhiteSpace(s)));
-            businessRole = client.BusinessRole;
-        }
-        else
-        {
-            // Fallback to UserProfile
-            var user = await _unitOfWork.Repository<Investa.Domain.Entities.User>().GetByIdAsync(dto.FounderId);
-            if (user?.Profile != null)
+            // Try to find Client record for this user
+            var client = (await _unitOfWork.Repository<Investa.Domain.Entities.Client>()
+                .FindAsync(c => c.UserId == dto.FounderId))
+                .FirstOrDefault();
+
+            if (client != null)
             {
-                founderName = string.Join(' ', new[] { user.Profile.FirstName, user.Profile.LastName }.Where(s => !string.IsNullOrWhiteSpace(s)));
+                founderName = string.Join(' ', new[] { client.FirstName, client.LastName }.Where(s => !string.IsNullOrWhiteSpace(s)));
+                businessRole = client.BusinessRole;
             }
-            if (string.IsNullOrWhiteSpace(founderName)) founderName = user?.Name;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not retrieve Client record for user {FounderId}", dto.FounderId);
+        }
+
+        // Fallback to UserProfile if no client data found
+        if (string.IsNullOrWhiteSpace(founderName))
+        {
+            try
+            {
+                var user = await _unitOfWork.Repository<Investa.Domain.Entities.User>().GetByIdAsync(dto.FounderId);
+                if (user?.Profile != null)
+                {
+                    founderName = string.Join(' ', new[] { user.Profile.FirstName, user.Profile.LastName }.Where(s => !string.IsNullOrWhiteSpace(s)));
+                }
+                if (string.IsNullOrWhiteSpace(founderName)) founderName = user?.Name;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not retrieve User record for {FounderId}", dto.FounderId);
+            }
         }
 
         dto.BusinessRole = businessRole;
@@ -360,27 +427,56 @@ public class InvestmentsController : ControllerBase
             dto.FounderDisplay = founderName;
         else if (!string.IsNullOrWhiteSpace(businessRole))
             dto.FounderDisplay = businessRole;
+        else
+            dto.FounderDisplay = "Unknown"; // Default fallback
 
         // Populate credibility score (default 0)
         try
         {
             dto.CredibilityScore = await _scoreService.GetCredibilityScoreAsync(dto.FounderId);
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Could not retrieve credibility score for {FounderId}", dto.FounderId);
             dto.CredibilityScore = 0;
         }
 
-        // Populate InvestedAmount for the requesting user if available
-        var userIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
-        if (Guid.TryParse(userIdClaim, out var userIdGuid))
+        // Populate BusinessCategory display names (English + Arabic) when available
+        try
         {
-            var participant = dto.Participants?.FirstOrDefault(p => p.InvestorId == userIdGuid);
-            dto.InvestedAmount = participant?.AmountInvested ?? 0m;
+            if (dto.BusinessCategoryId.HasValue)
+            {
+                var bc = await _unitOfWork.Repository<Investa.Domain.Entities.BusinessCategory>().GetByIdAsync(dto.BusinessCategoryId.Value);
+                if (bc != null)
+                {
+                    dto.BusinessCategoryName = bc.Value;
+                    dto.BusinessCategoryNameAr = string.IsNullOrWhiteSpace(bc.ValueAr) ? bc.Value : bc.ValueAr;
+                }
+            }
         }
-        else
+        catch (Exception ex)
         {
-            dto.InvestedAmount = null; // No authenticated user context
+            _logger.LogWarning(ex, "Could not retrieve BusinessCategory for investment {InvestmentId}", dto.Id);
+        }
+
+        // Populate InvestedAmount for the requesting user if available
+        try
+        {
+            var userIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
+            if (Guid.TryParse(userIdClaim, out var userIdGuid))
+            {
+                var participant = dto.Participants?.FirstOrDefault(p => p.InvestorId == userIdGuid);
+                dto.InvestedAmount = participant?.AmountInvested ?? 0m;
+            }
+            else
+            {
+                dto.InvestedAmount = null; // No authenticated user context
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not retrieve participant data for investment {InvestmentId}", dto.Id);
+            dto.InvestedAmount = null;
         }
     }
 
@@ -464,12 +560,15 @@ public class InvestmentsController : ControllerBase
 
         // Build CSV
         var lines = new List<string>();
-        lines.Add("Id,Name,FounderId,FounderDisplay,BusinessRole,TargetFund,CurrentFunding,InvestedAmount,InvestorCount,Status");
+        // include both English and Arabic category columns so exports contain localized labels
+        lines.Add("Id,Name,FounderId,FounderDisplay,BusinessRole,BusinessCategoryName,BusinessCategoryNameAr,TargetFund,CurrentFunding,InvestedAmount,InvestorCount,Status");
         foreach (var d in dtos)
         {
             var nameEsc = d.BusinessName?.Replace("\"", "\"\"") ?? string.Empty;
             var roleEsc = (d.BusinessRole ?? string.Empty).Replace("\"", "\"\"");
-            lines.Add($"{d.Id},\"{nameEsc}\",{d.FounderId},\"{(d.FounderDisplay ?? string.Empty).Replace("\"", "\"\"")}\",\"{roleEsc}\",{d.TargetFund},{d.CurrentFunding},{d.InvestedAmount},{d.InvestorCount},\"{d.Status}\"");
+            var catNameEsc = (d.BusinessCategoryName ?? string.Empty).Replace("\"", "\"\"");
+            var catNameArEsc = (d.BusinessCategoryNameAr ?? string.Empty).Replace("\"", "\"\"");
+            lines.Add($"{d.Id},\"{nameEsc}\",{d.FounderId},\"{(d.FounderDisplay ?? string.Empty).Replace("\"", "\"\"")}\",\"{roleEsc}\",\"{catNameEsc}\",\"{catNameArEsc}\",{d.TargetFund},{d.CurrentFunding},{d.InvestedAmount},{d.InvestorCount},\"{d.Status}\"");
         }
 
         var csv = string.Join("\n", lines);

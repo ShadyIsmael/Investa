@@ -51,6 +51,8 @@ public class InvestmentDto
     public int? BusinessStageId { get; set; }
     public int? BusinessCategoryId { get; set; }
     public string? BusinessCategoryName { get; set; }
+    // Arabic value for BusinessCategory (optional)
+    public string? BusinessCategoryNameAr { get; set; }
     public int? ProjectPhaseId { get; set; }
     public string? Milestone { get; set; }
     public string? RiskLevel { get; set; }

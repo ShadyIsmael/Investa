@@ -51,8 +51,6 @@ class _NewInvestmentScreenState extends State<NewInvestmentScreen> {
   bool _isLoading = true;
   bool _isSaving = false;
 
-  // Image picker
-  final ImagePicker _picker = ImagePicker();
   List<XFile> _selectedImages = []; // client-side selected images (max 5)
 
   // Selected Values
@@ -63,7 +61,6 @@ class _NewInvestmentScreenState extends State<NewInvestmentScreen> {
   String _currency = 'USD';
   int _investmentTypeId = 2; // 1 = Founding, 2 = Equity
 
-  final List<String> _risks = ['Low', 'Medium', 'High'];
   final List<String> _currencies = ['USD', 'EUR', 'SAR', 'EGP'];
   final List<Map<String, dynamic>> _investmentTypes = const [
     {'id': 1, 'label': 'Founding'},

@@ -17,8 +17,10 @@ import '../services/messages.dart';
 
 class RequestsScreen extends StatefulWidget {
   final Function(int)? onPendingCountChanged;
+  final int initialTabIndex;
 
-  const RequestsScreen({Key? key, this.onPendingCountChanged})
+  const RequestsScreen(
+      {Key? key, this.onPendingCountChanged, this.initialTabIndex = 0})
       : super(key: key);
 
   @override
@@ -151,6 +153,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
                   padding: const EdgeInsets.all(16),
                   child: DefaultTabController(
                     length: 3,
+                    initialIndex: widget.initialTabIndex,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [

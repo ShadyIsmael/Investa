@@ -39,7 +39,8 @@ namespace Investa.API.Controllers
         {
             try
             {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                // Use "sub" claim which holds the user GUID (ClaimTypes.NameIdentifier holds the username)
+                var userId = User.FindFirstValue("sub") ?? User.FindFirstValue("id");
                 if (string.IsNullOrEmpty(userId))
                 {
                     return Unauthorized(_localizer["UnableToIdentifyUserFromToken"].Value);

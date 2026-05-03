@@ -87,7 +87,6 @@ export class ProfileService {
       const token = this.getAccessTokenFromLocalStorage();
       const options = token ? { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) } : undefined;
       const resp = await firstValueFrom(this.http.get<UserProfile>(url, options));
-      console.debug('loadMyProfile response walletBalance:', resp?.coreMetrics?.walletBalance);
       if (resp) {
         this._profile.set(resp);
         return resp;
@@ -157,9 +156,7 @@ export class ProfileService {
 
       const token = this.getAccessTokenFromLocalStorage();
       const options = token ? { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) } : undefined;
-      console.debug('updateMyProfile payload:', payload);
       const resp = await firstValueFrom(this.http.put<UserProfile>(url, payload, options));
-      console.debug('updateMyProfile response:', resp);
       if (resp) {
         this._profile.set(resp);
         return resp;

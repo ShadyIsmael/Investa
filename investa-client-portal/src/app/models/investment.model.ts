@@ -144,6 +144,7 @@ export interface Investment {
   // Category and classification
   businessCategoryId?: number;
   businessCategoryName?: string;
+  businessCategoryNameAr?: string;
   businessStageId?: number;
   projectPhaseId?: number;
   milestone?: string;

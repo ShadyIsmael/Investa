@@ -44,12 +44,14 @@ public class InvestmentRequestService : IInvestmentRequestService
         }
 
         var client = (await _unitOfWork.Repository<Client>().FindAsync(c => c.UserId == investorId)).FirstOrDefault();
-        if (client == null)
+        var user = await _unitOfWork.Repository<User>().GetByIdAsync(investorId);
+        if (client == null && user == null)
         {
-            throw new InvalidOperationException("Client account not found");
+            throw new InvalidOperationException("Investor account not found");
         }
 
-        if (client.Credit < dto.Amount)
+        var availableCredit = client?.Credit ?? user?.WalletBalance ?? 0m;
+        if (availableCredit < dto.Amount)
         {
             throw new InvalidOperationException("Insufficient credits");
         }
@@ -107,9 +109,13 @@ public class InvestmentRequestService : IInvestmentRequestService
         // Send push notification to founder (best-effort, don't fail if notification fails)
         try
         {
-            var firstName = client.FirstName ?? string.Empty;
-            var lastName = client.LastName ?? string.Empty;
+            var firstName = client?.FirstName ?? user?.Profile?.FirstName ?? string.Empty;
+            var lastName = client?.LastName ?? user?.Profile?.LastName ?? string.Empty;
             var investorName = $"{firstName} {lastName}".Trim();
+            if (string.IsNullOrWhiteSpace(investorName) && user != null)
+            {
+                investorName = user.Profile?.FullName ?? user.Name;
+            }
             if (string.IsNullOrWhiteSpace(investorName)) investorName = "Investor";
 
             _logger.LogInformation("Sending notification to founder {FounderId} about investment request from {InvestorName}", 
@@ -141,7 +147,8 @@ public class InvestmentRequestService : IInvestmentRequestService
         }
 
         var updatedClient = (await _unitOfWork.Repository<Client>().FindAsync(c => c.UserId == investorId)).FirstOrDefault();
-        var updatedBalance = updatedClient?.Credit ?? 0m;
+        var updatedUser = await _unitOfWork.Repository<User>().GetByIdAsync(investorId);
+        var updatedBalance = updatedClient?.Credit ?? updatedUser?.WalletBalance ?? 0m;
 
         try
         {

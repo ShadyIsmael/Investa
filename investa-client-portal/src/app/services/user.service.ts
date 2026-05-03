@@ -68,7 +68,6 @@ export class UserService {
       credits: profile.coreMetrics?.walletBalance ?? 0,
       profileImageUrl: profile.basicInfo?.avatarUrl || undefined
     };
-    console.debug('setUserFromProfile credits:', user.credits, 'profile.walletBalance:', profile.coreMetrics?.walletBalance);
     this.currentUser.set(user);
   }
 

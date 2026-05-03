@@ -440,6 +440,118 @@ Colors.blue.withValues(alpha: 0.5)
 
 ---
 
+---
+
+# May 2026 — Code Quality Cleanup (Completed)
+
+**Date:** May 2026  
+**Reviewed By:** GitHub Copilot (Claude Sonnet 4.6)  
+**Scope:** Flutter_Founder, Flutter_Partner, React Admin Portal, Angular Client Portal  
+**Status:** ✅ All issues resolved
+
+---
+
+## Flutter_Founder
+
+**Before:** 3 compilation errors, 11 warnings (88 issues total)  
+**After:** 0 errors, 0 warnings, 38 info (`dart analyze` exit 0)
+
+### Compilation Errors Fixed (3)
+| File | Issue |
+|---|---|
+| `screens/auth_screen.dart` | `_serverError` referenced 3× after the field was deleted in a prior session — removed orphaned `setState()` assignments |
+
+### Warnings Resolved (11)
+| File | Change |
+|---|---|
+| `screens/edit_profile_screen.dart` | Removed unused `_formKey` (GlobalKey, no `Form` widget) |
+| `screens/edit_profile_screen.dart` | Removed unused `_selectedNationality` field + 2 write sites (only `_selectedNationalityCode` used) |
+| `screens/edit_profile_screen.dart` | `WillPopScope` → `PopScope(canPop: false, onPopInvokedWithResult: ...)` |
+| `core/services/fcm_service.dart` | Removed unused local `investmentId` in `_handleMessageOpenedApp()` |
+| `screens/investment_info_screen.dart` | Removed dead 30-line `_handleInvest()` method (never called) |
+| `screens/investment_info_screen.dart` | Removed unused `import '../services/config.dart'` |
+| `screens/main_wrapper.dart` | Removed unused `static const int _tabProfile = 4` |
+| `screens/main_wrapper.dart` | Removed dead 20-line `_buildNavItem()` method (never called) |
+| `screens/new_investment_screen.dart` | Removed unused `ImagePicker _picker` (image picking via `Navigator.push`) |
+| `screens/new_investment_screen.dart` | Removed unused `List<String> _risks` (values hardcoded inline in dropdown) |
+| `screens/settings_screen.dart` | Removed dead `_logout()` method (logout handled by `widget.onLogout` callback) |
+| `services/investments_service.dart` | Removed dead `_client.post()` block + unused `resp` in `deleteImage()` |
+
+### BuildContext Async-Gap Safety Fixes (26)
+Fixed `use_build_context_synchronously` in 7 files by pre-capturing messenger/navigator references before `await`, or adding `if (!mounted) return` guards:
+- `edit_profile_screen.dart` — `_save()`, `_pickHrLetter()`, email-verify button
+- `otp_screen.dart` — `_sendOtp()`, `_verifyOtp()`, `_handleVerificationSuccess()`
+- `profile_screen.dart` — `_handleLogout()`, provider access after `service.connect()`
+- `signalr_config_screen.dart` — navigation after dialog dismiss
+- `chat_waiting_screen.dart` — cancel button context check
+- `widgets/signalr_demo.dart` — `_connect()`, `_loginSample()`
+- `investment_info_screen.dart` — nested lambdas for `setPrimaryImage`/`deleteImage`
+
+### Library API & Pubspec Fixes (6)
+| File | Change |
+|---|---|
+| `screens/chat_box_screen.dart` | `createState()` → `State<ChatBoxScreen>` |
+| `screens/chat_waiting_screen.dart` | `createState()` → `State<ChatWaitingScreen>` |
+| `screens/otp_screen.dart` | `createState()` → `State<OTPScreen>` |
+| `screens/signalr_config_screen.dart` | `createState()` → `State<SignalRConfigScreen>` |
+| `pubspec.yaml` | Added `intl: any` (was transitive only) |
+| `pubspec.yaml` | Added `path: ^1.9.0` (was transitive only) |
+
+---
+
+## Flutter_Partner
+
+Same cleanup pass (Partner mirrors Founder architecture):
+
+- `WillPopScope` → `PopScope` migration
+- All `BuildContext` async-gap violations resolved
+- Unused fields and dead methods removed
+- `createState()` return types corrected
+- Explicit `intl` and `path` dependencies added to `pubspec.yaml`
+- Hardcoded phone numbers replaced with dynamic `AppState` / Firebase Auth lookup
+
+**Before:** ~9 warnings, ~240 info  
+**After:** 0 errors, 0 warnings
+
+---
+
+## React Admin Portal — investa-admin-portal
+
+Removed all debug `console.*` statements from 7 files:
+
+| File | Statements Removed |
+|---|---|
+| `src/features/support/SupportDashboard.tsx` | All `console.log` |
+| `src/pages/Dashboard.tsx` | All `console.log` |
+| `src/pages/Login.tsx` | All `console.log` |
+| `src/contexts/AuthContext.tsx` | All `console.log` + `console.debug` |
+| `src/features/support/SupportRequests.tsx` | All `console.log` |
+| `src/features/support/ChatView.tsx` | All `console.log` |
+| `src/features/notifications/Notifications.tsx` | All `console.log` |
+
+**Result:** 0 active debug logs in production bundle. All logging routes through `src/utils/logger.ts`.
+
+---
+
+## Angular Client Portal — investa-client-portal
+
+- Removed all debug `console.log` / `console.info` / `console.debug` statements from runtime services and components
+- No functional changes
+
+---
+
+## Updated Code Quality Metrics (May 2026)
+
+| Platform | Errors | Warnings | Info | Status |
+|---|---|---|---|---|
+| Flutter_Founder | 0 | 0 | 38 | ✅ Clean |
+| Flutter_Partner | 0 | 0 | ~38 | ✅ Clean |
+| React Admin Portal | N/A | N/A | 0 debug logs | ✅ Clean |
+| Angular Client Portal | N/A | N/A | 0 debug logs | ✅ Clean |
+| .NET Backend | — | — | — | Pending audit |
+
+---
+
 ## ✅ APPROVAL CHECKLIST
 
 Before merging these changes:

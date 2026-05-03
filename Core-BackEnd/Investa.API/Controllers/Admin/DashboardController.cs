@@ -122,7 +122,8 @@ namespace Investa.API.Controllers.Admin
             {
                 id = $"INV-{(g.CategoryId.HasValue ? g.CategoryId.Value.ToString() : "0")}",
                 total = g.TotalAmount,
-                categoryName = g.CategoryId.HasValue ? (categories.FirstOrDefault(c => c.Id == g.CategoryId.Value)?.Value ?? "Uncategorized") : "Uncategorized"
+                categoryName = g.CategoryId.HasValue ? (categories.FirstOrDefault(c => c.Id == g.CategoryId.Value)?.Value ?? "Uncategorized") : "Uncategorized",
+                categoryNameAr = g.CategoryId.HasValue ? (categories.FirstOrDefault(c => c.Id == g.CategoryId.Value)?.ValueAr ?? (categories.FirstOrDefault(c => c.Id == g.CategoryId.Value)?.Value ?? "Uncategorized")) : "Uncategorized"
             }).ToList();
 
             return Ok(new { success = true, data = result });

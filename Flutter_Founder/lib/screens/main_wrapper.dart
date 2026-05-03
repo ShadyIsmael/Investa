@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import '../l10n/app_localizations.dart';
 import 'dashboard_screen.dart';
 import 'requests_screen.dart';
@@ -32,7 +33,6 @@ class _MainWrapperState extends State<MainWrapper> {
   static const int _tabEngagement = 1;
   static const int _tabInvestments = 2;
   static const int _tabRequests = 3;
-  static const int _tabProfile = 4;
 
   static const Color _investaOrange = Color(0xFFFF9800);
 
@@ -40,20 +40,33 @@ class _MainWrapperState extends State<MainWrapper> {
   int _pendingRequestsCount = 0;
   int _unreadMessagesCount = 0;
 
+  void _safeSetState(VoidCallback updater) {
+    if (!mounted) return;
+    final phase = SchedulerBinding.instance.schedulerPhase;
+    if (phase == SchedulerPhase.persistentCallbacks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(updater);
+      });
+      return;
+    }
+    setState(updater);
+  }
+
   void _onItemTapped(int index) {
     if (_selectedIndex == index) return;
-    setState(() => _selectedIndex = index);
+    _safeSetState(() => _selectedIndex = index);
   }
 
   void _updatePendingRequestsCount(int count) {
     if (_pendingRequestsCount != count) {
-      setState(() => _pendingRequestsCount = count);
+      _safeSetState(() => _pendingRequestsCount = count);
     }
   }
 
   void _updateUnreadMessagesCount(int count) {
     if (_unreadMessagesCount != count) {
-      setState(() => _unreadMessagesCount = count);
+      _safeSetState(() => _unreadMessagesCount = count);
     }
   }
 
@@ -135,29 +148,6 @@ class _MainWrapperState extends State<MainWrapper> {
             label: loc.t('profile'),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, String label, int index,
-      {required bool isSelected}) {
-    final color = isSelected ? _investaOrange : Colors.grey;
-    return Expanded(
-      child: InkWell(
-        onTap: () => _onItemTapped(index),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: 26),
-            Text(label,
-                style: TextStyle(
-                    color: color,
-                    fontSize: 11,
-                    fontWeight:
-                        isSelected ? FontWeight.bold : FontWeight.normal)),
-          ],
-        ),
       ),
     );
   }

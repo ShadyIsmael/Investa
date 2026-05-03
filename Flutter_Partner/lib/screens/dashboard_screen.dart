@@ -221,7 +221,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 child: _LegendEntry(
-                  label: category.name,
+                  label: context.isArabic &&
+                          (category.nameAr != null &&
+                              category.nameAr!.isNotEmpty)
+                      ? category.nameAr!
+                      : category.name,
                   percent: category.percent,
                   color: _colorForLabel(category.name, scheme),
                   selected: isSelected,
@@ -319,10 +323,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _timeAgo(DateTime time) {
     final loc = AppLocalizations.of(context);
     final diff = DateTime.now().difference(time);
-    if (diff.inHours < 24)
+    if (diff.inHours < 24) {
       return loc.t('hours_ago').replaceFirst('{0}', diff.inHours.toString());
-    if (diff.inDays < 7)
+    }
+    if (diff.inDays < 7) {
       return loc.t('days_ago').replaceFirst('{0}', diff.inDays.toString());
+    }
     return loc
         .t('weeks_ago')
         .replaceFirst('{0}', ((diff.inDays / 7).floor()).toString());

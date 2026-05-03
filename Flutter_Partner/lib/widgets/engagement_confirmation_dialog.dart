@@ -78,9 +78,14 @@ class _EngagementConfirmationDialogState
         setState(() {
           _isProcessing = false;
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
-      // Error is handled by the caller
-      rethrow;
+      // Keep the dialog open after error so user can retry/cancel.
     }
   }
 

@@ -4,6 +4,7 @@ import '../services/auth_service.dart';
 import '../services/secure_storage.dart';
 import '../services/app_logger.dart';
 import '../services/messages.dart';
+import '../services/endpoint_resolver.dart';
 import 'package:flutter_signin_button/flutter_signin_button.dart';
 import 'otp_screen.dart';
 import 'forgot_password_screen.dart';
@@ -31,9 +32,7 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _remember = true;
   bool _loading = false;
   bool _obscurePass = true;
-  // serverError kept for possible future error handling
-  // ignore: unused_field
-  String? _serverError;
+  String _serverUrl = '';
 
   @override
   void dispose() {
@@ -48,6 +47,56 @@ class _AuthScreenState extends State<AuthScreen> {
   void initState() {
     super.initState();
     _loadRememberedPhone();
+    _loadServerUrl();
+  }
+
+  void _loadServerUrl() {
+    final url = EndpointResolver.instance.selectedApiBaseUrl;
+    setState(() => _serverUrl = url);
+  }
+
+  Future<void> _showServerUrlDialog() async {
+    final ctrl = TextEditingController(text: _serverUrl);
+    final theme = Theme.of(context);
+    final saved = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Server Address'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Enter the IP address or hostname of your backend server.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withOpacity(0.6)),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: ctrl,
+              autofocus: true,
+              keyboardType: TextInputType.url,
+              decoration: const InputDecoration(
+                labelText: 'API Base URL',
+                hintText: 'http://192.168.1.100:5235',
+                prefixIcon: Icon(Icons.dns_outlined),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+              child: const Text('Save')),
+        ],
+      ),
+    );
+    if (saved != null && saved.isNotEmpty) {
+      await EndpointResolver.instance.setCustomApiUrl(saved);
+      setState(() => _serverUrl = saved);
+    }
   }
 
   Future<void> _loadRememberedPhone() async {
@@ -68,7 +117,6 @@ class _AuthScreenState extends State<AuthScreen> {
 
     setState(() {
       _loading = true;
-      _serverError = null;
     });
     await Future.delayed(const Duration(milliseconds: 600));
     final auth = AuthService();
@@ -95,7 +143,6 @@ class _AuthScreenState extends State<AuthScreen> {
         // ------------------------------------------
       } else {
         final friendly = _friendlyError(result.message);
-        setState(() => _serverError = friendly);
         messenger.showSnackBar(SnackBar(content: Text(friendly)));
         final lower = (result.message ?? '').toLowerCase();
         if (lower.contains('401') ||
@@ -108,7 +155,6 @@ class _AuthScreenState extends State<AuthScreen> {
         }
       }
     } catch (e, st) {
-      setState(() => _serverError = 'Unexpected error');
       AppLogger.logError('AuthScreen._doLogin', e.toString(), st);
       rethrow;
     }
@@ -267,6 +313,45 @@ class _AuthScreenState extends State<AuthScreen> {
                                 builder: (_) => const OTPScreen())),
                         child: const Text('Sign up')),
                   ],
+                ),
+                const SizedBox(height: 8),
+                // Server URL indicator — tap to change (useful when hostname
+                // cannot be resolved on the device's network)
+                GestureDetector(
+                  onTap: _showServerUrlDialog,
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.dns_outlined,
+                            size: 13,
+                            color:
+                                theme.colorScheme.onSurface.withOpacity(0.35)),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            _serverUrl.isNotEmpty
+                                ? _serverUrl
+                                : 'Server not configured — tap to set',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: _serverUrl.isNotEmpty
+                                  ? theme.colorScheme.onSurface
+                                      .withOpacity(0.35)
+                                  : theme.colorScheme.error.withOpacity(0.7),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(Icons.edit_outlined,
+                            size: 11,
+                            color:
+                                theme.colorScheme.onSurface.withOpacity(0.3)),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),

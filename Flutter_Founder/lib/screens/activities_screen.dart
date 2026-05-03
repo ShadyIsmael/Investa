@@ -133,10 +133,12 @@ class _ActivityTile extends StatelessWidget {
   String _timeAgo(BuildContext context, DateTime t) {
     final loc = AppLocalizations.of(context);
     final diff = DateTime.now().difference(t);
-    if (diff.inHours < 24)
+    if (diff.inHours < 24) {
       return loc.t('hours_ago').replaceFirst('{0}', diff.inHours.toString());
-    if (diff.inDays < 7)
+    }
+    if (diff.inDays < 7) {
       return loc.t('days_ago').replaceFirst('{0}', diff.inDays.toString());
+    }
     return loc
         .t('weeks_ago')
         .replaceFirst('{0}', ((diff.inDays / 7).floor()).toString());

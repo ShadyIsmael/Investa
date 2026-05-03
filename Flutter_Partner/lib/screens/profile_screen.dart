@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../services/app_logger.dart';
@@ -22,6 +23,7 @@ import 'edit_profile_screen.dart';
 import 'investments_screen.dart';
 import 'trace_score_screen.dart';
 import 'trace_credit_screen.dart';
+import 'credit_charge_screen.dart';
 import 'support_choice_screen.dart';
 import '../widgets/credibility_score_badge.dart';
 import '../services/messages.dart';
@@ -88,12 +90,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadProfile() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
     });
     try {
       await AppState.instance.loadFromStorage();
+      if (!mounted) return;
       if (AppState.instance.profile != null) {
         setState(() {
           _profile = AppState.instance.profile;
@@ -105,12 +109,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       // Always refresh from API to ensure real data (even if cache exists)
       final profile = await ProfileService().fetchProfile();
+      if (!mounted) return;
       AppLogger.logInfo('ProfileScreen._loadProfile',
           'fetchProfile returned ${profile == null ? 'null' : 'Profile object'}');
       if (profile != null) {
         final raw = AppState.instance.profileJson;
         await AppState.instance.setProfile(profile, raw);
       }
+      if (!mounted) return;
       setState(() {
         _profile = profile ?? AppState.instance.profile;
         _isLoading = false;
@@ -169,6 +175,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         debugPrint('SignalR connect from ProfileScreen failed: $e');
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = 'Failed to load profile: $e';
         _isLoading = false;
@@ -182,11 +189,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(loc.t('logout')),
-        content: const Text('Are you sure you want to sign out?'),
+        content: Text(loc.t('logout_confirm_message')),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+              child: Text(loc.t('cancel'))),
           ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
               child: Text(loc.t('logout'))),
@@ -240,6 +247,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         context,
         MaterialPageRoute(
             builder: (_) => EditProfileScreen(profile: _profile)));
+    if (!mounted) return;
     if (result != null) {
       _loadProfile();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -266,7 +274,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Text(_error!,
                 style: textTheme.bodyLarge?.copyWith(color: Colors.red)),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: _loadProfile, child: const Text('Retry')),
+            ElevatedButton(
+                onPressed: _loadProfile, child: Text(loc.t('retry'))),
           ],
         ),
       );
@@ -283,6 +292,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _ProfileHeader(
                 profile: _profile,
                 onEdit: _openEdit,
+                onRefresh: _loadProfile,
                 isDarkMode: isDarkMode,
               ),
               const SizedBox(height: 32),
@@ -297,7 +307,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (_) => const InvestmentsScreen())),
+                            builder: (_) => const MyInvestmentsScreen())),
                   ),
                   _MenuItem(
                     icon: Icons.show_chart_rounded,
@@ -311,7 +321,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const _Divider(),
                   _MenuItem(
                     icon: Icons.credit_score_rounded,
-                    title: loc.t('trace_credit'),
+                    title: loc.t('credit_records'),
                     color: AppPalette.aqua,
                     onTap: () => Navigator.push(
                         context,
@@ -378,12 +388,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 class _ProfileHeader extends StatelessWidget {
   final Profile? profile;
   final VoidCallback onEdit;
+  final VoidCallback onRefresh;
   final bool isDarkMode;
 
   const _ProfileHeader({
     Key? key,
     required this.profile,
     required this.onEdit,
+    required this.onRefresh,
     required this.isDarkMode,
   }) : super(key: key);
 
@@ -460,7 +472,7 @@ class _ProfileHeader extends StatelessWidget {
                   ? '${basic.firstName ?? ''} ${basic.lastName ?? ''}'.trim()
                   : (profile?.fullName.isNotEmpty == true
                       ? profile!.fullName
-                      : 'User'));
+                      : AppLocalizations.of(ctx).t('user')));
           return Text(
             displayName,
             style:
@@ -486,6 +498,36 @@ class _ProfileHeader extends StatelessWidget {
               isDarkMode: isDarkMode,
             ),
           ],
+        ),
+        const SizedBox(height: 16),
+        // Charge Now Button
+        ElevatedButton.icon(
+          onPressed: () async {
+            final result = await Navigator.push<bool>(
+              context,
+              MaterialPageRoute(builder: (_) => const CreditChargeScreen()),
+            );
+            if (result == true) {
+              onRefresh(); // Refresh profile to show updated credits
+            }
+          },
+          icon: const Icon(Icons.add_card_rounded, size: 18),
+          label: Text(
+            AppLocalizations.of(context).t('charge_now'),
+            style: GoogleFonts.outfit(
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppPalette.aqua,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            elevation: 2,
+          ),
         ),
         const SizedBox(height: 16),
         // Credibility Score Badge
