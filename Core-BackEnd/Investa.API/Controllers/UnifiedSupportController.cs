@@ -27,7 +27,7 @@ namespace Investa.API.Controllers
         private readonly ApplicationDbContext _db;
         private readonly IChatService _chatService;
         private readonly INotificationService _notificationService;
-        private readonly UserManager<IdentityUser> _userManager;
+        private readonly UserManager<Investa.Infrastructure.Identity.ApplicationIdentityUser> _userManager;
         private readonly ILogger<SupportController> _logger;
         private readonly IStringLocalizer<SharedResource> _localizer;
 
@@ -37,7 +37,7 @@ namespace Investa.API.Controllers
             ApplicationDbContext db,
             IChatService chatService,
             INotificationService notificationService,
-            UserManager<IdentityUser> userManager,
+            UserManager<Investa.Infrastructure.Identity.ApplicationIdentityUser> userManager,
             ILogger<SupportController> logger,
             IStringLocalizer<SharedResource> localizer)
         {
@@ -48,8 +48,6 @@ namespace Investa.API.Controllers
             _logger = logger;
             _localizer = localizer;
         }
-
-        // GET: api/support/conversations/active
         [HttpGet("conversations/active")]
         [Authorize(Roles = nameof(UserRoles.OrgUser) + "," + "Admin")]
         public async Task<IActionResult> GetActiveConversations()
@@ -59,7 +57,6 @@ namespace Investa.API.Controllers
                 .Where(s => s.Status == SupportSessionStatus.Open)
                 .OrderByDescending(s => s.CreatedAt)
                 .ToListAsync();
-
             var result = await Task.WhenAll(sessions.Select(async s =>
             {
                 var lastMessage = await _db.ChatMessages
@@ -157,12 +154,12 @@ namespace Investa.API.Controllers
                             // Check if admin
                             if (User.IsInRole("Admin") || User.IsInRole(nameof(UserRoles.OrgUser)))
                             {
-                                senderId = user.Email ?? user.UserName ?? user.Id;
+                                senderId = user.Email ?? user.UserName ?? user.Id.ToString();
                                 isFromAdmin = true;
                             }
                             else
                             {
-                                senderId = user.PhoneNumber ?? user.UserName ?? user.Id;
+                                senderId = user.PhoneNumber ?? user.UserName ?? user.Id.ToString();
                             }
                         }
                         else
@@ -188,7 +185,7 @@ namespace Investa.API.Controllers
                         if (user != null)
                         {
                             await _notificationService.SendNotificationAsync(
-                                user.Id,
+                                user.Id.ToString(),
                                 "Support Response",
                                 request.Message,
                                 new Dictionary<string, string> {
@@ -225,12 +222,12 @@ namespace Investa.API.Controllers
                 var adminUsers = await _userManager.GetUsersInRoleAsync("Admin");
 
                 // This might be slow if many admins, but fine for now. Better to use Topics.
-                foreach (var admin in adminUsers)
-                {
-                    if (data != null)
-                        await _notificationService.SendNotificationAsync(admin.Id, title, body, data);
-                    else
-                        await _notificationService.SendNotificationAsync(admin.Id, title, body);
+                    foreach (var admin in adminUsers)
+                    {
+                        if (data != null)
+                            await _notificationService.SendNotificationAsync(admin.Id.ToString(), title, body, data);
+                        else
+                            await _notificationService.SendNotificationAsync(admin.Id.ToString(), title, body);
                 }
             }
             catch (Exception ex)

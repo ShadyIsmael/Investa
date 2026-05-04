@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Investa.Domain.Entities;
+using Investa.Infrastructure.Identity;
 using Investa.Infrastructure.Persistence;
 using Investa.Application.Interfaces;
 
@@ -34,7 +35,7 @@ namespace Investa.Infrastructure.Services
         public async Task SetAdminOnlineAsync(string adminId, int maxConcurrentChats = 3)
         {
             using var scope = _serviceScopeFactory.CreateScope();
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationIdentityUser>>();
             
             // Verify user is actually an admin
             var user = await userManager.FindByIdAsync(adminId);

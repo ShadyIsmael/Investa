@@ -4,6 +4,8 @@ using System.Text.Json;
 using System.Linq;
 using Microsoft.AspNetCore.Identity;
 using Npgsql;
+using Investa.Infrastructure.Identity;
+using Investa.Domain.Entities.Security;
 
 const string solutionRoot = "..\\..\\..\\..\\..";
 string repoRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, solutionRoot));
@@ -33,7 +35,6 @@ string connectionString = defaultConn.GetString() ?? throw new InvalidOperationE
 string adminEmail = "admin@investa.com"; // Corrected email (typo fix)
 string adminPassword = "P@ssw0rd";
 string adminName = "Platform Admin";
-using Investa.Domain.Entities.Security;
 
 string adminRole = "Admin";
 
@@ -55,18 +56,18 @@ try
     }
 
     // Ensure role exists
-    string roleId;
+    Guid roleId;
     using (var cmd = new NpgsqlCommand("SELECT \"Id\" FROM \"AspNetRoles\" WHERE LOWER(\"Name\") = @r", conn))
     {
         cmd.Parameters.AddWithValue("@r", adminRole.ToLowerInvariant());
         var r = cmd.ExecuteScalar();
         if (r != null)
         {
-            roleId = r.ToString();
+            roleId = (Guid)r;
         }
         else
         {
-            roleId = Guid.NewGuid().ToString();
+            roleId = Guid.NewGuid();
             using var ins = new NpgsqlCommand("INSERT INTO \"AspNetRoles\" (\"Id\", \"Name\", \"NormalizedName\", \"ConcurrencyStamp\") VALUES (@id,@name,@norm,@cs)", conn);
             ins.Parameters.AddWithValue("@id", roleId);
             ins.Parameters.AddWithValue("@name", adminRole);
@@ -78,9 +79,9 @@ try
     }
 
     // Create Identity user
-    var identityUserId = Guid.NewGuid().ToString();
-    var hasher = new PasswordHasher<IdentityUser>();
-    var dummy = new IdentityUser { UserName = adminEmail, Email = adminEmail };
+    var identityUserId = Guid.NewGuid();
+    var hasher = new PasswordHasher<ApplicationIdentityUser>();
+    var dummy = new ApplicationIdentityUser { UserName = adminEmail, Email = adminEmail };
     var passwordHash = hasher.HashPassword(dummy, adminPassword);
 
     using (var cmd = new NpgsqlCommand(@"INSERT INTO \"AspNetUsers\" (\"Id\", \"UserName\", \"NormalizedUserName\", \"Email\", \"NormalizedEmail\", \"EmailConfirmed\", \"PasswordHash\", \"SecurityStamp\", \"ConcurrencyStamp\", \"PhoneNumberConfirmed\", \"TwoFactorEnabled\", \"LockoutEnabled\", \"AccessFailedCount\")

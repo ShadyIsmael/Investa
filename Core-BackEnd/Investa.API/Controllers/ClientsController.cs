@@ -60,8 +60,7 @@ namespace Investa.API.Controllers
             if (identityUser == null)
                 return NotFound(new { message = "Identity user not found for provided phone" });
 
-            if (!Guid.TryParse(identityUser.Id, out var userGuid))
-                return BadRequest(new { message = "Identity user id is not a valid GUID" });
+            var userGuid = identityUser.Id;
 
             var existing = await _db.Clients.FirstOrDefaultAsync(c => c.UserId == userGuid);
             if (existing != null)

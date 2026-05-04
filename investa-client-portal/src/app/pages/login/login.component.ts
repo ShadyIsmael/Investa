@@ -46,13 +46,13 @@ export class LoginComponent {
   });
 
   countries = [
-    { code: '+20', flag: 'eg', name: 'Egypt' },
-    { code: '+1', flag: 'us', name: 'USA' },
-    { code: '+44', flag: 'gb', name: 'UK' },
-    { code: '+91', flag: 'in', name: 'India' },
-    { code: '+61', flag: 'au', name: 'Australia' },
-    { code: '+81', flag: 'jp', name: 'Japan' },
-    { code: '+49', flag: 'de', name: 'Germany' },
+    { code: '+20', flag: 'eg', nameKey: 'login.countries.egypt' },
+    { code: '+1', flag: 'us', nameKey: 'login.countries.usa' },
+    { code: '+44', flag: 'gb', nameKey: 'login.countries.uk' },
+    { code: '+91', flag: 'in', nameKey: 'login.countries.india' },
+    { code: '+61', flag: 'au', nameKey: 'login.countries.australia' },
+    { code: '+81', flag: 'jp', nameKey: 'login.countries.japan' },
+    { code: '+49', flag: 'de', nameKey: 'login.countries.germany' },
   ];
 
   // Default to Egypt

@@ -2,182 +2,120 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Tailwind CSS-variable bridge (Obsidian theme) ─────── */
 @layer base {
   :root {
-    /* Light mode - Premium Fintech Slate & Blue styling */
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
+    --background:  210 40% 98%;     /* #f8fafc */
+    --foreground:  222 47% 11%;     /* #0f172a */
 
-    --card: 0 0% 100%;
+    --card:        0 0% 100%;
     --card-foreground: 222 47% 11%;
 
-    --popover: 0 0% 100%;
+    --popover:     0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    /* Primary: Vibrant Blue (3B82F6) */
-    --primary: 217 91% 60%;
+    /* Electric Sky Blue primary */
+    --primary:          199 89% 48%;  /* #0ea5e9 */
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary: Deep Slate (0F172A) */
-    --secondary: 222 47% 11%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary:        210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
 
-    --muted: 210 40% 96%;
+    --muted:            210 40% 96%;
     --muted-foreground: 215 16% 47%;
 
-    --accent: 210 40% 96%;
-    --accent-foreground: 222 47% 11%;
+    --accent:           199 89% 48%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive:      0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 217 91% 60%;
+    --border:      214 32% 91%;
+    --input:       214 32% 91%;
+    --ring:        199 89% 48%;
 
-    --radius: 0.85rem;
-    
-    /* Custom semantic colors */
-    --surface: 0 0% 100%;
-    --surface-hover: 210 40% 96%;
+    --radius:      0.75rem;
   }
 
   .dark {
-    /* Dark mode - Deep Luxury Slate (#0F172A) */
-    --background: 222 47% 11%;   /* Slate 900 */
-    --foreground: 210 40% 98%;   /* Slate 50 */
+    --background:  240 6% 4%;     /* #09090b */
+    --foreground:  210 40% 98%;
 
-    --card: 217 33% 18%;         /* Slate 800 */
+    --card:        240 5% 7%;     /* #111117 */
     --card-foreground: 210 40% 98%;
 
-    --popover: 217 33% 18%;
+    --popover:     240 5% 7%;
     --popover-foreground: 210 40% 98%;
 
-    /* Primary: Vibrant Blue (3B82F6) */
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
+    /* Lighter sky blue pops on dark */
+    --primary:          199 89% 60%;  /* #38bdf8 */
+    --primary-foreground: 240 6% 4%;
 
-    --secondary: 215 28% 22%;
+    --secondary:        240 4% 14%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 215 28% 22%;
-    --muted-foreground: 215 20% 65%;
+    --muted:            240 4% 14%;
+    --muted-foreground: 215 20% 55%;
 
-    --accent: 215 28% 22%;
-    --accent-foreground: 210 40% 98%;
+    --accent:           199 89% 60%;
+    --accent-foreground: 240 6% 4%;
 
-    --destructive: 0 63% 51%;
+    --destructive:      0 63% 40%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 215 28% 22%;
-    --input: 215 28% 22%;
-    --ring: 217 91% 60%;
-    
-    /* Custom semantic colors for dark mode */
-    --surface: 217 33% 18%;
-    --surface-hover: 215 28% 22%;
+    --border:      240 4% 14%;
+    --input:       240 4% 14%;
+    --ring:        199 89% 60%;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-  
-  html {
-    @apply antialiased;
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-  }
-  
+  * { @apply border-border; }
   body {
     @apply bg-background text-foreground;
-    font-synthesis: none;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-  
-  /* Smooth color transitions for theme changes */
-  html,
-  body,
-  body * {
-    transition-property: background-color, border-color, color;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 200ms;
-  }
-  
-  /* Exclude elements that shouldn't animate */
-  *:where([class*="animate-"], [class*="transition-"]) {
-    transition-property: all !important;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 }
 
+/* ── Shared component helpers ───────────────────────────── */
 @layer components {
-  /* Focus ring consistency across all interactive elements */
-  input:focus,
-  button:focus,
-  select:focus,
-  textarea:focus {
-    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  .card {
+    @apply bg-card text-card-foreground border border-border rounded-2xl shadow-sm transition-all duration-200;
   }
 
-  /* Disabled state consistency */
-  button:disabled,
-  input:disabled,
-  select:disabled {
-    @apply opacity-50 cursor-not-allowed;
+  .card-hover {
+    @apply hover:border-primary/30 hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/20 hover:-translate-y-0.5;
   }
-  
-  /* Custom scrollbar styling */
-  ::-webkit-scrollbar {
-    @apply w-2 h-2;
+
+  .btn-primary {
+    @apply bg-primary text-primary-foreground px-4 py-2 rounded-xl font-semibold text-sm
+           hover:opacity-90 active:scale-95 transition-all duration-150 shadow-sm shadow-primary/20;
   }
-  
-  ::-webkit-scrollbar-track {
-    @apply bg-transparent;
+
+  .btn-ghost {
+    @apply text-muted-foreground hover:text-foreground hover:bg-secondary
+           rounded-xl font-medium text-sm transition-all duration-150;
   }
-  
-  ::-webkit-scrollbar-thumb {
-    @apply bg-muted hover:bg-muted-foreground/30 rounded-md;
+
+  /* Square icon-only button — use with a single <Icon> child */
+  .btn-icon {
+    @apply w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground
+           hover:text-foreground hover:bg-secondary transition-all duration-150 flex-shrink-0;
   }
-}
 
-/* Component-specific utilities */
-.btn {
-  @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition-all;
-  @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
-  @apply disabled:opacity-50 disabled:cursor-not-allowed;
-}
+  .input-field {
+    @apply w-full bg-secondary border border-border rounded-xl px-4 py-2.5 text-sm font-medium
+           text-foreground placeholder:text-muted-foreground
+           outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all;
+  }
 
-.btn-primary {
-  @apply bg-primary text-primary-foreground hover:bg-primary/90;
-}
+  .badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border;
+  }
 
-.btn-secondary {
-  @apply bg-secondary text-secondary-foreground hover:bg-secondary/80;
-}
-
-.btn-destructive {
-  @apply bg-destructive text-destructive-foreground hover:bg-destructive/90;
-}
-
-.btn-ghost {
-  @apply hover:bg-accent hover:text-accent-foreground;
-}
-
-.btn-outline {
-  @apply border border-input bg-background hover:bg-accent hover:text-accent-foreground;
-}
-
-/* Card styles */
-.card {
-  @apply rounded-lg border bg-card text-card-foreground shadow-sm;
-}
-
-/* Input styles */
-.input {
-  @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm;
-  @apply ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium;
-  @apply placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2;
-  @apply focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+  .badge-success { @apply bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800/50; }
+  .badge-error   { @apply bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50; }
+  .badge-warning { @apply bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50; }
+  .badge-info    { @apply bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-900/30 dark:text-sky-400 dark:border-sky-800/50; }
+  .badge-primary { @apply bg-primary/10 text-primary border-primary/20; }
 }

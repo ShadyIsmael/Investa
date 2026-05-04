@@ -30,7 +30,7 @@ public class JwtTokenService : IJwtTokenService
     }
 
     /// <inheritdoc/>
-    public async Task<AuthResponseDto> GenerateTokenAsync(IdentityUser user)
+    public async Task<AuthResponseDto> GenerateTokenAsync(IdentityUser<Guid> user)
     {
         if (user == null)
             throw new ArgumentNullException(nameof(user));
@@ -64,7 +64,8 @@ public class JwtTokenService : IJwtTokenService
 
         // Try to parse Identity user id as GUID and fetch domain and auth user info
         User? domainUser = null;
-        if (Guid.TryParse(user.Id, out var userGuid))
+        var userGuid = user.Id;
+        if (userGuid != Guid.Empty)
         {
             // Fetch domain user first (may contain Role string like "Admin")
             domainUser = (await _unitOfWork.Repository<User>().FindAsync(u => u.Id == userGuid)).FirstOrDefault();
@@ -125,8 +126,8 @@ public class JwtTokenService : IJwtTokenService
         // Create claims with phone number as identifier
         var claims = new List<Claim>
         {
-            new Claim("sub", user.Id), // Subject (user ID)
-            new Claim("id", user.Id),
+            new Claim("sub", user.Id.ToString()), // Subject (user ID)
+            new Claim("id", user.Id.ToString()),
             new Claim(ClaimTypes.NameIdentifier, user.UserName ?? string.Empty),
             new Claim(ClaimTypes.MobilePhone, user.PhoneNumber ?? string.Empty), // Phone number claim
             new Claim("phone_number", user.PhoneNumber ?? string.Empty),
@@ -248,8 +249,9 @@ public class JwtTokenService : IJwtTokenService
 
         var refreshExpiresAt = DateTime.UtcNow.AddDays(refreshExpirationDays);
 
-        // Try to parse Identity user id as GUID for linking to AuthUser
-        if (Guid.TryParse(user.Id, out var authUserGuid))
+        // Use the Guid-based identity user id for linking to AuthUser
+        var authUserGuid = user.Id;
+        if (authUserGuid != Guid.Empty)
         {
             // Ensure an AuthUser exists for this identity id. If missing, create a minimal record so FK won't fail.
             var authUser = (await _unitOfWork.Repository<AuthUser>().FindAsync(a => a.Id == authUserGuid)).FirstOrDefault();

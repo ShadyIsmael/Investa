@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Investa.Infrastructure.Persistence;
+using Investa.Infrastructure.Identity;
 using Investa.Domain.Entities;
 using Investa.Domain.Entities.Enums;
 using Investa.Domain.Entities.Security;
@@ -113,7 +114,7 @@ Console.WriteLine("Ensured AspNetRoles exist.");
 var rnd = new Random();
 
 // Helper to create identity user via direct SQL to AspNetUsers for simplicity
-PasswordHasher<IdentityUser> hasher = new();
+PasswordHasher<ApplicationIdentityUser> hasher = new();
 
 string DefaultPassword = "P@ssw0rd";
 
@@ -127,8 +128,8 @@ foreach (var roleName in orgRoleNames)
     var email = $"{roleName.ToLowerInvariant()}@investa.local";
 
     // create AspNet user
-    var identityId = Guid.NewGuid().ToString();
-    var dummy = new IdentityUser { UserName = email, Email = email };
+    var identityId = Guid.NewGuid();
+    var dummy = new ApplicationIdentityUser { UserName = email, Email = email };
     var pwdHash = hasher.HashPassword(dummy, DefaultPassword);
 
     // Insert minimal AspNet user using raw SQL to avoid referencing IdentityDbSet type here
@@ -146,16 +147,21 @@ VALUES (@id,@un,@nun,@email,@nemail,1,@ph,@ss,@cs,0,0,0,0)";
     });
 
     // Get AspNet Role Id for 'OrgUser' and insert AspNetUserRoles
-    var orgRoleId = QuerySingle("SELECT [Id] FROM [AspNetRoles] WHERE LOWER([Name]) = @n", new SqlParameter("@n", UserRoles.OrgUser.ToString().ToLowerInvariant()));
-    if (string.IsNullOrEmpty(orgRoleId))
+    var orgRoleIdStr = QuerySingle("SELECT [Id] FROM [AspNetRoles] WHERE LOWER([Name]) = @n", new SqlParameter("@n", UserRoles.OrgUser.ToString().ToLowerInvariant()));
+    Guid orgRoleId;
+    if (string.IsNullOrEmpty(orgRoleIdStr))
     {
-        orgRoleId = Guid.NewGuid().ToString();
+        orgRoleId = Guid.NewGuid();
         db.Database.ExecuteSqlRaw(@"INSERT INTO [AspNetRoles] ([Id],[Name],[NormalizedName],[ConcurrencyStamp]) VALUES (@id,@name,@norm,@cs)", new[] {
             new Microsoft.Data.SqlClient.SqlParameter("@id", orgRoleId),
             new Microsoft.Data.SqlClient.SqlParameter("@name", UserRoles.OrgUser.ToString()),
             new Microsoft.Data.SqlClient.SqlParameter("@norm", UserRoles.OrgUser.ToString().ToUpperInvariant()),
             new Microsoft.Data.SqlClient.SqlParameter("@cs", Guid.NewGuid().ToString())
         });
+    }
+    else
+    {
+        orgRoleId = Guid.Parse(orgRoleIdStr);
     }
     db.Database.ExecuteSqlRaw("INSERT INTO [AspNetUserRoles] ([UserId],[RoleId]) VALUES ({0},{1})", identityId, orgRoleId);
 
@@ -187,8 +193,8 @@ for (int i = 0; i < clientsToCreate; i++)
     var first = firstNames[rnd.Next(firstNames.Length)];
     var last = lastNames[rnd.Next(lastNames.Length)];
     var email = $"{first.ToLower()}.{last.ToLower()}.{Guid.NewGuid().ToString().Split('-')[0]}@clients.investa.local";
-    var identityId = Guid.NewGuid().ToString();
-    var dummy = new IdentityUser { UserName = email, Email = email };
+    var identityId = Guid.NewGuid();
+    var dummy = new ApplicationIdentityUser { UserName = email, Email = email };
     var pwdHash = hasher.HashPassword(dummy, DefaultPassword);
 
     db.Database.ExecuteSqlRaw(@"INSERT INTO [AspNetUsers] ([Id],[UserName],[NormalizedUserName],[Email],[NormalizedEmail],[EmailConfirmed],[PasswordHash],[SecurityStamp],[ConcurrencyStamp],[PhoneNumberConfirmed],[TwoFactorEnabled],[LockoutEnabled],[AccessFailedCount])

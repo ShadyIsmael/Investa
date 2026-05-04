@@ -131,3 +131,18 @@ Core-BackEnd/scripts/*_out.txt
 node_modules/
 dist/
 .cache/
+
+# [10] Angular build cache
+# -----------------------
+.angular/cache/
+investa-client-portal/.angular/
+investa-admin-portal/.angular/
+
+# [11] Temp SQL diagnostics & output (not source)
+# -----------------------
+Core-BackEnd/*_results.txt
+Core-BackEnd/diagnostic_results.txt
+Core-BackEnd/conversion_results.txt
+Core-BackEnd/indexes.txt
+Core-BackEnd/diagnose_*.sql
+Core-BackEnd/check_*.sql

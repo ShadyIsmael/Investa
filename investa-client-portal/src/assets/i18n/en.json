@@ -35,10 +35,24 @@
     "founder": "Founder",
     "partner": "Partner",
     "investor": "Investor",
+    "countries": {
+      "egypt": "Egypt",
+      "usa": "USA",
+      "uk": "UK",
+      "india": "India",
+      "australia": "Australia",
+      "japan": "Japan",
+      "germany": "Germany"
+    },
+    "social": {
+      "google": "Sign in with Google",
+      "facebook": "Sign in with Facebook"
+    },
     "signingIn": "Signing in...",
     "errorGeneric": "Login failed"
   },
   "roleSelect": {
+    "close": "Close",
     "title": "Choose Your Role",
     "subtitle": "Select your path to get started with Investa. Are you here to find opportunities or to create them?",
     "investor": {

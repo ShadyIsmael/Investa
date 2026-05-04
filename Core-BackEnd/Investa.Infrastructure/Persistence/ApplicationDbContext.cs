@@ -2,6 +2,7 @@ using Investa.Domain.Entities;
 using Investa.Domain.Entities.Enums;
 using Investa.Domain.Entities.Security;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Investa.Infrastructure.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Investa.Infrastructure.Persistence;
@@ -10,7 +11,7 @@ namespace Investa.Infrastructure.Persistence;
 /// Application database context that combines business entities with ASP.NET Core Identity
 /// Inherits from IdentityDbContext to support user authentication and authorization
 /// </summary>
-public class ApplicationDbContext : IdentityDbContext
+public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, ApplicationIdentityRole, Guid>
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
@@ -278,7 +279,7 @@ public class ApplicationDbContext : IdentityDbContext
 
                 // Relationship to User (whose score is affected)
                 ctb.HasOne(c => c.User)
-                   .WithMany()
+                         .WithMany(u => u.CreditTransactions)
                    .HasForeignKey(c => c.UserId)
                    .OnDelete(DeleteBehavior.Restrict);
 
