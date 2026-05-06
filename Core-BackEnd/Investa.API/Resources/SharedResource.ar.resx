@@ -73,4 +73,202 @@
   <data name="InternalServerError" xml:space="preserve">
     <value>حدث خطأ داخلي في الخادم.</value>
   </data>
+  <data name="RequestBodyRequired" xml:space="preserve">
+    <value>مطلوب جسم الطلب.</value>
+  </data>
+  <data name="UnableToIdentifyUserFromToken" xml:space="preserve">
+    <value>غير قادر على تحديد المستخدم من الرمز المميز</value>
+  </data>
+  <data name="NoChangesDetected" xml:space="preserve">
+    <value>لم يتم اكتشاف أي تغييرات</value>
+  </data>
+  <data name="ErrorUpdatingBasicProfile" xml:space="preserve">
+    <value>حدث خطأ أثناء تحديث الملف الشخصي الأساسي</value>
+  </data>
+  <data name="ErrorRetrievingProfile" xml:space="preserve">
+    <value>حدث خطأ أثناء استرداد الملف الشخصي</value>
+  </data>
+  <data name="ErrorStartingKyc" xml:space="preserve">
+    <value>حدث خطأ أثناء بدء إجراءات التحقق من الهوية</value>
+  </data>
+  <data name="ErrorRetrievingCreditHistory" xml:space="preserve">
+    <value>حدث خطأ أثناء جلب تاريخ الائتمان</value>
+  </data>
+  <data name="ProfileDataRequired" xml:space="preserve">
+    <value>بيانات الملف الشخصي مطلوبة</value>
+  </data>
+  <data name="FullNameMaxLength" xml:space="preserve">
+    <value>يجب ألا يتجاوز الاسم الكامل 200 حرف.</value>
+  </data>
+  <data name="FirstNameMaxLength" xml:space="preserve">
+    <value>يجب ألا يتجاوز الاسم الأول 100 حرف.</value>
+  </data>
+  <data name="LastNameMaxLength" xml:space="preserve">
+    <value>يجب ألا يتجاوز اسم العائلة 100 حرف.</value>
+  </data>
+  <data name="CompanyNameMaxLength" xml:space="preserve">
+    <value>يجب ألا يتجاوز اسم الشركة 200 حرف.</value>
+  </data>
+  <data name="BioMaxLength" xml:space="preserve">
+    <value>يجب ألا يتجاوز السيرة الذاتية 1000 حرف.</value>
+  </data>
+  <data name="UserMustBeAtLeast18" xml:space="preserve">
+    <value>يجب أن يكون عمر المستخدم 18 سنة على الأقل.</value>
+  </data>
+  <data name="AvatarUrlInvalid" xml:space="preserve">
+    <value>عنوان الصورة الرمزية ليس عبارة عن رابط صالح.</value>
+  </data>
+  <data name="EmailMaxLength" xml:space="preserve">
+    <value>يجب ألا يتجاوز البريد الإلكتروني 150 حرف.</value>
+  </data>
+  <data name="CompanyEmailMaxLength" xml:space="preserve">
+    <value>يجب ألا يتجاوز بريد الشركة 150 حرف.</value>
+  </data>
+  <data name="CompanyEmailInvalid" xml:space="preserve">
+    <value>بريد الشركة ليس عنوان بريد إلكتروني صالحًا.</value>
+  </data>
+  <data name="CompanyAddressMaxLength" xml:space="preserve">
+    <value>يجب ألا تتجاوز عنوان الشركة 500 حرف.</value>
+  </data>
+  <data name="Phone1MaxLength" xml:space="preserve">
+    <value>يجب ألا يتجاوز رقم الهاتف 20 حرف.</value>
+  </data>
+  <data name="LinkedInUrlInvalid" xml:space="preserve">
+    <value>رابط LinkedIn غير صالح.</value>
+  </data>
+  <data name="FacebookUrlInvalid" xml:space="preserve">
+    <value>رابط Facebook غير صالح.</value>
+  </data>
+  <data name="DocumentNumberMaxLength" xml:space="preserve">
+    <value>يجب ألا يتجاوز رقم المستند 50 حرف.</value>
+  </data>
+  <data name="HrLetterFileNameMaxLength" xml:space="preserve">
+    <value>يجب ألا يتجاوز اسم ملف خطاب HR 260 حرف.</value>
+  </data>
+  <data name="DeviceMacAddressMaxLength" xml:space="preserve">
+    <value>يجب ألا يتجاوز عنوان MAC للجهاز 100 حرف.</value>
+  </data>
+  <data name="ErrorUpdatingProfile" xml:space="preserve">
+    <value>حدث خطأ أثناء تحديث الملف الشخصي</value>
+  </data>
+  <data name="ErrorInitializingProfile" xml:space="preserve">
+    <value>حدث خطأ أثناء تهيئة الملف الشخصي</value>
+  </data>
+  <data name="UserProfileNotFound" xml:space="preserve">
+    <value>الملف الشخصي للمستخدم غير موجود</value>
+  </data>
+  <data name="ValidationFailed" xml:space="preserve">
+    <value>فشل التحقق من الصحة</value>
+  </data>
+  <data name="ProfileUpdated" xml:space="preserve">
+    <value>تم تحديث الملف الشخصي</value>
+  </data>
+  <data name="FcmTokenRequired" xml:space="preserve">
+    <value>مطلوب رمز FCM.</value>
+  </data>
+  <data name="RoleNameRequired" xml:space="preserve">
+    <value>اسم الدور مطلوب</value>
+  </data>
+  <data name="GroupIdRequired" xml:space="preserve">
+    <value>مطلوب GroupId (يجب أن تنتمي الأدوار إلى مجموعة)</value>
+  </data>
+  <data name="RoleNotFound" xml:space="preserve">
+    <value>الدور غير موجود</value>
+  </data>
+  <data name="FailedToCreateInvestmentRequest" xml:space="preserve">
+    <value>فشل إنشاء طلب الاستثمار</value>
+  </data>
+  <data name="FailedToFetchInvestmentRequests" xml:space="preserve">
+    <value>فشل جلب طلبات الاستثمار</value>
+  </data>
+  <data name="ErrorFetchingRoles" xml:space="preserve">
+    <value>حدث خطأ أثناء جلب الأدوار</value>
+  </data>
+  <data name="ErrorCreatingRole" xml:space="preserve">
+    <value>حدث خطأ أثناء إنشاء الدور</value>
+  </data>
+  <data name="GroupNotFoundOrInactive" xml:space="preserve">
+    <value>المجموعة مع المعرف {0} غير موجودة أو غير نشطة</value>
+  </data>
+  <data name="RoleAlreadyExistsInGroup" xml:space="preserve">
+    <value>الدور '{0}' موجود بالفعل في هذه المجموعة</value>
+  </data>
+  <data name="FailedToSyncToken" xml:space="preserve">
+    <value>فشل مزامنة الرمز.</value>
+  </data>
+  <data name="TokenSyncedSuccessfully" xml:space="preserve">
+    <value>تمت مزامنة الرمز بنجاح.</value>
+  </data>
+  <data name="InvalidSupportSessionData" xml:space="preserve">
+    <value>بيانات جلسة الدعم غير صالحة.</value>
+  </data>
+  <data name="UserMobileRequired" xml:space="preserve">
+    <value>رقم الجوال للمستخدم مطلوب.</value>
+  </data>
+  <data name="CouldNotDetermineSender" xml:space="preserve">
+    <value>تعذر تحديد المرسل.</value>
+  </data>
+  <data name="StatusRequired" xml:space="preserve">
+    <value>الحالة مطلوبة.</value>
+  </data>
+  <data name="InvalidStatusValue" xml:space="preserve">
+    <value>قيمة الحالة غير صالحة.</value>
+  </data>
+  <data name="InvalidPayload" xml:space="preserve">
+    <value>الحمولة غير صالحة.</value>
+  </data>
+  <data name="NoFileUploaded" xml:space="preserve">
+    <value>لم يتم تحميل أي ملف.</value>
+  </data>
+  <data name="EmptyFile" xml:space="preserve">
+    <value>الملف فارغ.</value>
+  </data>
+  <data name="InvalidSharesAmount" xml:space="preserve">
+    <value>كمية الأسهم غير صالحة.</value>
+  </data>
+  <data name="PurchaseFailed" xml:space="preserve">
+    <value>فشل الشراء.</value>
+  </data>
+  <data name="FailedToCreateUser" xml:space="preserve">
+    <value>فشل إنشاء المستخدم.</value>
+  </data>
+  <data name="NoUserIdsProvided" xml:space="preserve">
+    <value>لم يتم تقديم أية معرِّفات مستخدم.</value>
+  </data>
+  <data name="FailedToUpdateUsers" xml:space="preserve">
+    <value>فشل تحديث المستخدمين.</value>
+  </data>
+  <data name="ErrorRetrievingUsers" xml:space="preserve">
+    <value>حدث خطأ أثناء جلب المستخدمين.</value>
+  </data>
+  <data name="UserIdNotFoundInToken" xml:space="preserve">
+    <value>لم يتم العثور على معرف المستخدم في الرمز.</value>
+  </data>
+  <data name="InvalidMetric" xml:space="preserve">
+    <value>مؤشر غير صالح. المسموح: balance، net، count</value>
+  </data>
+  <data name="OnlyMonthIntervalSupported" xml:space="preserve">
+    <value>الفاصل الزمني 'month' فقط مدعوم.</value>
+  </data>
+  <data name="FailedToUploadImage" xml:space="preserve">
+    <value>فشل تحميل الصورة.</value>
+  </data>
+  <data name="FailedToDeleteImage" xml:space="preserve">
+    <value>فشل حذف الصورة.</value>
+  </data>
+  <data name="FailedToSetPrimaryImage" xml:space="preserve">
+    <value>فشل تعيين الصورة كالصورة الأساسية.</value>
+  </data>
+  <data name="FailedToReorderImages" xml:space="preserve">
+    <value>فشل إعادة ترتيب الصور.</value>
+  </data>
+  <data name="InvalidMessageData" xml:space="preserve">
+    <value>بيانات الرسالة غير صالحة.</value>
+  </data>
+  <data name="SharesPurchasedSuccessfully" xml:space="preserve">
+    <value>تم شراء الأسهم بنجاح</value>
+  </data>
+  <data name="SuccessfullyUpdatedUsers" xml:space="preserve">
+    <value>تم تحديث {0} مستخدم بنجاح</value>
+  </data>
 </root>

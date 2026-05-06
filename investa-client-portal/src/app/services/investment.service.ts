@@ -130,6 +130,23 @@ export class InvestmentService {
     }
   }
 
+  // --- Image management wrappers ---
+  async uploadInvestmentImage(investmentId: number, file: File, caption?: string): Promise<any> {
+    return this.apiService.uploadInvestmentImage(investmentId, file, caption);
+  }
+
+  async deleteInvestmentImage(investmentId: number, imageId: number): Promise<void> {
+    return this.apiService.deleteInvestmentImage(investmentId, imageId);
+  }
+
+  async setPrimaryInvestmentImage(investmentId: number, imageId: number): Promise<void> {
+    return this.apiService.setPrimaryInvestmentImage(investmentId, imageId);
+  }
+
+  async reorderInvestmentImages(investmentId: number, ordering: { imageId: number; sortOrder: number }[]): Promise<void> {
+    return this.apiService.reorderInvestmentImages(investmentId, ordering);
+  }
+
   /**
    * Get participants for an investment opportunity
    */
@@ -161,6 +178,7 @@ export class InvestmentService {
 
       businessCategoryId: dto.businessCategoryId,
       businessCategoryName: category?.value,
+      businessCategoryNameAr: category?.valueAr ?? category?.value,
       businessStageId: dto.businessStageId,
       projectPhaseId: dto.projectPhaseId,
 
@@ -244,7 +262,7 @@ export class InvestmentService {
           id: inv.businessCategoryId,
           key: `category_${inv.businessCategoryId}`,
           value: inv.businessCategoryName,
-          valueAr: inv.businessCategoryName  // TODO: Add Arabic support
+          valueAr: inv.businessCategoryNameAr ?? inv.businessCategoryName
         });
       }
     });

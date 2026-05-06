@@ -7,9 +7,10 @@ import 'package:flutter_partner/services/dashboard_service.dart';
 import 'package:flutter_partner/services/app_logger.dart';
 
 class Category {
-  final String name;
+  final String name; // English name (used for stable coloring)
+  final String? nameAr; // Arabic display (optional)
   final double percent;
-  Category(this.name, this.percent);
+  Category(this.name, this.percent, {this.nameAr});
 }
 
 class Activity {
@@ -220,8 +221,13 @@ Future<DashboardData> fetchDashboardData({String interval = 'month'}) async {
           if (total > 0) {
             categoriesFromServer = true;
             categories = topCats
-                .map((t) => Category(t.businessCategoryName,
-                    (t.investmentCount / total) * 100.0))
+                .map((t) => Category(
+                      t.businessCategoryName,
+                      (t.investmentCount / total) * 100.0,
+                      nameAr: t.businessCategoryNameAr.isNotEmpty
+                          ? t.businessCategoryNameAr
+                          : null,
+                    ))
                 .toList();
           }
         }
@@ -253,8 +259,8 @@ Future<DashboardData> fetchDashboardData({String interval = 'month'}) async {
 
       if (profile.credit != null) {
         credits = profile.credit!;
-      } else if (profile.coreMetrics?.walletBalance != null) {
-        credits = profile.coreMetrics!.walletBalance!.round();
+      } else {
+        credits = (profile.coreMetrics?.walletBalance ?? 0).round();
       }
     } else {
       // attempt to fetch profile from API and store it
@@ -273,8 +279,8 @@ Future<DashboardData> fetchDashboardData({String interval = 'month'}) async {
 
         if (p.credit != null) {
           credits = p.credit!;
-        } else if (p.coreMetrics?.walletBalance != null) {
-          credits = p.coreMetrics!.walletBalance!.round();
+        } else {
+          credits = (p.coreMetrics?.walletBalance ?? 0).round();
         }
       }
     }

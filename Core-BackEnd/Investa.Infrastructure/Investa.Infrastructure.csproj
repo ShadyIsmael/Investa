@@ -16,6 +16,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.2" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -36,6 +37,20 @@
     <Compile Include="Migrations\ApplicationDbContextModelSnapshot.cs" />
     <Compile Include="Migrations\20260127221923_AddUserProfileDateOfBirthAndCountry.cs" />
     <Compile Include="Migrations\20260127221923_AddUserProfileDateOfBirthAndCountry.Designer.cs" />
+    <Compile Include="Migrations\20260129200642_BE-341-InvestmentRequests.cs" />
+    <Compile Include="Migrations\20260129200642_BE-341-InvestmentRequests.Designer.cs" />
+    <Compile Include="Migrations\20260130120000_BE-XXX_AddRequestTypeToInvestmentRequests.cs" />
+    <Compile Include="Migrations\20260130120000_BE-XXX_AddRequestTypeToInvestmentRequests.Designer.cs" />
+    <Compile Include="Migrations\20260130041351_20260130152000_BE-XXX_CapturePendingModelChanges.cs" />
+    <Compile Include="Migrations\20260130041351_20260130152000_BE-XXX_CapturePendingModelChanges.Designer.cs" />
+    <Compile Include="Migrations\20260208193915_AddCompanyAndHrLetterToUserProfile.cs" />
+    <Compile Include="Migrations\20260208193915_AddCompanyAndHrLetterToUserProfile.Designer.cs" />
+    <Compile Include="Migrations\20260209230505_EnsureProfileCompanyColumns.cs" />
+    <Compile Include="Migrations\20260209230505_EnsureProfileCompanyColumns.Designer.cs" />
+    <Compile Include="Migrations\20260210145831_AddKycCompletionTracking.cs" />
+    <Compile Include="Migrations\20260210145831_AddKycCompletionTracking.Designer.cs" />
+    <Compile Include="Migrations\20260210213643_AddContactCity_RemoveWorkAddress_Auto.cs" />
+    <Compile Include="Migrations\20260210213643_AddContactCity_RemoveWorkAddress_Auto.Designer.cs" />
   </ItemGroup>
 
 

@@ -16,7 +16,9 @@ import '../services/requests_service.dart';
 import '../services/messages.dart';
 
 class RequestsScreen extends StatefulWidget {
-  const RequestsScreen({super.key});
+  final Function(int)? onPendingCountChanged;
+
+  const RequestsScreen({super.key, this.onPendingCountChanged});
 
   @override
   State<RequestsScreen> createState() => _RequestsScreenState();
@@ -61,7 +63,15 @@ class _RequestsScreenState extends State<RequestsScreen> {
       _outcome = outcome;
       _loadingIncome = false;
       _loadingOutcome = false;
+      _updatePendingCount();
     });
+  }
+
+  void _updatePendingCount() {
+    final pendingCount =
+        _income.where((r) => r.status == RequestStatus.pending).length +
+            _outcome.where((r) => r.status == RequestStatus.pending).length;
+    widget.onPendingCountChanged?.call(pendingCount);
   }
 
   Future<void> _refreshIncome() async {
@@ -70,6 +80,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
     setState(() {
       _income = income;
       _loadingIncome = false;
+      _updatePendingCount();
     });
   }
 
@@ -79,6 +90,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
     setState(() {
       _outcome = outcome;
       _loadingOutcome = false;
+      _updatePendingCount();
     });
   }
 

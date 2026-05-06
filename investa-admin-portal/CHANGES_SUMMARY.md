@@ -93,11 +93,40 @@ VITE_FIREBASE_VAPID_KEY=BNDummyVapidKeyForDevelopment
 **Status:** VERIFIED (issues are backend-related)
 
 **Finding:** Vite proxy configuration is correctly set up in `vite.config.ts`:
-- `/api` → forwards to `proxyTarget` (localhost:5000 or DESKTOP-DIH7CQH:5235)
+- `/api` → forwards to `proxyTarget` (localhost:5000 or desktop-dih7cqh:5235)
 - `/v1`, `/analytics`, `/support`, `/moderation` → properly proxied
 - WebSocket support enabled for SignalR hubs
 
-**API Error Analysis:**
+**API Error Analysis:** See original file for full analysis.
+
+---
+
+# Investa Admin Portal — May 2026 Code Quality Cleanup
+
+**Date:** May 2026  
+**Project:** investa-admin-portal (React + Vite + TypeScript)
+
+## Summary
+
+Removed all debug `console.log` / `console.debug` / `console.info` statements from production code. These were leftover from initial development and were leaking internal state to the browser console in production builds.
+
+## Files Changed
+
+| File | Statements Removed |
+|---|---|
+| `src/features/support/SupportDashboard.tsx` | All `console.log` debug calls |
+| `src/pages/Dashboard.tsx` | All `console.log` debug calls |
+| `src/pages/Login.tsx` | All `console.log` debug calls |
+| `src/contexts/AuthContext.tsx` | All `console.log` + `console.debug` calls |
+| `src/features/support/SupportRequests.tsx` | All `console.log` debug calls |
+| `src/features/support/ChatView.tsx` | All `console.log` debug calls |
+| `src/features/notifications/Notifications.tsx` | All `console.log` debug calls |
+
+## Result
+
+- **0** active `console.*` statements in production code
+- All intentional logging routes through `src/utils/logger.ts` (environment-aware, silent in production)
+- No functional behaviour changed — only debug output removed
 ```
 Current Errors:
 - GET /api/admin/users/myprofile → 404

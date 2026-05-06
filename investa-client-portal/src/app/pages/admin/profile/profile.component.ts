@@ -6,6 +6,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
 import { ProfileService, CreditTransaction } from '../../../services/profile.service';
 import { LanguageService } from '../../../services/language.service';
+import { Router } from '@angular/router';
 
 export const passwordMatchValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
   const password = control.get('newPassword');
@@ -32,6 +33,7 @@ export class ProfileComponent {
   public profileService = inject(ProfileService);
   private notificationService = inject(NotificationService);
   private languageService = inject(LanguageService);
+  private router = inject(Router);
 
   private t(path: string): string {
     return this.languageService.translate(path);
@@ -70,8 +72,19 @@ export class ProfileComponent {
   // Credit history
   creditHistory = signal<CreditTransaction[]>([]);
 
-  // Current language preference (detect from navigator or user settings)
-  currentLanguage = signal<'ar' | 'en'>('en');
+  // Current score calculated as sum of all credit transaction amounts
+  currentScore = computed(() => {
+    const transactions = this.creditHistory();
+    if (!transactions || transactions.length === 0) return 0;
+    return transactions.reduce((sum, tx) => sum + tx.amount, 0);
+  });
+  // Limited to 5 transactions for display in profile
+  limitedCreditHistory = computed(() => {
+    return this.creditHistory().slice(0, 5);
+  });
+
+  // Current language preference from LanguageService
+  currentLanguage = computed<'ar' | 'en'>(() => this.languageService.language());
 
   // Snapshot used to detect changes for enabling Save button
   profileSnapshot = signal<string>('');
@@ -82,6 +95,10 @@ export class ProfileComponent {
       firstName: formValues.firstName ?? '',
       lastName: formValues.lastName ?? '',
       nationalId: formValues.nationalId ?? '',
+      companyName: formValues.companyName ?? '',
+      companyEmail: formValues.companyEmail ?? '',
+      companyAddress: formValues.companyAddress ?? '',
+      hrLetterFileName: this.hrLetterFileName() ?? '',
       bio: formValues.bio ?? '',
       linkedinUrl: formValues.linkedinUrl ?? '',
       facebookUrl: formValues.facebookUrl ?? ''
@@ -124,6 +141,10 @@ export class ProfileComponent {
     country: new FormControl(''),
     nationalId: new FormControl(''),
     nationalIdCopy: new FormControl<File | null>(null),
+    companyName: new FormControl(''),
+    companyEmail: new FormControl(''),
+    companyAddress: new FormControl(''),
+    hrLetterCopy: new FormControl<File | null>(null),
     bio: new FormControl('', [Validators.maxLength(500)]),
     linkedinUrl: new FormControl(''),
     facebookUrl: new FormControl(''),
@@ -131,6 +152,16 @@ export class ProfileComponent {
 
   // Convert form values to signal for reactive change detection
   profileFormValues = toSignal(this.profileForm.valueChanges, { initialValue: this.profileForm.value });
+
+  getCountryLabel(code?: string | null): string {
+    if (!code) return '';
+    const found = this.nationalityOptions.find(c => c.code === code);
+    if (found) return this.t(found.key);
+    // As fallback, try to map by label (if backend returned localized label)
+    const foundByLabel = this.nationalityOptions.find(c => this.t(c.key) === code);
+    if (foundByLabel) return this.t(foundByLabel.key);
+    return code;
+  }
 
   communicationForm = new FormGroup({
     email: new FormControl(''),
@@ -144,6 +175,9 @@ export class ProfileComponent {
 
   // Convert form values to signal for reactive change detection
   communicationFormValues = toSignal(this.communicationForm.valueChanges, { initialValue: this.communicationForm.value });
+  hrLetterFileName = signal<string>('');
+  hrLetterBase64 = signal<string | null>(null);
+  deviceMacAddress = signal<string | null>(null);
 
   passwordForm = new FormGroup({
     currentPassword: new FormControl('', [Validators.required]),
@@ -165,9 +199,19 @@ export class ProfileComponent {
   dobCalendarDay = signal<number | null>(null);
   isRtl = computed(() => this.languageService.direction() === 'rtl');
 
-  // nationality options (could be loaded from API or assets)
+  // nationality options (code,labelKey) — localized via translation keys
   nationalityOptions = [
-    'Egypt','United States','United Kingdom','United Arab Emirates','Saudi Arabia','Canada','Australia','Other'
+    { code: 'EG', key: 'profile.personalInfo.country_egypt' },
+    { code: 'SA', key: 'profile.personalInfo.country_saudi_arabia' },
+    { code: 'AE', key: 'profile.personalInfo.country_uae' },
+    { code: 'JO', key: 'profile.personalInfo.country_jordan' },
+    { code: 'LB', key: 'profile.personalInfo.country_lebanon' },
+    { code: 'US', key: 'profile.personalInfo.country_usa' },
+    { code: 'GB', key: 'profile.personalInfo.country_uk' },
+    { code: 'IN', key: 'profile.personalInfo.country_india' },
+    { code: 'CA', key: 'profile.personalInfo.country_canada' },
+    { code: 'AU', key: 'profile.personalInfo.country_australia' },
+    { code: 'OT', key: 'profile.personalInfo.country_other' }
   ];
 
   toggleDobCalendar(): void {
@@ -277,6 +321,8 @@ export class ProfileComponent {
   strokeOffset = computed(() => this.circumference - (this.trustScore() / 100) * this.circumference);
 
   constructor() {
+    // helper exposed to template to get localized country label
+    (this as any).getCountryLabel = this.getCountryLabel.bind(this);
     // Reset verification flags when id inputs change
     this.profileForm.get('nationalId')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.isNationalIdVerified.set(false);
@@ -301,18 +347,35 @@ export class ProfileComponent {
 
   private syncProfileToForms(p: ReturnType<typeof this.profileService.profile>): void {
     // Patch personal details
+    // Map backend values to our form codes if possible
+    const incomingGender = p?.basicInfo?.gender ?? '';
+    const normalizedGender = incomingGender ? (incomingGender.toString().toLowerCase().startsWith('m') ? 'M' : incomingGender.toString().toLowerCase().startsWith('f') ? 'F' : incomingGender) : '';
+
+    const incomingNationality = p?.basicInfo?.nationality ?? '';
+    let nationalityCode = '';
+    if (incomingNationality) {
+      const found = this.nationalityOptions.find(c => c.code === incomingNationality || this.t(c.key) === incomingNationality);
+      nationalityCode = found ? found.code : incomingNationality;
+    }
+
     this.profileForm.patchValue({
       firstName: p?.basicInfo?.firstName ?? '',
       lastName: p?.basicInfo?.lastName ?? '',
       dateOfBirth: p?.basicInfo?.dateOfBirth ? new Date(p.basicInfo.dateOfBirth).toISOString().substr(0,10) : null,
-      gender: p?.basicInfo?.gender ?? '',
-      nationality: p?.basicInfo?.nationality ?? '',
+      gender: normalizedGender ?? '',
+      nationality: nationalityCode ?? '',
       country: p?.basicInfo?.country ?? '',
       nationalId: p?.identityCompliance?.documentNumber ?? '',
+      companyName: p?.basicInfo?.companyName ?? '',
+      companyEmail: p?.contactInfo?.companyEmail ?? '',
+      companyAddress: p?.contactInfo?.companyAddress ?? '',
       bio: p?.basicInfo?.bio ?? '',
       linkedinUrl: p?.basicInfo?.linkedInUrl ?? p?.contactInfo?.linkedInUrl ?? '',
       facebookUrl: p?.basicInfo?.facebookUrl ?? p?.contactInfo?.facebookUrl ?? '',
     }, { emitEvent: false });
+
+    this.hrLetterFileName.set(p?.identityCompliance?.hrLetterFileName ?? '');
+    this.hrLetterBase64.set(p?.identityCompliance?.hrLetterBase64 ?? null);
 
     // Patch communication info
     this.communicationForm.patchValue({
@@ -337,10 +400,14 @@ export class ProfileComponent {
       firstName: p?.basicInfo?.firstName ?? '',
       lastName: p?.basicInfo?.lastName ?? '',
       dateOfBirth: p?.basicInfo?.dateOfBirth ? new Date(p.basicInfo.dateOfBirth).toISOString().substr(0,10) : null,
-      gender: p?.basicInfo?.gender ?? '',
+      gender: (p?.basicInfo?.gender ?? '') as string,
       nationality: p?.basicInfo?.nationality ?? '',
       country: p?.basicInfo?.country ?? '',
       nationalId: p?.identityCompliance?.documentNumber ?? '',
+      companyName: p?.basicInfo?.companyName ?? '',
+      companyEmail: p?.contactInfo?.companyEmail ?? '',
+      companyAddress: p?.contactInfo?.companyAddress ?? '',
+      hrLetterFileName: p?.identityCompliance?.hrLetterFileName ?? '',
       bio: p?.basicInfo?.bio ?? '',
       linkedinUrl: p?.basicInfo?.linkedInUrl ?? p?.contactInfo?.linkedInUrl ?? '',
       facebookUrl: p?.basicInfo?.facebookUrl ?? p?.contactInfo?.facebookUrl ?? ''
@@ -416,6 +483,14 @@ export class ProfileComponent {
     this.activeSection.set(section);
   }
 
+  viewAllTransactions() {
+    this.router.navigate(['/admin/transactions']);
+  }
+
+  navigateToChargeCredits() {
+    this.router.navigate(['/admin/credit-charge']);
+  }
+
   onFileChange(event: Event) {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
@@ -423,6 +498,23 @@ export class ProfileComponent {
       this.nationalIdFileName.set(file.name);
       this.profileForm.patchValue({ nationalIdCopy: file });
       this.profileForm.get('nationalIdCopy')?.markAsDirty();
+    }
+  }
+
+  onHrLetterChange(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      this.hrLetterFileName.set(file.name);
+      this.profileForm.patchValue({ hrLetterCopy: file });
+      this.profileForm.get('hrLetterCopy')?.markAsDirty();
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64 = result?.includes(',') ? result.split(',')[1] : result;
+        this.hrLetterBase64.set(base64 || null);
+      };
+      reader.readAsDataURL(file);
     }
   }
 
@@ -548,6 +640,7 @@ export class ProfileComponent {
         gender: this.profileForm.get('gender')?.value ?? null,
         nationality: this.profileForm.get('nationality')?.value ?? null,
         country: this.profileForm.get('country')?.value ?? null,
+        companyName: this.profileForm.get('companyName')?.value ?? existing.basicInfo?.companyName ?? null,
         bio: this.profileForm.get('bio')?.value ?? '',
         linkedInUrl: this.profileForm.get('linkedinUrl')?.value ?? '',
         facebookUrl: this.profileForm.get('facebookUrl')?.value ?? '',
@@ -559,12 +652,17 @@ export class ProfileComponent {
         phone2: communicationRaw.state ?? existing.contactInfo?.phone2 ?? null,
         address: communicationRaw.address ?? existing.contactInfo?.address ?? null,
         workAddress: communicationRaw.businessAddress ?? existing.contactInfo?.workAddress ?? null,
+        companyEmail: this.profileForm.get('companyEmail')?.value ?? existing.contactInfo?.companyEmail ?? null,
+        companyAddress: this.profileForm.get('companyAddress')?.value ?? existing.contactInfo?.companyAddress ?? null,
         linkedInUrl: this.profileForm.get('linkedinUrl')?.value ?? existing.contactInfo?.linkedInUrl ?? null,
         facebookUrl: this.profileForm.get('facebookUrl')?.value ?? existing.contactInfo?.facebookUrl ?? null
       },
       identityCompliance: {
         ...(existing.identityCompliance ?? {}),
-        documentNumber: this.profileForm.get('nationalId')?.value ?? existing.identityCompliance?.documentNumber ?? null
+        documentNumber: this.profileForm.get('nationalId')?.value ?? existing.identityCompliance?.documentNumber ?? null,
+        hrLetterFileName: (this.hrLetterFileName() || existing.identityCompliance?.hrLetterFileName) ?? null,
+        hrLetterBase64: (this.hrLetterBase64() || existing.identityCompliance?.hrLetterBase64) ?? null,
+        deviceMacAddress: (this.deviceMacAddress() || existing.identityCompliance?.deviceMacAddress) ?? null
       }
     };
   }

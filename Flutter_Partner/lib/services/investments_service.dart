@@ -64,7 +64,9 @@ class InvestmentsService {
   String get baseUrl =>
       _baseOverride ?? EndpointResolver.instance.selectedApiBaseUrl;
 
-  Future<bool> createInvestment(InvestmentRequest req) async {
+  /// Creates an investment and returns the created investment payload on success.
+  /// Returns `null` on failure.
+  Future<Map<String, dynamic>?> createInvestment(dynamic req) async {
     var apiBase = baseUrl;
     if (!apiBase.startsWith('http')) apiBase = 'http://$apiBase';
     final uri = Uri.parse('$apiBase/api/v1/investments');
@@ -89,14 +91,41 @@ class InvestmentsService {
       }
       AppLogger.logInfo('InvestmentsService',
           'Request headers keys=${headers.keys.toList()}');
-      final resp = await _client.post(uri.toString(),
-          data: req.toJson(), headers: headers);
+      final payload = req is Map<String, dynamic> ? req : req.toJson();
+      final resp =
+          await _client.post(uri.toString(), data: payload, headers: headers);
       final status = resp.statusCode ?? 0;
       AppLogger.logInfo('InvestmentsService', 'Response status=$status');
       try {
         AppLogger.logInfo('InvestmentsService', 'Response body=${resp.data}');
       } catch (_) {}
-      return status >= 200 && status < 300;
+
+      if (status >= 200 && status < 300) {
+        try {
+          final body = resp.data is Map
+              ? resp.data as Map<String, dynamic>
+              : jsonDecode(resp.toString()) as Map<String, dynamic>;
+          final data = body['data'] is Map<String, dynamic>
+              ? Map<String, dynamic>.from(body['data'] as Map)
+              : (body['data'] != null ? {'result': body['data']} : null);
+          return data ?? <String, dynamic>{};
+        } catch (e, s) {
+          AppLogger.logError('InvestmentsService', 'Parse error: $e', s);
+          return <String, dynamic>{};
+        }
+      }
+
+      // Try to parse server error details
+      try {
+        final body = resp.data is Map
+            ? resp.data as Map<String, dynamic>
+            : jsonDecode(resp.toString()) as Map<String, dynamic>;
+        final message = body['message'] ?? body['errors'] ?? body;
+        return {'error': message};
+      } catch (_) {
+        AppLogger.logError('InvestmentsService', 'Server error: $status', null);
+        return {'error': 'Server error: $status'};
+      }
     } on DioException catch (e) {
       // Log detailed response info when available to help debug 403/401 cases
       try {
@@ -114,10 +143,10 @@ class InvestmentsService {
         AppLogger.logError('InvestmentsService',
             'Network error (no response): ${e.message}', e.stackTrace);
       }
-      return false;
+      return null;
     } catch (e, s) {
       AppLogger.logError('InvestmentsService', 'Unexpected: $e', s);
-      return false;
+      return null;
     }
   }
 
@@ -129,8 +158,10 @@ class InvestmentsService {
         '$apiBase/api/v1/investments/GetByCategory${categoryId != null ? '?categoryId=$categoryId' : ''}');
     try {
       AppLogger.logInfo('InvestmentsService', 'GET ${uri.toString()}');
-      final resp = await _client
-          .get(uri.toString(), headers: {'accept': 'application/json'});
+      final resp = await _client.get(
+        uri.toString(),
+        headers: {'accept': 'application/json'},
+      );
       final status = resp.statusCode ?? 0;
       AppLogger.logInfo('InvestmentsService', 'Response status=$status');
       if (status >= 200 && status < 300) {
@@ -170,6 +201,71 @@ class InvestmentsService {
           return data;
         } catch (_) {
           // Fallback: if response is a raw list
+          if (resp.data is List) return resp.data as List<dynamic>;
+          return <dynamic>[];
+        }
+      }
+      AppLogger.logError('InvestmentsService', 'Server error: $status', null);
+      return <dynamic>[];
+    } on DioException catch (e) {
+      AppLogger.logError(
+          'InvestmentsService', 'Network error: ${e.message}', e.stackTrace);
+      return <dynamic>[];
+    } catch (e, s) {
+      AppLogger.logError('InvestmentsService', 'Unexpected: $e', s);
+      return <dynamic>[];
+    }
+  }
+
+  /// Fetch investments the current user has engaged/joined.
+  Future<List<dynamic>> fetchMyInvestments() async {
+    var apiBase = baseUrl;
+    if (!apiBase.startsWith('http')) apiBase = 'http://$apiBase';
+    final uri = Uri.parse('$apiBase/api/v1/investments/GetMyInvestments');
+    try {
+      AppLogger.logInfo('InvestmentsService', 'GET ${uri.toString()}');
+      final token = await SecureStorage().read('auth_token');
+      final headers = {'accept': 'application/json'};
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+      final resp = await _client.get(uri.toString(), headers: headers);
+      final status = resp.statusCode ?? 0;
+      AppLogger.logInfo('InvestmentsService', 'Response status=$status');
+      if (status >= 200 && status < 300) {
+        try {
+          final body = resp.data is Map
+              ? resp.data as Map<String, dynamic>
+              : jsonDecode(resp.toString()) as Map<String, dynamic>;
+          final data = body['data'] as List? ?? (body['items'] as List?);
+          if (data == null) return <dynamic>[];
+          // Normalize investment item keys
+          for (var i = 0; i < data.length; i++) {
+            final item = data[i];
+            if (item is Map) {
+              final m = Map<String, dynamic>.from(item);
+              final founder = m['FounderDisplay'] ??
+                  m['founderDisplay'] ??
+                  m['founderName'] ??
+                  m['authorName'];
+              if (founder != null) m['FounderDisplay'] = founder;
+              final cred = m['CredibilityScore'] ??
+                  m['credibilityScore'] ??
+                  m['credibility'] ??
+                  m['authorScore'];
+              if (cred != null) {
+                if (cred is num) {
+                  m['CredibilityScore'] = cred;
+                } else if (cred is String) {
+                  final parsed = double.tryParse(cred);
+                  if (parsed != null) m['CredibilityScore'] = parsed;
+                }
+              }
+              data[i] = m;
+            }
+          }
+          return data;
+        } catch (_) {
           if (resp.data is List) return resp.data as List<dynamic>;
           return <dynamic>[];
         }

@@ -16,7 +16,12 @@ import '../services/requests_service.dart';
 import '../services/messages.dart';
 
 class RequestsScreen extends StatefulWidget {
-  const RequestsScreen({Key? key}) : super(key: key);
+  final Function(int)? onPendingCountChanged;
+  final int initialTabIndex;
+
+  const RequestsScreen(
+      {Key? key, this.onPendingCountChanged, this.initialTabIndex = 0})
+      : super(key: key);
 
   @override
   State<RequestsScreen> createState() => _RequestsScreenState();
@@ -61,7 +66,15 @@ class _RequestsScreenState extends State<RequestsScreen> {
       _outcome = outcome;
       _loadingIncome = false;
       _loadingOutcome = false;
+      _updatePendingCount();
     });
+  }
+
+  void _updatePendingCount() {
+    final pendingCount =
+        _income.where((r) => r.status == RequestStatus.pending).length +
+            _outcome.where((r) => r.status == RequestStatus.pending).length;
+    widget.onPendingCountChanged?.call(pendingCount);
   }
 
   Future<void> _refreshIncome() async {
@@ -70,6 +83,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
     setState(() {
       _income = income;
       _loadingIncome = false;
+      _updatePendingCount();
     });
   }
 
@@ -79,6 +93,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
     setState(() {
       _outcome = outcome;
       _loadingOutcome = false;
+      _updatePendingCount();
     });
   }
 
@@ -138,6 +153,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
                   padding: const EdgeInsets.all(16),
                   child: DefaultTabController(
                     length: 3,
+                    initialIndex: widget.initialTabIndex,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -311,7 +327,17 @@ class _RequestsScreenState extends State<RequestsScreen> {
       final id = r.id.toString().toLowerCase();
       final name = r.founderName.toLowerCase();
       final biz = r.businessName.toLowerCase();
-      return id.contains(q) || name.contains(q) || biz.contains(q);
+      final title = r.investmentTitle.toLowerCase();
+      final desc = r.shortDescription.toLowerCase();
+      final sender = r.senderName.toLowerCase();
+      final receiver = r.receiverName.toLowerCase();
+      return id.contains(q) ||
+          name.contains(q) ||
+          biz.contains(q) ||
+          title.contains(q) ||
+          desc.contains(q) ||
+          sender.contains(q) ||
+          receiver.contains(q);
     }).toList();
   }
 }
@@ -554,19 +580,52 @@ class _RequestCard extends StatelessWidget {
                                   .showSnackBar(SnackBar(
                                       content: Text(AppMessages.openFounder(
                                           item.founderName)))),
-                              child: Text(item.founderName,
+                              child: Text(item.investmentTitle,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: theme.textTheme.titleMedium
                                       ?.copyWith(fontWeight: FontWeight.w700)),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 2),
                             Text(item.businessName,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.primary,
+                                    fontWeight: FontWeight.w600),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis),
+                            const SizedBox(height: 4),
+                            Text(item.shortDescription,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                     color: theme.colorScheme.onSurface
                                         .withOpacity(0.7)),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Text('From: ',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                        color: theme.colorScheme.onSurface
+                                            .withOpacity(0.5),
+                                        fontSize: 11)),
+                                Text(item.senderName,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                        color: theme.colorScheme.onSurface
+                                            .withOpacity(0.7),
+                                        fontSize: 11)),
+                                const SizedBox(width: 8),
+                                Text('To: ',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                        color: theme.colorScheme.onSurface
+                                            .withOpacity(0.5),
+                                        fontSize: 11)),
+                                Text(item.receiverName,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                        color: theme.colorScheme.onSurface
+                                            .withOpacity(0.7),
+                                        fontSize: 11)),
+                              ],
+                            ),
                           ],
                         ),
                       ),

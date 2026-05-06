@@ -7,6 +7,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
 import { NotificationService } from '../../../services/notification.service';
 import { LanguageService } from '../../../services/language.service';
+import { RequestsService } from '../../../services/requests.service';
+import { UserService } from '../../../services/user.service';
 import { get } from 'lodash-es';
 import { Investment, RiskLevel, InvestmentType, getInvestmentTypeDisplay, getInvestmentTypeBadgeClass } from '../../../models/investment.model';
 
@@ -32,12 +34,14 @@ const ENGAGEMENT_CREDIT_COST = 5;
   imports: [CommonModule, ReactiveFormsModule, FormsModule, TranslatePipe]
 })
 export class InvestmentsComponent {
-  private investmentService = inject(InvestmentService);
+  protected investmentService = inject(InvestmentService);
   private fb: FormBuilder = inject(FormBuilder);
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
   private notificationService = inject(NotificationService);
-  private languageService = inject(LanguageService);
+  protected languageService = inject(LanguageService);
+  private requestsService = inject(RequestsService);
+  private userService = inject(UserService);
   
   protected readonly RiskLevel = RiskLevel;
   protected readonly InvestmentType = InvestmentType;
@@ -77,6 +81,7 @@ export class InvestmentsComponent {
   isAdvancedSearchOpen = signal(false);
   investmentToEngage = signal<Investment | null>(null);
   engagementCreditCost = ENGAGEMENT_CREDIT_COST;
+  engagementProcessing = signal(false);
   
   // Investment dialog state
   investmentToInvest = signal<Investment | null>(null);
@@ -84,6 +89,10 @@ export class InvestmentsComponent {
   sharesToPurchase = computed(() => this.sharesToPurchaseValue);
   investmentError = signal<string | null>(null);
   investmentProcessing = signal(false);
+  investmentConfirmationOpen = signal(false);  // Tracks if final confirmation dialog is open
+
+  // User credits from UserService
+  userCredits = this.userService.credits;
   
   // Helper properties for template
   Math = Math;
@@ -261,6 +270,19 @@ export class InvestmentsComponent {
       console.error('Failed to load investments for category', category, err);
     }
   }
+
+  /**
+   * Return a localized label for an API category value.
+   * Falls back to the provided `cat` when no Arabic translation is available.
+   */
+  getCategoryLabel(cat: string): string {
+    const lang = this.languageService.language();
+    if (lang === 'ar') {
+      const found = this.investmentService.categories().find(c => c.value === cat);
+      return found?.valueAr || cat;
+    }
+    return cat;
+  }
   
   /**
    * Toggle advanced search panel
@@ -317,24 +339,71 @@ export class InvestmentsComponent {
   }
 
   /**
-   * Confirm engagement (placeholder - implement actual logic)
+   * Confirm engagement for funding-based investments
    */
-  confirmEngage(): void {
+  async confirmEngage(): Promise<void> {
     const investment = this.investmentToEngage();
-    if (investment) {
-      const dictionary = this.languageService.dictionary();
-      const titleTemplate = get(dictionary, 'investments.engageSuccessTitle', 'Request Sent');
-      const messageTemplate = get(dictionary, 'investments.engageSuccessMessage', 'Your request has been sent.');
-      const message = messageTemplate.replace('{investmentName}', investment.name);
+    if (!investment) return;
 
-      this.notificationService.showToast({
-        title: titleTemplate,
-        message: message,
-        type: 'success'
-      });
-      
-      this.investmentToEngage.set(null);
+    if (this.engagementProcessing()) {
+      return;
     }
+
+    // Refresh profile to ensure credits are up-to-date
+    try {
+      await this.userService.refreshUser();
+    } catch (err) {
+      console.warn('Failed to refresh user before engagement confirmation:', err);
+    }
+
+    const currentCredits = this.userCredits();
+    if (currentCredits < this.engagementCreditCost) {
+      this.notificationService.showToast({
+        title: 'Insufficient Credits',
+        message: 'You do not have enough credits for engagement.',
+        type: 'error'
+      });
+      return;
+    }
+
+    this.engagementProcessing.set(true);
+    this.requestsService
+      .createInvestmentRequest(investment, this.engagementCreditCost, 0)
+      .then(() => {
+        const { title, message } = this.getRequestSubmittedCopy(investment);
+        this.notificationService.showToast({
+          title,
+          message,
+          type: 'success'
+        });
+        this.investmentToEngage.set(null);
+      })
+      .catch(error => {
+        const apiMessage = error?.error?.message || error?.message;
+        this.notificationService.showToast({
+          title: 'Request Failed',
+          message: apiMessage || 'Failed to submit engagement request. Please try again.',
+          type: 'error'
+        });
+      })
+      .finally(() => {
+        this.engagementProcessing.set(false);
+      });
+  }
+
+  private getRequestSubmittedCopy(investment: Investment): { title: string; message: string } {
+    const dictionary = this.languageService.dictionary();
+    const title = get(dictionary, 'investments.requestSubmittedTitle', 'Request Sent');
+    const messageTemplate = get(
+      dictionary,
+      'investments.requestSubmittedMessage',
+      'Your request for {investmentName} was submitted. We will notify you once it is accepted.'
+    );
+
+    return {
+      title,
+      message: messageTemplate.replace('{investmentName}', investment.name)
+    };
   }
 
   /**
@@ -453,9 +522,42 @@ export class InvestmentsComponent {
   }
 
   /**
-   * Confirm and process investment
+   * Show final confirmation dialog before submitting investment request
    */
-  async confirmInvestment(investment: Investment): Promise<void> {
+  showConfirmationDialog(investment: Investment): void {
+    if (this.investmentError() || this.investmentProcessing()) {
+      return;
+    }
+
+    const investmentAmount = (investment.sharePrice || 0) * this.sharesToPurchaseValue;
+    const currentCredits = this.userCredits();
+
+    // Pre-check credits
+    if (currentCredits < investmentAmount) {
+      this.investmentError.set('Insufficient credits. Please add more credits to your account.');
+      this.notificationService.showToast({
+        title: 'Insufficient Credits',
+        message: 'You do not have enough credits to complete this investment.',
+        type: 'error'
+      });
+      return;
+    }
+
+    // Open final confirmation dialog
+    this.investmentConfirmationOpen.set(true);
+  }
+
+  /**
+   * Cancel final confirmation dialog
+   */
+  cancelConfirmation(): void {
+    this.investmentConfirmationOpen.set(false);
+  }
+
+  /**
+   * Proceed with investment request after user confirms in dialog
+   */
+  async proceedWithInvestment(investment: Investment): Promise<void> {
     if (this.investmentError() || this.investmentProcessing()) {
       return;
     }
@@ -464,26 +566,32 @@ export class InvestmentsComponent {
     this.investmentError.set(null);
 
     try {
-      const success = await this.investmentService.purchaseShares(
-        investment.id,
+      const investmentAmount = (investment.sharePrice || 0) * this.sharesToPurchaseValue;
+
+      // Call API to create investment request (deducts credits, creates request in database)
+      await this.requestsService.createInvestmentRequest(
+        investment,
+        investmentAmount,
         this.sharesToPurchaseValue
       );
 
-      if (success) {
-        this.notificationService.showToast({
-          title: 'Investment Successful',
-          message: `You've successfully invested in ${investment.name}!`,
-          type: 'success'
-        });
-        
-        this.closeInvestDialog();
-        await this.refresh();
-      }
-    } catch (error: any) {
-      this.investmentError.set(error.message || 'Failed to process investment');
+      const { title, message } = this.getRequestSubmittedCopy(investment);
       this.notificationService.showToast({
-        title: 'Investment Failed',
-        message: error.message || 'Unable to complete your investment',
+        title,
+        message,
+        type: 'success'
+      });
+
+      // Close dialogs and refresh
+      this.investmentConfirmationOpen.set(false);
+      this.closeInvestDialog();
+      await this.refresh();
+    } catch (error: any) {
+      const apiMessage = error?.error?.message || error?.message;
+      this.investmentError.set(apiMessage || 'Failed to submit investment request');
+      this.notificationService.showToast({
+        title: 'Request Failed',
+        message: apiMessage || 'Failed to submit investment request. Please try again.',
         type: 'error'
       });
     } finally {

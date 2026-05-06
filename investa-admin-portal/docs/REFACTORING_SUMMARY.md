@@ -223,8 +223,8 @@ const hubUrl = getDynamicHubUrl('/chathub');
 ### 1. Zero Hardcoded Configuration
 **Before**:
 ```typescript
-const BASE_URL = 'http://DESKTOP-DIH7CQH:5235/';
-const HUB_URL = 'http://DESKTOP-DIH7CQH:5000/chathub';
+const BASE_URL = 'http://desktop-dih7cqh:5235/';
+const HUB_URL = 'http://desktop-dih7cqh:5000/chathub';
 ```
 
 **After**:

@@ -18,6 +18,7 @@ public class InvestmentRepository : Repository<Investment>, IInvestmentRepositor
     public async Task<Investment?> GetByIdWithFullDetailsAsync(int id)
     {
         return await _dbSet
+            .Include(i => i.Images.OrderBy(img => img.SortOrder))
             .Include(i => i.TeamMembers.Where(tm => tm.IsActive).OrderBy(tm => tm.SortOrder))
                 .ThenInclude(tm => tm.User)
                     .ThenInclude(u => u.Profile)
@@ -31,6 +32,7 @@ public class InvestmentRepository : Repository<Investment>, IInvestmentRepositor
     public async Task<IEnumerable<Investment>> GetAllWithFullDetailsAsync()
     {
         return await _dbSet
+            .Include(i => i.Images.OrderBy(img => img.SortOrder))
             .Include(i => i.TeamMembers.Where(tm => tm.IsActive).OrderBy(tm => tm.SortOrder))
                 .ThenInclude(tm => tm.User)
                     .ThenInclude(u => u.Profile)
@@ -45,6 +47,7 @@ public class InvestmentRepository : Repository<Investment>, IInvestmentRepositor
     {
         return await _dbSet
             .Where(i => i.BusinessCategoryId == categoryId)
+            .Include(i => i.Images.OrderBy(img => img.SortOrder))
             .Include(i => i.TeamMembers.Where(tm => tm.IsActive).OrderBy(tm => tm.SortOrder))
                 .ThenInclude(tm => tm.User)
                     .ThenInclude(u => u.Profile)

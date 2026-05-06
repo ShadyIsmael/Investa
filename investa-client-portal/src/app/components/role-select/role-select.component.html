@@ -2,7 +2,7 @@
   <div class="relative bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl m-4 p-8 md:p-12 text-center animate-fade-in" style="animation-delay: 0.1s; animation-duration: 0.4s;" (click)="$event.stopPropagation()">
     
     <button (click)="closeModal()" class="absolute top-4 end-4 text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-slate-700">
-      <span class="sr-only">Close</span>
+      <span class="sr-only">{{ 'roleSelect.close' | translate }}</span>
       <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
     </button>
     

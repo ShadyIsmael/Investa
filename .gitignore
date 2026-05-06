@@ -51,7 +51,8 @@ desktop.ini
 # -----------------------
 .env
 appsettings.Development.json
-# ملحوظة: لا تتجاهل appsettings.json الأساسي، فقط ملفات الإعدادات الشخصية
+# Firebase service account key — NEVER commit real credentials
+**/Secrets/*.json
 
 /flutter/  # ده هيخفي فولدر الـ SDK اللي نزل
 !Flutter_Investor/  # علامة التعجب دي بتقول للـ Git: "إظهر الفولدر ده حتى لو فيه شبه من الاسم اللي فوق"
@@ -130,3 +131,18 @@ Core-BackEnd/scripts/*_out.txt
 node_modules/
 dist/
 .cache/
+
+# [10] Angular build cache
+# -----------------------
+.angular/cache/
+investa-client-portal/.angular/
+investa-admin-portal/.angular/
+
+# [11] Temp SQL diagnostics & output (not source)
+# -----------------------
+Core-BackEnd/*_results.txt
+Core-BackEnd/diagnostic_results.txt
+Core-BackEnd/conversion_results.txt
+Core-BackEnd/indexes.txt
+Core-BackEnd/diagnose_*.sql
+Core-BackEnd/check_*.sql

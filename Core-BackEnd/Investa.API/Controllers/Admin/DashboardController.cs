@@ -6,21 +6,25 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Investa.Domain.Entities.Security;
+using Microsoft.Extensions.Localization;
+using Investa.API.Resources;
 
 namespace Investa.API.Controllers.Admin
 {
     [ApiController]
     [Route("api/v1/admin/dashboard")]
-    [Authorize(Roles = nameof(UserRoles.Admin))]
+    [Authorize(Roles = "Admin")]
     public class DashboardController : ControllerBase
     {
         private readonly ICreditService _creditService;
         private readonly ApplicationDbContext _db;
+        private readonly IStringLocalizer<SharedResource> _localizer;
 
-        public DashboardController(ApplicationDbContext db, ICreditService creditService)
+        public DashboardController(ApplicationDbContext db, ICreditService creditService, IStringLocalizer<SharedResource> localizer)
         {
             _db = db;
             _creditService = creditService;
+            _localizer = localizer;
         }
 
         // GET /api/v1/admin/dashboard/{userId}/timeseries
@@ -33,8 +37,8 @@ namespace Investa.API.Controllers.Admin
             metric = metric?.ToLower() ?? "balance";
             interval = interval?.ToLower() ?? "month";
 
-            if (metric != "balance" && metric != "net" && metric != "count") return BadRequest("Invalid metric. Allowed: balance, net, count");
-            if (interval != "month") return BadRequest("Only 'month' interval is supported");
+            if (metric != "balance" && metric != "net" && metric != "count") return BadRequest(_localizer["InvalidMetric"].Value);
+            if (interval != "month") return BadRequest(_localizer["OnlyMonthIntervalSupported"].Value);
 
             var series = await _creditService.GetClientCreditTimeseriesAsync(userId, fromDt, toDt, metric, interval);
             return Ok(series);
@@ -118,7 +122,8 @@ namespace Investa.API.Controllers.Admin
             {
                 id = $"INV-{(g.CategoryId.HasValue ? g.CategoryId.Value.ToString() : "0")}",
                 total = g.TotalAmount,
-                categoryName = g.CategoryId.HasValue ? (categories.FirstOrDefault(c => c.Id == g.CategoryId.Value)?.Value ?? "Uncategorized") : "Uncategorized"
+                categoryName = g.CategoryId.HasValue ? (categories.FirstOrDefault(c => c.Id == g.CategoryId.Value)?.Value ?? "Uncategorized") : "Uncategorized",
+                categoryNameAr = g.CategoryId.HasValue ? (categories.FirstOrDefault(c => c.Id == g.CategoryId.Value)?.ValueAr ?? (categories.FirstOrDefault(c => c.Id == g.CategoryId.Value)?.Value ?? "Uncategorized")) : "Uncategorized"
             }).ToList();
 
             return Ok(new { success = true, data = result });

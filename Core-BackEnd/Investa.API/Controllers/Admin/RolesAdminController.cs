@@ -4,6 +4,8 @@ using Investa.Domain.Entities.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
+using Investa.API.Resources;
 
 namespace Investa.API.Controllers.Admin;
 
@@ -13,16 +15,18 @@ namespace Investa.API.Controllers.Admin;
 /// </summary>
 [ApiController]
 [Route("api/v1/admin")]
-[Authorize(Roles = nameof(UserRoles.Admin))]
+[Authorize(Roles = "Admin")]
 public class RolesAdminController : ControllerBase
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<RolesAdminController> _logger;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
-    public RolesAdminController(IUnitOfWork unitOfWork, ILogger<RolesAdminController> logger)
+    public RolesAdminController(IUnitOfWork unitOfWork, ILogger<RolesAdminController> logger, IStringLocalizer<SharedResource> localizer)
     {
         _unitOfWork = unitOfWork;
         _logger = logger;
+        _localizer = localizer;
     }
 
     /// <summary>
@@ -112,10 +116,10 @@ public class RolesAdminController : ControllerBase
         try
         {
             if (string.IsNullOrWhiteSpace(dto.Name))
-                return BadRequest("Role name is required");
+                return BadRequest(_localizer["RoleNameRequired"].Value);
 
             if (dto.GroupId <= 0)
-                return BadRequest("GroupId is required (roles must belong to a group)");
+                return BadRequest(_localizer["GroupIdRequired"].Value);
 
             // Verify group exists
             var group = (await _unitOfWork.Repository<Group>()
@@ -123,7 +127,7 @@ public class RolesAdminController : ControllerBase
                 .FirstOrDefault();
 
             if (group == null)
-                return BadRequest($"Group with ID {dto.GroupId} not found or inactive");
+                return BadRequest(string.Format(_localizer["GroupNotFoundOrInactive"].Value, dto.GroupId));
 
             // Check for duplicate role name in the same group
             var existing = (await _unitOfWork.Repository<Role>()
@@ -131,7 +135,7 @@ public class RolesAdminController : ControllerBase
                 .FirstOrDefault();
 
             if (existing != null)
-                return BadRequest($"Role '{dto.Name}' already exists in this group");
+                return BadRequest(string.Format(_localizer["RoleAlreadyExistsInGroup"].Value, dto.Name));
 
             var role = new Role
             {
@@ -267,7 +271,7 @@ public class RolesAdminController : ControllerBase
         try
         {
             var role = (await _unitOfWork.Repository<Role>().FindAsync(r => r.Id == roleId)).FirstOrDefault();
-            if (role == null) return NotFound("Role not found");
+            if (role == null) return NotFound(_localizer["RoleNotFound"].Value);
 
             // Remove duplicates
             var userIds = dto.UserIds.Distinct().ToList();

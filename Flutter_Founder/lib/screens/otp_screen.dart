@@ -7,7 +7,7 @@ class OTPScreen extends StatefulWidget {
   const OTPScreen({super.key});
 
   @override
-  _OTPScreenState createState() => _OTPScreenState();
+  State<OTPScreen> createState() => _OTPScreenState();
 }
 
 class _OTPScreenState extends State<OTPScreen> {
@@ -154,12 +154,14 @@ class _OTPScreenState extends State<OTPScreen> {
           await _handleVerificationSuccess(credential);
         },
         verificationFailed: (FirebaseAuthException e) {
+          if (!mounted) return;
           setState(() => _processing = false);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(e.message ?? 'Verification failed')),
           );
         },
         codeSent: (String verificationId, int? resendToken) {
+          if (!mounted) return;
           setState(() {
             _processing = false;
             _otpSent = true;
@@ -172,6 +174,7 @@ class _OTPScreenState extends State<OTPScreen> {
         codeAutoRetrievalTimeout: (String verificationId) {},
       );
     } catch (e) {
+      if (!mounted) return;
       setState(() => _processing = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
@@ -206,11 +209,13 @@ class _OTPScreenState extends State<OTPScreen> {
 
       await _handleVerificationSuccess(credential);
     } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
       setState(() => _processing = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message ?? 'Verification failed')),
       );
     } catch (e) {
+      if (!mounted) return;
       setState(() => _processing = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
@@ -220,6 +225,8 @@ class _OTPScreenState extends State<OTPScreen> {
 
   Future<void> _handleVerificationSuccess(
       PhoneAuthCredential credential) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
     try {
       final userCred =
           await FirebaseAuth.instance.signInWithCredential(credential);
@@ -227,8 +234,9 @@ class _OTPScreenState extends State<OTPScreen> {
 
       if (firebaseUser == null) throw Exception("Firebase user not found");
 
+      if (!mounted) return;
       // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(
           content: Text('Phone number verified successfully!'),
           backgroundColor: Colors.green,
@@ -236,26 +244,25 @@ class _OTPScreenState extends State<OTPScreen> {
         ),
       );
 
-      // Navigate to SignupScreen with verified phone number
-      if (mounted) {
-        await Future.delayed(const Duration(seconds: 1));
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => SignupScreen(
-              prefilledPhone:
-                  '$_selectedCountryCode${_phoneController.text.trim()}',
-              phoneReadOnly: true,
-              firebaseResponse: {
-                'uid': firebaseUser.uid,
-                'isNew': userCred.additionalUserInfo?.isNewUser ?? true,
-              },
-            ),
+      await Future.delayed(const Duration(seconds: 1));
+      if (!mounted) return;
+      navigator.pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => SignupScreen(
+            prefilledPhone:
+                '$_selectedCountryCode${_phoneController.text.trim()}',
+            phoneReadOnly: true,
+            firebaseResponse: {
+              'uid': firebaseUser.uid,
+              'isNew': userCred.additionalUserInfo?.isNewUser ?? true,
+            },
           ),
-        );
-      }
+        ),
+      );
     } catch (e) {
+      if (!mounted) return;
       setState(() => _processing = false);
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
     }

@@ -275,8 +275,13 @@
                   </svg>
                 </div>
                 <div>
-                  <h2 class="text-xl font-bold text-white">Financial Structure</h2>
-                  <p class="text-slate-400 text-sm">Define your equity and funding terms</p>
+                  @if (investmentForm.get('investmentTypeId')?.value === 1) {
+                    <h2 class="text-xl font-bold text-white">Founding Details</h2>
+                    <p class="text-slate-400 text-sm">Define duration and profit terms</p>
+                  } @else {
+                    <h2 class="text-xl font-bold text-white">Equity Structure</h2>
+                    <p class="text-slate-400 text-sm">Define your equity and funding terms</p>
+                  }
                 </div>
               </div>
 
@@ -306,7 +311,140 @@
                   </div>
                 </div>
 
-                <!-- Initial Capital & Currency Row -->
+                <!-- Founding-Specific Fields -->
+                @if (investmentForm.get('investmentTypeId')?.value === 1) {
+                  <!-- Duration & Profit Row -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label class="block text-sm font-medium text-slate-300 mb-2">
+                        Duration (Months) <span class="text-red-400">*</span>
+                      </label>
+                      <input 
+                        type="number" 
+                        formControlName="durationMonths"
+                        class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                        placeholder="Investment duration"
+                      />
+                      @if (hasError('durationMonths')) {
+                        <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('durationMonths') }}</p>
+                      }
+                    </div>
+
+                    <div>
+                      <label class="block text-sm font-medium text-slate-300 mb-2">
+                        Profit Percentage <span class="text-red-400">*</span>
+                      </label>
+                      <div class="relative">
+                        <input 
+                          type="number" 
+                          formControlName="profitPercentage"
+                          class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                          placeholder="Expected profit %"
+                        />
+                        <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">%</span>
+                      </div>
+                      @if (hasError('profitPercentage')) {
+                        <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('profitPercentage') }}</p>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Payout Frequency -->
+                  <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">
+                      Payout Frequency <span class="text-red-400">*</span>
+                    </label>
+                    <select 
+                      formControlName="payoutFrequency"
+                      class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    >
+                      <option value="">Select frequency</option>
+                      <option value="Monthly">Monthly</option>
+                      <option value="Quarterly">Quarterly</option>
+                      <option value="Semi-Annually">Semi-Annually</option>
+                      <option value="Annually">Annually</option>
+                      <option value="At Maturity">At Maturity</option>
+                    </select>
+                    @if (hasError('payoutFrequency')) {
+                      <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('payoutFrequency') }}</p>
+                    }
+                  </div>
+                }
+
+                <!-- Equity-Specific Fields -->
+                @if (investmentForm.get('investmentTypeId')?.value === 2) {
+                  <!-- Share Price & Total Shares -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label class="block text-sm font-medium text-slate-300 mb-2">
+                        Share Price <span class="text-red-400">*</span>
+                      </label>
+                      <div class="relative">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{{ getCurrencySymbol() }}</span>
+                        <input 
+                          type="number" 
+                          formControlName="sharePrice"
+                          class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                          placeholder="Price per share"
+                        />
+                      </div>
+                      @if (hasError('sharePrice')) {
+                        <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('sharePrice') }}</p>
+                      }
+                    </div>
+
+                    <div>
+                      <label class="block text-sm font-medium text-slate-300 mb-2">
+                        Total Shares Available <span class="text-red-400">*</span>
+                      </label>
+                      <input 
+                        type="number" 
+                        formControlName="totalShares"
+                        class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                        placeholder="Number of shares for this round"
+                      />
+                      @if (hasError('totalShares')) {
+                        <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('totalShares') }}</p>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Calculated Target Fund (Equity Only) -->
+                  <div class="p-4 rounded-xl bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20">
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <div class="text-sm text-slate-400 mb-1">Target Fundraising Amount</div>
+                        <div class="text-2xl font-bold text-white">
+                          {{ formatCurrency(investmentForm.get('targetFund')?.value) }}
+                        </div>
+                      </div>
+                      <div class="text-sm text-slate-400">
+                        {{ investmentForm.get('totalShares')?.value || 0 }} shares × {{ formatCurrency(investmentForm.get('sharePrice')?.value) }}
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Valuation Cap (Equity Only) -->
+                  <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">
+                      Valuation Cap <span class="text-red-400">*</span>
+                    </label>
+                    <div class="relative">
+                      <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{{ getCurrencySymbol() }}</span>
+                      <input 
+                        type="number" 
+                        formControlName="valuationCap"
+                        class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                        placeholder="Company valuation cap"
+                      />
+                    </div>
+                    @if (hasError('valuationCap')) {
+                      <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('valuationCap') }}</p>
+                    }
+                  </div>
+                }
+
+                <!-- Common Fields: Initial Capital & Currency Row -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-slate-300 mb-2">
@@ -338,57 +476,6 @@
                         <option [value]="curr.code">{{ curr.code }} ({{ curr.symbol }})</option>
                       }
                     </select>
-                  </div>
-                </div>
-
-                <!-- Share Price & Total Shares -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">
-                      Share Price <span class="text-red-400">*</span>
-                    </label>
-                    <div class="relative">
-                      <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{{ getCurrencySymbol() }}</span>
-                      <input 
-                        type="number" 
-                        formControlName="sharePrice"
-                        class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        placeholder="Price per share"
-                      />
-                    </div>
-                    @if (hasError('sharePrice')) {
-                      <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('sharePrice') }}</p>
-                    }
-                  </div>
-
-                  <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">
-                      Total Shares Available <span class="text-red-400">*</span>
-                    </label>
-                    <input 
-                      type="number" 
-                      formControlName="totalShares"
-                      class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                      placeholder="Number of shares for this round"
-                    />
-                    @if (hasError('totalShares')) {
-                      <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('totalShares') }}</p>
-                    }
-                  </div>
-                </div>
-
-                <!-- Calculated Target Fund -->
-                <div class="p-4 rounded-xl bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <div class="text-sm text-slate-400 mb-1">Target Fundraising Amount</div>
-                      <div class="text-2xl font-bold text-white">
-                        {{ formatCurrency(investmentForm.get('targetFund')?.value) }}
-                      </div>
-                    </div>
-                    <div class="text-sm text-slate-400">
-                      {{ investmentForm.get('totalShares')?.value || 0 }} shares × {{ formatCurrency(investmentForm.get('sharePrice')?.value) }}
-                    </div>
                   </div>
                 </div>
 
@@ -425,40 +512,23 @@
                   </div>
                 </div>
 
-                <!-- Valuation & ROI -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">
-                      Valuation Cap
-                    </label>
-                    <div class="relative">
-                      <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{{ getCurrencySymbol() }}</span>
-                      <input 
-                        type="number" 
-                        formControlName="valuationCap"
-                        class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        placeholder="Company valuation cap"
-                      />
-                    </div>
+                <!-- Expected ROI -->
+                <div>
+                  <label class="block text-sm font-medium text-slate-300 mb-2">
+                    Expected ROI (%)
+                  </label>
+                  <div class="relative">
+                    <input 
+                      type="number" 
+                      formControlName="expectedROI"
+                      class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                      placeholder="Expected return percentage"
+                    />
+                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">%</span>
                   </div>
-
-                  <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">
-                      Expected ROI (%)
-                    </label>
-                    <div class="relative">
-                      <input 
-                        type="number" 
-                        formControlName="expectedROI"
-                        class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        placeholder="Expected return percentage"
-                      />
-                      <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">%</span>
-                    </div>
-                    @if (hasError('expectedROI')) {
-                      <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('expectedROI') }}</p>
-                    }
-                  </div>
+                  @if (hasError('expectedROI')) {
+                    <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('expectedROI') }}</p>
+                  }
                 </div>
 
                 <!-- Dates -->

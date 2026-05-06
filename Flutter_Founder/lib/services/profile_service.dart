@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'api_client.dart';
 import 'app_logger.dart';
 import 'endpoint_resolver.dart';
+import 'app_state.dart';
 
 class CoreMetrics {
   final String? email;
@@ -37,10 +38,14 @@ class BasicInfo {
   final String? fullName;
   final String? gender;
   final String? nationality;
+  final DateTime? dateOfBirth;
+  final String? companyName;
   final String? bio;
   final String? avatarUrl;
   final int? score;
   final int? credit;
+  final bool isKycVerified;
+  final int kycCompletionPercentage;
 
   BasicInfo({
     this.firstName,
@@ -48,11 +53,23 @@ class BasicInfo {
     this.fullName,
     this.gender,
     this.nationality,
+    this.dateOfBirth,
+    this.companyName,
     this.bio,
     this.avatarUrl,
     this.score,
     this.credit,
+    this.isKycVerified = false,
+    this.kycCompletionPercentage = 0,
   });
+
+  static int _normalizeKycCompletionPercentage(num? raw) {
+    if (raw == null) return 0;
+    final value = raw.round();
+    if (value < 0) return 0;
+    if (value > 100) return 100;
+    return value;
+  }
 
   factory BasicInfo.fromJson(Map<String, dynamic> json) {
     return BasicInfo(
@@ -61,10 +78,17 @@ class BasicInfo {
       fullName: json['fullName'] as String?,
       gender: json['gender'] as String?,
       nationality: json['nationality'] as String?,
+      dateOfBirth: json['dateOfBirth'] != null
+          ? DateTime.parse(json['dateOfBirth'] as String)
+          : null,
+      companyName: json['companyName'] as String?,
       bio: json['bio'] as String?,
       avatarUrl: json['avatarUrl'] as String?,
       score: (json['score'] as num?)?.toInt(),
       credit: (json['credit'] as num?)?.toInt(),
+      isKycVerified: json['isKycVerified'] as bool? ?? false,
+      kycCompletionPercentage: _normalizeKycCompletionPercentage(
+          json['kycCompletionPercentage'] as num?),
     );
   }
 }
@@ -75,8 +99,12 @@ class ContactInfo {
   final String? phone2;
   final String? workAddress;
   final String? address;
+  final String? companyAddress;
+  final String? companyEmail;
   final String? linkedInUrl;
   final String? facebookUrl;
+  final String? country;
+  final String? city;
 
   ContactInfo({
     this.email,
@@ -84,8 +112,12 @@ class ContactInfo {
     this.phone2,
     this.workAddress,
     this.address,
+    this.companyAddress,
+    this.companyEmail,
     this.linkedInUrl,
     this.facebookUrl,
+    this.country,
+    this.city,
   });
 
   factory ContactInfo.fromJson(Map<String, dynamic> json) {
@@ -95,8 +127,12 @@ class ContactInfo {
       phone2: json['phone2'] as String?,
       workAddress: json['workAddress'] as String?,
       address: json['address'] as String?,
+      companyAddress: json['companyAddress'] as String?,
+      companyEmail: json['companyEmail'] as String?,
       linkedInUrl: json['linkedInUrl'] as String?,
       facebookUrl: json['facebookUrl'] as String?,
+      country: json['country'] as String?,
+      city: json['city'] as String?,
     );
   }
 }
@@ -107,6 +143,9 @@ class IdentityCompliance {
   final String? verificationStatus;
   final String? documentFrontImageUrl;
   final String? documentBackImageUrl;
+  final String? hrLetterFileName;
+  final String? hrLetterBase64;
+  final String? deviceMacAddress;
 
   IdentityCompliance({
     this.documentNumber,
@@ -114,6 +153,9 @@ class IdentityCompliance {
     this.verificationStatus,
     this.documentFrontImageUrl,
     this.documentBackImageUrl,
+    this.hrLetterFileName,
+    this.hrLetterBase64,
+    this.deviceMacAddress,
   });
 
   factory IdentityCompliance.fromJson(Map<String, dynamic> json) {
@@ -125,6 +167,9 @@ class IdentityCompliance {
       verificationStatus: json['verificationStatus'] as String?,
       documentFrontImageUrl: json['documentFrontImageUrl'] as String?,
       documentBackImageUrl: json['documentBackImageUrl'] as String?,
+      hrLetterFileName: json['hrLetterFileName'] as String?,
+      hrLetterBase64: json['hrLetterBase64'] as String?,
+      deviceMacAddress: json['deviceMacAddress'] as String?,
     );
   }
 }
@@ -195,6 +240,7 @@ class Profile {
       if (json['fullName'] != null) 'fullName': json['fullName'],
       if (json['gender'] != null) 'gender': json['gender'],
       if (json['nationality'] != null) 'nationality': json['nationality'],
+      if (json['dateOfBirth'] != null) 'dateOfBirth': json['dateOfBirth'],
       if (json['bio'] != null) 'bio': json['bio'],
       if (json['avatarUrl'] != null) 'avatarUrl': json['avatarUrl'],
       if (json['score'] != null) 'score': json['score'],
@@ -367,6 +413,93 @@ class ProfileService {
     }
   }
 
+  /// Update the current user's profile. Expects a payload matching the server
+  /// UpdateProfileRequest DTO (basicInfo, contactInfo, identityCompliance).
+  Future<Profile?> updateProfile(Map<String, dynamic> payload) async {
+    var profileBase = baseUrl;
+    if (!profileBase.startsWith('http')) profileBase = 'http://$profileBase';
+    final uri = Uri.parse('$profileBase/api/Profile/me');
+    try {
+      AppLogger.logInfo(
+          'ProfileService.updateProfile', 'PUT ${uri.toString()}');
+      AppLogger.logInfo('ProfileService.updateProfile',
+          'Payload type: ${payload.runtimeType}');
+      AppLogger.logInfo('ProfileService.updateProfile',
+          'Payload keys: ${payload.keys.toList()}');
+
+      final resp = await _client.put(uri.toString(),
+          data: payload, headers: {'content-type': 'application/json'});
+      final status = resp.statusCode ?? 0;
+      AppLogger.logInfo(
+          'ProfileService.updateProfile', 'Response status=$status');
+      if (status >= 200 && status < 300) {
+        try {
+          // Log a short preview of the response for debugging
+          final raw = resp.data is String
+              ? resp.data as String
+              : resp.data is Map
+                  ? jsonEncode((resp.data as Map).keys.toList())
+                  : resp.toString();
+          AppLogger.logInfo('ProfileService.updateProfile',
+              'Response preview: ${raw.length > 400 ? "${raw.substring(0, 400)}..." : raw}');
+
+          if (resp.data == null || resp.data.toString().trim().isEmpty) {
+            final refreshed = await fetchProfile();
+            return refreshed ?? Profile();
+          }
+
+          // Support ApiResponse wrapper { success, message, data }
+          var body = resp.data is Map
+              ? Map<String, dynamic>.from(resp.data as Map)
+              : jsonDecode(resp.toString()) as Map<String, dynamic>;
+
+          if (body.containsKey('data') && body['data'] is Map) {
+            body = Map<String, dynamic>.from(body['data'] as Map);
+            AppLogger.logInfo('ProfileService.updateProfile',
+                'Unwrapped data from ApiResponse');
+          }
+
+          final profile = Profile.fromJson(body);
+          try {
+            await AppState.instance.setProfile(profile, body);
+          } catch (_) {}
+          return profile;
+        } catch (e, s) {
+          AppLogger.logError(
+              'ProfileService.updateProfile', 'Parse failed: $e', s);
+          final refreshed = await fetchProfile();
+          return refreshed ?? Profile();
+        }
+      }
+
+      // If we reach here, status was not 2xx - handle error responses
+      // Attempt to extract server-side validation errors to surface to UI
+      try {
+        final body = resp.data is Map
+            ? resp.data as Map<String, dynamic>
+            : jsonDecode(resp.toString()) as Map<String, dynamic>;
+        if (body['errors'] != null && body['errors'] is List) {
+          final err =
+              (body['errors'] as List).map((e) => e.toString()).join('; ');
+          AppLogger.logError(
+              'ProfileService.updateProfile', 'Server validation: $err', null);
+          throw Exception(err);
+        }
+      } catch (_) {}
+
+      AppLogger.logError(
+          'ProfileService.updateProfile', 'Server error: $status', null);
+      throw Exception('Server error: $status');
+    } on DioException catch (e) {
+      AppLogger.logError('ProfileService.updateProfile',
+          'Network error: ${e.message}', e.stackTrace);
+      throw Exception('Network error: ${e.message}');
+    } catch (e, s) {
+      AppLogger.logError('ProfileService.updateProfile', 'Unexpected: $e', s);
+      throw Exception('Unexpected error: $e');
+    }
+  }
+
   /// Start KYC verification process
   Future<Map<String, dynamic>?> startKyc() async {
     var apiBase = baseUrl;
@@ -386,6 +519,7 @@ class ProfileService {
             : jsonDecode(resp.toString()) as Map<String, dynamic>;
         return body;
       }
+
       AppLogger.logError(
           'ProfileService.startKyc', 'Server error: $status', null);
       return null;
@@ -399,6 +533,29 @@ class ProfileService {
     } catch (e, s) {
       AppLogger.logError('ProfileService.startKyc', 'Unexpected: $e', s);
       return null;
+    }
+  }
+
+  /// Send verification email to user's email address (best-effort; backend may not implement endpoint)
+  Future<bool> startEmailVerification() async {
+    var apiBase = baseUrl;
+    if (!apiBase.startsWith('http')) apiBase = 'http://$apiBase';
+    final uri = Uri.parse('$apiBase/api/Profile/start-email-verification');
+    try {
+      AppLogger.logInfo(
+          'ProfileService.startEmailVerification', 'POST ${uri.toString()}');
+      final resp = await _client.post(uri.toString(), headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json'
+      });
+      final status = resp.statusCode ?? 0;
+      AppLogger.logInfo(
+          'ProfileService.startEmailVerification', 'Response status=$status');
+      return status >= 200 && status < 300;
+    } catch (e, s) {
+      AppLogger.logError(
+          'ProfileService.startEmailVerification', 'Failed: $e', s);
+      return false;
     }
   }
 
@@ -435,46 +592,6 @@ class ProfileService {
     } catch (e, s) {
       AppLogger.logError(
           'ProfileService.getCreditHistory', 'Unexpected: $e', s);
-      return null;
-    }
-  }
-
-  /// Update user profile
-  Future<Profile?> updateProfile(Map<String, dynamic> profileData) async {
-    var apiBase = baseUrl;
-    if (!apiBase.startsWith('http')) apiBase = 'http://$apiBase';
-    final uri = Uri.parse('$apiBase/api/Profile/me');
-    try {
-      AppLogger.logInfo(
-          'ProfileService.updateProfile', 'PUT ${uri.toString()}');
-      final resp = await _client.put(uri.toString(),
-          data: profileData,
-          headers: {
-            'accept': 'application/json',
-            'Content-Type': 'application/json'
-          });
-      final status = resp.statusCode ?? 0;
-      AppLogger.logInfo(
-          'ProfileService.updateProfile', 'Response status=$status');
-      if (status >= 200 && status < 300) {
-        final body = resp.data is Map
-            ? resp.data as Map<String, dynamic>
-            : jsonDecode(resp.toString()) as Map<String, dynamic>;
-        return Profile.fromJson(body);
-      }
-      AppLogger.logError(
-          'ProfileService.updateProfile', 'Server error: $status', null);
-      return null;
-    } on TimeoutException catch (_) {
-      AppLogger.logError(
-          'ProfileService.updateProfile', 'Request timed out', null);
-      return null;
-    } on DioException catch (e) {
-      AppLogger.logError('ProfileService.updateProfile',
-          'Network error: ${e.message}', e.stackTrace);
-      return null;
-    } catch (e, s) {
-      AppLogger.logError('ProfileService.updateProfile', 'Unexpected: $e', s);
       return null;
     }
   }

@@ -11,4 +11,7 @@ public class IdentityComplianceDto
     public string? VerificationStatus { get; set; } // None, Pending, Verified
     public string? DocumentFrontImageUrl { get; set; }
     public string? DocumentBackImageUrl { get; set; }
+    public string? HrLetterFileName { get; set; }
+    public string? HrLetterBase64 { get; set; }
+    public string? DeviceMacAddress { get; set; }
 }

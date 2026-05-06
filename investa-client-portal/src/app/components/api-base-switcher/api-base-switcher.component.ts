@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../pipes/translate.pipe';
 
-const PRESETS = ['http://DESKTOP-DIH7CQH:5235', 'http://DESKTOP-DIH7CQH:5000', 'http://localhost:5235'];
+const PRESETS = ['http://desktop-dih7cqh:5235', 'http://desktop-dih7cqh:5000', 'http://localhost:5235'];
 const STORAGE_KEY = 'apiBase';
 
 @Component({
@@ -36,7 +36,7 @@ const STORAGE_KEY = 'apiBase';
 export class ApiBaseSwitcherComponent {
   presets = PRESETS;
   open = signal(false);
-  current = signal<string>(localStorage.getItem(STORAGE_KEY) || 'http://DESKTOP-DIH7CQH:5235');
+  current = signal<string>(localStorage.getItem(STORAGE_KEY) || 'http://desktop-dih7cqh:5235');
   custom = '';
 
   constructor() { }

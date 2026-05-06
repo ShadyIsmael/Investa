@@ -53,4 +53,9 @@ class AppState extends ChangeNotifier {
     } catch (_) {}
     notifyListeners();
   }
+
+  /// Trigger a UI refresh for consumers (used when remote events change data)
+  void triggerRefresh() {
+    notifyListeners();
+  }
 }

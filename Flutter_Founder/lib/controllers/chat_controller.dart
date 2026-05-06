@@ -17,7 +17,7 @@ class ChatController extends ChangeNotifier {
   final FCMService _fcmService;
   final LocalNotifier _notifier;
   final SecureStorageService _storage;
-  late final SupportChatHttpService _httpService;
+  final SupportChatHttpService _httpService;
 
   ChatState _state = ChatState.idle;
   ChatState get state => _state;
@@ -41,17 +41,19 @@ class ChatController extends ChangeNotifier {
 
   StreamSubscription<RemoteMessage>? _messageSub;
 
-  ChatController(this._fcmService,
-      {LocalNotifier? notifier, SecureStorageService? storage})
-      : _notifier = notifier ?? NoopLocalNotifier(),
-        _storage = storage ?? SecureStorageService() {
-    // Initialize HTTP service
-    _httpService = SupportChatHttpService(
-      logger: LoggerService(),
-      secureStorage: _storage,
-      networkConfig: NetworkConfig(),
-    );
-  }
+  ChatController(
+    this._fcmService, {
+    LocalNotifier? notifier,
+    SecureStorageService? storage,
+    SupportChatHttpService? httpService,
+  })  : _notifier = notifier ?? NoopLocalNotifier(),
+        _storage = storage ?? SecureStorageService(),
+        _httpService = httpService ??
+            SupportChatHttpService(
+              logger: LoggerService(),
+              secureStorage: storage ?? SecureStorageService(),
+              networkConfig: NetworkConfig(),
+            );
 
   Future<void> init() async {
     await _notifier.init();

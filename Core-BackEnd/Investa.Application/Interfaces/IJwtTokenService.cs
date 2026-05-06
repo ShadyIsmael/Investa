@@ -11,7 +11,7 @@ public interface IJwtTokenService
     /// <summary>
     /// Generates a JWT token for the authenticated user
     /// </summary>
-    /// <param name="user">The IdentityUser to generate token for</param>
+    /// <param name="user">The identity user to generate token for</param>
     /// <returns>AuthResponseDto containing the token and expiration time</returns>
-    Task<AuthResponseDto> GenerateTokenAsync(IdentityUser user);
+    Task<AuthResponseDto> GenerateTokenAsync(IdentityUser<Guid> user);
 }

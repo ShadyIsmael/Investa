@@ -87,12 +87,6 @@ public class Client
     public int StatusId { get; set; }
     public ClientStatus? Status { get; set; }
 
-    /// <summary>
-    /// Optional client classification (Investor/Founder/Both)
-    /// Stored for reporting and client-specific features
-    /// </summary>
-    public ClientType? ClientType { get; set; }
-
     // Penalty duration (nullable, in days)
     public int? PenaltyDurationDays { get; set; }
 

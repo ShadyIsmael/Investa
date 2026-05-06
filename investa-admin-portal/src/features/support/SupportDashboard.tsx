@@ -92,17 +92,12 @@ const SupportDashboard: React.FC = () => {
 
   // Monitor connection state and log for debugging
   useEffect(() => {
-    console.log('🔌 SupportDashboard - Connection State:', connectionState);
-    console.log('🔌 SupportDashboard - Connection Object:', connection?.state || 'null');
     
     if (connection && connection.state === 'Connected') {
-      console.log('✅ SupportDashboard - SignalR Connected and ready to receive events');
     } else if (connection && connection.state === 'Disconnected') {
-      console.warn('⚠️ SupportDashboard - SignalR Disconnected - listeners will not work');
       // Reset listener tracking when disconnected
       isListenerAttached.current = false;
     } else if (connection && connection.state === 'Connecting') {
-      console.log('⏳ SupportDashboard - SignalR Connecting...');
     }
   }, [connection, connectionState]);
 
@@ -110,22 +105,18 @@ const SupportDashboard: React.FC = () => {
   useEffect(() => {
     const conn = connectionRef.current;
     if (!conn) {
-      console.warn('⚠️ SupportDashboard - No connection object available');
       return;
     }
 
     if (connectionState !== 'Connected') {
-      console.warn('⚠️ SupportDashboard - Connection not in Connected state:', connectionState);
       return;
     }
 
     // Guard: If listener already attached, don't re-attach
     if (isListenerAttached.current) {
-      console.log('🔒 Listener already attached, skipping re-attachment');
       return;
     }
 
-    console.log('✅ Registering NewSupportRequest listeners in SupportDashboard');
 
     const playNotificationSound = () => {
       try {
@@ -139,8 +130,6 @@ const SupportDashboard: React.FC = () => {
 
     // Create stable handler function and store in ref
     const handleNewRequest = (newChat: any) => {
-      console.log('� [DATA ARRIVED] Raw Payload:', newChat);
-      console.log('�🔔 SupportDashboard - NewSupportRequest handler triggered!', newChat);
 
       const chatItem: ChatItem = {
         id: newChat.id || newChat.conversationId || String(Date.now()),
@@ -152,17 +141,14 @@ const SupportDashboard: React.FC = () => {
         lastMessage: newChat.text || newChat.initialMessage || newChat.message || 'New chat request'
       };
 
-      console.log('📝 SupportDashboard - Mapped chat item:', chatItem);
       setChats(prev => {
         const exists = prev.find(chat => chat.id === chatItem.id);
         if (exists) return prev; // Skip if already there
         return [chatItem, ...prev];
       });
       playNotificationSound();
-      console.log('✅ SupportDashboard - Chat added to list');
     };
 
-    console.log('🎯 Attaching event handlers: NewSupportRequest, NewChatRequest');
     // Hard cleanup for development to prevent ghost listeners
     connection.off('NewSupportRequest');
     connection.off('NewChatRequest');
@@ -175,9 +161,8 @@ const SupportDashboard: React.FC = () => {
     connection.on('NewSupportRequest', handleNewRequest);
     connection.on('NewChatRequest', handleNewRequest);
     isListenerAttached.current = true;
-    console.log('✅ Listener locked and attached - PERSISTENT for entire session');
 
-    // 🚫 NO CLEANUP: Listeners remain active for the entire session
+    // ðŸš« NO CLEANUP: Listeners remain active for the entire session
     // This ensures SignalR events are always received regardless of component re-mounts
   }, [connectionState]);
 
@@ -385,7 +370,7 @@ const SupportDashboard: React.FC = () => {
                           </div>
                           <div className="text-rose-400 font-semibold">{c.unread}</div>
                         </div>
-                        <div className="text-sm text-slate-300 mt-2">{c.category} • {formatDate(c.startedAt)}</div>
+                        <div className="text-sm text-slate-300 mt-2">{c.category} â€¢ {formatDate(c.startedAt)}</div>
                       </div>
                     ))}
                   </div>
@@ -414,7 +399,7 @@ const SupportDashboard: React.FC = () => {
                   <div className="flex items-start justify-between">
                     <div>
                       <h3 id="chat-title" className="text-lg font-bold">{selectedChat.name}</h3>
-                      <p className="text-sm text-slate-400">{selectedChat.phone} • {selectedChat.category}</p>
+                      <p className="text-sm text-slate-400">{selectedChat.phone} â€¢ {selectedChat.category}</p>
                     </div>
                     <div>
                       <button aria-label="Close chat" onClick={() => setSelectedChat(null)} className="text-slate-400 hover:text-white">Close</button>
@@ -518,7 +503,7 @@ const SupportDashboard: React.FC = () => {
                           </div>
                           <StatusBadge status={t.status} />
                         </div>
-                        <div className="text-sm text-slate-300 mt-2">{t.type} • {t.slaLeft}</div>
+                        <div className="text-sm text-slate-300 mt-2">{t.type} â€¢ {t.slaLeft}</div>
                         <div className="mt-3 text-right">
                           <button onClick={(e) => { e.stopPropagation(); setSelectedTicket(t); }} className="px-3 py-1 rounded-lg bg-indigo-600 text-white text-sm font-semibold">Show</button>
                         </div>
@@ -550,7 +535,7 @@ const SupportDashboard: React.FC = () => {
                   <div className="flex items-start justify-between">
                     <div>
                       <h3 id="ticket-title" className="text-lg font-bold">Ticket {selectedTicket.id}</h3>
-                      <p className="text-sm text-slate-400">{selectedTicket.name} • {selectedTicket.phone}</p>
+                      <p className="text-sm text-slate-400">{selectedTicket.name} â€¢ {selectedTicket.phone}</p>
                     </div>
                     <div>
                       <button aria-label="Close ticket" onClick={() => setSelectedTicket(null)} className="text-slate-400 hover:text-white">Close</button>

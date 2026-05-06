@@ -7,47 +7,56 @@ import ChatRequestListener from '@/features/support/ChatRequestListener';
 import ChatConversationsListener from '@/features/support/ChatConversationsListener';
 import BackendHealthMonitor from '@/services/backendHealth';
 import Notifications from '@/components/common/Notifications';
+import { useTheme } from '@/hooks/useTheme';
 
 interface MainLayoutProps {
-    currentUser: User;
-    handleLogout: () => void;
+  currentUser: User;
+  handleLogout: () => void;
+  children?: React.ReactNode;
 }
 
-const MainLayout: React.FC<MainLayoutProps> = ({ currentUser, handleLogout }) => {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [isCollapsed, setIsCollapsed] = useState(false);
+const MainLayout: React.FC<MainLayoutProps> = ({ currentUser, handleLogout, children }) => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
-    const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
-    const toggleCollapse = () => setIsCollapsed(!isCollapsed);
+  const toggleSidebar  = () => setIsSidebarOpen(o => !o);
+  const toggleCollapse = () => setIsCollapsed(c => !c);
 
-    return (
-        <div className="h-screen flex overflow-hidden">
-            <BackendHealthMonitor />
-            <Notifications />
-            <div className="flex w-full h-full bg-slate-50 dark:bg-slate-950 transition-colors duration-300 font-sans antialiased text-slate-900 dark:text-slate-100 animate-in fade-in zoom-in-95 duration-700">
-                <Sidebar
-                    isOpen={isSidebarOpen}
-                    toggleSidebar={toggleSidebar}
-                    isCollapsed={isCollapsed}
-                    toggleCollapse={toggleCollapse}
-                />
-                <div className={`flex-1 flex flex-col h-full overflow-hidden relative transition-all duration-300`}>
-                    <Header
-                        toggleSidebar={toggleSidebar}
-                        currentUser={currentUser}
-                        onLogout={handleLogout}
-                    />
-                    <ChatRequestListener />
-                    <ChatConversationsListener />
-                    <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-5 lg:p-6 scroll-smooth">
-                        <div className="app-container max-w-7xl mx-auto">
-                            <Outlet />
-                        </div>
-                    </main>
-                </div>
-            </div>
-        </div>
-    );
+  return (
+    <div className="h-screen flex bg-background overflow-hidden">
+      <BackendHealthMonitor />
+      <Notifications />
+
+      {/* Sidebar */}
+      <Sidebar
+        isOpen={isSidebarOpen}
+        toggleSidebar={toggleSidebar}
+        isCollapsed={isCollapsed}
+        toggleCollapse={toggleCollapse}
+      />
+
+      {/* Main canvas */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <Header
+          toggleSidebar={toggleSidebar}
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          theme={theme}
+          toggleTheme={toggleTheme}
+        />
+
+        <ChatRequestListener />
+        <ChatConversationsListener />
+
+        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-background">
+          <div className="max-w-[1400px] mx-auto px-6 py-8 animate-in fade-in slide-up duration-500">
+            {children || <Outlet />}
+          </div>
+        </main>
+      </div>
+    </div>
+  );
 };
 
 export default MainLayout;

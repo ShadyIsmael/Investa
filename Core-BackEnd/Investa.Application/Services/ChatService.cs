@@ -127,31 +127,6 @@ namespace Investa.Application.Services
             return message;
         }
 
-        // Legacy methods - keeping for compatibility but simplified
-        public async Task<Guid> CreateConversationAsync(Guid createdBy, IEnumerable<Guid> participantIds, byte type, string? title = null)
-        {
-            // Simplified implementation for legacy compatibility
-            var conversation = new Conversation
-            {
-                Id = Guid.NewGuid(),
-                UserMobile = "legacy", // Placeholder
-                AdminEmail = null,
-                CreatedAt = DateTime.UtcNow,
-                IsActive = true
-            };
-
-            await _uow.Repository<Conversation>().AddAsync(conversation);
-            await _uow.SaveChangesAsync();
-
-            return conversation.Id;
-        }
-
-        public async Task<Guid> SendMessageAsync(Guid conversationId, Guid senderId, string plaintext)
-        {
-            var message = await SendChatMessageAsync(conversationId, senderId.ToString(), plaintext);
-            return message.Id;
-        }
-
         public async Task<IEnumerable<ChatMessageDto>> GetMessagesAsync(Guid supportSessionId, int page = 1, int pageSize = 50)
         {
             var messages = await _uow.Repository<ChatMessage>()
@@ -164,30 +139,11 @@ namespace Investa.Application.Services
                 .Select(m => new ChatMessageDto
                 {
                     Id = m.Id,
-                    // Keep property name for backward compatibility but set to the SupportSessionId
                     ConversationId = m.SupportSessionId ?? Guid.Empty,
-                    SenderId = Guid.Parse(m.SenderId), // Assuming legacy compatibility
+                    SenderId = Guid.Parse(m.SenderId),
                     Content = m.MessageText,
                     CreatedAt = m.Timestamp
                 });
-        }
-
-        // Support Chat Methods - keeping for compatibility
-        public async Task<SupportChatResponse> StartSupportChatAsync(Guid userId, SupportChatRequest request)
-        {
-            // Simplified implementation
-            var response = new SupportChatResponse
-            {
-                Success = false,
-                Message = "Support chat functionality moved to SignalR RequestSupport method"
-            };
-            return response;
-        }
-
-        public async Task<bool> AssignAdminToSupportChatAsync(Guid supportSessionId, string adminId)
-        {
-            // Simplified implementation
-            return true;
         }
 
         public async Task<bool> EndSupportChatAsync(Guid supportSessionId)
@@ -200,11 +156,6 @@ namespace Investa.Application.Services
                 return true;
             }
             return false;
-        }
-
-        public async Task<IEnumerable<ChatQueueItem>> GetQueuedSupportRequestsAsync()
-        {
-            return new List<ChatQueueItem>();
         }
     }
 }

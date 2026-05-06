@@ -312,6 +312,26 @@ BEGIN
     );
 END;
 
+-- Migration: Add InvestmentImages table
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260131_AddInvestmentImages'
+)
+BEGIN
+    CREATE TABLE [InvestmentImages] (
+        [Id] int NOT NULL IDENTITY,
+        [InvestmentId] int NOT NULL,
+        [Url] nvarchar(500) NOT NULL,
+        [Caption] nvarchar(250) NULL,
+        [SortOrder] int NOT NULL DEFAULT 0,
+        [IsPrimary] bit NOT NULL DEFAULT 0,
+        [CreatedAt] datetime2 NOT NULL DEFAULT (GETDATE()),
+        CONSTRAINT [PK_InvestmentImages] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_InvestmentImages_Investments_InvestmentId] FOREIGN KEY ([InvestmentId]) REFERENCES [Investments] ([Id]) ON DELETE CASCADE
+    );
+    CREATE INDEX IX_InvestmentImages_InvestmentId ON [InvestmentImages] ([InvestmentId]);
+END;
+
 IF NOT EXISTS (
     SELECT * FROM [__EFMigrationsHistory]
     WHERE [MigrationId] = N'20260123125914_InitialConsolidated'

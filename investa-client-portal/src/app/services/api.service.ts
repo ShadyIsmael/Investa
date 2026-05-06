@@ -88,6 +88,47 @@ export class ApiService {
     return response.data;
   }
 
+  /** Upload image for an investment (multipart/form-data) */
+  async uploadInvestmentImage(investmentId: number, file: File, caption?: string): Promise<any> {
+    const url = `${this.apiBase}/api/v1/investments/${investmentId}/images`;
+    const form = new FormData();
+    form.append('file', file, file.name);
+    if (caption) form.append('caption', caption);
+
+    const response = await firstValueFrom(
+      this.http.post<ApiResponse<any>>(url, form, {
+        headers: this.getHeaders().delete('Content-Type') // Let browser set content-type for FormData
+      })
+    );
+
+    if (!response.success) throw new Error(response.message || 'Failed to upload image');
+    return response.data;
+  }
+
+  async deleteInvestmentImage(investmentId: number, imageId: number): Promise<void> {
+    const url = `${this.apiBase}/api/v1/investments/${investmentId}/images/${imageId}`;
+    const response = await firstValueFrom(
+      this.http.delete<ApiResponse<any>>(url, { headers: this.getHeaders() })
+    );
+    if (!response.success) throw new Error(response.message || 'Failed to delete image');
+  }
+
+  async setPrimaryInvestmentImage(investmentId: number, imageId: number): Promise<void> {
+    const url = `${this.apiBase}/api/v1/investments/${investmentId}/images/${imageId}/set-primary`;
+    const response = await firstValueFrom(
+      this.http.put<ApiResponse<any>>(url, null, { headers: this.getHeaders() })
+    );
+    if (!response.success) throw new Error(response.message || 'Failed to set primary image');
+  }
+
+  async reorderInvestmentImages(investmentId: number, ordering: { imageId: number; sortOrder: number }[]): Promise<void> {
+    const url = `${this.apiBase}/api/v1/investments/${investmentId}/images/reorder`;
+    const response = await firstValueFrom(
+      this.http.put<ApiResponse<any>>(url, ordering, { headers: this.getHeaders() })
+    );
+    if (!response.success) throw new Error(response.message || 'Failed to reorder images');
+  }
+
   /**
    * Create a new investment
    */

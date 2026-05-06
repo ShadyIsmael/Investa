@@ -33,7 +33,38 @@
     "notAMember": "لست عضوًا؟",
     "signUpNow": "سجل الآن",
     "founder": "مؤسس",
-    "partner": "شريك"
+    "partner": "شريك",
+    "investor": "مستثمر",
+    "countries": {
+      "egypt": "مصر",
+      "usa": "الولايات المتحدة",
+      "uk": "المملكة المتحدة",
+      "india": "الهند",
+      "australia": "أستراليا",
+      "japan": "اليابان",
+      "germany": "ألمانيا"
+    },
+    "social": {
+      "google": "تسجيل الدخول باستخدام Google",
+      "facebook": "تسجيل الدخول باستخدام Facebook"
+    },
+    "signingIn": "جاري تسجيل الدخول...",
+    "errorGeneric": "فشل تسجيل الدخول"
+  },
+  "roleSelect": {
+    "close": "إغلاق",
+    "title": "اختر دورك",
+    "subtitle": "اختر المسار الذي يناسبك للبدء مع إنفستا. هل أنت هنا لاكتشاف الفرص أم لبناء مشروعك؟",
+    "investor": {
+      "title": "مستثمر",
+      "description": "أرغب في اكتشاف الفرص الاستثمارية الواعدة وتمويل المشاريع ذات الإمكانات العالية.",
+      "button": "الدخول كمستثمر"
+    },
+    "founder": {
+      "title": "شريك",
+      "description": "أبحث عن التمويل والشركاء المناسبين لتنمية مشروعي وتحويل فكرتي إلى شركة ناجحة.",
+      "button": "الدخول كشريك"
+    }
   },
   "adminNav": {
     "panel": "لوحة تحكم إنفستا",
@@ -257,6 +288,16 @@
       "cancel": "إلغاء",
       "confirm": "تأكيد الاستثمار",
       "processing": "جاري المعالجة..."
+    },
+    "confirmDialog": {
+      "title": "تأكيد الاستثمار",
+      "subtitle": "يرجى مراجعة وتأكيد طلب الاستثمار الخاص بك",
+      "investmentLabel": "الاستثمار:",
+      "sharesLabel": "الأسهم:",
+      "totalCostLabel": "التكلفة الإجمالية:",
+      "warning": "إشعار مهم",
+      "warningMessage": "سيؤدي هذا الإجراء إلى خصم الأرصدة من حسابك وتقديم طلب إلى المؤسس. لا يمكن التراجع عن هذا الإجراء.",
+      "confirmButton": "تأكيد والمتابعة"
     }
   },
   "investmentPreview": {
@@ -367,7 +408,18 @@
     "removeAttachment": "إزالة المرفق"
   },
   "profile": {
+        "company": {
+          "title": "الشركة",
+          "name": "اسم الشركة",
+          "email": "بريد الشركة",
+          "address": "عنوان الشركة",
+          "hrLetter": "خطاب الموارد البشرية"
+        },
     "kyc": "التحقق من الهوية",
+    "kycCompletion": "اكتمال التحقق من الهوية",
+    "kycComplete": "تم التحقق من هويتك بنجاح",
+    "kycAlmostThere": "أوشكت على الانتهاء! أكمل ملفك الشخصي للتوثيق",
+    "kycCompleteProfile": "أكمل ملفك الشخصي لفتح التوثيق",
     "startKyc": "بدء التحقق من الهوية",
     "pending": "قيد الانتظار",
     "verified": "موثق",
@@ -403,8 +455,20 @@
       "male": "ذكر",
       "female": "أنثى",
       "nationality": "الجنسية",
+      "nationalitySelect": "اختر الجنسية",
       "country": "البلد",
       "countrySelect": "اختر البلد",
+      "country_egypt": "مصر",
+      "country_saudi_arabia": "المملكة العربية السعودية",
+      "country_uae": "الإمارات العربية المتحدة",
+      "country_jordan": "الأردن",
+      "country_lebanon": "لبنان",
+      "country_usa": "الولايات المتحدة",
+      "country_uk": "المملكة المتحدة",
+      "country_india": "الهند",
+      "country_canada": "كندا",
+      "country_australia": "أستراليا",
+      "country_other": "أخرى",
       "nationalId": "الهوية الوطنية",
       "uploadId": "تحميل الهوية",
       "chooseFile": "اختر ملفًا",
@@ -482,7 +546,40 @@
       "linkedin": "https://linkedin.com/in/...",
       "facebook": "https://facebook.com/..."
     },
-    "credibilityHistory": "تاريخ نقاط المصداقية"
+    "credits": {
+      "title": "الأرصدة",
+      "available": "الأرصدة المتاحة",
+      "chargeNow": "شحن الآن"
+    },
+    "credibilityHistory": "تاريخ درجات الائتمان",
+    "viewAll": "عرض جميع المعاملات"
+  },
+  "transactions": {
+    "total": "إجمالي المعاملات",
+    "pages": "إجمالي الصفحات"
+  },
+  "credits": {
+    "chargeTitle": "شحن الأرصدة",
+    "chargeSubtitle": "اشترِ أرصدة لفتح فرص الاستثمار والميزات",
+    "currentBalance": "الرصيد الحالي",
+    "credits": "أرصدة",
+    "selectPackage": "اختر باقة الأرصدة",
+    "popular": "الأكثر شعبية",
+    "off": "خصم",
+    "customAmount": "مبلغ مخصص",
+    "enterAmount": "أدخل المبلغ",
+    "price": "السعر",
+    "discount": "الخصم",
+    "invalidAmount": "الرجاء إدخال مبلغ بين 100 و 100,000",
+    "purchaseCustom": "شراء مبلغ مخصص",
+    "processing": "جاري المعالجة",
+    "orderSummary": "ملخص الطلب",
+    "selectPackagePrompt": "اختر باقة أو أدخل مبلغًا مخصصًا للمتابعة",
+    "total": "الإجمالي",
+    "purchaseNow": "اشترِ الآن",
+    "securePayment": "دفع آمن مدعوم بواسطة Stripe",
+    "successTitle": "تم الشراء بنجاح!",
+    "successMessage": "تمت إضافة الأرصدة إلى حسابك"
   },
   "apiSwitcher": {
     "apiLabel": "واجهة برمجية:",
@@ -543,6 +640,12 @@
     }
   },
   "common": {
+    "loading": "جاري التحميل...",
+    "cancel": "إلغاء",
+    "back": "رجوع",
+    "processing": "جاري المعالجة...",
+    "previous": "السابق",
+    "next": "التالي",
     "months": {
       "jan": "يناير",
       "feb": "فبراير",

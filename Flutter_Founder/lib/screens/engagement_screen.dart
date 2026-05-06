@@ -7,8 +7,21 @@ import '../l10n/app_localizations.dart';
 import 'chat_box_screen.dart';
 import 'user_profile_screen.dart';
 
-class EngagementScreen extends StatelessWidget {
-  EngagementScreen({super.key});
+class EngagementScreen extends StatefulWidget {
+  final Function(int)? onUnreadCountChanged;
+
+  const EngagementScreen({super.key, this.onUnreadCountChanged});
+
+  @override
+  State<EngagementScreen> createState() => _EngagementScreenState();
+}
+
+class _EngagementScreenState extends State<EngagementScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  DateTimeRange? _dateRange;
+  _AvailabilityFilter _availabilityFilter = _AvailabilityFilter.all;
+  String _query = '';
+  bool _filtersExpanded = false;
 
   final List<ChatUser> users = [
     ChatUser(
@@ -17,36 +30,74 @@ class EngagementScreen extends StatelessWidget {
         avatarUrl: '',
         lastMessage: 'See you tomorrow',
         lastSeen: DateTime.now().subtract(const Duration(minutes: 3)),
-        online: true),
+        online: true,
+        unreadCount: 2),
     ChatUser(
         id: '2',
         name: 'Mohamed Ali',
         avatarUrl: '',
         lastMessage: 'Thanks for the update',
         lastSeen: DateTime.now().subtract(const Duration(hours: 2)),
-        online: false),
+        online: false,
+        unreadCount: 0),
     ChatUser(
         id: '3',
         name: 'Sara Ibrahim',
         avatarUrl: '',
         lastMessage: 'Can we call later?',
         lastSeen: DateTime.now().subtract(const Duration(minutes: 20)),
-        online: true),
+        online: true,
+        unreadCount: 5),
     ChatUser(
         id: '4',
         name: 'John Smith',
         avatarUrl: '',
         lastMessage: 'Reviewed the report',
         lastSeen: DateTime.now().subtract(const Duration(days: 1)),
-        online: false),
+        online: false,
+        unreadCount: 1),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_handleSearchChanged);
+    _updateUnreadCount();
+  }
+
+  void _updateUnreadCount() {
+    final totalUnread =
+        users.fold<int>(0, (sum, user) => sum + user.unreadCount);
+    widget.onUnreadCountChanged?.call(totalUnread);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_handleSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _handleSearchChanged() {
+    final next = _searchController.text.trim().toLowerCase();
+    if (next == _query) return;
+    if (!mounted) return;
+    setState(() => _query = next);
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
     final onlineCount = users.where((u) => u.online).length;
+    final recentCount = users
+        .where((u) => DateTime.now().difference(u.lastSeen).inHours < 24)
+        .length;
     final loc = AppLocalizations.of(context);
+    final filteredUsers = _filterUsers();
+    final hasFilters = _dateRange != null ||
+        _query.isNotEmpty ||
+        _availabilityFilter != _AvailabilityFilter.all;
 
     final body = SafeArea(
       child: Padding(
@@ -54,106 +105,159 @@ class EngagementScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Header card with title and action
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: isDarkMode ? AppGradients.hero : null,
-                      color: isDarkMode ? null : theme.colorScheme.surface,
-                      borderRadius: BorderRadius.circular(20),
-                      border: isDarkMode
-                          ? Border.all(
-                              color: Colors.white.withOpacityCompat(0.06))
-                          : Border.all(
-                              color: theme.colorScheme.outline
-                                  .withOpacityCompat(0.5)),
-                      boxShadow: isDarkMode
-                          ? AppShadows.medium
-                          : [
-                              BoxShadow(
-                                  color: Colors.black.withOpacityCompat(0.04),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4))
-                            ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(loc.t('engagement'),
-                                      style: theme.textTheme.headlineSmall
-                                          ?.copyWith(
-                                              fontWeight: FontWeight.w700)),
-                                  const SizedBox(height: 6),
-                                  Text(loc.t('engagement_subtitle'),
-                                      style: theme.textTheme.bodyMedium
-                                          ?.copyWith(
-                                              color: theme.colorScheme.onSurface
-                                                  .withOpacityCompat(0.7))),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            ElevatedButton.icon(
-                              icon: const Icon(Icons.chat, size: 18),
-                              label: Text(loc.t('new_chat')),
-                              style: ElevatedButton.styleFrom(
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14))),
-                              onPressed: () {
-                                // TODO: open new chat flow
-                              },
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                                child: _QuickStatChip(
-                                    icon: Icons.circle,
-                                    iconColor: AppPalette.success,
-                                    label: '$onlineCount online')),
-                            const SizedBox(width: 12),
-                            Expanded(
-                                child: _QuickStatChip(
-                                    icon: Icons.chat_bubble_outline_rounded,
-                                    iconColor: AppPalette.flame,
-                                    label: '${users.length} chats')),
-                          ],
-                        ),
+            Container(
+              padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                gradient: isDarkMode
+                    ? AppGradients.hero
+                    : const LinearGradient(
+                        colors: [Color(0xFFFDF2F8), Color(0xFFEFF6FF)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                    color: theme.colorScheme.outline.withOpacityCompat(0.4)),
+                boxShadow: isDarkMode
+                    ? AppShadows.medium
+                    : [
+                        BoxShadow(
+                            color: Colors.black.withOpacityCompat(0.05),
+                            blurRadius: 14,
+                            offset: const Offset(0, 8))
                       ],
-                    ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                                color: Colors.black.withOpacityCompat(0.08),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4))
+                          ],
+                        ),
+                        child: const Icon(Icons.forum_rounded, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(loc.t('engagement'),
+                                style: theme.textTheme.headlineSmall?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: theme.colorScheme.onSurface)),
+                            const SizedBox(height: 4),
+                            Text(loc.t('engagement_subtitle'),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurface
+                                        .withOpacityCompat(0.7))),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppPalette.success.withOpacityCompat(0.15),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                  color: AppPalette.success,
+                                  shape: BoxShape.circle),
+                            ),
+                            const SizedBox(width: 6),
+                            Text('$onlineCount',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                    color: AppPalette.success,
+                                    fontWeight: FontWeight.w700)),
+                          ],
+                        ),
+                      )
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _QuickStatChip(
+                            icon: Icons.circle,
+                            iconColor: AppPalette.success,
+                            label: '$onlineCount online'),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _QuickStatChip(
+                            icon: Icons.chat_bubble_outline_rounded,
+                            iconColor: AppPalette.flame,
+                            label: '${users.length} chats'),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _QuickStatChip(
+                            icon: Icons.bolt_rounded,
+                            iconColor: AppPalette.amber,
+                            label: '$recentCount active'),
+                      ),
+                    ],
+                  )
+                ],
+              ),
             ),
             const SizedBox(height: 20),
+            _buildSearchPanel(theme, loc, isDarkMode, hasFilters),
+            const SizedBox(height: 16),
             Expanded(
-              child: ListView.separated(
-                physics: const BouncingScrollPhysics(),
-                itemCount: users.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 14),
-                itemBuilder: (context, index) {
-                  final user = users[index];
-                  return _EngagementTile(
-                    user: user,
-                    onTap: () {
-                      Navigator.of(context).push(MaterialPageRoute(
-                          builder: (_) => ChatBoxScreen(user: user)));
-                    },
-                    timeLabel: _formatTime(user.lastSeen),
-                  );
-                },
-              ),
+              child: filteredUsers.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.search_off_rounded,
+                              size: 44,
+                              color: theme.colorScheme.onSurface
+                                  .withOpacityCompat(0.35)),
+                          const SizedBox(height: 12),
+                          Text(
+                            loc.t('engagement_no_results'),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurface
+                                    .withOpacityCompat(0.7)),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.separated(
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: filteredUsers.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 14),
+                      itemBuilder: (context, index) {
+                        final user = filteredUsers[index];
+                        return _EngagementTile(
+                          user: user,
+                          onTap: () {
+                            Navigator.of(context).push(MaterialPageRoute(
+                                builder: (_) => ChatBoxScreen(user: user)));
+                          },
+                          timeLabel: _formatTime(user.lastSeen),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -173,7 +277,250 @@ class EngagementScreen extends StatelessWidget {
     if (diff.inHours < 24) return '${diff.inHours}h';
     return '${diff.inDays}d';
   }
+
+  Widget _buildSearchPanel(
+      ThemeData theme, AppLocalizations loc, bool isDarkMode, bool hasFilters) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border:
+            Border.all(color: theme.colorScheme.outline.withOpacityCompat(0.4)),
+        boxShadow: isDarkMode
+            ? null
+            : [
+                BoxShadow(
+                    color: Colors.black.withOpacityCompat(0.06),
+                    blurRadius: 12,
+                    offset: const Offset(0, 8))
+              ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(Icons.search_rounded,
+                  size: 20,
+                  color: theme.colorScheme.onSurface.withOpacityCompat(0.6)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: loc.t('engagement_search_hint'),
+                    border: InputBorder.none,
+                  ),
+                ),
+              ),
+              if (_searchController.text.trim().isNotEmpty)
+                IconButton(
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() {});
+                  },
+                  icon: const Icon(Icons.close, size: 18),
+                  color: theme.colorScheme.onSurface.withOpacityCompat(0.6),
+                ),
+              IconButton(
+                onPressed: _pickDateRange,
+                icon: const Icon(Icons.date_range),
+                tooltip: loc.t('engagement_date_range'),
+              ),
+              IconButton(
+                onPressed: () =>
+                    setState(() => _filtersExpanded = !_filtersExpanded),
+                icon: Icon(_filtersExpanded
+                    ? Icons.tune_rounded
+                    : Icons.tune_outlined),
+                tooltip: loc.t('engagement_filters'),
+              ),
+            ],
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            child: _filtersExpanded
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildAvailabilityFilters(theme, loc),
+                        if (hasFilters)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Row(
+                              children: [
+                                if (_dateRange != null) ...[
+                                  Icon(Icons.event,
+                                      size: 16,
+                                      color: theme.colorScheme.onSurface
+                                          .withOpacityCompat(0.7)),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      _formatRange(_dateRange!),
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                              color: theme.colorScheme.onSurface
+                                                  .withOpacityCompat(0.8)),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ] else
+                                  const Spacer(),
+                                TextButton(
+                                  onPressed: _clearFilters,
+                                  child:
+                                      Text(loc.t('engagement_clear_filters')),
+                                )
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAvailabilityFilters(ThemeData theme, AppLocalizations loc) {
+    return Wrap(
+      spacing: 10,
+      children: [
+        _buildFilterChip(
+          theme: theme,
+          label: loc.t('engagement_filter_all'),
+          selected: _availabilityFilter == _AvailabilityFilter.all,
+          onSelected: () =>
+              setState(() => _availabilityFilter = _AvailabilityFilter.all),
+        ),
+        _buildFilterChip(
+          theme: theme,
+          label: loc.t('engagement_filter_online'),
+          selected: _availabilityFilter == _AvailabilityFilter.online,
+          onSelected: () =>
+              setState(() => _availabilityFilter = _AvailabilityFilter.online),
+        ),
+        _buildFilterChip(
+          theme: theme,
+          label: loc.t('engagement_filter_offline'),
+          selected: _availabilityFilter == _AvailabilityFilter.offline,
+          onSelected: () =>
+              setState(() => _availabilityFilter = _AvailabilityFilter.offline),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFilterChip({
+    required ThemeData theme,
+    required String label,
+    required bool selected,
+    required VoidCallback onSelected,
+  }) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onSelected(),
+      selectedColor: theme.colorScheme.primary.withOpacityCompat(0.15),
+      labelStyle: theme.textTheme.bodySmall?.copyWith(
+        color: selected
+            ? theme.colorScheme.primary
+            : theme.colorScheme.onSurface.withOpacityCompat(0.8),
+        fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+      ),
+      side: BorderSide(color: theme.colorScheme.outline.withOpacityCompat(0.5)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    );
+  }
+
+  Future<void> _pickDateRange() async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(now.year - 2),
+      lastDate: DateTime(now.year + 2),
+      initialDateRange: _dateRange,
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: Theme.of(context).colorScheme.copyWith(
+                primary: AppPalette.flame,
+              ),
+        ),
+        child: child!,
+      ),
+    );
+
+    if (picked != null) {
+      setState(() => _dateRange = picked);
+    }
+  }
+
+  void _clearFilters() {
+    _searchController.clear();
+    setState(() {
+      _dateRange = null;
+      _availabilityFilter = _AvailabilityFilter.all;
+    });
+  }
+
+  List<ChatUser> _filterUsers() {
+    final query = _query;
+    return users.where((u) {
+      if (query.isNotEmpty) {
+        final name = u.name.toLowerCase();
+        final message = u.lastMessage.toLowerCase();
+        final id = u.id.toLowerCase();
+        if (!name.contains(query) &&
+            !message.contains(query) &&
+            !id.contains(query)) {
+          return false;
+        }
+      }
+
+      if (_dateRange != null && !_isWithinRange(u.lastSeen, _dateRange!)) {
+        return false;
+      }
+
+      if (_availabilityFilter == _AvailabilityFilter.online && !u.online) {
+        return false;
+      }
+      if (_availabilityFilter == _AvailabilityFilter.offline && u.online) {
+        return false;
+      }
+
+      return true;
+    }).toList();
+  }
+
+  bool _isWithinRange(DateTime value, DateTimeRange range) {
+    final start =
+        DateTime(range.start.year, range.start.month, range.start.day);
+    final end = DateTime(
+        range.end.year, range.end.month, range.end.day, 23, 59, 59, 999);
+    return (value.isAtSameMomentAs(start) || value.isAfter(start)) &&
+        (value.isAtSameMomentAs(end) || value.isBefore(end));
+  }
+
+  String _formatRange(DateTimeRange range) {
+    return '${_formatDate(range.start)} → ${_formatDate(range.end)}';
+  }
+
+  String _formatDate(DateTime date) {
+    final y = date.year.toString().padLeft(4, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
 }
+
+enum _AvailabilityFilter { all, online, offline }
 
 class _QuickStatChip extends StatelessWidget {
   final IconData icon;
@@ -309,6 +656,25 @@ class _EngagementTile extends StatelessWidget {
                                     .withOpacityCompat(0.7)),
                           ),
                         ),
+                        if (user.unreadCount > 0)
+                          Container(
+                            margin: const EdgeInsets.only(left: 8),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              user.unreadCount > 99
+                                  ? '99+'
+                                  : user.unreadCount.toString(),
+                              style: textTheme.labelSmall?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ],

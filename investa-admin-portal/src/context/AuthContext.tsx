@@ -123,7 +123,7 @@ export function parseJWT(token: string): { permissions: Permission[]; user: Part
         // Grant wildcard permission for admin-like roles as a safe fallback
         permissions = ['*'];
         // Log for easier debugging in dev
-        try { console.info('AuthContext: granted wildcard * permission due to role claim', roleList); } catch (e) {}
+
       }
     }
 
@@ -264,7 +264,7 @@ export const AuthProvider: React.FC<{ children: ReactNode; onRedirect?: (path: s
     setIsAuthenticated(true);
 
     // Log extracted permissions for debugging
-    try { console.info('Extracted Permissions:', parsed.permissions); } catch (e) {}
+
 
     // Emit login event
     try {

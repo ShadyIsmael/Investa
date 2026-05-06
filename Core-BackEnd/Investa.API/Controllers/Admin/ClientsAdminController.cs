@@ -9,7 +9,7 @@ namespace Investa.API.Controllers.Admin
 {
     [ApiController]
     [Route("api/v1/admin/clients")]
-    [Authorize(Roles = nameof(UserRoles.Admin))]
+    [Authorize(Roles = "Admin")]
     public class ClientsAdminController : ControllerBase
     {
         private readonly IClientService _clientService;

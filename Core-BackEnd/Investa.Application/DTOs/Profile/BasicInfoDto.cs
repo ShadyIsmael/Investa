@@ -14,8 +14,11 @@ public class BasicInfoDto
     public DateTime? DateOfBirth { get; set; }
     // Country selection (dropdown) separate from nationality
     public string? Country { get; set; }
+    public string? CompanyName { get; set; }
     public string? Bio { get; set; }
     public string? AvatarUrl { get; set; }
     public decimal Score { get; set; }
     public decimal Credit { get; set; }
+    public bool IsKycVerified { get; set; }
+    public int KycCompletionPercentage { get; set; }
 }

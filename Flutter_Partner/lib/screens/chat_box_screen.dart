@@ -99,13 +99,11 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
 
-    // WillPopScope is deprecated but PopScope's API differs between Flutter versions.
-    // Keep using WillPopScope until PopScope API is stable across supported SDKs.
-    // ignore: deprecated_member_use
-    return WillPopScope(
-      onWillPop: () async {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, _) async {
+        if (didPop) return;
         final controller = Provider.of<ChatController>(context, listen: false);
-        // Ask for confirmation
         final shouldClose = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
@@ -123,12 +121,10 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           ),
         );
 
-        if (shouldClose == true) {
-          // Close on server and cleanup local state
+        if (shouldClose == true && context.mounted) {
           await controller.closeConversation();
-          return true; // allow pop
+          if (context.mounted) Navigator.of(context).pop();
         }
-        return false; // prevent pop
       },
       child: Scaffold(
         extendBodyBehindAppBar: true,

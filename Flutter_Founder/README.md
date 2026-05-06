@@ -1,41 +1,142 @@
-# Flutter Dark Mode Demo
+# Investa — Flutter Founder App
 
-A minimal Flutter application demonstrating light/dark themes with a toggle and system support.
+Mobile application for **project founders** on the Investa investment platform. Allows founders to list investment opportunities, manage funding requests, communicate with the support team, and track their credibility score.
 
-## Features
+---
 
-- Light and dark themes using `ThemeData` and `darkTheme`.
-- Theme selection via the AppBar menu (System / Light / Dark).
+## Tech Stack
 
-## Run
+| Layer | Technology |
+|---|---|
+| Framework | Flutter (Dart ≥3.0) |
+| State Management | Provider + ChangeNotifier |
+| Dependency Injection | GetIt |
+| HTTP Client | Dio |
+| Real-time | SignalR (`/hubs/chat`) |
+| Authentication | Firebase Auth (phone OTP) + JWT |
+| Push Notifications | Firebase Cloud Messaging (FCM) |
+| Local Notifications | flutter_local_notifications |
+| Secure Storage | flutter_secure_storage |
 
-Make sure Flutter is installed and on your PATH.
+---
 
-From the project folder:
+## Project Structure
+
+```
+lib/
+├── main.dart                     # App entry point, FCM init, theme/locale
+├── config/
+│   ├── app_config.dart           # Env constants (Env.engageCreditCost, etc.)
+│   ├── routes.dart               # Named route definitions
+│   └── theme.dart                # Light/Dark ThemeData
+├── core/
+│   ├── di/injection_container.dart   # GetIt service locator setup
+│   ├── error/failures.dart           # Typed failure classes (ServerFailure, etc.)
+│   ├── network/
+│   │   ├── network_config.dart       # mDNS-aware base URL resolution
+│   │   └── network_client.dart       # Dio client (auth injection, 401 refresh)
+│   └── services/
+│       ├── fcm_service.dart          # FCM token sync + foreground handling
+│       ├── logger_service.dart       # Structured logger wrapper
+│       ├── secure_storage_service.dart
+│       ├── signalr_service.dart      # SignalR hub connection + events
+│       └── support_chat_http_service.dart
+├── controllers/
+│   └── chat_controller.dart      # ChangeNotifier for support chat state
+├── features/
+│   ├── auth/                     # Clean Architecture: Login, Signup, Logout
+│   └── support/                  # Clean Architecture: Support sessions
+├── screens/                      # UI screens (auth, dashboard, investments, etc.)
+├── services/                     # Legacy service layer (API, Profile, Investments)
+├── models/                       # Data models (ChatMessage, Investment, etc.)
+├── widgets/                      # Shared UI widgets
+└── theme/                        # App palette and color extensions
+```
+
+---
+
+## Quick Start
 
 ```bash
 flutter pub get
 flutter run
 ```
 
-To run on Windows desktop (if enabled):
-
+For Android emulator (backend on same machine):
 ```bash
-flutter run -d windows
+# Set API_BASE_URL to 10.0.2.2 in your .env or NetworkConfig
+flutter run -d android
 ```
 
-## Files
+See [QUICK_START.md](QUICK_START.md) for full environment setup and `.env` configuration.
 
-- [Flutter_Founder/pubspec.yaml](../Flutter_Founder/pubspec.yaml)
-- [Flutter_Founder/lib/main.dart](../Flutter_Founder/lib/main.dart)
+---
 
-Enjoy! Toggle the theme from the AppBar menu.
+## Environment Configuration
 
-## Investment-focused suggestions
+Create a `.env` file in the project root:
 
-- **Dark theme**: Recommended for prolonged market monitoring and night-time trading to reduce eye strain.
-- **Light theme**: Better for printing reports or presenting slides to stakeholders.
-- **High contrast**: Use high-contrast or accessibility settings when reviewing dense charts, tables, or large datasets.
-- **Persistence**: The app saves your theme choice for convenience across sessions.
+```env
+BASE_HOST_NAME=YOUR-MACHINE-NAME
+API_BASE_URL=http://YOUR-MACHINE-NAME:5235
+SIGNALR_HUB_URL=http://YOUR-MACHINE-NAME:5235/hubs/chat
+```
 
-If you'd like, I can add encrypted secure storage for user settings, integrate this into an authentication flow, or add a quick toggle for high-contrast mode tailored for trading dashboards.
+For Android emulator use `10.0.2.2` instead of `localhost`.
+
+---
+
+## Key Features
+
+- **Authentication**: Phone-number OTP via Firebase, JWT for API calls
+- **Dashboard**: Investment portfolio overview, credibility score badge
+- **New Investment**: Multi-step form with image upload (up to 5 per investment)
+- **Requests**: View and manage investor funding requests
+- **Support Chat**: Real-time support via SignalR with FCM fallback
+- **Profile**: Edit personal info, nationality, KYC documents
+- **Bilingual**: Full AR/EN localization (`lib/l10n/`)
+
+---
+
+## Architecture
+
+Follows Clean Architecture with strict layer separation:
+
+```
+Presentation (screens, widgets)
+    ↕
+Application (providers, controllers)
+    ↕
+Domain (entities, use cases, repository interfaces)
+    ↕
+Data (remote datasources, repository implementations)
+    ↕
+Core (DI, network, services)
+```
+
+---
+
+## Documentation
+
+| File | Description |
+|---|---|
+| [QUICK_START.md](QUICK_START.md) | Environment setup and run guide |
+| [CLEAN_ARCHITECTURE_README.md](CLEAN_ARCHITECTURE_README.md) | Architecture patterns used |
+| [FCM_IMPLEMENTATION.md](FCM_IMPLEMENTATION.md) | Firebase Cloud Messaging setup |
+| [FCM_MIGRATION_SUMMARY.md](FCM_MIGRATION_SUMMARY.md) | FCM migration notes |
+| [BACKEND_API_SPEC.md](BACKEND_API_SPEC.md) | API endpoints reference |
+| [ANDROID_BUILD_FIX.md](ANDROID_BUILD_FIX.md) | Android build troubleshooting |
+| [ISSUES/](ISSUES/) | Known issues and resolutions |
+
+---
+
+## Code Quality (May 2026)
+
+- **0 errors, 0 warnings** (`dart analyze lib`)
+- 38 info-level hints (cosmetic `withOpacity` deprecations — non-breaking)
+- All deprecated `WillPopScope` replaced with `PopScope`
+- All `BuildContext` async-gap safety issues resolved
+- All unused fields, dead methods, and dead code removed
+- Hardcoded phone numbers replaced with dynamic `AppState` / Firebase lookup
+- `ChatController` uses proper GetIt dependency injection
+

@@ -34,13 +34,15 @@ class _SignalrDemoState extends State<SignalrDemo> {
   }
 
   Future<void> _connect() async {
+    final messenger = ScaffoldMessenger.of(context);
     try {
       await _service.connect();
+      if (!mounted) return;
       setState(() {});
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
           const SnackBar(content: Text('Connected to SignalR hub')));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      messenger.showSnackBar(const SnackBar(
           content: Text('Failed to connect. Check hub configuration.')));
     }
   }
@@ -66,14 +68,14 @@ class _SignalrDemoState extends State<SignalrDemo> {
 
   Future<void> _loginSample() async {
     // Example login flow — replace with real credentials for testing
+    final messenger = ScaffoldMessenger.of(context);
     final auth = AuthService();
     final res =
         await auth.login(phoneNumber: '+2000000000', password: 'yourPassword');
     if (res.success && res.token != null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Logged in')));
+      messenger.showSnackBar(const SnackBar(content: Text('Logged in')));
     } else {
-      ScaffoldMessenger.of(context)
+      messenger
           .showSnackBar(SnackBar(content: Text(res.message ?? 'Login failed')));
     }
   }

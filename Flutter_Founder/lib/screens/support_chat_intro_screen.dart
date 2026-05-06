@@ -17,9 +17,6 @@ class SupportChatIntroScreen extends StatefulWidget {
 
 class _SupportChatIntroScreenState extends State<SupportChatIntroScreen> {
   // Conversational flow state
-  // Selected category (unused in current flow) - preserved for future use
-  // ignore: unused_field
-  String? _selectedCategory;
   bool _isChipSelected = false;
   bool _showChips = false; // Initially false, shown by script
 
@@ -121,7 +118,6 @@ class _SupportChatIntroScreenState extends State<SupportChatIntroScreen> {
 
     setState(() {
       _isChipSelected = true;
-      _selectedCategory = category;
     });
 
     // Immediate Assistant Reply
@@ -156,12 +152,10 @@ class _SupportChatIntroScreenState extends State<SupportChatIntroScreen> {
     final isDark = theme.brightness == Brightness.dark;
     final loc = AppLocalizations.of(context);
 
-    // WillPopScope is deprecated but PopScope's API differs between Flutter versions.
-    // Keep using WillPopScope until PopScope API is stable across supported SDKs.
-    // ignore: deprecated_member_use
-    return WillPopScope(
-      onWillPop: () async {
-        // Show exit confirmation dialog
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, _) async {
+        if (didPop) return;
         final shouldExit = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
@@ -179,7 +173,9 @@ class _SupportChatIntroScreenState extends State<SupportChatIntroScreen> {
             ],
           ),
         );
-        return shouldExit ?? false;
+        if ((shouldExit ?? false) && context.mounted) {
+          Navigator.of(context).pop();
+        }
       },
       child: Scaffold(
         extendBodyBehindAppBar: true,

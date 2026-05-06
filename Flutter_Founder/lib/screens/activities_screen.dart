@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../services/mock_data.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
@@ -9,6 +10,7 @@ class ActivitiesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
 
@@ -39,7 +41,7 @@ class ActivitiesScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-                Text('Activities',
+                Text(loc.t('activity'),
                     style: theme.textTheme.titleLarge
                         ?.copyWith(fontWeight: FontWeight.w700)),
               ],
@@ -114,7 +116,7 @@ class _ActivityTile extends StatelessWidget {
                     style: textTheme.bodyMedium
                         ?.copyWith(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
-                Text('$subtitle • ${_timeAgo(time)}',
+                Text('$subtitle • ${_timeAgo(context, time)}',
                     style: textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurface
                             .withAlpha((0.7 * 255).round()))),
@@ -128,10 +130,17 @@ class _ActivityTile extends StatelessWidget {
     );
   }
 
-  String _timeAgo(DateTime t) {
+  String _timeAgo(BuildContext context, DateTime t) {
+    final loc = AppLocalizations.of(context);
     final diff = DateTime.now().difference(t);
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
-    return '${(diff.inDays / 7).floor()}w ago';
+    if (diff.inHours < 24) {
+      return loc.t('hours_ago').replaceFirst('{0}', diff.inHours.toString());
+    }
+    if (diff.inDays < 7) {
+      return loc.t('days_ago').replaceFirst('{0}', diff.inDays.toString());
+    }
+    return loc
+        .t('weeks_ago')
+        .replaceFirst('{0}', ((diff.inDays / 7).floor()).toString());
   }
 }

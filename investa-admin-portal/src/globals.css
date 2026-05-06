@@ -2,130 +2,120 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Tailwind CSS-variable bridge (Obsidian theme) ─────── */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background:  210 40% 98%;     /* #f8fafc */
+    --foreground:  222 47% 11%;     /* #0f172a */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card:        0 0% 100%;
+    --card-foreground: 222 47% 11%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover:     0 0% 100%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Electric Sky Blue primary */
+    --primary:          199 89% 48%;  /* #0ea5e9 */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary:        210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted:            210 40% 96%;
+    --muted-foreground: 215 16% 47%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent:           199 89% 48%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive:      0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border:      214 32% 91%;
+    --input:       214 32% 91%;
+    --ring:        199 89% 48%;
 
-    --radius: 0.5rem;
+    --radius:      0.75rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background:  240 6% 4%;     /* #09090b */
+    --foreground:  210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
+    --card:        240 5% 7%;     /* #111117 */
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 4.9%;
+    --popover:     240 5% 7%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    /* Lighter sky blue pops on dark */
+    --primary:          199 89% 60%;  /* #38bdf8 */
+    --primary-foreground: 240 6% 4%;
 
-    --secondary: 217.2 32.6% 17.5%;
+    --secondary:        240 4% 14%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted:            240 4% 14%;
+    --muted-foreground: 215 20% 55%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent:           199 89% 60%;
+    --accent-foreground: 240 6% 4%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive:      0 63% 40%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border:      240 4% 14%;
+    --input:       240 4% 14%;
+    --ring:        199 89% 60%;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
   body {
     @apply bg-background text-foreground;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 }
 
-/* Override Tailwind defaults with design tokens for consistency */
-
+/* ── Shared component helpers ───────────────────────────── */
 @layer components {
-  /* Focus ring consistency across all interactive elements */
-  input:focus,
-  button:focus,
-  select:focus,
-  textarea:focus {
-    @apply outline-none;
-    box-shadow: 0 0 0 4px var(--focus);
-    transition: var(--transition-fast);
+  .card {
+    @apply bg-card text-card-foreground border border-border rounded-2xl shadow-sm transition-all duration-200;
   }
 
-  /* Disabled state consistency */
-  button:disabled,
-  input:disabled,
-  select:disabled {
-    @apply opacity-50 cursor-not-allowed;
+  .card-hover {
+    @apply hover:border-primary/30 hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/20 hover:-translate-y-0.5;
   }
-}
 
-/* Component-specific utilities */
-.btn {
-  @apply inline-flex items-center justify-center px-4 py-2 rounded-md transition-all duration-150 font-medium text-sm;
-}
+  .btn-primary {
+    @apply bg-primary text-primary-foreground px-4 py-2 rounded-xl font-semibold text-sm
+           hover:opacity-90 active:scale-95 transition-all duration-150 shadow-sm shadow-primary/20;
+  }
 
-.btn-primary {
-  @apply bg-indigo-500 text-white hover:bg-indigo-600 dark:bg-indigo-400 dark:hover:bg-indigo-300;
-}
+  .btn-ghost {
+    @apply text-muted-foreground hover:text-foreground hover:bg-secondary
+           rounded-xl font-medium text-sm transition-all duration-150;
+  }
 
-.btn-secondary {
-  @apply bg-slate-100 text-slate-900 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600;
-}
+  /* Square icon-only button — use with a single <Icon> child */
+  .btn-icon {
+    @apply w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground
+           hover:text-foreground hover:bg-secondary transition-all duration-150 flex-shrink-0;
+  }
 
-.btn-ghost {
-  @apply text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800;
-}
+  .input-field {
+    @apply w-full bg-secondary border border-border rounded-xl px-4 py-2.5 text-sm font-medium
+           text-foreground placeholder:text-muted-foreground
+           outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all;
+  }
 
-.input-base {
-  @apply w-full px-3 py-2 rounded-md border border-slate-300 bg-white text-slate-900 transition-all duration-150 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100;
-}
+  .badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border;
+  }
 
-.input-base:focus {
-  @apply outline-none border-indigo-500;
-  box-shadow: 0 0 0 4px var(--focus);
-}
-
-.card-base {
-  @apply rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800 transition-all duration-150;
-}
-
-.card-base:hover {
-  @apply shadow-md;
+  .badge-success { @apply bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800/50; }
+  .badge-error   { @apply bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50; }
+  .badge-warning { @apply bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50; }
+  .badge-info    { @apply bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-900/30 dark:text-sky-400 dark:border-sky-800/50; }
+  .badge-primary { @apply bg-primary/10 text-primary border-primary/20; }
 }

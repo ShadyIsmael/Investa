@@ -11,7 +11,7 @@ class FakeApiClient implements ApiClient {
 
   @override
   Future<Response> post(String url,
-      {Map<String, dynamic>? data, Map<String, dynamic>? headers}) {
+      {dynamic data, Map<String, dynamic>? headers}) {
     throw UnimplementedError();
   }
 
@@ -24,7 +24,12 @@ class FakeApiClient implements ApiClient {
 
   @override
   Future<Response> put(String url,
-      {Map<String, dynamic>? data, Map<String, dynamic>? headers}) async {
+      {dynamic data, Map<String, dynamic>? headers}) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Response> delete(String url, {Map<String, dynamic>? headers}) async {
     throw UnimplementedError();
   }
 
@@ -40,7 +45,7 @@ class FakeApiClientDelayed implements ApiClient {
 
   @override
   Future<Response> post(String url,
-      {Map<String, dynamic>? data, Map<String, dynamic>? headers}) {
+      {dynamic data, Map<String, dynamic>? headers}) {
     throw UnimplementedError();
   }
 
@@ -53,7 +58,12 @@ class FakeApiClientDelayed implements ApiClient {
 
   @override
   Future<Response> put(String url,
-      {Map<String, dynamic>? data, Map<String, dynamic>? headers}) async {
+      {dynamic data, Map<String, dynamic>? headers}) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Response> delete(String url, {Map<String, dynamic>? headers}) async {
     throw UnimplementedError();
   }
 
@@ -64,7 +74,7 @@ class FakeApiClientDelayed implements ApiClient {
 class FakeApiClientTimeout implements ApiClient {
   @override
   Future<Response> post(String url,
-      {Map<String, dynamic>? data, Map<String, dynamic>? headers}) {
+      {dynamic data, Map<String, dynamic>? headers}) {
     throw UnimplementedError();
   }
 
@@ -77,7 +87,12 @@ class FakeApiClientTimeout implements ApiClient {
 
   @override
   Future<Response> put(String url,
-      {Map<String, dynamic>? data, Map<String, dynamic>? headers}) async {
+      {dynamic data, Map<String, dynamic>? headers}) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Response> delete(String url, {Map<String, dynamic>? headers}) async {
     throw UnimplementedError();
   }
 
@@ -153,6 +168,8 @@ void main() {
       expect(profile, isNotNull);
       expect(profile!.userId, equals('3fa85f64-5717-4562-b3fc-2c963f66afa6'));
       expect(profile.coreMetrics!.email, equals('user@example.com'));
+      expect(profile.basicInfo!.dateOfBirth,
+          equals(DateTime.parse('2025-12-24T23:37:06.356Z')));
       expect(profile.basicInfo!.firstName, equals('John'));
       expect(profile.basicInfo!.lastName, equals('Doe'));
       expect(profile.basicInfo!.avatarUrl,

@@ -2,6 +2,7 @@ import { Injectable, signal, computed, inject, Inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE } from '../config/api.token';
+import { UserRoles } from '../config/constants';
 import { ProfileService, UserProfile } from './profile.service';
 import { AuthService } from './auth.service';
 
@@ -17,7 +18,7 @@ export interface User {
   name: string;
   email: string;
   phoneNumber: string;
-  role: 'investor' | 'founder';
+  role: string; // All external users are 'Client' type
   credits: number;
   profileImageUrl?: string;
 }
@@ -63,7 +64,7 @@ export class UserService {
       name: profile.basicInfo?.fullName || profile.basicInfo?.firstName || 'User',
       email: profile.contactInfo?.email || profile.coreMetrics?.email || '',
       phoneNumber: profile.contactInfo?.phone1 || '',
-      role: (profile.coreMetrics?.role?.toLowerCase() === 'founder' ? 'founder' : 'investor') as 'investor' | 'founder',
+      role: UserRoles.CLIENT, // All external users are Client type
       credits: profile.coreMetrics?.walletBalance ?? 0,
       profileImageUrl: profile.basicInfo?.avatarUrl || undefined
     };
@@ -119,6 +120,14 @@ export class UserService {
     const newBalance = current.credits + amount;
     this.updateCredits(newBalance);
     return newBalance;
+  }
+
+  /**
+   * Set user credits to an exact amount (local state only)
+   * Useful when backend returns the new balance in a response
+   */
+  setCredits(newAmount: number): void {
+    this.updateCredits(newAmount);
   }
 
   /**

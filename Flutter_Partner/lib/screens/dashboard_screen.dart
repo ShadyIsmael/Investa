@@ -52,7 +52,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           return const Center(child: CircularProgressIndicator());
         }
         if (!snapshot.hasData) {
-          return const Center(child: Text('Unable to load data'));
+          return Center(child: Text(loc.t('unable_to_load_data')));
         }
 
         final data = snapshot.data!;
@@ -73,18 +73,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Text('Period: ', style: theme.textTheme.bodySmall),
+                        Text('${loc.t('period')}:',
+                            style: theme.textTheme.bodySmall),
                         const SizedBox(width: 8),
                         DropdownButton<String>(
                           value: _selectedInterval,
                           dropdownColor: theme.colorScheme.surface,
                           style: theme.textTheme.bodySmall,
-                          items: const [
-                            DropdownMenuItem(value: 'day', child: Text('Day')),
+                          items: [
                             DropdownMenuItem(
-                                value: 'month', child: Text('Month')),
+                                value: 'day', child: Text(loc.t('day'))),
                             DropdownMenuItem(
-                                value: 'year', child: Text('Year')),
+                                value: 'month', child: Text(loc.t('month'))),
+                            DropdownMenuItem(
+                                value: 'year', child: Text(loc.t('year'))),
                           ],
                           onChanged: (v) {
                             if (v == null) return;
@@ -138,7 +140,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             width: w,
             child: _StatCard(
               icon: Icons.arrow_upward_rounded,
-              title: 'Income',
+              title: loc.t('income'),
               value: '\$${_formatAmount(data.totalIncome, decimals: 0)}',
               color: const Color(0xFF22C55E), // Success Green
             ),
@@ -147,7 +149,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             width: w,
             child: _StatCard(
               icon: Icons.arrow_downward_rounded,
-              title: 'Outcome',
+              title: loc.t('outcome'),
               value: '\$${_formatAmount(data.totalOutcome, decimals: 0)}',
               color: Colors.redAccent,
             ),
@@ -156,7 +158,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             width: w,
             child: _StatCard(
               icon: Icons.pie_chart_rounded,
-              title: 'Investments',
+              title: loc.t('investments'),
               value: '${data.categories.length}',
               color: AppPalette.aqua,
             ),
@@ -165,7 +167,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             width: w,
             child: _StatCard(
               icon: Icons.verified_rounded,
-              title: 'Score',
+              title: loc.t('score'),
               value: '${data.credibilityScore}',
               color: AppPalette.flame,
             ),
@@ -176,6 +178,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildAllocationCard(DashboardData data) {
+    final loc = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
     final scheme = theme.colorScheme;
@@ -218,7 +221,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 child: _LegendEntry(
-                  label: category.name,
+                  label: context.isArabic &&
+                          (category.nameAr != null &&
+                              category.nameAr!.isNotEmpty)
+                      ? category.nameAr!
+                      : category.name,
                   percent: category.percent,
                   color: _colorForLabel(category.name, scheme),
                   selected: isSelected,
@@ -249,14 +256,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Allocation',
+                  Text(loc.t('allocation'),
                       style: theme.textTheme.titleMedium
                           ?.copyWith(fontWeight: FontWeight.w700)),
-                  Text(isLive ? 'Live' : 'Mock',
+                  Text(isLive ? loc.t('live') : loc.t('mock'),
                       style: theme.textTheme.bodySmall?.copyWith(
                           color: isLive
                               ? Colors.greenAccent
-                              : theme.colorScheme.onSurface.withOpacity(0.7))),
+                              : theme.colorScheme.onSurface
+                                  .withAlpha((0.7 * 255).round()))),
                 ],
               ),
               const SizedBox(height: 12),
@@ -269,6 +277,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildRecentActivities(DashboardData data) {
+    final loc = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final activities = data.activities.take(4).toList();
 
@@ -280,7 +289,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Recent Activities',
+              loc.t('recent_activities'),
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -294,7 +303,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ActivitiesScreen(activities: data.activities)),
                 );
               },
-              child: const Text('See more'),
+              child: Text(loc.t('viewMore')),
             ),
           ],
         ),
@@ -312,10 +321,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   String _timeAgo(DateTime time) {
+    final loc = AppLocalizations.of(context);
     final diff = DateTime.now().difference(time);
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
-    return '${(diff.inDays / 7).floor()}w ago';
+    if (diff.inHours < 24) {
+      return loc.t('hours_ago').replaceFirst('{0}', diff.inHours.toString());
+    }
+    if (diff.inDays < 7) {
+      return loc.t('days_ago').replaceFirst('{0}', diff.inDays.toString());
+    }
+    return loc
+        .t('weeks_ago')
+        .replaceFirst('{0}', ((diff.inDays / 7).floor()).toString());
   }
 
   Color _colorForLabel(String label, ColorScheme scheme) {
@@ -401,8 +417,9 @@ class _LineChartCardState extends State<LineChartCard> {
           : BoxDecoration(
               color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(20),
-              border:
-                  Border.all(color: theme.colorScheme.outline.withOpacity(0.5)),
+              border: Border.all(
+                  color:
+                      theme.colorScheme.outline.withAlpha((0.5 * 255).round())),
             ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -452,7 +469,7 @@ class _LineChartCardState extends State<LineChartCard> {
                 ? Container(
                     decoration: BoxDecoration(
                         color: theme.colorScheme.secondaryContainer
-                            .withOpacity(0.2),
+                            .withAlpha((0.2 * 255).round()),
                         borderRadius: BorderRadius.circular(12)),
                     child: Center(
                         child:
@@ -548,8 +565,8 @@ class _LineChartCardState extends State<LineChartCard> {
                           drawVerticalLine: false,
                           horizontalInterval: (maxY - minY) / 4,
                           getDrawingHorizontalLine: (v) => FlLine(
-                              color:
-                                  theme.colorScheme.onSurface.withOpacity(0.1),
+                              color: theme.colorScheme.onSurface
+                                  .withAlpha((0.1 * 255).round()),
                               strokeWidth: 1)),
                       borderData: FlBorderData(show: false),
                       lineBarsData: [
@@ -574,7 +591,8 @@ class _LineChartCardState extends State<LineChartCard> {
                           ),
                           belowBarData: BarAreaData(
                               show: true,
-                              color: scheme.primary.withOpacity(0.12)),
+                              color: scheme.primary
+                                  .withAlpha((0.12 * 255).round())),
                         ),
                         LineChartBarData(
                           spots: scoreSpots,
@@ -663,9 +681,11 @@ class _HeroHeaderDelegate extends SliverPersistentHeaderDelegate {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  clampedProgress > 0.6 ? 'Balance' : 'Total Balance',
+                  clampedProgress > 0.6
+                      ? loc.t('balance')
+                      : loc.t('total_balance'),
                   style: textTheme.bodyMedium?.copyWith(
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withAlpha((0.8 * 255).round()),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -715,7 +735,7 @@ class _HeroHeaderDelegate extends SliverPersistentHeaderDelegate {
                   children: [
                     Expanded(
                       child: _HeroStat(
-                        label: 'Credit Points',
+                        label: loc.t('credit_points'),
                         value: '${data.creditPoints}',
                         icon: Icons.speed,
                       ),
@@ -723,7 +743,7 @@ class _HeroHeaderDelegate extends SliverPersistentHeaderDelegate {
                     Container(width: 1, height: 40, color: Colors.white24),
                     Expanded(
                       child: _HeroStat(
-                        label: 'Credibility',
+                        label: loc.t('credibility'),
                         value: '${data.credibilityScore}',
                         icon: Icons.verified,
                       ),
@@ -805,14 +825,14 @@ class _StatCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: isDarkMode
             ? LinearGradient(colors: [
-                color.withOpacity(0.22),
-                Colors.white.withOpacity(0.08)
+                color.withAlpha((0.22 * 255).round()),
+                Colors.white.withAlpha((0.08 * 255).round())
               ], begin: Alignment.topLeft, end: Alignment.bottomRight)
             : null,
         color: isDarkMode ? null : theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
         border: isDarkMode
-            ? Border.all(color: Colors.white.withOpacity(0.06))
+            ? Border.all(color: Colors.white.withAlpha((0.06 * 255).round()))
             : null,
         boxShadow: AppShadows.soft,
       ),
@@ -821,7 +841,7 @@ class _StatCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.16),
+              color: color.withAlpha((0.16 * 255).round()),
               shape: BoxShape.circle,
             ),
             child:
@@ -837,7 +857,8 @@ class _StatCard extends StatelessWidget {
                     style: textTheme.bodySmall?.copyWith(
                         color: isDarkMode
                             ? Colors.white70
-                            : theme.colorScheme.onSurface.withOpacity(0.7))),
+                            : theme.colorScheme.onSurface
+                                .withAlpha((0.7 * 255).round()))),
                 const SizedBox(height: 6),
                 Text(value,
                     overflow: TextOverflow.ellipsis,
@@ -876,7 +897,7 @@ class _LegendEntry extends StatelessWidget {
         ? AppPalette.flame
         : (isDarkMode
             ? Colors.white70
-            : theme.colorScheme.onSurface.withOpacity(0.7));
+            : theme.colorScheme.onSurface.withAlpha((0.7 * 255).round()));
 
     return Row(
       children: [
@@ -920,8 +941,9 @@ class _ActivityItem extends StatelessWidget {
           : BoxDecoration(
               color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(22),
-              border:
-                  Border.all(color: theme.colorScheme.outline.withOpacity(0.5)),
+              border: Border.all(
+                  color:
+                      theme.colorScheme.outline.withAlpha((0.5 * 255).round())),
             ),
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       child: Row(
@@ -943,12 +965,13 @@ class _ActivityItem extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(subtitle,
                     style: textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.7))),
+                        color: theme.colorScheme.onSurface
+                            .withAlpha((0.7 * 255).round()))),
               ],
             ),
           ),
           Icon(Icons.arrow_forward_ios,
-              color: Colors.grey.withOpacity(0.6), size: 16),
+              color: Colors.grey.withAlpha((0.6 * 255).round()), size: 16),
         ],
       ),
     );

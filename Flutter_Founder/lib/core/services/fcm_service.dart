@@ -6,6 +6,7 @@ import '../services/logger_service.dart';
 import '../services/secure_storage_service.dart';
 import '../network/network_config.dart';
 import '../../services/app_logger.dart';
+import '../../services/endpoint_resolver.dart';
 import 'package:http/http.dart' as http;
 
 /// Background message handler - must be a top-level function
@@ -167,7 +168,14 @@ class FCMService {
   /// Sync FCM token with backend
   Future<void> _syncTokenWithBackend(String token) async {
     try {
-      final baseUrl = networkConfig.baseUrl;
+      var baseUrl = EndpointResolver.instance.selectedApiBaseUrl;
+      if (baseUrl.isEmpty) {
+        baseUrl = networkConfig.baseUrl;
+      }
+      if (!baseUrl.startsWith('http')) {
+        baseUrl = 'http://$baseUrl';
+      }
+      baseUrl = baseUrl.replaceAll(RegExp(r'/+\s*$'), '');
       final url = Uri.parse('$baseUrl/api/users/fcm-token');
 
       // Get auth token
@@ -250,8 +258,19 @@ class FCMService {
     if (response.payload != null) {
       try {
         final data = jsonDecode(response.payload!);
-        // Handle navigation based on data
-        // You can emit this to a stream or use a navigation service
+        final messageType = data['type'] ?? '';
+
+        // Create a RemoteMessage-like object and add to stream
+        final message = RemoteMessage(
+          data: Map<String, String>.from(data),
+        );
+        _messageStreamController.add(message);
+
+        if (messageType == 'investment_request') {
+          logger.info('[FCM]',
+              'Investment request notification tapped - requestId: ${data['requestId']}');
+        }
+
         logger.debug('[FCM]', 'Notification data: $data');
       } catch (e) {
         logger.error('[FCM]', 'Error parsing notification payload: $e');
@@ -263,12 +282,30 @@ class FCMService {
   void _handleMessageOpenedApp(RemoteMessage message) {
     logger.info('[FCM]', 'Message opened app: ${message.messageId}');
 
+    // Add to stream for listeners
+    _messageStreamController.add(message);
+
     // Handle navigation based on message data
-    if (message.data.containsKey('conversationId')) {
+    final messageType = message.data['type'] ?? '';
+
+    if (messageType == 'investment_request') {
+      final requestId = message.data['requestId'];
+      final investorName = message.data['investorName'] ?? 'Investor';
+      final amount = message.data['amount'] ?? '0';
+
+      logger.info('[FCM]',
+          'Opening investment request: $requestId from $investorName for $amount EGP');
+      // Navigation will be handled by the app's main listener
+      // Data is available in the message stream
+    } else if (messageType == 'investment_created') {
+      final investmentId = message.data['investmentId'];
+      final businessName = message.data['businessName'] ?? '';
+      logger.info('[FCM]', 'Investment created: $investmentId - $businessName');
+      // Clients should refresh investments - handled by AppState listener
+    } else if (message.data.containsKey('conversationId')) {
       final conversationId = message.data['conversationId'];
       logger.info('[FCM]', 'Opening conversation: $conversationId');
       // Navigate to chat screen
-      // You can use a navigation service or stream here
     }
   }
 

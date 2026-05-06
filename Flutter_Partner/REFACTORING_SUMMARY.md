@@ -232,7 +232,7 @@ config.baseUrl  // https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev
 config.signalRHuburl  // https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev/hubs/chat
 
 // Override if needed
-config.setCustomBaseUrl('http://DESKTOP-DIH7CQH:5000');
+config.setCustomBaseUrl('http://desktop-dih7cqh:5000');
 
 // Get fallback candidates
 config.getBaseUrlCandidates()  // [mDNS, direct hostname, localhost]
@@ -426,3 +426,22 @@ result.fold(
 ---
 
 **🎉 Refactoring Complete! The Investa app is now a scalable, modular, and crash-proof application following Google Expert Level standards.**
+
+---
+
+## May 2026 — Code Quality Audit & Cleanup
+
+Same cleanup pass applied as Flutter_Founder (the two apps share the same architecture baseline).
+
+**Result:** `dart analyze lib` → **0 errors, 0 warnings**
+
+### Changes Applied
+
+- Deprecated `WillPopScope` replaced with `PopScope` throughout
+- All `BuildContext` async-gap safety violations resolved (`use_build_context_synchronously`)
+- All unused fields, dead methods, and orphaned variable assignments removed
+- `createState()` return types corrected to use public widget type (`State<WidgetClass>`)
+- Hardcoded phone numbers replaced with dynamic `AppState` / Firebase Auth lookup
+- `pubspec.yaml`: added explicit `intl` and `path` dependencies (were transitive only)
+
+See [Flutter_Founder/REFACTORING_SUMMARY.md](../Flutter_Founder/REFACTORING_SUMMARY.md) for issue-by-issue details (Partner mirrors Founder structure).

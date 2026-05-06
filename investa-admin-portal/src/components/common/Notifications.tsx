@@ -15,8 +15,6 @@ const Notifications: React.FC = () => {
     // Listen for foreground messages with strict payload parsing
     onMessageListener((payload) => {
       try {
-        console.log('[Notifications] Foreground message:', payload);
-        
         // Strict parsing: handle both notification and data payloads
         let title = 'Notification';
         let body = '';

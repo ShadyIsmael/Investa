@@ -31,6 +31,10 @@ public class ProfileService : IProfileService
         if (user == null || user.Profile == null)
             return null;
 
+        // Calculate KYC completion percentage
+        CalculateKycCompletion(user.Profile);
+        await _unitOfWork.SaveChangesAsync();
+
         return await MapToProfileDtoAsync(user)!;
     }
 
@@ -54,6 +58,12 @@ public class ProfileService : IProfileService
             };
 
             await _unitOfWork.Repository<UserProfile>().AddAsync(user.Profile);
+            await _unitOfWork.SaveChangesAsync();
+        }
+        else
+        {
+            // Calculate KYC completion for existing profile
+            CalculateKycCompletion(user.Profile);
             await _unitOfWork.SaveChangesAsync();
         }
 
@@ -85,9 +95,26 @@ public class ProfileService : IProfileService
             profile.FirstName = profileDto.BasicInfo.FirstName;
             profile.LastName = profileDto.BasicInfo.LastName;
             profile.Gender = profileDto.BasicInfo.Gender;
-            profile.DateOfBirth = profileDto.BasicInfo.DateOfBirth;
+
+            // Server-side DOB validation: reject users under 18 (defense-in-depth)
+            if (profileDto.BasicInfo.DateOfBirth.HasValue)
+            {
+                var dob = profileDto.BasicInfo.DateOfBirth.Value;
+                var now = DateTime.UtcNow.Date;
+                var age = now.Year - dob.Year - ((now.Month < dob.Month || (now.Month == dob.Month && now.Day < dob.Day)) ? 1 : 0);
+                if (age < 18)
+                    throw new InvalidOperationException("User must be at least 18 years old.");
+
+                profile.DateOfBirth = dob;
+            }
+            else
+            {
+                profile.DateOfBirth = profileDto.BasicInfo.DateOfBirth;
+            }
+
             profile.Country = profileDto.BasicInfo.Country;
             profile.Nationality = profileDto.BasicInfo.Nationality;
+            profile.CompanyName = profileDto.BasicInfo.CompanyName;
             profile.Bio = profileDto.BasicInfo.Bio;
             profile.AvatarUrl = profileDto.BasicInfo.AvatarUrl;
         }
@@ -98,10 +125,17 @@ public class ProfileService : IProfileService
             profile.Email = profileDto.ContactInfo.Email;
             profile.Phone1 = profileDto.ContactInfo.Phone1;
             profile.Phone2 = profileDto.ContactInfo.Phone2;
-            profile.WorkAddress = profileDto.ContactInfo.WorkAddress;
             profile.Address = profileDto.ContactInfo.Address;
+            profile.CompanyAddress = profileDto.ContactInfo.CompanyAddress;
+            profile.CompanyEmail = profileDto.ContactInfo.CompanyEmail;
             profile.LinkedInUrl = profileDto.ContactInfo.LinkedInUrl;
             profile.FacebookUrl = profileDto.ContactInfo.FacebookUrl;
+
+            // Map contact-level country and city if provided
+            if (!string.IsNullOrEmpty(profileDto.ContactInfo.Country))
+                profile.Country = profileDto.ContactInfo.Country;
+            if (!string.IsNullOrEmpty(profileDto.ContactInfo.City))
+                profile.City = profileDto.ContactInfo.City;
         }
 
         // Update identity & compliance
@@ -111,6 +145,9 @@ public class ProfileService : IProfileService
             profile.DocumentExpiryDate = profileDto.IdentityCompliance.DocumentExpiryDate;
             profile.DocumentFrontImageUrl = profileDto.IdentityCompliance.DocumentFrontImageUrl;
             profile.DocumentBackImageUrl = profileDto.IdentityCompliance.DocumentBackImageUrl;
+            profile.HrLetterFileName = profileDto.IdentityCompliance.HrLetterFileName;
+            profile.HrLetterBase64 = profileDto.IdentityCompliance.HrLetterBase64;
+            profile.DeviceMacAddress = profileDto.IdentityCompliance.DeviceMacAddress;
         }
 
         // Update client-level fields (NationalId) when provided. BusinessRole is no longer part of profile updates.
@@ -142,6 +179,9 @@ public class ProfileService : IProfileService
         }
 
         profile.UpdatedAt = DateTime.UtcNow;
+
+        // Calculate KYC completion percentage
+        CalculateKycCompletion(profile);
 
         await _unitOfWork.SaveChangesAsync();
 
@@ -262,6 +302,51 @@ public class ProfileService : IProfileService
     }
 
     /// <summary>
+    /// Calculates KYC completion percentage based on required profile fields.
+    /// Auto-verifies user when reaching 100% completion.
+    /// </summary>
+    /// <param name="profile">The user profile to calculate completion for</param>
+    private void CalculateKycCompletion(UserProfile profile)
+    {
+        int totalFields = 14; // Total KYC required fields
+        int filledFields = 0;
+
+        // Basic Info (5 fields)
+        if (!string.IsNullOrWhiteSpace(profile.FirstName)) filledFields++;
+        if (!string.IsNullOrWhiteSpace(profile.LastName)) filledFields++;
+        if (profile.DateOfBirth.HasValue) filledFields++;
+        if (!string.IsNullOrWhiteSpace(profile.Nationality)) filledFields++;
+        if (!string.IsNullOrWhiteSpace(profile.CompanyName)) filledFields++;
+
+        // Contact Info (4 fields)
+        if (!string.IsNullOrWhiteSpace(profile.Email)) filledFields++;
+        if (!string.IsNullOrWhiteSpace(profile.Phone1)) filledFields++;
+        if (!string.IsNullOrWhiteSpace(profile.CompanyAddress)) filledFields++;
+        if (!string.IsNullOrWhiteSpace(profile.CompanyEmail)) filledFields++;
+
+        // Identity & Compliance (5 fields)
+        if (!string.IsNullOrWhiteSpace(profile.DocumentNumber)) filledFields++;
+        if (profile.DocumentExpiryDate.HasValue) filledFields++;
+        if (!string.IsNullOrWhiteSpace(profile.DocumentFrontImageUrl)) filledFields++;
+        if (!string.IsNullOrWhiteSpace(profile.HrLetterFileName)) filledFields++;
+        if (!string.IsNullOrWhiteSpace(profile.DeviceMacAddress)) filledFields++;
+
+        // Calculate percentage
+        profile.KycCompletionPercentage = (int)Math.Round((double)filledFields / totalFields * 100);
+
+        // Auto-verify when 100% complete
+        if (profile.KycCompletionPercentage >= 100 && profile.VerificationStatus == Domain.Entities.Enums.VerificationStatus.Pending)
+        {
+            profile.VerificationStatus = Domain.Entities.Enums.VerificationStatus.Verified;
+            profile.IsKycVerified = true;
+        }
+        else if (profile.KycCompletionPercentage < 100)
+        {
+            profile.IsKycVerified = false;
+        }
+    }
+
+    /// <summary>
     /// Maps User and UserProfile entities to UserProfileDto with all 4 sections.
     /// </summary>
     private async Task<UserProfileDto> MapToProfileDtoAsync(User user)
@@ -279,6 +364,13 @@ public class ProfileService : IProfileService
         {
             dto.BasicInfo.Score = client.Score;
             dto.BasicInfo.Credit = client.Credit;
+        }
+
+        // Include KYC completion fields
+        if (user.Profile != null)
+        {
+            dto.BasicInfo.IsKycVerified = user.Profile.IsKycVerified;
+            dto.BasicInfo.KycCompletionPercentage = user.Profile.KycCompletionPercentage;
         }
 
         return dto;

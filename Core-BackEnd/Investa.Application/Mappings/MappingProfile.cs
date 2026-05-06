@@ -18,7 +18,13 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.PenaltyDurationDays, opt => opt.MapFrom(src => src.PenaltyDurationDays));
         CreateMap<CreateInvestmentDto, Investment>();
         CreateMap<Investment, InvestmentDto>()
-            .ForMember(dest => dest.TeamMembers, opt => opt.MapFrom(src => src.TeamMembers.Where(tm => tm.IsActive).OrderBy(tm => tm.SortOrder)));
+            .ForMember(dest => dest.TeamMembers, opt => opt.MapFrom(src => src.TeamMembers.Where(tm => tm.IsActive).OrderBy(tm => tm.SortOrder)))
+            .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.Images.OrderBy(i => i.SortOrder)));
+
+        CreateMap<InvestmentImage, InvestmentImageDto>();
+
+        // InvestmentImage -> DTO mapping for API use
+        CreateMap<InvestmentImage, InvestmentImageDto>();
         CreateMap<UpdateInvestmentDto, Investment>().ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
         CreateMap<InvestmentParticipant, InvestorParticipationDto>()
             .ForMember(dest => dest.InvestorName, opt => opt.MapFrom(src => src.Investor != null ? (src.Investor.Profile != null && !string.IsNullOrWhiteSpace(src.Investor.Profile.FullName) ? src.Investor.Profile.FullName : src.Investor.Name) : null))
@@ -48,6 +54,15 @@ public class MappingProfile : Profile
         // CreditTransaction mapping for credibility score audit trail
         CreateMap<CreditTransaction, DTOs.Profile.CreditTransactionDto>()
             .ForMember(d => d.AdminName, opt => opt.MapFrom(s => s.Admin != null ? (s.Admin.Name ?? s.Admin.Email) : null));
+
+        // CreditTransaction mapping for general DTO usage (e.g., credit services)
+        CreateMap<CreditTransaction, DTOs.CreditTransactionDto>();
+
+        // Investment request mapping
+        CreateMap<InvestmentRequest, DTOs.Requests.InvestmentRequestDto>()
+            .ForMember(d => d.Status, opt => opt.MapFrom(s => s.Status.ToString()))
+            .ForMember(d => d.Direction, opt => opt.MapFrom(s => s.Direction.ToString()))
+            .ForMember(d => d.Type, opt => opt.MapFrom(s => s.RequestType));
 
         // User core metrics mapping
         CreateMap<User, UserCoreMetricsDto>()

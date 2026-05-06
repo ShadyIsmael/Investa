@@ -41,12 +41,40 @@ public class CreateInvestmentDtoValidator : AbstractValidator<CreateInvestmentDt
         RuleFor(x => x.Currency)
             .NotEmpty().WithMessage("Currency is required.");
 
-        // Equity crowdfunding fields
+        // Type-specific validation: Equity investments require share fields
         RuleFor(x => x.SharePrice)
-            .GreaterThan(0m).WithMessage("Share price must be greater than zero.");
+            .GreaterThan(0m)
+            .When(x => x.InvestmentTypeId == Domain.Entities.Enums.InvestmentType.Equity)
+            .WithMessage("Share price must be greater than zero for Equity investments.");
 
         RuleFor(x => x.TotalShares)
-            .GreaterThan(0).WithMessage("Total shares must be greater than zero.");
+            .GreaterThan(0)
+            .When(x => x.InvestmentTypeId == Domain.Entities.Enums.InvestmentType.Equity)
+            .WithMessage("Total shares must be greater than zero for Equity investments.");
+
+        RuleFor(x => x.ValuationCap)
+            .GreaterThan(0m)
+            .When(x => x.InvestmentTypeId == Domain.Entities.Enums.InvestmentType.Equity && x.ValuationCap.HasValue)
+            .WithMessage("Valuation cap must be greater than zero for Equity investments.");
+
+        // Type-specific validation: Founding investments require duration/profit fields
+        RuleFor(x => x.DurationMonths)
+            .GreaterThan(0)
+            .When(x => x.InvestmentTypeId == Domain.Entities.Enums.InvestmentType.Founding)
+            .WithMessage("Duration in months is required for Founding investments.");
+
+        RuleFor(x => x.ProfitPercentage)
+            .GreaterThan(0m)
+            .When(x => x.InvestmentTypeId == Domain.Entities.Enums.InvestmentType.Founding)
+            .WithMessage("Profit percentage is required for Founding investments.");
+
+        RuleFor(x => x.PayoutFrequency)
+            .NotEmpty()
+            .When(x => x.InvestmentTypeId == Domain.Entities.Enums.InvestmentType.Founding)
+            .WithMessage("Payout frequency is required for Founding investments.")
+            .Must(x => x == null || new[] { "Monthly", "Quarterly", "Semi-Annually", "Annually", "At Maturity" }.Contains(x))
+            .When(x => x.InvestmentTypeId == Domain.Entities.Enums.InvestmentType.Founding && !string.IsNullOrEmpty(x.PayoutFrequency))
+            .WithMessage("Payout frequency must be one of: Monthly, Quarterly, Semi-Annually, Annually, At Maturity.");
 
         RuleFor(x => x.MinInvestment)
             .GreaterThan(0m)

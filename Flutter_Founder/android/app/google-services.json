@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:997573340268:android:6072303f2b85aced8d7c49",
+        "mobilesdk_app_id": "1:997573340268:android:7627c9a8aae07d928d7c49",
         "android_client_info": {
-          "package_name": "com.investa58438.flutterdarkapp"
+          "package_name": "investa_founder.a010"
         }
       },
       "oauth_client": [],

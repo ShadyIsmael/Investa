@@ -43,7 +43,7 @@ flutter run lib/main_clean.dart
 Create/update `.env` file in the project root:
 ```env
 # Default hostname for mDNS discovery
-BASE_HOST_NAME=DESKTOP-DIH7CQH
+BASE_HOST_NAME=desktop-dih7cqh
 
 # API Base URL (optional - defaults to https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev)
 API_BASE_URL=https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev
@@ -56,11 +56,11 @@ SIGNALR_HUB_URL=https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev/hubs/
 The `.local` suffix enables mDNS (Multicast DNS) which allows devices on the same network to discover the server by hostname instead of IP address.
 
 **If mDNS doesn't work:**
-1. Use your machine name (e.g., `DESKTOP-DIH7CQH`) or its IP address.
+1. Use your machine name (e.g., `desktop-dih7cqh`) or its IP address.
 2. Update `.env`:
    ```env
-   API_BASE_URL=http://DESKTOP-DIH7CQH:5000
-   SIGNALR_HUB_URL=http://DESKTOP-DIH7CQH:5000/hubs/chat
+   API_BASE_URL=http://desktop-dih7cqh:5000
+   SIGNALR_HUB_URL=http://desktop-dih7cqh:5000/hubs/chat
    ```
 
 ---
@@ -188,11 +188,11 @@ Look for these tags in your console:
 **Symptom:** `[SignalR] Failed to connect to any SignalR hub candidate`
 
 **Solutions:**
-1. Check if backend server is running on `https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev` (or locally `http://DESKTOP-DIH7CQH.local:5000`)
+1. Check if backend server is running on `https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev` (or locally `http://desktop-dih7cqh:5000`)
 2. Test server accessibility:
    ```bash
    # From the device/emulator
-   ping DESKTOP-DIH7CQH.local
+   ping desktop-dih7cqh
    curl https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev/hubs/chat
    ```
 3. Use IP address instead of hostname in `.env`

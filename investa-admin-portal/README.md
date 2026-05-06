@@ -69,7 +69,7 @@ Create a `.env` file (optional - auto-detects if not set):
 
 ```env
 # API Configuration
-VITE_API_BASE_URL=http://DESKTOP-DIH7CQH:5235
+VITE_API_BASE_URL=http://desktop-dih7cqh:5235
 
 Note: The admin portal prefers the following precedence for API base URL:
 1) A runtime meta tag in `index.html`: `<meta name="investa-api-base" content="http://localhost:5000" />` (picked up at page load),
@@ -183,3 +183,35 @@ storage.remove('key');
 - [🔒 Security Checklist](./docs/SECURITY_CHECKLIST.md) - Security best practices
 
 ## 🧪 Development
+
+```bash
+# Start dev server
+npm run dev
+
+# Type check
+npx tsc --noEmit
+
+# Lint
+npx eslint src
+
+# Build
+npm run build
+```
+
+---
+
+## Code Quality (May 2026)
+
+All debug output statements removed from production code across 7 files:
+
+| File | Changes |
+|---|---|
+| `src/features/support/SupportDashboard.tsx` | Removed all `console.log` calls |
+| `src/pages/Dashboard.tsx` | Removed all `console.log` debug statements |
+| `src/pages/Login.tsx` | Removed all `console.log` debug statements |
+| `src/contexts/AuthContext.tsx` | Removed all `console.log` / `console.debug` statements |
+| `src/features/support/SupportRequests.tsx` | Removed all `console.log` calls |
+| `src/features/support/ChatView.tsx` | Removed all `console.log` calls |
+| `src/features/notifications/Notifications.tsx` | Removed all `console.log` calls |
+
+**Result:** 0 active debug logs in production bundle. All logging now goes through `src/utils/logger.ts` which is environment-aware (silent in production).

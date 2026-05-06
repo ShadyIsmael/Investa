@@ -82,6 +82,11 @@ export const routes: Routes = [
         title: 'My Profile - Investa' 
       },
       { 
+        path: 'transactions', 
+        loadComponent: () => import('./pages/admin/transactions/transactions.component').then(m => m.TransactionsComponent),
+        title: 'Transactions - Investa' 
+      },
+      { 
         path: 'notifications', 
         loadComponent: () => import('./pages/admin/notifications/notifications.component').then(m => m.NotificationsComponent),
         title: 'Notifications - Investa' 
@@ -97,6 +102,11 @@ export const routes: Routes = [
         path: 'settings', 
         loadComponent: () => import('./pages/admin/settings/settings.component').then(m => m.SettingsComponent),
         title: 'Settings - Investa' 
+      },
+      { 
+        path: 'credit-charge', 
+        loadComponent: () => import('./pages/admin/credit-charge/credit-charge.component').then(m => m.CreditChargeComponent),
+        title: 'Charge Credits - Investa' 
       }
     ]
   }

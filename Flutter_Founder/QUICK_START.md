@@ -188,11 +188,11 @@ Look for these tags in your console:
 **Symptom:** `[SignalR] Failed to connect to any SignalR hub candidate`
 
 **Solutions:**
-1. Check if backend server is running on `https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev` (or locally `http://DESKTOP-DIH7CQH.local:5000`)
+1. Check if backend server is running on `https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev` (or locally `http://DESKTOP-DIH7CQH:5000`)
 2. Test server accessibility:
    ```bash
    # From the device/emulator
-   ping DESKTOP-DIH7CQH.local
+   ping DESKTOP-DIH7CQH
    curl https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev/hubs/chat
    ```
 3. Use IP address instead of hostname in `.env`

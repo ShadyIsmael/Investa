@@ -32,4 +32,9 @@ public class UpdateInvestmentDto
     public DateTime? EndDate { get; set; }
     public string? ImageUrl { get; set; }
     public string? VideoUrl { get; set; }
+
+    // Founding-specific fields
+    public int? DurationMonths { get; set; }
+    public decimal? ProfitPercentage { get; set; }
+    public string? PayoutFrequency { get; set; }
 }

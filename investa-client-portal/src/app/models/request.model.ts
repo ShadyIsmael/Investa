@@ -13,6 +13,10 @@ export interface InvestmentRequest {
   projectName: string;
   projectImageUrl: string;
   counterpartName: string; // sender or receiver name
+  senderName?: string; // sender display name (investor)
+  receiverName?: string; // receiver display name (founder)
+  businessName?: string; // business name from investment
+  shortDescription?: string; // one-line description of investment
   status: RequestStatus;
   createdAt: Date;
   investmentAmount?: number; // For investment requests (amount in credits)

@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Investa.Application.Interfaces;
 using Investa.Infrastructure.Repositories;using Investa.Domain.Entities.Security;using Microsoft.IdentityModel.Tokens;
+using Investa.Infrastructure.Identity;
 using System.Text;
 
 namespace Investa.API.Controllers;
@@ -19,7 +20,7 @@ namespace Investa.API.Controllers;
 [Authorize(AuthenticationSchemes = "Bearer")]
 public class AuthController : BaseApiController
 {
-    private readonly UserManager<IdentityUser> _userManager;
+    private readonly UserManager<ApplicationIdentityUser> _userManager;
     private readonly IJwtTokenService _jwtTokenService;
     private readonly ILogger<AuthController> _logger;
     private readonly IUnitOfWork _unitOfWork;
@@ -27,7 +28,7 @@ public class AuthController : BaseApiController
     private readonly ISmsSender _smsSender;
 
     public AuthController(
-        UserManager<IdentityUser> userManager,
+        UserManager<ApplicationIdentityUser> userManager,
         IJwtTokenService jwtTokenService,
         ILogger<AuthController> logger,
         IUnitOfWork unitOfWork,
@@ -62,7 +63,7 @@ public class AuthController : BaseApiController
 
         try
         {
-            var user = new IdentityUser
+            var user = new ApplicationIdentityUser
             {
                 UserName = normalizedPhone,
                 PhoneNumber = normalizedPhone,
@@ -87,17 +88,16 @@ public class AuthController : BaseApiController
                 await _userManager.AddClaimAsync(user, new Claim("firebase_uid", request.FirebaseUid));
 
             // Create domain entities
-            if (Guid.TryParse(user.Id, out var authGuid))
+            var authGuid = user.Id;
+            if (authGuid != Guid.Empty)
             {
-                var passwordHasher = new PasswordHasher<IdentityUser>();
+                var passwordHasher = new PasswordHasher<ApplicationIdentityUser>();
                 var authUser = new AuthUser
                 {
                     Id = authGuid,
                     Email = $"{normalizedPhone}@phone.investa.local",
                     PasswordHash = passwordHasher.HashPassword(user, request.Password),
-                    // Map client classification from DTO to AuthUser.UserType
-                    // ClientType.Investor is treated as Founder by default (all clients are founders or partners)
-                    UserType = request.ClientType == ClientType.Founder ? UserType.Founder : UserType.Founder,
+                    UserType = UserType.Client, // All external users are Client type
                     Status = true
                 };
                 await _unitOfWork.Repository<AuthUser>().AddAsync(authUser);
@@ -132,7 +132,6 @@ public class AuthController : BaseApiController
                     LastName = request.LastName,
                     MobileNumber = normalizedPhone,
                     FirebaseUid = request.FirebaseUid,
-                    ClientType = request.ClientType,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
                     StatusId = 1
@@ -167,16 +166,84 @@ public class AuthController : BaseApiController
             return ErrorResponse("Phone number and password are required", 400);
 
         var normalizedPhone = request.PhoneNumber.Trim().Replace(" ", "");
-        var identityUser = await _userManager.FindByNameAsync(normalizedPhone);
+        ApplicationIdentityUser? identityUser = null;
+        var usedLegacyAuthFallback = false;
+
+        try
+        {
+            identityUser = await _userManager.FindByNameAsync(normalizedPhone);
+        }
+        catch (InvalidCastException ex)
+        {
+            _logger.LogWarning(ex, "Identity phone lookup failed for {Phone}; falling back to AuthUser records", normalizedPhone);
+            usedLegacyAuthFallback = true;
+        }
+
+        // Fallback: try common phone variants so users who updated their profile
+        // to international format (e.g., +2010...) can still log in with that number.
+        // Examples handled: '+20xxxxxxxxxx', '0020xxxxxxxxxx', '20xxxxxxxxxx' -> '0xxxxxxxxxx'
+        if (identityUser == null)
+        {
+            var candidates = new List<string> { normalizedPhone };
+            var noPlus = normalizedPhone.StartsWith("+") ? normalizedPhone.Substring(1) : normalizedPhone;
+            if (!candidates.Contains(noPlus)) candidates.Add(noPlus);
+
+            var prefixes = new[] { "20", "0020" };
+            foreach (var p in prefixes)
+            {
+                if (noPlus.StartsWith(p))
+                {
+                    var rest = noPlus.Substring(p.Length);
+                    if (!rest.StartsWith("0")) rest = "0" + rest;
+                    if (!candidates.Contains(rest)) candidates.Add(rest);
+                }
+            }
+
+            foreach (var candidate in candidates)
+            {
+                if (!usedLegacyAuthFallback)
+                {
+                    try
+                    {
+                        identityUser = await _userManager.FindByNameAsync(candidate);
+                    }
+                    catch (InvalidCastException ex)
+                    {
+                        _logger.LogWarning(ex, "Identity phone candidate lookup failed for {PhoneCandidate}; falling back to AuthUser records", candidate);
+                        usedLegacyAuthFallback = true;
+                    }
+                }
+
+                if (identityUser == null)
+                {
+                    identityUser = await TryAuthenticateLegacyPhoneUserAsync(candidate, request.Password);
+                    if (identityUser != null)
+                    {
+                        usedLegacyAuthFallback = true;
+                    }
+                }
+
+                if (identityUser != null)
+                {
+                    _logger.LogInformation("Login resolved using phone candidate: {Candidate}", candidate);
+                    break;
+                }
+            }
+        }
+
         if (identityUser == null)
             return ErrorResponse("Invalid credentials", 401);
 
-        var passwordValid = await _userManager.CheckPasswordAsync(identityUser, request.Password);
-        if (!passwordValid)
-            return ErrorResponse("Invalid credentials", 401);
+        if (!usedLegacyAuthFallback)
+        {
+            var passwordValid = await _userManager.CheckPasswordAsync(identityUser, request.Password);
+            if (!passwordValid)
+                return ErrorResponse("Invalid credentials", 401);
+        }
 
         // Check account status
-        if (Guid.TryParse(identityUser.Id, out var authGuid))
+        var authGuid = identityUser.Id;
+        if (authGuid != Guid.Empty)
         {
             var authUser = (await _unitOfWork.Repository<AuthUser>().FindAsync(a => a.Id == authGuid)).FirstOrDefault();
             if (authUser != null)
@@ -206,16 +273,38 @@ public class AuthController : BaseApiController
             return ErrorResponse("Email and password are required", 400);
 
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
-        var identityUser = await _userManager.FindByEmailAsync(normalizedEmail);
-        if (identityUser == null)
-            return ErrorResponse("Invalid credentials", 401);
+        ApplicationIdentityUser? identityUser = null;
+        var usedLegacyAuthFallback = false;
 
-        var passwordValid = await _userManager.CheckPasswordAsync(identityUser, request.Password);
-        if (!passwordValid)
-            return ErrorResponse("Invalid credentials", 401);
+        try
+        {
+            identityUser = await _userManager.FindByEmailAsync(normalizedEmail);
+        }
+        catch (InvalidCastException ex)
+        {
+            _logger.LogWarning(ex, "Identity email lookup failed for {Email}; falling back to AuthUser records", normalizedEmail);
+            usedLegacyAuthFallback = true;
+        }
+
+        if (identityUser == null)
+        {
+            identityUser = await TryAuthenticateLegacyEmailUserAsync(normalizedEmail, request.Password);
+            if (identityUser == null)
+                return ErrorResponse("Invalid credentials", 401);
+
+            usedLegacyAuthFallback = true;
+        }
+
+        if (!usedLegacyAuthFallback)
+        {
+            var passwordValid = await _userManager.CheckPasswordAsync(identityUser, request.Password);
+            if (!passwordValid)
+                return ErrorResponse("Invalid credentials", 401);
+        }
 
         // Optional: check AuthUser status if present
-        if (Guid.TryParse(identityUser.Id, out var authGuid))
+        var authGuid = identityUser.Id;
+        if (authGuid != Guid.Empty)
         {
             var authUser = (await _unitOfWork.Repository<AuthUser>().FindAsync(a => a.Id == authGuid)).FirstOrDefault();
             if (authUser != null)
@@ -326,7 +415,7 @@ public class AuthController : BaseApiController
     /// Create an admin user (restricted endpoint)
     /// </summary>
     [HttpPost("create-admin")]
-    [Authorize(Roles = nameof(UserRoles.Admin))]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> CreateAdminAsync([FromBody] CreateAdminDto request)
     {
         if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
@@ -342,9 +431,9 @@ public class AuthController : BaseApiController
             var guid = Guid.NewGuid();
             var username = normalizedEmail.Replace("@", "_").Replace(".", "_");
 
-            var user = new IdentityUser
+            var user = new ApplicationIdentityUser
             {
-                Id = guid.ToString(),
+                Id = guid,
                 UserName = username,
                 Email = normalizedEmail,
                 EmailConfirmed = true
@@ -361,7 +450,7 @@ public class AuthController : BaseApiController
                 await _userManager.AddClaimAsync(user, new Claim(ClaimTypes.Surname, request.LastName));
 
             // Create domain entities
-            var passwordHasher = new PasswordHasher<IdentityUser>();
+            var passwordHasher = new PasswordHasher<ApplicationIdentityUser>();
             var authUser = new AuthUser
             {
                 Id = guid,
@@ -427,7 +516,7 @@ public class AuthController : BaseApiController
             // Normalize phone (basic): trim spaces
             var normalizedPhone = request.PhoneNumber?.Trim().Replace(" ", "") ?? string.Empty;
             // Create new IdentityUser with phone number as username
-            var user = new IdentityUser
+            var user = new ApplicationIdentityUser
             {
                 UserName = normalizedPhone,
                 PhoneNumber = normalizedPhone,
@@ -481,16 +570,17 @@ public class AuthController : BaseApiController
             Guid authGuid = Guid.Empty;
             try
             {
-                if (Guid.TryParse(user.Id, out authGuid))
+                authGuid = user.Id;
+                if (authGuid != Guid.Empty)
                 {
-                    var passwordHasher = new Microsoft.AspNetCore.Identity.PasswordHasher<IdentityUser>();
+                    var passwordHasher = new Microsoft.AspNetCore.Identity.PasswordHasher<ApplicationIdentityUser>();
                     var authUser = new AuthUser
                     {
                         Id = authGuid,
                         Email = normalizedPhone + "@phone.investa.local",
                         PasswordHash = passwordHasher.HashPassword(user, request.Password),
-                        // Default to Founder for client sign-ups
-                        UserType = Investa.Domain.Entities.Enums.UserType.Founder,
+                        // Default to Client for client sign-ups
+                        UserType = Investa.Domain.Entities.Enums.UserType.Client,
                         Status = true
                     };
 
@@ -499,7 +589,7 @@ public class AuthController : BaseApiController
                 }
                 else
                 {
-                    _logger.LogWarning($"Unable to parse Identity user id to GUID: {user.Id}");
+                    _logger.LogWarning($"Unable to use identity user id for AuthUser creation: {user.Id}");
                 }
             }
             catch (Exception ex)
@@ -547,7 +637,6 @@ public class AuthController : BaseApiController
                 LastName = request.LastName,
                 MobileNumber = normalizedPhone,
                 FirebaseUid = request.FirebaseUid,
-                ClientType = request.ClientType,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 StatusId = 1 // default to Active status (seeded by migrations)
@@ -578,4 +667,64 @@ public class AuthController : BaseApiController
             });
         }
     }    
+
+    private async Task<ApplicationIdentityUser?> TryAuthenticateLegacyEmailUserAsync(string normalizedEmail, string password)
+    {
+        var authUser = (await _unitOfWork.Repository<AuthUser>()
+            .FindAsync(a => a.Email != null && a.Email.ToLower() == normalizedEmail))
+            .FirstOrDefault();
+
+        if (authUser == null)
+            return null;
+
+        var identityUser = new ApplicationIdentityUser
+        {
+            Id = authUser.Id,
+            Email = authUser.Email,
+            UserName = authUser.Email ?? normalizedEmail,
+            EmailConfirmed = true
+        };
+
+        var passwordHasher = new PasswordHasher<ApplicationIdentityUser>();
+        var verification = passwordHasher.VerifyHashedPassword(identityUser, authUser.PasswordHash, password);
+        if (verification == PasswordVerificationResult.Failed)
+            return null;
+
+        return identityUser;
+    }
+
+    private async Task<ApplicationIdentityUser?> TryAuthenticateLegacyPhoneUserAsync(string normalizedPhone, string password)
+    {
+        var legacyEmails = new[]
+        {
+            $"{normalizedPhone}@phone.investa.local",
+            $"{normalizedPhone.TrimStart('+')}@phone.investa.local"
+        }
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+        var authUser = (await _unitOfWork.Repository<AuthUser>()
+            .FindAsync(a => a.Email != null && legacyEmails.Contains(a.Email.ToLower())))
+            .FirstOrDefault();
+
+        if (authUser == null)
+            return null;
+
+        var identityUser = new ApplicationIdentityUser
+        {
+            Id = authUser.Id,
+            Email = authUser.Email,
+            UserName = normalizedPhone,
+            PhoneNumber = normalizedPhone,
+            PhoneNumberConfirmed = true,
+            EmailConfirmed = true
+        };
+
+        var passwordHasher = new PasswordHasher<ApplicationIdentityUser>();
+        var verification = passwordHasher.VerifyHashedPassword(identityUser, authUser.PasswordHash, password);
+        if (verification == PasswordVerificationResult.Failed)
+            return null;
+
+        return identityUser;
+    }
 }

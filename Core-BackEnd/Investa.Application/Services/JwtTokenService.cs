@@ -30,7 +30,7 @@ public class JwtTokenService : IJwtTokenService
     }
 
     /// <inheritdoc/>
-    public async Task<AuthResponseDto> GenerateTokenAsync(IdentityUser user)
+    public async Task<AuthResponseDto> GenerateTokenAsync(IdentityUser<Guid> user)
     {
         if (user == null)
             throw new ArgumentNullException(nameof(user));
@@ -64,7 +64,8 @@ public class JwtTokenService : IJwtTokenService
 
         // Try to parse Identity user id as GUID and fetch domain and auth user info
         User? domainUser = null;
-        if (Guid.TryParse(user.Id, out var userGuid))
+        var userGuid = user.Id;
+        if (userGuid != Guid.Empty)
         {
             // Fetch domain user first (may contain Role string like "Admin")
             domainUser = (await _unitOfWork.Repository<User>().FindAsync(u => u.Id == userGuid)).FirstOrDefault();
@@ -72,39 +73,16 @@ public class JwtTokenService : IJwtTokenService
             var authUser = (await _unitOfWork.Repository<AuthUser>().FindAsync(a => a.Id == userGuid)).FirstOrDefault();
             if (authUser != null)
             {
-                // Map UserType enum to our canonical UserRoles
+                // Simplified two-type mapping: OrgUser or Client
                 if (authUser.UserType == UserType.OrgUser)
                 {
-                    // Try to infer Admin role from domain user's Role string
-                    if (domainUser != null && !string.IsNullOrWhiteSpace(domainUser.Role) &&
-                        Enum.TryParse<UserRoles>(domainUser.Role, true, out var parsedRole))
-                    {
-                        roleClaimValue = parsedRole.ToString();
-                        userTypeValue = roleClaimValue;
-                    }
-                    else
-                    {
-                        roleClaimValue = UserRoles.OrgUser.ToString();
-                        userTypeValue = roleClaimValue;
-                    }
+                    roleClaimValue = UserRoles.OrgUser.ToString();
+                    userTypeValue = UserRoles.OrgUser.ToString();
                 }
-                else if (authUser.UserType == UserType.Founder)
+                else // UserType.Client
                 {
-                    // Founder users map to Client role
                     roleClaimValue = UserRoles.Client.ToString();
-                    userTypeValue = UserType.Founder.ToString();
-                }
-                else if (authUser.UserType == UserType.Partner)
-                {
-                    // Partner users map to Client role
-                    roleClaimValue = UserRoles.Client.ToString();
-                    userTypeValue = UserType.Partner.ToString();
-                }
-                else
-                {
-                    // Fallback to Client role
-                    roleClaimValue = UserRoles.Client.ToString();
-                    userTypeValue = authUser.UserType.ToString();
+                    userTypeValue = UserRoles.Client.ToString();
                 }
             }
             
@@ -148,8 +126,8 @@ public class JwtTokenService : IJwtTokenService
         // Create claims with phone number as identifier
         var claims = new List<Claim>
         {
-            new Claim("sub", user.Id), // Subject (user ID)
-            new Claim("id", user.Id),
+            new Claim("sub", user.Id.ToString()), // Subject (user ID)
+            new Claim("id", user.Id.ToString()),
             new Claim(ClaimTypes.NameIdentifier, user.UserName ?? string.Empty),
             new Claim(ClaimTypes.MobilePhone, user.PhoneNumber ?? string.Empty), // Phone number claim
             new Claim("phone_number", user.PhoneNumber ?? string.Empty),
@@ -172,7 +150,7 @@ public class JwtTokenService : IJwtTokenService
         }
 
         // If user is Admin, add wildcard permission from central constant
-        if (roleClaimValue == UserRoles.Admin.ToString())
+        if (string.Equals(roleClaimValue, "Admin", StringComparison.OrdinalIgnoreCase))
         {
             claims.Add(new Claim("permission", SystemPermissions.SuperAccess));
         }
@@ -271,8 +249,9 @@ public class JwtTokenService : IJwtTokenService
 
         var refreshExpiresAt = DateTime.UtcNow.AddDays(refreshExpirationDays);
 
-        // Try to parse Identity user id as GUID for linking to AuthUser
-        if (Guid.TryParse(user.Id, out var authUserGuid))
+        // Use the Guid-based identity user id for linking to AuthUser
+        var authUserGuid = user.Id;
+        if (authUserGuid != Guid.Empty)
         {
             // Ensure an AuthUser exists for this identity id. If missing, create a minimal record so FK won't fail.
             var authUser = (await _unitOfWork.Repository<AuthUser>().FindAsync(a => a.Id == authUserGuid)).FirstOrDefault();
@@ -284,7 +263,7 @@ public class JwtTokenService : IJwtTokenService
                     Id = authUserGuid,
                     Email = user.Email ?? (user.UserName + "@phone.investa.local"),
                     PasswordHash = "", // placeholder; real hash should be created during sign-up flow
-                    UserType = UserType.Founder, // Default to Founder for client users
+                    UserType = UserType.Client, // Default to Client for external users
                     Status = true,
                     CreatedAt = DateTime.UtcNow
                 };

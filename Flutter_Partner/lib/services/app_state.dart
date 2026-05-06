@@ -21,7 +21,8 @@ class AppState extends ChangeNotifier {
       if (raw != null && raw.isNotEmpty) {
         final map = jsonDecode(raw) as Map<String, dynamic>;
         // Only update and notify listeners when the stored profile actually changed
-        final currentRaw = _profileJson != null ? jsonEncode(_profileJson) : null;
+        final currentRaw =
+            _profileJson != null ? jsonEncode(_profileJson) : null;
         if (currentRaw != raw) {
           _profileJson = map;
           _profile = Profile.fromJson(map);

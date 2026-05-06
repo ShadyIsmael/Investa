@@ -15,9 +15,9 @@ class ApiClient {
   ApiClient({BaseOptions? options})
       : _dio = Dio(options ??
             BaseOptions(
-                connectTimeout: const Duration(seconds: 15),
-                receiveTimeout: const Duration(seconds: 30),
-                sendTimeout: const Duration(seconds: 15))) {
+          connectTimeout: const Duration(seconds: 45),
+          receiveTimeout: const Duration(seconds: 60),
+          sendTimeout: const Duration(seconds: 30))) {
     // Log configured timeouts for debugging
     try {
       final bo = _dio.options;
@@ -49,11 +49,9 @@ class ApiClient {
           if (token != null && token.isNotEmpty) {
             opts.headers['Authorization'] = 'Bearer $token';
             final authVal = opts.headers['Authorization']?.toString();
-            // Mask token for logs: show first/last 4 chars and length
             try {
-              final t = token;
-              final masked = t.length > 8
-                  ? '${t.substring(0, 4)}...${t.substring(t.length - 4)}'
+              final masked = token.length > 8
+                  ? '${token.substring(0, 4)}...${token.substring(token.length - 4)}'
                   : '***';
               AppLogger.logInfo('ApiClient',
                   'Authorization header set (len=${authVal?.length ?? 0}, token=$masked)');
@@ -69,7 +67,7 @@ class ApiClient {
           // don't block requests if token read fails
           AppLogger.logInfo('ApiClient', 'Token read failure: $e');
         }
-        // Log request URL and headers for debugging (headers masked above)
+
         try {
           AppLogger.logInfo('ApiClient',
               'Outgoing request ${opts.method} ${opts.uri.toString()} headers=${opts.headers.keys.toList()}');
@@ -241,7 +239,7 @@ class ApiClient {
   }
 
   Future<Response> post(String url,
-      {Map<String, dynamic>? data, Map<String, dynamic>? headers}) {
+      {dynamic data, Map<String, dynamic>? headers}) {
     return _dio.post(url, data: data, options: Options(headers: headers));
   }
 
@@ -252,8 +250,12 @@ class ApiClient {
   }
 
   Future<Response> put(String url,
-      {Map<String, dynamic>? data, Map<String, dynamic>? headers}) {
+      {dynamic data, Map<String, dynamic>? headers}) {
     return _dio.put(url, data: data, options: Options(headers: headers));
+  }
+
+  Future<Response> delete(String url, {Map<String, dynamic>? headers}) {
+    return _dio.delete(url, options: Options(headers: headers));
   }
 
   void close() => _dio.close();

@@ -168,16 +168,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   color: AppPalette.aqua,
                   onTap: _openTerms,
                 ),
-                if (widget.onLogout != null) ...[
-                  const _Divider(),
-                  _MenuItem(
-                    icon: Icons.logout_rounded,
-                    title: loc.t('logout'),
-                    color: theme.colorScheme.error,
-                    textColor: theme.colorScheme.error,
-                    onTap: _logout,
-                  ),
-                ],
               ],
             ),
           ],
@@ -331,7 +321,7 @@ class _MenuItem extends StatelessWidget {
   final String title;
   final String? subtitle;
   final Color color;
-  final Color? textColor;
+  final Color? textColor = null;
   final VoidCallback? onTap;
   final Widget? trailing;
 
@@ -341,7 +331,6 @@ class _MenuItem extends StatelessWidget {
     required this.title,
     this.subtitle,
     required this.color,
-    this.textColor,
     this.onTap,
     this.trailing,
   }) : super(key: key);

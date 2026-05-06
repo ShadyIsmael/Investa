@@ -1,8 +1,11 @@
+using System.ComponentModel.DataAnnotations;
 using Investa.Application.DTOs.Profile;
 using Investa.Application.Interfaces;
 using Investa.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
+using Investa.API.Resources;
 using Investa.API.Utilities;
 
 namespace Investa.API.Controllers;
@@ -19,12 +22,14 @@ public class ProfileController : ControllerBase
     private readonly IProfileService _profileService;
     private readonly ILogger<ProfileController> _logger;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
-    public ProfileController(IProfileService profileService, IUnitOfWork unitOfWork, ILogger<ProfileController> logger)
+    public ProfileController(IProfileService profileService, IUnitOfWork unitOfWork, ILogger<ProfileController> logger, IStringLocalizer<SharedResource> localizer)
     {
         _profileService = profileService;
         _unitOfWork = unitOfWork;
         _logger = logger;
+        _localizer = localizer;
     }
 
     /// <summary>
@@ -55,12 +60,11 @@ public class ProfileController : ControllerBase
         try
         {
             if (req == null)
-                return BadRequest("Request body is required");
-
+                    return BadRequest(_localizer["RequestBodyRequired"].Value);
             // Extract user ID from claims
             var userIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
             if (!Guid.TryParse(userIdClaim, out var userId))
-                return Unauthorized("Unable to identify user from token");
+                return Unauthorized(_localizer["UnableToIdentifyUserFromToken"].Value);
 
             // Load or create profile
             var profile = await _profileService.GetOrCreateUserProfileAsync(userId);
@@ -93,12 +97,12 @@ public class ProfileController : ControllerBase
 
             if (!changed)
             {
-                return BadRequest("No changes detected");
+                return BadRequest(_localizer["NoChangesDetected"].Value);
             }
 
                 await _profileService.UpdateUserProfileAsync(userId, profile);
 
-                return Ok(new { message = "Profile updated" });
+                return Ok(new { message = _localizer["ProfileUpdated"].Value });
         }
         catch (InvalidOperationException ex)
         {
@@ -108,7 +112,7 @@ public class ProfileController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError($"Error updating basic profile: {ex.Message}");
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while updating basic profile" });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = _localizer["ErrorUpdatingBasicProfile"].Value });
         }
     }
 
@@ -185,7 +189,7 @@ public class ProfileController : ControllerBase
                 if (authUser == null)
                 {
                     _logger.LogWarning("Unable to resolve AuthUser from token claims (sub/id not a GUID). sub: {Sub}, name: {Name}, firebase_uid: {Firebase}", userIdClaim, userName, firebaseUid);
-                    return Unauthorized("Unable to identify user from token");
+                    return Unauthorized(_localizer["UnableToIdentifyUserFromToken"].Value);
                 }
 
                 _logger.LogInformation("Resolved AuthUser {AuthUserId} for request using fallback claims (sub not a GUID)", authUser.Id);
@@ -211,7 +215,7 @@ public class ProfileController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError($"Error retrieving user profile: {ex.Message}");
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving the profile" });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = _localizer["ErrorRetrievingProfile"].Value });
         }
     }
 
@@ -266,7 +270,7 @@ public class ProfileController : ControllerBase
                 if (authUser == null)
                 {
                     _logger.LogWarning("Unable to resolve AuthUser for KYC start. sub: {Sub}, name: {Name}, firebase_uid: {Firebase}", userIdClaim, userName, firebaseUid);
-                    return Unauthorized("Unable to identify user from token");
+                    return Unauthorized(_localizer["UnableToIdentifyUserFromToken"].Value);
                 }
 
                 userId = authUser.Id;
@@ -284,7 +288,7 @@ public class ProfileController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError($"Error starting KYC: {ex.Message}");
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while starting KYC" });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = _localizer["ErrorStartingKyc"].Value });
         }
     }
 
@@ -303,7 +307,7 @@ public class ProfileController : ControllerBase
             if (!Guid.TryParse(userIdClaim, out var userId))
             {
                 _logger.LogWarning("Unable to identify user from token claims");
-                return Unauthorized("Unable to identify user from token");
+                return Unauthorized(_localizer["UnableToIdentifyUserFromToken"].Value);
             }
 
             var history = await _profileService.GetCreditHistoryAsync(userId);
@@ -312,7 +316,7 @@ public class ProfileController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError($"Error retrieving credit history: {ex.Message}");
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving credit history" });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = _localizer["ErrorRetrievingCreditHistory"].Value });
         }
     }
 
@@ -339,7 +343,7 @@ public class ProfileController : ControllerBase
         try
         {
             if (updateReq == null)
-                return BadRequest("Profile data is required");
+                return BadRequest(_localizer["ProfileDataRequired"].Value);
 
             // Server-side validation (lengths, URL formats)
             var errors = new List<string>();
@@ -347,22 +351,35 @@ public class ProfileController : ControllerBase
             if (updateReq.BasicInfo != null)
             {
                 if (!string.IsNullOrEmpty(updateReq.BasicInfo.FullName) && updateReq.BasicInfo.FullName.Length > 200)
-                    errors.Add("FullName must be at most 200 characters.");
+                    errors.Add(_localizer["FullNameMaxLength"].Value);
 
                 if (!string.IsNullOrEmpty(updateReq.BasicInfo.FirstName) && updateReq.BasicInfo.FirstName.Length > 100)
-                    errors.Add("FirstName must be at most 100 characters.");
+                    errors.Add(_localizer["FirstNameMaxLength"].Value);
 
                 if (!string.IsNullOrEmpty(updateReq.BasicInfo.LastName) && updateReq.BasicInfo.LastName.Length > 100)
-                    errors.Add("LastName must be at most 100 characters.");
+                    errors.Add(_localizer["LastNameMaxLength"].Value);
+
+                if (!string.IsNullOrEmpty(updateReq.BasicInfo.CompanyName) && updateReq.BasicInfo.CompanyName.Length > 200)
+                    errors.Add(_localizer["CompanyNameMaxLength"].Value);
 
                 if (!string.IsNullOrEmpty(updateReq.BasicInfo.Bio) && updateReq.BasicInfo.Bio.Length > 1000)
-                    errors.Add("Bio must be at most 1000 characters.");
+                    errors.Add(_localizer["BioMaxLength"].Value);
+
+                // Date of birth: enforce minimum age 18 on the API layer as well
+                if (updateReq.BasicInfo.DateOfBirth.HasValue)
+                {
+                    var dob = updateReq.BasicInfo.DateOfBirth.Value.Date;
+                    var now = DateTime.UtcNow.Date;
+                    var age = now.Year - dob.Year - ((now.Month < dob.Month || (now.Month == dob.Month && now.Day < dob.Day)) ? 1 : 0);
+                    if (age < 18)
+                        errors.Add(_localizer["UserMustBeAtLeast18"].Value);
+                }
 
                 // URL validation for Avatar if provided
                 bool IsValidUrl(string? u) => string.IsNullOrEmpty(u) || Uri.IsWellFormedUriString(u, UriKind.Absolute);
 
                 if (!IsValidUrl(updateReq.BasicInfo.AvatarUrl))
-                    errors.Add("AvatarUrl is not a valid absolute URL.");
+                    errors.Add(_localizer["AvatarUrlInvalid"].Value);
             }
 
             if (updateReq.ContactInfo != null)
@@ -370,14 +387,25 @@ public class ProfileController : ControllerBase
                 if (!string.IsNullOrEmpty(updateReq.ContactInfo.Email) && updateReq.ContactInfo.Email.Length > 150)
                     errors.Add("Email must be at most 150 characters.");
 
+                if (!string.IsNullOrEmpty(updateReq.ContactInfo.CompanyEmail))
+                {
+                    if (updateReq.ContactInfo.CompanyEmail.Length > 150)
+                        errors.Add(_localizer["CompanyEmailMaxLength"].Value);
+                    if (!new EmailAddressAttribute().IsValid(updateReq.ContactInfo.CompanyEmail))
+                        errors.Add(_localizer["CompanyEmailInvalid"].Value);
+                }
+
+                if (!string.IsNullOrEmpty(updateReq.ContactInfo.CompanyAddress) && updateReq.ContactInfo.CompanyAddress.Length > 500)
+                    errors.Add(_localizer["CompanyAddressMaxLength"].Value);
+
                 if (!string.IsNullOrEmpty(updateReq.ContactInfo.Phone1) && updateReq.ContactInfo.Phone1.Length > 20)
-                    errors.Add("Phone1 must be at most 20 characters.");
+                    errors.Add(_localizer["Phone1MaxLength"].Value);
 
                 if (!string.IsNullOrEmpty(updateReq.ContactInfo.LinkedInUrl) && !Uri.IsWellFormedUriString(updateReq.ContactInfo.LinkedInUrl, UriKind.Absolute))
-                    errors.Add("ContactInfo.LinkedInUrl is not a valid absolute URL.");
+                    errors.Add(_localizer["LinkedInUrlInvalid"].Value);
 
                 if (!string.IsNullOrEmpty(updateReq.ContactInfo.FacebookUrl) && !Uri.IsWellFormedUriString(updateReq.ContactInfo.FacebookUrl, UriKind.Absolute))
-                    errors.Add("ContactInfo.FacebookUrl is not a valid absolute URL.");
+                    errors.Add(_localizer["FacebookUrlInvalid"].Value);
             }
 
             if (errors.Count > 0)
@@ -386,7 +414,7 @@ public class ProfileController : ControllerBase
             // Extract user ID from claims
             var userIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
             if (!Guid.TryParse(userIdClaim, out var userId))
-                return Unauthorized("Unable to identify user from token");
+                return Unauthorized(_localizer["UnableToIdentifyUserFromToken"].Value);
 
             // Build a server-side DTO to reuse existing service method
             var profileDto = new UserProfileDto
@@ -399,8 +427,17 @@ public class ProfileController : ControllerBase
 
             // Server-side validation for DocumentNumber (BusinessRole has been removed from profile payload)
 
-            if (updateReq.IdentityCompliance != null && !string.IsNullOrEmpty(updateReq.IdentityCompliance.DocumentNumber) && updateReq.IdentityCompliance.DocumentNumber.Length > 50)
-                return BadRequest(new { errors = new[] { "DocumentNumber must be at most 50 characters." } });
+            if (updateReq.IdentityCompliance != null)
+            {
+                if (!string.IsNullOrEmpty(updateReq.IdentityCompliance.DocumentNumber) && updateReq.IdentityCompliance.DocumentNumber.Length > 50)
+                    return BadRequest(new { errors = new[] { _localizer["DocumentNumberMaxLength"].Value } });
+
+                if (!string.IsNullOrEmpty(updateReq.IdentityCompliance.HrLetterFileName) && updateReq.IdentityCompliance.HrLetterFileName.Length > 260)
+                    return BadRequest(new { errors = new[] { _localizer["HrLetterFileNameMaxLength"].Value } });
+
+                if (!string.IsNullOrEmpty(updateReq.IdentityCompliance.DeviceMacAddress) && updateReq.IdentityCompliance.DeviceMacAddress.Length > 100)
+                    return BadRequest(new { errors = new[] { _localizer["DeviceMacAddressMaxLength"].Value } });
+            }
 
             var updatedProfile = await _profileService.UpdateUserProfileAsync(userId, profileDto);
 
@@ -416,7 +453,7 @@ public class ProfileController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError($"Error updating user profile: {ex.Message}");
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while updating the profile" });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = _localizer["ErrorUpdatingProfile"].Value });
         }
     }
 
@@ -442,7 +479,7 @@ public class ProfileController : ControllerBase
             // Extract user ID from claims
             var userIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
             if (!Guid.TryParse(userIdClaim, out var userId))
-                return Unauthorized("Unable to identify user from token");
+                return Unauthorized(_localizer["UnableToIdentifyUserFromToken"].Value);
 
             // Get client IP for registration tracking
             var clientIp = IpAddressUtility.GetClientIpAddress(HttpContext);
@@ -468,7 +505,7 @@ public class ProfileController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError($"Error initializing user profile: {ex.Message}");
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while initializing the profile" });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = _localizer["ErrorInitializingProfile"].Value });
         }
     }
 
@@ -493,12 +530,12 @@ public class ProfileController : ControllerBase
             // Extract user ID from claims
             var userIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
             if (!Guid.TryParse(userIdClaim, out var userId))
-                return Unauthorized("Unable to identify user from token");
+                return Unauthorized(_localizer["UnableToIdentifyUserFromToken"].Value);
 
             // Get existing profile
             var profileDto = await _profileService.GetUserProfileAsync(userId);
             if (profileDto == null)
-                return NotFound("User profile not found");
+                return NotFound(_localizer["UserProfileNotFound"].Value);
 
             _logger.LogInformation($"User {userId} profile retrieved successfully.");
 
@@ -512,7 +549,7 @@ public class ProfileController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError($"Error retrieving user profile: {ex.Message}");
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving the profile" });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = _localizer["ErrorRetrievingProfile"].Value });
         }
     }
 

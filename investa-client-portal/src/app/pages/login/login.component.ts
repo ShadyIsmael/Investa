@@ -1,4 +1,5 @@
 import { Component, ChangeDetectionStrategy, inject, signal, computed } from '@angular/core';
+import { LanguageService } from '../../services/language.service';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { ReactiveFormsModule, FormControl, FormGroup, Validators } from '@angular/forms';
@@ -20,6 +21,7 @@ export class LoginComponent {
   private router: Router = inject(Router);
   private route: ActivatedRoute = inject(ActivatedRoute);
   private profileService: ProfileService = inject(ProfileService);
+  private languageService: LanguageService = inject(LanguageService);
 
   role = signal<UserRole>('investor');
   errorMessage = signal<string | null>(null);
@@ -44,13 +46,13 @@ export class LoginComponent {
   });
 
   countries = [
-    { code: '+20', flag: 'eg', name: 'Egypt' },
-    { code: '+1', flag: 'us', name: 'USA' },
-    { code: '+44', flag: 'gb', name: 'UK' },
-    { code: '+91', flag: 'in', name: 'India' },
-    { code: '+61', flag: 'au', name: 'Australia' },
-    { code: '+81', flag: 'jp', name: 'Japan' },
-    { code: '+49', flag: 'de', name: 'Germany' },
+    { code: '+20', flag: 'eg', nameKey: 'login.countries.egypt' },
+    { code: '+1', flag: 'us', nameKey: 'login.countries.usa' },
+    { code: '+44', flag: 'gb', nameKey: 'login.countries.uk' },
+    { code: '+91', flag: 'in', nameKey: 'login.countries.india' },
+    { code: '+61', flag: 'au', nameKey: 'login.countries.australia' },
+    { code: '+81', flag: 'jp', nameKey: 'login.countries.japan' },
+    { code: '+49', flag: 'de', nameKey: 'login.countries.germany' },
   ];
 
   // Default to Egypt
@@ -105,7 +107,8 @@ export class LoginComponent {
       const redirectPath = role === 'investor' ? '/admin/investments' : '/admin/dashboard';
       this.router.navigate([redirectPath]);
     } catch (err: any) {
-      this.errorMessage.set(err?.message || 'Login failed');
+      const generic = this.languageService.translate('login.errorGeneric');
+      this.errorMessage.set(err?.message || generic);
     } finally {
       this.isSubmitting.set(false);
     }

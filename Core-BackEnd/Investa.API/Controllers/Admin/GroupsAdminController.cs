@@ -11,7 +11,7 @@ namespace Investa.API.Controllers.Admin;
 
 [ApiController]
 [Route("api/v1/admin/groups")]
-// [Authorize(Roles = nameof(UserRoles.Admin))]
+// [Authorize(Roles = "Admin")]
 public class GroupsAdminController : ControllerBase
 {
     private readonly IGroupService _groupService;

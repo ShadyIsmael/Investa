@@ -9,10 +9,10 @@ export default defineConfig(({ mode }) => {
     const port = env.VITE_PORT ? Number(env.VITE_PORT) : 5173; // Default to Vite's default port
 
     // Prefer an explicit VITE_API_BASE_URL but fall back to the development machine hostname for local development
-    const proxyTarget = (env.VITE_API_BASE_URL as string)?.replace(/\/api\/?$/, '') || 'http://DESKTOP-DIH7CQH:5235';
+    const proxyTarget = (env.VITE_API_BASE_URL as string)?.replace(/\/api\/?$/, '') || 'http://desktop-dih7cqh:5235';
     return {
       server: {
-        // Bind to all interfaces so the dev server is reachable on the LAN (DESKTOP-DIH7CQH.local)
+        // Bind to all interfaces so the dev server is reachable on the LAN (desktop-dih7cqh) 
         host: host,
         // Use a fixed port so mobile clients and other tooling can rely on a stable URL
         port: port,

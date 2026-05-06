@@ -20,6 +20,10 @@ export class RequestsComponent {
   incoming = this.requestsService.incoming;
   outgoing = this.requestsService.outgoing;
 
+  async refresh() {
+    await this.requestsService.refreshRequests();
+  }
+
   switchTab(tab: 'incoming' | 'outgoing') {
     this.tab.set(tab);
   }

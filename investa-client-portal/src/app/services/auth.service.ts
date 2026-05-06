@@ -2,8 +2,9 @@ import { Injectable, signal, Inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE } from '../config/api.token';
+import { UserRoles } from '../config/constants';
 
-export type UserRole = 'investor' | 'founder';
+export type UserRole = string; // All external users are 'Client' type
 
 interface ApiResponse<T> {
   success: boolean;

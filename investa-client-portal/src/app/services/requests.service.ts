@@ -39,18 +39,54 @@ export class RequestsService {
   }
 
   /**
+   * Refresh requests from API
+   */
+  async refreshRequests(): Promise<void> {
+    await this.loadRequests();
+  }
+
+  /**
    * Load all requests from API
    */
   private async loadRequests(): Promise<void> {
     try {
-      // TODO: Implement API endpoints for requests
-      // const incoming = await this.getIncomingRequests();
-      // const outgoing = await this.getOutgoingRequests();
-      // this._incoming.set(incoming);
-      // this._outgoing.set(outgoing);
+      const response = await firstValueFrom(this.http.get<any>(`${this.apiBase}/api/investment-requests`, this.getHttpOptions()));
+      
+      const incoming: InvestmentRequest[] = (response?.incoming || []).map((r: any) => this.mapRequest(r, 'incoming'));
+      const outgoing: InvestmentRequest[] = (response?.outgoing || []).map((r: any) => this.mapRequest(r, 'outgoing'));
+      
+      this._incoming.set(incoming);
+      this._outgoing.set(outgoing);
     } catch (error) {
       console.error('Failed to load requests:', error);
     }
+  }
+
+  /**
+   * Map API response to InvestmentRequest model
+   */
+  private mapRequest(data: any, direction: 'incoming' | 'outgoing'): InvestmentRequest {
+    return {
+      id: data.id ?? Date.now(),
+      type: data.type || 'investment',
+      direction: direction,
+      projectName: data.investmentTitle || data.investmentName || 'Investment',
+      projectImageUrl: '',
+      counterpartName: direction === 'incoming' 
+        ? (data.investorDisplayName || data.senderName || 'Investor') 
+        : (data.founderDisplayName || data.receiverName || 'Founder'),
+      senderName: data.investorDisplayName || data.senderName,
+      receiverName: data.founderDisplayName || data.receiverName,
+      businessName: data.businessName || data.investmentName,
+      shortDescription: data.investmentDescription || data.description,
+      status: data.status || 'Pending',
+      createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
+      investmentAmount: data.amount || 0,
+      shares: data.shares,
+      investmentId: data.investmentId,
+      investorId: data.investorId,
+      founderId: data.founderId
+    };
   }
 
   /**
@@ -82,41 +118,27 @@ export class RequestsService {
     }
 
     try {
-      // TODO: Replace with actual API endpoint
-      // const response = await firstValueFrom(this.http.post(`${this.apiBase}/api/investment-requests`, {
-      //   investmentId: investment.id,
-      //   amount,
-      //   shares: shares > 0 ? shares : undefined,
-      //   type: 'investment'
-      // }, this.getHttpOptions()));
-
-      // For now, simulate the transaction locally
-      // Deduct credits from user account
-      this.userService.deductCredits(amount);
-
-      // Create credit transaction record
-      const transaction: CreditTransaction = {
-        id: Date.now(),
-        userId: parseInt(user.userId),
-        amount: -amount,
-        type: 'debit',
-        reason: `Investment request for ${investment.name}`,
+      const response = await firstValueFrom(this.http.post<any>(`${this.apiBase}/api/investment-requests`, {
         investmentId: investment.id,
-        createdAt: new Date()
-      };
+        amount,
+        shares: shares > 0 ? shares : undefined
+      }, this.getHttpOptions()));
 
-      this._creditTransactions.update(txs => [...txs, transaction]);
+      // Refresh user credits from API to reflect server-side update
+      await this.userService.refreshUser();
 
-      // Create outgoing request for investor
+      // Use new response shape { request, updatedCreditBalance } with fallback
+      const payload = response?.request ?? response?.outgoingRequest;
+
       const outgoingRequest: InvestmentRequest = {
-        id: Date.now() + 1,
+        id: payload?.id ?? Date.now(),
         type: 'investment',
         direction: 'outgoing',
         projectName: investment.name,
         projectImageUrl: investment.imageUrl || '',
         counterpartName: investment.founderDisplay || 'Founder',
-        status: 'Pending',
-        createdAt: new Date(),
+        status: payload?.status ?? 'Pending',
+        createdAt: payload?.createdAt ? new Date(payload.createdAt) : new Date(),
         investmentAmount: amount,
         shares: shares > 0 ? shares : undefined,
         investmentId: investment.id,
@@ -126,8 +148,14 @@ export class RequestsService {
 
       this._outgoing.update(list => [...list, outgoingRequest]);
 
-      // Note: Backend API should create the incoming request for the founder
-      // We don't create it client-side in production
+      // Update local balance immediately if server returned it (fallbacks to refreshUser())
+      if (response?.updatedCreditBalance != null) {
+        if (typeof (this.userService as any)['setCredits'] === 'function') {
+          (this.userService as any)['setCredits'](response.updatedCreditBalance);
+        } else {
+          await this.userService.refreshUser();
+        }
+      }
     } catch (error) {
       console.error('Failed to create investment request:', error);
       throw error;

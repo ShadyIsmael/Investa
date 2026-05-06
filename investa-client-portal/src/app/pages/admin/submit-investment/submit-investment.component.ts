@@ -128,18 +128,25 @@ export class SubmitInvestmentComponent implements OnInit {
       projectPhaseId: [null],
       milestone: ['', [Validators.maxLength(200)]],
       riskLevel: ['Medium', [Validators.required]],
+      investmentTypeId: [InvestmentType.Equity, [Validators.required]],
       
-      // Step 2: Financial Structure
+      // Step 2: Financial Structure - Common
       initialCapital: [null, [Validators.required, Validators.min(1000)]],
-      sharePrice: [null, [Validators.required, Validators.min(1)]],
-      totalShares: [null, [Validators.required, Validators.min(100)]],
-      targetFund: [null],
       minInvestment: [null, [Validators.min(1)]],
       maxInvestment: [null, [Validators.min(1)]],
-      valuationCap: [null, [Validators.min(1)]],
-      expectedROI: [null, [Validators.min(0), Validators.max(1000)]],
       currency: ['USD', [Validators.required]],
-      investmentTypeId: [InvestmentType.Equity, [Validators.required]],
+      targetFund: [null],
+      
+      // Equity-specific fields
+      sharePrice: [null],
+      totalShares: [null],
+      valuationCap: [null, [Validators.min(1)]],
+      
+      // Founding-specific fields
+      durationMonths: [null],
+      profitPercentage: [null],
+      payoutFrequency: ['Monthly'],
+      expectedROI: [null, [Validators.min(0), Validators.max(1000)]],
       
       // Timeline
       startDate: ['', [Validators.required]],
@@ -152,9 +159,67 @@ export class SubmitInvestmentComponent implements OnInit {
       validators: [this.minMaxInvestmentValidator, this.dateRangeValidator]
     });
 
-    // Auto-calculate target fund when share price or total shares change
-    this.investmentForm.get('sharePrice')?.valueChanges.subscribe(() => this.updateTargetFund());
-    this.investmentForm.get('totalShares')?.valueChanges.subscribe(() => this.updateTargetFund());
+    // Update validators dynamically based on investment type
+    this.investmentForm.get('investmentTypeId')?.valueChanges.subscribe(typeId => {
+      this.updateValidatorsByType(typeId);
+    });
+    
+    // Initialize validators for default type
+    this.updateValidatorsByType(InvestmentType.Equity);
+
+    // Auto-calculate target fund for Equity type
+    this.investmentForm.get('sharePrice')?.valueChanges.subscribe(() => {
+      if (this.investmentForm.get('investmentTypeId')?.value === InvestmentType.Equity) {
+        this.updateTargetFund();
+      }
+    });
+    this.investmentForm.get('totalShares')?.valueChanges.subscribe(() => {
+      if (this.investmentForm.get('investmentTypeId')?.value === InvestmentType.Equity) {
+        this.updateTargetFund();
+      }
+    });
+  }
+  
+  /**
+   * Update field validators based on investment type
+   */
+  private updateValidatorsByType(typeId: InvestmentType): void {
+    const sharePrice = this.investmentForm.get('sharePrice');
+    const totalShares = this.investmentForm.get('totalShares');
+    const valuationCap = this.investmentForm.get('valuationCap');
+    const durationMonths = this.investmentForm.get('durationMonths');
+    const profitPercentage = this.investmentForm.get('profitPercentage');
+    const payoutFrequency = this.investmentForm.get('payoutFrequency');
+
+    if (typeId === InvestmentType.Equity) {
+      // Equity: require share fields
+      sharePrice?.setValidators([Validators.required, Validators.min(1)]);
+      totalShares?.setValidators([Validators.required, Validators.min(100)]);
+      valuationCap?.setValidators([Validators.min(1)]);
+      
+      // Clear Founding validators
+      durationMonths?.clearValidators();
+      profitPercentage?.clearValidators();
+      payoutFrequency?.clearValidators();
+    } else {
+      // Founding: require duration and profit fields
+      durationMonths?.setValidators([Validators.required, Validators.min(1)]);
+      profitPercentage?.setValidators([Validators.required, Validators.min(0.1), Validators.max(100)]);
+      payoutFrequency?.setValidators([Validators.required]);
+      
+      // Clear Equity validators
+      sharePrice?.clearValidators();
+      totalShares?.clearValidators();
+      valuationCap?.clearValidators();
+    }
+
+    // Update validity
+    sharePrice?.updateValueAndValidity();
+    totalShares?.updateValueAndValidity();
+    valuationCap?.updateValueAndValidity();
+    durationMonths?.updateValueAndValidity();
+    profitPercentage?.updateValueAndValidity();
+    payoutFrequency?.updateValueAndValidity();
   }
 
   /**
