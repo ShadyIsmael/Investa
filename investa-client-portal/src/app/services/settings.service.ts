@@ -17,6 +17,7 @@ export class SettingsService {
   readonly personalization = computed(() => this._settings().personalization);
   readonly support = computed(() => this._settings().support);
   readonly walletBalance = computed(() => this._settings().walletBalance);
+  readonly sessionTimeoutMinutes = computed(() => this._settings().sessionTimeoutMinutes ?? 30);
 
   update(partial: Partial<UserSettings>) {
     const next: UserSettings = { ...this._settings(), ...partial };
@@ -54,6 +55,11 @@ export class SettingsService {
 
   setWalletBalance(walletBalance: number) {
     this.update({ walletBalance });
+  }
+
+  setSessionTimeout(minutes: number | null) {
+    const nextTimeout = minutes && isFinite(minutes) && minutes > 0 ? Math.floor(minutes) : null;
+    this.update({ sessionTimeoutMinutes: nextTimeout ?? undefined });
   }
 
   addFunds(amount: number) {
@@ -97,6 +103,7 @@ export class SettingsService {
       },
       support: { available: true, hours: '' },
       walletBalance: 0,
+      sessionTimeoutMinutes: 30,
     };
   }
 
@@ -125,6 +132,7 @@ export class SettingsService {
         hours: settings.support?.hours ?? d.support.hours,
       },
       walletBalance: settings.walletBalance ?? d.walletBalance,
+      sessionTimeoutMinutes: settings.sessionTimeoutMinutes ?? d.sessionTimeoutMinutes,
     };
   }
 }

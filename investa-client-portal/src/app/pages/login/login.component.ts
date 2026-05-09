@@ -1,4 +1,5 @@
 import { Component, ChangeDetectionStrategy, inject, signal, computed } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { LanguageService } from '../../services/language.service';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
@@ -68,13 +69,22 @@ export class LoginComponent {
   });
 
   constructor() {
+    // initialize role from query param snapshot (handles direct navigation)
+    const initial = this.route.snapshot.queryParamMap.get('role');
+    if (initial === 'investor' || initial === 'founder') {
+      this.role.set(initial as UserRole);
+    }
+
+    // also react to query param changes
     this.route.queryParamMap.subscribe(params => {
       const roleParam = params.get('role');
       if (roleParam === 'investor' || roleParam === 'founder') {
-        this.role.set(roleParam);
+        this.role.set(roleParam as UserRole);
       }
     });
   }
+
+  isFounder = computed(() => this.role() === 'founder');
 
   selectCountry(country: any) {
     this.loginForm.get('countryCode')!.setValue(country.code);
@@ -107,10 +117,26 @@ export class LoginComponent {
       const redirectPath = role === 'investor' ? '/admin/investments' : '/admin/dashboard';
       this.router.navigate([redirectPath]);
     } catch (err: any) {
-      const generic = this.languageService.translate('login.errorGeneric');
-      this.errorMessage.set(err?.message || generic);
+      let key = 'login.errorGeneric';
+      if (err instanceof HttpErrorResponse) {
+        if (err.status === 401) key = 'login.invalidCredentials';
+      } else if (typeof err?.message === 'string') {
+        const m = err.message.toLowerCase();
+        if (m.includes('invalid') || m.includes('credential') || m.includes('wrong') || m.includes('incorrect') || m.includes('not found')) {
+          key = 'login.invalidCredentials';
+        }
+      }
+      this.errorMessage.set(this.languageService.translate(key));
     } finally {
       this.isSubmitting.set(false);
+    }
+  }
+
+  close() {
+    try {
+      this.router.navigate(['/']);
+    } catch {
+      // ignore navigation errors
     }
   }
 }

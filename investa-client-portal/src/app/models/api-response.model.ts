@@ -8,6 +8,17 @@ export interface ApiResponse<T> {
 }
 
 /**
+ * Standard error/failed response returned by backend when `success` is false
+ */
+export interface ApiErrorResponse {
+  success: boolean; // typically false
+  message?: string;
+  code?: number | string;
+  errors?: Record<string, any> | any[];
+  data?: any;
+}
+
+/**
  * Business category from backend
  */
 export interface BusinessCategory {

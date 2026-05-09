@@ -57,6 +57,7 @@ export const NAV_ITEMS: NavItem[] = [
       { id: 'credit', label: 'Credit Setup', iconName: 'credit-card', path: '/config/credit', permissions: ['Credit.Configure'] },
       { id: 'offers', label: 'Offer Management', iconName: 'tag', path: '/config/offers', permissions: ['Offer.Manage'] },
       { id: 'apitester', label: 'API Tester', iconName: 'terminal', path: '/config/api-tester', permissions: ['System.Debug'] },
+      { id: 'notification-templates', label: 'Notification Templates', iconName: 'bell', path: '/config/notification-templates', permissions: ['Config.Manage'] },
     ]
   },
   { id: 'system-config', label: 'System Configuration', iconName: 'cog', path: '/system-config', permissions: ['System.Configure'] },

@@ -6,6 +6,7 @@ import { TranslatePipe } from '../../pipes/translate.pipe';
 import { LanguageService } from '../../services/language.service';
 import { NotificationService } from '../../services/notification.service';
 import { ClickOutsideDirective } from '../../directives/click-outside.directive';
+import { ProfileService } from '../../services/profile.service';
 import { get } from 'lodash-es';
 
 /**
@@ -37,9 +38,18 @@ export class AdminNavbarComponent {
   private router: Router = inject(Router);
   languageService = inject(LanguageService);
   notificationService = inject(NotificationService);
+  private profileService = inject(ProfileService);
 
   /** Current user's role (investor, founder, admin) */
   userRole = this.authService.userRole;
+
+  /** Avatar URL sourced from the user's profile, with picsum fallback */
+  avatarUrl = computed(() => {
+    const p = this.profileService.profile();
+    if (p?.basicInfo?.avatarUrl) return p.basicInfo.avatarUrl;
+    const seed = (p?.basicInfo?.firstName || 'user').replace(/\s+/g, '') || 'user';
+    return `https://picsum.photos/seed/${seed}/100/100`;
+  });
   
   /** Tracks if user dropdown menu is open */
   isUserMenuOpen = signal(false);
@@ -49,9 +59,12 @@ export class AdminNavbarComponent {
   
   /** Unread notification count */
   unreadCount = this.notificationService.unreadCount;
-  
-  /** Most recent notifications (limited to 3) */
-  recentNotifications = computed(() => this.notificationService.notifications().slice(0, 3));
+
+  /** Total notification count from backend */
+  totalNotificationCount = this.notificationService.totalCount;
+
+  /** Most recent notifications (limited to 10) */
+  recentNotifications = computed(() => this.notificationService.notifications().slice(0, 10));
 
   /**
    * Toggles the user menu dropdown
@@ -98,6 +111,10 @@ export class AdminNavbarComponent {
   viewAllNotifications() {
     this.isNotificationsOpen.set(false);
     this.router.navigate(['/admin/notifications']);
+  }
+
+  markAllRead() {
+    this.notificationService.markAllAsRead();
   }
 
   /**

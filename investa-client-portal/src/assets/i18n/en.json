@@ -22,10 +22,14 @@
   "login": {
     "title": "Welcome Back",
     "subtitle": "Sign in to continue to your account.",
+      "subtitleFounder": "Founders: sign in to manage your projects and funding.",
+      "subtitleInvestor": "Investors/Partners: sign in to explore and fund opportunities.",
     "mobileLabel": "Mobile Number",
     "mobilePlaceholder": "Enter your mobile number",
     "passwordLabel": "Password",
     "passwordPlaceholder": "Enter your password",
+    "mobileLabelFounder": "Founder mobile number",
+    "passwordPlaceholderFounder": "Password (founder account)",
     "rememberMe": "Remember me",
     "forgotPassword": "Forgot password?",
     "signInButton": "Sign In",
@@ -50,6 +54,28 @@
     },
     "signingIn": "Signing in...",
     "errorGeneric": "Login failed"
+    ,"invalidCredentials": "Invalid phone number or password"
+  },
+  "signup": {
+    "title": "Create your account",
+    "subtitle": "Sign up to access the Investa platform.",
+    "mobileLabel": "Mobile Number",
+    "mobilePlaceholder": "Enter your mobile number",
+    "firstNameLabel": "First Name",
+    "firstNamePlaceholder": "Enter your first name",
+    "lastNameLabel": "Last Name",
+    "lastNamePlaceholder": "Enter your last name",
+    "emailLabel": "Email",
+    "optional": "optional",
+    "emailPlaceholder": "Enter your email address",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "Create a secure password",
+    "confirmPasswordLabel": "Confirm Password",
+    "confirmPasswordPlaceholder": "Re-enter your password",
+    "passwordMismatch": "Passwords do not match",
+    "signUpButton": "Sign Up",
+    "alreadyHaveAccount": "Already have an account?",
+    "signIn": "Sign In"
   },
   "roleSelect": {
     "close": "Close",
@@ -89,6 +115,8 @@
     "all": "All",
     "unread": "Unread",
     "delete": "Delete notification",
+    "markAllRead": "Mark all as read",
+    "seeAll": "See all notifications",
     "noNotifications": {
       "title": "No notifications",
       "subtitle": "You have no notifications at this time.",
@@ -365,6 +393,58 @@
       "message": "Your request for {projectName} has been successfully withdrawn."
     }
   },
+  "submitInvestment": {
+    "title": "Create Investment Opportunity",
+    "subtitle": "Launch your fundraising campaign and connect with investors",
+    "step": {
+      "businessDetails": "Business Details",
+      "financialStructure": "Financial Structure",
+      "reviewSubmit": "Review & Submit"
+    },
+    "tellInvestors": "Tell investors about your venture",
+    "labels": {
+      "businessName": "Business Name",
+      "description": "Description",
+      "businessCategory": "Business Category",
+      "businessStage": "Business Stage",
+      "projectPhase": "Project Phase",
+      "milestone": "Current Milestone",
+      "teamMembers": "Team Members",
+      "coverImage": "Cover Image",
+      "imageGallery": "Image Gallery",
+      "pitchVideoUrl": "Pitch Video URL"
+    },
+    "actions": {
+      "uploadCover": "Upload Cover",
+      "remove": "Remove",
+      "addTeamMember": "Add Team Member",
+      "addImage": "Add",
+      "continue": "Continue",
+      "submit": "Submit Investment",
+      "cancel": "Cancel",
+      "back": "Back to Investments"
+    }
+    ,
+    "placeholders": {
+      "businessName": "Enter your business or project name",
+      "description": "Describe your business, the problem you're solving, and your unique value proposition...",
+      "milestoneExample": "e.g., MVP Launch, Series A, Product Market Fit",
+      "teamUserId": "Mobile number (required)",
+      "teamName": "Display name (optional)",
+      "teamRole": "Role",
+      "duration": "Investment duration",
+      "expectedProfit": "Expected profit %",
+      "pricePerShare": "Price per share",
+      "numberOfShares": "Number of shares for this round",
+      "valuationCap": "Company valuation cap",
+      "amountInvesting": "Amount you're investing",
+      "minPerInvestor": "Optional minimum per investor",
+      "maxPerInvestor": "Optional maximum per investor",
+      "expectedReturn": "Expected return percentage",
+      "coverImageUrlExample": "https://example.com/image.jpg",
+      "pitchVideoUrl": "https://youtube.com/watch?v=..."
+    }
+  },
   "chat": {
     "altTextYou": "You",
     "startAudioCall": "Start audio call",
@@ -437,6 +517,9 @@
       "nationalId": "National ID",
       "uploadId": "Upload ID",
       "chooseFile": "Choose File",
+      "addFile": "Add File",
+      "replaceFile": "Replace File",
+      "nationalIdAlt": "National ID image",
       "noFileChosen": "No file chosen",
       "bio": "Bio",
       "linkedin": "LinkedIn",
@@ -472,8 +555,15 @@
       "nationalIdNotPersistedTitle": "National ID Not Saved",
       "nationalIdNotPersistedMessage": "We couldn't save your national ID. This field may be restricted or validated by the backend. Contact support if you think this is an error.",
       "nationalIdChangeRecordedTitle": "National ID Recorded",
-      "nationalIdChangeRecordedMessage": "Your national ID change has been recorded and is under review by our team. Verification status has been set to pending."
+      "nationalIdChangeRecordedMessage": "Your national ID change has been recorded and is under review by our team. Verification status has been set to pending.",
+      "avatarUpdatedTitle": "Photo Updated",
+      "avatarUpdatedMessage": "Your profile picture has been updated successfully.",
+      "avatarUploadFailedTitle": "Upload Failed",
+      "avatarUploadFailedMessage": "Failed to upload profile picture. Please try again.",
+      "invalidFileTypeTitle": "Invalid File Type",
+      "invalidFileTypeMessage": "Please select a JPEG, PNG, WebP, or GIF image."
     },
+    "changePhoto": "Change Photo",
     "notifications": {
       "title": "Notifications",
       "subtitle": "Choose what you want to hear about.",
@@ -601,6 +691,7 @@
       "showRiskIndicators": "Show risk indicators"
     },
     "support": { "title": "Support", "available": "Support Available", "hours": "Support Hours" },
+    "security": { "title": "Security", "sessionTimeout": { "label": "Session timeout", "minutes": "minutes", "help": "Automatically logs out inactive users after the configured number of minutes." } },
     "wallet": { "title": "Wallet", "balance": "Balance", "amount": "Amount", "addButton": "Add Funds" },
     "notifications": {
       "title": "Notification Settings"

@@ -242,4 +242,37 @@ export class ApiService {
     
     return response.data;
   }
+
+  /**
+   * Search users by exact phone number. Returns an array with a single user if found.
+   * Backend currently supports exact phone lookup via /api/clients/by-phone/{phone}.
+   */
+  async searchUsersByPhone(phoneQuery: string): Promise<{ results: any[]; available: boolean }> {
+    const url = `${this.apiBase}/api/clients/by-phone/${encodeURIComponent(phoneQuery)}`;
+    try {
+      const response = await firstValueFrom(
+        this.http.get<ApiResponse<any>>(url, {
+          headers: this.getHeaders()
+        })
+      );
+
+      if (response && response.success) {
+        if (Array.isArray(response.data)) {
+          return { results: response.data, available: true };
+        }
+        if (response.data) {
+          return { results: [response.data], available: true };
+        }
+      }
+
+      return { results: [], available: true };
+    } catch (err: any) {
+      if (err && err.status === 404) {
+        return { results: [], available: true };
+      }
+
+      console.warn('User search failed for', url, err?.message || err);
+      return { results: [], available: false };
+    }
+  }
 }

@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { ApiService } from '../../../services/api.service';
 import { NotificationService } from '../../../services/notification.service';
 import { LanguageService } from '../../../services/language.service';
+import { InvestmentService } from '../../../services/investment.service';
 import { CreateInvestmentDto, BusinessCategory, BusinessStage, ProjectPhase } from '../../../models/api-response.model';
 import { InvestmentType } from '../../../models/investment.model';
 
@@ -16,11 +17,11 @@ const RISK_LEVELS = ['Low', 'Medium', 'High'] as const;
 /**
  * Supported currencies
  */
-const CURRENCIES = [
-  { code: 'USD', symbol: '$', name: 'US Dollar' },
-  { code: 'EUR', symbol: '€', name: 'Euro' },
-  { code: 'SAR', symbol: 'ر.س', name: 'Saudi Riyal' },
-  { code: 'EGP', symbol: 'E£', name: 'Egyptian Pound' }
+const CURRENCIES = [ 
+  { code: 'USD', symbol: '$', name: 'US Dollar', nameAr: 'دولار أمريكي' },
+  { code: 'EUR', symbol: '€', name: 'Euro', nameAr: 'يورو' },
+  { code: 'SAR', symbol: 'ر.س', name: 'Saudi Riyal', nameAr: 'الريال السعودي' },
+  { code: 'EGP', symbol: 'E£', name: 'Egyptian Pound', nameAr: 'الجنيه المصري' }
 ] as const;
 
 /**
@@ -64,8 +65,8 @@ export class SubmitInvestmentComponent implements OnInit {
   readonly riskLevels = RISK_LEVELS;
   readonly currencies = CURRENCIES;
   readonly investmentTypes = [
-    { id: InvestmentType.Founding, name: 'Founding Investment', description: 'Initial capital from founders' },
-    { id: InvestmentType.Equity, name: 'Equity Crowdfunding', description: 'Share-based investment from multiple investors' }
+    { id: InvestmentType.Founding, name: 'Founding Investment', nameAr: 'استثمار تأسيسي', description: 'Initial capital from founders', descriptionAr: 'تمويل مبدئي من المؤسسين' },
+    { id: InvestmentType.Equity, name: 'Equity Crowdfunding', nameAr: 'تمويل جماعي مقابل أسهم', description: 'Share-based investment from multiple investors', descriptionAr: 'استثمار قائم على الأسهم من عدة مستثمرين' }
   ];
 
   // Computed values for equity metrics
@@ -79,27 +80,47 @@ export class SubmitInvestmentComponent implements OnInit {
   isRtl = computed(() => this.languageService.direction() === 'rtl');
 
   // Form step labels
-  stepLabels = ['Business Details', 'Financial Structure', 'Review & Submit'];
+  // stepLabels holds translation keys; template will call `t()` to translate
+  stepLabels = ['submitInvestment.step.businessDetails', 'submitInvestment.step.financialStructure', 'submitInvestment.step.reviewSubmit'];
+
+  // helper to translate keys in templates and TS
+  t(path: string) { return this.languageService.translate(path); }
+
+  // Display helper for lookup items (categories, stages, phases, types, currencies)
+  displayLookup(item: any): string {
+    if (!item) return '';
+    // Prefer explicit translation key if present
+    if (item.key) return this.t(item.key);
+    // If Arabic is active and an Arabic field exists, use it
+    const dir = this.languageService.direction();
+    if (dir === 'rtl') {
+      if (item.valueAr) return item.valueAr;
+      if (item.nameAr) return item.nameAr;
+      if (item.descriptionAr) return item.descriptionAr;
+    }
+    // Fallback to common fields
+    return item.value || item.name || item.description || '';
+  }
 
   // Computed values for review step - needed because templates don't support arrow functions
   selectedCategoryName = computed(() => {
     const categoryId = this.investmentForm?.get('businessCategoryId')?.value;
-    return this.categories().find(c => c.id === categoryId)?.value || '-';
+    return this.displayLookup(this.categories().find(c => c.id === categoryId)) || '-';
   });
 
   selectedStageName = computed(() => {
     const stageId = this.investmentForm?.get('businessStageId')?.value;
-    return this.stages().find(s => s.id === stageId)?.value || '-';
+    return this.displayLookup(this.stages().find(s => s.id === stageId)) || '-';
   });
 
   selectedPhaseName = computed(() => {
     const phaseId = this.investmentForm?.get('projectPhaseId')?.value;
-    return this.phases().find(p => p.id === phaseId)?.value || '-';
+    return this.displayLookup(this.phases().find(p => p.id === phaseId)) || '-';
   });
 
   selectedInvestmentTypeName = computed(() => {
     const typeId = this.investmentForm?.get('investmentTypeId')?.value;
-    return this.investmentTypes.find(t => t.id === typeId)?.name || '-';
+    return this.displayLookup(this.investmentTypes.find(t => t.id === typeId)) || '-';
   });
 
   ngOnInit(): void {
@@ -286,18 +307,178 @@ export class SubmitInvestmentComponent implements OnInit {
   }
 
   // Team members (client-side list). Backend endpoint to persist team members will be added separately.
-  teamMembers = signal<{ userId?: string; name?: string; role?: string }[]>([]);
+  teamMembers = signal<{ mobile?: string; name?: string; role?: string; userId?: string }[]>([]);
+
+  // Cover image upload state
+  private investmentService = inject(InvestmentService);
+  coverFile: File | null = null;
+  coverPreview = signal<string | null>(null);
+  isUploadingCover = signal(false);
+  
+  // Gallery images (up to 5)
+  galleryFiles: File[] = [];
+  galleryPreviews = signal<string[]>([]);
+  readonly maxGalleryImages = 5;
 
   addTeamMember(): void {
-    this.teamMembers.update(arr => [...arr, { userId: '', name: '', role: '' }]);
+    this.teamMembers.update(arr => [...arr, { mobile: '', name: '', role: '' }]);
   }
 
-  updateTeamMember(index: number, field: 'userId' | 'name' | 'role', value: string): void {
+  updateTeamMember(index: number, field: 'mobile' | 'name' | 'role' | 'userId', value: string): void {
     this.teamMembers.update(arr => {
       const copy = [...arr];
-      copy[index] = { ...copy[index], [field]: value };
+      // mutate the existing member object to preserve its identity so the DOM element isn't replaced on each keystroke
+      const existing = copy[index] || { mobile: '', name: '', role: '' };
+      // assign the field directly
+      (existing as any)[field] = value;
+      copy[index] = existing;
       return copy;
     });
+  }
+
+  // Search UI state (per-row)
+  private searchTimers = new Map<number, any>();
+  searchResults = signal<Record<number, any[]>>({});
+  isSearchingMap = signal<Record<number, boolean>>({});
+  activeSearchIndex = signal<number | null>(null);
+  searchUnavailableMap = signal<Record<number, boolean>>({});
+
+  onMobileInput(index: number, value: string): void {
+    // update mobile immediately
+    this.updateTeamMember(index, 'mobile', value);
+    // clear userId if user edited the mobile manually
+    this.updateTeamMember(index, 'userId', '');
+
+    // cancel previous timer for this index
+    const prev = this.searchTimers.get(index);
+    if (prev) clearTimeout(prev);
+
+    // only search when 4+ digits
+    const cleaned = value.replace(/\D/g, '');
+    if (cleaned.length < 4) {
+      // clear only this index's results
+      const prev = { ...(this.searchResults() || {}) };
+      if (prev[index]) {
+        prev[index] = [];
+        this.searchResults.set(prev);
+      }
+      // clear searching flag for this index
+      const prevSearch = { ...(this.isSearchingMap() || {}) };
+      prevSearch[index] = false;
+      this.isSearchingMap.set(prevSearch);
+      if (this.activeSearchIndex() === index) {
+        this.activeSearchIndex.set(null);
+      }
+      return;
+    }
+
+    // debounce 350ms
+    const timer = setTimeout(async () => {
+      this.activeSearchIndex.set(index);
+      const prevSearch = { ...(this.isSearchingMap() || {}) };
+      prevSearch[index] = true;
+      this.isSearchingMap.set(prevSearch);
+      try {
+        const resp = await this.apiService.searchUsersByPhone(value);
+        const prev = { ...(this.searchResults() || {}) };
+        prev[index] = resp.results || [];
+        this.searchResults.set(prev);
+        const prevUnavailable = { ...(this.searchUnavailableMap() || {}) };
+        prevUnavailable[index] = !resp.available;
+        this.searchUnavailableMap.set(prevUnavailable);
+      } catch (e) {
+        console.warn('User search failed', e);
+        const prev = { ...(this.searchResults() || {}) };
+        prev[index] = [];
+        this.searchResults.set(prev);
+        const prevUnavailable = { ...(this.searchUnavailableMap() || {}) };
+        prevUnavailable[index] = true;
+        this.searchUnavailableMap.set(prevUnavailable);
+      } finally {
+        const prevSearch2 = { ...(this.isSearchingMap() || {}) };
+        prevSearch2[index] = false;
+        this.isSearchingMap.set(prevSearch2);
+      }
+    }, 350);
+
+    this.searchTimers.set(index, timer);
+  }
+
+  private isTeamMemberDuplicate(user: any, excludeIndex?: number): boolean {
+    const userId = String(user.userId || user.id || '').trim();
+    const mobile = String(user.mobileNumber || user.phone || user.mobile || user.phoneNumber || '').replace(/\D/g, '');
+
+    return this.teamMembers().some((member, idx) => {
+      if (excludeIndex !== undefined && idx === excludeIndex) return false;
+      const memberId = String(member.userId || '').trim();
+      const memberMobile = String(member.mobile || '').replace(/\D/g, '');
+      return (userId && memberId && userId === memberId) || (mobile && memberMobile && mobile === memberMobile);
+    });
+  }
+
+  assignSearchResult(index: number, user: any): void {
+    if (this.isTeamMemberDuplicate(user, index)) {
+      this.notificationService.showToast({
+        title: 'Duplicate Team Member',
+        message: 'This team member has already been added. Please choose a different member.',
+        type: 'warning'
+      });
+      return;
+    }
+
+    // user expected to have firstName, lastName, mobileNumber, and id/userId
+    this.updateTeamMember(index, 'mobile', user.mobileNumber || user.phone || user.mobile || user.phoneNumber || '');
+    const displayName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.name || user.fullName || user.displayName || '';
+    this.updateTeamMember(index, 'name', displayName);
+    const userId = user.userId || user.id;
+    if (userId) this.updateTeamMember(index, 'userId', String(userId));
+    // close dropdown for this index
+    const prev = { ...(this.searchResults() || {}) };
+    prev[index] = [];
+    this.searchResults.set(prev);
+    const prevSearch = { ...(this.isSearchingMap() || {}) };
+    prevSearch[index] = false;
+    this.isSearchingMap.set(prevSearch);
+    if (this.activeSearchIndex() === index) this.activeSearchIndex.set(null);
+  }
+
+  // Helpers for template
+  getSearchResults(index: number): any[] {
+    return (this.searchResults()[index] || []).filter(item => !this.isTeamMemberDuplicate(item, index));
+  }
+
+  getSearchResultLabel(item: any): string {
+    return `${item?.firstName || ''} ${item?.lastName || ''}`.trim() || item?.name || item?.fullName || item?.displayName || '';
+  }
+
+  isSearchingFor(index: number): boolean {
+    return !!(this.isSearchingMap()[index]);
+  }
+
+  isSearchUnavailable(index: number): boolean {
+    return !!(this.searchUnavailableMap()[index]);
+  }
+
+  private hasDuplicateTeamMembers(): boolean {
+    const seenIds = new Set<string>();
+    const seenMobiles = new Set<string>();
+
+    for (const member of this.teamMembers()) {
+      const memberId = String(member.userId || '').trim();
+      const memberMobile = String(member.mobile || '').replace(/\D/g, '');
+
+      if (memberId) {
+        if (seenIds.has(memberId)) return true;
+        seenIds.add(memberId);
+      }
+
+      if (memberMobile) {
+        if (seenMobiles.has(memberMobile)) return true;
+        seenMobiles.add(memberMobile);
+      }
+    }
+
+    return false;
   }
 
   removeTeamMember(index: number): void {
@@ -409,13 +590,22 @@ export class SubmitInvestmentComponent implements OnInit {
       });
     }
 
-    // Additional check: ensure team members (if any) are registered users with a userId
+    // Additional check: ensure team members (if any) provide a mobile number
     if (step === 1 && this.teamMembers().length > 0) {
-      const invalidMember = this.teamMembers().find(tm => !tm.userId || tm.userId.trim() === '');
+      const invalidMember = this.teamMembers().find(tm => !tm.mobile || tm.mobile.trim() === '');
       if (invalidMember) {
         this.notificationService.showToast({
           title: 'Team Members',
-          message: 'All team members must be registered users. Please provide a User ID for each member or remove anonymous entries.',
+          message: 'All team members must include a mobile number. Please provide a mobile number for each member or remove anonymous entries.',
+          type: 'warning'
+        });
+        isValid = false;
+      }
+
+      if (this.hasDuplicateTeamMembers()) {
+        this.notificationService.showToast({
+          title: 'Team Members',
+          message: 'Each team member must be unique. Please remove duplicate members before proceeding.',
           type: 'warning'
         });
         isValid = false;
@@ -477,11 +667,20 @@ export class SubmitInvestmentComponent implements OnInit {
       return;
     }
 
-    // Validate team members before submit: all must have a User ID (registered users)
-    if (this.teamMembers().length > 0 && this.teamMembers().some(tm => !tm.userId || tm.userId.trim() === '')) {
+    // Validate team members before submit: all must have a mobile number
+    if (this.teamMembers().length > 0 && this.teamMembers().some(tm => !tm.mobile || tm.mobile.trim() === '')) {
       this.notificationService.showToast({
         title: 'Team Members',
-        message: 'Please ensure all team members have a valid User ID or remove anonymous entries before submitting.',
+        message: 'Please ensure all team members have a valid mobile number or remove anonymous entries before submitting.',
+        type: 'error'
+      });
+      return;
+    }
+
+    if (this.hasDuplicateTeamMembers()) {
+      this.notificationService.showToast({
+        title: 'Team Members',
+        message: 'Please remove duplicate team members before submitting. Each member must be selected only once.',
         type: 'error'
       });
       return;
@@ -522,6 +721,50 @@ export class SubmitInvestmentComponent implements OnInit {
 
       // Submit to API
       const result = await this.apiService.createInvestment(dto);
+
+      // If a cover file was selected, upload it now
+      if (this.coverFile) {
+        this.isUploadingCover.set(true);
+        try {
+          const uploadResp = await this.investmentService.uploadInvestmentImage(result.id, this.coverFile, 'cover');
+          // If API returned an image id, attempt to set it as primary
+          if (uploadResp && (uploadResp as any).id) {
+            try {
+              await this.investmentService.setPrimaryInvestmentImage(result.id, (uploadResp as any).id);
+            } catch (e) {
+              // Non-fatal
+              console.warn('Failed to set primary image', e);
+            }
+          }
+        } catch (err) {
+          console.error('Cover upload failed', err);
+          this.notificationService.showToast({
+            title: 'Warning',
+            message: 'Cover image upload failed. Investment created without cover.',
+            type: 'warning'
+          });
+        } finally {
+          this.isUploadingCover.set(false);
+        }
+      }
+
+      // Upload gallery images (if any)
+      if (this.galleryFiles.length > 0) {
+        this.isUploadingCover.set(true);
+        try {
+          const uploadPromises = this.galleryFiles.map(f => this.investmentService.uploadInvestmentImage(result.id, f));
+          const settled = await Promise.allSettled(uploadPromises);
+          const failed = settled.filter(s => s.status === 'rejected');
+          if (failed.length) {
+            this.notificationService.showToast({ title: 'Warning', message: `${failed.length} gallery image(s) failed to upload.`, type: 'warning' });
+          }
+        } catch (e) {
+          console.error('Gallery upload error', e);
+          this.notificationService.showToast({ title: 'Warning', message: 'Failed to upload gallery images.', type: 'warning' });
+        } finally {
+          this.isUploadingCover.set(false);
+        }
+      }
 
       // Success notification
       this.notificationService.showToast({
@@ -565,6 +808,69 @@ export class SubmitInvestmentComponent implements OnInit {
     } else {
       this.router.navigate(['/admin/investments']);
     }
+  }
+
+  /**
+   * Handle cover image file selection and show local preview
+   */
+  onCoverSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    if (!file) return;
+
+    // Accept only images
+    if (!file.type.startsWith('image/')) {
+      this.notificationService.showToast({ title: 'Invalid File', message: 'Please select an image file.', type: 'warning' });
+      return;
+    }
+
+    this.coverFile = file;
+    // Create preview URL
+    const url = URL.createObjectURL(file);
+    this.coverPreview.set(url);
+    // Clear any manual URL field to avoid confusion
+    this.investmentForm.patchValue({ imageUrl: '' });
+  }
+
+  removeCover(): void {
+    const url = this.coverPreview();
+    if (url) URL.revokeObjectURL(url);
+    this.coverPreview.set(null);
+    this.coverFile = null;
+  }
+
+  /** Handle multiple gallery image selection (max 5) */
+  onGallerySelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = input.files ? Array.from(input.files) : [];
+    if (!files.length) return;
+
+    const remaining = this.maxGalleryImages - this.galleryFiles.length;
+    const toAdd = files.slice(0, remaining);
+
+    for (const file of toAdd) {
+      if (!file.type.startsWith('image/')) continue;
+      this.galleryFiles.push(file);
+      const url = URL.createObjectURL(file);
+      this.galleryPreviews.update(arr => [...arr, url]);
+    }
+
+    if (files.length > remaining) {
+      this.notificationService.showToast({ title: 'Limit Reached', message: `Only ${this.maxGalleryImages} images are allowed.`, type: 'warning' });
+    }
+
+    // Clear input value so selecting same file again triggers change
+    if (input) input.value = '';
+  }
+
+  removeGalleryImage(index: number): void {
+    const previews = this.galleryPreviews();
+    const url = previews[index];
+    if (url) URL.revokeObjectURL(url);
+
+    // remove from previews and files
+    this.galleryPreviews.update(arr => arr.filter((_, i) => i !== index));
+    this.galleryFiles.splice(index, 1);
   }
 
   /**

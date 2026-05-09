@@ -177,9 +177,9 @@ export const AuthProvider: React.FC<{ children: ReactNode; onRedirect?: (path: s
     } catch (e) {
       // ignore
     }
-    // In development, provide default permissions if none are set
+    // In development, provide wildcard access so all nav items are visible
     if (userPerms.length === 0 && process.env.NODE_ENV === 'development') {
-      return ['User.View', 'User.Manage', 'Group.Manage', 'Role.Manage', 'Permission.View', 'Dashboard.View', 'Client.View'];
+      return ['*'];
     }
     return userPerms;
   });

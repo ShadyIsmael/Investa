@@ -39,14 +39,23 @@ namespace Investa.API.Controllers
             if (string.IsNullOrWhiteSpace(phone))
                 return BadRequest(new { message = "Phone is required" });
 
-            var client = await _db.Clients.AsNoTracking()
-                .FirstOrDefaultAsync(c => c.MobileNumber == phone || c.Phone == phone);
+            var normalized = phone.Trim();
+            var clients = await _db.Clients.AsNoTracking()
+                .Where(c => (!string.IsNullOrEmpty(c.MobileNumber) && c.MobileNumber.Contains(normalized))
+                         )
+                .ToListAsync();
 
-            if (client == null)
+            if (clients == null || !clients.Any())
                 return NotFound(new { message = "Client not found" });
 
-            var dto = MapToDto(client);
-            return Ok(dto);
+            var dtos = clients.Select(c => new
+            {
+                id = c.UserId,
+                firstName = c.FirstName,
+                lastName = c.LastName,
+                mobileNumber = c.MobileNumber
+            }).ToList();
+            return Ok(new { success = true, data = dtos });
         }
 
         [HttpPost("by-phone/{phone}")]

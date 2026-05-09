@@ -37,12 +37,12 @@ export function useTheme() {
     // Update meta theme-color for mobile browsers
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', theme === 'dark' ? '#09090b' : '#f8fafc');
+      metaThemeColor.setAttribute('content', theme === 'dark' ? '#09090b' : '#f8f8fa');
     } else {
       // Create meta tag if it doesn't exist
       const meta = document.createElement('meta');
       meta.name = 'theme-color';
-      meta.content = theme === 'dark' ? '#09090b' : '#f8fafc';
+      meta.content = theme === 'dark' ? '#09090b' : '#f8f8fa';
       document.head.appendChild(meta);
     }
   }, [theme]);

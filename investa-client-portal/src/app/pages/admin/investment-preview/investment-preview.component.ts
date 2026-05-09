@@ -9,6 +9,7 @@ import { NotificationService } from '../../../services/notification.service';
 import { LanguageService } from '../../../services/language.service';
 import { RequestsService } from '../../../services/requests.service';
 import { UserService } from '../../../services/user.service';
+import { FileStoreService } from '../../../services/file-store.service';
 import { get } from 'lodash-es';
 
 /**
@@ -41,6 +42,7 @@ export class InvestmentPreviewComponent {
   private languageService = inject(LanguageService);
   private requestsService = inject(RequestsService);
   private userService = inject(UserService);
+  private fileStoreService = inject(FileStoreService);
   
   protected readonly RiskLevel = RiskLevel;
   protected readonly InvestmentType = InvestmentType;
@@ -67,6 +69,8 @@ export class InvestmentPreviewComponent {
   }
 
   investment = signal<Investment | null>(null);
+  // Cache of founder avatar URLs by userId
+  founderAvatarCache = signal<Record<string, string>>({});
   investmentToEngage = signal<Investment | null>(null);
   investmentToInvest = signal<Investment | null>(null);
   loading = signal<boolean>(false);
@@ -98,12 +102,41 @@ export class InvestmentPreviewComponent {
     try {
       const inv = await this.investmentService.getInvestmentById(id);
       this.investment.set(inv);
+      // Load founder avatar if founderId present
+      try {
+        if (inv?.founderId) {
+          this.loadFounderAvatar(inv.founderId);
+        }
+      } catch (err) {
+        // ignore
+      }
     } catch (error) {
       console.error('Error loading investment:', error);
       this.investment.set(null);
     } finally {
       this.loading.set(false);
     }
+  }
+
+  private async loadFounderAvatar(userId: string): Promise<void> {
+    if (!userId) return;
+    // Already cached
+    if (this.founderAvatarCache()[userId]) return;
+    try {
+      const url = await this.fileStoreService.getProfilePictureUrl(userId);
+      if (url) {
+        this.founderAvatarCache.update(m => ({ ...(m || {}), [userId]: url }));
+      }
+    } catch (err) {
+      console.warn('Failed to load founder avatar for', userId, err);
+    }
+  }
+
+  founderAvatar(inv: Investment | null): string {
+    if (!inv) return '';
+    const uid = inv.founderId;
+    const cached = uid ? this.founderAvatarCache()[uid] : undefined;
+    return cached || inv.imageUrl || '';
   }
   
   async promptEngage(investment: Investment): Promise<void> {

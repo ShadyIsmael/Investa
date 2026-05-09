@@ -174,6 +174,20 @@
             </div>
           </div>
         }
+        @case ('security') {
+          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
+            <h2 class="text-lg font-semibold text-white mb-3">{{ 'settings.security.title' | translate }}</h2>
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-2">{{ 'settings.security.sessionTimeout.label' | translate }}</label>
+              <div class="grid grid-cols-[1fr_auto] gap-3 items-center">
+                <input type="number" min="1" class="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-gray-200"
+                  [value]="settings().sessionTimeoutMinutes || 30" (change)="setSessionTimeoutMinutes($any($event.target).value)">
+                <span class="text-gray-300 pl-2">{{ 'settings.security.sessionTimeout.minutes' | translate }}</span>
+              </div>
+              <p class="text-sm text-gray-400 mt-2">{{ 'settings.security.sessionTimeout.help' | translate }}</p>
+            </div>
+          </div>
+        }
         @case ('wallet') {
           <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
             <h2 class="text-lg font-semibold text-white mb-3">{{ 'settings.wallet.title' | translate }}</h2>

@@ -31,7 +31,7 @@ export class SettingsComponent {
   currencyOptions = [CurrencyPreference.USD, CurrencyPreference.EUR, CurrencyPreference.SAR];
 
   // Sidebar navigation
-  activeSection: 'appearance'|'localization'|'notifications'|'privacy'|'personalization'|'support'|'wallet' = 'appearance';
+  activeSection: 'appearance'|'localization'|'notifications'|'privacy'|'personalization'|'support'|'wallet'|'security' = 'appearance';
   menuItems = [
     { id: 'appearance', labelKey: 'settings.appearance.title' },
     { id: 'localization', labelKey: 'settings.localization.title' },
@@ -39,6 +39,7 @@ export class SettingsComponent {
     { id: 'privacy', labelKey: 'settings.privacy.title' },
     { id: 'personalization', labelKey: 'settings.personalization.title' },
     { id: 'support', labelKey: 'settings.support.title' },
+    { id: 'security', labelKey: 'settings.security.title' },
     { id: 'wallet', labelKey: 'settings.wallet.title' },
   ] as const;
 
@@ -78,6 +79,17 @@ export class SettingsComponent {
   setSupportHours(val: string) {
     const s = { ...this.settings().support, hours: val };
     this.settingsService.setSupport(s);
+  }
+
+  // Session timeout (admin configurable)
+  setSessionTimeoutMinutes(val: string) {
+    const v = parseInt(val, 10);
+    if (!isNaN(v) && isFinite(v) && v > 0) {
+      this.settingsService.setSessionTimeout(v);
+    } else {
+      // clear to default
+      this.settingsService.setSessionTimeout(null);
+    }
   }
 
   addFunds(amountStr: string) {

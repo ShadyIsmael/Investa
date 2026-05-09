@@ -22,7 +22,11 @@
   "login": {
     "title": "مرحبًا بعودتك",
     "subtitle": "تسجيل الدخول للمتابعة إلى حسابك.",
+    "subtitleFounder": "المؤسسون: سجّل الدخول لإدارة مشاريعك وتمويلها.",
+    "subtitleInvestor": "المستثمرون/الشركاء: سجّل الدخول لاستكشاف الفرص وتمويلها.",
     "mobileLabel": "رقم الجوال",
+    "mobileLabelFounder": "رقم جوال المؤسس",
+    "passwordPlaceholderFounder": "كلمة المرور (حساب المؤسس)",
     "mobilePlaceholder": "أدخل رقم جوالك",
     "passwordLabel": "كلمة المرور",
     "passwordPlaceholder": "أدخل كلمة المرور",
@@ -49,7 +53,29 @@
       "facebook": "تسجيل الدخول باستخدام Facebook"
     },
     "signingIn": "جاري تسجيل الدخول...",
-    "errorGeneric": "فشل تسجيل الدخول"
+    "errorGeneric": "فشل تسجيل الدخول",
+    "invalidCredentials": "رقم الجوال أو كلمة المرور غير صحيحة"
+  },
+  "signup": {
+    "title": "إنشاء حسابك",
+    "subtitle": "سجل للوصول إلى منصة إنفستا.",
+    "mobileLabel": "رقم الجوال",
+    "mobilePlaceholder": "أدخل رقم جوالك",
+    "firstNameLabel": "الاسم الأول",
+    "firstNamePlaceholder": "أدخل اسمك الأول",
+    "lastNameLabel": "اسم العائلة",
+    "lastNamePlaceholder": "أدخل اسم العائلة",
+    "emailLabel": "البريد الإلكتروني",
+    "optional": "اختياري",
+    "emailPlaceholder": "أدخل بريدك الإلكتروني",
+    "passwordLabel": "كلمة المرور",
+    "passwordPlaceholder": "أنشئ كلمة مرور قوية",
+    "confirmPasswordLabel": "تأكيد كلمة المرور",
+    "confirmPasswordPlaceholder": "أعد إدخال كلمة المرور",
+    "passwordMismatch": "كلمات المرور غير متطابقة",
+    "signUpButton": "سجل",
+    "alreadyHaveAccount": "هل لديك حساب بالفعل؟",
+    "signIn": "تسجيل الدخول"
   },
   "roleSelect": {
     "close": "إغلاق",
@@ -89,6 +115,8 @@
     "all": "الكل",
     "unread": "غير مقروءة",
     "delete": "حذف الإشعار",
+    "markAllRead": "تحديد الكل كمقروء",
+    "seeAll": "عرض جميع الإشعارات",
     "noNotifications": {
       "title": "لا توجد إشعارات",
       "subtitle": "ليس لديك إشعارات في الوقت الحالي.",
@@ -300,6 +328,58 @@
       "confirmButton": "تأكيد والمتابعة"
     }
   },
+  "submitInvestment": {
+    "title": "إنشاء فرصة استثمار",
+    "subtitle": "أطلق حملة جمع التبرعات وتواصل مع المستثمرين",
+    "step": {
+      "businessDetails": "تفاصيل المشروع",
+      "financialStructure": "الهيكل المالي",
+      "reviewSubmit": "مراجعة وإرسال"
+    },
+    "tellInvestors": "أخبر المستثمرين عن مشروعك",
+    "labels": {
+      "businessName": "اسم المشروع",
+      "description": "الوصف",
+      "businessCategory": "فئة المشروع",
+      "businessStage": "المرحلة",
+      "projectPhase": "مرحلة المشروع",
+      "milestone": "المعلم الحالي",
+      "teamMembers": "أعضاء الفريق",
+      "coverImage": "صورة الغلاف",
+      "imageGallery": "معرض الصور",
+      "pitchVideoUrl": "رابط الفيديو التعريفي"
+    },
+    "actions": {
+      "uploadCover": "رفع الغلاف",
+      "remove": "إزالة",
+      "addTeamMember": "أضف عضو فريق",
+      "addImage": "إضافة",
+      "continue": "المتابعة",
+      "submit": "إرسال الاستثمار",
+      "cancel": "إلغاء",
+      "back": "العودة إلى الاستثمارات"
+    }
+    ,
+    "placeholders": {
+      "businessName": "أدخل اسم المشروع أو النشاط",
+      "description": "وصف مشروعك، المشكلة التي تحلها، والقيمة الفريدة التي تقدمها...",
+      "milestoneExample": "مثال: إطلاق MVP، سلسلة A، توافق المنتج مع السوق",
+      "teamUserId": "رقم الجوال (مطلوب)",
+      "teamName": "الاسم المعروض (اختياري)",
+      "teamRole": "الدور",
+      "duration": "مدة الاستثمار",
+      "expectedProfit": "نسبة الربح المتوقعة %",
+      "pricePerShare": "سعر السهم",
+      "numberOfShares": "عدد الأسهم لهذه الجولة",
+      "valuationCap": "حد تقييم الشركة",
+      "amountInvesting": "المبلغ الذي تستثمره",
+      "minPerInvestor": "الحد الأدنى لكل مستثمر (اختياري)",
+      "maxPerInvestor": "الحد الأقصى لكل مستثمر (اختياري)",
+      "expectedReturn": "نسبة العائد المتوقعة",
+      "coverImageUrlExample": "https://example.com/image.jpg",
+      "pitchVideoUrl": "https://youtube.com/watch?v=..."
+    }
+  },
   "investmentPreview": {
     "backButton": "العودة إلى الاستثمارات",
     "investmentType": "نوع الاستثمار",
@@ -472,6 +552,9 @@
       "nationalId": "الهوية الوطنية",
       "uploadId": "تحميل الهوية",
       "chooseFile": "اختر ملفًا",
+      "addFile": "إضافة ملف",
+      "replaceFile": "استبدال الملف",
+      "nationalIdAlt": "صورة بطاقة الهوية",
       "noFileChosen": "لم يتم اختيار ملف",
       "bio": "نبذة",
       "linkedin": "لينكدإن",
@@ -507,8 +590,15 @@
       "nationalIdNotPersistedTitle": "فشل حفظ الهوية الوطنية",
       "nationalIdNotPersistedMessage": "لم نتمكن من حفظ هويتك الوطنية. قد يكون هذا الحقل مقصورًا أو خاضعًا للتحقق من الخادم. اتصل بالدعم إذا كان هذا خطأ.",
       "nationalIdChangeRecordedTitle": "تم تسجيل الهوية الوطنية",
-      "nationalIdChangeRecordedMessage": "تم تسجيل تغيير هويتك الوطنية وسيتم مراجعته من قبل فريقنا. تم ضبط حالة التوثيق على قيد الانتظار."
+      "nationalIdChangeRecordedMessage": "تم تسجيل تغيير هويتك الوطنية وسيتم مراجعته من قبل فريقنا. تم ضبط حالة التوثيق على قيد الانتظار.",
+      "avatarUpdatedTitle": "تم تحديث الصورة",
+      "avatarUpdatedMessage": "تم تحديث صورتك الشخصية بنجاح.",
+      "avatarUploadFailedTitle": "فشل الرفع",
+      "avatarUploadFailedMessage": "فشل رفع الصورة الشخصية. يرجى المحاولة مرة أخرى.",
+      "invalidFileTypeTitle": "نوع ملف غير صالح",
+      "invalidFileTypeMessage": "يرجى اختيار صورة بصيغة JPEG أو PNG أو WebP أو GIF."
     },
+    "changePhoto": "تغيير الصورة",
     "notifications": {
       "title": "الإشعارات",
       "subtitle": "اختر ما ترغب في استلامه من إشعارات.",
