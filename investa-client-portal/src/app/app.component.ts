@@ -6,6 +6,7 @@ import { NotificationHostComponent } from './components/notification-host/notifi
 import { UiService } from './services/ui.service';
 import { RoleSelectComponent } from './components/role-select/role-select.component';
 import { ApiBaseSwitcherComponent } from './components/api-base-switcher/api-base-switcher.component';
+import { SessionService } from './services/session.service';
 
 @Component({
   standalone: true,
@@ -23,6 +24,7 @@ import { ApiBaseSwitcherComponent } from './components/api-base-switcher/api-bas
 export class AppComponent {
   private languageService = inject(LanguageService);
   private uiService = inject(UiService);
+  private sessionService = inject(SessionService);
 
   isRoleSelectOpen = this.uiService.isRoleSelectOpen;
 
@@ -31,5 +33,11 @@ export class AppComponent {
       document.documentElement.lang = this.languageService.language();
       document.documentElement.dir = this.languageService.direction();
     });
+    // start session tracking for inactivity timeout
+    try {
+      this.sessionService.start();
+    } catch {
+      // ignore if session service can't start in some environments
+    }
   }
 }

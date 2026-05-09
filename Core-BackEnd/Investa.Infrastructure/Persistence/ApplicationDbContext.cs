@@ -124,6 +124,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
     // Images associated with investments (gallery)
     public DbSet<InvestmentImage> InvestmentImages { get; set; }
 
+    // In-app notification system
+    public DbSet<NotificationTemplate> NotificationTemplates { get; set; }
+    public DbSet<UserNotification> UserNotifications { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -255,6 +259,48 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
                .WithMany(i => i.Images)
                .HasForeignKey(x => x.InvestmentId)
                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Notification templates (admin-configurable)
+        modelBuilder.Entity<NotificationTemplate>(nt =>
+        {
+            nt.HasKey(x => x.Id);
+            nt.Property(x => x.Key).HasMaxLength(100).IsRequired();
+            nt.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            nt.Property(x => x.TitleTemplate).HasMaxLength(500).IsRequired();
+            nt.Property(x => x.BodyTemplate).HasMaxLength(2000).IsRequired();
+            nt.Property(x => x.Type).HasMaxLength(20).IsRequired().HasDefaultValue("info");
+            nt.Property(x => x.Icon).HasMaxLength(100);
+            nt.Property(x => x.Category).HasMaxLength(100);
+            nt.Property(x => x.PlaceholderDocs).HasMaxLength(500);
+            nt.Property(x => x.CreatedByUserId).HasMaxLength(450);
+            nt.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            nt.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            nt.HasIndex(x => x.Key).IsUnique();
+            nt.HasIndex(x => x.Category);
+            nt.HasIndex(x => x.IsActive);
+        });
+
+        // Per-user in-app notifications
+        modelBuilder.Entity<UserNotification>(un =>
+        {
+            un.HasKey(x => x.Id);
+            un.Property(x => x.UserId).HasMaxLength(450).IsRequired();
+            un.Property(x => x.Title).HasMaxLength(500).IsRequired();
+            un.Property(x => x.Body).HasMaxLength(2000).IsRequired();
+            un.Property(x => x.Type).HasMaxLength(20).IsRequired().HasDefaultValue("info");
+            un.Property(x => x.Icon).HasMaxLength(100);
+            un.Property(x => x.ActionUrl).HasMaxLength(500);
+            un.Property(x => x.IsRead).HasDefaultValue(false);
+            un.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            un.HasIndex(x => x.UserId);
+            un.HasIndex(x => new { x.UserId, x.CreatedAt });
+            un.HasIndex(x => new { x.UserId, x.IsRead });
+            un.HasOne(x => x.Template)
+              .WithMany()
+              .HasForeignKey(x => x.TemplateId)
+              .OnDelete(DeleteBehavior.SetNull)
+              .IsRequired(false);
         });
 
         modelBuilder.Entity<Transaction>()

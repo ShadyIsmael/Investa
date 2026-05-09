@@ -1,74 +1,38 @@
-import { createTheme } from '@mui/material/styles';
-import { colors, typography, spacing, borderRadius, shadows } from './styles/designTokens';
+/**
+ * Theme config – Investa Admin Portal (Zinc Slate)
+ *
+ * MUI is NOT installed. This file exposes strongly-typed theme constants
+ * that can be consumed by any component or charting library.
+ *
+ * For MUI integration, install @mui/material and uncomment the
+ * createTheme blocks at the bottom.
+ */
+import { colors, typography, borderRadius, shadows } from './styles/designTokens';
 
-const commonPalette = {
-  primary: {
-    main: colors.semantic.primary,
-  },
-  secondary: {
-    main: colors.semantic.accent,
-  },
-  error: {
-    main: colors.semantic.error,
-  },
-  warning: {
-    main: colors.semantic.warning,
-  },
-  info: {
-    main: colors.semantic.info,
-  },
-  success: {
-    main: colors.semantic.success,
-  },
-};
+export type ThemeMode = 'light' | 'dark';
 
-export const lightTheme = createTheme({
-  palette: {
-    mode: 'light',
-    ...commonPalette,
-    background: {
-      default: colors.light.background,
-      paper: colors.light.surface,
-    },
-    text: {
-      primary: colors.light.text,
-      secondary: colors.light.textSecondary,
-    },
-  },
-  typography: {
-    fontFamily: typography.fontFamily.base,
-    ...typography.fontSize,
-  },
-  spacing: (factor: number) => `${0.25 * factor}rem`,
-  shape: {
-    borderRadius: parseFloat(borderRadius.md),
-  },
-  shadows: Object.values(shadows.light) as any,
-});
+/** Resolved palette for the given mode — ready to pass to Recharts, etc. */
+export function getThemePalette(mode: ThemeMode) {
+  const c = mode === 'dark' ? colors.dark : colors.light;
+  return {
+    background:    c.background,
+    surface:       c.surface,
+    surfaceHover:  c.surfaceHover,
+    border:        c.border,
+    text:          c.text,
+    textSecondary: c.textSecondary,
+    textMuted:     c.textMuted,
+    primary:       mode === 'dark' ? colors.semantic.primaryDark : colors.semantic.primary,
+    accent:        mode === 'dark' ? colors.semantic.accentDark  : colors.semantic.accent,
+    success:       mode === 'dark' ? colors.semantic.successDark : colors.semantic.success,
+    error:         mode === 'dark' ? colors.semantic.errorDark   : colors.semantic.error,
+    warning:       mode === 'dark' ? colors.semantic.warningDark : colors.semantic.warning,
+    info:          mode === 'dark' ? colors.semantic.infoDark    : colors.semantic.info,
+    shadows:       mode === 'dark' ? shadows.dark                : shadows.light,
+    fontFamily:    typography.fontFamily.base,
+    borderRadius,
+  };
+}
 
-export const darkTheme = createTheme({
-  palette: {
-    mode: 'dark',
-    ...commonPalette,
-    primary: {
-        main: colors.semantic.primaryDark,
-    },
-    background: {
-      default: colors.dark.background,
-      paper: colors.dark.surface,
-    },
-    text: {
-      primary: colors.dark.text,
-      secondary: colors.dark.textSecondary,
-    },
-  },
-  typography: {
-    fontFamily: typography.fontFamily.base,
-    ...typography.fontSize,
-  },
-  spacing: (factor: number) => `${0.25 * factor}rem`,
-  shape: {
-    borderRadius: parseFloat(borderRadius.md),
-  },
-  shadows: Object.values(shadows.dark) as any,
-});
+export const lightPalette = getThemePalette('light');
+export const darkPalette  = getThemePalette('dark');

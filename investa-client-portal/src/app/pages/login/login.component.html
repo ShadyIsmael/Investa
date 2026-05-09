@@ -5,9 +5,15 @@
 
   <div class="relative z-10 w-full max-w-sm">
     <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl p-6">
+      <button type="button" (click)="close()" aria-label="Close" class="absolute top-3 end-3 z-50 text-gray-200 hover:text-white p-2 rounded-full bg-slate-800/70 hover:bg-slate-700 ring-1 ring-white/5">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
       
-      <!-- Role Toggle -->
-      <div class="flex justify-center mb-5">
+      <!-- Role Toggle (hidden) -->
+      <div *ngIf="false" class="flex justify-center mb-5">
         <div class="bg-slate-950/50 p-1 rounded-lg flex border border-slate-700/50">
           <button type="button" 
             (click)="role.set('founder')"
@@ -34,7 +40,7 @@
           <span class="text-white text-3xl font-bold ms-2">Investa</span>
         </a>
         <h2 class="text-xl font-bold text-white">{{ 'login.title' | translate }}</h2>
-        <p class="text-gray-300 text-sm">{{ 'login.subtitle' | translate }}</p>
+        <p class="text-gray-300 text-sm">{{ (isFounder() ? 'login.subtitleFounder' : 'login.subtitleInvestor') | translate }}</p>
       </div>
 
       <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-5">
@@ -45,7 +51,7 @@
         </div>
 
         <div>
-          <label for="mobile" class="block text-sm font-medium text-gray-300">{{ 'login.mobileLabel' | translate }}</label>
+          <label for="mobile" class="block text-sm font-medium text-gray-300">{{ (isFounder() ? 'login.mobileLabelFounder' : 'login.mobileLabel') | translate }}</label>
           <div class="mt-1 flex rounded-md shadow-sm">
             <div class="relative">
               <button type="button" (click)="isDropdownOpen.set(!isDropdownOpen())" 
@@ -75,7 +81,7 @@
 
         <div>
           <label for="password" class="block text-sm font-medium text-gray-300">{{ 'login.passwordLabel' | translate }}</label>
-          <input id="password" type="password" formControlName="password" [placeholder]="'login.passwordPlaceholder' | translate" 
+            <input id="password" type="password" formControlName="password" [placeholder]="(isFounder() ? 'login.passwordPlaceholderFounder' : 'login.passwordPlaceholder') | translate" 
             [class]="'mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2.5 px-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 ' + theme().ringFocus + ' ' + theme().borderFocus">
         </div>
 

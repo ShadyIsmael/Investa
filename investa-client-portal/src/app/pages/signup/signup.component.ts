@@ -1,6 +1,6 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ReactiveFormsModule, FormControl, FormGroup, Validators, AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 import { TranslatePipe } from '../../pipes/translate.pipe';
 
@@ -24,6 +24,7 @@ export const passwordMatchValidator: ValidatorFn = (control: AbstractControl): V
   imports: [CommonModule, RouterLink, ReactiveFormsModule, TranslatePipe]
 })
 export class SignupComponent {
+  private router: Router = inject(Router);
   signupForm = new FormGroup({
     mobile: new FormControl('', [Validators.required, Validators.pattern('^[0-9]{10,15}$')]),
     firstName: new FormControl('', [Validators.required]),
@@ -37,5 +38,9 @@ export class SignupComponent {
     if (this.signupForm.valid) {
       // Handle signup logic here
     }
+  }
+
+  close() {
+    this.router.navigate(['/']);
   }
 }

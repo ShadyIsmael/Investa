@@ -16,6 +16,7 @@ import { BankReconciliation } from '@/features/finance/BankReconciliation';
 import { CreditSetup } from '@/features/finance/CreditSetup';
 import { ApiTester } from '@/components/common/ApiTester';
 import SystemConfiguration from '@/features/config/SystemConfiguration';
+import NotificationTemplates from '@/features/config/NotificationTemplates';
 import { MyProfile } from '@/features/auth/MyProfile';
 import Groups from '@/features/rbac/Groups';
 import { Roles } from '@/features/rbac/Roles';
@@ -165,6 +166,7 @@ const AppContent: React.FC = () => {
                                     <Route path="/credit" element={<CreditSetup />} />
                                     <Route path="/apitester" element={<ApiTester />} />
                                     <Route path="/system-config" element={<SystemConfiguration />} />
+                                    <Route path="/config/notification-templates" element={<NotificationTemplates />} />
                                 </Routes>
                             </MainLayout>
                         </ProtectedRoute>

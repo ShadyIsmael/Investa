@@ -370,7 +370,7 @@ const SupportDashboard: React.FC = () => {
                           </div>
                           <div className="text-rose-400 font-semibold">{c.unread}</div>
                         </div>
-                        <div className="text-sm text-slate-300 mt-2">{c.category} â€¢ {formatDate(c.startedAt)}</div>
+                        <div className="text-sm text-slate-300 mt-2">{c.category} • {formatDate(c.startedAt)}</div>
                       </div>
                     ))}
                   </div>
@@ -399,7 +399,7 @@ const SupportDashboard: React.FC = () => {
                   <div className="flex items-start justify-between">
                     <div>
                       <h3 id="chat-title" className="text-lg font-bold">{selectedChat.name}</h3>
-                      <p className="text-sm text-slate-400">{selectedChat.phone} â€¢ {selectedChat.category}</p>
+                      <p className="text-sm text-slate-400">{selectedChat.phone} • {selectedChat.category}</p>
                     </div>
                     <div>
                       <button aria-label="Close chat" onClick={() => setSelectedChat(null)} className="text-slate-400 hover:text-white">Close</button>
@@ -503,7 +503,7 @@ const SupportDashboard: React.FC = () => {
                           </div>
                           <StatusBadge status={t.status} />
                         </div>
-                        <div className="text-sm text-slate-300 mt-2">{t.type} â€¢ {t.slaLeft}</div>
+                        <div className="text-sm text-slate-300 mt-2">{t.type} • {t.slaLeft}</div>
                         <div className="mt-3 text-right">
                           <button onClick={(e) => { e.stopPropagation(); setSelectedTicket(t); }} className="px-3 py-1 rounded-lg bg-indigo-600 text-white text-sm font-semibold">Show</button>
                         </div>
@@ -535,7 +535,7 @@ const SupportDashboard: React.FC = () => {
                   <div className="flex items-start justify-between">
                     <div>
                       <h3 id="ticket-title" className="text-lg font-bold">Ticket {selectedTicket.id}</h3>
-                      <p className="text-sm text-slate-400">{selectedTicket.name} â€¢ {selectedTicket.phone}</p>
+                      <p className="text-sm text-slate-400">{selectedTicket.name} • {selectedTicket.phone}</p>
                     </div>
                     <div>
                       <button aria-label="Close ticket" onClick={() => setSelectedTicket(null)} className="text-slate-400 hover:text-white">Close</button>

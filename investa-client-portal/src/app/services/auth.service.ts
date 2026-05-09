@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE } from '../config/api.token';
 import { UserRoles } from '../config/constants';
+import { NotificationService } from './notification.service';
 
 export type UserRole = string; // All external users are 'Client' type
 
@@ -27,12 +28,14 @@ export class AuthService {
   isAuthenticated = signal<boolean>(false);
   userRole = signal<UserRole | null>(null);
 
-  constructor(private http: HttpClient, @Inject(API_BASE) private apiBase: string) {
+  constructor(private http: HttpClient, @Inject(API_BASE) private apiBase: string, private notificationService: NotificationService) {
     // Restore authentication state from localStorage if present
     const token = localStorage.getItem('accessToken');
     const role = localStorage.getItem('userRole') as UserRole | null;
     if (token) {
       this.isAuthenticated.set(true);
+      // Start polling for notifications if already authenticated
+      this.notificationService.startPolling();
     }
     if (role) {
       this.userRole.set(role);
@@ -66,6 +69,7 @@ export class AuthService {
 
     localStorage.setItem('isLoggedIn', 'true');
     this.isAuthenticated.set(true);
+    this.notificationService.startPolling();
   }
 
   logout(): void {
@@ -77,6 +81,7 @@ export class AuthService {
     localStorage.removeItem('phoneNumber');
     this.isAuthenticated.set(false);
     this.userRole.set(null);
+    this.notificationService.clear();
   }
 
   getAccessToken(): string | null {

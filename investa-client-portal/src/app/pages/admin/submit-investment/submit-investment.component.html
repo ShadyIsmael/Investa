@@ -1,6 +1,6 @@
 <!-- Submit Investment - Multi-step Form -->
 <div class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 lg:p-8">
-  <div class="max-w-4xl mx-auto">
+  <div class="max-w-full lg:max-w-7xl mx-auto">
     
     <!-- Header -->
     <div class="mb-8">
@@ -14,10 +14,8 @@
         <span>Back to Investments</span>
       </button>
       
-      <h1 class="text-3xl font-bold text-white mb-2">Create Investment Opportunity</h1>
-      <p class="text-slate-400">
-        Launch your fundraising campaign and connect with investors
-      </p>
+      <h1 class="text-3xl font-bold text-white mb-2">{{ t('submitInvestment.title') }}</h1>
+      <p class="text-slate-400">{{ t('submitInvestment.subtitle') }}</p>
     </div>
 
     <!-- Loading State -->
@@ -87,10 +85,8 @@
                     {{ i + 1 }}
                   }
                 </button>
-                <span class="mt-2 text-sm font-medium" 
-                  [class]="currentStep() >= i + 1 ? 'text-white' : 'text-slate-500'"
-                >
-                  {{ label }}
+                <span class="mt-2 text-sm font-medium" [class]="currentStep() >= i + 1 ? 'text-white' : 'text-slate-500'">
+                  {{ t(label) }}
                 </span>
               </div>
             }
@@ -110,8 +106,8 @@
                   </svg>
                 </div>
                 <div>
-                  <h2 class="text-xl font-bold text-white">Business Details</h2>
-                  <p class="text-slate-400 text-sm">Tell investors about your venture</p>
+                  <h2 class="text-xl font-bold text-white">{{ t('submitInvestment.step.businessDetails') }}</h2>
+                    <p class="text-slate-400 text-sm">{{ t('submitInvestment.tellInvestors') }}</p>
                 </div>
               </div>
 
@@ -119,13 +115,13 @@
                 <!-- Business Name -->
                 <div>
                   <label class="block text-sm font-medium text-slate-300 mb-2">
-                    Business Name <span class="text-red-400">*</span>
+                    {{ t('submitInvestment.labels.businessName') }} <span class="text-red-400">*</span>
                   </label>
                   <input 
                     type="text" 
                     formControlName="businessName"
                     class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                    placeholder="Enter your business or project name"
+                    placeholder="{{ t('submitInvestment.placeholders.businessName') }}"
                   />
                   @if (hasError('businessName')) {
                     <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('businessName') }}</p>
@@ -135,13 +131,13 @@
                 <!-- Description -->
                 <div>
                   <label class="block text-sm font-medium text-slate-300 mb-2">
-                    Description <span class="text-red-400">*</span>
+                    {{ t('submitInvestment.labels.description') }} <span class="text-red-400">*</span>
                   </label>
                   <textarea 
                     formControlName="description"
                     rows="5"
                     class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
-                    placeholder="Describe your business, the problem you're solving, and your unique value proposition..."
+                    placeholder="{{ t('submitInvestment.placeholders.description') }}"
                   ></textarea>
                   @if (hasError('description')) {
                     <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('description') }}</p>
@@ -156,7 +152,7 @@
                   <!-- Business Category -->
                   <div>
                     <label class="block text-sm font-medium text-slate-300 mb-2">
-                      Business Category <span class="text-red-400">*</span>
+                      {{ t('submitInvestment.labels.businessCategory') }} <span class="text-red-400">*</span>
                     </label>
                     <select 
                       formControlName="businessCategoryId"
@@ -164,7 +160,7 @@
                     >
                       <option [ngValue]="null" disabled>Select a category</option>
                       @for (cat of categories(); track cat.id) {
-                        <option [ngValue]="cat.id">{{ cat.value }}</option>
+                        <option [ngValue]="cat.id">{{ displayLookup(cat) }}</option>
                       }
                     </select>
                     @if (hasError('businessCategoryId')) {
@@ -175,7 +171,7 @@
                   <!-- Business Stage -->
                   <div>
                     <label class="block text-sm font-medium text-slate-300 mb-2">
-                      Business Stage <span class="text-red-400">*</span>
+                      {{ t('submitInvestment.labels.businessStage') }} <span class="text-red-400">*</span>
                     </label>
                     <select 
                       formControlName="businessStageId"
@@ -183,7 +179,7 @@
                     >
                       <option [ngValue]="null" disabled>Select stage</option>
                       @for (stage of stages(); track stage.id) {
-                        <option [ngValue]="stage.id">{{ stage.value }}</option>
+                        <option [ngValue]="stage.id">{{ displayLookup(stage) }}</option>
                       }
                     </select>
                     @if (hasError('businessStageId')) {
@@ -197,7 +193,7 @@
                   <!-- Project Phase -->
                   <div>
                     <label class="block text-sm font-medium text-slate-300 mb-2">
-                      Project Phase
+                      {{ t('submitInvestment.labels.projectPhase') }}
                     </label>
                     <select 
                       formControlName="projectPhaseId"
@@ -205,7 +201,7 @@
                     >
                       <option [ngValue]="null">Select phase (optional)</option>
                       @for (phase of phases(); track phase.id) {
-                        <option [ngValue]="phase.id">{{ phase.value }}</option>
+                        <option [ngValue]="phase.id">{{ displayLookup(phase) }}</option>
                       }
                     </select>
                   </div>
@@ -213,7 +209,7 @@
                   <!-- Risk Level (auto-calculated from Business Stage) -->
                   <div>
                     <label class="block text-sm font-medium text-slate-300 mb-2">
-                      Risk Level <span class="text-red-400">*</span>
+                      {{ t('submitInvestment.labels.milestone') }}
                     </label>
                     <div class="flex items-center gap-3">
                       <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold"
@@ -234,7 +230,7 @@
                     type="text" 
                     formControlName="milestone"
                     class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                    placeholder="e.g., MVP Launch, Series A, Product Market Fit"
+                    placeholder="{{ t('submitInvestment.placeholders.milestoneExample') }}"
                   />
                 </div>
 
@@ -249,14 +245,21 @@
                     }
                     @for (member of teamMembers(); track member; let i = $index) {
                       <div class="flex items-center gap-3">
-                        <input type="text" [value]="member.userId" (input)="updateTeamMember(i, 'userId', $event.target.value)" placeholder="User ID (required)" class="w-1/4 px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white"/>
-                        <input type="text" [value]="member.name" (input)="updateTeamMember(i, 'name', $event.target.value)" placeholder="Display name (optional)" class="w-1/3 px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white"/>
-                        <input type="text" [value]="member.role" (input)="updateTeamMember(i, 'role', $event.target.value)" placeholder="Role" class="w-1/4 px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white"/>
-                        <button type="button" (click)="removeTeamMember(i)" class="px-3 py-2 bg-red-600 text-white rounded-lg">Remove</button>
+                        <div class="relative w-1/4">
+                          <input type="text" [value]="member.mobile" (input)="onMobileInput(i, $event.target.value)" placeholder="{{ t('submitInvestment.placeholders.teamUserId') }}" class="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white"/>
+                          <div *ngIf="activeSearchIndex() === i && (getSearchResults(i).length > 0 || isSearchingFor(i) || isSearchUnavailable(i))" class="absolute left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-lg z-50 max-h-56 overflow-auto">
+                            <div *ngIf="isSearchingFor(i)" class="p-2 text-slate-400">Searching...</div>
+                            <div *ngIf="isSearchUnavailable(i) && !isSearchingFor(i) && getSearchResults(i).length === 0" class="p-2 text-slate-400">User lookup unavailable</div>
+                            <button *ngFor="let u of getSearchResults(i)" type="button" (click)="assignSearchResult(i, u)" class="w-full text-left px-3 py-2 hover:bg-slate-700">{{ getSearchResultLabel(u) }}</button>
+                          </div>
+                        </div>
+                        <input type="text" [value]="member.name" (input)="updateTeamMember(i, 'name', $event.target.value)" placeholder="{{ t('submitInvestment.placeholders.teamName') }}" class="w-1/3 px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white"/>
+                        <input type="text" [value]="member.role" (input)="updateTeamMember(i, 'role', $event.target.value)" placeholder="{{ t('submitInvestment.placeholders.teamRole') }}" class="w-1/4 px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white"/>
+                        <button type="button" (click)="removeTeamMember(i)" class="px-3 py-2 bg-red-600 text-white rounded-lg">{{ t('submitInvestment.actions.remove') }}</button>
                       </div>
                     }
                     <div>
-                      <button type="button" (click)="addTeamMember()" class="px-4 py-2 bg-blue-600 text-white rounded-lg">Add Team Member</button>
+                      <button type="button" (click)="addTeamMember()" class="px-4 py-2 bg-blue-600 text-white rounded-lg">{{ t('submitInvestment.actions.addTeamMember') }}</button>
                       <p class="text-xs text-slate-400 mt-2">Team members must be registered users (provide User ID). Backend persistence for team members will be added in a subsequent change.</p>
                     </div>
                   </div>
@@ -276,8 +279,8 @@
                 </div>
                 <div>
                   @if (investmentForm.get('investmentTypeId')?.value === 1) {
-                    <h2 class="text-xl font-bold text-white">Founding Details</h2>
-                    <p class="text-slate-400 text-sm">Define duration and profit terms</p>
+                    <h2 class="text-xl font-bold text-white">{{ t('submitInvestment.step.financialStructure') }}</h2>
+                      <p class="text-slate-400 text-sm">{{ t('submitInvestment.step.financialStructure') }}</p>
                   } @else {
                     <h2 class="text-xl font-bold text-white">Equity Structure</h2>
                     <p class="text-slate-400 text-sm">Define your equity and funding terms</p>
@@ -303,8 +306,8 @@
                         <div class="p-4 rounded-xl border-2 transition-all
                           peer-checked:border-purple-500 peer-checked:bg-purple-500/10
                           border-slate-600 hover:border-slate-500">
-                          <div class="font-semibold text-white mb-1">{{ type.name }}</div>
-                          <div class="text-sm text-slate-400">{{ type.description }}</div>
+                          <div class="font-semibold text-white mb-1">{{ displayLookup(type) }}</div>
+                          <div class="text-sm text-slate-400">{{ isRtl() ? (type.descriptionAr || type.description) : type.description }}</div>
                         </div>
                       </label>
                     }
@@ -317,13 +320,13 @@
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label class="block text-sm font-medium text-slate-300 mb-2">
-                        Duration (Months) <span class="text-red-400">*</span>
-                      </label>
+                          Duration (Months) <span class="text-red-400">*</span>
+                        </label>
                       <input 
                         type="number" 
                         formControlName="durationMonths"
                         class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        placeholder="Investment duration"
+                        placeholder="{{ t('submitInvestment.placeholders.duration') }}"
                       />
                       @if (hasError('durationMonths')) {
                         <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('durationMonths') }}</p>
@@ -339,7 +342,7 @@
                           type="number" 
                           formControlName="profitPercentage"
                           class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                          placeholder="Expected profit %"
+                          placeholder="{{ t('submitInvestment.placeholders.expectedProfit') }}"
                         />
                         <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">%</span>
                       </div>
@@ -385,7 +388,7 @@
                           type="number" 
                           formControlName="sharePrice"
                           class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                          placeholder="Price per share"
+                          placeholder="{{ t('submitInvestment.placeholders.pricePerShare') }}"
                         />
                       </div>
                       @if (hasError('sharePrice')) {
@@ -401,7 +404,7 @@
                         type="number" 
                         formControlName="totalShares"
                         class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        placeholder="Number of shares for this round"
+                        placeholder="{{ t('submitInvestment.placeholders.numberOfShares') }}"
                       />
                       @if (hasError('totalShares')) {
                         <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('totalShares') }}</p>
@@ -435,7 +438,7 @@
                         type="number" 
                         formControlName="valuationCap"
                         class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        placeholder="Company valuation cap"
+                        placeholder="{{ t('submitInvestment.placeholders.valuationCap') }}"
                       />
                     </div>
                     @if (hasError('valuationCap')) {
@@ -456,7 +459,7 @@
                         type="number" 
                         formControlName="initialCapital"
                         class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        placeholder="Amount you're investing"
+                        placeholder="{{ t('submitInvestment.placeholders.amountInvesting') }}"
                       />
                     </div>
                     @if (hasError('initialCapital')) {
@@ -473,7 +476,7 @@
                       class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     >
                       @for (curr of currencies; track curr.code) {
-                        <option [value]="curr.code">{{ curr.code }} ({{ curr.symbol }})</option>
+                        <option [value]="curr.code">{{ displayLookup(curr) }} ({{ curr.symbol }})</option>
                       }
                     </select>
                   </div>
@@ -491,7 +494,7 @@
                         type="number" 
                         formControlName="minInvestment"
                         class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        placeholder="Optional minimum per investor"
+                        placeholder="{{ t('submitInvestment.placeholders.minPerInvestor') }}"
                       />
                     </div>
                   </div>
@@ -506,7 +509,7 @@
                         type="number" 
                         formControlName="maxInvestment"
                         class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        placeholder="Optional maximum per investor"
+                        placeholder="{{ t('submitInvestment.placeholders.maxPerInvestor') }}"
                       />
                     </div>
                   </div>
@@ -522,7 +525,7 @@
                       type="number" 
                       formControlName="expectedROI"
                       class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                      placeholder="Expected return percentage"
+                      placeholder="{{ t('submitInvestment.placeholders.expectedReturn') }}"
                     />
                     <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">%</span>
                   </div>
@@ -560,37 +563,70 @@
                   </div>
                 </div>
 
-                <!-- Media URLs -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">
-                      Cover Image URL
-                    </label>
+                <!-- Cover Image (full-width row) -->
+                <div class="mb-6">
+                  <label class="block text-sm font-medium text-slate-300 mb-2">Cover Image</label>
+                  <div class="w-full h-64 bg-slate-800 rounded overflow-hidden flex items-center justify-center">
+                    @if (coverPreview()) {
+                      <img [src]="coverPreview()" class="object-cover w-full h-full" />
+                    } @else if (investmentForm.get('imageUrl')?.value) {
+                      <img [src]="investmentForm.get('imageUrl')?.value" class="object-cover w-full h-full" />
+                    } @else {
+                      <div class="text-slate-500 text-sm">No cover selected</div>
+                    }
+                  </div>
+                  <div class="mt-3 flex items-center gap-3">
+                    <input id="coverFile" type="file" accept="image/*" (change)="onCoverSelected($event)" class="hidden" />
+                    <label for="coverFile" class="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg cursor-pointer">Upload Cover</label>
+                    <button type="button" *ngIf="coverPreview()" (click)="removeCover()" class="px-3 py-2 bg-red-600 text-white rounded-lg">{{ t('submitInvestment.actions.remove') }}</button>
+                    <p class="text-xs text-slate-400 ml-2">You can also paste an image URL in the field below.</p>
+                  </div>
+
+                  <div class="mt-3">
                     <input 
                       type="url" 
                       formControlName="imageUrl"
                       class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                      placeholder="https://example.com/image.jpg"
+                      placeholder="{{ t('submitInvestment.placeholders.coverImageUrlExample') }}"
                     />
                     @if (hasError('imageUrl')) {
                       <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('imageUrl') }}</p>
                     }
                   </div>
-
-                  <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">
-                      Pitch Video URL
-                    </label>
-                    <input 
-                      type="url" 
-                      formControlName="videoUrl"
-                      class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                      placeholder="https://youtube.com/watch?v=..."
-                    />
-                    @if (hasError('videoUrl')) {
-                      <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('videoUrl') }}</p>
+                </div>
+                <!-- Image Gallery (thumbnails) -->
+                <div class="mt-6">
+                  <label class="block text-sm font-medium text-slate-300 mb-2">Image Gallery <span class="text-slate-400 text-xs">(up to {{ maxGalleryImages }})</span></label>
+                  <div class="grid grid-cols-5 gap-2">
+                    @for (p of galleryPreviews(); track p; let i = $index) {
+                      <div class="relative w-full h-20 bg-slate-800 rounded overflow-hidden">
+                        <img [src]="p" class="object-cover w-full h-full" />
+                        <button type="button" (click)="removeGalleryImage(i)" class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 text-xs">×</button>
+                      </div>
+                    }
+                    @if (galleryPreviews().length < maxGalleryImages) {
+                      <div class="flex items-center justify-center border border-dashed border-slate-700 rounded h-20">
+                        <input id="galleryFiles" type="file" accept="image/*" multiple (change)="onGallerySelected($event)" class="hidden" />
+                        <label for="galleryFiles" class="px-3 py-2 bg-blue-600 text-white rounded-lg cursor-pointer">Add</label>
+                      </div>
                     }
                   </div>
+                </div>
+
+                <!-- Pitch Video URL (separate row) -->
+                <div class="mt-6">
+                  <label class="block text-sm font-medium text-slate-300 mb-2">
+                    Pitch Video URL
+                  </label>
+                  <input 
+                    type="url" 
+                    formControlName="videoUrl"
+                    class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    placeholder="{{ t('submitInvestment.placeholders.pitchVideoUrl') }}"
+                  />
+                  @if (hasError('videoUrl')) {
+                    <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('videoUrl') }}</p>
+                  }
                 </div>
               </div>
             </div>
@@ -606,8 +642,8 @@
                   </svg>
                 </div>
                 <div>
-                  <h2 class="text-xl font-bold text-white">Review & Submit</h2>
-                  <p class="text-slate-400 text-sm">Confirm your investment opportunity details</p>
+                  <h2 class="text-xl font-bold text-white">{{ t('submitInvestment.step.reviewSubmit') }}</h2>
+                  <p class="text-slate-400 text-sm">{{ t('submitInvestment.step.reviewSubmit') }}</p>
                 </div>
               </div>
 
@@ -758,15 +794,15 @@
 
           <!-- Navigation Footer -->
           <div class="px-8 py-6 bg-slate-900/50 border-t border-slate-700 flex items-center justify-between">
-            <button 
-              type="button"
-              (click)="currentStep() === 1 ? cancel() : prevStep()"
-              class="px-6 py-3 text-slate-300 hover:text-white transition-colors flex items-center gap-2"
-            >
+              <button 
+                type="button"
+                (click)="currentStep() === 1 ? cancel() : prevStep()"
+                class="px-6 py-3 text-slate-300 hover:text-white transition-colors flex items-center gap-2"
+              >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
               </svg>
-              {{ currentStep() === 1 ? 'Cancel' : 'Back' }}
+              {{ currentStep() === 1 ? t('submitInvestment.actions.cancel') : t('submitInvestment.actions.back') }}
             </button>
 
             @if (currentStep() < totalSteps) {
@@ -775,13 +811,13 @@
                 (click)="nextStep()"
                 class="px-8 py-3 bg-gradient-to-r from-purple-500 to-blue-500 text-white font-semibold rounded-xl hover:from-purple-600 hover:to-blue-600 transition-all flex items-center gap-2"
               >
-                Continue
+                {{ t('submitInvestment.actions.continue') }}
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                 </svg>
               </button>
             } @else {
-              <button 
+                <button 
                 type="submit"
                 [disabled]="isSubmitting() || !investmentForm.valid"
                 class="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -791,12 +827,12 @@
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Submitting...
+                  {{ t('submitInvestment.actions.submit') }}
                 } @else {
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                   </svg>
-                  Submit Investment
+                  {{ t('submitInvestment.actions.submit') }}
                 }
               </button>
             }

@@ -5,6 +5,12 @@
 
   <div class="relative z-10 w-full max-w-md">
     <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl p-8">
+      <button type="button" (click)="close()" aria-label="Close" class="absolute top-3 end-3 text-gray-400 hover:text-white p-2 rounded-full bg-slate-800/50">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
       <div class="text-center mb-8">
         <a routerLink="/" class="flex items-center justify-center mb-4">
           <svg class="h-10 w-10 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">

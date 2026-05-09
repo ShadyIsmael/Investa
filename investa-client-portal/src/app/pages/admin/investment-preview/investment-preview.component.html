@@ -311,7 +311,7 @@
               <div class="bg-gradient-to-br from-slate-800/60 to-slate-800/40 border border-slate-700/50 rounded-xl p-6 backdrop-blur-sm">
                 <h3 class="text-lg font-bold text-white mb-4">Founder</h3>
                 <div class="flex gap-4 mb-4">
-                  <img [src]="inv.imageUrl" alt="{{ inv.founderDisplay }}" class="w-16 h-16 rounded-lg object-cover ring-2 ring-blue-500/30">
+                  <img [src]="founderAvatar(inv)" alt="{{ inv.founderDisplay }}" class="w-16 h-16 rounded-lg object-cover ring-2 ring-blue-500/30">
                   <div>
                     <p class="font-bold text-white">{{ inv.founderDisplay }}</p>
                     @if (inv.businessRole) {

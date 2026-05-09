@@ -1,42 +1,50 @@
 /**
- * Design Tokens – Investa Admin Portal (Obsidian Theme)
+ * Design Tokens – Investa Admin Portal (Zinc Slate Theme)
  * Single source of truth for all visual constants.
+ *
+ * Identity: Modern enterprise SaaS — charcoal/zinc backgrounds,
+ *           indigo primary, full light + dark mode.
  */
 
 // ── 1. Colors ──────────────────────────────────────────────────────────────
 export const colors = {
   light: {
-    background:    '#f8fafc',
+    background:    '#f8f8fa',   // zinc-50/warm
     surface:       '#ffffff',
-    surfaceHover:  '#f1f5f9',
-    border:        '#e2e8f0',
-    text:          '#0f172a',
-    textSecondary: '#475569',
-    textMuted:     '#94a3b8',
+    surfaceHover:  '#f4f4f5',   // zinc-100
+    border:        '#e6e6ea',   // matched to index.css
+    text:          '#111114',   // updated to match index.css
+    textSecondary: '#52525b',   // zinc-600
+    textMuted:     '#9aa0a6',   // matched to index.css
   },
   dark: {
-    background:    '#09090b',
-    surface:       '#111117',
-    surfaceHover:  '#18181f',
-    border:        'rgba(255,255,255,0.07)',
-    text:          '#f1f5f9',
-    textSecondary: '#94a3b8',
-    textMuted:     '#64748b',
+    background:    '#030312',   // matched to index.css dark
+    surface:       '#0b0b0d',   // matched to index.css dark
+    surfaceHover:  '#111114',   // matched to index.css dark
+    border:        'rgba(255,255,255,0.06)',
+    text:          '#f8fafc',   // matched to index.css dark
+    textSecondary: '#c7c7cf',   // matched to index.css dark
+    textMuted:     '#94a3b8',   // matched to index.css dark
   },
   semantic: {
-    primary:     '#0ea5e9',
-    primaryDark: '#38bdf8',
-    accent:      '#38bdf8',
-    success:     '#10b981',
-    error:       '#ef4444',
-    warning:     '#f59e0b',
-    info:        '#06b6d4',
+    primary:     '#4f46e5',   // indigo (canonical)
+    primaryDark: '#818cf8',   // dark variant
+    accent:      '#8b5cf6',   // violet-500
+    accentDark:  '#a78bfa',   // violet-400
+    success:     '#10b981',   // emerald-500
+    successDark: '#34d399',   // emerald-400
+    error:       '#ef4444',   // red-500
+    errorDark:   '#f87171',   // red-400
+    warning:     '#f59e0b',   // amber-500
+    warningDark: '#fbbf24',   // amber-400
+    info:        '#06b6d4',   // cyan-500
+    infoDark:    '#22d3ee',   // cyan-400
   },
   focus: {
-    light: 'rgba(14,165,233,0.15)',
-    dark:  'rgba(56,189,248,0.2)',
+    light: 'rgba(99,102,241,0.15)',
+    dark:  'rgba(129,140,248,0.2)',
   },
-};
+} as const;
 
 // ── 2. Spacing ─────────────────────────────────────────────────────────────
 export const spacing = {
@@ -54,18 +62,18 @@ export const zIndex = {
 // ── 4. Shadows ─────────────────────────────────────────────────────────────
 export const shadows = {
   light: {
-    xs: '0 1px 2px rgba(15,23,36,0.05)',
-    sm: '0 1px 3px rgba(15,23,36,0.08), 0 1px 2px -1px rgba(15,23,36,0.08)',
-    md: '0 4px 6px -1px rgba(15,23,36,0.08)',
-    lg: '0 10px 15px -3px rgba(15,23,36,0.08)',
-    xl: '0 20px 25px -5px rgba(15,23,36,0.08)',
+    xs: '0 1px 2px rgba(24,24,27,0.04)',
+    sm: '0 1px 3px rgba(24,24,27,0.06), 0 1px 2px -1px rgba(24,24,27,0.06)',
+    md: '0 4px 6px -1px rgba(24,24,27,0.07), 0 2px 4px -2px rgba(24,24,27,0.05)',
+    lg: '0 10px 15px -3px rgba(24,24,27,0.08), 0 4px 6px -4px rgba(24,24,27,0.05)',
+    xl: '0 20px 25px -5px rgba(24,24,27,0.08), 0 8px 10px -6px rgba(24,24,27,0.05)',
   },
   dark: {
-    xs: '0 1px 2px rgba(0,0,0,0.35)',
-    sm: '0 1px 3px rgba(0,0,0,0.45)',
-    md: '0 4px 6px -1px rgba(0,0,0,0.55)',
-    lg: '0 10px 15px -3px rgba(0,0,0,0.65)',
-    xl: '0 20px 25px -5px rgba(0,0,0,0.75)',
+    xs: '0 1px 2px rgba(0,0,0,0.4)',
+    sm: '0 1px 3px rgba(0,0,0,0.5), 0 1px 2px -1px rgba(0,0,0,0.45)',
+    md: '0 4px 6px -1px rgba(0,0,0,0.6), 0 2px 4px -2px rgba(0,0,0,0.5)',
+    lg: '0 10px 15px -3px rgba(0,0,0,0.7), 0 4px 6px -4px rgba(0,0,0,0.6)',
+    xl: '0 20px 25px -5px rgba(0,0,0,0.8), 0 8px 10px -6px rgba(0,0,0,0.65)',
   },
 };
 

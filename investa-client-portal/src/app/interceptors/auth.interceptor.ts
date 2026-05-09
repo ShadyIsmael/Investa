@@ -3,13 +3,14 @@ import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent, HttpErrorResponse
 import { Observable, BehaviorSubject, throwError, from } from 'rxjs';
 import { catchError, filter, take, switchMap } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
+import { Router } from '@angular/router';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
   private isRefreshing = false;
   private refreshSubject: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
 
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService, private router: Router) {}
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     const token = this.authService.getAccessToken();
@@ -40,6 +41,7 @@ export class AuthInterceptor implements HttpInterceptor {
           // Avoid trying to refresh if the 401 came from login/refresh endpoints
           if (req.url.includes('/auth/refresh') || req.url.includes('/auth/login')) {
             this.authService.logout();
+            try { this.router.navigate(['/']); } catch {}
             return throwError(() => err);
           }
           return this.handle401Error(authReq, next);
@@ -65,6 +67,7 @@ export class AuthInterceptor implements HttpInterceptor {
         catchError((err) => {
           this.isRefreshing = false;
           this.authService.logout();
+          try { this.router.navigate(['/']); } catch {}
           return throwError(() => err);
         })
       );

@@ -149,6 +149,24 @@ export class DashboardComponent {
     this.selectedFounderProject.set(project);
   }
 
+  getProjectAvatar(project: Investment): string {
+    // Prefer project image for project overview, fall back to profile avatar
+    const projectImage = project.imageUrl || (project.images && project.images.find(i => i.isPrimary)?.url) || (project.images && project.images.length ? project.images[0].url : undefined);
+    if (projectImage) return projectImage;
+    const profile = this.profileService.profile();
+    return profile?.basicInfo?.avatarUrl || '';
+  }
+
+  getImageSrc(inv: Investment): string {
+    if (!inv) return '';
+    const img = inv.imageUrl || (inv.images && inv.images.find(i => i.isPrimary)?.url) || (inv.images && inv.images.length ? inv.images[0].url : undefined);
+    if (img) return img;
+    // Try team member avatar if available
+    const tm = inv.teamMembers && inv.teamMembers.length ? inv.teamMembers[0] : undefined;
+    if (tm && tm.avatar) return tm.avatar;
+    return '';
+  }
+
   unselectProject() {
     this.selectedFounderProject.set(null);
   }
