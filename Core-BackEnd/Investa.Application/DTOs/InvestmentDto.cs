@@ -81,6 +81,11 @@ public class InvestmentDto
     public List<InvestorParticipationDto>? Participants { get; set; }
 
     /// <summary>
+    /// Whether the current user has favorited this investment.
+    /// </summary>
+    public bool Favorited { get; set; }
+
+    /// <summary>
     /// Image gallery associated with the investment opportunity
     /// </summary>
     public List<InvestmentImageDto>? Images { get; set; }

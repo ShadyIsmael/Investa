@@ -426,6 +426,7 @@
         portfolioValue: 'Portfolio Value',
         myInvestments: 'My Investments',
         watchlist: 'My Watchlist',
+        incomingRequests: 'Incoming Requests',
         investorScore: 'My Score',
         availableCredits: 'Available Credits',
         myAllocation: 'My Portfolio Allocation',

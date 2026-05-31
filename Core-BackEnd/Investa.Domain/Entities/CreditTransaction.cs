@@ -58,12 +58,12 @@ public class CreditTransaction
     /// <summary>
     /// Navigation property to the user
     /// </summary>
-    public User? User { get; set; }
+    public AuthUser? User { get; set; }
 
     /// <summary>
     /// Navigation property to the admin (if manually triggered)
     /// </summary>
-    public User? Admin { get; set; }
+    public AuthUser? Admin { get; set; }
 
     #endregion
 }

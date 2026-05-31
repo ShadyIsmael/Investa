@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '@/components/common/Icons';
 import { performAiSearch } from '@/services/geminiService';
 import { MOCK_USERS, DASHBOARD_STATS, MOCK_COA } from '@/mocks';
@@ -28,6 +28,7 @@ export const Header: React.FC<HeaderProps> = React.memo(
     const dropdownRef = useRef<HTMLDivElement>(null);
     const profileRef  = useRef<HTMLDivElement>(null);
     const location    = useLocation();
+    const navigate    = useNavigate();
 
     // ── Backend health events ──────────────────────────────────────────────
     useEffect(() => {
@@ -74,8 +75,39 @@ export const Header: React.FC<HeaderProps> = React.memo(
     const isRTL = i18n.language === 'ar';
 
     // ── Breadcrumbs ────────────────────────────────────────────────────────
-    const breadcrumb = location.pathname.split('/').filter(Boolean).pop() || 'dashboard';
-    const crumbLabel = breadcrumb.charAt(0).toUpperCase() + breadcrumb.slice(1);
+    const segments = location.pathname.split('/').filter(Boolean);
+    let breadcrumb = segments.length ? segments[segments.length - 1] : 'dashboard';
+    if (/^\d+$/.test(breadcrumb) && segments.length > 1) {
+      breadcrumb = segments[segments.length - 2];
+    }
+
+    const routeTranslationKey = {
+      dashboard: 'breadcrumb.dashboard',
+      clients: 'breadcrumb.clients',
+      users: 'breadcrumb.users',
+      groups: 'breadcrumb.groups',
+      roles: 'breadcrumb.roles',
+      finance: 'breadcrumb.finance',
+      coa: 'breadcrumb.coa',
+      billing: 'breadcrumb.billing',
+      journals: 'breadcrumb.journals',
+      cashflow: 'breadcrumb.cashflow',
+      bankrec: 'breadcrumb.bankrec',
+      credit: 'breadcrumb.credit',
+      support: 'breadcrumb.support',
+      'support-dashboard': 'breadcrumb.support-dashboard',
+      'admin-support': 'breadcrumb.admin-support',
+      chat: 'breadcrumb.chat',
+      config: 'breadcrumb.config',
+      'notification-templates': 'breadcrumb.notification-templates',
+      profile: 'breadcrumb.profile',
+      'user-onboarding': 'breadcrumb.user-onboarding',
+      permissions: 'breadcrumb.permissions',
+    }[breadcrumb];
+
+    const crumbLabel = routeTranslationKey
+      ? t(routeTranslationKey, { defaultValue: breadcrumb.charAt(0).toUpperCase() + breadcrumb.slice(1) })
+      : breadcrumb.charAt(0).toUpperCase() + breadcrumb.slice(1);
 
     return (
       <header
@@ -127,25 +159,25 @@ export const Header: React.FC<HeaderProps> = React.memo(
         <div className="flex items-center gap-1">
           {/* API status pill */}
           <div
-            title={backendOnline ? 'API Online' : 'API Offline'}
+            title={backendOnline ? t('header.apiOnline') : t('header.apiOffline')}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary text-xs font-medium me-1"
           >
             <span className={`w-1.5 h-1.5 rounded-full ${backendOnline ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
-            <span className="hidden sm:inline text-muted-foreground text-[11px]">{backendOnline ? 'Online' : 'Offline'}</span>
+            <span className="hidden sm:inline text-muted-foreground text-[11px]">{backendOnline ? t('header.online') : t('header.offline')}</span>
           </div>
 
           {/* Language toggle */}
-          <button onClick={toggleLang} className="btn-icon" title="Switch language">
+          <button onClick={toggleLang} className="btn-icon" title={t('header.switchLanguage')}>
             <span className="text-[11px] font-extrabold tracking-wide">{isRTL ? 'EN' : 'عر'}</span>
           </button>
 
           {/* Theme toggle */}
-          <button onClick={toggleTheme} className="btn-icon" title="Toggle theme">
+          <button onClick={toggleTheme} className="btn-icon" title={t('header.toggleTheme')}>
             <Icon name={theme === 'dark' ? 'light-mode' : 'dark-mode'} className="w-[18px] h-[18px]" />
           </button>
 
           {/* Notifications */}
-          <button className="btn-icon relative" title="Notifications">
+          <button className="btn-icon relative" title={t('header.notifications')}>
             <Icon name="notifications" className="w-[18px] h-[18px]" />
             <span className="absolute top-2 end-2 w-1.5 h-1.5 bg-primary rounded-full ring-2 ring-card" />
           </button>
@@ -171,14 +203,20 @@ export const Header: React.FC<HeaderProps> = React.memo(
                   <p className="text-sm font-bold text-foreground">{currentUser.name}</p>
                   <p className="text-xs text-muted-foreground">{currentUser.email}</p>
                 </div>
-                <button className="w-full text-start px-3 py-2 rounded-lg hover:bg-secondary text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2.5">
-                  <Icon name="person" className="w-4 h-4" /> My Profile
+                <button
+                  onClick={() => {
+                    navigate('/profile');
+                    setShowProfileMenu(false);
+                  }}
+                  className="w-full text-start px-3 py-2 rounded-lg hover:bg-secondary text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2.5"
+                >
+                  <Icon name="person" className="w-4 h-4" /> {t('header.myProfile')}
                 </button>
                 <button
                   onClick={() => { onLogout(); setShowProfileMenu(false); }}
                   className="w-full text-start px-3 py-2 rounded-lg hover:bg-destructive/10 text-sm font-medium text-destructive transition-colors flex items-center gap-2.5"
                 >
-                  <Icon name="logout" className="w-4 h-4" /> Sign Out
+                  <Icon name="logout" className="w-4 h-4" /> {t('header.signOut')}
                 </button>
               </div>
             )}

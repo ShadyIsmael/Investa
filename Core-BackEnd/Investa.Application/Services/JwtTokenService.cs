@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
@@ -30,7 +30,7 @@ public class JwtTokenService : IJwtTokenService
     }
 
     /// <inheritdoc/>
-    public async Task<AuthResponseDto> GenerateTokenAsync(IdentityUser<Guid> user)
+    public async Task<AuthResponseDto> GenerateTokenAsync(IdentityUser<Guid> user, IEnumerable<string>? identityRoles = null)
     {
         if (user == null)
             throw new ArgumentNullException(nameof(user));
@@ -62,15 +62,42 @@ public class JwtTokenService : IJwtTokenService
         string? groupName = null;
         int? groupId = null;
 
-        // Try to parse Identity user id as GUID and fetch domain and auth user info
-        User? domainUser = null;
+        // Use explicit Identity roles when available
+        var explicitRoles = identityRoles?.Where(r => !string.IsNullOrWhiteSpace(r))
+            .Select(r => r.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList() ?? new List<string>();
+
+        if (explicitRoles.Any())
+        {
+            if (explicitRoles.Contains("Admin", StringComparer.OrdinalIgnoreCase))
+            {
+                roleClaimValue = "Admin";
+            }
+            else if (explicitRoles.Contains(nameof(UserRoles.OrgUser), StringComparer.OrdinalIgnoreCase))
+            {
+                roleClaimValue = UserRoles.OrgUser.ToString();
+            }
+            else if (explicitRoles.Contains(nameof(UserRoles.Client), StringComparer.OrdinalIgnoreCase))
+            {
+                roleClaimValue = UserRoles.Client.ToString();
+            }
+            else
+            {
+                roleClaimValue = explicitRoles.First();
+            }
+
+            userTypeValue = roleClaimValue;
+        }
+
+        var roleNames = new List<string>(explicitRoles);
+
+        // Try to parse Identity user id as GUID and fetch auth user info
+        AuthUser? authUser = null;
         var userGuid = user.Id;
         if (userGuid != Guid.Empty)
         {
-            // Fetch domain user first (may contain Role string like "Admin")
-            domainUser = (await _unitOfWork.Repository<User>().FindAsync(u => u.Id == userGuid)).FirstOrDefault();
-
-            var authUser = (await _unitOfWork.Repository<AuthUser>().FindAsync(a => a.Id == userGuid)).FirstOrDefault();
+            authUser = (await _unitOfWork.Repository<AuthUser>().FindAsync(a => a.Id == userGuid)).FirstOrDefault();
             if (authUser != null)
             {
                 // Simplified two-type mapping: OrgUser or Client
@@ -86,7 +113,7 @@ public class JwtTokenService : IJwtTokenService
                 }
             }
             
-            // NEW: Fetch role from UserRoles -> Roles -> Group (Group-Bound Role Architecture)
+            // Fetch role from UserRoles -> Roles -> Group (Group-Bound Role Architecture)
             try
             {
                 var userRole = (await _unitOfWork.Repository<Investa.Domain.Entities.Security.UserRole>()
@@ -101,19 +128,25 @@ public class JwtTokenService : IJwtTokenService
                         
                     if (role != null)
                     {
-                        roleClaimValue = role.Name;
-                        userTypeValue = role.Name;
+                        if (!roleNames.Contains(role.Name, StringComparer.OrdinalIgnoreCase))
+                        {
+                            roleNames.Add(role.Name);
+                        }
+
+                        if (!explicitRoles.Any())
+                        {
+                            roleClaimValue = role.Name;
+                            userTypeValue = role.Name;
+                        }
+
                         groupId = role.GroupId;
                         
-                        // Fetch group name
                         var group = (await _unitOfWork.Repository<Group>()
                             .FindAsync(g => g.Id == role.GroupId))
                             .FirstOrDefault();
                             
                         if (group != null)
-                        {
                             groupName = group.Name;
-                        }
                     }
                 }
             }
@@ -123,68 +156,61 @@ public class JwtTokenService : IJwtTokenService
             }
         }
 
+        if (!roleNames.Any())
+            roleNames.Add(roleClaimValue);
+
+        var distinctRoleNames = roleNames.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
         // Create claims with phone number as identifier
         var claims = new List<Claim>
         {
-            new Claim("sub", user.Id.ToString()), // Subject (user ID)
+            new Claim("sub", user.Id.ToString()),
             new Claim("id", user.Id.ToString()),
             new Claim(ClaimTypes.NameIdentifier, user.UserName ?? string.Empty),
-            new Claim(ClaimTypes.MobilePhone, user.PhoneNumber ?? string.Empty), // Phone number claim
+            new Claim(ClaimTypes.MobilePhone, user.PhoneNumber ?? string.Empty),
             new Claim("phone_number", user.PhoneNumber ?? string.Empty),
-            // Include role claim so role-based Authorize attributes work
-            new Claim(ClaimTypes.Role, roleClaimValue),
-            new Claim("role", roleClaimValue),
             new Claim("userType", userTypeValue),
         };
+
+        foreach (var roleName in distinctRoleNames)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, roleName));
+            claims.Add(new Claim("role", roleName));
+        }
         
-        // Add group_id claim (NEW: from Group-Bound Role Architecture)
         if (groupId.HasValue)
-        {
             claims.Add(new Claim("group_id", groupId.Value.ToString()));
-        }
         
-        // Add group name claim for convenience
         if (!string.IsNullOrEmpty(groupName))
-        {
             claims.Add(new Claim("group", groupName));
-        }
 
-        // If user is Admin, add wildcard permission from central constant
         if (string.Equals(roleClaimValue, "Admin", StringComparison.OrdinalIgnoreCase))
-        {
             claims.Add(new Claim("permission", SystemPermissions.SuperAccess));
-        }
 
-        // Add group and permission claims if the domain user exists (legacy UserGroups support)
-        if (domainUser != null)
+        // Add group and permission claims from UserGroups + UserRoles
+        if (authUser != null)
         {
             try
             {
-                var domainUserGuid = domainUser.Id;
-                var userGroups = (await _unitOfWork.Repository<UserGroup>().FindAsync(ug => ug.UserId == domainUserGuid)).ToList();
+                var userGroups = (await _unitOfWork.Repository<UserGroup>().FindAsync(ug => ug.UserId == authUser.Id)).ToList();
                 if (userGroups.Any())
                 {
                     var groupIds = userGroups.Select(ug => ug.GroupId).Distinct().ToList();
                     var groups = (await _unitOfWork.Repository<Group>().FindAsync(g => groupIds.Contains(g.Id))).ToList();
                     foreach (var g in groups)
                     {
-                        // Only add if not already added from Role
                         if (string.IsNullOrEmpty(groupName) || g.Name != groupName)
-                        {
                             claims.Add(new Claim("group", g.Name));
-                        }
                     }
 
                     var groupPerms = (await _unitOfWork.Repository<GroupPermission>().FindAsync(gp => groupIds.Contains(gp.GroupId))).ToList();
                     var permissionIds = groupPerms.Select(gp => gp.PermissionId).Distinct().ToList();
                     var perms = (await _unitOfWork.Repository<Permission>().FindAsync(p => permissionIds.Contains(p.Id))).ToList();
                     foreach (var p in perms.DistinctBy(x => x.Key))
-                    {
                         claims.Add(new Claim("permission", p.Key));
-                    }
                 }
                 
-                // NEW: Add permissions from RolePermissions (Group-Bound Role Architecture)
+                // Permissions from RolePermissions (Group-Bound Role Architecture)
                 if (userGuid != Guid.Empty)
                 {
                     var userRole = (await _unitOfWork.Repository<Investa.Domain.Entities.Security.UserRole>()
@@ -201,14 +227,10 @@ public class JwtTokenService : IJwtTokenService
                         {
                             var permIds = rolePerms.Select(rp => rp.PermissionId).Distinct().ToList();
                             var permissions = (await _unitOfWork.Repository<Permission>().FindAsync(p => permIds.Contains(p.Id))).ToList();
-                            
                             foreach (var perm in permissions.DistinctBy(x => x.Key))
                             {
-                                // Avoid duplicate permission claims
                                 if (!claims.Any(c => c.Type == "permission" && c.Value == perm.Key))
-                                {
                                     claims.Add(new Claim("permission", perm.Key));
-                                }
                             }
                         }
                     }
@@ -254,21 +276,20 @@ public class JwtTokenService : IJwtTokenService
         if (authUserGuid != Guid.Empty)
         {
             // Ensure an AuthUser exists for this identity id. If missing, create a minimal record so FK won't fail.
-            var authUser = (await _unitOfWork.Repository<AuthUser>().FindAsync(a => a.Id == authUserGuid)).FirstOrDefault();
-            if (authUser == null)
+            var existingAuthUser = (await _unitOfWork.Repository<AuthUser>().FindAsync(a => a.Id == authUserGuid)).FirstOrDefault();
+            if (existingAuthUser == null)
             {
-                // Create a minimal AuthUser entry. PasswordHash is required by the model; use a placeholder hash.
-                authUser = new AuthUser
+                existingAuthUser = new AuthUser
                 {
                     Id = authUserGuid,
                     Email = user.Email ?? (user.UserName + "@phone.investa.local"),
-                    PasswordHash = "", // placeholder; real hash should be created during sign-up flow
-                    UserType = UserType.Client, // Default to Client for external users
+                    PasswordHash = "",
+                    UserType = UserType.Client,
                     Status = true,
                     CreatedAt = DateTime.UtcNow
                 };
 
-                await _unitOfWork.Repository<AuthUser>().AddAsync(authUser);
+                await _unitOfWork.Repository<AuthUser>().AddAsync(existingAuthUser);
                 await _unitOfWork.SaveChangesAsync();
             }
 

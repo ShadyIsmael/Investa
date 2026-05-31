@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supportService } from '../../services/supportService';
 import { Conversation } from '../../types';
 import { Icon } from '@/components/common/Icons';
+import { useTranslation } from 'react-i18next';
 
 export const SupportAdmin: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -31,11 +32,13 @@ export const SupportAdmin: React.FC = () => {
     } catch (e) { /* ignore */ }
   };
 
+  const { t } = useTranslation();
+
   if (loading) return <div className="p-6">Loading...</div>;
 
   return (
     <div className="p-6">
-      <h2 className="text-xl font-bold mb-4">Support Conversations</h2>
+      <h2 className="text-xl font-bold mb-4">{t('pages.supportConversations', { defaultValue: 'Support Conversations' })}</h2>
       <div className="bg-white rounded-xl shadow overflow-hidden border border-slate-100">
         <table className="w-full text-left">
           <thead className="bg-slate-50 text-slate-500 text-sm uppercase text-[12px]"><tr>

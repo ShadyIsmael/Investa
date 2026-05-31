@@ -1,30 +1,12 @@
 using System;
-using System.ComponentModel.DataAnnotations;
 
 namespace Investa.Domain.Entities;
 
-public class Employee
-{
-    [Key]
-    public int Id { get; set; }
-
-    [Required]
-    public Guid UserId { get; set; }
-
-    [Required]
-    [StringLength(50)]
-    public string EmployeeNumber { get; set; } = string.Empty;
-
-    [StringLength(100)]
-    public string? Department { get; set; }
-
-    public byte PermissionsLevel { get; set; } = 1;
-
-    public DateTime? HireDate { get; set; }
-
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-
-    // Navigation
-    public AuthUser? User { get; set; }
-}
+/// <summary>
+/// OBSOLETE — internal staff are now represented as AuthUser records with UserType = OrgUser.
+/// RBAC (UserRoles / UserGroups) controls their permissions. No profile required.
+/// This stub is kept to avoid breaking stray references during migration.
+/// </summary>
+[Obsolete("Staff/admin users are AuthUser with UserType = OrgUser. Employee table is dropped.")]
+[System.ComponentModel.DataAnnotations.Schema.NotMapped]
+public class Employee { }

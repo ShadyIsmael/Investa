@@ -1,9 +1,11 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MOCK_INVOICES } from '@/mocks/finance';
 import { Icon } from '@/components/common/Icons';
 
 export const InvoicingBilling: React.FC = React.memo(() => {
+  const { t } = useTranslation();
   const [filter, setFilter] = useState<'All' | 'Paid' | 'Unpaid' | 'Overdue'>('All');
 
   const filtered = useMemo(() => MOCK_INVOICES.filter(inv => filter === 'All' || inv.status === filter), [filter]);
@@ -15,8 +17,8 @@ export const InvoicingBilling: React.FC = React.memo(() => {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Invoicing & Billing</h2>
-          <p className="text-slate-500 text-[13px] font-medium">Issue and track professional invoices for your clients.</p>
+          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">{t('pages.invoicingBilling', { defaultValue: 'Invoicing & Billing' })}</h2>
+          <p className="text-slate-500 text-[13px] font-medium">{t('pages.invoicingBillingDescription', { defaultValue: 'Issue and track professional invoices for your clients.' })}</p>
         </div>
         <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-[13px] font-bold flex items-center gap-2 shadow-lg shadow-indigo-600/20">
           <Icon name="credit-card" className="w-4 h-4" />

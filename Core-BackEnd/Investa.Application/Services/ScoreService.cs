@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using Investa.Application.Interfaces;
 using Investa.Application.DTOs;
 using Investa.Domain.Entities;
@@ -20,17 +20,17 @@ public class ScoreService : IScoreService
     // --- Existing helpers for credibility score (kept for backward compatibility)
     public async Task<int> GetCredibilityScoreAsync(Guid userId)
     {
-        var user = await _unitOfWork.Repository<User>().GetByIdAsync(userId);
+        var user = await _unitOfWork.Repository<AuthUser>().GetByIdAsync(userId);
         return user?.CredibilityScore ?? 0;
     }
 
     public async Task UpdateCredibilityScoreAsync(Guid userId, int newScore)
     {
-        var user = await _unitOfWork.Repository<User>().GetByIdAsync(userId);
+        var user = await _unitOfWork.Repository<AuthUser>().GetByIdAsync(userId);
         if (user != null)
         {
             user.CredibilityScore = newScore;
-            await _unitOfWork.Repository<User>().UpdateAsync(user);
+            await _unitOfWork.Repository<AuthUser>().UpdateAsync(user);
             await _unitOfWork.SaveChangesAsync();
         }
     }

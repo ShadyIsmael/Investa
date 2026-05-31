@@ -5,8 +5,9 @@ import '../network/network_client.dart';
 import '../network/network_config.dart';
 import '../services/logger_service.dart';
 import '../services/secure_storage_service.dart';
-import '../services/signalr_service.dart';
 import '../services/firebase_messaging_service.dart';
+import '../services/support_chat_http_service.dart';
+import '../services/fcm_service.dart';
 import '../../features/auth/data/datasources/auth_remote_datasource.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
@@ -71,14 +72,25 @@ Future<void> initializeDependencies() async {
         logger: sl(),
       ));
 
-  // SignalR Service
-  sl.registerLazySingleton<SignalRService>(() => SignalRService(
-        networkConfig: sl(),
-        secureStorage: sl(),
-        logger: sl(),
-      ));
+  // Support HTTP Service
+  sl.registerLazySingleton<SupportChatHttpService>(
+    () => SupportChatHttpService(
+      logger: sl(),
+      secureStorage: sl(),
+      networkConfig: sl(),
+    ),
+  );
 
-  // Firebase Messaging Service
+  // FCM service (foreground/background messaging)
+  sl.registerLazySingleton<FCMService>(
+    () => FCMService(
+      logger: sl(),
+      secureStorage: sl(),
+      networkConfig: sl(),
+    ),
+  );
+
+  // Firebase Messaging Service (legacy wrapper if used elsewhere)
   sl.registerLazySingleton<FirebaseMessagingService>(
     () => FirebaseMessagingService(logger: sl()),
   );
@@ -116,7 +128,8 @@ Future<void> initializeDependencies() async {
   // Data sources
   sl.registerLazySingleton<SupportRemoteDataSource>(
     () => SupportRemoteDataSourceImpl(
-      signalRService: sl(),
+      httpService: sl(),
+      fcmService: sl(),
       logger: sl(),
     ),
   );

@@ -67,7 +67,7 @@ Future<void> main() async {
 }
 
 class InvestaApp extends StatelessWidget {
-  const InvestaApp({Key? key}) : super(key: key);
+  const InvestaApp({super.key});
 
   @override
   Widget build(BuildContext context) {

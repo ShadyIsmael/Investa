@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter_dark_app/services/auth_service.dart';
-import 'package:flutter_dark_app/services/api_client.dart';
+import 'package:flutter_founder/services/auth_service.dart';
+import 'package:flutter_founder/services/api_client.dart';
 
 class FakeApiClient implements ApiClient {
   final Response _response;
@@ -9,7 +9,7 @@ class FakeApiClient implements ApiClient {
 
   @override
   Future<Response> post(String url,
-      {Map<String, dynamic>? data, Map<String, dynamic>? headers}) async {
+      {dynamic data, Map<String, dynamic>? headers}) async {
     return _response;
   }
 
@@ -17,6 +17,17 @@ class FakeApiClient implements ApiClient {
   Future<Response> get(String url,
       {Map<String, dynamic>? headers,
       Map<String, dynamic>? queryParameters}) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Response> put(String url,
+      {dynamic data, Map<String, dynamic>? headers}) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Response> delete(String url, {Map<String, dynamic>? headers}) async {
     throw UnimplementedError();
   }
 
@@ -35,7 +46,6 @@ void main() {
     // Provided test credentials
     const phone = '01022322292';
     const password = 'P@ssw0rd';
-    const otp = '123456';
 
     // Server response simulation: successful sign-up returning a token
     final resp = makeResponse(200, {

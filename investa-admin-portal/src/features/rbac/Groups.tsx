@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { groupService } from '@/services/groupService';
-import { userService } from '@/services/userService';
+import { NAV_ITEMS } from '@/utils/constants';
 import PermissionControl from '@/components/common/PermissionControl';
+import { Icon } from '@/components/common/Icons';
+import GroupPermissionsEditor from '@/components/GroupPermissionsEditor';
+import { useTranslation } from 'react-i18next';
 
 interface Group {
   id: number;
   name: string;
   description: string;
   roleIds?: number[];
-  members?: number[];
+  members?: { userId: number; roleId?: number }[];
   createdAt?: string;
 }
 
@@ -16,6 +19,7 @@ export const Groups: React.FC = () => {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const { t } = useTranslation();
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -28,28 +32,8 @@ export const Groups: React.FC = () => {
 
   // Details modal
   const [detailsGroup, setDetailsGroup] = useState<any | null>(null);
-  const [permissionsList, setPermissionsList] = useState<string[]>([]);
-  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
-  const [canEditPermissions, setCanEditPermissions] = useState(true); // controlled by permission check (adjusted below)
 
-  const togglePermission = (perm: string) => {
-    setSelectedPermissions(prev => prev.includes(perm) ? prev.filter(p => p !== perm) : [...prev, perm]);
-  };
-
-  const savePermissions = async () => {
-    if (!detailsGroup) return;
-    try {
-      await groupService.updateGroupPermissions(detailsGroup.id, selectedPermissions);
-      showToast('Permissions saved', 'success');
-      // refresh details
-      const refreshed = await groupService.getGroupById(detailsGroup.id);
-      setDetailsGroup(refreshed);
-      loadGroups(page, pageSize, debouncedSearch);
-    } catch (e) {
-      console.warn('Failed to save permissions', e);
-      showToast('Failed to save permissions', 'error');
-    }
-  };
+  
 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
@@ -61,6 +45,8 @@ export const Groups: React.FC = () => {
     return () => clearTimeout(t);
   }, [searchTerm]);
 
+  
+
   useEffect(() => {
     loadGroups(page, pageSize, debouncedSearch);
   }, [page, pageSize, debouncedSearch]);
@@ -69,7 +55,7 @@ export const Groups: React.FC = () => {
     setLoading(true);
     try {
       const res = await groupService.getGroupsList(p, ps, search || undefined);
-      setGroups(res.items.map(i => ({ id: i.id, name: i.name, description: i.description || '', roleIds: [], members: [], createdAt: i.createdAt })));
+      setGroups(res.items.map(i => ({ id: i.id, name: i.name, description: i.description || '', roleIds: [], createdAt: i.createdAt })));
       setTotal(res.total || 0);
       setPage(res.page || p);
       setPageSize(res.pageSize || ps);
@@ -81,7 +67,7 @@ export const Groups: React.FC = () => {
   };
 
   const openModal = (group?: Group) => {
-    setEditingGroup(group || { id: 0, name: '', description: '', roleIds: [], members: [] });
+    setEditingGroup(group || { id: 0, name: '', description: '', roleIds: [] });
     setShowModal(true);
   };
 
@@ -134,8 +120,8 @@ export const Groups: React.FC = () => {
     <div className="space-y-6 animate-in fade-in duration-300">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Groups</h2>
-          <p className="text-slate-500 text-sm">Manage organizational groups and departments</p>
+          <h2 className="text-2xl font-bold">{t('rbac.groups', { defaultValue: 'Groups' })}</h2>
+          <p className="text-slate-500 text-sm">{t('pages.groupsDescription', { defaultValue: 'Manage organizational groups and departments' })}</p>
         </div>
         <PermissionControl permission="Group.Create">
           <button onClick={() => openModal()} className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700">
@@ -156,17 +142,16 @@ export const Groups: React.FC = () => {
         </div>
 
         {loading ? (
-          <div className="text-center py-8 text-muted">Loading groups...</div>
+          <div className="text-center py-8 text-muted-foreground">Loading groups...</div>
         ) : filteredGroups.length === 0 ? (
-          <div className="text-center py-8 text-muted">No groups found</div>
+          <div className="text-center py-8 text-muted-foreground">No groups found</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-left">
-              <thead className="text-muted text-sm uppercase text-[11px] tracking-widest border-b border-border">
+              <thead className="text-muted-foreground text-sm uppercase text-[11px] tracking-widest border-b border-border">
                 <tr>
                   <th className="px-3 py-2">Group Name</th>
                   <th className="px-3 py-2">Description</th>
-                  <th className="px-3 py-2">Members</th>
                   <th className="px-3 py-2 text-right">Actions</th>
                 </tr>
               </thead>
@@ -174,25 +159,29 @@ export const Groups: React.FC = () => {
                 {filteredGroups.map(group => (
                   <tr key={group.id} className="border-b border-border hover:bg-background/50">
                     <td className="px-3 py-3 font-semibold text-text">{group.name}</td>
-                    <td className="px-3 py-3 text-muted text-sm">{group.description}</td>
-                    <td className="px-3 py-3 text-sm text-text">{(group as any).memberCount ?? (group.members?.length || 0)}</td>
-                    <td className="px-3 py-3 text-right">
+                      <td className="px-3 py-3 text-muted-foreground text-sm">{group.description}</td>
+                      <td className="px-3 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button onClick={async () => { 
-                          const d = await groupService.getGroupById(group.id); 
+                        <button onClick={async () => {
+                          const d = await groupService.getGroupById(group.id);
+
+                          // Collect all permission keys from navigation items
+                          const collect = (items: any[]): string[] => {
+                            const out: string[] = [];
+                            for (const it of items) {
+                              if (Array.isArray(it.permissions)) out.push(...it.permissions);
+                              if (Array.isArray(it.children)) out.push(...collect(it.children));
+                            }
+                            return out;
+                          };
+
+                          const allNavPermissions = Array.from(new Set(collect(NAV_ITEMS)));
+
+                          // Ensure backend (or mock) has those permissions created
+                          await groupService.ensurePermissionsExist(allNavPermissions);
+
                           setDetailsGroup(d);
-                          // load permissions list and selected
-                          try {
-                            const perms = await groupService.getAllPermissions();
-                            setPermissionsList(Array.isArray(perms) ? perms : []);
-                            setSelectedPermissions((d?.permissions || []).slice());
-                            // check permission to edit
-                            // naive: require Group.Update permission (replace with real permission check if available)
-                            setCanEditPermissions(true);
-                          } catch (e) {
-                            setPermissionsList([]);
-                          }
-                        }} className="px-2 py-1 text-muted text-sm hover:text-primary hover:underline">View</button>
+                        }} className="px-2 py-1 text-muted-foreground text-sm hover:text-primary hover:underline">View</button>
                         <PermissionControl permission="Group.Update">
                           <button onClick={() => openModal(group)} className="px-2 py-1 text-primary text-sm hover:underline">
                             Edit
@@ -212,7 +201,7 @@ export const Groups: React.FC = () => {
 
             {/* Pagination */}
             <div className="flex items-center justify-between mt-3">
-              <div className="text-sm text-muted">Showing {total === 0 ? 0 : (Math.min((page-1)*pageSize+1, total))} - {total === 0 ? 0 : Math.min(page*pageSize, total)} of {total} groups</div>
+              <div className="text-sm text-muted-foreground">Showing {total === 0 ? 0 : (Math.min((page-1)*pageSize+1, total))} - {total === 0 ? 0 : Math.min(page*pageSize, total)} of {total} groups</div>
               <div className="flex items-center gap-2">
                 <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }} className="px-2 py-1 border border-border rounded-md bg-surface text-text">
                   <option value={10}>10 / page</option>
@@ -245,7 +234,7 @@ export const Groups: React.FC = () => {
 
                   <div className="flex items-center gap-1 ml-2">
                     <input type="number" min={1} max={Math.max(1, Math.ceil((total || 0)/pageSize))} value={page} onChange={e => setPage(Math.min(Math.max(1, Number(e.target.value || 1)), Math.max(1, Math.ceil((total || 0)/pageSize))))} className="w-14 px-2 py-1 border border-border rounded-md text-sm bg-surface text-text" />
-                    <div className="text-sm text-muted">/ {Math.max(1, Math.ceil((total || 0)/pageSize))}</div>
+                    <div className="text-sm text-muted-foreground">/ {Math.max(1, Math.ceil((total || 0)/pageSize))}</div>
                   </div>
                 </div>
               </div>
@@ -280,21 +269,7 @@ export const Groups: React.FC = () => {
                 />
               </div>
 
-              {/* Members assignment (simplified) */}
-              <div>
-                <label className="text-sm font-bold text-text">Members (IDs comma separated)</label>
-                <input
-                  value={(editingGroup.members || []).map(m=>typeof m === 'number' ? m : m.userId).join(',')}
-                  onChange={(e) => {
-                    const vals = e.target.value.split(',').map(s=>s.trim()).filter(Boolean).map(s=>Number(s));
-                    setEditingGroup({ ...editingGroup, members: vals.map(v=>({ userId: v })) });
-                  }}
-                  className="w-full mt-2 px-3 py-2 rounded-lg border border-border bg-background text-text"
-                  placeholder="e.g., 1,2,3"
-                />
-              </div>
-
-              <div className="text-xs text-muted">Note: Members assignment is simplified here. Use the dedicated Group Details page for full member management.</div>
+              
             </div>
             <div className="mt-6 flex items-center justify-end gap-2">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 border border-border rounded-md text-sm text-text hover:bg-background">
@@ -311,53 +286,20 @@ export const Groups: React.FC = () => {
       {detailsGroup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setDetailsGroup(null)} />
-          <div className="relative bg-surface rounded-2xl border border-border shadow-xl z-50 w-full max-w-2xl p-6 text-text">
+          <div className="relative bg-surface rounded-2xl border border-border shadow-xl z-50 w-full max-w-2xl p-6 text-text max-h-[85vh] overflow-y-auto">
             <h3 className="font-bold text-lg mb-2">{detailsGroup.name}</h3>
-            <p className="text-sm text-muted mb-4">{detailsGroup.description}</p>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <h4 className="text-sm font-semibold">Members ({detailsGroup.memberCount || 0})</h4>
-                <ul className="mt-2 space-y-2 text-sm">
-                  {(detailsGroup.membersSample || []).map((m:any) => (
-                    <li key={m.id} className="flex items-center justify-between">
-                      <div>
-                        <div className="font-semibold">{m.name}</div>
-                        <div className="text-xs text-muted">{m.email}</div>
-                      </div>
-                      <div className="text-xs text-muted">{m.role || ''}</div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold">Permissions</h4>
-                <div className="mt-2 text-sm text-muted">
-                  {(detailsGroup.permissions || []).join(', ') || '—'}
-                </div>
-
-                {/* Editable permissions (if allowed) */}
-                <div className="mt-3">
-                  <h5 className="text-sm font-semibold">Edit Permissions</h5>
-                  <div className="mt-2 text-sm">
-                    {permissionsList.map((p: string) => (
-                      <label key={p} className="flex items-center gap-2 py-1">
-                        <input type="checkbox" checked={selectedPermissions.includes(p)} onChange={() => togglePermission(p)} disabled={!canEditPermissions} />
-                        <span className="truncate">{p}</span>
-                      </label>
-                    ))}
-                  </div>
-                  <div className="mt-3">
-                    <button onClick={savePermissions} disabled={!canEditPermissions} className={`px-3 py-1 rounded-md ${canEditPermissions ? 'bg-primary text-white' : 'bg-background text-muted cursor-not-allowed'}`}>Save Permissions</button>
+            <p className="text-sm text-muted-foreground mb-4">{detailsGroup.description}</p>
+              <div className="grid grid-cols-1 gap-6">
+                <div>
+                  <h4 className="text-sm font-semibold">Permissions</h4>
+                  <div className="mt-2">
+                    <GroupPermissionsEditor groupId={detailsGroup.id} initialPermissions={detailsGroup.permissions || []} />
                   </div>
                 </div>
-
-                <h4 className="text-sm font-semibold mt-4">Metadata</h4>
-                <pre className="mt-2 text-xs text-muted bg-background p-2 rounded border border-border">{JSON.stringify(detailsGroup.metadata || {}, null, 2)}</pre>
               </div>
-            </div>
-            <div className="mt-6 flex justify-end">
-              <button onClick={() => setDetailsGroup(null)} className="px-3 py-1 border border-border rounded-md hover:bg-background">Close</button>
-            </div>
+              <button aria-label="Close" onClick={() => setDetailsGroup(null)} className="absolute top-4 right-4 inline-flex items-center justify-center w-9 h-9 bg-surface border border-border rounded-full text-muted-foreground hover:bg-red-50 hover:text-rose-600 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                <Icon name="x" className="w-4 h-4" />
+              </button>
           </div>
         </div>
       )}

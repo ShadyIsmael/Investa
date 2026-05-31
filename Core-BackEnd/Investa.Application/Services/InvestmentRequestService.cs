@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using System.Collections.Generic;
 using System.Linq;
 using Investa.Application.DTOs.Requests;
@@ -44,7 +44,7 @@ public class InvestmentRequestService : IInvestmentRequestService
         }
 
         var client = (await _unitOfWork.Repository<Client>().FindAsync(c => c.UserId == investorId)).FirstOrDefault();
-        var user = await _unitOfWork.Repository<User>().GetByIdAsync(investorId);
+        var user = await _unitOfWork.Repository<AuthUser>().GetByIdAsync(investorId);
         if (client == null && user == null)
         {
             throw new InvalidOperationException("Investor account not found");
@@ -147,7 +147,7 @@ public class InvestmentRequestService : IInvestmentRequestService
         }
 
         var updatedClient = (await _unitOfWork.Repository<Client>().FindAsync(c => c.UserId == investorId)).FirstOrDefault();
-        var updatedUser = await _unitOfWork.Repository<User>().GetByIdAsync(investorId);
+        var updatedUser = await _unitOfWork.Repository<AuthUser>().GetByIdAsync(investorId);
         var updatedBalance = updatedClient?.Credit ?? updatedUser?.WalletBalance ?? 0m;
 
         try
@@ -169,7 +169,7 @@ public class InvestmentRequestService : IInvestmentRequestService
 
             try
             {
-                var founder = await _unitOfWork.Repository<User>().GetSingleAsync(u => u.Id == request.FounderId, u => u.Profile);
+                var founder = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.FounderId, u => u.Profile);
                 mapped.FounderDisplayName = founder?.Profile?.FullName ?? founder?.Name;
             }
             catch
@@ -179,7 +179,7 @@ public class InvestmentRequestService : IInvestmentRequestService
 
             try
             {
-                var investor = await _unitOfWork.Repository<User>().GetSingleAsync(u => u.Id == request.InvestorId, u => u.Profile);
+                var investor = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.InvestorId, u => u.Profile);
                 mapped.InvestorDisplayName = investor?.Profile?.FullName ?? investor?.Name;
             }
             catch
@@ -241,7 +241,7 @@ public class InvestmentRequestService : IInvestmentRequestService
 
             try
             {
-                var founder = await _unitOfWork.Repository<User>().GetSingleAsync(u => u.Id == request.FounderId, u => u.Profile);
+                var founder = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.FounderId, u => u.Profile);
                 dto.FounderDisplayName = founder?.Profile?.FullName ?? founder?.Name;
             }
             catch
@@ -251,7 +251,7 @@ public class InvestmentRequestService : IInvestmentRequestService
 
             try
             {
-                var investor = await _unitOfWork.Repository<User>().GetSingleAsync(u => u.Id == request.InvestorId, u => u.Profile);
+                var investor = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.InvestorId, u => u.Profile);
                 dto.InvestorDisplayName = investor?.Profile?.FullName ?? investor?.Name;
             }
             catch

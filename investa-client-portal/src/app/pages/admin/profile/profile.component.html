@@ -59,20 +59,6 @@
           </nav>
         </div>
 
-        <div class="bg-slate-800/50 p-3 rounded-lg text-center">
-          <p class="text-sm font-semibold text-blue-400">{{ 'profile.kyc' | translate }}</p>
-          <div *ngIf="isLoading()" class="flex items-center justify-center py-4">
-            <div class="w-8 h-8 border-4 border-blue-400 border-t-transparent rounded-full animate-spin" aria-hidden="true"></div>
-          </div>
-          <div *ngIf="!isLoading()">
-            <p class="text-xs text-gray-400 mt-1 flex items-center gap-3">{{ 'profile.kyc' | translate }}: <span class="font-semibold text-white">{{ kycStatus() }}</span>
-              <button *ngIf="kycStatus() === 'None'" (click)="onStartKyc()" [disabled]="isLoading()" class="ms-3 bg-blue-600 text-white px-3 py-1 rounded-md text-sm">{{ 'profile.startKyc' | translate }}</button>
-              <span *ngIf="kycStatus() === 'Pending'" class="ms-3 text-yellow-300 text-sm">({{ 'profile.pending' | translate }})</span>
-              <span *ngIf="kycStatus() === 'Verified'" class="ms-3 text-green-300 text-sm">({{ 'profile.verified' | translate }})</span>
-            </p>
-          </div>
-        </div>
-
         <!-- KYC Completion Progress -->
         <div class="bg-slate-800/50 p-4 rounded-lg mt-4">
           <div class="flex items-center justify-between mb-3">
@@ -410,26 +396,38 @@
           <form [formGroup]="passwordForm" (ngSubmit)="onPasswordSubmit()" class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl animate-fade-in">
             <div class="p-8 space-y-6 max-w-lg">
               <h2 class="text-2xl font-bold text-white">{{ 'profile.password.title' | translate }}</h2>
+              <p class="text-sm text-gray-400">{{ 'profile.password.description' | translate }}</p>
               <div>
                 <label for="currentPassword" class="block text-sm font-medium text-gray-300">{{ 'profile.password.current' | translate }}</label>
-                <input id="currentPassword" type="password" formControlName="currentPassword" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <div class="mt-1 flex gap-3">
+                  <input id="currentPassword" type="password" formControlName="currentPassword" class="flex-1 bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <button type="button" (click)="sendPasswordOtp()" class="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-white font-semibold hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    {{ otpSent() ? ('profile.password.resendOtp' | translate) : ('profile.password.sendOtp' | translate) }}
+                  </button>
+                </div>
               </div>
-              <div>
-                <label for="newPassword" class="block text-sm font-medium text-gray-300">{{ 'profile.password.new' | translate }}</label>
-                <input id="newPassword" type="password" formControlName="newPassword" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-              </div>
-              <div>
-                <label for="confirmNewPassword" class="block text-sm font-medium text-gray-300">{{ 'profile.password.confirm' | translate }}</label>
-                <input id="confirmNewPassword" type="password" formControlName="confirmNewPassword" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                 @if (passwordForm.hasError('passwordMismatch') && passwordForm.get('confirmNewPassword')?.touched) {
-                    <p class="text-red-400 text-sm mt-1">{{ 'profile.password.mismatch' | translate }}</p>
-                 }
-              </div>
-            </div>
-             <div class="p-6 bg-slate-900/50 border-t border-slate-800 text-end rounded-b-xl">
-              <button type="submit" [disabled]="passwordForm.pristine || passwordForm.invalid" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-                {{ 'profile.saveButton' | translate }}
-              </button>
+              @if (otpSent()) {
+                <div>
+                  <label for="otpToken" class="block text-sm font-medium text-gray-300">{{ 'profile.password.otp' | translate }}</label>
+                  <input id="otpToken" type="text" formControlName="otpToken" placeholder="{{ 'profile.password.otpPlaceholder' | translate }}" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                  <label for="newPassword" class="block text-sm font-medium text-gray-300">{{ 'profile.password.new' | translate }}</label>
+                  <input id="newPassword" type="password" formControlName="newPassword" placeholder="{{ 'profile.password.newPlaceholder' | translate }}" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                  <label for="confirmNewPassword" class="block text-sm font-medium text-gray-300">{{ 'profile.password.confirm' | translate }}</label>
+                  <input id="confirmNewPassword" type="password" formControlName="confirmNewPassword" placeholder="{{ 'profile.password.confirmPlaceholder' | translate }}" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                   @if (passwordForm.hasError('passwordMismatch') && passwordForm.get('confirmNewPassword')?.touched) {
+                      <p class="text-red-400 text-sm mt-1">{{ 'profile.password.mismatch' | translate }}</p>
+                   }
+                </div>
+                <div class="p-6 bg-slate-900/50 border-t border-slate-800 text-end rounded-b-xl">
+                  <button type="submit" [disabled]="passwordForm.invalid" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                    {{ 'profile.saveButton' | translate }}
+                  </button>
+                </div>
+              }
             </div>
           </form>
         }

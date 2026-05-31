@@ -3,7 +3,7 @@ import '../auth_flow/services/phone_auth_service.dart';
 import 'otp_screen.dart';
 
 class SignupScreen extends StatefulWidget {
-  const SignupScreen({Key? key}) : super(key: key);
+  const SignupScreen({super.key});
   @override
   State<SignupScreen> createState() => _SignupScreenState();
 }

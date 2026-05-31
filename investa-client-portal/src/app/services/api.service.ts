@@ -44,6 +44,21 @@ export class ApiService {
   }
 
   /**
+   * Safely unwrap an ApiResponse, handling null/empty bodies.
+   * Some endpoints return 204 No Content or a bare value without the wrapper.
+   */
+  private unwrap<T>(response: ApiResponse<T> | null | undefined, fallbackError: string): T {
+    if (!response) {
+      // 204 / empty body — treat as success with no data
+      return null as unknown as T;
+    }
+    if (!response.success) {
+      throw new Error(response.message || fallbackError);
+    }
+    return response.data;
+  }
+
+  /**
    * Get investments by category
    * @param categoryId Optional category filter. If null, returns all investments
    */
@@ -61,12 +76,7 @@ export class ApiService {
         params
       })
     );
-    
-    if (!response.success) {
-      throw new Error(response.message || 'Failed to fetch investments');
-    }
-    
-    return response.data;
+    return this.unwrap(response, 'Failed to fetch investments') ?? [];
   }
 
   /**
@@ -80,12 +90,17 @@ export class ApiService {
         headers: this.getHeaders()
       })
     );
-    
-    if (!response.success) {
-      throw new Error(response.message || 'Failed to fetch investment');
-    }
-    
-    return response.data;
+    return this.unwrap(response, 'Failed to fetch investment');
+  }
+
+  async toggleFavorite(investmentId: number, favorited: boolean): Promise<boolean> {
+    const url = `${this.apiBase}/api/v1/investments/${investmentId}/favorite`;
+    const response = await firstValueFrom(
+      this.http.post<ApiResponse<{ investmentId: number; favorited: boolean }>>(url, { favorited }, {
+        headers: this.getHeaders()
+      })
+    );
+    return (this.unwrap(response, 'Failed to update favorite state') ?? { favorited }).favorited;
   }
 
   /** Upload image for an investment (multipart/form-data) */
@@ -100,9 +115,7 @@ export class ApiService {
         headers: this.getHeaders().delete('Content-Type') // Let browser set content-type for FormData
       })
     );
-
-    if (!response.success) throw new Error(response.message || 'Failed to upload image');
-    return response.data;
+    return this.unwrap(response, 'Failed to upload image');
   }
 
   async deleteInvestmentImage(investmentId: number, imageId: number): Promise<void> {
@@ -110,7 +123,7 @@ export class ApiService {
     const response = await firstValueFrom(
       this.http.delete<ApiResponse<any>>(url, { headers: this.getHeaders() })
     );
-    if (!response.success) throw new Error(response.message || 'Failed to delete image');
+    this.unwrap(response, 'Failed to delete image');
   }
 
   async setPrimaryInvestmentImage(investmentId: number, imageId: number): Promise<void> {
@@ -118,7 +131,7 @@ export class ApiService {
     const response = await firstValueFrom(
       this.http.put<ApiResponse<any>>(url, null, { headers: this.getHeaders() })
     );
-    if (!response.success) throw new Error(response.message || 'Failed to set primary image');
+    this.unwrap(response, 'Failed to set primary image');
   }
 
   async reorderInvestmentImages(investmentId: number, ordering: { imageId: number; sortOrder: number }[]): Promise<void> {
@@ -126,7 +139,7 @@ export class ApiService {
     const response = await firstValueFrom(
       this.http.put<ApiResponse<any>>(url, ordering, { headers: this.getHeaders() })
     );
-    if (!response.success) throw new Error(response.message || 'Failed to reorder images');
+    this.unwrap(response, 'Failed to reorder images');
   }
 
   /**
@@ -140,12 +153,15 @@ export class ApiService {
         headers: this.getHeaders()
       })
     );
-    
-    if (!response.success) {
-      throw new Error(response.message || 'Failed to create investment');
-    }
-    
-    return response.data;
+    return this.unwrap(response, 'Failed to create investment');
+  }
+
+  async updateInvestment(id: number, dto: CreateInvestmentDto): Promise<InvestmentDto> {
+    const url = `${this.apiBase}/api/v1/investments/${id}`;
+    const response = await firstValueFrom(
+      this.http.put<ApiResponse<InvestmentDto>>(url, dto, { headers: this.getHeaders() })
+    );
+    return this.unwrap(response, 'Failed to update investment');
   }
 
   /**
@@ -161,12 +177,7 @@ export class ApiService {
         headers: this.getHeaders()
       })
     );
-
-    if (!response.success) {
-      throw new Error(response.message || 'Failed to fetch business categories');
-    }
-
-    return response.data;
+    return this.unwrap(response, 'Failed to fetch business categories') ?? [];
   }
 
   /**
@@ -180,12 +191,7 @@ export class ApiService {
         headers: this.getHeaders()
       })
     );
-    
-    if (!response.success) {
-      throw new Error(response.message || 'Failed to fetch business stages');
-    }
-    
-    return response.data;
+    return this.unwrap(response, 'Failed to fetch business stages') ?? [];
   }
 
   /**
@@ -199,12 +205,7 @@ export class ApiService {
         headers: this.getHeaders()
       })
     );
-    
-    if (!response.success) {
-      throw new Error(response.message || 'Failed to fetch project phases');
-    }
-    
-    return response.data;
+    return this.unwrap(response, 'Failed to fetch project phases') ?? [];
   }
 
   /**
@@ -218,10 +219,7 @@ export class ApiService {
         headers: this.getHeaders()
       })
     );
-    
-    if (!response.success) {
-      throw new Error(response.message || 'Failed to purchase shares');
-    }
+    this.unwrap(response, 'Failed to purchase shares');
   }
 
   /**
@@ -235,12 +233,7 @@ export class ApiService {
         headers: this.getHeaders()
       })
     );
-    
-    if (!response.success) {
-      throw new Error(response.message || 'Failed to fetch participants');
-    }
-    
-    return response.data;
+    return this.unwrap(response, 'Failed to fetch participants') ?? [];
   }
 
   /**

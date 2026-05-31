@@ -1,6 +1,7 @@
 using Investa.Application.DTOs.Auth;
 using Investa.Domain.Entities;
 using Investa.Domain.Entities.Enums;
+using System.Collections.Concurrent;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -18,8 +19,12 @@ namespace Investa.API.Controllers;
 /// Authentication controller handling user registration, login, and token management
 /// </summary>
 [Authorize(AuthenticationSchemes = "Bearer")]
+[Route("api/v1/auth")]
 public class AuthController : BaseApiController
 {
+    private static readonly ConcurrentDictionary<string, string> _passwordChangeTokenCache = new();
+    private const string FixedPasswordChangeOtp = "1234";
+
     private readonly UserManager<ApplicationIdentityUser> _userManager;
     private readonly IJwtTokenService _jwtTokenService;
     private readonly ILogger<AuthController> _logger;
@@ -41,7 +46,13 @@ public class AuthController : BaseApiController
         _unitOfWork = unitOfWork;
         _configuration = configuration;
         _smsSender = smsSender;
-    }    
+    }
+
+    private async Task<AuthResponseDto> BuildAuthResponseAsync(ApplicationIdentityUser user)
+    {
+        var roles = await _userManager.GetRolesAsync(user);
+        return await _jwtTokenService.GenerateTokenAsync(user, roles);
+    }
 
     /// <summary>
     /// Register a new user with phone number and password
@@ -95,30 +106,22 @@ public class AuthController : BaseApiController
                 var authUser = new AuthUser
                 {
                     Id = authGuid,
-                    Email = $"{normalizedPhone}@phone.investa.local",
-                    PasswordHash = passwordHasher.HashPassword(user, request.Password),
-                    UserType = UserType.Client, // All external users are Client type
-                    Status = true
-                };
-                await _unitOfWork.Repository<AuthUser>().AddAsync(authUser);
-
-                var domainUser = new User
-                {
-                    Id = authGuid,
                     Name = string.IsNullOrWhiteSpace(request.FirstName) && string.IsNullOrWhiteSpace(request.LastName)
                         ? normalizedPhone
                         : ($"{request.FirstName} {request.LastName}").Trim(),
                     Email = $"{normalizedPhone}@phone.investa.local",
-                    Role = "Client"
+                    PasswordHash = passwordHasher.HashPassword(user, request.Password),
+                    UserType = UserType.Client,
+                    Status = true
                 };
-                await _unitOfWork.Repository<User>().AddAsync(domainUser);
+                await _unitOfWork.Repository<AuthUser>().AddAsync(authUser);
 
                 var profile = new UserProfile
                 {
                     UserId = authGuid,
                     FirstName = request.FirstName,
                     LastName = request.LastName,
-                    FullName = domainUser.Name,
+                    FullName = authUser.Name,
                     Phone1 = normalizedPhone,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
@@ -141,7 +144,7 @@ public class AuthController : BaseApiController
                 await _unitOfWork.SaveChangesAsync();
             }
 
-            var authResponse = await _jwtTokenService.GenerateTokenAsync(user);
+            var authResponse = await BuildAuthResponseAsync(user);
             _logger.LogInformation("User registered successfully: {Phone} (ID: {UserId})", normalizedPhone, user.Id);
 
             return SuccessResponse(authResponse, "User registered successfully", 201);
@@ -256,7 +259,7 @@ public class AuthController : BaseApiController
             }
         }
 
-        var authResponse = await _jwtTokenService.GenerateTokenAsync(identityUser);
+        var authResponse = await BuildAuthResponseAsync(identityUser);
         return SuccessResponse(authResponse, "Login successful");
     }
 
@@ -317,8 +320,63 @@ public class AuthController : BaseApiController
             }
         }
 
-        var authResponse = await _jwtTokenService.GenerateTokenAsync(identityUser);
+        var authResponse = await BuildAuthResponseAsync(identityUser);
         return SuccessResponse(authResponse, "Login successful");
+    }
+
+    /// <summary>
+    /// Verify current password and issue a fixed test OTP for password change
+    /// </summary>
+    [HttpPost("change-password/send-otp")]
+    public async Task<IActionResult> SendChangePasswordOtpAsync([FromBody] ChangePasswordOtpRequestDto request)
+    {
+        if (string.IsNullOrWhiteSpace(request.CurrentPassword))
+            return ErrorResponse("Current password is required", 400);
+
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+            return ErrorResponse("Unable to resolve user", 401);
+
+        var valid = await _userManager.CheckPasswordAsync(user, request.CurrentPassword);
+        if (!valid)
+            return ErrorResponse("Current password is incorrect", 400);
+
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+        _passwordChangeTokenCache[user.Id.ToString()] = token;
+        _logger.LogInformation("Password change test OTP issued for user {UserId}; fixed OTP is {FixedOtp}", user.Id, FixedPasswordChangeOtp);
+
+        return SuccessResponse(message: "Fixed test OTP issued; use 1234");
+    }
+
+    /// <summary>
+    /// Confirm password change using OTP token
+    /// </summary>
+    [HttpPost("change-password/confirm")]
+    public async Task<IActionResult> ConfirmChangePasswordAsync([FromBody] ChangePasswordConfirmDto request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Token) || string.IsNullOrWhiteSpace(request.NewPassword))
+            return ErrorResponse("OTP token and new password are required", 400);
+
+        if (request.Token != FixedPasswordChangeOtp)
+            return ErrorResponse("Invalid OTP token", 400);
+
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+            return ErrorResponse("Unable to resolve user", 401);
+
+        if (!_passwordChangeTokenCache.TryGetValue(user.Id.ToString(), out var actualToken))
+            return ErrorResponse("OTP has not been requested or has expired", 400);
+
+        var result = await _userManager.ResetPasswordAsync(user, actualToken, request.NewPassword);
+        if (!result.Succeeded)
+        {
+            var errors = result.Errors.Select(e => e.Description).ToList();
+            return ErrorResponse("Password change failed", 400, errors);
+        }
+
+        _passwordChangeTokenCache.TryRemove(user.Id.ToString(), out _);
+        _logger.LogInformation("Password changed successfully via fixed OTP for user: {UserId}", user.Id);
+        return SuccessResponse(message: "Password changed successfully");
     }
 
     /// <summary>
@@ -407,7 +465,7 @@ public class AuthController : BaseApiController
         tokenEntity.Revoked = true;
         await _unitOfWork.SaveChangesAsync();
 
-        var newAuth = await _jwtTokenService.GenerateTokenAsync(identityUser);
+        var newAuth = await BuildAuthResponseAsync(identityUser);
         return SuccessResponse(newAuth, "Token refreshed successfully");
     }
 
@@ -443,6 +501,13 @@ public class AuthController : BaseApiController
             if (!result.Succeeded)
                 return ErrorResponse("User creation failed", 400, result.Errors.Select(e => e.Description));
 
+            var roleResult = await _userManager.AddToRoleAsync(user, "Admin");
+            if (!roleResult.Succeeded)
+            {
+                _logger.LogError("Failed to assign Admin role to new admin user {Email}: {Errors}", request.Email, roleResult.Errors.Select(e => e.Description));
+                return ErrorResponse("Failed to assign admin role to new user", 500);
+            }
+
             if (!string.IsNullOrWhiteSpace(request.FirstName))
                 await _userManager.AddClaimAsync(user, new Claim(ClaimTypes.GivenName, request.FirstName));
 
@@ -454,23 +519,15 @@ public class AuthController : BaseApiController
             var authUser = new AuthUser
             {
                 Id = guid,
+                Name = string.IsNullOrWhiteSpace(request.FirstName) && string.IsNullOrWhiteSpace(request.LastName)
+                    ? normalizedEmail
+                    : ($"{request.FirstName} {request.LastName}").Trim(),
                 Email = normalizedEmail,
                 PasswordHash = passwordHasher.HashPassword(user, request.Password),
                 UserType = UserType.OrgUser,
                 Status = true
             };
             await _unitOfWork.Repository<AuthUser>().AddAsync(authUser);
-
-            var domainUser = new User
-            {
-                Id = guid,
-                Name = string.IsNullOrWhiteSpace(request.FirstName) && string.IsNullOrWhiteSpace(request.LastName)
-                    ? normalizedEmail
-                    : ($"{request.FirstName} {request.LastName}").Trim(),
-                Email = normalizedEmail,
-                Role = "Admin"
-            };
-            await _unitOfWork.Repository<User>().AddAsync(domainUser);
             await _unitOfWork.SaveChangesAsync();
 
             _logger.LogInformation("Admin user created: {Email} (ID: {UserId})", request.Email, user.Id);
@@ -597,29 +654,17 @@ public class AuthController : BaseApiController
                 _logger.LogError($"Failed to create AuthUser record: {ex.Message}", ex);
             }
 
-            // Create domain User record so application services (profiles, investments, etc.) have a user entry
-            // Set Id to match AuthUser.Id for consistency
-            var domainUser = new User
-            {
-                Id = authGuid != Guid.Empty ? authGuid : Guid.NewGuid(),
-                Name = string.IsNullOrWhiteSpace(request.FirstName) && string.IsNullOrWhiteSpace(request.LastName)
-                    ? normalizedPhone
-                    : ($"{request.FirstName} {request.LastName}").Trim(),
-                // Domain.Email is required; use phone-based placeholder to satisfy requirement if email not provided
-                Email = normalizedPhone + "@phone.investa.local",
-                Role = "Client"
-            };
+            // Name is set on AuthUser; no separate domain User needed
 
-            await _unitOfWork.Repository<User>().AddAsync(domainUser);
-            await _unitOfWork.SaveChangesAsync();
-
-            // Create initial UserProfile linked to the domain user
+            // Create initial UserProfile linked to AuthUser
             var profile = new UserProfile
             {
-                UserId = domainUser.Id,
+                UserId = authGuid != Guid.Empty ? authGuid : Guid.NewGuid(),
                 FirstName = request.FirstName,
                 LastName = request.LastName,
-                FullName = domainUser.Name,
+                FullName = string.IsNullOrWhiteSpace(request.FirstName) && string.IsNullOrWhiteSpace(request.LastName)
+                    ? normalizedPhone
+                    : ($"{request.FirstName} {request.LastName}").Trim(),
                 Phone1 = normalizedPhone,
                 Email = null,
                 CreatedAt = DateTime.UtcNow,
@@ -629,10 +674,10 @@ public class AuthController : BaseApiController
             await _unitOfWork.Repository<UserProfile>().AddAsync(profile);
             await _unitOfWork.SaveChangesAsync();
 
-            // Create Client profile linked to the domain user
+            // Create Client profile linked to AuthUser
             var client = new Client
             {
-                UserId = domainUser.Id,
+                UserId = authGuid != Guid.Empty ? authGuid : Guid.NewGuid(),
                 FirstName = request.FirstName,
                 LastName = request.LastName,
                 MobileNumber = normalizedPhone,
@@ -646,7 +691,7 @@ public class AuthController : BaseApiController
             await _unitOfWork.SaveChangesAsync();
 
             // Generate JWT token for the newly created user (after AuthUser exists)
-            var authResponse = await _jwtTokenService.GenerateTokenAsync(user);
+            var authResponse = await BuildAuthResponseAsync(user);
 
             _logger.LogInformation($"User registered successfully: {request.PhoneNumber} (ID: {user.Id})");
 

@@ -34,8 +34,8 @@ export const ChartOfAccounts: React.FC = () => {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Chart of Accounts</h2>
-          <p className="text-slate-500 text-[13px] font-medium">Define and manage the financial structure of the organization.</p>
+          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">{t('pages.chartOfAccounts', { defaultValue: 'Chart of Accounts' })}</h2>
+          <p className="text-slate-500 text-[13px] font-medium">{t('pages.chartOfAccountsDescription', { defaultValue: 'Define and manage the financial structure of the organization.' })}</p>
         </div>
         <div className="flex gap-2">
           <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-[13px] font-bold flex items-center gap-2 shadow-lg shadow-indigo-600/20 transition-all hover:-translate-y-0.5 active:scale-95">

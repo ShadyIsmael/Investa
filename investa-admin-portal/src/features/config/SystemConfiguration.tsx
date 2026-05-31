@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/common/Icons';
 import { useTheme } from '@/context/ThemeContext';
 
@@ -10,13 +11,14 @@ const CONFIG_OPTIONS = [
 ];
 
 const SystemConfiguration: React.FC = () => {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState(CONFIG_OPTIONS[0].key);
   
   return (
     <div className="flex gap-8">
       {/* Configuration List */}
       <aside className="w-64 bg-white dark:bg-slate-900 rounded-2xl border p-4 shadow-md">
-        <h2 className="text-lg font-bold mb-4">Configuration List</h2>
+        <h2 className="text-lg font-bold mb-4">{t('pages.configurationList', { defaultValue: 'Configuration List' })}</h2>
         <ul className="space-y-2">
           {CONFIG_OPTIONS.map(option => (
             <li key={option.key}>

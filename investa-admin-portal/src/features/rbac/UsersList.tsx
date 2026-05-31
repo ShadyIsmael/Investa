@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { userService } from '@/services/userService';
 import { User } from '@/types';
 import UserOnboarding from '@/components/UserOnboarding';
@@ -12,6 +13,7 @@ import { toast } from 'react-toastify';
 export const UsersList: React.FC = React.memo(() => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useTranslation();
   const [showOnboard, setShowOnboard] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
@@ -152,7 +154,10 @@ export const UsersList: React.FC = React.memo(() => {
     const loadOptions = async () => {
       try {
         const [roles, statuses] = await Promise.all([userService.getRoles(), userService.getStatuses()]);
-        setRoleOptions(Array.isArray(roles) ? roles : ['Admin','Editor','Viewer']);
+        const normalizedRoles = Array.isArray(roles)
+          ? roles.map((r: any, idx: number) => (typeof r === 'string' ? r : (r.name ?? r.roleName ?? String(r) ?? `role-${idx}`)))
+          : ['Admin', 'Editor', 'Viewer'];
+        setRoleOptions(normalizedRoles);
         setStatusOptions(Array.isArray(statuses) ? statuses : ['Active','Inactive','Pending']);
       } catch (e) {
         // ignore
@@ -165,8 +170,8 @@ export const UsersList: React.FC = React.memo(() => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-text">Org Users</h2>
-          <p className="text-muted text-sm">Manage internal organizational users and staff</p>
+          <h2 className="text-2xl font-bold text-text">{t('pages.orgUsers', { defaultValue: 'Org Users' })}</h2>
+          <p className="text-muted-foreground text-sm">{t('pages.orgUsersDescription', { defaultValue: 'Manage internal organizational users and staff' })}</p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -212,11 +217,11 @@ export const UsersList: React.FC = React.memo(() => {
 
       <div className="bg-surface rounded-2xl border border-border p-4 shadow-sm">
         {loading ? (
-          <div className="h-40 flex items-center justify-center text-muted">Loading...</div>
+          <div className="h-40 flex items-center justify-center text-muted-foreground">Loading...</div>
         ) : (
           <div className="overflow-auto">
             <table className="min-w-full text-left">
-              <thead className="text-muted text-sm uppercase text-[11px] tracking-widest border-b border-border">
+              <thead className="text-muted-foreground text-sm uppercase text-[11px] tracking-widest border-b border-border">
                 <tr>
                   <th className="px-3 py-2"><input type="checkbox" checked={selectedIds.length > 0 && selectedIds.length === users.length} onChange={(e) => e.target.checked ? selectAllVisible() : clearSelection()} /></th>
                   <th className="px-3 py-2">User</th>
@@ -228,7 +233,7 @@ export const UsersList: React.FC = React.memo(() => {
               <tbody className="divide-y divide-border">
                 {users.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-3 py-4 text-center text-sm text-muted">No users found.</td>
+                    <td colSpan={5} className="px-3 py-4 text-center text-sm text-muted-foreground">No users found.</td>
                   </tr>
                 )}
                 {users.map(u => (
@@ -238,20 +243,20 @@ export const UsersList: React.FC = React.memo(() => {
                     </td>
                     <td className="px-3 py-3">
                       <div className="font-semibold text-text">{u.name}</div>
-                      <div className="text-xs text-muted">{u.email}</div>
+                      <div className="text-xs text-muted-foreground">{u.email}</div>
                     </td>
                     <td className="px-3 py-3">
                       {u.groupName ? (
                         <div className="text-sm text-text">
                           <span className="font-semibold">{u.groupName}</span>
-                          {u.roleName && <span className="text-muted ml-2">• {u.roleName}</span>}
+                          {u.roleName && <span className="text-muted-foreground ml-2">• {u.roleName}</span>}
                         </div>
                       ) : (
-                        <div className="text-sm text-muted">{u.role || '—'}</div>
+                        <div className="text-sm text-muted-foreground">{u.role || '—'}</div>
                       )}
                     </td>
                     <td className="px-3 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${u.status === 'Active' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-surface text-muted border border-border'}`}>{u.status}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${u.status === 'Active' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-surface text-muted-foreground border border-border'}`}>{u.status}</span>
                     </td>
                     <td className="px-3 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -269,7 +274,7 @@ export const UsersList: React.FC = React.memo(() => {
 
             {/* Pagination */}
             <div className="flex items-center justify-between mt-3">
-              <div className="text-sm text-muted">Showing {total === 0 ? 0 : (Math.min((page-1)*pageSize+1, total))} - {total === 0 ? 0 : Math.min(page*pageSize, total)} of {total} users</div>
+              <div className="text-sm text-muted-foreground">Showing {total === 0 ? 0 : (Math.min((page-1)*pageSize+1, total))} - {total === 0 ? 0 : Math.min(page*pageSize, total)} of {total} users</div>
               <div className="flex items-center gap-2">
                 <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }} className="px-2 py-1 border border-border rounded-md bg-surface text-text">
                   <option value={10}>10 / page</option>
@@ -302,7 +307,7 @@ export const UsersList: React.FC = React.memo(() => {
 
                   <div className="flex items-center gap-1 ml-2">
                     <input type="number" min={1} max={Math.max(1, Math.ceil((total || 0)/pageSize))} value={page} onChange={e => setPage(Math.min(Math.max(1, Number(e.target.value || 1)), Math.max(1, Math.ceil((total || 0)/pageSize))))} className="w-14 px-2 py-1 border border-border rounded-md text-sm bg-surface text-text" />
-                    <div className="text-sm text-muted">/ {Math.max(1, Math.ceil((total || 0)/pageSize))}</div>
+                    <div className="text-sm text-muted-foreground">/ {Math.max(1, Math.ceil((total || 0)/pageSize))}</div>
                   </div>
                 </div>
               </div>

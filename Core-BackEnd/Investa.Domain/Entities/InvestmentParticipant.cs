@@ -42,5 +42,5 @@ public class InvestmentParticipant
     public Investment Investment { get; set; } = null!;
 
     [ForeignKey(nameof(InvestorId))]
-    public User Investor { get; set; } = null!;
+    public AuthUser Investor { get; set; } = null!;
 }

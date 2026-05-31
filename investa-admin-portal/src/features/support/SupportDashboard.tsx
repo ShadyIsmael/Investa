@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSignalR } from '../../services/signalr';
 import { supportService } from '../../services/supportService';
 
@@ -52,7 +53,8 @@ const SupportDashboard: React.FC = () => {
   const [activeLayer, setActiveLayer] = useState<'chats' | 'tickets'>('chats');
   const [chats, setChats] = useState<ChatItem[]>(() => [...MOCK_CHATS]);
   const [tickets, setTickets] = useState<TicketItem[]>(() => [...MOCK_TICKETS]);
-  const [messages, setMessages] = useState<Record<string, string[]>>({});
+  const [messages, setMessages] = useState<Record<string, any>>({});
+  const { t } = useTranslation();
   
   // Ref to track listener attachment and prevent cleanup loop
   const isListenerAttached = React.useRef(false);
@@ -93,11 +95,11 @@ const SupportDashboard: React.FC = () => {
   // Monitor connection state and log for debugging
   useEffect(() => {
     
-    if (connection && connection.state === 'Connected') {
-    } else if (connection && connection.state === 'Disconnected') {
+    if (connectionState === 'Connected') {
+    } else if (connectionState === 'Disconnected') {
       // Reset listener tracking when disconnected
       isListenerAttached.current = false;
-    } else if (connection && connection.state === 'Connecting') {
+    } else if (connectionState === 'Connecting') {
     }
   }, [connection, connectionState]);
 
@@ -150,16 +152,16 @@ const SupportDashboard: React.FC = () => {
     };
 
     // Hard cleanup for development to prevent ghost listeners
-    connection.off('NewSupportRequest');
-    connection.off('NewChatRequest');
+    conn.off('NewSupportRequest');
+    conn.off('NewChatRequest');
 
     // Listen for the custom event dispatched by signalr service
     const handleCustomEvent = (e: any) => handleNewRequest(e.detail);
     window.addEventListener('investa:signalr:new-support-request', handleCustomEvent);
     
     // Also keep direct SignalR listeners as fallback
-    connection.on('NewSupportRequest', handleNewRequest);
-    connection.on('NewChatRequest', handleNewRequest);
+    conn.on('NewSupportRequest', handleNewRequest);
+    conn.on('NewChatRequest', handleNewRequest);
     isListenerAttached.current = true;
 
     // ðŸš« NO CLEANUP: Listeners remain active for the entire session
@@ -167,7 +169,7 @@ const SupportDashboard: React.FC = () => {
   }, [connectionState]);
 
   // Enable Chat: Update MessageInput disabled logic
-  const isMessageInputDisabled = activeConversation?.status === 'Closed';
+  const isMessageInputDisabled = false;
 
   // Real-time Sync: Handle NewMessage listener
   useEffect(() => {
@@ -247,10 +249,10 @@ const SupportDashboard: React.FC = () => {
   return (
     <div className="h-full min-h-[48vh] bg-slate-900 text-slate-100 rounded-lg overflow-hidden shadow-lg flex flex-col md:flex-row">
       <aside className="w-full md:w-1/5 lg:w-1/6 border-r border-slate-800 bg-slate-950 p-3">
-        <h3 className="text-sm font-bold text-indigo-300 uppercase tracking-wider mb-3">Support</h3>
+        <h3 className="text-sm font-bold text-indigo-300 uppercase tracking-wider mb-3">{t('support.title', { defaultValue: 'Support' })}</h3>
         <nav className="space-y-2">
-          <button onClick={() => setActiveLayer('chats')} className={`w-full text-left px-3 py-2 rounded-lg ${activeLayer === 'chats' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800'}`}>Active Chats</button>
-          <button onClick={() => setActiveLayer('tickets')} className={`w-full text-left px-3 py-2 rounded-lg ${activeLayer === 'tickets' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800'}`}>Tickets</button>
+          <button onClick={() => setActiveLayer('chats')} className={`w-full text-left px-3 py-2 rounded-lg ${activeLayer === 'chats' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800'}`}>{t('support.chat', { defaultValue: 'Active Chats' })}</button>
+          <button onClick={() => setActiveLayer('tickets')} className={`w-full text-left px-3 py-2 rounded-lg ${activeLayer === 'tickets' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800'}`}>{t('support.tickets', { defaultValue: 'Tickets' })}</button>
         </nav>
       </aside>
 
@@ -258,8 +260,8 @@ const SupportDashboard: React.FC = () => {
         <div className="mb-4">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h1 className="text-xl font-bold text-slate-100">Customer Support</h1>
-              <p className="text-sm text-slate-400 mt-1">Manage active chats and support tickets from a unified dashboard.</p>
+              <h1 className="text-xl font-bold text-slate-100">{t('pages.customerSupport', { defaultValue: 'Customer Support' })}</h1>
+              <p className="text-sm text-slate-400 mt-1">{t('pages.customerSupportDescription', { defaultValue: 'Manage active chats and support tickets from a unified dashboard.' })}</p>
             </div>
             <div className="hidden md:flex items-center gap-3">
               <button onClick={() => { setSearch(''); setTypeFilter('all'); setStatusFilter('all'); setStartDate(''); setEndDate(''); }} className="px-3 py-2 bg-slate-800 rounded-lg text-sm">Clear</button>
@@ -274,7 +276,7 @@ const SupportDashboard: React.FC = () => {
 
               <div className="flex items-center gap-2">
                 <button onClick={() => { /* optional: trigger search analytics */ }} className="px-3 py-2 bg-indigo-600 text-white rounded-lg">Search</button>
-                <button onClick={() => setShowAdvanced(prev => !prev)} aria-expanded={String(showAdvanced)} className="px-3 py-2 bg-slate-800 rounded-lg text-sm">Advanced</button>
+                <button onClick={() => setShowAdvanced(prev => !prev)} aria-expanded={showAdvanced} className="px-3 py-2 bg-slate-800 rounded-lg text-sm">Advanced</button>
               </div>
             </div>
 

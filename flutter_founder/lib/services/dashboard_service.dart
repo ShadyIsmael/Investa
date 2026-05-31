@@ -1,7 +1,6 @@
 import 'dart:convert';
-import 'package:flutter_dark_app/services/api_client.dart';
-import 'package:flutter_dark_app/services/app_logger.dart';
-import 'package:flutter_dark_app/services/config.dart';
+import 'package:flutter_founder/services/api_client.dart';
+import 'package:flutter_founder/services/app_logger.dart';
 import 'endpoint_resolver.dart';
 
 class CreditTxnDto {
@@ -108,17 +107,20 @@ class DashboardSummary {
 class TopCategoryDto {
   final int businessCategoryId;
   final String businessCategoryName;
+  final String businessCategoryNameAr;
   final int investmentCount;
 
   TopCategoryDto(
       {required this.businessCategoryId,
       required this.businessCategoryName,
+      required this.businessCategoryNameAr,
       required this.investmentCount});
 
   factory TopCategoryDto.fromJson(Map<String, dynamic> json) {
     return TopCategoryDto(
       businessCategoryId: (json['businessCategoryId'] as num?)?.toInt() ?? 0,
       businessCategoryName: json['businessCategoryName'] as String? ?? '',
+      businessCategoryNameAr: json['businessCategoryNameAr'] as String? ?? '',
       investmentCount: (json['investmentCount'] as num?)?.toInt() ?? 0,
     );
   }
@@ -133,9 +135,7 @@ class DashboardService {
         _client = client ?? ApiClient();
 
   String get baseUrl =>
-      _baseOverride ??
-      EndpointResolver.instance.selectedApiBaseUrl ??
-      Env.apiBaseUrl;
+      _baseOverride ?? EndpointResolver.instance.selectedApiBaseUrl;
 
   Future<DashboardSummary?> fetchSummary() async {
     var apiBase = baseUrl;

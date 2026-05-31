@@ -28,10 +28,20 @@ namespace Investa.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int>("ClientType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<int>("CredibilityScore")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(3500);
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
@@ -40,6 +50,11 @@ namespace Investa.Infrastructure.Migrations
                     b.Property<string>("FirebaseUid")
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
@@ -62,6 +77,12 @@ namespace Investa.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<decimal>("WalletBalance")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
                     b.HasKey("Id");
 
                     b.HasIndex("Email")
@@ -72,6 +93,47 @@ namespace Investa.Infrastructure.Migrations
                         .HasFilter("\"FirebaseUid\" IS NOT NULL");
 
                     b.ToTable("AuthUsers");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("11111111-1111-1111-1111-111111111111"),
+                            ClientType = 1,
+                            CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CredibilityScore = 4200,
+                            Email = "alice.founder@example.com",
+                            Name = "Alice Founder",
+                            PasswordHash = "seeded",
+                            Status = true,
+                            UserType = "Client",
+                            WalletBalance = 100000m
+                        },
+                        new
+                        {
+                            Id = new Guid("22222222-2222-2222-2222-222222222222"),
+                            ClientType = 0,
+                            CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CredibilityScore = 3750,
+                            Email = "bob.investor@example.com",
+                            Name = "Bob Investor",
+                            PasswordHash = "seeded",
+                            Status = true,
+                            UserType = "Client",
+                            WalletBalance = 25000m
+                        },
+                        new
+                        {
+                            Id = new Guid("33333333-3333-3333-3333-333333333333"),
+                            ClientType = 0,
+                            CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CredibilityScore = 3600,
+                            Email = "clara.investor@example.com",
+                            Name = "Clara Investor",
+                            PasswordHash = "seeded",
+                            Status = true,
+                            UserType = "Client",
+                            WalletBalance = 15000m
+                        });
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.BusinessCategory", b =>
@@ -562,6 +624,86 @@ namespace Investa.Infrastructure.Migrations
                     b.ToTable("CreditConfigurations");
                 });
 
+            modelBuilder.Entity("Investa.Domain.Entities.CreditPlan", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BillingPeriod")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Credits")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CreditPlans");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.CreditPlanPurchase", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Credits")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PlanId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PlanName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("PricePaid")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("PurchasedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReferenceNumber")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("CreditPlanPurchases");
+                });
+
             modelBuilder.Entity("Investa.Domain.Entities.CreditTransaction", b =>
                 {
                     b.Property<int>("Id")
@@ -607,55 +749,6 @@ namespace Investa.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("CreditTransactions");
-                });
-
-            modelBuilder.Entity("Investa.Domain.Entities.Employee", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
-
-                    b.Property<string>("Department")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("EmployeeNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime?>("HireDate")
-                        .HasColumnType("date");
-
-                    b.Property<byte>("PermissionsLevel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint")
-                        .HasDefaultValue((byte)1);
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EmployeeNumber")
-                        .IsUnique();
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("Employees");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Group", b =>
@@ -810,6 +903,27 @@ namespace Investa.Infrastructure.Migrations
                             AssignedAt = new DateTime(2025, 12, 29, 0, 0, 0, 0, DateTimeKind.Utc),
                             GroupId = 1000,
                             PermissionId = 2005
+                        },
+                        new
+                        {
+                            Id = 7,
+                            AssignedAt = new DateTime(2025, 12, 29, 0, 0, 0, 0, DateTimeKind.Utc),
+                            GroupId = 1000,
+                            PermissionId = 2006
+                        },
+                        new
+                        {
+                            Id = 8,
+                            AssignedAt = new DateTime(2025, 12, 29, 0, 0, 0, 0, DateTimeKind.Utc),
+                            GroupId = 1000,
+                            PermissionId = 2007
+                        },
+                        new
+                        {
+                            Id = 9,
+                            AssignedAt = new DateTime(2025, 12, 29, 0, 0, 0, 0, DateTimeKind.Utc),
+                            GroupId = 1000,
+                            PermissionId = 2008
                         });
                 });
 
@@ -1026,6 +1140,35 @@ namespace Investa.Infrastructure.Migrations
                     b.ToTable("InvestmentEvents");
                 });
 
+            modelBuilder.Entity("Investa.Domain.Entities.InvestmentFavorite", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int>("InvestmentId")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("InvestorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvestmentId");
+
+                    b.HasIndex("InvestorId", "InvestmentId")
+                        .IsUnique();
+
+                    b.ToTable("InvestmentFavorites");
+                });
+
             modelBuilder.Entity("Investa.Domain.Entities.InvestmentImage", b =>
                 {
                     b.Property<int>("Id")
@@ -1066,151 +1209,6 @@ namespace Investa.Infrastructure.Migrations
                     b.HasIndex("InvestmentId");
 
                     b.ToTable("InvestmentImages");
-                });
-
-            modelBuilder.Entity("Investa.Domain.Entities.NotificationTemplate", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("BodyTemplate")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<string>("Category")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("CreatedByUserId")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<string>("Icon")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("PlaceholderDocs")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("TitleTemplate")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasDefaultValue("info");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Category");
-
-                    b.HasIndex("IsActive");
-
-                    b.HasIndex("Key")
-                        .IsUnique();
-
-                    b.ToTable("NotificationTemplates");
-                });
-
-            modelBuilder.Entity("Investa.Domain.Entities.UserNotification", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<string>("ActionUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("Body")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<string>("Icon")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("IsRead")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<DateTime?>("ReadAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("TemplateId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasDefaultValue("info");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TemplateId");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("UserId", "CreatedAt");
-
-                    b.HasIndex("UserId", "IsRead");
-
-                    b.ToTable("UserNotifications");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.InvestmentParticipant", b =>
@@ -1648,6 +1646,82 @@ namespace Investa.Infrastructure.Migrations
                     b.ToTable("Messages");
                 });
 
+            modelBuilder.Entity("Investa.Domain.Entities.NotificationTemplate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BodyTemplate")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Icon")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("PlaceholderDocs")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("TitleTemplate")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("info");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Category");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.ToTable("NotificationTemplates");
+                });
+
             modelBuilder.Entity("Investa.Domain.Entities.Permission", b =>
                 {
                     b.Property<int>("Id")
@@ -1730,6 +1804,30 @@ namespace Investa.Infrastructure.Migrations
                             Description = "Development utility endpoints",
                             Key = "admin.dev.manage",
                             Name = "Dev Tools"
+                        },
+                        new
+                        {
+                            Id = 2006,
+                            CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "View groups, roles, and permission assignments",
+                            Key = "RBAC.View",
+                            Name = "View RBAC"
+                        },
+                        new
+                        {
+                            Id = 2007,
+                            CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Create, update, delete groups and assign group permissions",
+                            Key = "Group.Manage",
+                            Name = "Manage Groups"
+                        },
+                        new
+                        {
+                            Id = 2008,
+                            CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Create, update, delete roles and assign role permissions/users",
+                            Key = "Role.Manage",
+                            Name = "Manage Roles"
                         });
                 });
 
@@ -2085,9 +2183,6 @@ namespace Investa.Infrastructure.Migrations
                     b.Property<Guid?>("AssignedBy")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("AuthUserId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<Guid>("RoleId")
                         .HasColumnType("uniqueidentifier");
 
@@ -2230,76 +2325,6 @@ namespace Investa.Infrastructure.Migrations
                     b.ToTable("Transactions");
                 });
 
-            modelBuilder.Entity("Investa.Domain.Entities.User", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("ClientType")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CredibilityScore")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(3500);
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<decimal>("WalletBalance")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ApplicationUsers");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("11111111-1111-1111-1111-111111111111"),
-                            ClientType = 1,
-                            CredibilityScore = 4200,
-                            Email = "alice.founder@example.com",
-                            Name = "Alice Founder",
-                            Role = "Client",
-                            WalletBalance = 100000m
-                        },
-                        new
-                        {
-                            Id = new Guid("22222222-2222-2222-2222-222222222222"),
-                            ClientType = 0,
-                            CredibilityScore = 3750,
-                            Email = "bob.investor@example.com",
-                            Name = "Bob Investor",
-                            Role = "Client",
-                            WalletBalance = 25000m
-                        },
-                        new
-                        {
-                            Id = new Guid("33333333-3333-3333-3333-333333333333"),
-                            ClientType = 0,
-                            CredibilityScore = 3600,
-                            Email = "clara.investor@example.com",
-                            Name = "Clara Investor",
-                            Role = "Client",
-                            WalletBalance = 15000m
-                        });
-                });
-
             modelBuilder.Entity("Investa.Domain.Entities.UserGroup", b =>
                 {
                     b.Property<int>("Id")
@@ -2322,19 +2347,81 @@ namespace Investa.Infrastructure.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("UserId1")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("GroupId");
-
-                    b.HasIndex("UserId1");
 
                     b.HasIndex("UserId", "GroupId")
                         .IsUnique();
 
                     b.ToTable("UserGroups");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.UserNotification", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("ActionUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("Icon")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsRead")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("TemplateId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("info");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TemplateId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.HasIndex("UserId", "IsRead");
+
+                    b.ToTable("UserNotifications");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.UserProfile", b =>
@@ -2818,9 +2905,28 @@ namespace Investa.Infrastructure.Migrations
                     b.Navigation("Client");
                 });
 
+            modelBuilder.Entity("Investa.Domain.Entities.CreditPlanPurchase", b =>
+                {
+                    b.HasOne("Investa.Domain.Entities.CreditPlan", "Plan")
+                        .WithMany("Purchases")
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Investa.Domain.Entities.AuthUser", "User")
+                        .WithMany("CreditPlanPurchases")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Plan");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Investa.Domain.Entities.CreditTransaction", b =>
                 {
-                    b.HasOne("Investa.Domain.Entities.User", "Admin")
+                    b.HasOne("Investa.Domain.Entities.AuthUser", "Admin")
                         .WithMany()
                         .HasForeignKey("AdminId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -2829,24 +2935,13 @@ namespace Investa.Infrastructure.Migrations
                         .WithMany("CreditTransactions")
                         .HasForeignKey("ClientId");
 
-                    b.HasOne("Investa.Domain.Entities.User", "User")
+                    b.HasOne("Investa.Domain.Entities.AuthUser", "User")
                         .WithMany("CreditTransactions")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Admin");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Investa.Domain.Entities.Employee", b =>
-                {
-                    b.HasOne("Investa.Domain.Entities.AuthUser", "User")
-                        .WithOne("Employee")
-                        .HasForeignKey("Investa.Domain.Entities.Employee", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.Navigation("User");
                 });
@@ -2876,7 +2971,7 @@ namespace Investa.Infrastructure.Migrations
 
             modelBuilder.Entity("Investa.Domain.Entities.Investment", b =>
                 {
-                    b.HasOne("Investa.Domain.Entities.User", "Founder")
+                    b.HasOne("Investa.Domain.Entities.AuthUser", "Founder")
                         .WithMany("Investments")
                         .HasForeignKey("FounderId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -2896,6 +2991,25 @@ namespace Investa.Infrastructure.Migrations
                     b.Navigation("Investment");
                 });
 
+            modelBuilder.Entity("Investa.Domain.Entities.InvestmentFavorite", b =>
+                {
+                    b.HasOne("Investa.Domain.Entities.Investment", "Investment")
+                        .WithMany()
+                        .HasForeignKey("InvestmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Investa.Domain.Entities.AuthUser", "Investor")
+                        .WithMany()
+                        .HasForeignKey("InvestorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Investment");
+
+                    b.Navigation("Investor");
+                });
+
             modelBuilder.Entity("Investa.Domain.Entities.InvestmentImage", b =>
                 {
                     b.HasOne("Investa.Domain.Entities.Investment", "Investment")
@@ -2907,16 +3021,6 @@ namespace Investa.Infrastructure.Migrations
                     b.Navigation("Investment");
                 });
 
-            modelBuilder.Entity("Investa.Domain.Entities.UserNotification", b =>
-                {
-                    b.HasOne("Investa.Domain.Entities.NotificationTemplate", "Template")
-                        .WithMany()
-                        .HasForeignKey("TemplateId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Template");
-                });
-
             modelBuilder.Entity("Investa.Domain.Entities.InvestmentParticipant", b =>
                 {
                     b.HasOne("Investa.Domain.Entities.Investment", "Investment")
@@ -2925,7 +3029,7 @@ namespace Investa.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Investa.Domain.Entities.User", "Investor")
+                    b.HasOne("Investa.Domain.Entities.AuthUser", "Investor")
                         .WithMany()
                         .HasForeignKey("InvestorId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -2955,7 +3059,7 @@ namespace Investa.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Investa.Domain.Entities.User", "User")
+                    b.HasOne("Investa.Domain.Entities.AuthUser", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -2996,7 +3100,7 @@ namespace Investa.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Investa.Domain.Entities.User", "User")
+                    b.HasOne("Investa.Domain.Entities.AuthUser", "User")
                         .WithMany("ScoreTransactions")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -3055,7 +3159,7 @@ namespace Investa.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Investa.Domain.Entities.User", "User")
+                    b.HasOne("Investa.Domain.Entities.AuthUser", "User")
                         .WithMany("UserRoles")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -3079,7 +3183,7 @@ namespace Investa.Infrastructure.Migrations
 
             modelBuilder.Entity("Investa.Domain.Entities.Transaction", b =>
                 {
-                    b.HasOne("Investa.Domain.Entities.User", "Wallet")
+                    b.HasOne("Investa.Domain.Entities.AuthUser", "Wallet")
                         .WithMany("Transactions")
                         .HasForeignKey("WalletId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -3102,26 +3206,30 @@ namespace Investa.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Investa.Domain.Entities.User", null)
-                        .WithMany("UserGroups")
-                        .HasForeignKey("UserId1")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("Group");
 
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Investa.Domain.Entities.UserNotification", b =>
+                {
+                    b.HasOne("Investa.Domain.Entities.NotificationTemplate", "Template")
+                        .WithMany()
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Template");
+                });
+
             modelBuilder.Entity("Investa.Domain.Entities.UserProfile", b =>
                 {
-                    b.HasOne("Investa.Domain.Entities.User", "User")
+                    b.HasOne("Investa.Domain.Entities.AuthUser", "AuthUser")
                         .WithOne("Profile")
                         .HasForeignKey("Investa.Domain.Entities.UserProfile", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("User");
+                    b.Navigation("AuthUser");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
@@ -3179,9 +3287,21 @@ namespace Investa.Infrastructure.Migrations
                 {
                     b.Navigation("Client");
 
-                    b.Navigation("Employee");
+                    b.Navigation("CreditPlanPurchases");
+
+                    b.Navigation("CreditTransactions");
+
+                    b.Navigation("Investments");
+
+                    b.Navigation("Profile");
+
+                    b.Navigation("ScoreTransactions");
+
+                    b.Navigation("Transactions");
 
                     b.Navigation("UserGroups");
+
+                    b.Navigation("UserRoles");
 
                     b.Navigation("UserSessions");
                 });
@@ -3201,6 +3321,11 @@ namespace Investa.Infrastructure.Migrations
                     b.Navigation("ClientBusinessCategories");
 
                     b.Navigation("CreditTransactions");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.CreditPlan", b =>
+                {
+                    b.Navigation("Purchases");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Group", b =>
@@ -3245,23 +3370,6 @@ namespace Investa.Infrastructure.Migrations
             modelBuilder.Entity("Investa.Domain.Entities.SupportSession", b =>
                 {
                     b.Navigation("Messages");
-                });
-
-            modelBuilder.Entity("Investa.Domain.Entities.User", b =>
-                {
-                    b.Navigation("CreditTransactions");
-
-                    b.Navigation("Investments");
-
-                    b.Navigation("Profile");
-
-                    b.Navigation("ScoreTransactions");
-
-                    b.Navigation("Transactions");
-
-                    b.Navigation("UserGroups");
-
-                    b.Navigation("UserRoles");
                 });
 #pragma warning restore 612, 618
         }

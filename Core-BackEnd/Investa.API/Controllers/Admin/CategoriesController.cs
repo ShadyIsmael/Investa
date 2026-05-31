@@ -10,6 +10,7 @@ namespace Investa.API.Controllers.Admin;
 
 [ApiController]
 [Route("api/v1/admin/categories")]
+[Route("api/admin/categories")]
 [Authorize(Roles = "Admin")]
 public class CategoriesController : ControllerBase
 {

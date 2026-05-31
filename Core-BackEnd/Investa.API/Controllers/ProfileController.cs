@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using Investa.Application.DTOs.Profile;
 using Investa.Application.Interfaces;
 using Investa.Domain.Entities;
@@ -83,6 +84,11 @@ public class ProfileController : ControllerBase
             {
                 profile.BasicInfo.LastName = req.LastName.Trim();
                 changed = true;
+            }
+            if (!string.IsNullOrWhiteSpace(req.FirstName) || !string.IsNullOrWhiteSpace(req.LastName))
+            {
+                profile.BasicInfo.FullName = string.Join(' ', new[] { profile.BasicInfo.FirstName, profile.BasicInfo.LastName }
+                    .Where(x => !string.IsNullOrWhiteSpace(x))).Trim();
             }
             if (!string.IsNullOrWhiteSpace(req.Mobile) && req.Mobile != profile.ContactInfo.Phone1)
             {
@@ -175,15 +181,9 @@ public class ProfileController : ControllerBase
 
                 if (authUser == null && !string.IsNullOrEmpty(userName))
                 {
-                    // Try domain User lookup by username or email placeholder
-                    var domainUser = (await _unitOfWork.Repository<Investa.Domain.Entities.User>()
-                        .FindAsync(u => u.Email == (userName + "@phone.investa.local") || u.Name == userName)).FirstOrDefault();
-
-                    if (domainUser != null)
-                    {
-                        authUser = (await _unitOfWork.Repository<Investa.Domain.Entities.AuthUser>()
-                            .FindAsync(a => a.Id == domainUser.Id)).FirstOrDefault();
-                    }
+                    // Try direct AuthUser lookup by email placeholder
+                    authUser = (await _unitOfWork.Repository<Investa.Domain.Entities.AuthUser>()
+                        .FindAsync(a => a.Email == (userName + "@phone.investa.local") || a.Name == userName)).FirstOrDefault();
                 }
 
                 if (authUser == null)
@@ -257,14 +257,8 @@ public class ProfileController : ControllerBase
 
                 if (authUser == null && !string.IsNullOrEmpty(userName))
                 {
-                    var domainUser = (await _unitOfWork.Repository<Investa.Domain.Entities.User>()
-                        .FindAsync(u => u.Email == (userName + "@phone.investa.local") || u.Name == userName)).FirstOrDefault();
-
-                    if (domainUser != null)
-                    {
-                        authUser = (await _unitOfWork.Repository<Investa.Domain.Entities.AuthUser>()
-                            .FindAsync(a => a.Id == domainUser.Id)).FirstOrDefault();
-                    }
+                    authUser = (await _unitOfWork.Repository<Investa.Domain.Entities.AuthUser>()
+                        .FindAsync(a => a.Email == (userName + "@phone.investa.local") || a.Name == userName)).FirstOrDefault();
                 }
 
                 if (authUser == null)

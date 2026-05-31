@@ -290,7 +290,6 @@ class FCMService {
 
     if (messageType == 'investment_request') {
       final requestId = message.data['requestId'];
-      final investmentId = message.data['investmentId'];
       final investorName = message.data['investorName'] ?? 'Investor';
       final amount = message.data['amount'] ?? '0';
 

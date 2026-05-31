@@ -5,7 +5,7 @@ import '../theme/app_theme.dart';
 import '../theme/color_extensions.dart';
 
 class SupportRequestScreen extends StatefulWidget {
-  const SupportRequestScreen({Key? key}) : super(key: key);
+  const SupportRequestScreen({super.key});
 
   @override
   State<SupportRequestScreen> createState() => _SupportRequestScreenState();

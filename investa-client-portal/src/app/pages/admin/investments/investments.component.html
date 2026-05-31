@@ -111,6 +111,21 @@
                     </div>
                 </div>
 
+                <!-- Investment Type -->
+                <div formGroupName="investmentTypes">
+                    <h4 class="font-semibold text-white mb-3">{{ 'investments.typeFilter' | translate }}</h4>
+                    <div class="flex items-center space-x-6 rtl:space-x-reverse">
+                        <label class="flex items-center space-x-2 rtl:space-x-reverse text-gray-300 cursor-pointer">
+                            <input type="checkbox" formControlName="founding" class="h-4 w-4 bg-slate-700 border-slate-600 text-blue-500 focus:ring-blue-600 rounded">
+                            <span>{{ 'investments.type.founding' | translate }}</span>
+                        </label>
+                        <label class="flex items-center space-x-2 rtl:space-x-reverse text-gray-300 cursor-pointer">
+                            <input type="checkbox" formControlName="equity" class="h-4 w-4 bg-slate-700 border-slate-600 text-blue-500 focus:ring-blue-600 rounded">
+                            <span>{{ 'investments.type.equity' | translate }}</span>
+                        </label>
+                    </div>
+                </div>
+
                 <!-- Funding Progress -->
                 <div>
                     <h4 class="font-semibold text-white mb-3">{{ 'investments.fundingProgress' | translate }} (%)</h4>
@@ -152,8 +167,12 @@
           <!-- Card Header: Status Badge and Founder -->
           <div class="p-5 flex items-center justify-between border-b border-slate-700/50 bg-gradient-to-r from-slate-800/40 to-slate-800/20">
               <div class="flex items-center gap-3 flex-1 min-w-0">
-                  <div class="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-blue-500/30">
-                    {{ investment.founderDisplay?.charAt(0)?.toUpperCase() || '?' }}
+                  <div class="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-blue-500/30 overflow-hidden">
+                    @if (getFounderAvatarUrl(investment)) {
+                      <img [src]="getFounderAvatarUrl(investment)" [alt]="investment.founderDisplay || 'Founder'" class="w-full h-full object-cover">
+                    } @else {
+                      {{ investment.founderDisplay?.charAt(0)?.toUpperCase() || '?' }}
+                    }
                   </div>
                   <div class="flex-1 min-w-0">
                     <span class="font-semibold text-white truncate block text-sm">{{ investment.founderDisplay || 'Unknown' }}</span>
@@ -223,6 +242,12 @@
               <h3 class="text-xl font-bold text-white mb-3 line-clamp-2 transition-all duration-200 leading-tight">
                 {{ investment.name }}
               </h3>
+              @if (investment.investmentType) {
+                <span class="inline-flex items-center gap-2 mb-3 px-3 py-1 text-xs font-semibold rounded-full"
+                      [ngClass]="getInvestmentTypeBadgeClass(investment.investmentType)">
+                  {{ getInvestmentTypeDisplay(investment.investmentType) }}
+                </span>
+              }
               <p class="text-gray-400 text-sm mb-4 min-h-[3rem] line-clamp-2 leading-relaxed" [title]="investment.description">
                   {{ investment.description }}
               </p>

@@ -111,5 +111,36 @@ export const financeService = {
   async getCashFlow(): Promise<CashFlowPoint[]> {
     const res = await api.get<any>('/api/finance/cashflow', Mocks.MOCK_CASHFLOW);
     return res?.data ?? res ?? [];
-  }
+  },
+
+  async getCreditPlanStats(): Promise<{ name: string; value: number; credits: number }[]> {
+    try {
+      const res = await api.get<any>('/api/credit-plans/admin', []);
+      const data: any[] = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+      return data
+        .filter((p: any) => p.isActive !== false)
+        .map((p: any) => ({
+          name: p.name ?? 'Plan',
+          value: typeof p.price === 'number' ? p.price : Number(p.price ?? 0),
+          credits: typeof p.credits === 'number' ? p.credits : Number(p.credits ?? 0),
+        }));
+    } catch {
+      return [];
+    }
+  },
+
+  /** Returns how many times each plan has been purchased – used for the dashboard chart. */
+  async getCreditPlanPurchaseStats(): Promise<{ name: string; value: number; credits: number }[]> {
+    try {
+      const res = await api.get<any>('/api/credit-plans/purchases/stats', []);
+      const data: any[] = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+      return data.map((item: any) => ({
+        name:    item.name    ?? 'Plan',
+        value:   typeof item.value   === 'number' ? item.value   : Number(item.value   ?? 0),
+        credits: typeof item.credits === 'number' ? item.credits : Number(item.credits ?? 0),
+      }));
+    } catch {
+      return [];
+    }
+  },
 };

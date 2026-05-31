@@ -1,16 +1,21 @@
-import { Component, ChangeDetectionStrategy, signal, computed, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormControl, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { TranslatePipe } from '../../../pipes/translate.pipe';
-import { LanguageService } from '../../../services/language.service';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { UserService } from '../../../services/user.service';
+import { AuthService } from '../../../services/auth.service';
+import { API_BASE } from '../../../config/api.token';
 
-interface CreditPackage {
+type BillingPeriod = 'monthly' | 'yearly' | 'one-time';
+
+interface AdminPricePlan {
+  id: number;
+  name: string;
   credits: number;
   price: number;
-  discount: number;
-  popular?: boolean;
+  billingPeriod: BillingPeriod;
+  isActive: boolean;
 }
 
 @Component({
@@ -19,136 +24,122 @@ interface CreditPackage {
   templateUrl: './credit-charge.component.html',
   styleUrls: ['./credit-charge.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, TranslatePipe]
+  imports: [CommonModule]
 })
-export class CreditChargeComponent {
+export class CreditChargeComponent implements OnInit {
   private router = inject(Router);
-  private languageService = inject(LanguageService);
   private userService = inject(UserService);
+  private authService = inject(AuthService);
+  private http = inject(HttpClient);
+  private apiBase = inject(API_BASE);
 
   // State
   isLoading = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
-  selectedPackage = signal<number | null>(null);
+  selectedPlanId = signal<number | null>(null);
   showSuccessDialog = signal<boolean>(false);
+  plansLoading = signal<boolean>(true);
+  referenceNumber = signal<string | null>(null);
+  purchasedCredits = signal<number>(0);
 
   // Current credits from UserService
   currentCredits = this.userService.credits;
 
-  // Credit packages
-  packages: CreditPackage[] = [
-    { credits: 100, price: 100, discount: 0 },
-    { credits: 500, price: 450, discount: 10, popular: true },
-    { credits: 1000, price: 800, discount: 20 },
-    { credits: 5000, price: 3500, discount: 30 }
-  ];
+  // Admin-created plans from API
+  adminPlans = signal<AdminPricePlan[]>([]);
 
-  // Custom amount form
-  customAmountForm = new FormGroup({
-    amount: new FormControl<number | null>(null, [
-      Validators.required,
-      Validators.min(100),
-      Validators.max(100000)
-    ])
-  });
+  readonly BILLING_LABELS: Record<BillingPeriod, string> = {
+    'monthly':  'Monthly',
+    'yearly':   'Yearly',
+    'one-time': 'One-Time',
+  };
 
   // Computed values
-  selectedPackageData = computed(() => {
-    const selected = this.selectedPackage();
-    if (selected === null) return null;
-    return this.packages.find(p => p.credits === selected) || null;
+  selectedPlan = computed(() => {
+    const id = this.selectedPlanId();
+    if (id === null) return null;
+    return this.adminPlans().find(p => p.id === id) ?? null;
   });
 
-  customAmount = computed(() => {
-    return this.customAmountForm.get('amount')?.value || 0;
-  });
-
-  // Calculate price based on tiers
-  calculateCustomPrice(credits: number): number {
-    if (credits < 100) return credits;
-    if (credits >= 5000) return credits * 0.7; // 30% discount
-    if (credits >= 1000) return credits * 0.8; // 20% discount
-    if (credits >= 500) return credits * 0.9; // 10% discount
-    return credits; // No discount
+  ngOnInit(): void {
+    this.loadPlans();
   }
 
-  customPrice = computed(() => {
-    const amount = this.customAmount();
-    return this.calculateCustomPrice(amount);
-  });
+  private async loadPlans(): Promise<void> {
+    try {
+      this.plansLoading.set(true);
+      const token = this.authService.getAccessToken();
+      const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+      const plans = await firstValueFrom(
+        this.http.get<AdminPricePlan[]>(`${this.apiBase}/api/credit-plans`, { headers })
+      );
+      this.adminPlans.set(plans ?? []);
+    } catch (e) {
+      this.errorMessage.set('Could not load credit plans. Please try again later.');
+      console.error('Failed to load credit plans:', e);
+    } finally {
+      this.plansLoading.set(false);
+    }
+  }
 
-  customDiscount = computed(() => {
-    const amount = this.customAmount();
-    if (amount >= 5000) return 30;
-    if (amount >= 1000) return 20;
-    if (amount >= 500) return 10;
-    return 0;
-  });
-
-  selectPackage(credits: number): void {
-    this.selectedPackage.set(credits);
-    this.customAmountForm.reset();
+  selectPlan(id: number): void {
+    this.selectedPlanId.set(id);
   }
 
   async purchasePackage(): Promise<void> {
-    const pkg = this.selectedPackageData();
-    if (!pkg) return;
+    const plan = this.selectedPlan();
+    if (!plan) return;
 
-    await this.processPurchase(pkg.credits, pkg.price);
-  }
-
-  async purchaseCustomAmount(): Promise<void> {
-    if (this.customAmountForm.invalid) {
-      this.errorMessage.set('Please enter a valid amount (100 - 100,000)');
-      return;
-    }
-
-    const credits = this.customAmount();
-    const price = this.customPrice();
-
-    await this.processPurchase(credits, price);
+    await this.processPurchase(plan.credits, plan.price);
   }
 
   private async processPurchase(credits: number, price: number): Promise<void> {
+    const plan = this.selectedPlan();
+    if (!plan) return;
+
     try {
       this.isLoading.set(true);
       this.errorMessage.set(null);
 
-      // TODO: Integrate with payment gateway (Stripe/PayPal)
-      // For now, simulate API call
-      await this.simulatePayment(credits, price);
+      const token = this.authService.getAccessToken();
+      const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
 
-      // Update credits in UserService
-      const currentCredits = this.userService.credits();
-      this.userService.setCredits(currentCredits + credits);
+      const result = await firstValueFrom(
+        this.http.post<{
+          referenceNumber: string;
+          planName: string;
+          creditsAdded: number;
+          newBalance: number;
+        }>(
+          `${this.apiBase}/api/credit-plans/${plan.id}/purchase`,
+          {},
+          { headers }
+        )
+      );
+
+      // Update credits from server-returned balance
+      this.userService.setCredits(result.newBalance);
+      this.referenceNumber.set(result.referenceNumber);
+      this.purchasedCredits.set(result.creditsAdded);
 
       // Show success dialog
       this.showSuccessDialog.set(true);
 
-      // Navigate back after 2 seconds
+      // Navigate back after 4 seconds
       setTimeout(() => {
         this.showSuccessDialog.set(false);
         this.router.navigate(['/admin/profile']);
-      }, 2000);
+      }, 4000);
 
     } catch (e) {
-      this.errorMessage.set('Payment failed. Please try again.');
-      console.error('Payment error:', e);
+      this.errorMessage.set('Purchase failed. Please try again.');
+      console.error('Purchase error:', e);
     } finally {
       this.isLoading.set(false);
     }
   }
 
-  private async simulatePayment(credits: number, price: number): Promise<void> {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-  }
-
   goBack(): void {
     this.router.navigate(['/admin/profile']);
-  }
-
-  private t(path: string): string {
-    return this.languageService.translate(path);
   }
 }

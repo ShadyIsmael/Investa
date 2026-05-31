@@ -18,6 +18,7 @@ namespace Investa.API.Controllers.Admin
     /// </summary>
     [ApiController]
     [Route("api/v1/admin/users")]
+    [Route("api/admin/users")]
     [Authorize(Roles = "Admin")]
     public class UsersAdminController : ControllerBase
     {
@@ -36,6 +37,18 @@ namespace Investa.API.Controllers.Admin
             _profileService = profileService;
             _logger = logger;
             _localizer = localizer;
+        }
+
+        private Guid? ResolveUserIdFromClaims()
+        {
+            var claimValue = User.FindFirst("sub")?.Value
+                             ?? User.FindFirst("id")?.Value
+                             ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (Guid.TryParse(claimValue, out var userId))
+                return userId;
+
+            return null;
         }
 
         /// <summary>
@@ -99,6 +112,17 @@ namespace Investa.API.Controllers.Admin
         }
 
         /// <summary>
+        /// Returns available OrgUser status values for admin filters.
+        /// </summary>
+        [HttpGet("/api/v1/admin/user-statuses")]
+        [HttpGet("/api/admin/user-statuses")]
+        [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
+        public IActionResult GetUserStatuses()
+        {
+            return Ok(new[] { "Active", "Inactive" });
+        }
+
+        /// <summary>
         /// Gets or creates the current authenticated user's profile.
         /// </summary>
         /// <param name="createIfNotExists">Whether to create profile if it doesn't exist</param>
@@ -109,18 +133,18 @@ namespace Investa.API.Controllers.Admin
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetOrCreateOrgUserProfile([FromQuery] bool createIfNotExists = true)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                             ?? User.FindFirst("id")?.Value;
-
-            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+            var userId = ResolveUserIdFromClaims();
+            if (!userId.HasValue)
             {
                 return Unauthorized(new { message = _localizer["UserIdNotFoundInToken"].Value });
             }
 
+            var userGuid = userId.Value;
+
             try
             {
-                var profile = await _profileService.GetUserProfileAsync(userId);
-                var (roleName, groupName) = await _orgUserService.GetUserRoleInfoAsync(userId);
+                var profile = await _profileService.GetUserProfileAsync(userGuid);
+                var (roleName, groupName) = await _orgUserService.GetUserRoleInfoAsync(userGuid);
 
                 if (profile != null)
                 {
@@ -140,7 +164,7 @@ namespace Investa.API.Controllers.Admin
                     return NotFound(new { message = _localizer["UserProfileNotFound"].Value });
                 }
 
-                profile = await _profileService.GetOrCreateUserProfileAsync(userId);
+                profile = await _profileService.GetOrCreateUserProfileAsync(userGuid);
                 return Ok(new
                 {
                     FirstName = profile.BasicInfo?.FirstName,

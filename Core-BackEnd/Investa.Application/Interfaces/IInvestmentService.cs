@@ -11,5 +11,7 @@ public interface IInvestmentService
     Task<Investment?> GetByIdAsync(int id);
     Task<IEnumerable<Investment>> GetByCategoryAsync(int? categoryId);
     Task<IEnumerable<Investment>> GetMyInvestmentsAsync(Guid founderId);
+    Task<IEnumerable<int>> GetFavoriteInvestmentIdsAsync(Guid investorId);
+    Task<bool> ToggleFavoriteAsync(Guid investorId, int investmentId, bool favorited);
     Task<IEnumerable<InvestmentParticipant>> GetParticipantsAsync(int investmentId);
 }

@@ -1,11 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_dark_app/screens/requests_screen.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_founder/l10n/app_localizations.dart';
+import 'package:flutter_founder/screens/requests_screen.dart';
 
 void main() {
   testWidgets('Requests screen shows integer amount and action buttons',
       (WidgetTester tester) async {
-    await tester.pumpWidget(const MaterialApp(home: RequestsScreen()));
+    await tester.pumpWidget(const MediaQuery(
+      data: MediaQueryData(size: Size(1200, 800)),
+      child: MaterialApp(
+        localizationsDelegates: [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: [Locale('en')],
+        home: RequestsScreen(),
+      ),
+    ));
 
     // Wait for async fetch in RequestsService (mocked delay)
     await tester.pump(const Duration(milliseconds: 600));

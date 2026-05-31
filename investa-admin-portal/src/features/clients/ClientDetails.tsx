@@ -2,10 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { clientService } from '@/services/clientService';
 import { Client, ClientProfile } from '@/types';
 import { Icon } from '@/components/common/Icons';
+import { useTranslation } from 'react-i18next';
 
 const Missing: React.FC<{ label?: string; small?: boolean }> = ({ label = 'Not provided', small = false }) => (
-  <div className={`${small ? 'text-xxs text-muted flex items-center gap-2' : 'text-sm text-muted flex items-center gap-2'}`} title={label}>
-    <Icon name="shield-check" className={`${small ? 'w-3 h-3' : 'w-4 h-4'} text-muted/50`} />
+  <div className={`${small ? 'text-xxs text-muted-foreground flex items-center gap-2' : 'text-sm text-muted-foreground flex items-center gap-2'}`} title={label}>
+    <Icon name="shield-check" className={`${small ? 'w-3 h-3' : 'w-4 h-4'} text-muted-foreground/50`} />
     <span>{label}</span>
   </div>
 );
@@ -34,7 +35,7 @@ const StatusEditor: React.FC<{
             ${status === 'Active' ? 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : ''}
             ${status === 'Pending' ? 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20' : ''}
             ${status === 'Suspended' ? 'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20' : ''}
-            ${status === 'Inactive' ? 'bg-background text-muted border-border' : ''}
+            ${status === 'Inactive' ? 'bg-background text-muted-foreground border-border' : ''}
           `}>
             <span className={`w-2 h-2 rounded-full ${
               status === 'Active' ? 'bg-emerald-500' : status === 'Pending' ? 'bg-amber-500' : status === 'Suspended' ? 'bg-rose-500' : 'bg-muted'
@@ -43,7 +44,7 @@ const StatusEditor: React.FC<{
           </span>
 
           <button
-            className="px-2.5 py-1 text-xs bg-surface border border-border rounded-lg text-muted hover:text-text transition-colors font-bold uppercase tracking-wider"
+            className="px-2.5 py-1 text-xs bg-surface border border-border rounded-lg text-muted-foreground hover:text-text transition-colors font-bold uppercase tracking-wider"
             onClick={() => setIsEditing(true)}
             type="button"
           >
@@ -61,7 +62,7 @@ const StatusEditor: React.FC<{
 
           <div className="flex items-center gap-2">
             <button onClick={handleSave} className="px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all">Apply</button>
-            <button onClick={() => { setIsEditing(false); setStatus(currentStatus); }} className="px-3 py-2 bg-surface border border-border rounded-xl text-sm font-bold text-muted hover:text-text transition-all">Cancel</button>
+            <button onClick={() => { setIsEditing(false); setStatus(currentStatus); }} className="px-3 py-2 bg-surface border border-border rounded-xl text-sm font-bold text-muted-foreground hover:text-text transition-all">Cancel</button>
           </div>
         </div>
       )}
@@ -78,6 +79,7 @@ const ClientDetails: React.FC<{ clientId: string | number | null; onBack?: () =>
   const [editedStatus, setEditedStatus] = useState<string | null>(null);
   const [justification, setJustification] = useState<string>('');
   const [savingGlobal, setSavingGlobal] = useState(false);
+  const { t } = useTranslation();
   const [saveError, setSaveError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
 
@@ -128,8 +130,8 @@ const ClientDetails: React.FC<{ clientId: string | number | null; onBack?: () =>
 
   if (!clientId) return (
     <div className="p-6">
-      <button onClick={onBack} className="mb-4 px-4 py-2 bg-surface border border-border rounded-xl text-sm font-bold text-muted hover:text-text transition-all">Back</button>
-      <p className="text-muted font-medium">No client selected.</p>
+      <button onClick={onBack} className="mb-4 px-4 py-2 bg-surface border border-border rounded-xl text-sm font-bold text-muted-foreground hover:text-text transition-all">Back</button>
+      <p className="text-muted-foreground font-medium">No client selected.</p>
     </div>
   );
 
@@ -137,24 +139,27 @@ const ClientDetails: React.FC<{ clientId: string | number | null; onBack?: () =>
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-text tracking-tight">Client Profile</h2>
-          <p className="text-muted text-sm font-medium">Detailed view for the selected client.</p>
+          <h2 className="text-2xl font-bold text-text tracking-tight">{t('pages.clientProfile', { defaultValue: 'Client Profile' })}</h2>
+          <p className="text-muted-foreground text-sm font-medium">{t('pages.clientProfileDescription', { defaultValue: 'Detailed view for the selected client.' })}</p>
         </div>
         <div>
-          <button onClick={onBack} className="px-4 py-2 bg-surface border border-border rounded-xl text-sm font-bold text-muted hover:text-text transition-all shadow-sm">Back to clients</button>
+          <button onClick={onBack} className="px-4 py-2 bg-surface border border-border rounded-xl text-sm font-bold text-muted-foreground hover:text-text transition-all shadow-sm">Back to clients</button>
         </div>
       </div>
 
       <div className="bg-surface rounded-2xl border border-border shadow-sm p-6">
         {loading ? (
-          <div className="text-muted animate-pulse font-medium">Loading client...</div>
+          <div className="text-muted-foreground animate-pulse font-medium">Loading client...</div>
         ) : client || profile ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <aside className="col-span-1">
               <div className="flex flex-col items-center text-center p-6 bg-background rounded-xl border border-border">
                 <img src={profile?.personalImageUrl ?? client?.avatar} alt="avatar" className="w-28 h-28 rounded-2xl object-cover shadow-md mb-4 border border-border" />
                 <h3 className="text-lg font-bold text-text">{profile ? `${profile.firstName} ${profile.lastName}` : client?.name}</h3>
-                <p className="text-xs font-bold text-muted uppercase tracking-widest mt-1">{profile?.businessTitle ?? '-'}</p>
+                <div className="mt-2 inline-flex items-center gap-2 text-xxs font-black uppercase tracking-[0.2em] text-emerald-700 bg-emerald-100/80 rounded-full px-3 py-1">
+                  <span>Name</span>
+                </div>
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-2">{profile?.businessTitle ?? '-'}</p>
 
                 <div className="mt-3">
                   <StatusEditor
@@ -171,24 +176,25 @@ const ClientDetails: React.FC<{ clientId: string | number | null; onBack?: () =>
 
                 <div className="mt-4 w-full grid grid-cols-2 gap-3 text-sm">
                   <div className="bg-surface p-3 rounded-lg border border-border shadow-sm">
-                    <div className="text-xxs font-black text-muted uppercase tracking-widest mb-1">Score</div>
+                    <div className="text-xxs font-black text-muted-foreground uppercase tracking-widest mb-1">Score</div>
                     <div className="font-bold text-text">{profile?.score ?? client?.verificationPercent ?? 0}</div>
                   </div>
                   <div className="bg-surface p-3 rounded-lg border border-border shadow-sm">
-                    <div className="text-xxs font-black text-muted uppercase tracking-widest mb-1">Credit</div>
+                    <div className="text-xxs font-black text-muted-foreground uppercase tracking-widest mb-1">Credit</div>
                     <div className="font-bold text-text">{profile?.credit != null ? profile.credit : <Missing small />}</div>
                   </div>
                 </div>
 
                 <div className="mt-4 w-full text-left">
-                  <div className="text-xxs font-black text-muted uppercase tracking-widest mb-1">Contact</div>
+                  <div className="text-xxs font-black text-muted-foreground uppercase tracking-widest mb-1">Contact</div>
                   <div className="font-medium text-text">{(profile?.mobileNumber ?? profile?.phone ?? profile?.email ?? client?.email) || <Missing small />}</div>
                 </div>
+
 
                 <div className="mt-4 w-full flex gap-2">
                   <a href={`mailto:${profile?.email ?? client?.email ?? ''}`} className="flex-1 px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold text-center shadow-lg shadow-primary/20 hover:opacity-90 transition-all uppercase tracking-wider">Email</a>
                   <button
-                    className={`px-4 py-2 bg-surface border border-border rounded-xl text-sm font-bold text-muted hover:text-text transition-all uppercase tracking-wider ${notified ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 shadow-sm shadow-emerald-500/10' : ''}`}
+                    className={`px-4 py-2 bg-surface border border-border rounded-xl text-sm font-bold text-muted-foreground hover:text-text transition-all uppercase tracking-wider ${notified ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 shadow-sm shadow-emerald-500/10' : ''}`}
                     onClick={async () => {
                       setSaveError(null);
                       if (!profile?.email && !profile?.mobileNumber && !profile?.phone && !client?.email) {
@@ -221,15 +227,15 @@ const ClientDetails: React.FC<{ clientId: string | number | null; onBack?: () =>
             <div className="col-span-1 lg:col-span-2 space-y-4">
               <div className="p-4 rounded-xl border border-border bg-surface shadow-sm">
                 <h4 className="font-bold text-text mb-2 tracking-tight">Overview</h4>
-                <p className="text-sm text-muted">{profile?.businessTitle ? `${profile.businessTitle} — ${profile.categoryIds?.join(', ') ?? ''}` : <Missing small label="No business title" />}</p>
+                <p className="text-sm text-muted-foreground">{profile?.businessTitle ? `${profile.businessTitle} — ${profile.categoryIds?.join(', ') ?? ''}` : <Missing small label="No business title" />}</p>
                 <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="bg-background p-3 rounded-lg text-sm border border-border/50">
-                    <div className="text-xxs font-black text-muted uppercase tracking-widest mb-1">Registered</div>
+                    <div className="text-xxs font-black text-muted-foreground uppercase tracking-widest mb-1">Registered</div>
                     <div className="font-medium text-text">{profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : client?.registrationDate ? new Date(client.registrationDate).toLocaleDateString() : <Missing small />}</div>
                   </div>
 
                   <div className="bg-background p-3 rounded-lg text-sm border border-border/50">
-                    <div className="text-xxs font-black text-muted uppercase tracking-widest mb-1">Last Updated</div>
+                    <div className="text-xxs font-black text-muted-foreground uppercase tracking-widest mb-1">Last Updated</div>
                     <div className="font-medium text-text">{profile?.updatedAt ? new Date(profile.updatedAt).toLocaleDateString() : <Missing small />}</div>
                   </div>
                 </div>
@@ -239,15 +245,15 @@ const ClientDetails: React.FC<{ clientId: string | number | null; onBack?: () =>
                 <h4 className="font-bold text-text mb-2 tracking-tight">Contact & Address</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <div className="text-xxs font-black text-muted uppercase tracking-widest mb-1">Email</div>
+                    <div className="text-xxs font-black text-muted-foreground uppercase tracking-widest mb-1">Email</div>
                     <div className="font-medium text-text">{profile?.email ?? <Missing small />}</div>
                   </div>
                   <div>
-                    <div className="text-xxs font-black text-muted uppercase tracking-widest mb-1">Mobile</div>
+                    <div className="text-xxs font-black text-muted-foreground uppercase tracking-widest mb-1">Mobile</div>
                     <div className="font-medium text-text">{(profile?.mobileNumber ?? profile?.phone) ?? <Missing small />}</div>
                   </div>
                   <div className="md:col-span-2">
-                    <div className="text-xxs font-black text-muted uppercase tracking-widest mb-1">Address</div>
+                    <div className="text-xxs font-black text-muted-foreground uppercase tracking-widest mb-1">Address</div>
                     <div className="font-medium text-text">{profile ? `${profile.address1 ?? ''}${profile.address2 ? ', ' + profile.address2 : ''} ${profile.city ? ', ' + profile.city : ''}` : '-'}</div>
                   </div>
                 </div>
@@ -257,19 +263,19 @@ const ClientDetails: React.FC<{ clientId: string | number | null; onBack?: () =>
                 <h4 className="font-bold text-text mb-2 tracking-tight">Identity & Business</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <div className="text-xxs font-black text-muted uppercase tracking-widest mb-1">National ID</div>
+                    <div className="text-xxs font-black text-muted-foreground uppercase tracking-widest mb-1">National ID</div>
                     <div className="font-medium text-text">{profile?.nationalId ?? <Missing small />}</div>
                   </div>
                   <div>
-                    <div className="text-xxs font-black text-muted uppercase tracking-widest mb-1">Birth Date</div>
+                    <div className="text-xxs font-black text-muted-foreground uppercase tracking-widest mb-1">Birth Date</div>
                     <div className="font-medium text-text">{profile?.birthDate ? new Date(profile.birthDate).toLocaleDateString() : '-'}</div>
                   </div>
                   <div>
-                    <div className="text-xxs font-black text-muted uppercase tracking-widest mb-1">Business Title</div>
+                    <div className="text-xxs font-black text-muted-foreground uppercase tracking-widest mb-1">Business Title</div>
                     <div className="font-medium text-text">{profile?.businessTitle ?? <Missing small />}</div>
                   </div>
                   <div>
-                    <div className="text-xxs font-black text-muted uppercase tracking-widest mb-1">Website</div>
+                    <div className="text-xxs font-black text-muted-foreground uppercase tracking-widest mb-1">Website</div>
                     <div className="font-medium text-text">{profile?.websiteUrl ?? <Missing small />}</div>
                   </div>
                 </div>
@@ -278,17 +284,17 @@ const ClientDetails: React.FC<{ clientId: string | number | null; onBack?: () =>
               {/* Global justification & save area */}
               <div className="p-4 rounded-xl border border-border bg-surface shadow-sm">
                 <h4 className="font-bold text-text mb-2 tracking-tight">Save changes <span className="text-error">*</span></h4>
-                <p className="text-sm text-muted mb-3 font-medium">Justification is <strong>required</strong> to save changes. Provide a justification and click <strong>Save changes</strong> to apply them.</p>
+                <p className="text-sm text-muted-foreground mb-3 font-medium">Justification is <strong>required</strong> to save changes. Provide a justification and click <strong>Save changes</strong> to apply them.</p>
                 <textarea 
                   value={justification} 
                   onChange={(e) => setJustification(e.target.value)} 
                   placeholder="Enter justification for these changes (required)" 
-                  className={`w-full bg-background border rounded-xl p-3 h-28 text-sm text-text focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all placeholder:text-muted/50 ${saveError && (!justification || justification.trim().length < 5) ? 'border-error' : 'border-border'}`} 
+                  className={`w-full bg-background border rounded-xl p-3 h-28 text-sm text-text focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all placeholder:text-muted-foreground/50 ${saveError && (!justification || justification.trim().length < 5) ? 'border-error' : 'border-border'}`} 
                 />
 
                 <div className="mt-4 flex items-center gap-2">
                   <button
-                    className={`px-6 py-2 rounded-xl font-bold text-sm transition-all shadow-lg ${savingGlobal ? 'bg-primary/50 text-white cursor-wait' : (!dirty || (justification || '').trim().length < 5) ? 'bg-muted/10 text-muted/50 cursor-not-allowed shadow-none' : 'bg-primary text-white shadow-primary/20 hover:opacity-90 active:scale-95'}`}
+                    className={`px-6 py-2 rounded-xl font-bold text-sm transition-all shadow-lg ${savingGlobal ? 'bg-primary/50 text-white cursor-wait' : (!dirty || (justification || '').trim().length < 5) ? 'bg-muted/10 text-muted-foreground/50 cursor-not-allowed shadow-none' : 'bg-primary text-white shadow-primary/20 hover:opacity-90 active:scale-95'}`}
                     onClick={async () => {
                       if (!clientId) return;
                       if (!dirty) return setSaveError('No changes to save');
@@ -328,7 +334,7 @@ const ClientDetails: React.FC<{ clientId: string | number | null; onBack?: () =>
                       setProfile((p) => p ? { ...p } : p);
                       setClient((c) => c ? { ...c } : c);
                     }}
-                    className="px-4 py-2 bg-surface border border-border rounded-xl font-bold text-sm text-muted hover:text-text transition-all"
+                    className="px-4 py-2 bg-surface border border-border rounded-xl font-bold text-sm text-muted-foreground hover:text-text transition-all"
                   >
                     Cancel
                   </button>
@@ -339,7 +345,7 @@ const ClientDetails: React.FC<{ clientId: string | number | null; onBack?: () =>
           </div>
           </div>
         ) : (
-          <div className="text-muted font-medium flex items-center gap-2 p-10 justify-center">
+          <div className="text-muted-foreground font-medium flex items-center gap-2 p-10 justify-center">
             <Icon name="search" className="w-5 h-5 opacity-20" />
             Client not found.
           </div>

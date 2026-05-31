@@ -54,19 +54,22 @@ export const Dashboard: React.FC = () => {
   const [revenue, setRevenue] = useState<ChartDataPoint[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [categories, setCategories] = useState<{ name: string; value: number }[]>([]);
+  const [creditPlanStats, setCreditPlanStats] = useState<{ name: string; value: number; credits: number }[]>([]);
   const [aiStatus,   setAiStatus]   = useState<AiStatus>(AiStatus.IDLE);
   const [aiResponse, setAiResponse] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const [rev, st, cl] = await Promise.allSettled([
+        const [rev, st, cl, cps] = await Promise.allSettled([
           financeService.getRevenueData(),
           financeService.getDashboardStats(),
           clientService.getTopClients(),
+          financeService.getCreditPlanPurchaseStats(),
         ]);
         if (rev.status === 'fulfilled') setRevenue(rev.value);
         if (st.status  === 'fulfilled') setStats(st.value);
+        if (cps.status === 'fulfilled') setCreditPlanStats(cps.value);
         if (cl.status  === 'fulfilled') {
           setClients(cl.value);
           setCategories([
@@ -150,50 +153,10 @@ export const Dashboard: React.FC = () => {
         {stats.map((s, i) => <StatCard key={s.id ?? i} {...s} />)}
       </div>
 
-      {/* Charts row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Pie charts row — Market Mix + Credit Plan Purchases */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        {/* Revenue – 2/3 width */}
-        <div className="card p-6 lg:col-span-2">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-base font-bold text-foreground">Revenue Stream</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Monthly performance</p>
-            </div>
-            <div className="w-9 h-9 rounded-xl bg-sky-500/10 flex items-center justify-center">
-              <Icon name="trending-up" className="w-5 h-5 text-sky-500" />
-            </div>
-          </div>
-          <div className="h-[280px]">
-            {revenue.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={revenue} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#0ea5e9" stopOpacity={0.25} />
-                      <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="hsl(var(--border))" />
-                  <XAxis dataKey="month" fontSize={11} tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" />
-                  <YAxis fontSize={11} tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" tickFormatter={v => `${v/1000}k`} />
-                  <Tooltip
-                    contentStyle={{
-                      borderRadius: '0.75rem', border: '1px solid hsl(var(--border))',
-                      backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--foreground))',
-                      fontSize: '12px', fontWeight: '600',
-                    }}
-                  />
-                  <Area type="monotone" dataKey="value" stroke="#0ea5e9" strokeWidth={2.5} fill="url(#grad)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-muted-foreground text-sm">No data available</div>
-            )}
-          </div>
-        </div>
-
-        {/* Pie – 1/3 width */}
+        {/* Market Mix */}
         <div className="card p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -224,6 +187,110 @@ export const Dashboard: React.FC = () => {
               <div className="h-full flex items-center justify-center text-muted-foreground text-sm">No data available</div>
             )}
           </div>
+        </div>
+
+        {/* Credit Plan Purchases */}
+        <div className="card p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-base font-bold text-foreground">Credit Plan Purchases</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">Purchase count by plan</p>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+              <Icon name="payments" className="w-5 h-5 text-emerald-500" />
+            </div>
+          </div>
+          <div className="h-[280px]">
+            {creditPlanStats.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={creditPlanStats}
+                    cx="50%" cy="45%"
+                    innerRadius={55} outerRadius={85}
+                    paddingAngle={3}
+                    dataKey="value"
+                    stroke="none"
+                  >
+                    {creditPlanStats.map((_, i) => (
+                      <Cell key={i} fill={ACCENT_COLORS[i % ACCENT_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(v: number) => [`${v.toLocaleString()} purchases`, 'Count'] as [string, string]}
+                    contentStyle={{
+                      borderRadius: '0.75rem', border: '1px solid hsl(var(--border))',
+                      backgroundColor: 'hsl(var(--card))', fontSize: '12px',
+                    }}
+                  />
+                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '12px' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center gap-3 text-muted-foreground">
+                <Icon name="pie-chart" className="w-10 h-10 opacity-20" />
+                <p className="text-sm">No purchases yet</p>
+              </div>
+            )}
+          </div>
+          {creditPlanStats.length > 0 && (
+            <div className="mt-4 space-y-2 border-t border-border pt-4">
+              {creditPlanStats.map((plan, i) => (
+                <div key={i} className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: ACCENT_COLORS[i % ACCENT_COLORS.length] }}
+                    />
+                    <span className="text-foreground font-medium truncate max-w-[120px]">{plan.name}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-muted-foreground">
+                    <span className="font-semibold text-foreground">{plan.value.toLocaleString()} purchases</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Revenue Stream — full width */}
+      <div className="card p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-base font-bold text-foreground">Revenue Stream</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Monthly performance</p>
+          </div>
+          <div className="w-9 h-9 rounded-xl bg-sky-500/10 flex items-center justify-center">
+            <Icon name="trending-up" className="w-5 h-5 text-sky-500" />
+          </div>
+        </div>
+        <div className="h-[280px]">
+          {revenue.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={revenue} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor="#0ea5e9" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="hsl(var(--border))" />
+                <XAxis dataKey="month" fontSize={11} tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" />
+                <YAxis fontSize={11} tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" tickFormatter={v => `${v/1000}k`} />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: '0.75rem', border: '1px solid hsl(var(--border))',
+                    backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--foreground))',
+                    fontSize: '12px', fontWeight: '600',
+                  }}
+                />
+                <Area type="monotone" dataKey="value" stroke="#0ea5e9" strokeWidth={2.5} fill="url(#grad)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-full flex items-center justify-center text-muted-foreground text-sm">No data available</div>
+          )}
         </div>
       </div>
 

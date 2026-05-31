@@ -1,8 +1,7 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
-import 'package:flutter_dark_app/services/api_client.dart';
-import 'package:flutter_dark_app/services/app_logger.dart';
-import 'package:flutter_dark_app/services/config.dart';
+import 'package:flutter_founder/services/api_client.dart';
+import 'package:flutter_founder/services/app_logger.dart';
 import 'endpoint_resolver.dart';
 
 class ProjectPhase {
@@ -50,9 +49,7 @@ class ProjectPhasesService {
         _client = client ?? ApiClient();
 
   String get baseUrl =>
-      _baseOverride ??
-      EndpointResolver.instance.selectedApiBaseUrl ??
-      Env.apiBaseUrl;
+      _baseOverride ?? EndpointResolver.instance.selectedApiBaseUrl;
 
   Future<List<ProjectPhase>> fetchPhases() async {
     var apiBase = baseUrl;

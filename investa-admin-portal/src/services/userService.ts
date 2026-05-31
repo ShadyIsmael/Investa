@@ -208,14 +208,11 @@ export const userService = {
     try {
       const res = await api.get<any>('/api/v1/admin/roles');
       const data = res?.data ?? res ?? [];
-      return Array.isArray(data) ? data : (data.items || []);
+      const arr = Array.isArray(data) ? data : (data.items || []);
+      return arr.map((r: any) => (typeof r === 'string' ? r : r.name ?? String(r)));
     } catch (err) {
       console.warn('Backend roles API unavailable, using static list', err);
-      return [
-        { id: 'role-1', name: 'Admin', groupId: 1, groupName: 'Admin' },
-        { id: 'role-2', name: 'Editor', groupId: 2, groupName: 'Operations' },
-        { id: 'role-3', name: 'Viewer', groupId: 3, groupName: 'General' },
-      ];
+      return ['Admin', 'Editor', 'Viewer'];
     }
   },
 

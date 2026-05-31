@@ -12,6 +12,16 @@ interface ProfilePictureResponse {
   uploadedAt: string;
 }
 
+interface FileStoreUploadResponse {
+  fileName: string;
+  originalName: string;
+  category: string;
+  sizeBytes: number;
+  contentType: string;
+  url: string;
+  uploadedAt: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class FileStoreService {
   private get base(): string {
@@ -58,6 +68,22 @@ export class FileStoreService {
   }
 
   /**
+   * Convert a relative filestore URL to an absolute public URL.
+   */
+  getPublicUrl(fileUrl?: string | null): string {
+    if (!fileUrl) {
+      return '';
+    }
+
+    const trimmed = fileUrl.trim();
+    if (/^https?:\/\//i.test(trimmed)) {
+      return trimmed;
+    }
+
+    return `${this.base}${trimmed}`;
+  }
+
+  /**
    * Delete the profile picture for a user.
    */
   async deleteProfilePicture(userId: string): Promise<void> {
@@ -80,6 +106,22 @@ export class FileStoreService {
 
     const relativeUrl = resp.url;
     return `${this.base}${relativeUrl}`;
+  }
+
+  /**
+   * Upload a project image to the InvestafileStore under a project-specific folder.
+   */
+  async uploadProjectImage(projectId: number | string, file: File): Promise<string> {
+    const category = `project-${String(projectId).trim()}`;
+    const url = `${this.base}/files/${encodeURIComponent(category)}`;
+    const form = new FormData();
+    form.append('file', file, file.name);
+
+    const resp = await firstValueFrom(
+      this.http.post<FileStoreUploadResponse>(url, form, { headers: this.authHeaders })
+    );
+
+    return `${this.base}${resp.url}`;
   }
 
   /**

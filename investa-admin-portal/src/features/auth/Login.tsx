@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/common/Icons';
 import { api, getBaseUrl, setBaseUrl, setUseMocks } from '@/api/api';
 import { usePermissions } from '@/context/AuthContext';
@@ -10,6 +11,7 @@ interface LoginProps {
 }
 
 export const Login: React.FC<LoginProps> = ({ onLogin, onForgotPassword }) => {
+  const { t } = useTranslation();
   const { login } = usePermissions();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ email: 'admin@investa.com', password: 'P@ssw0rd' });
@@ -93,8 +95,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onForgotPassword }) => {
             <div className="w-14 h-14 bg-gradient-to-br from-indigo-600 to-indigo-500 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-600/20 mb-4 transform hover:scale-110 transition-transform duration-300">
               <Icon name="hands" className="text-white w-8 h-8" />
             </div>
-            <h1 className="text-2xl font-black text-text tracking-tight">Investa Portal</h1>
-            <p className="text-muted text-sm font-medium mt-1">Institutional Grade Financial Access</p>
+            <h1 className="text-2xl font-black text-text tracking-tight">{t('pages.investaPortal', { defaultValue: 'Investa Portal' })}</h1>
+            <p className="text-muted-foreground text-sm font-medium mt-1">{t('pages.investaPortalDescription', { defaultValue: 'Institutional Grade Financial Access' })}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -104,9 +106,9 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onForgotPassword }) => {
               </div>
             )}
             <div className="space-y-2">
-              <label className="text-xxs font-black text-muted uppercase tracking-[0.2em] ml-1">Corporate Email</label>
+              <label className="text-xxs font-black text-muted-foreground uppercase tracking-[0.2em] ml-1">Corporate Email</label>
               <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-muted group-focus-within:text-primary transition-colors">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
                   <Icon name="user-circle" className="w-4 h-4" />
                 </div>
                 <input 
@@ -122,7 +124,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onForgotPassword }) => {
 
             <div className="space-y-2">
               <div className="flex justify-between items-center ml-1">
-                <label className="text-xxs font-black text-muted uppercase tracking-[0.2em]">Security Key</label>
+                <label className="text-xxs font-black text-muted-foreground uppercase tracking-[0.2em]">Security Key</label>
                 <button 
                   type="button"
                   onClick={onForgotPassword}
@@ -132,7 +134,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onForgotPassword }) => {
                 </button>
               </div>
               <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-muted group-focus-within:text-primary transition-colors">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
                   <Icon name="shield-check" className="w-4 h-4" />
                 </div>
                 <input 
@@ -169,7 +171,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onForgotPassword }) => {
 
           <div className="mt-10 pt-8 border-t border-border flex items-center justify-between gap-6">
             <div className="flex items-center gap-6">
-              <span className="text-xxs font-black text-muted uppercase tracking-widest">Enterprise Auth v3.1</span>
+              <span className="text-xxs font-black text-muted-foreground uppercase tracking-widest">Enterprise Auth v3.1</span>
               <div className="flex gap-2">
                  <div className="w-1.5 h-1.5 bg-success rounded-full animate-pulse"></div>
                  <span className="text-xxs font-black text-emerald-600 uppercase tracking-widest">Network Stable</span>

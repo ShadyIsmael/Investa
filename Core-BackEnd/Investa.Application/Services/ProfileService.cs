@@ -25,7 +25,7 @@ public class ProfileService : IProfileService
     /// <inheritdoc/>
     public async Task<UserProfileDto?> GetUserProfileAsync(Guid userId)
     {
-        var user = await _unitOfWork.Repository<User>()
+        var user = await _unitOfWork.Repository<AuthUser>()
             .GetSingleAsync(u => u.Id == userId, u => u.Profile);
 
         if (user == null || user.Profile == null)
@@ -41,7 +41,7 @@ public class ProfileService : IProfileService
     /// <inheritdoc/>
     public async Task<UserProfileDto> GetOrCreateUserProfileAsync(Guid userId)
     {
-        var user = await _unitOfWork.Repository<User>()
+        var user = await _unitOfWork.Repository<AuthUser>()
             .GetSingleAsync(u => u.Id == userId, u => u.Profile);
 
         if (user == null)
@@ -73,7 +73,7 @@ public class ProfileService : IProfileService
     /// <inheritdoc/>
     public async Task<UserProfileDto> UpdateUserProfileAsync(Guid userId, UserProfileDto profileDto)
     {
-        var user = await _unitOfWork.Repository<User>()
+        var user = await _unitOfWork.Repository<AuthUser>()
             .GetSingleAsync(u => u.Id == userId, u => u.Profile);
 
         if (user == null)
@@ -139,8 +139,14 @@ public class ProfileService : IProfileService
         }
 
         // Update identity & compliance
+        bool identityFieldsUpdated = false;
         if (profileDto.IdentityCompliance != null)
         {
+            identityFieldsUpdated =
+                !string.Equals(profile.DocumentNumber, profileDto.IdentityCompliance.DocumentNumber, StringComparison.OrdinalIgnoreCase)
+                || !string.Equals(profile.DocumentFrontImageUrl, profileDto.IdentityCompliance.DocumentFrontImageUrl, StringComparison.OrdinalIgnoreCase)
+                || !string.Equals(profile.DocumentBackImageUrl, profileDto.IdentityCompliance.DocumentBackImageUrl, StringComparison.OrdinalIgnoreCase);
+
             profile.DocumentNumber = profileDto.IdentityCompliance.DocumentNumber;
             profile.DocumentExpiryDate = profileDto.IdentityCompliance.DocumentExpiryDate;
             profile.DocumentFrontImageUrl = profileDto.IdentityCompliance.DocumentFrontImageUrl;
@@ -178,6 +184,11 @@ public class ProfileService : IProfileService
             }
         }
 
+        if (identityFieldsUpdated && !string.IsNullOrEmpty(profile.DocumentNumber))
+        {
+            profile.VerificationStatus = Domain.Entities.Enums.VerificationStatus.Pending;
+        }
+
         profile.UpdatedAt = DateTime.UtcNow;
 
         // Calculate KYC completion percentage
@@ -191,7 +202,7 @@ public class ProfileService : IProfileService
     /// <inheritdoc/>
     public async Task<UserProfileDto> UpdateLastLoginAsync(Guid userId, string? ipAddress, string? deviceInfo)
     {
-        var user = await _unitOfWork.Repository<User>()
+        var user = await _unitOfWork.Repository<AuthUser>()
             .GetSingleAsync(u => u.Id == userId, u => u.Profile);
 
         if (user == null)
@@ -218,7 +229,7 @@ public class ProfileService : IProfileService
     /// <inheritdoc/>
     public async Task<UserProfileDto> SetRegistrationIpAsync(Guid userId, string? ipAddress)
     {
-        var user = await _unitOfWork.Repository<User>()
+        var user = await _unitOfWork.Repository<AuthUser>()
             .GetSingleAsync(u => u.Id == userId, u => u.Profile);
 
         if (user == null)
@@ -243,7 +254,7 @@ public class ProfileService : IProfileService
     /// <inheritdoc/>
     public async Task<UserProfileDto> StartKycAsync(Guid userId)
     {
-        var user = await _unitOfWork.Repository<User>()
+        var user = await _unitOfWork.Repository<AuthUser>()
             .GetSingleAsync(u => u.Id == userId, u => u.Profile);
 
         if (user == null)
@@ -308,33 +319,24 @@ public class ProfileService : IProfileService
     /// <param name="profile">The user profile to calculate completion for</param>
     private void CalculateKycCompletion(UserProfile profile)
     {
-        int totalFields = 14; // Total KYC required fields
+        int totalFields = 10; // KYC fields required by the new criteria
         int filledFields = 0;
 
-        // Basic Info (5 fields)
         if (!string.IsNullOrWhiteSpace(profile.FirstName)) filledFields++;
         if (!string.IsNullOrWhiteSpace(profile.LastName)) filledFields++;
-        if (profile.DateOfBirth.HasValue) filledFields++;
-        if (!string.IsNullOrWhiteSpace(profile.Nationality)) filledFields++;
-        if (!string.IsNullOrWhiteSpace(profile.CompanyName)) filledFields++;
-
-        // Contact Info (4 fields)
         if (!string.IsNullOrWhiteSpace(profile.Email)) filledFields++;
         if (!string.IsNullOrWhiteSpace(profile.Phone1)) filledFields++;
-        if (!string.IsNullOrWhiteSpace(profile.CompanyAddress)) filledFields++;
-        if (!string.IsNullOrWhiteSpace(profile.CompanyEmail)) filledFields++;
-
-        // Identity & Compliance (5 fields)
+        if (profile.DateOfBirth.HasValue) filledFields++;
+        if (!string.IsNullOrWhiteSpace(profile.Gender)) filledFields++;
+        if (!string.IsNullOrWhiteSpace(profile.Country)) filledFields++;
+        if (!string.IsNullOrWhiteSpace(profile.Nationality)) filledFields++;
         if (!string.IsNullOrWhiteSpace(profile.DocumentNumber)) filledFields++;
-        if (profile.DocumentExpiryDate.HasValue) filledFields++;
-        if (!string.IsNullOrWhiteSpace(profile.DocumentFrontImageUrl)) filledFields++;
-        if (!string.IsNullOrWhiteSpace(profile.HrLetterFileName)) filledFields++;
-        if (!string.IsNullOrWhiteSpace(profile.DeviceMacAddress)) filledFields++;
 
-        // Calculate percentage
+        var uploadImagePresent = !string.IsNullOrWhiteSpace(profile.DocumentFrontImageUrl) || !string.IsNullOrWhiteSpace(profile.AvatarUrl);
+        if (uploadImagePresent) filledFields++;
+
         profile.KycCompletionPercentage = (int)Math.Round((double)filledFields / totalFields * 100);
 
-        // Auto-verify when 100% complete
         if (profile.KycCompletionPercentage >= 100 && profile.VerificationStatus == Domain.Entities.Enums.VerificationStatus.Pending)
         {
             profile.VerificationStatus = Domain.Entities.Enums.VerificationStatus.Verified;
@@ -349,7 +351,7 @@ public class ProfileService : IProfileService
     /// <summary>
     /// Maps User and UserProfile entities to UserProfileDto with all 4 sections.
     /// </summary>
-    private async Task<UserProfileDto> MapToProfileDtoAsync(User user)
+    private async Task<UserProfileDto> MapToProfileDtoAsync(AuthUser user)
     {
         var dto = _mapper.Map<UserProfileDto>(user);
         if (dto == null)

@@ -1,7 +1,6 @@
-/* ========================================================
+﻿/* ========================================================
    Investa Admin — Canonical Theme
    Single @layer base block: HSL bridge for Tailwind + legacy aliases.
-   No hex overrides that break Tailwind's hsl(var(--x)) pattern.
    ======================================================== */
 
 @tailwind base;
@@ -11,76 +10,74 @@
 @layer base {
   /* ── Light mode ── */
   :root {
-    /* Tailwind semantic tokens (bare HSL — consumed as hsl(var(--x))) */
-    --background:             230 6% 98%;
-    --foreground:             230 6% 12%;
+    --background:             210 40% 98%;
+    --foreground:             222 47% 11%;
     --card:                   0 0% 100%;
-    --card-foreground:        230 6% 12%;
+    --card-foreground:        222 47% 11%;
     --popover:                0 0% 100%;
-    --popover-foreground:     230 6% 12%;
-    --primary:                239 84% 67%;
+    --popover-foreground:     222 47% 11%;
+    --primary:                245 80% 60%;
     --primary-foreground:     0 0% 100%;
-    --secondary:              240 5% 96%;
-    --secondary-foreground:   230 6% 25%;
-    --muted:                  230 5% 92%;
-    --muted-foreground:       230 6% 45%;
+    --secondary:              214 32% 91%;
+    --secondary-foreground:   222 47% 11%;
+    --muted:                  210 40% 96%;
+    --muted-foreground:       215 16% 47%;
     --accent:                 263 70% 65%;
     --accent-foreground:      0 0% 100%;
     --destructive:            0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border:                 230 6% 90%;
-    --input:                  230 6% 90%;
-    --ring:                   239 84% 67%;
+    --border:                 214 32% 91%;
+    --input:                  214 32% 91%;
+    --ring:                   245 80% 60%;
     --radius:                 0.75rem;
 
-    /* Legacy aliases (distinct names — no circular refs) */
-    --bg:             hsl(230 6% 98%);
+    --bg:             hsl(210 40% 98%);
     --surface:        hsl(0 0% 100%);
-    --surface-hover:  hsl(240 5% 96%);
-    --text:           hsl(230 6% 12%);
-    --text-secondary: hsl(230 6% 35%);
-    --text-muted:     hsl(230 6% 45%);
-    --text-strong:    hsl(230 6% 5%);
+    --surface-hover:  hsl(210 40% 96%);
+    --text:           hsl(222 47% 11%);
+    --text-secondary: hsl(215 16% 35%);
+    --text-muted:     hsl(215 16% 47%);
+    --text-strong:    hsl(222 47% 5%);
 
-    /* Semantic extras not in Tailwind config */
     --success:   #10b981;
     --error:     #ef4444;
     --warning:   #f59e0b;
     --info:      #06b6d4;
-    --shadow-sm: 0 1px 2px rgba(16,24,40,0.05);
-    --shadow-md: 0 6px 18px rgba(16,24,40,0.08);
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+    --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
     --z-fixed:   50;
   }
 
   /* ── Dark mode ── */
   .dark {
-    --background:             230 6% 6%;
-    --foreground:             0 0% 98%;
-    --card:                   230 6% 10%;
-    --card-foreground:        0 0% 98%;
-    --popover:                230 6% 10%;
-    --popover-foreground:     0 0% 98%;
-    --primary:                234 89% 74%;
-    --primary-foreground:     0 0% 100%;
-    --secondary:              230 6% 15%;
-    --secondary-foreground:   0 0% 90%;
-    --muted:                  230 6% 15%;
-    --muted-foreground:       230 6% 65%;
+    --background:             222 47% 11%;
+    --foreground:             210 40% 98%;
+    --card:                   217 33% 15%;
+    --card-foreground:        210 40% 98%;
+    --popover:                217 33% 15%;
+    --popover-foreground:     210 40% 98%;
+    --primary:                245 80% 70%;
+    --primary-foreground:     222 47% 11%;
+    --secondary:              217 33% 17%;
+    --secondary-foreground:   210 40% 98%;
+    --muted:                  217 33% 17%;
+    --muted-foreground:       215 20% 65%;
     --accent:                 258 90% 73%;
-    --accent-foreground:      0 0% 100%;
+    --accent-foreground:      222 47% 11%;
     --destructive:            0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-    --border:                 230 6% 16%;
-    --input:                  230 6% 16%;
-    --ring:                   234 89% 74%;
+    --destructive-foreground: 210 40% 98%;
+    --border:                 217 33% 20%;
+    --input:                  217 33% 20%;
+    --ring:                   245 80% 70%;
 
-    --bg:             hsl(230 6% 6%);
-    --surface:        hsl(230 6% 10%);
-    --surface-hover:  hsl(230 6% 14%);
-    --text:           hsl(0 0% 98%);
-    --text-secondary: hsl(230 6% 70%);
-    --text-muted:     hsl(230 6% 65%);
+    --bg:             hsl(222 47% 11%);
+    --surface:        hsl(217 33% 15%);
+    --surface-hover:  hsl(217 33% 18%);
+    --text:           hsl(210 40% 98%);
+    --text-secondary: hsl(215 20% 75%);
+    --text-muted:     hsl(215 20% 65%);
     --text-strong:    #ffffff;
+    
     --success:   #34d399;
     --error:     #f87171;
     --warning:   #fbbf24;
@@ -92,12 +89,12 @@
   html {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
-    font-family: Inter, system-ui, -apple-system, sans-serif;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   }
 
   body {
     margin: 0;
-    font-size: 1rem;
+    font-size: 0.88rem; /* More compact base font for a tighter theme */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     transition: background-color .25s ease, color .25s ease;
@@ -111,7 +108,7 @@
     border: 1px solid hsl(var(--border));
     border-radius: calc(var(--radius) + 8px);
     box-shadow: var(--shadow-md);
-    padding: 1rem;
+    padding: 1.5rem;
   }
   .btn-primary {
     display: inline-flex;
@@ -119,30 +116,42 @@
     align-items: center;
     background: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
-    padding: .5rem .75rem;
-    border-radius: calc(var(--radius) + 4px);
+    padding: .625rem 1rem;
+    border-radius: calc(var(--radius) + 2px);
     font-weight: 600;
+    letter-spacing: 0.01em;
     border: none;
     cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .btn-primary:hover {
+    opacity: 0.9;
   }
   .input-field {
     background: hsl(var(--card));
     border: 1px solid hsl(var(--border));
-    padding: .5rem .75rem;
-    border-radius: calc(var(--radius) + 4px);
+    padding: .625rem 1rem;
+    border-radius: calc(var(--radius) + 2px);
     color: hsl(var(--foreground));
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .input-field:focus {
+    border-color: hsl(var(--ring));
+    box-shadow: 0 0 0 1px hsl(var(--ring));
   }
   .badge {
     display: inline-flex;
     align-items: center;
     gap: .25rem;
-    padding: .125rem .5rem;
+    padding: .25rem .75rem;
     border-radius: 9999px;
-    background: hsl(var(--primary));
-    color: hsl(var(--primary-foreground));
-    font-weight: 700;
+    background: hsl(var(--primary) / 0.1);
+    color: hsl(var(--primary));
+    font-weight: 600;
+    font-size: 0.75rem;
   }
   .bg-surface   { background: hsl(var(--card)) !important; }
   .border-themed { border-color: hsl(var(--border)) !important; }
-  .text-strong  { color: var(--text-strong) !important; font-weight: 600; }
+  .text-strong  { color: var(--text-strong) !important; font-weight: 700; }
 }

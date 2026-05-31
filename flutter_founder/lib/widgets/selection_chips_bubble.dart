@@ -6,10 +6,10 @@ class SelectionChipsBubble extends StatelessWidget {
   final void Function(String) onChipSelected;
 
   const SelectionChipsBubble({
-    Key? key,
+    super.key,
     required this.options,
     required this.onChipSelected,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

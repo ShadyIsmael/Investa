@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Configuration;
@@ -47,7 +47,7 @@ if (args.Length > 0 && int.TryParse(args[0], out var argVal)) maxPerInvestment =
 
 var rnd = new Random();
 
-var users = db.ApplicationUsers.Include(u => u.Profile).Where(u => u.Profile != null).ToList();
+var users = db.AuthUsers.Include(u => u.Profile).Where(u => u.Profile != null).ToList();
 if (!users.Any())
 {
     Console.WriteLine("No users with profiles found in database. At least one user with a profile is required to seed participants.");

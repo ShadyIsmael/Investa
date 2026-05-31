@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_dark_app/services/mock_data.dart';
-import 'package:flutter_dark_app/services/app_state.dart';
-import 'package:flutter_dark_app/services/profile_service.dart';
+import 'package:flutter_founder/services/mock_data.dart';
+import 'package:flutter_founder/services/app_state.dart';
+import 'package:flutter_founder/services/profile_service.dart';
 
 void main() {
   group('Dashboard data sources', () {
@@ -19,13 +19,19 @@ void main() {
     });
 
     test('falls back to coreMetrics when score/credit missing', () async {
-      final cm = CoreMetrics(email: 'e', role: 'r', clientType: 'c', credibilityScore: 45.5, walletBalance: 77.0);
+      final cm = CoreMetrics(
+          email: 'e',
+          role: 'r',
+          clientType: 'c',
+          credibilityScore: 45.5,
+          walletBalance: 77.0);
       final p = Profile(coreMetrics: cm);
       await AppState.instance.setProfile(p, null);
 
       final data = await fetchDashboardData();
 
-      expect(data.credibilityScore, equals((45.5 * 10).round())); // same logic as dashboard
+      expect(data.credibilityScore,
+          equals((45.5 * 10).round())); // same logic as dashboard
       expect(data.creditPoints, equals(77));
 
       await AppState.instance.clear();

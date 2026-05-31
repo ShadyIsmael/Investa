@@ -1,6 +1,6 @@
-import { Component, ChangeDetectionStrategy, signal, computed, inject, DestroyRef } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, computed, inject, DestroyRef, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { InvestmentService } from '../../../services/investment.service';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -9,11 +9,20 @@ import { NotificationService } from '../../../services/notification.service';
 import { LanguageService } from '../../../services/language.service';
 import { RequestsService } from '../../../services/requests.service';
 import { UserService } from '../../../services/user.service';
-import { get } from 'lodash-es';
+import { FileStoreService } from '../../../services/file-store.service';
 import { Investment, RiskLevel, InvestmentType, getInvestmentTypeDisplay, getInvestmentTypeBadgeClass } from '../../../models/investment.model';
 
 const ITEMS_PER_PAGE = 8;
 const ENGAGEMENT_CREDIT_COST = 5;
+
+type InvestmentFilters = {
+  searchTerm: string;
+  riskLevels: { low: boolean; medium: boolean; high: boolean };
+  investmentTypes: { founding: boolean; equity: boolean };
+  minFunding: number;
+  maxFunding: number;
+  onlyFavorites: boolean;
+};
 
 /**
  * Investments Component
@@ -37,11 +46,13 @@ export class InvestmentsComponent {
   protected investmentService = inject(InvestmentService);
   private fb: FormBuilder = inject(FormBuilder);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private destroyRef = inject(DestroyRef);
   private notificationService = inject(NotificationService);
   protected languageService = inject(LanguageService);
   private requestsService = inject(RequestsService);
   private userService = inject(UserService);
+  private fileStoreService = inject(FileStoreService);
   
   protected readonly RiskLevel = RiskLevel;
   protected readonly InvestmentType = InvestmentType;
@@ -93,6 +104,9 @@ export class InvestmentsComponent {
 
   // User credits from UserService
   userCredits = this.userService.credits;
+
+  // Founder avatar cache by user id
+  founderAvatarCache = signal<Record<string, string | undefined>>({});
   
   // Helper properties for template
   Math = Math;
@@ -100,7 +114,7 @@ export class InvestmentsComponent {
 
   /** Helper method to retrieve localized strings with fallback */
   t(path: string, fallback: string): string {
-    return get(this.languageService.dictionary(), path, fallback);
+    return this.lookupPath(this.languageService.dictionary(), path, fallback);
   }
 
   // Infinite scroll
@@ -126,22 +140,32 @@ export class InvestmentsComponent {
       medium: [false],
       high: [false]
     }),
+    investmentTypes: this.fb.group({
+      founding: [false],
+      equity: [false]
+    }),
     minFunding: [0],
     maxFunding: [100],
     onlyFavorites: [false]
   });
 
+  filterState = signal<InvestmentFilters>(this.filterForm.value as InvestmentFilters);
+
   /**
    * Filtered investments based on all active filters
    */
   filteredInvestments = computed(() => {
-    const filters = this.filterForm.value;
+    const filters = this.filterState();
     const term = (filters.searchTerm ?? '').toLowerCase();
     const category = this.activeCategory();
     
     const selectedRisks = Object.entries(filters.riskLevels ?? {})
       .filter(([, value]) => value)
       .map(([key]) => key);
+
+    const selectedTypes = Object.entries(filters.investmentTypes ?? {})
+      .filter(([, value]) => value)
+      .map(([key]) => key === 'founding' ? InvestmentType.Founding : InvestmentType.Equity);
 
     return this.investments().filter(inv => {
       // Category filter
@@ -169,8 +193,9 @@ export class InvestmentsComponent {
 
       // Favorites filter
       const favoriteMatch = !filters.onlyFavorites || inv.favorited;
+      const typeMatch = selectedTypes.length === 0 || selectedTypes.some(type => inv.investmentType === type);
 
-      return categoryMatch && termMatch && riskMatch && fundingMatch && favoriteMatch;
+      return categoryMatch && termMatch && riskMatch && fundingMatch && favoriteMatch && typeMatch;
     });
   });
 
@@ -193,11 +218,27 @@ export class InvestmentsComponent {
   });
 
   constructor() {
-    // Reset to page 1 when filters change
+    // Pre-activate onlyFavorites filter when navigated from the watchlist "View All" link
+    const snapshot = this.route.snapshot.queryParamMap;
+    if (snapshot.get('onlyFavorites') === 'true') {
+      this.filterForm.patchValue({ onlyFavorites: true });
+    }
+
+    // Reset to page 1 when filters change and update the reactive filter state.
     this.filterForm.valueChanges.pipe(
       takeUntilDestroyed(this.destroyRef)
-    ).subscribe(() => {
+    ).subscribe(value => {
       this.currentPage.set(1);
+      this.filterState.set(value as InvestmentFilters);
+    });
+
+    effect(() => {
+      const investments = this.investments();
+      investments.forEach(inv => {
+        if (inv?.founderId) {
+          this.loadFounderAvatar(inv.founderId);
+        }
+      });
     });
 
     // attach scroll listener for load-more
@@ -291,12 +332,36 @@ export class InvestmentsComponent {
     this.isAdvancedSearchOpen.update(value => !value);
   }
 
+  private async loadFounderAvatar(userId: string): Promise<void> {
+    if (!userId) return;
+    if (this.founderAvatarCache()[userId]) return;
+
+    try {
+      const url = await this.fileStoreService.getProfilePictureUrl(userId);
+      if (url) {
+        this.founderAvatarCache.update(cache => ({ ...cache, [userId]: url }));
+      }
+    } catch (err) {
+      console.warn('Failed to load founder avatar for', userId, err);
+    }
+  }
+
+  getFounderAvatarUrl(investment: Investment): string {
+    const url = investment?.founderId ? this.founderAvatarCache()[investment.founderId] : undefined;
+    return url || '';
+  }
+
+  private lookupPath(object: any, path: string, fallback: any): any {
+    return path.split('.').reduce((current: any, segment: string) => current?.[segment], object) ?? fallback;
+  }
+
   /**
    * Reset all advanced filters
    */
   resetAdvancedFilters(): void {
     this.filterForm.patchValue({
       riskLevels: { low: false, medium: false, high: false },
+      investmentTypes: { founding: false, equity: false },
       minFunding: 0,
       maxFunding: 100,
       onlyFavorites: false
@@ -306,8 +371,12 @@ export class InvestmentsComponent {
   /**
    * Toggle favorite status
    */
-  toggleFavorite(investmentToToggle: Investment): void {
-    this.investmentService.toggleFavorite(investmentToToggle);
+  async toggleFavorite(investmentToToggle: Investment): Promise<void> {
+    try {
+      await this.investmentService.toggleFavorite(investmentToToggle);
+    } catch (error) {
+      console.error('Failed to update favorite status', error);
+    }
   }
 
   /**
@@ -393,8 +462,8 @@ export class InvestmentsComponent {
 
   private getRequestSubmittedCopy(investment: Investment): { title: string; message: string } {
     const dictionary = this.languageService.dictionary();
-    const title = get(dictionary, 'investments.requestSubmittedTitle', 'Request Sent');
-    const messageTemplate = get(
+    const title = this.lookupPath(dictionary, 'investments.requestSubmittedTitle', 'Request Sent');
+    const messageTemplate = this.lookupPath(
       dictionary,
       'investments.requestSubmittedMessage',
       'Your request for {investmentName} was submitted. We will notify you once it is accepted.'

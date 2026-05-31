@@ -5,6 +5,7 @@ import ChatList from '@/features/support/ChatList';
 import ChatConversationsListener from '@/features/support/ChatConversationsListener';
 import { SupportRequest } from '@/types';
 import { Icon } from '@/components/common/Icons';
+import { useTranslation } from 'react-i18next';
 
 const SLATimer: React.FC<{ dueAt: string; status: string }> = ({ dueAt, status }) => {
   const [timeLeft, setTimeLeft] = useState<number>(0);
@@ -87,13 +88,15 @@ export const SupportRequests: React.FC = () => {
 
   if (loading) return <div className="h-[40vh] flex items-center justify-center opacity-50"><Icon name="headset" className="w-10 h-10 animate-spin text-slate-200"/></div>;
 
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Support Infrastructure</h2>
-          <p className="text-slate-500 text-[13px] font-medium">Real-time ticket lifecycle management and SLA oversight.</p>
+          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">{t('pages.supportInfrastructure', { defaultValue: 'Support Infrastructure' })}</h2>
+          <p className="text-slate-500 text-[13px] font-medium">{t('pages.supportInfrastructureDescription', { defaultValue: 'Real-time ticket lifecycle management and SLA oversight.' })}</p>
         </div>
         <div className="flex items-center gap-3">
           <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-[13px] font-bold flex items-center gap-2 shadow-lg shadow-indigo-600/20">

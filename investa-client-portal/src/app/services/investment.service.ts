@@ -1,7 +1,11 @@
-import { Injectable, signal, computed, inject } from '@angular/core';
+import { Injectable, signal, computed, inject, DestroyRef } from '@angular/core';
 import { Investment, RiskLevel, InvestmentCategory, InvestmentType, InvestmentStatus } from '../models/investment.model';
 import { ApiService } from './api.service';
 import { InvestmentDto } from '../models/api-response.model';
+import { AuthService } from './auth.service';
+import { FileStoreService } from './file-store.service';
+import { toObservable, takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { skip } from 'rxjs';
 
 /**
  * Investment Service
@@ -17,6 +21,12 @@ import { InvestmentDto } from '../models/api-response.model';
 })
 export class InvestmentService {
   private apiService = inject(ApiService);
+  private authService = inject(AuthService);
+  private fileStoreService = inject(FileStoreService);
+  private destroyRef = inject(DestroyRef);
+  
+  // Sequence counter — any loadInvestments call that starts before the latest one is discarded
+  private _loadSeq = 0;
   
   // State signals
   private _investments = signal<Investment[]>([]);
@@ -31,9 +41,14 @@ export class InvestmentService {
   readonly error = this._error.asReadonly();
 
   constructor() {
-    // Auto-load investments and categories on service initialization
-    this.loadInvestments();
     this.loadCategories();
+    this.loadInvestments(); // Initial load using current auth state
+
+    // Re-load whenever auth state changes AFTER the initial load.
+    // skip(1) ignores the first emission so we don't double-load on startup.
+    toObservable(this.authService.isAuthenticated)
+      .pipe(skip(1), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.loadInvestments());
   }
 
   /**
@@ -56,25 +71,25 @@ export class InvestmentService {
    * Load all investments from API
    */
   async loadInvestments(categoryId?: number): Promise<void> {
+    // Stamp this call; any response from an older call will be ignored
+    const seq = ++this._loadSeq;
+
     this._loading.set(true);
     this._error.set(null);
     
     try {
       const dtos = await this.apiService.getInvestmentsByCategory(categoryId);
-      // Load categories first to have them available for mapping
-      await this.loadCategories();
-      
+      if (seq !== this._loadSeq) return; // Stale response — a newer call is in flight
       const investments = dtos.map(dto => this.mapDtoToInvestment(dto));
       this._investments.set(investments);
     } catch (error) {
+      if (seq !== this._loadSeq) return;
       const errorMsg = error instanceof Error ? error.message : 'Failed to load investments';
       this._error.set(errorMsg);
       console.error('Error loading investments:', error);
-      
-      // Set empty array on error to prevent UI issues
       this._investments.set([]);
     } finally {
-      this._loading.set(false);
+      if (seq === this._loadSeq) this._loading.set(false);
     }
   }
 
@@ -91,21 +106,33 @@ export class InvestmentService {
     }
   }
 
-  /**
-   * Toggle favorite status for an investment
-   * Note: This is client-side only until backend implements favorites
-   */
-  toggleFavorite(investmentToToggle: Investment): void {
-    const updatedInvestment = { 
-      ...investmentToToggle, 
-      favorited: !investmentToToggle.favorited 
-    };
+  async toggleFavorite(investmentToToggle: Investment): Promise<void> {
+    const updatedFavorited = !investmentToToggle.favorited;
 
+    // Optimistic update — reflect change immediately for snappy UX
     this._investments.update(investments =>
       investments.map(inv =>
-        inv.id === investmentToToggle.id ? updatedInvestment : inv
+        inv.id === investmentToToggle.id ? { ...inv, favorited: updatedFavorited } : inv
       )
     );
+
+    try {
+      const confirmedFavorited = await this.apiService.toggleFavorite(investmentToToggle.id, updatedFavorited);
+      // Reconcile with server-confirmed value (handles concurrent edits)
+      this._investments.update(investments =>
+        investments.map(inv =>
+          inv.id === investmentToToggle.id ? { ...inv, favorited: confirmedFavorited } : inv
+        )
+      );
+    } catch (error) {
+      // Revert optimistic update on failure
+      this._investments.update(investments =>
+        investments.map(inv =>
+          inv.id === investmentToToggle.id ? { ...inv, favorited: investmentToToggle.favorited } : inv
+        )
+      );
+      throw error;
+    }
   }
 
   /**
@@ -114,6 +141,7 @@ export class InvestmentService {
   async refresh(): Promise<void> {
     await this.loadInvestments();
   }
+
 
   /**
    * Purchase shares in an investment opportunity
@@ -133,6 +161,10 @@ export class InvestmentService {
   // --- Image management wrappers ---
   async uploadInvestmentImage(investmentId: number, file: File, caption?: string): Promise<any> {
     return this.apiService.uploadInvestmentImage(investmentId, file, caption);
+  }
+
+  async uploadProjectImage(projectId: number, file: File): Promise<string> {
+    return this.fileStoreService.uploadProjectImage(projectId, file);
   }
 
   async deleteInvestmentImage(investmentId: number, imageId: number): Promise<void> {
@@ -177,8 +209,8 @@ export class InvestmentService {
       endDate: dto.endDate ? new Date(dto.endDate) : undefined,
 
       businessCategoryId: dto.businessCategoryId,
-      businessCategoryName: category?.value,
-      businessCategoryNameAr: category?.valueAr ?? category?.value,
+      businessCategoryName: dto.businessCategoryName ?? category?.value,
+      businessCategoryNameAr: dto.businessCategoryNameAr ?? category?.valueAr ?? category?.value,
       businessStageId: dto.businessStageId,
       projectPhaseId: dto.projectPhaseId,
 
@@ -202,6 +234,9 @@ export class InvestmentService {
 
       riskLevel: this.parseRiskLevel(dto.riskLevel),
       currency: dto.currency,
+      durationMonths: dto.durationMonths,
+      profitPercentage: dto.profitPercentage,
+      payoutFrequency: dto.payoutFrequency,
 
       founderDisplay: dto.founderDisplay,
       // Prefer explicit businessRole from DTO, fall back to older fields, or parse from FounderDisplay when present
@@ -218,8 +253,6 @@ export class InvestmentService {
 
       imageUrl: dto.imageUrl,
       videoUrl: dto.videoUrl,
-
-      favorited: false,  // Default to false, can be enhanced later
       milestone: dto.milestone,
 
       investors: dto.participants || [],
@@ -233,7 +266,8 @@ export class InvestmentService {
         linkedIn: tm.linkedIn,
         bio: tm.bio,
         clientType: tm.clientType
-      })) || []
+      })) || [],
+      favorited: dto.favorited ?? false
     } as Investment;
   }
   

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_dark_app/services/credits_service.dart';
+import 'package:flutter_founder/services/credits_service.dart';
 
 void main() {
   test('TimeseriesPoint parsing from example JSON', () {

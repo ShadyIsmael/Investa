@@ -236,12 +236,17 @@ export const roleService = {
    * Endpoint: GET /api/v1/admin/roles/{roleId}/permissions
    */
   async getRolePermissions(roleId: string): Promise<Permission[]> {
+    // If this looks like a locally-created mock role id, avoid backend call and return mock
+    if (typeof roleId === 'string' && (roleId.startsWith('role-') || roleId.startsWith('temp-'))) {
+      console.debug('Using mock permissions for local role id', roleId);
+      return [];
+    }
+
     try {
       const res = await api.get<Permission[]>(`/api/v1/admin/roles/${roleId}/permissions`);
       return res ?? [];
     } catch (err) {
       console.warn('Backend get role permissions API unavailable, using mock', err);
-      // Mock: return empty array (not tracked in mock)
       return [];
     }
   },
@@ -251,12 +256,17 @@ export const roleService = {
    * Endpoint: GET /api/v1/admin/roles/{roleId}/users
    */
   async getRoleUsers(roleId: string): Promise<any[]> {
+    // Avoid backend calls for local/mock role ids
+    if (typeof roleId === 'string' && (roleId.startsWith('role-') || roleId.startsWith('temp-'))) {
+      console.debug('Using mock users for local role id', roleId);
+      return [];
+    }
+
     try {
       const res = await api.get<any[]>(`/api/v1/admin/roles/${roleId}/users`);
       return res ?? [];
     } catch (err) {
       console.warn('Backend get role users API unavailable, using mock', err);
-      // Mock: return empty array (not tracked in mock)
       return [];
     }
   }

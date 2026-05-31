@@ -1,15 +1,17 @@
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { MOCK_CASHFLOW } from '@/mocks/finance';
 import { Icon } from '@/components/common/Icons';
 
 export const CashFlowManagement: React.FC = () => {
+  const { t } = useTranslation();
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div>
-        <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Cash Flow Management</h2>
-        <p className="text-slate-500 text-[13px] font-medium">Monitor inflow/outflow trends and future liquidity projections.</p>
+        <h2 className="text-2xl font-bold text-slate-800 tracking-tight">{t('pages.cashFlowManagement', { defaultValue: 'Cash Flow Management' })}</h2>
+        <p className="text-slate-500 text-[13px] font-medium">{t('pages.cashFlowManagementDescription', { defaultValue: 'Monitor inflow/outflow trends and future liquidity projections.' })}</p>
       </div>
 
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">

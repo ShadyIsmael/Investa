@@ -3,7 +3,6 @@ import 'package:dio/dio.dart';
 import 'secure_storage.dart';
 import 'api_client.dart';
 import 'app_logger.dart';
-import 'config.dart';
 import 'endpoint_resolver.dart';
 
 class SignupResult {
@@ -23,9 +22,7 @@ class AuthService {
         _client = client ?? ApiClient();
 
   String get baseUrl =>
-      _baseOverride ??
-      EndpointResolver.instance.selectedApiBaseUrl ??
-      Env.apiBaseUrl;
+      _baseOverride ?? EndpointResolver.instance.selectedApiBaseUrl;
 
   /// Calls the sign-up endpoint and stores token securely on success.
   Future<SignupResult> signup(

@@ -51,7 +51,7 @@ export const SplashScreen: React.FC = () => {
 
         <div className="text-center mb-10">
           <h1 className="text-3xl font-black text-text tracking-tighter mb-2">INVESTA</h1>
-          <p className="text-muted text-[10px] font-black uppercase tracking-[0.4em]">Institutional Ledger Portal</p>
+          <p className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.4em]">Institutional Ledger Portal</p>
         </div>
 
         {/* Progress Bar Container */}
@@ -63,7 +63,7 @@ export const SplashScreen: React.FC = () => {
             />
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-muted/60 text-[9px] font-black uppercase tracking-widest animate-pulse">
+            <span className="text-muted-foreground/60 text-[9px] font-black uppercase tracking-widest animate-pulse">
               {status}
             </span>
             <span className="text-text font-mono text-[10px] font-bold">
@@ -78,7 +78,7 @@ export const SplashScreen: React.FC = () => {
             <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
             <span className="text-[9px] font-black text-text uppercase tracking-widest">Secure Environment</span>
           </div>
-          <p className="text-muted/50 text-[8px] font-bold uppercase tracking-widest mt-2">v4.0.12 Stable Build</p>
+          <p className="text-muted-foreground/50 text-[8px] font-bold uppercase tracking-widest mt-2">v4.0.12 Stable Build</p>
         </div>
       </div>
 

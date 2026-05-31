@@ -7,52 +7,72 @@
       
       <!-- Stat Cards -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
-        <div class="bg-slate-900 p-6 rounded-lg border border-slate-800">
+        <div class="bg-slate-900 p-6 rounded-lg border border-slate-800 transform transition-transform duration-200 ease-out hover:-translate-y-1 hover:scale-105">
           <h3 class="text-lg font-semibold text-blue-400">{{ 'dashboard.portfolioValue' | translate }}</h3>
           <p class="text-4xl font-bold mt-2">${{ portfolioValue() | number:'1.0-0' }}</p>
         </div>
-        <div class="bg-slate-900 p-6 rounded-lg border border-slate-800">
+        <div class="bg-slate-900 p-6 rounded-lg border border-slate-800 transform transition-transform duration-200 ease-out hover:-translate-y-1 hover:scale-105">
           <h3 class="text-lg font-semibold text-green-400">{{ 'dashboard.myInvestments' | translate }}</h3>
           <p class="text-4xl font-bold mt-2">{{ myInvestments().length }}</p>
         </div>
-        <div class="bg-slate-900 p-6 rounded-lg border border-slate-800">
-          <h3 class="text-lg font-semibold text-purple-400">{{ 'dashboard.watchlist' | translate }}</h3>
-          <p class="text-4xl font-bold mt-2">{{ favoriteInvestments().length }}</p>
+        <div class="bg-slate-900 p-6 rounded-lg border border-slate-800 transform transition-transform duration-200 ease-out hover:-translate-y-1 hover:scale-105">
+          <h3 class="text-lg font-semibold text-purple-400">{{ 'dashboard.incomingRequests' | translate }}</h3>
+          <p class="text-4xl font-bold mt-2">{{ incomingRequestsCount() }}</p>
         </div>
-        <div class="bg-slate-900 p-6 rounded-lg border border-slate-800">
+        <div class="bg-slate-900 p-6 rounded-lg border border-slate-800 transform transition-transform duration-200 ease-out hover:-translate-y-1 hover:scale-105">
           <h3 class="text-lg font-semibold text-yellow-400">{{ 'dashboard.investorScore' | translate }}</h3>
           <p class="text-4xl font-bold mt-2">{{ investorScore() }}</p>
         </div>
-        <div class="bg-slate-900 p-6 rounded-lg border border-slate-800">
-          <h3 class="text-lg font-semibold text-pink-400">{{ 'dashboard.availableCredits' | translate }}</h3>
-          <p class="text-4xl font-bold mt-2">{{ availableCredits() }}</p>
+        <div class="bg-slate-900 p-6 rounded-lg border border-slate-800 transform transition-transform duration-200 ease-out hover:-translate-y-1 hover:scale-105">
+          <h3 class="text-lg font-semibold text-pink-400">{{ 'dashboard.currentCredits' | translate }}</h3>
+          <p class="text-4xl font-bold mt-2">{{ currentCredits() }}</p>
         </div>
       </div>
 
       <!-- Charts -->
       <div class="grid grid-cols-1 xl:grid-cols-5 gap-6 mb-8">
-        <div class="xl:col-span-2 bg-slate-900 p-6 rounded-lg border border-slate-800">
+        <div class="xl:col-span-2 bg-slate-900 p-6 rounded-lg border border-slate-800 transform transition-transform duration-200 ease-out hover:-translate-y-1 hover:scale-105">
           <h3 class="text-lg font-semibold text-white mb-4">{{ 'dashboard.myAllocation' | translate }}</h3>
           <div #pieChart class="relative flex justify-center items-center min-h-[300px]"></div>
         </div>
-        <div class="xl:col-span-3 bg-slate-900 p-6 rounded-lg border border-slate-800">
-          <h3 class="text-lg font-semibold text-white mb-4">{{ 'dashboard.portfolioPerformance' | translate }}</h3>
+        <div class="xl:col-span-3 bg-slate-900 p-6 rounded-lg border border-slate-800 transform transition-transform duration-200 ease-out hover:-translate-y-1 hover:scale-105">
+          <div class="flex flex-wrap items-center justify-between gap-4 mb-2">
+            <div>
+              <h3 class="text-lg font-semibold text-white">{{ 'dashboard.portfolioPerformance' | translate }}</h3>
+              <p class="text-sm text-gray-400">{{ selectedYear() }}</p>
+            </div>
+            <div class="flex items-center gap-2 text-sm text-gray-300">
+              <label for="yearSelect" class="font-medium text-gray-300">{{ 'dashboard.year' | translate }}</label>
+              <select id="yearSelect" class="rounded border border-slate-700 bg-slate-800 px-3 py-1 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500" (change)="changeSelectedYear($any($event.target).value)">
+                @for(year of availableYears(); track year) {
+                  <option [value]="year" [selected]="year === selectedYear()">{{ year }}</option>
+                }
+              </select>
+            </div>
+          </div>
           <div #lineChart class="relative"></div>
         </div>
       </div>
 
       <!-- Watchlist & Featured Opportunities -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- My Watchlist -->
-        <div class="bg-slate-900 p-6 rounded-lg border border-slate-800">
+        <div class="bg-slate-900 p-6 rounded-lg border border-slate-800 transform transition-transform duration-200 ease-out hover:-translate-y-1 hover:scale-105">
           <div class="flex justify-between items-center mb-4">
             <h3 class="text-lg font-semibold text-white">{{ 'dashboard.watchlist' | translate }}</h3>
-            <a routerLink="/admin/investments" class="text-sm font-semibold text-blue-400 hover:text-blue-300">{{ 'dashboard.viewAll' | translate }} &rarr;</a>
+            <a [routerLink]="['/admin/investments']" [queryParams]="{ onlyFavorites: true }" class="text-sm font-semibold text-blue-400 hover:text-blue-300">{{ 'dashboard.viewAll' | translate }} &rarr;</a>
           </div>
           <div class="space-y-3">
             @for(investment of favoriteInvestments(); track investment.id) {
               <a [routerLink]="['/admin/investments', investment.id]" class="flex items-center gap-4 p-3 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors group">
-                <img [src]="getImageSrc(investment)" alt="" class="w-10 h-10 rounded-full flex-shrink-0 object-cover">
+                @let investmentAvatar = getImageSrc(investment);
+                @if (investmentAvatar) {
+                  <img [src]="investmentAvatar" alt="" class="w-10 h-10 rounded-full flex-shrink-0 object-cover">
+                } @else {
+                  <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 text-white font-semibold flex items-center justify-center text-sm">
+                    {{ getNameInitial(investment.name) }}
+                  </div>
+                }
                 <div class="flex-1 truncate">
                   <p class="font-semibold text-white group-hover:text-blue-400 truncate">{{ investment.name }}</p>
                   <p class="text-sm text-gray-400">{{ investment.type }}</p>
@@ -68,22 +88,64 @@
         </div>
 
         <!-- Featured Opportunities -->
-        <div class="bg-slate-900 p-6 rounded-lg border border-slate-800">
-          <h3 class="text-lg font-semibold text-white mb-4">{{ 'dashboard.featuredOpportunities' | translate }}</h3>
-           <div class="space-y-3">
+        <div class="bg-slate-900 p-6 rounded-lg border border-amber-400/30 ring-1 ring-amber-500/10 shadow-lg shadow-amber-500/10 transform transition-transform duration-200 ease-out hover:-translate-y-1 hover:scale-105">
+          <div class="flex items-center justify-between mb-4 gap-4">
+            <h3 class="text-lg font-semibold text-white">{{ 'dashboard.featuredOpportunities' | translate }}</h3>
+            <span class="inline-flex items-center gap-2 rounded-full bg-amber-500/15 text-amber-300 text-xs font-semibold uppercase tracking-[0.18em] px-3 py-1">
+              <span>★</span>
+              {{ 'dashboard.primeBadge' | translate }}
+            </span>
+          </div>
+          <div class="space-y-3">
             @for(investment of featuredInvestments(); track investment.id) {
               <a [routerLink]="['/admin/investments', investment.id]" class="flex items-center gap-4 p-3 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors group">
-                <img [src]="getImageSrc(investment)" alt="" class="w-10 h-10 rounded-full flex-shrink-0 object-cover">
+                @let investmentAvatar = getImageSrc(investment);
+                @if (investmentAvatar) {
+                  <img [src]="investmentAvatar" alt="" class="w-10 h-10 rounded-full flex-shrink-0 object-cover">
+                } @else {
+                  <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 text-white font-semibold flex items-center justify-center text-sm">
+                    {{ getNameInitial(investment.name) }}
+                  </div>
+                }
                 <div class="flex-1 truncate">
                   <p class="font-semibold text-white group-hover:text-blue-400 truncate">{{ investment.name }}</p>
                   <p class="text-sm text-gray-400">{{ investment.description | slice:0:40 }}...</p>
                 </div>
-                <div class="bg-blue-500/20 text-blue-300 text-xs font-bold px-2.5 py-1 rounded-full flex-shrink-0">
-                  {{ 'investments.score' | translate }}: {{ investment.score }}
+                <div class="flex flex-col items-end space-y-1 flex-shrink-0">
+                  <span class="text-[11px] uppercase tracking-[0.18em] text-slate-400">{{ 'dashboard.featuredLabel' | translate }}</span>
+                  <span class="text-xs text-slate-500">{{ investment.credibilityScore }} pts</span>
                 </div>
               </a>
             }
            </div>
+        </div>
+
+        <!-- Investment Updates -->
+        <div class="bg-slate-900 p-6 rounded-lg border border-slate-800 transform transition-transform duration-200 ease-out hover:-translate-y-1 hover:scale-105">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-white">{{ 'dashboard.investmentUpdates' | translate }}</h3>
+            <span class="text-sm text-gray-400">{{ investmentUpdates().length }} {{ 'dashboard.updatesLabel' | translate }}</span>
+          </div>
+          <div class="space-y-3">
+            @for(investment of investmentUpdates(); track investment.id) {
+              <a [routerLink]="['/admin/investments', investment.id]" class="flex items-center gap-4 p-3 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-colors group">
+                @let investmentAvatar = getImageSrc(investment);
+                @if (investmentAvatar) {
+                  <img [src]="investmentAvatar" alt="" class="w-10 h-10 rounded-full flex-shrink-0 object-cover">
+                } @else {
+                  <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 text-white font-semibold flex items-center justify-center text-sm">
+                    {{ getNameInitial(investment.name) }}
+                  </div>
+                }
+                <div class="flex-1 truncate">
+                  <p class="font-semibold text-white group-hover:text-blue-400 truncate">{{ investment.name }}</p>
+                  <p class="text-sm text-gray-400">{{ investment.type }}</p>
+                </div>
+              </a>
+            } @empty {
+              <div class="text-center py-8 text-gray-500">{{ 'dashboard.noInvestmentUpdates' | translate }}</div>
+            }
+          </div>
         </div>
       </div>
 
@@ -149,7 +211,7 @@
           <!-- Main Column -->
           <div class="lg:col-span-2 space-y-6">
             <!-- Project Overview -->
-            <div class="bg-slate-900 p-6 rounded-lg border border-slate-800">
+            <div class="bg-slate-900 p-6 rounded-lg border border-slate-800 transform transition-transform duration-200 ease-out hover:-translate-y-1 hover:scale-105">
               <h3 class="text-lg font-semibold text-white mb-4">{{ 'dashboard.myProjectOverview' | translate }}</h3>
               <div class="flex flex-col sm:flex-row items-center gap-6">
                 <img [src]="getProjectAvatar(project)" alt="{{ project.name }}" class="w-24 h-24 rounded-full object-cover border-4 border-slate-700">
@@ -188,7 +250,7 @@
             </div>
             
             <!-- Investor Interest Chart -->
-            <div class="bg-slate-900 p-6 rounded-lg border border-slate-800">
+            <div class="bg-slate-900 p-6 rounded-lg border border-slate-800 transform transition-transform duration-200 ease-out hover:-translate-y-1 hover:scale-105">
               <h3 class="text-lg font-semibold text-white mb-4">{{ 'dashboard.investorInterest' | translate }}</h3>
               <div #barChart class="relative"></div>
             </div>
@@ -197,12 +259,16 @@
           <!-- Side Column -->
           <div class="lg:col-span-1 space-y-6">
             <!-- Quick Actions -->
-            <div class="bg-slate-900 p-6 rounded-lg border border-slate-800">
+            <div class="bg-slate-900 p-6 rounded-lg border border-slate-800 transform transition-transform duration-200 ease-out hover:-translate-y-1 hover:scale-105">
               <h3 class="text-lg font-semibold text-white mb-4">{{ 'dashboard.quickActions' | translate }}</h3>
               <div class="space-y-3">
                 <a [routerLink]="['/admin/investments/new']" class="w-full flex items-center gap-3 text-start px-4 py-3 rounded-lg font-medium transition-colors bg-slate-800/50 hover:bg-slate-700/80">
                   <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
                   <span>{{ 'dashboard.createInvestment' | translate }}</span>
+                </a>
+                <a [routerLink]="['/admin/investments', project.id, 'edit']" class="w-full flex items-center gap-3 text-start px-4 py-3 rounded-lg font-medium transition-colors bg-slate-800/50 hover:bg-slate-700/80">
+                  <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z" /></svg>
+                  <span>{{ 'dashboard.editProject' | translate }}</span>
                 </a>
                  <a [routerLink]="['/admin/investments', project.id]" class="w-full flex items-center gap-3 text-start px-4 py-3 rounded-lg font-medium transition-colors bg-slate-800/50 hover:bg-slate-700/80">
                   <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639l4.43-4.43a1.012 1.012 0 011.43 0l4.43 4.43a1.012 1.012 0 010 .639l-4.43 4.43a1.012 1.012 0 01-1.43 0l-4.43-4.43z" /><path stroke-linecap="round" stroke-linejoin="round" d="M12.036 12.322a1.012 1.012 0 010-.639l4.43-4.43a1.012 1.012 0 011.43 0l4.43 4.43a1.012 1.012 0 010 .639l-4.43 4.43a1.012 1.012 0 01-1.43 0l-4.43-4.43z" /></svg>
@@ -215,7 +281,7 @@
               </div>
             </div>
             <!-- Recent Activity -->
-            <div class="bg-slate-900 p-6 rounded-lg border border-slate-800">
+            <div class="bg-slate-900 p-6 rounded-lg border border-slate-800 transform transition-transform duration-200 ease-out hover:-translate-y-1 hover:scale-105">
               <h3 class="text-lg font-semibold text-white mb-4">{{ 'dashboard.recentActivity' | translate }}</h3>
               <ul class="space-y-4">
                 @for(activity of recentActivity(); track $index) {
@@ -248,7 +314,14 @@
             @for(p of founderProjects(); track p.id) {
               <div (click)="selectProject(p)" class="bg-slate-900 border border-slate-800 rounded-xl p-6 cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-500/50 transform hover:-translate-y-1 group">
                 <div class="flex items-center gap-4 mb-4">
-                  <img [src]="getImageSrc(p)" alt="{{ p.name }}" class="w-16 h-16 rounded-full object-cover border-2 border-slate-700">
+                  @let projectAvatar = getImageSrc(p);
+                  @if (projectAvatar) {
+                    <img [src]="projectAvatar" alt="{{ p.name }}" class="w-16 h-16 rounded-full object-cover border-2 border-slate-700">
+                  } @else {
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white font-bold text-2xl flex items-center justify-center border-2 border-slate-700">
+                      {{ getNameInitial(p.name) }}
+                    </div>
+                  }
                   <h2 class="text-xl font-bold text-white group-hover:text-blue-400 transition-colors">{{ p.name }}</h2>
                 </div>
                 @let progress = (p.targetFund > 0) ? (p.currentFunding / p.targetFund) * 100 : 0;

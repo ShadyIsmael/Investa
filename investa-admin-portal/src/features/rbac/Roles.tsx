@@ -5,6 +5,7 @@ import { groupService } from '@/services/groupService';
 import { userService } from '@/services/userService';
 import { RoleWithGroup, Group, Permission, User } from '@/types';
 import PermissionControl from '@/components/common/PermissionControl';
+import { useTranslation } from 'react-i18next';
 
 export const Roles: React.FC = () => {
   const [roles, setRoles] = useState<RoleWithGroup[]>([]);
@@ -14,6 +15,7 @@ export const Roles: React.FC = () => {
   const [groupFilter, setGroupFilter] = useState<number | ''>('');
   const [showModal, setShowModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const { t } = useTranslation();
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [editingRole, setEditingRole] = useState<RoleWithGroup | null>(null);
   
@@ -25,6 +27,7 @@ export const Roles: React.FC = () => {
   const [roleUsers, setRoleUsers] = useState<User[]>([]);
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [assignedUsersSearch, setAssignedUsersSearch] = useState('');
   
   // Form state
   const [formData, setFormData] = useState({
@@ -120,6 +123,37 @@ export const Roles: React.FC = () => {
     setShowModal(true);
   };
 
+  const openDetailsModal = async (role: RoleWithGroup) => {
+    try {
+      setDetailsRole(role);
+      setShowDetailsModal(true);
+
+      // Load permissions and users for this role
+      const [perms, users] = await Promise.all([
+        roleService.getRolePermissions(String(role.id)),
+        roleService.getRoleUsers(String(role.id)),
+      ]);
+
+      setRolePermissions(Array.isArray(perms) ? perms : []);
+      setRoleUsers(Array.isArray(users) ? users : []);
+
+      // Set selected permission ids if available
+      if (Array.isArray(perms)) {
+        const ids = perms.map((p: any) => Number(p.id)).filter((n: number) => !Number.isNaN(n));
+        setSelectedPermissionIds(ids as number[]);
+      } else {
+        setSelectedPermissionIds([]);
+      }
+
+      // Load available users for assignment
+      await loadAvailableUsers();
+    } catch (err) {
+      console.error('Failed to open details modal:', err);
+      toast.error('Failed to load role details');
+      setShowDetailsModal(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -162,122 +196,54 @@ export const Roles: React.FC = () => {
           createdAt: new Date().toISOString(),
         } as RoleWithGroup;
 
+        // Optimistic UI: add temp role to list
         setRoles(prev => [tempRole, ...prev]);
 
         try {
-          await roleService.createRole({ name, description: formData.description, groupId: groupIdNum });
-          toast.success('Role created successfully');
-          setShowModal(false);
-          await loadRoles();
-        } catch (err: any) {
-          // remove temp role on failure
-          setRoles(prev => prev.filter(r => r.id !== tempId));
-          const msg = err?.message || 'Failed to create role';
-          setFormError(msg);
-          toast.error(msg);
+          const created = await roleService.createRole({ name, description: formData.description || undefined, groupId: groupIdNum });
+          if (created) {
+            setRoles(prev => prev.map(r => (r.id === tempId ? created : r)));
+            toast.success('Role created');
+          }
+        } catch (err) {
+          console.error('Failed to create role:', err);
+          toast.error('Failed to create role');
         }
 
-      } else if (editingRole) {
-        // Optimistic update: snapshot and update UI
-        const prevRoles = [...roles];
-        setRoles(prev => prev.map(r => r.id === editingRole.id ? { ...r, name, description: formData.description || null } : r));
+        setIsSubmitting(false);
+        setShowModal(false);
+        return;
 
-        try {
-          await roleService.updateRole(editingRole.id, { name, description: formData.description, groupId: groupIdNum });
-          toast.success('Role updated successfully');
-          setShowModal(false);
-          await loadRoles();
-        } catch (err: any) {
-          // revert on error
-          setRoles(prevRoles);
-          const msg = err?.message || 'Failed to update role';
-          setFormError(msg);
-          toast.error(msg);
-        }
-      }
-    } catch (err: any) {
-      const msg = err?.message || 'Unexpected error';
-      setFormError(msg);
-      toast.error(msg);
+    }
+    } catch (error: any) {
+      console.error('Failed to submit role:', error);
+      toast.error(error.message || 'Failed to submit role');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDelete = async (roleId: string, roleName: string) => {
-    if (!confirm(`Are you sure you want to delete the role "${roleName}"?`)) {
-      return;
-    }
-
-    try {
-      await roleService.deleteRole(roleId);
-      toast.success('Role deleted successfully');
-      loadRoles();
-    } catch (error: any) {
-      console.error('Failed to delete role:', error);
-      toast.error(error.message || 'Failed to delete role');
-    }
-  };
-
-  const openDetailsModal = async (role: RoleWithGroup) => {
-    setDetailsRole(role);
-    setShowDetailsModal(true);
-    
-    try {
-      // Load permissions, users, available users
-      await loadAllPermissions();
-      await loadAvailableUsers();
-      
-      const perms = await roleService.getRolePermissions(String(role.id));
-      setRolePermissions(perms);
-      setSelectedPermissionIds(perms.map(p => p.id));
-      
-      const users = await roleService.getRoleUsers(String(role.id));
-      setRoleUsers(users);
-    } catch (error) {
-      console.error('Failed to load role details:', error);
-    }
-  };
-
-  const handleSavePermissions = async () => {
-    if (!detailsRole) return;
-    
-    try {
-      await roleService.assignPermissions(String(detailsRole.id), {
-        permissionIds: selectedPermissionIds,
-      });
-      toast.success('Permissions updated successfully');
-      
-      // Reload permissions
-      const perms = await roleService.getRolePermissions(String(detailsRole.id));
-      setRolePermissions(perms);
-    } catch (error: any) {
-      console.error('Failed to update permissions:', error);
-      toast.error(error.message || 'Failed to update permissions');
-    }
-  };
-
   const handleAssignUsers = async () => {
-    if (!detailsRole || selectedUserIds.length === 0) {
-      toast.error('Please select at least one user');
-      return;
-    }
-    
-    try {
-      await roleService.assignUsers(String(detailsRole.id), {
-        userIds: selectedUserIds,
-      });
-      toast.success(`Assigned ${selectedUserIds.length} user(s) to role`);
-      
-      // Reload users
-      const users = await roleService.getRoleUsers(String(detailsRole.id));
-      setRoleUsers(users);
-      setSelectedUserIds([]);
-    } catch (error: any) {
-      console.error('Failed to assign users:', error);
-      toast.error(error.message || 'Failed to assign users');
-    }
-  };
+      if (!detailsRole || selectedUserIds.length === 0) {
+        toast.error('Please select at least one user');
+        return;
+      }
+
+      try {
+        await roleService.assignUsers(String(detailsRole.id), {
+          userIds: selectedUserIds,
+        });
+        toast.success(`Assigned ${selectedUserIds.length} user(s) to role`);
+
+        // Reload users
+        const users = await roleService.getRoleUsers(String(detailsRole.id));
+        setRoleUsers(users);
+        setSelectedUserIds([]);
+      } catch (error: any) {
+        console.error('Failed to assign users:', error);
+        toast.error(error.message || 'Failed to assign users');
+      }
+    };
 
   const handleRemoveUser = async (userId: string, userName: string) => {
     if (!detailsRole) return;
@@ -287,7 +253,7 @@ export const Roles: React.FC = () => {
     }
     
     try {
-      await roleService.removeUserFromRole(detailsRole.id, userId);
+      await roleService.removeUserFromRole(String(detailsRole.id), userId);
       toast.success('User removed from role');
       
       // Reload users
@@ -426,7 +392,7 @@ export const Roles: React.FC = () => {
                       </PermissionControl>
                       <PermissionControl permissions={['Role.Delete']}>
                         <button
-                          onClick={() => handleDelete(role.id, role.name)}
+                        onClick={() => handleDelete(String(role.id), role.name)}
                           className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                         >
                           Delete

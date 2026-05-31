@@ -1,15 +1,16 @@
 import 'dart:async';
-import 'package:flutter_dark_app/services/app_state.dart';
-import 'package:flutter_dark_app/services/profile_service.dart';
-import 'package:flutter_dark_app/services/auth_service.dart';
-import 'package:flutter_dark_app/services/credits_service.dart';
-import 'package:flutter_dark_app/services/dashboard_service.dart';
-import 'package:flutter_dark_app/services/app_logger.dart';
+import 'package:flutter_founder/services/app_state.dart';
+import 'package:flutter_founder/services/profile_service.dart';
+import 'package:flutter_founder/services/auth_service.dart';
+import 'package:flutter_founder/services/credits_service.dart';
+import 'package:flutter_founder/services/dashboard_service.dart';
+import 'package:flutter_founder/services/app_logger.dart';
 
 class Category {
   final String name;
+  final String? nameAr;
   final double percent;
-  Category(this.name, this.percent);
+  Category(this.name, this.percent, {this.nameAr});
 }
 
 class Activity {
@@ -23,6 +24,9 @@ class DashboardData {
   final int credibilityScore;
   final int creditPoints;
   final double _walletBalance;
+  final int numberOfInvestments;
+  final int numberOfPartners;
+  final int numberOfRequestsAwaiting;
   final double totalIncome;
   final double totalOutcome;
   final List<Category> categories;
@@ -40,6 +44,9 @@ class DashboardData {
       {required this.credibilityScore,
       required this.creditPoints,
       required double walletBalance,
+      this.numberOfInvestments = 0,
+      this.numberOfPartners = 0,
+      this.numberOfRequestsAwaiting = 0,
       required this.totalIncome,
       required this.totalOutcome,
       required this.categories,
@@ -122,8 +129,6 @@ Future<DashboardData> fetchDashboardData({String interval = 'month'}) async {
       final userId = availableUserId;
       AppLogger.logInfo('MockData',
           'Using userId=$userId for timeseries/transactions (token=${tokenUserId != null})');
-      // Build to/from based on interval selection
-      final toDate = DateTime(now.year, now.month, now.day);
 
       timeseriesAttempted = true;
 
@@ -167,10 +172,11 @@ Future<DashboardData> fetchDashboardData({String interval = 'month'}) async {
           DateTime dt;
           if (interval == 'day') {
             dt = DateTime(fromDate.year, fromDate.month, fromDate.day + i);
-          } else if (interval == 'year')
+          } else if (interval == 'year') {
             dt = DateTime(fromDate.year + i, 1, 1);
-          else
+          } else {
             dt = DateTime(fromDate.year, fromDate.month + i, 1);
+          }
           final key = keyFor(dt);
           if (sByKey.containsKey(key)) {
             normalizedScore.add(sByKey[key]!);
@@ -222,8 +228,13 @@ Future<DashboardData> fetchDashboardData({String interval = 'month'}) async {
           if (total > 0) {
             categoriesFromServer = true;
             categories = topCats
-                .map((t) => Category(t.businessCategoryName,
-                    (t.investmentCount / total) * 100.0))
+                .map((t) => Category(
+                      t.businessCategoryName,
+                      (t.investmentCount / total) * 100.0,
+                      nameAr: t.businessCategoryNameAr.isNotEmpty
+                          ? t.businessCategoryNameAr
+                          : null,
+                    ))
                 .toList();
           }
         }
@@ -242,7 +253,6 @@ Future<DashboardData> fetchDashboardData({String interval = 'month'}) async {
 
   try {
     final profile = AppState.instance.profile;
-    Map<String, dynamic>? raw;
     if (profile != null) {
       // Prefer nested basicInfo score/credit when present (Profile.score falls back to these)
       if (profile.score != null) {
@@ -263,7 +273,6 @@ Future<DashboardData> fetchDashboardData({String interval = 'month'}) async {
       // attempt to fetch profile from API and store it
       final rawProfile = await ProfileService().fetchProfileRaw();
       if (rawProfile != null) {
-        raw = rawProfile;
         final p = Profile.fromJson(rawProfile);
         await AppState.instance.setProfile(p, rawProfile);
         if (p.score != null) {
@@ -297,7 +306,7 @@ Future<DashboardData> fetchDashboardData({String interval = 'month'}) async {
   return DashboardData(
     credibilityScore: credibility,
     creditPoints: credits,
-    walletBalance: credits.toDouble(), // Using credits as wallet balance
+    walletBalance: credits.toDouble(),
     totalIncome: income,
     totalOutcome: outcome,
     categories: categories,
@@ -308,6 +317,9 @@ Future<DashboardData> fetchDashboardData({String interval = 'month'}) async {
     timeseriesFromServer: timeseriesFromServer,
     timeseriesAttempted: timeseriesAttempted,
     categoriesFromServer: categoriesFromServer,
+    numberOfInvestments: 5,
+    numberOfPartners: 12,
+    numberOfRequestsAwaiting: 3,
   );
 }
 
@@ -348,29 +360,6 @@ List<CreditTransaction> _generateMockTransactions(DateTime now) {
   return list;
 }
 
-List<MonthlyCredit> _aggregateMonthlyCredits(
-    List<CreditTransaction> transactions,
-    {int months = 12}) {
-  final now = DateTime.now();
-  // build map year-month => sum of credits (amount > 0)
-  final Map<String, double> sums = {};
-  for (final t in transactions) {
-    if (t.amount <= 0) continue;
-    final dt = t.createdAt;
-    final key = '${dt.year}-${dt.month.toString().padLeft(2, '0')}';
-    sums[key] = (sums[key] ?? 0) + t.amount;
-  }
-
-  final List<MonthlyCredit> result = [];
-  for (var i = months - 1; i >= 0; i--) {
-    final dt = DateTime(now.year, now.month - i, 1);
-    final key = '${dt.year}-${dt.month.toString().padLeft(2, '0')}';
-    final total = sums[key] ?? 0.0;
-    result.add(MonthlyCredit(month: dt, credits: total.round()));
-  }
-  return result;
-}
-
 List<MonthlyCredit> _aggregateByInterval(List<CreditTransaction> transactions,
     {required String interval,
     required int buckets,
@@ -401,10 +390,11 @@ List<MonthlyCredit> _aggregateByInterval(List<CreditTransaction> transactions,
     DateTime dt;
     if (interval == 'day') {
       dt = DateTime(fromDate.year, fromDate.month, fromDate.day + i);
-    } else if (interval == 'year')
+    } else if (interval == 'year') {
       dt = DateTime(fromDate.year + i, 1, 1);
-    else
+    } else {
       dt = DateTime(fromDate.year, fromDate.month + i, 1);
+    }
     final key = keyOf(dt);
     final total = sums[key] ?? 0.0;
     result.add(MonthlyCredit(month: dt, credits: total.round()));

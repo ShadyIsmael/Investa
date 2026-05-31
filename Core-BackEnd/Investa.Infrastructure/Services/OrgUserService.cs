@@ -34,17 +34,13 @@ public class OrgUserService : IOrgUserService
     public async Task<(int total, List<OrgUserBasicDto> items)> GetOrgUsersAsync(int page, int pageSize)
     {
         var query = from au in _db.AuthUsers
-                    join u in _db.ApplicationUsers on au.Id equals u.Id into ju
-                    from u in ju.DefaultIfEmpty()
-                    join e in _db.Employees on au.Id equals e.UserId into je
-                    from e in je.DefaultIfEmpty()
-                    where au.UserType == UserType.OrgUser && (u == null || u.Role == nameof(UserRoles.OrgUser))
+                    where au.UserType == UserType.OrgUser
                     select new OrgUserBasicDto
                     {
                         Id = au.Id,
-                        Email = u != null && !string.IsNullOrEmpty(u.Email) ? u.Email : au.Email,
-                        Role = u != null ? u.Role : au.UserType.ToString(),
-                        AccessLevel = e != null ? (int)e.PermissionsLevel : 0,
+                        Email = au.Email,
+                        Role = au.UserType.ToString(),
+                        AccessLevel = 0,
                         Status = au.Status
                     };
 
@@ -68,15 +64,13 @@ public class OrgUserService : IOrgUserService
         var query = from au in _db.AuthUsers
                     join up in _db.UserProfiles on au.Id equals up.UserId into jup
                     from up in jup.DefaultIfEmpty()
-                    join u in _db.ApplicationUsers on au.Id equals u.Id into ju
-                    from u in ju.DefaultIfEmpty()
                     join ur in _db.UserRoles on au.Id equals ur.UserId into jur
                     from ur in jur.DefaultIfEmpty()
                     join r in _db.Roles on ur.RoleId equals r.Id into jr
                     from r in jr.DefaultIfEmpty()
                     join g in _db.Groups on r.GroupId equals g.Id into jg
                     from g in jg.DefaultIfEmpty()
-                    where au.UserType == UserType.OrgUser && (u == null || u.Role == nameof(UserRoles.OrgUser))
+                    where au.UserType == UserType.OrgUser
                     let lastSession = _db.UserSessions
                         .Where(s => s.UserId == au.Id && !s.IsRevoked)
                         .OrderByDescending(s => s.LastUsedAt ?? s.CreatedAt)

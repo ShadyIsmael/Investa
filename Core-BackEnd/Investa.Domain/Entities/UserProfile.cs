@@ -14,7 +14,7 @@ public class UserProfile
     public int Id { get; set; }
 
     [Required]
-    [ForeignKey(nameof(User))]
+    [ForeignKey(nameof(AuthUser))]
     public Guid UserId { get; set; }
 
     #region Section 1: Basic Info
@@ -251,9 +251,9 @@ public class UserProfile
     #region Navigation Properties
 
     /// <summary>
-    /// Back-reference to the associated User entity
+    /// Back-reference to the associated AuthUser.
     /// </summary>
-    public User? User { get; set; }
+    public AuthUser? AuthUser { get; set; }
 
     #endregion
 }

@@ -1,4 +1,4 @@
-using Investa.Application.Interfaces;
+﻿using Investa.Application.Interfaces;
 using Investa.Application.Services;
 using Investa.Domain.Entities;
 using Investa.Domain.Entities.Enums;
@@ -33,7 +33,7 @@ public class InvestmentService : IInvestmentService
         try
         {
             // Get investor
-            var investor = await _unitOfWork.Repository<User>().GetByIdAsync(investorId);
+            var investor = await _unitOfWork.Repository<AuthUser>().GetByIdAsync(investorId);
             if (investor == null)
                 throw new Exception("Investor not found.");
 
@@ -102,7 +102,7 @@ public class InvestmentService : IInvestmentService
 
             await _unitOfWork.Repository<InvestmentParticipant>().AddAsync(participant);
             await _unitOfWork.Repository<Transaction>().AddAsync(transaction);
-            await _unitOfWork.Repository<User>().UpdateAsync(investor);
+            await _unitOfWork.Repository<AuthUser>().UpdateAsync(investor);
             await _unitOfWork.Repository<Investment>().UpdateAsync(investment);
 
             await _unitOfWork.SaveChangesAsync();
@@ -279,6 +279,45 @@ public class InvestmentService : IInvestmentService
     public async Task<IEnumerable<Investment>> GetMyInvestmentsAsync(Guid founderId)
     {
         return await _investmentRepository.FindAsync(i => i.FounderId == founderId);
+    }
+
+    public async Task<IEnumerable<int>> GetFavoriteInvestmentIdsAsync(Guid investorId)
+    {
+        var favorites = await _unitOfWork.Repository<InvestmentFavorite>()
+            .FindAsync(f => f.InvestorId == investorId);
+
+        return favorites.Select(f => f.InvestmentId).Distinct();
+    }
+
+    public async Task<bool> ToggleFavoriteAsync(Guid investorId, int investmentId, bool favorited)
+    {
+        var repository = _unitOfWork.Repository<InvestmentFavorite>();
+        var existing = (await repository.FindAsync(f => f.InvestorId == investorId && f.InvestmentId == investmentId)).FirstOrDefault();
+
+        if (favorited)
+        {
+            if (existing != null)
+                return true;
+
+            var favorite = new InvestmentFavorite
+            {
+                InvestorId = investorId,
+                InvestmentId = investmentId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await repository.AddAsync(favorite);
+        }
+        else
+        {
+            if (existing == null)
+                return false;
+
+            await repository.DeleteAsync(existing);
+        }
+
+        await _unitOfWork.SaveChangesAsync();
+        return favorited;
     }
 
     public async Task<IEnumerable<InvestmentParticipant>> GetParticipantsAsync(int investmentId)

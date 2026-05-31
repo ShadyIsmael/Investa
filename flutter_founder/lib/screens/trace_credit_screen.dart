@@ -3,7 +3,7 @@ import '../theme/color_extensions.dart';
 import '../widgets/app_background.dart';
 
 class TraceCreditScreen extends StatelessWidget {
-  const TraceCreditScreen({Key? key}) : super(key: key);
+  const TraceCreditScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

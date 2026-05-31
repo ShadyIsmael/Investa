@@ -403,9 +403,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final parsed = DateTime.tryParse(docExpiryText);
       if (parsed == null) {
         final loc = AppLocalizations.of(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(loc.t('invalid_date') ??
-                'Invalid date format. Use YYYY-MM-DD.')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(loc.t('invalid_date'))));
         if (mounted) setState(() => _isSaving = false);
         return;
       }

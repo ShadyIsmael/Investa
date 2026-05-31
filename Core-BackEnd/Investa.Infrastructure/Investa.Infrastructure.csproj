@@ -51,6 +51,12 @@
     <Compile Include="Migrations\20260210145831_AddKycCompletionTracking.Designer.cs" />
     <Compile Include="Migrations\20260210213643_AddContactCity_RemoveWorkAddress_Auto.cs" />
     <Compile Include="Migrations\20260210213643_AddContactCity_RemoveWorkAddress_Auto.Designer.cs" />
+    <Compile Include="Migrations\20260509130500_ConsolidateUserToAuthUser.cs" />
+    <Compile Include="Migrations\20260509130500_ConsolidateUserToAuthUser.Designer.cs" />
+    <Compile Include="Migrations\20260509184344_SeedRbacPermissions.cs" />
+    <Compile Include="Migrations\20260509184344_SeedRbacPermissions.Designer.cs" />
+    <Compile Include="Migrations\20260530172504_AddInvestmentFavorites.cs" />
+    <Compile Include="Migrations\20260530172504_AddInvestmentFavorites.Designer.cs" />
   </ItemGroup>
 
 

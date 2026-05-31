@@ -13,5 +13,5 @@ public interface IJwtTokenService
     /// </summary>
     /// <param name="user">The identity user to generate token for</param>
     /// <returns>AuthResponseDto containing the token and expiration time</returns>
-    Task<AuthResponseDto> GenerateTokenAsync(IdentityUser<Guid> user);
+    Task<AuthResponseDto> GenerateTokenAsync(IdentityUser<Guid> user, IEnumerable<string>? identityRoles = null);
 }

@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dark_app/services/app_logger.dart';
+import 'package:flutter_founder/services/app_logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'secure_storage.dart';
 import 'endpoint_resolver.dart';
@@ -29,8 +29,7 @@ class ApiClient {
       onRequest: (opts, handler) async {
         try {
           // Respect any Authorization header already present on the request
-          final existing =
-              opts.headers != null ? opts.headers['Authorization'] : null;
+          final existing = opts.headers['Authorization'];
           if (existing != null) {
             AppLogger.logInfo('ApiClient',
                 'Outgoing request has existing Authorization header');
@@ -48,7 +47,6 @@ class ApiClient {
           }
 
           if (token != null && token.isNotEmpty) {
-            opts.headers ??= {};
             opts.headers['Authorization'] = 'Bearer $token';
             final authVal = opts.headers['Authorization']?.toString();
             // Mask token for logs: show first/last 4 chars and length
@@ -116,9 +114,7 @@ class ApiClient {
                     await SecureStorage().write('auth_token', newToken);
                     // Retry original request with new token (only once)
                     final opts = e.requestOptions;
-                    opts.headers ??= {};
                     opts.headers['Authorization'] = 'Bearer $newToken';
-                    opts.extra ??= {};
                     if (opts.extra['retry'] == true) return handler.next(e);
                     opts.extra['retry'] = true;
                     final retryResp = await _dio.fetch(opts);
@@ -143,7 +139,6 @@ class ApiClient {
 
           if (isTimeout) {
             try {
-              opts.extra ??= {};
               if (opts.extra['failover'] == true) {
                 // Already attempted failover once; don't loop
                 return handler.next(e);
@@ -169,7 +164,6 @@ class ApiClient {
                       host: newBaseUri.host,
                       port: newBaseUri.hasPort ? newBaseUri.port : null);
                   final newOpts = opts.copyWith(path: replaced.toString());
-                  newOpts.extra ??= {};
                   newOpts.extra['failover'] = true;
 
                   AppLogger.logInfo('ApiClient',
@@ -247,7 +241,7 @@ class ApiClient {
   }
 
   Future<Response> post(String url,
-      {Map<String, dynamic>? data, Map<String, dynamic>? headers}) {
+      {dynamic data, Map<String, dynamic>? headers}) {
     return _dio.post(url, data: data, options: Options(headers: headers));
   }
 
@@ -255,6 +249,15 @@ class ApiClient {
       {Map<String, dynamic>? headers, Map<String, dynamic>? queryParameters}) {
     return _dio.get(url,
         queryParameters: queryParameters, options: Options(headers: headers));
+  }
+
+  Future<Response> put(String url,
+      {dynamic data, Map<String, dynamic>? headers}) {
+    return _dio.put(url, data: data, options: Options(headers: headers));
+  }
+
+  Future<Response> delete(String url, {Map<String, dynamic>? headers}) {
+    return _dio.delete(url, options: Options(headers: headers));
   }
 
   void close() => _dio.close();

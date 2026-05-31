@@ -32,8 +32,8 @@ export const ResetPassword: React.FC<ResetPasswordProps> = ({ onBackToLogin }) =
             <div className="w-14 h-14 bg-indigo-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center mb-4">
               <Icon name="help-circle" className="text-indigo-600 dark:text-indigo-400 w-8 h-8" />
             </div>
-            <h1 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight text-center">Identity Recovery</h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mt-1 text-center">Securely reset your terminal access credentials</p>
+            <h1 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight text-center">{t('pages.identityRecovery', { defaultValue: 'Identity Recovery' })}</h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mt-1 text-center">{t('pages.identityRecoveryDescription', { defaultValue: 'Securely reset your terminal access credentials' })}</p>
           </div>
 
           {!isSubmitted ? (

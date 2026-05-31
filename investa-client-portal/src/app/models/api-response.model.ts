@@ -90,6 +90,11 @@ export interface InvestmentDto {
   milestone?: string;
   riskLevel?: string;
   currency?: string;
+
+  // Founding-specific fields
+  durationMonths?: number;
+  profitPercentage?: number;
+  payoutFrequency?: string;
   
   // Media
   imageUrl?: string;
@@ -102,6 +107,9 @@ export interface InvestmentDto {
   
   // Team members from backend
   teamMembers?: TeamMemberDto[];
+
+  // Indicates whether the current requesting user has favorited this investment.
+  favorited?: boolean;
 }
 
 /**
@@ -140,6 +148,11 @@ export interface CreateInvestmentDto {
   
   // Investment type
   investmentTypeId?: number;    // 1 = Founding, 2 = Equity
+  
+  // Founding-specific fields
+  durationMonths?: number;
+  profitPercentage?: number;
+  payoutFrequency?: string;
   
   // Timeline
   startDate?: string;           // ISO date string

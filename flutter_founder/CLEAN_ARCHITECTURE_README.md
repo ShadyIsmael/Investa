@@ -106,7 +106,7 @@ print(networkConfig.baseUrl);        // Uses mDNS by default
 print(networkConfig.signalRHubUrl);  // Auto-derived from base URL
 
 // Override if needed
-networkConfig.setCustomBaseUrl('http://192.168.1.100:5000');
+networkConfig.setCustomBaseUrl('http://DESKTOP-DIH7CQH:5000');
 ```
 
 **Features:**

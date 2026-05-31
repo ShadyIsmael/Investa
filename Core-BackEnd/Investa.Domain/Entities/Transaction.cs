@@ -29,5 +29,5 @@ public class Transaction
 
     // Navigation property
     [ForeignKey(nameof(WalletId))]
-    public User Wallet { get; set; } = null!;
+    public AuthUser Wallet { get; set; } = null!;
 }

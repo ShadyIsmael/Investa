@@ -14,8 +14,10 @@ class AppMessages {
 
   // Engage
   static const String engageConfirmTitle = 'Confirm Engage';
-  static String engageConfirmContent(int credits) => 'Engaging will consume $credits credits. Do you want to continue?';
-  static const String engageRequestSent = 'Request sent — please wait for the founder to accept.';
+  static String engageConfirmContent(int credits) =>
+      'Engaging will consume $credits credits. Do you want to continue?';
+  static const String engageRequestSent =
+      'Request sent — please wait for the founder to accept.';
 
   // Generic
   static String openFounder(String name) => 'Opening founder: $name';
@@ -33,6 +35,7 @@ class AppMessages {
   // Auth
   static String loginFailed([String? msg]) => msg ?? 'Login failed.';
   static const String invalidCredentials = 'Invalid phone number or password.';
-  static const String networkError = 'Network error — please check your connection.';
+  static const String networkError =
+      'Network error — please check your connection.';
   static const String serverError = 'Server error — please try again later.';
 }

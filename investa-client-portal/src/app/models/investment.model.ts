@@ -150,6 +150,11 @@ export interface Investment {
   milestone?: string;
   riskLevel: RiskLevel;
   currency?: string;
+
+  // Founding-specific fields
+  durationMonths?: number;
+  profitPercentage?: number;
+  payoutFrequency?: string;
   
   // Social Proof
   credibilityScore: number;

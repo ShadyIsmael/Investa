@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using Investa.Application.DTOs;
 using Investa.Application.Interfaces;
 using System.Globalization;
@@ -21,7 +21,7 @@ public class CreditService : ICreditService
     {
         // Prefer client credit ledger, but support wallet-only users as fallback.
         var client = (await _unitOfWork.Repository<Client>().FindAsync(c => c.UserId == userId)).FirstOrDefault();
-        var user = await _unitOfWork.Repository<User>().GetByIdAsync(userId);
+        var user = await _unitOfWork.Repository<AuthUser>().GetByIdAsync(userId);
         if (client == null && user == null)
         {
             throw new InvalidOperationException($"User for id {userId} not found");
@@ -63,7 +63,7 @@ public class CreditService : ICreditService
         if (user != null)
         {
             user.WalletBalance += amount;
-            await _unitOfWork.Repository<User>().UpdateAsync(user);
+            await _unitOfWork.Repository<AuthUser>().UpdateAsync(user);
         }
 
         await _unitOfWork.SaveChangesAsync();

@@ -16,7 +16,9 @@ import '../services/requests_service.dart';
 import '../services/messages.dart';
 
 class RequestsScreen extends StatefulWidget {
-  const RequestsScreen({Key? key}) : super(key: key);
+  final Function(int)? onPendingCountChanged;
+
+  const RequestsScreen({super.key, this.onPendingCountChanged});
 
   @override
   State<RequestsScreen> createState() => _RequestsScreenState();
@@ -61,7 +63,15 @@ class _RequestsScreenState extends State<RequestsScreen> {
       _outcome = outcome;
       _loadingIncome = false;
       _loadingOutcome = false;
+      _updatePendingCount();
     });
+  }
+
+  void _updatePendingCount() {
+    final pendingCount =
+        _income.where((r) => r.status == RequestStatus.pending).length +
+            _outcome.where((r) => r.status == RequestStatus.pending).length;
+    widget.onPendingCountChanged?.call(pendingCount);
   }
 
   Future<void> _refreshIncome() async {
@@ -70,6 +80,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
     setState(() {
       _income = income;
       _loadingIncome = false;
+      _updatePendingCount();
     });
   }
 
@@ -79,6 +90,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
     setState(() {
       _outcome = outcome;
       _loadingOutcome = false;
+      _updatePendingCount();
     });
   }
 
@@ -150,8 +162,8 @@ class _RequestsScreenState extends State<RequestsScreen> {
                         const SizedBox(height: 12),
                         TabBar(
                           labelColor: theme.colorScheme.primary,
-                          unselectedLabelColor:
-                              theme.colorScheme.onSurface.withOpacity(0.7),
+                          unselectedLabelColor: theme.colorScheme.onSurface
+                              .withAlpha((0.7 * 255).round()),
                           indicator: UnderlineTabIndicator(
                               borderSide: BorderSide(
                                   width: 3, color: theme.colorScheme.primary),
@@ -308,9 +320,9 @@ class _RequestsScreenState extends State<RequestsScreen> {
     if (_query.isEmpty) return list;
     return list.where((r) {
       final q = _query;
-      final id = (r.id ?? '').toString().toLowerCase();
-      final name = (r.founderName ?? '').toLowerCase();
-      final biz = (r.businessName ?? '').toLowerCase();
+      final id = r.id.toString().toLowerCase();
+      final name = r.founderName.toLowerCase();
+      final biz = r.businessName.toLowerCase();
       return id.contains(q) || name.contains(q) || biz.contains(q);
     }).toList();
   }
@@ -328,7 +340,6 @@ class _RequestsList extends StatelessWidget {
   final Future<void> Function(String id)? onCancel;
 
   const _RequestsList({
-    Key? key,
     required this.kind,
     required this.items,
     required this.loading,
@@ -336,7 +347,7 @@ class _RequestsList extends StatelessWidget {
     this.onAccept,
     this.onDecline,
     this.onCancel,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -403,12 +414,7 @@ class _RequestCard extends StatelessWidget {
   final Future<void> Function(String id)? onCancel;
 
   const _RequestCard(
-      {Key? key,
-      required this.item,
-      this.onAccept,
-      this.onDecline,
-      this.onCancel})
-      : super(key: key);
+      {required this.item, this.onAccept, this.onDecline, this.onCancel});
 
   @override
   Widget build(BuildContext context) {
@@ -508,8 +514,8 @@ class _RequestCard extends StatelessWidget {
       clipBehavior: Clip.hardEdge,
       color: isDarkMode
           ? (item.isIncome
-              ? Colors.green.withOpacity(0.02)
-              : Colors.red.withOpacity(0.02))
+              ? Colors.green.withAlpha((0.02 * 255).round())
+              : Colors.red.withAlpha((0.02 * 255).round()))
           : theme.colorScheme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Row(
@@ -583,7 +589,7 @@ class _RequestCard extends StatelessWidget {
                                 color: isDarkMode
                                     ? theme.colorScheme.surfaceContainerHighest
                                     : theme.colorScheme.primary
-                                        .withOpacity(0.06),
+                                        .withAlpha((0.06 * 255).round()),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text('${item.amount.toInt()}',
@@ -596,8 +602,8 @@ class _RequestCard extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 6),
                               decoration: BoxDecoration(
-                                color:
-                                    theme.colorScheme.primary.withOpacity(0.12),
+                                color: theme.colorScheme.primary
+                                    .withAlpha((0.12 * 255).round()),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Row(
@@ -621,7 +627,8 @@ class _RequestCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(date,
                       style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.7))),
+                          color: theme.colorScheme.onSurface
+                              .withAlpha((0.7 * 255).round()))),
                   const SizedBox(height: 10),
                   actionsWidget,
                 ],
@@ -631,29 +638,5 @@ class _RequestCard extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  Color _statusColor(RequestStatus status) {
-    switch (status) {
-      case RequestStatus.pending:
-        return Colors.amber;
-      case RequestStatus.accepted:
-        return Colors.greenAccent;
-      case RequestStatus.declined:
-      case RequestStatus.canceled:
-        return Colors.redAccent;
-    }
-  }
-
-  IconData _statusIcon(RequestStatus status) {
-    switch (status) {
-      case RequestStatus.pending:
-        return Icons.access_time;
-      case RequestStatus.accepted:
-        return Icons.check_circle;
-      case RequestStatus.declined:
-      case RequestStatus.canceled:
-        return Icons.cancel;
-    }
   }
 }

@@ -87,9 +87,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> sendFcmToken(String token) async {
     await networkClient.post(
-      '/api/Notifications/fcm-token',
+      '/api/users/fcm-token',
       data: {
-        'token': token,
+        'fcmToken': token,
       },
     );
   }

@@ -1,14 +1,12 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:signalr_core/signalr_core.dart';
+import 'package:signalr_netcore/signalr_client.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/io_client.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'secure_storage.dart';
 import 'endpoint_resolver.dart';
-import 'package:flutter_dark_app/services/app_logger.dart';
-import 'package:flutter_dark_app/services/constants.dart';
+import 'app_logger.dart';
+import 'constants.dart';
 
 /// SignalR hub URL is resolved at runtime from environment variables.
 /// Set `SIGNALR_HUB_URL` in your `.env` file (loaded in `main.dart`).
@@ -41,7 +39,7 @@ class SignalRService {
       _adminJoinedController.stream;
 
   bool get isConnected =>
-      _connection != null && _connection!.state == HubConnectionState.connected;
+      _connection != null && _connection!.state == HubConnectionState.Connected;
 
   /// Connects to the SignalR hub.
   ///
@@ -115,48 +113,29 @@ class SignalRService {
           'SignalRService', 'Attempting SignalR connect to $candidate');
 
       // Create a candidate-specific HTTP client for local HTTPS dev servers
-      http.BaseClient? clientForCandidate;
-      try {
-        var tmp = candidate;
-        if (tmp.startsWith('wss://')) {
-          tmp = tmp.replaceFirst('wss://', 'https://');
-        }
-        if (tmp.startsWith('ws://')) tmp = tmp.replaceFirst('ws://', 'http://');
-        final parsed = Uri.parse(tmp);
-        final isLocalHost = parsed.host.startsWith('10.') ||
-            parsed.host.startsWith('192.168.') ||
-            parsed.host == 'localhost' ||
-            parsed.host == '127.0.0.1';
-        if (parsed.scheme == 'https' && isLocalHost) {
-          final ioClient = HttpClient();
-          ioClient.badCertificateCallback = (cert, host, port) => true;
-          clientForCandidate = IOClient(ioClient);
-        }
-      } catch (_) {}
 
       Future<void> buildConnectionFor(
           {required bool useWebsockets, required String url}) async {
         _connection = HubConnectionBuilder()
             .withUrl(
               url,
-              HttpConnectionOptions(
-                client: clientForCandidate,
-                accessTokenFactory: tokenFactory,
+              options: HttpConnectionOptions(
+                accessTokenFactory: tokenFactory as AccessTokenFactory,
                 transport: useWebsockets
-                    ? HttpTransportType.webSockets
-                    : HttpTransportType.longPolling,
+                    ? HttpTransportType.WebSockets
+                    : HttpTransportType.LongPolling,
               ),
             )
             .withAutomaticReconnect()
             .build();
 
-        _connection!.onclose((error) {
+        _connection!.onclose(({Exception? error}) {
           // connection closed; UI can observe connection state via isConnected
         });
 
         // re-join conversations after reconnect
         try {
-          _connection!.onreconnected((connectionId) async {
+          _connection!.onreconnected(({String? connectionId}) async {
             for (final conv in _joinedConversations) {
               try {
                 await joinConversation(conv);

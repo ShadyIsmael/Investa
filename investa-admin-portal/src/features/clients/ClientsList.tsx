@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { clientService } from '@/services/clientService';
 import { MOCK_CLIENTS } from '@/mocks';
 import { Icon } from '@/components/common/Icons';
+import { useTranslation } from 'react-i18next';
 
 interface ClientsListProps {
   onViewClient?: (id: string | number) => void;
@@ -11,6 +12,7 @@ interface ClientsListProps {
 export const ClientsList: React.FC<ClientsListProps> = ({ onViewClient }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
+  const { t } = useTranslation();
   const [clients, setClients] = useState(MOCK_CLIENTS);
   const [loading, setLoading] = useState(false);
 
@@ -67,11 +69,11 @@ export const ClientsList: React.FC<ClientsListProps> = ({ onViewClient }) => {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-text tracking-tight">Client Portfolio</h2>
-          <p className="text-muted text-sm font-medium">Manage corporate identities, verification lifecycles, and access status.</p>
+          <h2 className="text-2xl font-bold text-text tracking-tight">{t('pages.clientPortfolio', { defaultValue: 'Client Portfolio' })}</h2>
+          <p className="text-muted-foreground text-sm font-medium">{t('pages.clientPortfolioDescription', { defaultValue: 'Manage corporate identities, verification lifecycles, and access status.' })}</p>
         </div>
         <div className="flex gap-2">
-          <button className="bg-surface hover:bg-background text-muted border border-border px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95 shadow-sm">
+          <button className="bg-surface hover:bg-background text-muted-foreground border border-border px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95 shadow-sm">
             Reports
           </button>
           <button className="bg-primary hover:opacity-90 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 active:scale-95">
@@ -85,21 +87,21 @@ export const ClientsList: React.FC<ClientsListProps> = ({ onViewClient }) => {
         {/* Table Controls */}
         <div className="p-4 border-b border-border bg-background/30 flex flex-col sm:flex-row gap-4 justify-between items-center">
           <div className="relative w-full sm:w-80 group">
-            <Icon name="search" className="absolute left-3.5 top-2.5 w-4 h-4 text-muted group-focus-within:text-primary transition-colors" />
+            <Icon name="search" className="absolute left-3.5 top-2.5 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <input 
               type="text"
               placeholder="Search clients..."
-              className="w-full pl-10 pr-4 py-2 bg-surface border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all placeholder:text-muted shadow-sm text-text"
+              className="w-full pl-10 pr-4 py-2 bg-surface border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all placeholder:text-muted-foreground shadow-sm text-text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
-            <button className="flex-1 sm:flex-none px-4 py-2 bg-surface border border-border rounded-xl text-xs font-bold text-muted hover:bg-background transition-colors flex items-center justify-center gap-2">
+            <button className="flex-1 sm:flex-none px-4 py-2 bg-surface border border-border rounded-xl text-xs font-bold text-muted-foreground hover:bg-background transition-colors flex items-center justify-center gap-2">
               <Icon name="settings" className="w-3.5 h-3.5" />
               Columns
             </button>
-            <button className="flex-1 sm:flex-none px-4 py-2 bg-surface border border-border rounded-xl text-xs font-bold text-muted hover:bg-background transition-colors">Export CSV</button>
+            <button className="flex-1 sm:flex-none px-4 py-2 bg-surface border border-border rounded-xl text-xs font-bold text-muted-foreground hover:bg-background transition-colors">Export CSV</button>
           </div>
         </div>
 
@@ -107,7 +109,7 @@ export const ClientsList: React.FC<ClientsListProps> = ({ onViewClient }) => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-background/50 text-muted/70 text-xxs uppercase font-black tracking-[0.15em]">
+              <tr className="bg-surface text-text text-xs uppercase tracking-[0.15em] font-semibold">
                 <th className="px-6 py-4">Client Identity</th>
                 <th className="px-6 py-4">Reg. Date</th>
                 <th className="px-6 py-4">Status</th>
@@ -129,14 +131,14 @@ export const ClientsList: React.FC<ClientsListProps> = ({ onViewClient }) => {
                         </div>
                         <div>
                           <p className="font-bold text-text text-sm leading-tight group-hover:text-primary transition-colors">{client.name}</p>
-                          <p className="text-muted text-xxs mt-0.5 font-medium">{client.email}</p>
+                          <p className="text-muted-foreground text-xxs mt-0.5 font-medium">{client.email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-xs font-semibold text-muted">
+                    <td className="px-6 py-4 text-xs font-semibold text-muted-foreground">
                       <div className="flex flex-col">
                         <span className="text-text">{new Date(client.registrationDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                        <span className="text-xxs text-muted/70 font-medium">Ref: {client.id}</span>
+                        <span className="text-xxs text-muted-foreground/70 font-medium">Ref: {client.id}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -144,7 +146,7 @@ export const ClientsList: React.FC<ClientsListProps> = ({ onViewClient }) => {
                         <span className={`
                           px-2 py-0.5 rounded-lg text-xxs font-black uppercase border tracking-wider
                           ${client.status === 'Active' ? 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : ''}
-                          ${client.status === 'Inactive' ? 'bg-background text-muted border-border' : ''}
+                          ${client.status === 'Inactive' ? 'bg-background text-muted-foreground border-border' : ''}
                           ${client.status === 'Suspended' ? 'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20' : ''}
                           ${client.status === 'Pending' ? 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20' : ''}
                         `}>
@@ -156,7 +158,7 @@ export const ClientsList: React.FC<ClientsListProps> = ({ onViewClient }) => {
                       <div className="flex flex-col gap-1.5">
                         <div className="flex justify-between items-center mb-0.5">
                           {getVerificationBadge(client.verificationPercent)}
-                          <span className={`text-xxs font-bold ${client.verificationPercent === 100 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted'}`}>
+                          <span className={`text-xxs font-bold ${client.verificationPercent === 100 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
                             {client.verificationPercent}%
                           </span>
                         </div>
@@ -177,7 +179,7 @@ export const ClientsList: React.FC<ClientsListProps> = ({ onViewClient }) => {
                           <Icon name="sparkles" className="w-3.5 h-3.5 group-hover/btn:scale-110 transition-transform" />
                           View
                         </button>
-                        <button className="p-1.5 text-muted hover:text-text hover:bg-background rounded-xl transition-all border border-transparent hover:border-border" title="Modify Details">
+                        <button className="p-1.5 text-muted-foreground hover:text-text hover:bg-background rounded-xl transition-all border border-transparent hover:border-border" title="Modify Details">
                           <Icon name="settings" className="w-4 h-4" />
                         </button>
                       </div>
@@ -189,10 +191,10 @@ export const ClientsList: React.FC<ClientsListProps> = ({ onViewClient }) => {
                   <td colSpan={5} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center justify-center">
                        <div className="w-16 h-16 bg-background rounded-full flex items-center justify-center mb-4 border border-border">
-                         <Icon name="search" className="w-8 h-8 text-muted" />
+                         <Icon name="search" className="w-8 h-8 text-muted-foreground" />
                        </div>
                        <p className="text-base font-bold text-text tracking-tight">No client records found</p>
-                       <p className="text-sm text-muted mt-1">Try adjusting your search criteria or clear filters.</p>
+                       <p className="text-sm text-muted-foreground mt-1">Try adjusting your search criteria or clear filters.</p>
                        <button onClick={() => setSearchTerm('')} className="mt-4 text-primary font-bold text-xs hover:underline bg-primary/10 px-4 py-2 rounded-full transition-all tracking-wide uppercase">Clear Search</button>
                     </div>
                   </td>
@@ -204,16 +206,16 @@ export const ClientsList: React.FC<ClientsListProps> = ({ onViewClient }) => {
         
         {/* Footer */}
         <div className="bg-background/20 px-6 py-4 border-t border-border flex flex-col sm:flex-row gap-4 justify-between items-center">
-          <span className="text-xxs font-black text-muted uppercase tracking-widest">
+          <span className="text-xxs font-black text-muted-foreground uppercase tracking-widest">
             Showing <span className="text-text">{filteredClients.length}</span> results in ledger
           </span>
           <div className="flex gap-2">
-            <button className="px-4 py-2 border border-border rounded-xl bg-surface text-xxs font-black text-muted disabled:opacity-30 hover:bg-background transition-all uppercase tracking-wider" disabled>Previous</button>
+            <button className="px-4 py-2 border border-border rounded-xl bg-surface text-xxs font-black text-muted-foreground disabled:opacity-30 hover:bg-background transition-all uppercase tracking-wider" disabled>Previous</button>
             <div className="flex gap-1">
               <button className="w-8 h-8 flex items-center justify-center border border-primary/20 rounded-xl bg-primary/10 text-xxs font-black text-primary shadow-sm">1</button>
-              <button className="w-8 h-8 flex items-center justify-center border border-border rounded-xl bg-surface text-xxs font-black text-muted hover:bg-background transition-all">2</button>
+              <button className="w-8 h-8 flex items-center justify-center border border-border rounded-xl bg-surface text-xxs font-black text-muted-foreground hover:bg-background transition-all">2</button>
             </div>
-            <button className="px-4 py-2 border border-border rounded-xl bg-surface text-xxs font-black text-muted hover:bg-background transition-all uppercase tracking-wider">Next</button>
+            <button className="px-4 py-2 border border-border rounded-xl bg-surface text-xxs font-black text-muted-foreground hover:bg-background transition-all uppercase tracking-wider">Next</button>
           </div>
         </div>
       </div>

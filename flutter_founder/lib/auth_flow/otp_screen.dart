@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_dark_app/auth_flow/services/auth_service.dart';
-import 'package:flutter_dark_app/auth_flow/services/phone_auth_service.dart';
+import '../services/auth_service.dart';
+import '../services/phone_auth_service.dart';
 
 class OTPScreen extends StatefulWidget {
   final String verificationId;
@@ -12,14 +12,13 @@ class OTPScreen extends StatefulWidget {
   final PhoneAuthCredential? autoCredential;
 
   const OTPScreen(
-      {Key? key,
+      {super.key,
       required this.verificationId,
       required this.phoneNumber,
       required this.firstName,
       required this.lastName,
       required this.password,
-      this.autoCredential})
-      : super(key: key);
+      this.autoCredential});
 
   @override
   State<OTPScreen> createState() => _OTPScreenState();
@@ -47,7 +46,7 @@ class _OTPScreenState extends State<OTPScreen> {
         cred = await FirebaseAuth.instance
             .signInWithCredential(widget.autoCredential!);
       } else {
-        cred = await PhoneAuthService().signInWithCode(
+        cred = await PhoneAuthService().signInWithSmsCode(
             verificationId: widget.verificationId,
             smsCode: _otpCtrl.text.trim());
       }
@@ -61,7 +60,7 @@ class _OTPScreenState extends State<OTPScreen> {
         firstName: widget.firstName,
         lastName: widget.lastName,
         password: widget.password,
-        idToken: idToken ?? '',
+        firebaseUid: user.uid,
         isNew: cred.additionalUserInfo?.isNewUser,
       );
 

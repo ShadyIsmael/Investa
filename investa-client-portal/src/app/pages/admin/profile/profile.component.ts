@@ -227,8 +227,12 @@ export class ProfileComponent {
   hrLetterBase64 = signal<string | null>(null);
   deviceMacAddress = signal<string | null>(null);
 
+  otpSent = signal(false);
+  passwordOtpMessage = signal<string>('');
+
   passwordForm = new FormGroup({
     currentPassword: new FormControl('', [Validators.required]),
+    otpToken: new FormControl(''),
     newPassword: new FormControl('', [Validators.required, Validators.minLength(8)]),
     confirmNewPassword: new FormControl('', [Validators.required])
   }, { validators: passwordMatchValidator });
@@ -871,10 +875,103 @@ export class ProfileComponent {
       });
   }
 
-  onPasswordSubmit() {
-    if (this.passwordForm.invalid) return;
-    // TODO: Implement password change
-    this.passwordForm.reset();
+  async sendPasswordOtp(): Promise<void> {
+    const currentPassword = this.passwordForm.get('currentPassword')?.value || '';
+    if (!currentPassword) {
+      this.passwordForm.get('currentPassword')?.markAsTouched();
+      this.notificationService.showToast({
+        title: this.t('profile.toasts.passwordValidationFailed') || 'Invalid password fields',
+        message: this.t('profile.toasts.passwordValidationMessage') || 'Please fix the highlighted password fields before saving.',
+        type: 'error'
+      });
+      return;
+    }
+
+    try {
+      this.isLoading.set(true);
+      await this.profileService.sendPasswordChangeOtp(currentPassword);
+      this.otpSent.set(true);
+      this.notificationService.showToast({
+        title: this.t('profile.toasts.passwordOtpSentTitle') || 'OTP Sent',
+        message: this.t('profile.toasts.passwordOtpSentMessage') || 'An OTP was sent to your mobile phone.',
+        type: 'success'
+      });
+    } catch (e: any) {
+      const apiErr = (e as any)?.error as ApiErrorResponse | undefined;
+      const message = apiErr?.message || e?.message || this.t('profile.toasts.passwordSendOtpFailedMessage') || 'Failed to send OTP. Please try again.';
+      this.notificationService.showToast({
+        title: this.t('profile.toasts.passwordSendOtpFailedTitle') || 'OTP send failed',
+        message,
+        type: 'error'
+      });
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  async onPasswordSubmit(): Promise<void> {
+    if (!this.otpSent()) {
+      this.notificationService.showToast({
+        title: this.t('profile.toasts.passwordOtpRequiredTitle') || 'OTP Required',
+        message: this.t('profile.toasts.passwordOtpRequiredMessage') || 'Please request an OTP before changing your password.',
+        type: 'error'
+      });
+      return;
+    }
+
+    if (this.passwordForm.invalid) {
+      Object.values(this.passwordForm.controls).forEach(control => {
+        control.markAsTouched();
+        control.updateValueAndValidity();
+      });
+      this.notificationService.showToast({
+        title: this.t('profile.toasts.passwordValidationFailed') || 'Invalid password fields',
+        message: this.t('profile.toasts.passwordValidationMessage') || 'Please fix the highlighted password fields before saving.',
+        type: 'error'
+      });
+      return;
+    }
+
+    const otpToken = this.passwordForm.get('otpToken')?.value || '';
+    const newPassword = this.passwordForm.get('newPassword')?.value || '';
+
+    if (!otpToken) {
+      this.passwordForm.get('otpToken')?.markAsTouched();
+      this.notificationService.showToast({
+        title: this.t('profile.toasts.passwordOtpRequiredTitle') || 'OTP Required',
+        message: this.t('profile.toasts.passwordOtpRequiredMessage') || 'Please enter the OTP sent to your mobile.',
+        type: 'error'
+      });
+      return;
+    }
+
+    try {
+      this.isLoading.set(true);
+      this.notificationService.showToast({
+        title: this.t('profile.toasts.passwordChangingTitle') || 'Changing password',
+        message: this.t('profile.toasts.passwordChangingMessage') || 'Updating your password…',
+        type: 'info'
+      });
+
+      await this.profileService.confirmPasswordChange(otpToken, newPassword);
+      this.passwordForm.reset();
+      this.otpSent.set(false);
+      this.notificationService.showToast({
+        title: this.t('profile.toasts.passwordChangedTitle') || 'Password changed',
+        message: this.t('profile.toasts.passwordChangedMessage') || 'Your password was updated successfully.',
+        type: 'success'
+      });
+    } catch (e: any) {
+      const apiErr = (e as any)?.error as ApiErrorResponse | undefined;
+      const message = apiErr?.message || e?.message || this.t('profile.toasts.passwordChangeFailedMessage') || 'Failed to change password. Please try again.';
+      this.notificationService.showToast({
+        title: this.t('profile.toasts.passwordChangeFailedTitle') || 'Password change failed',
+        message,
+        type: 'error'
+      });
+    } finally {
+      this.isLoading.set(false);
+    }
   }
 
   onNotificationSettingsSubmit() {
@@ -893,6 +990,9 @@ export class ProfileComponent {
   private buildProfileUpdatePayload() {
     const existing: NonNullable<ReturnType<typeof this.profileService.profile>> = this.profileService.profile() ?? { userId: '', coreMetrics: null, basicInfo: null, contactInfo: null, identityCompliance: null };
     const communicationRaw = this.communicationForm.getRawValue();
+    const currentDocumentNumber = this.profileForm.get('nationalId')?.value ?? existing.identityCompliance?.documentNumber ?? null;
+    const currentDocumentFrontImageUrl = this.nationalIdImageUrl() ?? existing.identityCompliance?.documentFrontImageUrl ?? null;
+    const currentDocumentBackImageUrl = existing.identityCompliance?.documentBackImageUrl ?? null;
 
     return {
       ...existing,
@@ -900,7 +1000,7 @@ export class ProfileComponent {
         ...(existing.coreMetrics ?? {})
       },
       // Also include a top-level nationalId (some backend versions use this field)
-      nationalId: this.profileForm.get('nationalId')?.value ?? existing.identityCompliance?.documentNumber ?? null,
+      nationalId: currentDocumentNumber,
       basicInfo: {
         ...(existing.basicInfo ?? {}),
         firstName: this.profileForm.get('firstName')?.value ?? '',
@@ -932,12 +1032,32 @@ export class ProfileComponent {
       },
       identityCompliance: {
         ...(existing.identityCompliance ?? {}),
-        documentNumber: this.profileForm.get('nationalId')?.value ?? existing.identityCompliance?.documentNumber ?? null,
-        documentFrontImageUrl: this.nationalIdImageUrl() ?? existing.identityCompliance?.documentFrontImageUrl ?? null,
+        documentNumber: currentDocumentNumber,
+        verificationStatus: this.computeIdentityVerificationStatus(existing.identityCompliance, currentDocumentNumber, currentDocumentFrontImageUrl, currentDocumentBackImageUrl),
+        documentFrontImageUrl: currentDocumentFrontImageUrl,
+        documentBackImageUrl: currentDocumentBackImageUrl,
         hrLetterFileName: (this.hrLetterFileName() || existing.identityCompliance?.hrLetterFileName) ?? null,
         hrLetterBase64: (this.hrLetterBase64() || existing.identityCompliance?.hrLetterBase64) ?? null,
         deviceMacAddress: (this.deviceMacAddress() || existing.identityCompliance?.deviceMacAddress) ?? null
       }
     };
+  }
+
+  private computeIdentityVerificationStatus(existingIdentityCompliance: NonNullable<ReturnType<typeof this.profileService.profile>>['identityCompliance'] | null, documentNumber: string | null, documentFrontImageUrl: string | null, documentBackImageUrl: string | null): string | null {
+    const existingStatus = existingIdentityCompliance?.verificationStatus ?? null;
+    const identityValuesPresent = !!documentNumber || !!documentFrontImageUrl || !!documentBackImageUrl;
+    const hasExistingIdentity = !!existingIdentityCompliance;
+
+    const identityChanged = !hasExistingIdentity
+      ? identityValuesPresent
+      : existingIdentityCompliance!.documentNumber !== documentNumber
+        || existingIdentityCompliance!.documentFrontImageUrl !== documentFrontImageUrl
+        || existingIdentityCompliance!.documentBackImageUrl !== documentBackImageUrl;
+
+    if (identityChanged && !!documentNumber) {
+      return 'Pending';
+    }
+
+    return existingStatus;
   }
 }

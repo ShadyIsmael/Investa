@@ -8,7 +8,7 @@ import 'support_chat_intro_screen.dart';
 import 'support_request_screen.dart';
 
 class SupportChoiceScreen extends StatelessWidget {
-  const SupportChoiceScreen({Key? key}) : super(key: key);
+  const SupportChoiceScreen({super.key});
 
   Future<void> _openChat(BuildContext context) async {
     // Reset session before starting new chat flow

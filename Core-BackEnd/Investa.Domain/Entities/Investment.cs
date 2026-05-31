@@ -154,7 +154,7 @@ public class Investment
     /// The founder/creator of this investment opportunity
     /// </summary>
     [ForeignKey(nameof(FounderId))]
-    public User Founder { get; set; } = null!;
+    public AuthUser Founder { get; set; } = null!;
 
     /// <summary>
     /// List of investors who have invested in this opportunity

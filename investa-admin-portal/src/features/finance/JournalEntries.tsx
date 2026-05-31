@@ -1,15 +1,17 @@
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { MOCK_JOURNALS } from '@/mocks/finance';
 import { Icon } from '@/components/common/Icons';
 
 export const JournalEntries: React.FC = () => {
+  const { t } = useTranslation();
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Journal Entries</h2>
-          <p className="text-slate-500 text-[13px] font-medium">Auto-synced ledger records for all system transactions.</p>
+          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">{t('pages.journalEntries', { defaultValue: 'Journal Entries' })}</h2>
+          <p className="text-slate-500 text-[13px] font-medium">{t('pages.journalEntriesDescription', { defaultValue: 'Auto-synced ledger records for all system transactions.' })}</p>
         </div>
       </div>
 

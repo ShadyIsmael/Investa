@@ -35,11 +35,8 @@ class AppLogger {
     try {
       stdout.writeln(tagged);
     } catch (_) {
-      if (kDebugMode) {
-        debugPrint(tagged);
-      } else {
-        print(tagged);
-      }
+      // Use debugPrint as a safe fallback
+      debugPrint(tagged);
     }
 
     if (_logFile == null) return;

@@ -136,6 +136,40 @@ export class ProfileService {
     }
   }
 
+  async sendPasswordChangeOtp(currentPassword: string): Promise<void> {
+    try {
+      const url = `${this.apiBase}/api/v1/auth/change-password/send-otp`;
+      const payload = { currentPassword };
+      console.debug('[ProfileService] sendPasswordChangeOtp: POST', url, payload);
+      const token = this.getAccessTokenFromLocalStorage();
+      const options = token ? { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) } : undefined;
+      const raw = await firstValueFrom(this.http.post<any>(url, payload, options));
+      if (raw && (raw as any).success === false) {
+        throw new Error((raw as any).message || 'OTP request failed');
+      }
+    } catch (err: any) {
+      console.error('[ProfileService] sendPasswordChangeOtp failed', err);
+      throw err;
+    }
+  }
+
+  async confirmPasswordChange(otpToken: string, newPassword: string): Promise<void> {
+    try {
+      const url = `${this.apiBase}/api/v1/auth/change-password/confirm`;
+      const payload = { token: otpToken, newPassword };
+      console.debug('[ProfileService] confirmPasswordChange: POST', url, payload);
+      const token = this.getAccessTokenFromLocalStorage();
+      const options = token ? { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) } : undefined;
+      const raw = await firstValueFrom(this.http.post<any>(url, payload, options));
+      if (raw && (raw as any).success === false) {
+        throw new Error((raw as any).message || 'Password change failed');
+      }
+    } catch (err: any) {
+      console.error('[ProfileService] confirmPasswordChange failed', err);
+      throw err;
+    }
+  }
+
   async updateMyProfile(profile: UserProfile): Promise<UserProfile | null> {
     try {
       const url = `${this.apiBase}/api/profile/me`;

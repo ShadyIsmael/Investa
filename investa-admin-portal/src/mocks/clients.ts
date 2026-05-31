@@ -1,6 +1,6 @@
 
 import { Client } from '../types';
-import { getDynamicBaseUrl } from '../utils/environment';
+import { getDynamicBaseUrl, storage } from '../utils/environment';
 
 /** Default avatar placeholder - uses UI Avatars service for initials-based avatars */
 const getDefaultAvatar = (name: string, seed: number) => 
@@ -36,8 +36,21 @@ async function refreshTopClientsFromApi() {
     // Normalize base and strip any trailing `/api` segment to avoid duplicated `/api/api` when
     // VITE_API_BASE_URL is configured as e.g. `http://localhost:5000/api` (common in docs/examples)
     const baseClean = base.replace(/\/api\/?$/, '').replace(/\/+$|\s+$/g, '');
+    const token = storage.get('token');
+    if (!token) {
+      // No authenticated session yet, skip the live refresh to avoid 401 spam.
+      return;
+    }
+
     const url = `${baseClean}/api/v1/admin/clients/top`;
-    const resp = await fetch(url, { credentials: 'include' });
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    };
+    const resp = await fetch(url, {
+      headers,
+      credentials: 'same-origin',
+    });
     if (!resp.ok) throw new Error(`Status ${resp.status}`);
     const json = await resp.json();
     const arr = json?.data ?? json;

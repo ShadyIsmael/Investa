@@ -5,9 +5,11 @@ import { userService } from '@/services/userService';
 import { User } from '@/types';
 import { Icon } from '@/components/common/Icons';
 import PermissionControl from '@/components/common/PermissionControl';
+import { useTranslation } from 'react-i18next';
 
 export const GroupsRoles: React.FC<{ mode?: 'groups' | 'roles' | 'all' }> = ({ mode }) => {
   const [groups, setGroups] = useState<Group[]>([]);
+  const { t } = useTranslation();
   const [roles, setRoles] = useState<Role[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,7 +62,7 @@ export const GroupsRoles: React.FC<{ mode?: 'groups' | 'roles' | 'all' }> = ({ m
     load();
   }, []);
 
-  const openNewGroup = () => { setEditingGroup({ id: 0, name: '', description: '', roleIds: [], members: [], createdAt: new Date().toISOString() }); setShowGroupModal(true); };
+  const openNewGroup = () => { setEditingGroup({ id: 0, name: '', description: null, slug: null, parentGroupId: null, memberCount: 0, membersSample: [], permissions: [], status: 'Active', createdAt: new Date().toISOString(), updatedAt: null, metadata: {}, roleIds: [], members: [] }); setShowGroupModal(true); };
 
   const saveGroup = async (g: Group) => {
     if (!g.name.trim()) { showToast('Group name is required', 'error'); return; }
@@ -104,11 +106,11 @@ export const GroupsRoles: React.FC<{ mode?: 'groups' | 'roles' | 'all' }> = ({ m
     );
   });
 
-  const [selectedAvailable, setSelectedAvailable] = useState<Set<number>>(new Set());
-  const [selectedAssigned, setSelectedAssigned] = useState<Set<number>>(new Set());
+  const [selectedAvailable, setSelectedAvailable] = useState<Set<string>>(new Set());
+  const [selectedAssigned, setSelectedAssigned] = useState<Set<string>>(new Set());
   const [assignedSearch, setAssignedSearch] = useState('');
-  const [movingToAssigned, setMovingToAssigned] = useState<Set<number>>(new Set());
-  const [movingToAvailable, setMovingToAvailable] = useState<Set<number>>(new Set());
+  const [movingToAssigned, setMovingToAssigned] = useState<Set<string>>(new Set());
+  const [movingToAvailable, setMovingToAvailable] = useState<Set<string>>(new Set());
 
   const getFiltersKey = (roleId: number | string) => `investa:role-filters:${roleId}`;
 
@@ -125,6 +127,8 @@ export const GroupsRoles: React.FC<{ mode?: 'groups' | 'roles' | 'all' }> = ({ m
       // Require explicit selection when creating a new role; undefined == not selected
       groupId: undefined as number | null | undefined,
       groupName: undefined,
+      isActive: false,
+      createdAt: new Date().toISOString(),
       members: [] 
     };
     setEditingRole(initial);
@@ -159,13 +163,13 @@ export const GroupsRoles: React.FC<{ mode?: 'groups' | 'roles' | 'all' }> = ({ m
 
   const getAvailableUsers = () => {
     if (!editingRole) return [] as User[];
-    const assigned = new Set((editingRole.members || []).map(Number));
+    const assigned = new Set((editingRole.members || []).map(String));
     return users.filter(u => !assigned.has(u.id) && (roleSearch.trim() === '' || u.name.toLowerCase().includes(roleSearch.toLowerCase()) || u.email.toLowerCase().includes(roleSearch.toLowerCase())));
   };
 
   const getAssignedUsers = () => {
     if (!editingRole) return [] as User[];
-    const assigned = new Set((editingRole.members || []).map(Number));
+    const assigned = new Set((editingRole.members || []).map(String));
     return users.filter(u => assigned.has(u.id) && (assignedSearch.trim() === '' || u.name.toLowerCase().includes(assignedSearch.toLowerCase()) || u.email.toLowerCase().includes(assignedSearch.toLowerCase())));
   };
 
@@ -175,7 +179,7 @@ export const GroupsRoles: React.FC<{ mode?: 'groups' | 'roles' | 'all' }> = ({ m
     setMovingToAssigned(new Set(selectedAvailable));
     // after animation, update actual members
     setTimeout(() => {
-      const nextMembers = new Set((editingRole.members || []).map(Number));
+      const nextMembers = new Set((editingRole.members || []).map(String));
       selectedAvailable.forEach(id => nextMembers.add(id));
       setEditingRole(prev => prev ? { ...prev, members: Array.from(nextMembers) } : prev);
       setSelectedAvailable(new Set());
@@ -188,7 +192,7 @@ export const GroupsRoles: React.FC<{ mode?: 'groups' | 'roles' | 'all' }> = ({ m
     // animate items moving left
     setMovingToAvailable(new Set(selectedAssigned));
     setTimeout(() => {
-      const nextMembers = new Set((editingRole.members || []).map(Number));
+      const nextMembers = new Set((editingRole.members || []).map(String));
       selectedAssigned.forEach(id => nextMembers.delete(id));
       setEditingRole(prev => prev ? { ...prev, members: Array.from(nextMembers) } : prev);
       setSelectedAssigned(new Set());
@@ -198,7 +202,7 @@ export const GroupsRoles: React.FC<{ mode?: 'groups' | 'roles' | 'all' }> = ({ m
 
   const selectAllVisible = () => {
     if (!editingRole) return;
-    const next = new Set<number>(editingRole.members || []);
+    const next = new Set<string>((editingRole.members || []).map(String));
     getAvailableUsers().forEach(u => next.add(u.id));
     setEditingRole(prev => prev ? { ...prev, members: Array.from(next) } : prev);
   };
@@ -211,7 +215,7 @@ export const GroupsRoles: React.FC<{ mode?: 'groups' | 'roles' | 'all' }> = ({ m
 
   const selectAllAcrossAssigned = () => {
     if (!editingRole) return;
-    const assigned = new Set((editingRole.members || []).map(Number));
+    const assigned = new Set((editingRole.members || []).map(String));
     setSelectedAssigned(new Set(Array.from(assigned)));
   };
 
@@ -277,7 +281,7 @@ export const GroupsRoles: React.FC<{ mode?: 'groups' | 'roles' | 'all' }> = ({ m
 
   const openMemberModal = (g: Group) => { setMemberModalGroup(g); };
 
-  const saveMembers = async (groupId: number, members: { userId: number; roleId?: number }[]) => {
+  const saveMembers = async (groupId: number, members: { userId: string | number; roleId?: string | number }[]) => {
     // Validate that each selected member has a role assigned
     const missing = members.some(m => !m.roleId);
     if (missing) { showToast('Please assign a role to every member', 'error'); return; }
@@ -293,8 +297,8 @@ export const GroupsRoles: React.FC<{ mode?: 'groups' | 'roles' | 'all' }> = ({ m
     <div className="space-y-6 animate-in fade-in duration-300">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">{isGroupsOnly ? 'Groups' : 'Groups & Roles'}</h2>
-          <p className="text-slate-500 text-sm">{isGroupsOnly ? 'Manage user groups.' : 'Manage user groups, role definitions and assignments.'}</p>
+          <h2 className="text-2xl font-bold">{isGroupsOnly ? t('rbac.groups', { defaultValue: 'Groups' }) : t('pages.groupsAndRoles', { defaultValue: 'Groups & Roles' })}</h2>
+          <p className="text-slate-500 text-sm">{isGroupsOnly ? t('pages.groupsDescription', { defaultValue: 'Manage user groups.' }) : t('pages.groupsAndRolesDescription', { defaultValue: 'Manage user groups, role definitions and assignments.' })}</p>
         </div>
         <div className="flex items-center gap-3">
           <button onClick={openNewGroup} className="px-2 py-1 bg-indigo-600 text-white rounded-md text-sm">New Group</button>
@@ -509,7 +513,7 @@ export const GroupsRoles: React.FC<{ mode?: 'groups' | 'roles' | 'all' }> = ({ m
                 return (
                   <div key={u.id} className="flex items-center gap-3 p-2 border rounded-lg">
                     <input type="checkbox" checked={checked} onChange={(e) => {
-                      const next = new Map<number, number | undefined>((memberModalGroup.members || []).map(m => [m.userId, m.roleId]));
+                      const next = new Map<string | number, string | number | undefined>((memberModalGroup.members || []).map(m => [m.userId, m.roleId]));
                       if (e.target.checked) next.set(u.id, roles[0]?.id); else next.delete(u.id);
                       const arr = Array.from(next.entries()).map(([userId, roleId]) => ({ userId, roleId }));
                       setMemberModalGroup(prev => prev ? { ...prev, members: arr } : prev);
@@ -523,7 +527,7 @@ export const GroupsRoles: React.FC<{ mode?: 'groups' | 'roles' | 'all' }> = ({ m
                     <div className="w-40">
                       <select disabled={!checked} value={mem?.roleId ?? ''} onChange={(e) => {
                         const roleId = e.target.value ? Number(e.target.value) : undefined;
-                        const next = new Map<number, number | undefined>((memberModalGroup.members || []).map(m => [m.userId, m.roleId]));
+                        const next = new Map<string | number, string | number | undefined>((memberModalGroup.members || []).map(m => [m.userId, m.roleId]));
                         if (!next.has(u.id) && roleId !== undefined) next.set(u.id, roleId);
                         else if (next.has(u.id)) next.set(u.id, roleId);
                         const arr = Array.from(next.entries()).map(([userId, roleId]) => ({ userId, roleId }));
@@ -622,7 +626,7 @@ export const GroupsRoles: React.FC<{ mode?: 'groups' | 'roles' | 'all' }> = ({ m
                         {getAvailableUsers().map(u => (
                           <label key={u.id} className={`flex items-center gap-3 p-2 transition-all duration-150 ${movingToAssigned.has(u.id) ? 'opacity-50 translate-x-4' : ''}`}>
                             <input type="checkbox" className="w-4 h-4" checked={selectedAvailable.has(u.id)} onChange={(e)=>{
-                              const next = new Set<number>(selectedAvailable);
+                              const next = new Set<string>(selectedAvailable);
                               if (e.target.checked) next.add(u.id); else next.delete(u.id);
                               setSelectedAvailable(next);
                             }} />
@@ -662,7 +666,7 @@ export const GroupsRoles: React.FC<{ mode?: 'groups' | 'roles' | 'all' }> = ({ m
                         {getAssignedUsers().map(u => (
                           <label key={u.id} className={`flex items-center gap-3 p-2 transition-all duration-150 ${movingToAvailable.has(u.id) ? 'opacity-50 -translate-x-4' : ''}`}>
                             <input type="checkbox" className="w-4 h-4" checked={selectedAssigned.has(u.id)} onChange={(e)=>{
-                              const next = new Set<number>(selectedAssigned);
+                              const next = new Set<string>(selectedAssigned);
                               if (e.target.checked) next.add(u.id); else next.delete(u.id);
                               setSelectedAssigned(next);
                             }} />

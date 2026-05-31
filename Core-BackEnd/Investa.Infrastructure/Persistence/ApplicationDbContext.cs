@@ -18,10 +18,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
     {
     }
 
-    // Stores application business users (domain-level user records used by the app services)
-    public DbSet<User> ApplicationUsers { get; set; }
-
     // Stores extended profile information for users (full name, contact, addresses, timestamps)
+    // Only present for Client accounts (not OrgUser/admin accounts)
     public DbSet<UserProfile> UserProfiles { get; set; }
 
     // Legacy/central authentication records that mirror or complement Identity users
@@ -36,9 +34,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
     // History of changes to a client's status over time
     public DbSet<ClientStatusHistory> ClientStatusHistories { get; set; }
 
-    // Employee records linked to AuthUser for internal staff
-    public DbSet<Employee> Employees { get; set; }
-
     // Investments made by users
     public DbSet<Investment> Investments { get; set; }
     
@@ -47,6 +42,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
     
     // Team members/founders associated with investment opportunities
     public DbSet<InvestmentTeamMember> InvestmentTeamMembers { get; set; }
+
+    // Favorite/watchlist entries for clients
+    public DbSet<InvestmentFavorite> InvestmentFavorites { get; set; }
 
     // Append-only events for investment lifecycle changes
     public DbSet<InvestmentEvent> InvestmentEvents { get; set; }
@@ -109,6 +107,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
     // Configuration table for credit packages/options
     public DbSet<CreditConfiguration> CreditConfigurations { get; set; }
 
+    // Admin-defined credit plans available for purchase
+    public DbSet<CreditPlan> CreditPlans { get; set; }
+
+    // Records every credit-plan purchase by a user
+    public DbSet<CreditPlanPurchase> CreditPlanPurchases { get; set; }
+
     // Records score/points transactions for users (e.g., reward points)
     public DbSet<ScoreTransaction> ScoreTransactions { get; set; }
 
@@ -133,9 +137,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
         base.OnModelCreating(modelBuilder);
 
         // Configure decimal precision
-        modelBuilder.Entity<User>()
-            .Property(u => u.WalletBalance)
-            .HasPrecision(18, 2);
+        // (WalletBalance precision is configured in AuthUser entity mapping below)
 
         modelBuilder.Entity<Investment>()
             .Property(i => i.InitialCapital)
@@ -261,6 +263,23 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
                .OnDelete(DeleteBehavior.Cascade);
         });
 
+        // Investment favorites/watchlist mapping
+        modelBuilder.Entity<InvestmentFavorite>(fav =>
+        {
+            fav.HasKey(x => x.Id);
+            fav.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            fav.HasIndex(x => new { x.InvestorId, x.InvestmentId }).IsUnique();
+            fav.HasIndex(x => x.InvestmentId);
+            fav.HasOne(x => x.Investor)
+               .WithMany()
+               .HasForeignKey(x => x.InvestorId)
+               .OnDelete(DeleteBehavior.Cascade);
+            fav.HasOne(x => x.Investment)
+               .WithMany()
+               .HasForeignKey(x => x.InvestmentId)
+               .OnDelete(DeleteBehavior.Cascade);
+        });
+
         // Notification templates (admin-configurable)
         modelBuilder.Entity<NotificationTemplate>(nt =>
         {
@@ -323,13 +342,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
                 ctb.Property(c => c.JustificationEn).HasMaxLength(500).IsRequired();
                 ctb.Property(c => c.CreatedAt).HasDefaultValueSql("GETDATE()").IsRequired();
 
-                // Relationship to User (whose score is affected)
+                // Relationship to AuthUser (whose score is affected)
                 ctb.HasOne(c => c.User)
                          .WithMany(u => u.CreditTransactions)
                    .HasForeignKey(c => c.UserId)
                    .OnDelete(DeleteBehavior.Restrict);
 
-                // Relationship to Admin (who triggered the transaction, if manual)
+                // Relationship to Admin AuthUser (who triggered the transaction, if manual)
                 ctb.HasOne(c => c.Admin)
                    .WithMany()
                    .HasForeignKey(c => c.AdminId)
@@ -364,17 +383,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
                 cc.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
             });
         // Configure User entity
-        modelBuilder.Entity<User>()
-            .Property(u => u.CredibilityScore)
-            .HasDefaultValue(3500);
+        // (ApplicationUsers table removed - User entity merged into AuthUsers)
 
-        modelBuilder.Entity<User>()
-            .Property(u => u.ClientType)
-            .HasConversion<int>();
-
-        // Configure UserProfile entity - One-to-One relationship with User
+        // Configure UserProfile entity - One-to-One relationship with AuthUser
         modelBuilder.Entity<UserProfile>()
-            .HasOne(up => up.User)
+            .HasOne(up => up.AuthUser)
             .WithOne(u => u.Profile)
             .HasForeignKey<UserProfile>(up => up.UserId)
             .OnDelete(DeleteBehavior.Cascade);
@@ -399,17 +412,21 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
             .Property(up => up.UpdatedAt)
             .HasDefaultValueSql("GETDATE()");
 
-        // AuthUser mapping
+        // AuthUser mapping — master user table (replaces ApplicationUsers + Employees)
         modelBuilder.Entity<AuthUser>(eb =>
         {
             eb.HasKey(a => a.Id);
+            eb.Property(a => a.Name).HasMaxLength(100).IsRequired();
             eb.Property(a => a.Email).HasMaxLength(256);
             eb.Property(a => a.PasswordHash).HasMaxLength(512).IsRequired();
             eb.Property(a => a.UserType).HasConversion<string>().HasMaxLength(20).IsRequired();
+            eb.Property(a => a.ClientType).HasConversion<int>().HasDefaultValue(ClientType.Investor);
             eb.Property(a => a.Status).HasDefaultValue(true);
             eb.Property(a => a.FirebaseUid).HasMaxLength(128).IsRequired(false);
             eb.Property(a => a.SuspendedUntil).HasColumnType("datetime2").IsRequired(false);
             eb.Property(a => a.CreatedAt).HasDefaultValueSql("GETDATE()");
+            eb.Property(a => a.WalletBalance).HasPrecision(18, 2).HasDefaultValue(0m);
+            eb.Property(a => a.CredibilityScore).HasDefaultValue(3500);
             eb.HasIndex(a => a.Email).IsUnique().HasFilter("\"Email\" IS NOT NULL");
             eb.HasIndex(a => a.FirebaseUid).IsUnique(false).HasFilter("\"FirebaseUid\" IS NOT NULL");
         });
@@ -577,13 +594,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
              .IsRequired();
         });
         
-        // UserRole configuration
+        // UserRole configuration — UserId now points to AuthUsers (master user table)
         modelBuilder.Entity<Investa.Domain.Entities.Security.UserRole>(ur =>
         {
             ur.HasKey(x => x.Id);
             ur.Property(x => x.AssignedAt).HasDefaultValueSql("GETDATE()");
             ur.HasIndex(x => new { x.UserId, x.RoleId }).IsUnique();
-            ur.Property(x => x.AuthUserId).IsRequired(false);
             
             ur.HasOne(x => x.User)
               .WithMany(u => u.UserRoles)
@@ -679,24 +695,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
                         j.HasOne(x => x.Client).WithMany(c => c.ClientBusinessCategories).HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
                         j.HasOne(x => x.BusinessCategory).WithMany(bc => bc.ClientBusinessCategories).HasForeignKey(x => x.BusinessCategoryId).OnDelete(DeleteBehavior.Cascade);
                 });
-        // Employee mapping - one-to-one with AuthUser
-        modelBuilder.Entity<Employee>(eb2 =>
-        {
-            eb2.HasKey(e => e.Id);
-            eb2.Property(e => e.EmployeeNumber).HasMaxLength(50).IsRequired();
-            eb2.Property(e => e.Department).HasMaxLength(100);
-            eb2.Property(e => e.PermissionsLevel).HasDefaultValue((byte)1);
-            eb2.Property(e => e.HireDate).HasColumnType("date");
-            eb2.Property(e => e.CreatedAt).HasDefaultValueSql("GETDATE()");
-            eb2.Property(e => e.UpdatedAt).HasDefaultValueSql("GETDATE()");
-
-            eb2.HasOne(e => e.User)
-               .WithOne(u => u.Employee)
-               .HasForeignKey<Employee>(e => e.UserId)
-               .OnDelete(DeleteBehavior.Cascade);
-            eb2.HasIndex(e => e.UserId).IsUnique();
-            eb2.HasIndex(e => e.EmployeeNumber).IsUnique();
-        });
+        // Employee table dropped — staff are AuthUser records with UserType = OrgUser
 
         // Relationships
         modelBuilder.Entity<Investment>()
@@ -870,7 +869,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
             new Permission { Id = 2002, Key = "admin.categories.manage", Name = "Manage Categories", Description = "CRUD categories", CreatedAt = seedCreatedAt },
             new Permission { Id = 2003, Key = "admin.groups.manage", Name = "Manage Groups", Description = "Manage groups and assignments", CreatedAt = seedCreatedAt },
             new Permission { Id = 2004, Key = "admin.lookups.manage", Name = "Manage Lookups", Description = "Manage lookup values", CreatedAt = seedCreatedAt },
-            new Permission { Id = 2005, Key = "admin.dev.manage", Name = "Dev Tools", Description = "Development utility endpoints", CreatedAt = seedCreatedAt }
+            new Permission { Id = 2005, Key = "admin.dev.manage", Name = "Dev Tools", Description = "Development utility endpoints", CreatedAt = seedCreatedAt },
+            // RBAC management permissions (used by GroupsAdminController, RolesAdminController, PermissionsAdminController)
+            new Permission { Id = 2006, Key = "RBAC.View", Name = "View RBAC", Description = "View groups, roles, and permission assignments", CreatedAt = seedCreatedAt },
+            new Permission { Id = 2007, Key = "Group.Manage", Name = "Manage Groups", Description = "Create, update, delete groups and assign group permissions", CreatedAt = seedCreatedAt },
+            new Permission { Id = 2008, Key = "Role.Manage", Name = "Manage Roles", Description = "Create, update, delete roles and assign role permissions/users", CreatedAt = seedCreatedAt }
         );
 
         // Assign all permissions to Org_Admin group by default
@@ -880,37 +883,47 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
             new GroupPermission { Id = 3, GroupId = 1000, PermissionId = 2002, AssignedAt = seedCreatedAt },
             new GroupPermission { Id = 4, GroupId = 1000, PermissionId = 2003, AssignedAt = seedCreatedAt },
             new GroupPermission { Id = 5, GroupId = 1000, PermissionId = 2004, AssignedAt = seedCreatedAt },
-            new GroupPermission { Id = 6, GroupId = 1000, PermissionId = 2005, AssignedAt = seedCreatedAt }
+            new GroupPermission { Id = 6, GroupId = 1000, PermissionId = 2005, AssignedAt = seedCreatedAt },
+            // RBAC permissions assigned to Org_Admin
+            new GroupPermission { Id = 7, GroupId = 1000, PermissionId = 2006, AssignedAt = seedCreatedAt },
+            new GroupPermission { Id = 8, GroupId = 1000, PermissionId = 2007, AssignedAt = seedCreatedAt },
+            new GroupPermission { Id = 9, GroupId = 1000, PermissionId = 2008, AssignedAt = seedCreatedAt }
         );
 
-        // Seed sample users (founders and investors) for equity testing
-        modelBuilder.Entity<User>().HasData(
-            new User {
+        // Seed sample AuthUsers (founders and investors) for equity testing
+        modelBuilder.Entity<AuthUser>().HasData(
+            new AuthUser {
                 Id = Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 Name = "Alice Founder",
                 Email = "alice.founder@example.com",
-                Role = "Client",
+                PasswordHash = "seeded",
+                UserType = UserType.Client,
                 ClientType = Investa.Domain.Entities.Enums.ClientType.Founder,
                 CredibilityScore = 4200,
-                WalletBalance = 100000m
+                WalletBalance = 100000m,
+                CreatedAt = seedCreatedAt
             },
-            new User {
+            new AuthUser {
                 Id = Guid.Parse("22222222-2222-2222-2222-222222222222"),
                 Name = "Bob Investor",
                 Email = "bob.investor@example.com",
-                Role = "Client",
+                PasswordHash = "seeded",
+                UserType = UserType.Client,
                 ClientType = Investa.Domain.Entities.Enums.ClientType.Investor,
                 CredibilityScore = 3750,
-                WalletBalance = 25000m
+                WalletBalance = 25000m,
+                CreatedAt = seedCreatedAt
             },
-            new User {
+            new AuthUser {
                 Id = Guid.Parse("33333333-3333-3333-3333-333333333333"),
                 Name = "Clara Investor",
                 Email = "clara.investor@example.com",
-                Role = "Client",
+                PasswordHash = "seeded",
+                UserType = UserType.Client,
                 ClientType = Investa.Domain.Entities.Enums.ClientType.Investor,
                 CredibilityScore = 3600,
-                WalletBalance = 15000m
+                WalletBalance = 15000m,
+                CreatedAt = seedCreatedAt
             }
         );
 

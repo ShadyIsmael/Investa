@@ -1,5 +1,5 @@
 import { api } from '@/api/api';
-import { Group, PaginatedGroups, GroupCreateDto, GroupUpdateDto, MemberSample, Role } from '@/types';
+import { Group, PaginatedGroups, GroupCreateDto, GroupUpdateDto, MemberSample, Role, Permission } from '@/types';
 
 const GROUPS_KEY = 'investa:mock:groups';
 
@@ -256,7 +256,9 @@ export const groupService = {
     } catch (err) {
       console.warn('Backend permissions API unavailable, using static list', err);
       // Static fallback permissions (Resource.Action format)
-      return [
+      const storedRaw = localStorage.getItem('investa:mock:permissions');
+      const stored: string[] = storedRaw ? JSON.parse(storedRaw) : [];
+      const defaults = [
         'User.View', 'User.Create', 'User.Edit', 'User.Delete', 'User.Manage',
         'Group.View', 'Group.Create', 'Group.Edit', 'Group.Delete', 'Group.Manage',
         'Role.View', 'Role.Create', 'Role.Edit', 'Role.Delete', 'Role.Manage',
@@ -270,6 +272,53 @@ export const groupService = {
         'Tickets.View', 'Tickets.Manage',
         'Campaign.View', 'Campaign.Create', 'Campaign.Manage',
       ];
+
+      // Merge stored custom permissions with defaults (dedupe)
+      const merged = Array.from(new Set([...defaults, ...stored]));
+      return merged;
+    }
+  },
+
+  /**
+   * Ensure the provided permission keys exist in backend (or local mock).
+   * Attempts bulk create then per-item create; falls back to storing in localStorage
+   */
+  async ensurePermissionsExist(keys: string[]): Promise<void> {
+    if (!keys || keys.length === 0) return;
+    try {
+      const existing = await this.getAllPermissions();
+      const missing = keys.filter(k => !existing.includes(k));
+      if (missing.length === 0) return;
+
+      // Try bulk create endpoint first
+      try {
+        await api.post('/api/v1/admin/permissions/bulk', { permissions: missing });
+        return;
+      } catch (e) {
+        // ignore and try per-item
+      }
+
+      // Try creating individually
+      for (const key of missing) {
+        try {
+          await api.post('/api/v1/admin/permissions', { key, description: null });
+        } catch (e) {
+          // ignore — will persist to mock below if all fails
+        }
+      }
+
+      // re-check if creations succeeded
+      const after = await this.getAllPermissions();
+      const stillMissing = keys.filter(k => !after.includes(k));
+      if (stillMissing.length === 0) return;
+
+      // Persist missing to local mock storage
+      const storedRaw = localStorage.getItem('investa:mock:permissions');
+      const stored: string[] = storedRaw ? JSON.parse(storedRaw) : [];
+      const merged = Array.from(new Set([...stored, ...stillMissing]));
+      localStorage.setItem('investa:mock:permissions', JSON.stringify(merged));
+    } catch (err) {
+      console.warn('Failed to ensure permissions exist', err);
     }
   },
 
@@ -328,6 +377,23 @@ export const groupService = {
       ];
       localStorage.setItem('investa:mock:roles', JSON.stringify(defaults));
       return defaults;
+    }
+  },
+
+  /**
+   * Get roles for a specific group.
+   * Endpoint: GET /api/v1/admin/groups/{groupId}/roles
+   */
+  async getRolesByGroup(groupId: number): Promise<Role[]> {
+    try {
+      const res = await api.get<any>(`/api/v1/admin/groups/${groupId}/roles`);
+      const data = res?.data ?? res ?? [];
+      return Array.isArray(data) ? data : (data.items || []);
+    } catch (err) {
+      console.warn('Roles by group API unavailable, using mock filter', err);
+      const raw = localStorage.getItem('investa:mock:roles');
+      const list: Role[] = raw ? JSON.parse(raw) : [];
+      return list.filter(r => r.groupId === groupId);
     }
   },
 
@@ -390,6 +456,31 @@ export const groupService = {
       groups[idx].updatedAt = new Date().toISOString();
       writeMockGroups(groups);
       return groups[idx];
+    }
+  },
+
+  /**
+   * Get all available permissions as DTOs with numeric ids.
+   * Endpoint: GET /api/v1/admin/permissions
+   */
+  async getAllPermissionDtos(): Promise<Permission[]> {
+    try {
+      const res = await api.get<any>('/api/v1/admin/permissions');
+      const data = res?.data ?? res;
+
+      let items: any[] = [];
+      if (Array.isArray(data)) items = data;
+      else if (data.items && Array.isArray(data.items)) items = data.items;
+
+      return items.map((p: any, idx: number) => ({
+        id: Number(p.id ?? p.permissionId ?? (idx + 1)),
+        key: p.key ?? p.name ?? String(p),
+        description: p.description ?? p.desc ?? null,
+      } as Permission));
+    } catch (err) {
+      console.warn('Backend permissions DTO API unavailable, falling back to string list', err);
+      const keys = await this.getAllPermissions();
+      return keys.map((k, i) => ({ id: i + 1, key: k, description: null } as Permission));
     }
   }
 };

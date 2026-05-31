@@ -1,14 +1,17 @@
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { api } from '@/api/api';
+import { getUserProfile } from '@/services/profileService';
 import { User } from '@/types';
 import { Icon } from '@/components/common/Icons';
 
 interface MyProfileProps {
   user: User;
+  onProfileUpdated?: (profile: { name: string; email: string; avatar: string }) => void;
 }
 
-export const MyProfile: React.FC<MyProfileProps> = ({ user }) => {
+export const MyProfile: React.FC<MyProfileProps> = ({ user, onProfileUpdated }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [mfaEnabled, setMfaEnabled] = useState(true);
   const [avatar, setAvatar] = useState<string>(user.avatar);
@@ -27,9 +30,56 @@ export const MyProfile: React.FC<MyProfileProps> = ({ user }) => {
   const [formData, setFormData] = useState({
     firstName: nameParts.firstName,
     lastName: nameParts.lastName,
+    email: user.email || '',
     phoneCountry: '+1',
-    phoneNumber: ''
+    phoneNumber: '',
+    gender: '',
+    nationality: '',
+    country: '',
+    dateOfBirth: ''
   });
+
+
+  const parsePhone = (value: string) => {
+    const cleaned = String(value || '').replace(/[^\d+]/g, '');
+    const knownCodes = ['+234', '+91', '+61', '+44', '+20', '+1'];
+    let phoneCountry = '+1';
+    let phoneNumber = cleaned.replace(/^\+/, '');
+
+    if (cleaned.startsWith('+')) {
+      const match = knownCodes.find(code => cleaned.startsWith(code));
+      if (match) {
+        phoneCountry = match;
+        phoneNumber = cleaned.slice(match.length).replace(/[^\d]/g, '');
+      }
+    } else {
+      const digits = cleaned.replace(/\D/g, '');
+      if (digits.startsWith('20')) {
+        phoneCountry = '+20';
+        phoneNumber = digits.slice(2);
+      } else if (digits.startsWith('234')) {
+        phoneCountry = '+234';
+        phoneNumber = digits.slice(3);
+      } else if (digits.startsWith('91')) {
+        phoneCountry = '+91';
+        phoneNumber = digits.slice(2);
+      } else if (digits.startsWith('61')) {
+        phoneCountry = '+61';
+        phoneNumber = digits.slice(2);
+      } else if (digits.startsWith('44')) {
+        phoneCountry = '+44';
+        phoneNumber = digits.slice(2);
+      } else if (digits.startsWith('1')) {
+        phoneCountry = '+1';
+        phoneNumber = digits.slice(1);
+      } else {
+        phoneCountry = '+1';
+        phoneNumber = digits;
+      }
+    }
+
+    return { phoneCountry, phoneNumber };
+  };
 
   // When the parent updates the `user` prop (e.g. after fetching profile), sync form and avatar
   useEffect(() => {
@@ -37,10 +87,43 @@ export const MyProfile: React.FC<MyProfileProps> = ({ user }) => {
     setFormData(prev => ({
       ...prev,
       firstName: parts.firstName,
-      lastName: parts.lastName
+      lastName: parts.lastName,
+      email: user.email || prev.email
     }));
     if (user.avatar) setAvatar(user.avatar);
   }, [user]);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const profile = await getUserProfile();
+        if (!profile) return;
+
+        setFormData(prev => ({
+          ...prev,
+          firstName: profile.firstName || prev.firstName,
+          lastName: profile.lastName || prev.lastName,
+          email: profile.email || prev.email,
+          gender: profile.gender || prev.gender,
+          nationality: profile.nationality || prev.nationality,
+          country: profile.country || prev.country,
+          dateOfBirth: profile.dateOfBirth ? String(profile.dateOfBirth).slice(0, 10) : prev.dateOfBirth,
+          ...parsePhone(profile.phone || ''),
+        }));
+
+        if (profile.avatarUrl) setAvatar(profile.avatarUrl);
+        onProfileUpdated?.({
+          name: `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || user.name,
+          email: profile.email || user.email || '',
+          avatar: profile.avatarUrl || user.avatar || '',
+        });
+      } catch (err) {
+        console.warn('Failed to load profile details', err);
+      }
+    };
+
+    loadProfile();
+  }, []);
 
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -52,15 +135,46 @@ export const MyProfile: React.FC<MyProfileProps> = ({ user }) => {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const mobile = `${formData.phoneCountry || ''}${(formData.phoneNumber || '').replace(/\s+/g, '')}`;
-      const payload = {
-        firstName: formData.firstName || '',
-        lastName: formData.lastName || '',
-        mobile,
-        image: avatar || ''
+      const formattedPhone = (formData.phoneNumber || '').replace(/\s+/g, '');
+      const mobile = formattedPhone ? `${formData.phoneCountry || ''}${formattedPhone}` : null;
+      const payload: Record<string, any> = {
+        basicInfo: {
+          firstName: formData.firstName || null,
+          lastName: formData.lastName || null,
+          gender: formData.gender || null,
+          nationality: formData.nationality || null,
+          country: formData.country || null,
+          dateOfBirth: formData.dateOfBirth || null,
+          avatarUrl: avatar || null,
+        },
+        contactInfo: {
+          email: formData.email || null,
+          phone1: mobile || null,
+        }
       };
 
-      await api.post('/api/profile/me/basic', payload);
+      await api.put('/api/profile/me', payload);
+      const updatedProfile = await getUserProfile();
+      if (updatedProfile) {
+        const updatedName = `${updatedProfile.firstName || ''} ${updatedProfile.lastName || ''}`.trim() || user.name;
+        setFormData(prev => ({
+          ...prev,
+          firstName: updatedProfile.firstName || prev.firstName,
+          lastName: updatedProfile.lastName || prev.lastName,
+          email: updatedProfile.email || prev.email,
+          gender: updatedProfile.gender || prev.gender,
+          nationality: updatedProfile.nationality || prev.nationality,
+          country: updatedProfile.country || prev.country,
+          dateOfBirth: updatedProfile.dateOfBirth ? String(updatedProfile.dateOfBirth).slice(0, 10) : prev.dateOfBirth,
+          ...parsePhone(updatedProfile.phone || ''),
+        }));
+        setAvatar(updatedProfile.avatarUrl || avatar);
+        onProfileUpdated?.({
+          name: updatedName,
+          email: updatedProfile.email || user.email || '',
+          avatar: updatedProfile.avatarUrl || avatar,
+        });
+      }
 
       showToast('Profile saved successfully', 'success');
       setSelectedFile(null);
@@ -95,13 +209,15 @@ export const MyProfile: React.FC<MyProfileProps> = ({ user }) => {
     Viewer: ["Read-only Dashboard", "Reporting Export", "Support View"]
   };
 
+  const { t } = useTranslation();
+
   return (
     <>
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">My Profile</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-[13px] font-medium">Manage your personal identity and security preferences.</p>
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">{t('pages.myProfile', { defaultValue: 'My Profile' })}</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-[13px] font-medium">{t('pages.myProfileDescription', { defaultValue: 'Manage your personal identity and security preferences.' })}</p>
         </div>
         <button 
           onClick={handleSave}
@@ -165,7 +281,7 @@ export const MyProfile: React.FC<MyProfileProps> = ({ user }) => {
                   type="text"
                   value={formData.firstName}
                   onChange={(e) => handleInput('firstName', e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 dark:text-slate-300 focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none transition-all"
+                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm"
                 />
               </div>
 
@@ -175,17 +291,72 @@ export const MyProfile: React.FC<MyProfileProps> = ({ user }) => {
                   type="text"
                   value={formData.lastName}
                   onChange={(e) => handleInput('lastName', e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 dark:text-slate-300 focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none transition-all"
+                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm"
                 />
               </div>
 
-              
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.15em]">Email</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInput('email', e.target.value)}
+                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm"
+                />
+              </div>
 
               <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.15em]">Gender</label>
+                <select
+                  value={formData.gender}
+                  onChange={(e) => handleInput('gender', e.target.value)}
+                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100 focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm"
+                >
+                  <option value="">Select gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.15em]">Nationality</label>
+                <input
+                  type="text"
+                  value={formData.nationality}
+                  onChange={(e) => handleInput('nationality', e.target.value)}
+                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.15em]">Country</label>
+                <input
+                  type="text"
+                  value={formData.country}
+                  onChange={(e) => handleInput('country', e.target.value)}
+                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.15em]">Date of Birth</label>
+                <input
+                  type="date"
+                  value={formData.dateOfBirth}
+                  onChange={(e) => handleInput('dateOfBirth', e.target.value)}
+                  className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100 focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm"
+                />
+              </div>
+
+
+              <div className="space-y-2 md:col-span-2">
                 <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.15em]">Mobile Phone</label>
                 <div className="flex gap-2">
-                  <select value={formData.phoneCountry} onChange={(e) => handleInput('phoneCountry', e.target.value)} className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm font-bold">
+                  <select value={formData.phoneCountry} onChange={(e) => handleInput('phoneCountry', e.target.value)} className="px-3 py-2 rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-sm font-semibold text-slate-900 dark:text-slate-100 focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm">
                     <option value="+1">+1</option>
+                    <option value="+20">+20</option>
                     <option value="+44">+44</option>
                     <option value="+61">+61</option>
                     <option value="+234">+234</option>
@@ -196,7 +367,7 @@ export const MyProfile: React.FC<MyProfileProps> = ({ user }) => {
                     value={formData.phoneNumber}
                     onChange={(e) => handleInput('phoneNumber', e.target.value)}
                     placeholder="Phone number"
-                    className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 dark:text-slate-300 focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 outline-none transition-all"
+                    className="flex-1 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm"
                   />
                 </div>
               </div>

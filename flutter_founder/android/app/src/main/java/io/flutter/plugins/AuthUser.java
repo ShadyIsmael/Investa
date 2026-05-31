@@ -382,7 +382,7 @@ public class AuthUser {
       {
         BasicMessageChannel<Object> channel =
             new BasicMessageChannel<>(
-                binaryMessenger, "dev.flutter.pigeon.flutter_dark_app.AuthBridge.currentUser" + messageChannelSuffix, getCodec());
+                binaryMessenger, "dev.flutter.pigeon.flutter_founder.AuthBridge.currentUser" + messageChannelSuffix, getCodec());
         if (api != null) {
           channel.setMessageHandler(
               (message, reply) -> {

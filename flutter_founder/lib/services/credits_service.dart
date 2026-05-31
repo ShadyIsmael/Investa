@@ -1,7 +1,6 @@
 import 'dart:convert';
-import 'package:flutter_dark_app/services/api_client.dart';
-import 'package:flutter_dark_app/services/app_logger.dart';
-import 'package:flutter_dark_app/services/config.dart';
+import 'package:flutter_founder/services/api_client.dart';
+import 'package:flutter_founder/services/app_logger.dart';
 import 'endpoint_resolver.dart';
 
 class TimeseriesPoint {
@@ -26,9 +25,7 @@ class CreditsService {
         _client = client ?? ApiClient();
 
   String get baseUrl =>
-      _baseOverride ??
-      EndpointResolver.instance.selectedApiBaseUrl ??
-      Env.apiBaseUrl;
+      _baseOverride ?? EndpointResolver.instance.selectedApiBaseUrl;
 
   /// Fetch monthly timeseries for a client by numeric clientId.
   /// Example endpoint: https://{host}/api/credits/{clientId}/timeseries?from=2024-01-01&to=2024-12-31&metric=balance&interval=month

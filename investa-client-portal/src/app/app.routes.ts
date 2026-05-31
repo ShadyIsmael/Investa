@@ -66,6 +66,11 @@ export const routes: Routes = [
         title: 'Create Investment - Investa' 
       },
       { 
+        path: 'investments/:id/edit', 
+        loadComponent: () => import('./pages/admin/submit-investment/submit-investment.component').then(m => m.SubmitInvestmentComponent),
+        title: 'Edit Investment - Investa' 
+      },
+      { 
         path: 'investments/:id', 
         loadComponent: () => import('./pages/admin/investment-preview/investment-preview.component').then(m => m.InvestmentPreviewComponent),
         title: 'Investment Preview - Investa' 

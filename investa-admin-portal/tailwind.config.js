@@ -48,7 +48,7 @@ export default {
         '3xl':'calc(var(--radius) + 16px)',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
       },
       keyframes: {
         'fade-in':     { from: { opacity: '0' }, to: { opacity: '1' } },

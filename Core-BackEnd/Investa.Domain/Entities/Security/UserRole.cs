@@ -3,27 +3,18 @@ using System;
 namespace Investa.Domain.Entities.Security;
 
 /// <summary>
-/// Junction table linking Users to Roles.
-/// When a user is assigned a role, they are implicitly associated with that role's group.
+/// Junction table linking AuthUsers to Roles.
+/// Both Client and OrgUser accounts can have roles assigned.
 /// </summary>
 public class UserRole
 {
     public int Id { get; set; }
     
-    /// <summary>
-    /// User ID (links to ApplicationUsers or AuthUser)
-    /// </summary>
+    /// <summary>User ID — links to AuthUsers (the master user table).</summary>
     public Guid UserId { get; set; }
-    public User User { get; set; } = null!;
+    public AuthUser User { get; set; } = null!;
     
-    /// <summary>
-    /// Optional: reference to AuthUser.Id to support gradual migration from ApplicationUser -> AuthUser
-    /// </summary>
-    public Guid? AuthUserId { get; set; }
-    
-    /// <summary>
-    /// Role ID
-    /// </summary>
+    /// <summary>Role ID</summary>
     public Guid RoleId { get; set; }
     public Role Role { get; set; } = null!;
     

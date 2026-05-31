@@ -7,15 +7,21 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 /// - SignalR Hub URL
 /// - Dynamic hostname resolution with mDNS fallback
 ///
-/// Default configuration for physical devices:
-/// - Base URL: https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev
-/// - SignalR Hub: https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev/hubs/chat
+/// Configuration is required via `.env` file or `--dart-define`:
+/// ```
+/// API_BASE_URL=https://api.investa.com
+/// BASE_HOST_NAME=your-hostname
+/// SIGNALR_HUB_URL=https://api.investa.com/hubs/chat
+/// ```
 class NetworkConfig {
-  // Default hostname (Windows machine name for mDNS discovery)
-  static const String defaultHostname = 'DESKTOP-DIH7CQH';
+  /// Default port for the backend API
   static const int defaultPort = 5000;
 
-  // SignalR Hub endpoint (match backend MapHub<ChatHub>("/chathub"))
+  /// Default hostname for local discovery (machine name). Override via
+  /// `BASE_HOST_NAME` compile-time or .env configuration when needed.
+  static const String defaultHostname = 'DESKTOP-DIH7CQH';
+
+  /// SignalR Hub endpoint (match backend MapHub<ChatHub>("/chathub"))
   static const String signalRHubPath = '/chathub';
 
   String? _customBaseUrl;
@@ -81,6 +87,10 @@ class NetworkConfig {
       'http://localhost:$defaultPort', // Localhost fallback
     ];
   }
+
+  /// Backwards compatibility alias for older code that used `getApiUrlCandidates()`
+  /// Use `getBaseUrlCandidates()` as the canonical name.
+  List<String> getApiUrlCandidates() => getBaseUrlCandidates();
 
   /// Get list of alternative SignalR URLs to try (for fallback)
   List<String> getSignalRUrlCandidates() {

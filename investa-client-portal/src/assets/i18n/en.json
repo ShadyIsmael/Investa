@@ -123,18 +123,6 @@
       "allCaughtUp": "You're all caught up!"
     }
   },
-  "investmentPreview": {
-    "backButton": "Back to Investments",
-    "fundingStatus": "Funding Status",
-    "author": "Author",
-    "noInvestors": "Be the first to invest!",
-    "noTeamMembers": "No team members added yet.",
-    "investNowButton": "Invest Now",
-    "notFound": {
-      "title": "Investment Not Found",
-      "subtitle": "Sorry, we couldn't find the investment you were looking for."
-    }
-  },
   "countryPlaceholder": "e.g., United States",
   "businessPlan": "Whitepaper or Business Plan",
   "businessPlanHint": "Upload your detailed project documentation (PDF).",
@@ -285,6 +273,11 @@
       "medium": "Medium",
       "high": "High"
     },
+    "typeFilter": "Investment Type",
+    "type": {
+      "founding": "Founding",
+      "equity": "Equity"
+    },
     "funding": "Funding",
     "fundingProgress": "Funding Progress",
     "min": "Min",
@@ -347,13 +340,22 @@
     "portfolioValue": "Portfolio Value",
     "myInvestments": "My Investments",
     "watchlist": "Watchlist",
-    "investorScore": "Investor Score",
+    "investmentUpdates": "Investment Updates",
+    "updatesLabel": "updates",
+    "noInvestmentUpdates": "No investment updates yet.",
+    "incomingRequests": "Incoming Requests",
+    "investorScore": "My Score",
+    "currentCredits": "Current Credits",
     "availableCredits": "Available Credits",
     "myAllocation": "My Allocation",
+    "allocationTotal": "Total Invested",
+    "year": "Year",
     "portfolioPerformance": "Portfolio Performance",
     "viewAll": "View All",
     "featuredOpportunities": "Featured Opportunities",
-    "sentRequestsTitle": "Sent Engagement Requests",
+    "primeBadge": "Prime",
+    "featuredLabel": "Prime pick",
+    "sentRequestsTitle": "Request Outcomes",
     "requestStatus": {
       "pending": "Pending",
       "negotiating": "Negotiating",
@@ -361,7 +363,7 @@
       "rejected": "Rejected"
     },
     "withdraw": "Withdraw",
-    "noSentRequests": "No sent requests yet.",
+    "noSentRequests": "No request outcomes yet.",
     "switchProject": "Switch Project",
     "myProjectOverview": "My Project Overview",
     "totalInvestors": "Total Investors",
@@ -370,6 +372,7 @@
     "investorInterest": "Investor Interest",
     "quickActions": "Quick Actions",
     "createInvestment": "Create Investment",
+    "editProject": "Edit Project",
     "viewPublicPage": "View Public Page",
     "postUpdate": "Post Update",
     "recentActivity": "Recent Activity",
@@ -395,6 +398,7 @@
   },
   "submitInvestment": {
     "title": "Create Investment Opportunity",
+    "editTitle": "Edit Investment Opportunity",
     "subtitle": "Launch your fundraising campaign and connect with investors",
     "step": {
       "businessDetails": "Business Details",
@@ -421,6 +425,7 @@
       "addImage": "Add",
       "continue": "Continue",
       "submit": "Submit Investment",
+      "save": "Save Changes",
       "cancel": "Cancel",
       "back": "Back to Investments"
     }
@@ -531,6 +536,20 @@
       "security": "Security",
       "notifications": "Notifications"
     },
+    "password": {
+      "title": "Change Password",
+      "description": "Enter your current password, request an OTP, then enter the verification code and set a new password.",
+      "current": "Current Password",
+      "otp": "OTP Code",
+      "otpPlaceholder": "Enter the OTP",
+      "new": "New Password",
+      "newPlaceholder": "Enter new password",
+      "confirm": "Confirm New Password",
+      "confirmPlaceholder": "Re-enter new password",
+      "sendOtp": "Request OTP",
+      "resendOtp": "Resend OTP",
+      "mismatch": "Passwords do not match"
+    },
     "loadErrorTitle": "Failed to Load Profile",
     "buttons": {
       "retry": "Retry"
@@ -550,6 +569,20 @@
       "kycStartedMessage": "KYC started successfully. You earned +10 credibility points!",
       "kycFailedTitle": "KYC Failed",
       "kycFailedMessage": "Failed to start KYC. Please try again.",
+      "passwordValidationFailed": "Invalid password fields",
+      "passwordValidationMessage": "Please fix the highlighted password fields before saving.",
+      "passwordChangingTitle": "Changing password",
+      "passwordChangingMessage": "Updating your password…",
+      "passwordChangedTitle": "Password changed",
+      "passwordChangedMessage": "Your password was updated successfully.",
+      "passwordChangeFailedTitle": "Password change failed",
+      "passwordChangeFailedMessage": "Failed to change password. Please try again.",
+      "passwordOtpSentTitle": "OTP Sent",
+      "passwordOtpSentMessage": "An OTP was sent to your mobile phone.",
+      "passwordSendOtpFailedTitle": "OTP send failed",
+      "passwordSendOtpFailedMessage": "Failed to send OTP. Please try again.",
+      "passwordOtpRequiredTitle": "OTP Required",
+      "passwordOtpRequiredMessage": "Please request and enter the OTP before changing your password.",
       "roleNotPersistedTitle": "Role Not Saved",
       "roleNotPersistedMessage": "We couldn't save your role. This field may be restricted. Contact support if you think this is an error.",
       "nationalIdNotPersistedTitle": "National ID Not Saved",
@@ -589,13 +622,6 @@
         "title": "Market News",
         "description": "Market movements, reports, and curated insights."
       }
-    },
-    "password": {
-      "title": "Security",
-      "current": "Current Password",
-      "new": "New Password",
-      "confirm": "Confirm New Password",
-      "mismatch": "Passwords do not match"
     },
     "placeholders": {
       "linkedin": "https://linkedin.com/in/...",

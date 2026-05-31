@@ -59,12 +59,14 @@ export const ApiTester: React.FC = () => {
     }
   };
 
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">API Workbench</h2>
-          <p className="text-slate-500 text-[13px] font-medium">Test and debug endpoints within the system infrastructure.</p>
+          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">{t('pages.apiWorkbench', { defaultValue: 'API Workbench' })}</h2>
+          <p className="text-slate-500 text-[13px] font-medium">{t('pages.apiWorkbenchDescription', { defaultValue: 'Test and debug endpoints within the system infrastructure.' })}</p>
         </div>
       </div>
 

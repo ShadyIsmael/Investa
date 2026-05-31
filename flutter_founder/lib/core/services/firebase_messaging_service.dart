@@ -3,6 +3,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../error/failures.dart';
 import '../services/logger_service.dart';
+import '../../services/app_logger.dart';
 
 /// Firebase Messaging Service for push notifications.
 ///
@@ -233,5 +234,6 @@ class FirebaseMessagingService {
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Handle background messages
-  print('[FCM Background] Message received: ${message.notification?.title}');
+  AppLogger.logInfo('fcm',
+      '[FCM Background] Message received: ${message.notification?.title}');
 }

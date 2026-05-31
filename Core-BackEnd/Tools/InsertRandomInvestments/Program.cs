@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Configuration;
@@ -63,7 +63,7 @@ int createCount = 20;
 if (args.Length > 1 && int.TryParse(args[1], out var provided)) createCount = Math.Max(1, provided);
 
 // pick founders from DB (ClientType Founder or Both)
-var founders = db.ApplicationUsers.Where(u => u.ClientType == Investa.Domain.Entities.Enums.ClientType.Founder || u.ClientType == Investa.Domain.Entities.Enums.ClientType.Both).Select(u => u.Id).ToArray();
+var founders = db.AuthUsers.Where(u => u.ClientType == Investa.Domain.Entities.Enums.ClientType.Founder || u.ClientType == Investa.Domain.Entities.Enums.ClientType.Both).Select(u => u.Id).ToArray();
 if (!founders.Any())
 {
     // fallback to provided userId as founder

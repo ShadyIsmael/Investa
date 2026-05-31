@@ -13,6 +13,7 @@ namespace Investa.API.Controllers.Admin
 {
     [ApiController]
     [Route("api/v1/admin/dashboard")]
+    [Route("api/admin/dashboard")]
     [Authorize(Roles = "Admin")]
     public class DashboardController : ControllerBase
     {

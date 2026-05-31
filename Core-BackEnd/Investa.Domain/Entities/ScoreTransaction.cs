@@ -23,6 +23,6 @@ public class ScoreTransaction
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation
-    public User? User { get; set; }
+    public AuthUser? User { get; set; }
     public Lookup? TransactionType { get; set; }
 }

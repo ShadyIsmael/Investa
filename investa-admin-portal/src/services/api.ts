@@ -153,12 +153,12 @@ export const api = {
       let response: Response;
       
       try {
-        response = await fetch(resolved, { headers });
+        response = await fetch(resolved, { headers, cache: 'no-store' });
       } catch (err) {
         // Retry via dev proxy if direct request fails
         if (resolved.startsWith('http') && endpoint.startsWith('/api/')) {
           logger.warn('Direct request failed, retrying via dev proxy');
-          response = await fetch(endpoint, { headers });
+          response = await fetch(endpoint, { headers, cache: 'no-store' });
         } else {
           throw err;
         }

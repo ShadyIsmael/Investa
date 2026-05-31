@@ -14,7 +14,10 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
-  isOpen, toggleSidebar, isCollapsed, toggleCollapse,
+  isOpen,
+  toggleSidebar,
+  isCollapsed,
+  toggleCollapse,
 }) => {
   const { hasAnyPermission, hasAllPermissions } = usePermissions();
   const location = useLocation();
@@ -70,7 +73,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             ].join(' ')}
           />
           {!isCollapsed && (
-            <span className="truncate leading-none">{t(item.label, { defaultValue: item.label })}</span>
+            <span className="truncate leading-none">{t(item.labelKey || item.label, { defaultValue: item.label })}</span>
           )}
         </div>
         {hasChildren && !isCollapsed && (
@@ -84,8 +87,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     return (
       <div key={item.id} className="w-full">
         {hasChildren
-          ? <button className="w-full text-start" title={isCollapsed ? item.label : undefined} onClick={() => toggleExpand(item.id)}>{inner}</button>
-          : <Link to={item.path || '/'} title={isCollapsed ? item.label : undefined} onClick={() => { if (window.innerWidth < 768) toggleSidebar(); }}>{inner}</Link>
+          ? <button className="w-full text-start" title={isCollapsed ? t(item.labelKey || item.label, { defaultValue: item.label }) : undefined} onClick={() => toggleExpand(item.id)}>{inner}</button>
+          : <Link to={item.path || '/'} title={isCollapsed ? t(item.labelKey || item.label, { defaultValue: item.label }) : undefined} onClick={() => { if (window.innerWidth < 768) toggleSidebar(); }}>{inner}</Link>
         }
         {!isCollapsed && hasChildren && (
           <div className={['overflow-hidden transition-all duration-300', isExpanded ? 'max-h-96 mt-0.5 mb-1' : 'max-h-0'].join(' ')}>
@@ -133,21 +136,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
           {!isCollapsed && (
             <p className="text-[9px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground/60 px-3 pt-3 pb-2">
-              Main Menu
+              {t('nav.mainMenu', { defaultValue: 'Main Menu' })}
             </p>
           )}
           {NAV_ITEMS.map(item => renderNavItem(item))}
         </nav>
 
-        {/* Collapse toggle */}
+
         <div className="p-3 border-t border-border">
           <button
             onClick={toggleCollapse}
-            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={isCollapsed ? t('nav.expandSidebar', { defaultValue: 'Expand sidebar' }) : t('nav.collapseSidebar', { defaultValue: 'Collapse sidebar' })}
             className="w-full flex items-center justify-center gap-2 p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-all text-xs font-medium"
           >
             <Icon name={isCollapsed ? 'chevron-right' : 'chevron-left'} className="w-4 h-4" />
-            {!isCollapsed && <span>Collapse</span>}
+            {!isCollapsed && <span>{t(isCollapsed ? 'nav.expand' : 'nav.collapse', { defaultValue: isCollapsed ? 'Expand' : 'Collapse' })}</span>}
           </button>
         </div>
       </aside>

@@ -1,14 +1,16 @@
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/common/Icons';
 
 export const BankReconciliation: React.FC = () => {
+  const { t } = useTranslation();
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Bank Reconciliation</h2>
-          <p className="text-slate-500 text-[13px] font-medium">Upload statements and verify internal ledger accuracy.</p>
+          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">{t('pages.bankReconciliation', { defaultValue: 'Bank Reconciliation' })}</h2>
+          <p className="text-slate-500 text-[13px] font-medium">{t('pages.bankReconciliationDescription', { defaultValue: 'Upload statements and verify internal ledger accuracy.' })}</p>
         </div>
         <button className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-4 py-2 rounded-xl text-[13px] font-bold flex items-center gap-2 shadow-sm transition-all active:scale-95">
           <Icon name="grid" className="w-4 h-4" />

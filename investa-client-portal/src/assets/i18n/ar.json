@@ -123,18 +123,6 @@
       "allCaughtUp": "لقد اطّلعت على كل شيء!"
     }
   },
-  "investmentPreview": {
-    "backButton": "العودة إلى الاستثمارات",
-    "fundingStatus": "حالة التمويل",
-    "author": "المؤلف",
-    "noInvestors": "كن أول من يستثمر!",
-    "noTeamMembers": "لم يتم إضافة أعضاء فريق بعد.",
-    "investNowButton": "استثمر الآن",
-    "notFound": {
-      "title": "لم يتم العثور على الاستثمار",
-      "subtitle": "عذرًا، لم نتمكن من العثور على الاستثمار الذي تبحث عنه."
-    }
-  },
   "problemPlaceholder": "صف المشكلة أو الحاجة التي يعالجها مشروعك.",
   "solution": "الحل",
   "solutionPlaceholder": "اشرح كيف يحل مشروعك هذه المشكلة.",
@@ -270,6 +258,11 @@
       "high": "مرتفع",
       "risk": "مخاطرة"
     },
+    "typeFilter": "نوع الاستثمار",
+    "type": {
+      "founding": "رأسمالي تأسيسي",
+      "equity": "أسهم"
+    },
     "funding": "التمويل",
     "fundingProgress": "تقدم التمويل",
     "min": "الحد الأدنى",
@@ -279,7 +272,6 @@
     "favorites": "المفضلة",
     "reset": "إعادة تعيين",
     "score": "التقييم",
-    "investors": "المستثمرون",
     "share": "مشاركة الاستثمار",
     "addToFavorites": "إضافة إلى المفضلة",
     "engage": "تفاعل",
@@ -330,6 +322,7 @@
   },
   "submitInvestment": {
     "title": "إنشاء فرصة استثمار",
+    "editTitle": "تحرير فرصة الاستثمار",
     "subtitle": "أطلق حملة جمع التبرعات وتواصل مع المستثمرين",
     "step": {
       "businessDetails": "تفاصيل المشروع",
@@ -356,6 +349,7 @@
       "addImage": "إضافة",
       "continue": "المتابعة",
       "submit": "إرسال الاستثمار",
+      "save": "حفظ التغييرات",
       "cancel": "إلغاء",
       "back": "العودة إلى الاستثمارات"
     }
@@ -434,13 +428,22 @@
     "portfolioValue": "قيمة المحفظة",
     "myInvestments": "استثماراتي",
     "watchlist": "قائمة المراقبة",
-    "investorScore": "درجة المستثمر",
+    "investmentUpdates": "تحديثات استثماراتي",
+    "updatesLabel": "تحديثات",
+    "noInvestmentUpdates": "لا توجد تحديثات على الاستثمارات حتى الآن.",
+    "incomingRequests": "الطلبات الواردة",
+    "investorScore": "درجتي",
+    "currentCredits": "الرصيد الحالي",
     "availableCredits": "الأرصدة المتاحة",
     "myAllocation": "توزيعي",
+    "allocationTotal": "إجمالي الاستثمار",
+    "year": "السنة",
     "portfolioPerformance": "أداء المحفظة",
     "viewAll": "عرض الكل",
     "featuredOpportunities": "الفرص المميزة",
-    "sentRequestsTitle": "طلبات التفاعل المرسلة",
+    "primeBadge": "برايم",
+    "featuredLabel": "اختيار مميز",
+    "sentRequestsTitle": "نتائج الطلبات",
     "requestStatus": {
       "pending": "قيد الانتظار",
       "negotiating": "قيد التفاوض",
@@ -448,7 +451,7 @@
       "rejected": "مرفوض"
     },
     "withdraw": "سحب",
-    "noSentRequests": "لا توجد طلبات مرسلة بعد.",
+    "noSentRequests": "لا توجد نتائج طلبات بعد.",
     "switchProject": "تبديل المشروع",
     "myProjectOverview": "نظرة عامة على مشروعي",
     "totalInvestors": "إجمالي المستثمرين",
@@ -457,6 +460,7 @@
     "investorInterest": "اهتمام المستثمرين",
     "quickActions": "إجراءات سريعة",
     "createInvestment": "إنشاء استثمار",
+    "editProject": "تعديل المشروع",
     "viewPublicPage": "عرض الصفحة العامة",
     "postUpdate": "نشر تحديث",
     "recentActivity": "النشاط الأخير",
@@ -566,6 +570,20 @@
       "security": "الأمان",
       "notifications": "الإشعارات"
     },
+    "password": {
+      "title": "تغيير كلمة المرور",
+      "description": "أدخل كلمة المرور الحالية، واطلب رمز التحقق، ثم أدخل الرمز وكلمة المرور الجديدة.",
+      "current": "كلمة المرور الحالية",
+      "otp": "رمز التحقق",
+      "otpPlaceholder": "أدخل رمز التحقق",
+      "new": "كلمة المرور الجديدة",
+      "newPlaceholder": "أدخل كلمة المرور الجديدة",
+      "confirm": "تأكيد كلمة المرور الجديدة",
+      "confirmPlaceholder": "أعد إدخال كلمة المرور الجديدة",
+      "sendOtp": "طلب رمز التحقق",
+      "resendOtp": "إعادة إرسال رمز التحقق",
+      "mismatch": "كلمات المرور غير متطابقة"
+    },
     "loadErrorTitle": "فشل تحميل الملف الشخصي",
     "buttons": {
       "retry": "إعادة المحاولة"
@@ -585,6 +603,20 @@
       "kycStartedMessage": "تم بدء التحقق من الهوية بنجاح. حصلت على +10 نقاط مصداقية!",
       "kycFailedTitle": "فشل التحقق",
       "kycFailedMessage": "فشل بدء التحقق من الهوية. يرجى المحاولة مرة أخرى.",
+      "passwordValidationFailed": "الحقول الخاصة بكلمة المرور غير صحيحة",
+      "passwordValidationMessage": "يرجى تصحيح حقول كلمة المرور قبل الحفظ.",
+      "passwordChangingTitle": "جارٍ تغيير كلمة المرور",
+      "passwordChangingMessage": "جاري تحديث كلمة المرور...",
+      "passwordChangedTitle": "تم تغيير كلمة المرور",
+      "passwordChangedMessage": "تم تحديث كلمة المرور بنجاح.",
+      "passwordChangeFailedTitle": "فشل تغيير كلمة المرور",
+      "passwordChangeFailedMessage": "فشل تغيير كلمة المرور. يرجى المحاولة مرة أخرى.",
+      "passwordOtpSentTitle": "تم إرسال رمز التحقق",
+      "passwordOtpSentMessage": "تم إرسال رمز التحقق إلى هاتفك المحمول.",
+      "passwordSendOtpFailedTitle": "فشل إرسال رمز التحقق",
+      "passwordSendOtpFailedMessage": "فشل إرسال رمز التحقق. يرجى المحاولة مرة أخرى.",
+      "passwordOtpRequiredTitle": "مطلوب رمز التحقق",
+      "passwordOtpRequiredMessage": "يرجى طلب وإدخال رمز التحقق قبل تغيير كلمة المرور.",
       "roleNotPersistedTitle": "فشل حفظ الدور",
       "roleNotPersistedMessage": "لم نتمكن من حفظ دورك. قد يكون هذا الحقل مقصورًا على الإدارة. اتصل بالدعم إذا كان هذا خطأ.",
       "nationalIdNotPersistedTitle": "فشل حفظ الهوية الوطنية",
@@ -625,13 +657,7 @@
         "description": "حركات السوق، التقارير، والرؤى المختارة."
       }
     },
-    "password": {
-      "title": "الأمان",
-      "current": "كلمة المرور الحالية",
-      "new": "كلمة المرور الجديدة",
-      "confirm": "تأكيد كلمة المرور الجديدة",
-      "mismatch": "كلمتا المرور غير متطابقتين"
-    },
+
     "placeholders": {
       "linkedin": "https://linkedin.com/in/...",
       "facebook": "https://facebook.com/..."
@@ -768,17 +794,5 @@
   "countryPlaceholder": "مثال: الولايات المتحدة",
   "businessPlan": "ورقة عمل أو خطة عمل",
   "businessPlanHint": "قم بتحميل وثائق مشروعك التفصيلية (PDF).",
-  "upload": "تحميل PDF",
-  "requests": {
-    "title": "الطلبات",
-    "incoming": "واردة",
-    "outgoing": "مرسلة",
-    "from": "من",
-    "to": "إلى",
-    "accept": "قبول",
-    "decline": "رفض",
-    "withdraw": "سحب",
-    "noIncoming": "لا توجد طلبات واردة.",
-    "noOutgoing": "لا توجد طلبات مرسلة."
-  }
+  "upload": "تحميل PDF"
 }

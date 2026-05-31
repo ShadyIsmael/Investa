@@ -9,6 +9,7 @@ namespace Investa.API.Controllers.Admin;
 
 [ApiController]
 [Route("api/v1/admin/lookups")]
+[Route("api/admin/lookups")]
 [Authorize(Roles = "Admin")]
 [ApiExplorerSettings(IgnoreApi = true)]
 [Obsolete("This controller is disabled and removed from API surface.")]

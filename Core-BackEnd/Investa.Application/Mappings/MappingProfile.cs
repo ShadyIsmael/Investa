@@ -48,7 +48,7 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.ClientType, opt => opt.MapFrom(src => 
                 src.User != null ? src.User.ClientType.ToString() : null));
         
-        CreateMap<User, DTOs.UserDto>();
+        CreateMap<AuthUser, DTOs.UserDto>();
         CreateMap<Transaction, DTOs.TransactionDto>();
         
         // CreditTransaction mapping for credibility score audit trail
@@ -65,7 +65,7 @@ public class MappingProfile : Profile
             .ForMember(d => d.Type, opt => opt.MapFrom(s => s.RequestType));
 
         // User core metrics mapping
-        CreateMap<User, UserCoreMetricsDto>()
+        CreateMap<AuthUser, UserCoreMetricsDto>()
             .ForMember(dest => dest.ClientType, opt => opt.MapFrom(src => src.ClientType.ToString()))
             .ForMember(dest => dest.CurrentCredibilityScore, opt => opt.MapFrom(src => src.Profile != null ? src.Profile.CurrentCredibilityScore : 0));
 
@@ -81,7 +81,7 @@ public class MappingProfile : Profile
         CreateMap<UserProfile, AuditUsageDto>();
 
         // Full profile mapping
-        CreateMap<User, UserProfileDto>()
+        CreateMap<AuthUser, UserProfileDto>()
             .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.Id))
             .ForMember(dest => dest.CoreMetrics, opt => opt.MapFrom(src => src))
             .ForMember(dest => dest.BasicInfo, opt => opt.MapFrom(src => src.Profile))

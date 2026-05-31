@@ -1,19 +1,33 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter_dark_app/services/auth_service.dart';
-import 'package:flutter_dark_app/services/api_client.dart';
+import 'package:flutter_founder/services/auth_service.dart';
+import 'package:flutter_founder/services/api_client.dart';
 
 class FakeApiClient implements ApiClient {
   final Response _response;
   FakeApiClient(this._response);
 
   @override
-  Future<Response> post(String url, {Map<String, dynamic>? data, Map<String, dynamic>? headers}) async {
+  Future<Response> post(String url,
+      {dynamic data, Map<String, dynamic>? headers}) async {
     return _response;
   }
 
   @override
-  Future<Response> get(String url, {Map<String, dynamic>? headers, Map<String, dynamic>? queryParameters}) async {
+  Future<Response> get(String url,
+      {Map<String, dynamic>? headers,
+      Map<String, dynamic>? queryParameters}) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Response> put(String url,
+      {dynamic data, Map<String, dynamic>? headers}) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Response> delete(String url, {Map<String, dynamic>? headers}) async {
     throw UnimplementedError();
   }
 
@@ -38,8 +52,10 @@ void main() {
         'message': 'Welcome',
       });
 
-      final svc = AuthService(baseUrl: 'https://test', client: FakeApiClient(resp));
-      final res = await svc.signup(phoneNumber: '012', password: 'p', firstName: 'F', lastName: 'L');
+      final svc =
+          AuthService(baseUrl: 'https://test', client: FakeApiClient(resp));
+      final res = await svc.signup(
+          phoneNumber: '012', password: 'p', firstName: 'F', lastName: 'L');
 
       expect(res.success, isTrue);
       expect(res.token, equals('abc123'));
@@ -52,8 +68,10 @@ void main() {
         'data': {'token': 'nested-123', 'message': 'Hi'},
       });
 
-      final svc = AuthService(baseUrl: 'https://test', client: FakeApiClient(resp));
-      final res = await svc.signup(phoneNumber: '012', password: 'p', firstName: 'F', lastName: 'L');
+      final svc =
+          AuthService(baseUrl: 'https://test', client: FakeApiClient(resp));
+      final res = await svc.signup(
+          phoneNumber: '012', password: 'p', firstName: 'F', lastName: 'L');
 
       expect(res.success, isTrue);
       expect(res.token, equals('nested-123'));
@@ -68,8 +86,10 @@ void main() {
         'detail': 'Phone number is invalid',
       });
 
-      final svc = AuthService(baseUrl: 'https://test', client: FakeApiClient(resp));
-      final res = await svc.signup(phoneNumber: 'bad', password: 'p', firstName: 'F', lastName: 'L');
+      final svc =
+          AuthService(baseUrl: 'https://test', client: FakeApiClient(resp));
+      final res = await svc.signup(
+          phoneNumber: 'bad', password: 'p', firstName: 'F', lastName: 'L');
 
       expect(res.success, isFalse);
       expect(res.message, contains('Invalid input'));
@@ -78,8 +98,10 @@ void main() {
 
     test('handles non-200 non-400 responses gracefully', () async {
       final resp = makeResponse(500, {'message': 'server exploded'});
-      final svc = AuthService(baseUrl: 'https://test', client: FakeApiClient(resp));
-      final res = await svc.signup(phoneNumber: '012', password: 'p', firstName: 'F', lastName: 'L');
+      final svc =
+          AuthService(baseUrl: 'https://test', client: FakeApiClient(resp));
+      final res = await svc.signup(
+          phoneNumber: '012', password: 'p', firstName: 'F', lastName: 'L');
 
       expect(res.success, isFalse);
       expect(res.message, contains('server exploded'));

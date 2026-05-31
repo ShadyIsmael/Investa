@@ -7,8 +7,15 @@ import React, { createContext, useContext } from 'react';
 
 export type ConnectionState = 'Disconnected' | 'Connecting' | 'Connected' | 'Reconnecting';
 
+export interface HubConnectionLike {
+  state: string;
+  on: (method: string, newMethod: (...args: any[]) => void) => void;
+  off: (method: string, callback?: (...args: any[]) => void) => void;
+  invoke: (method: string, ...args: any[]) => Promise<any>;
+}
+
 interface SignalRContextValue {
-  connection: null;
+  connection: HubConnectionLike | null;
   connectionState: ConnectionState;
   start: () => Promise<void>;
   stop: () => Promise<void>;

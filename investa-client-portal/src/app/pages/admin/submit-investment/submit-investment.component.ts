@@ -1,7 +1,7 @@
-import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { ApiService } from '../../../services/api.service';
 import { NotificationService } from '../../../services/notification.service';
 import { LanguageService } from '../../../services/language.service';
@@ -45,14 +45,23 @@ export class SubmitInvestmentComponent implements OnInit {
   private fb = inject(FormBuilder);
   private apiService = inject(ApiService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private notificationService = inject(NotificationService);
   private languageService = inject(LanguageService);
+  private cdr = inject(ChangeDetectorRef);
 
   // Form state
   investmentForm!: FormGroup;
+  formValid = signal(false);
   currentStep = signal(1);
   totalSteps = 3;
   isSubmitting = signal(false);
+
+  // Edit mode
+  editingInvestmentId = signal<number | null>(null);
+  editMode = computed(() => this.editingInvestmentId() !== null);
+  pageTitle = computed(() => this.editMode() ? this.t('submitInvestment.editTitle') : this.t('submitInvestment.title'));
+  submitButtonLabel = computed(() => this.editMode() ? this.t('submitInvestment.actions.save') : this.t('submitInvestment.actions.submit'));
   
   // Lookup data
   categories = signal<BusinessCategory[]>([]);
@@ -125,7 +134,24 @@ export class SubmitInvestmentComponent implements OnInit {
 
   ngOnInit(): void {
     this.initForm();
+
+    // Bridge form status into a signal so OnPush template re-renders on validity change.
+    this.investmentForm.statusChanges.subscribe(status => {
+      this.formValid.set(status === 'VALID');
+    });
+
     this.loadLookupData();
+
+    // If an investment id is present in the route, load it for editing.
+    this.route.paramMap.subscribe(params => {
+      const idValue = params.get('id');
+      if (idValue !== null) {
+        const investmentId = Number(idValue);
+        if (!Number.isNaN(investmentId)) {
+          void this.loadInvestmentForEdit(investmentId);
+        }
+      }
+    });
 
     // Auto-update risk level when business stage changes
     const stageControl = this.investmentForm.get('businessStageId');
@@ -134,6 +160,63 @@ export class SubmitInvestmentComponent implements OnInit {
       const computed = this.computeRiskFromStage(stage);
       this.investmentForm.get('riskLevel')?.setValue(computed, { emitEvent: false });
     });
+  }
+
+  private async loadInvestmentForEdit(id: number): Promise<void> {
+    this.isLoading.set(true);
+    this.loadError.set(null);
+    try {
+      const investment = await this.investmentService.getInvestmentById(id);
+      if (!investment) {
+        this.loadError.set('Investment not found.');
+        return;
+      }
+      this.editingInvestmentId.set(id);
+      this.investmentForm.patchValue({
+        businessName: investment.name,
+        description: investment.description,
+        businessCategoryId: investment.businessCategoryId ?? null,
+        businessStageId: investment.businessStageId ?? null,
+        projectPhaseId: investment.projectPhaseId ?? null,
+        milestone: investment.milestone ?? '',
+        riskLevel: investment.riskLevel ?? 'Medium',
+        investmentTypeId: investment.investmentType ?? InvestmentType.Equity,
+        initialCapital: investment.initialCapital,
+        minInvestment: investment.minInvestment ?? null,
+        maxInvestment: investment.maxInvestment ?? null,
+        currency: investment.currency ?? 'USD',
+        targetFund: investment.targetFund ?? null,
+        sharePrice: investment.sharePrice ?? null,
+        totalShares: investment.totalShares ?? null,
+        valuationCap: investment.valuationCap ?? null,
+        durationMonths: investment.durationMonths ?? null,
+        profitPercentage: investment.profitPercentage ?? investment.expectedROI ?? null,
+        payoutFrequency: investment.payoutFrequency ?? 'Monthly',
+        expectedROI: investment.expectedROI ?? null,
+        startDate: this.formatDateForInput(investment.startDate),
+        endDate: this.formatDateForInput(investment.endDate),
+        imageUrl: investment.imageUrl ?? '',
+        videoUrl: investment.videoUrl ?? ''
+      });
+      const typeId = this.investmentForm.get('investmentTypeId')?.value;
+      this.updateValidatorsByType(typeId as InvestmentType);
+      Object.values(this.investmentForm.controls).forEach(c => c.updateValueAndValidity({ onlySelf: true }));
+      this.investmentForm.updateValueAndValidity();
+      this.cdr.markForCheck();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Failed to load investment for editing.';
+      this.loadError.set(msg);
+      this.notificationService.showToast({ title: 'Error', message: msg, type: 'error' });
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  private formatDateForInput(value?: Date | string): string {
+    if (!value) return '';
+    const date = typeof value === 'string' ? new Date(value) : value;
+    if (isNaN(date.getTime())) return '';
+    return date.toISOString().slice(0, 10);
   }
 
   /**
@@ -711,6 +794,9 @@ export class SubmitInvestmentComponent implements OnInit {
         expectedROI: formValue.expectedROI || undefined,
         currency: formValue.currency,
         investmentTypeId: formValue.investmentTypeId,
+        durationMonths: formValue.durationMonths || undefined,
+        profitPercentage: formValue.profitPercentage || undefined,
+        payoutFrequency: formValue.payoutFrequency || undefined,
         
         startDate: formValue.startDate,
         endDate: formValue.endDate || undefined,
@@ -719,28 +805,26 @@ export class SubmitInvestmentComponent implements OnInit {
         videoUrl: formValue.videoUrl?.trim() || undefined
       };
 
-      // Submit to API
-      const result = await this.apiService.createInvestment(dto);
+      // Submit to API (create or update)
+      const editId = this.editingInvestmentId();
+      const result = editId
+        ? await this.apiService.updateInvestment(editId, dto)
+        : await this.apiService.createInvestment(dto);
 
-      // If a cover file was selected, upload it now
+      // Resolve the investment id — PUT may return 204 (null body), so fall back to editId.
+      const investmentId: number = result?.id ?? editId!;
+
+      // If a cover file was selected, upload it to InvestafileStore and save the file URL to the investment record.
       if (this.coverFile) {
         this.isUploadingCover.set(true);
         try {
-          const uploadResp = await this.investmentService.uploadInvestmentImage(result.id, this.coverFile, 'cover');
-          // If API returned an image id, attempt to set it as primary
-          if (uploadResp && (uploadResp as any).id) {
-            try {
-              await this.investmentService.setPrimaryInvestmentImage(result.id, (uploadResp as any).id);
-            } catch (e) {
-              // Non-fatal
-              console.warn('Failed to set primary image', e);
-            }
-          }
+          const coverUrl = await this.investmentService.uploadProjectImage(investmentId, this.coverFile);
+          await this.apiService.updateInvestment(investmentId, { ...dto, imageUrl: coverUrl });
         } catch (err) {
           console.error('Cover upload failed', err);
           this.notificationService.showToast({
             title: 'Warning',
-            message: 'Cover image upload failed. Investment created without cover.',
+            message: 'Cover image upload failed. Investment saved without cover.',
             type: 'warning'
           });
         } finally {
@@ -748,11 +832,11 @@ export class SubmitInvestmentComponent implements OnInit {
         }
       }
 
-      // Upload gallery images (if any)
+      // Upload gallery images (if any) through backend as before
       if (this.galleryFiles.length > 0) {
         this.isUploadingCover.set(true);
         try {
-          const uploadPromises = this.galleryFiles.map(f => this.investmentService.uploadInvestmentImage(result.id, f));
+          const uploadPromises = this.galleryFiles.map(f => this.investmentService.uploadInvestmentImage(investmentId, f));
           const settled = await Promise.allSettled(uploadPromises);
           const failed = settled.filter(s => s.status === 'rejected');
           if (failed.length) {
@@ -769,22 +853,24 @@ export class SubmitInvestmentComponent implements OnInit {
       // Success notification
       this.notificationService.showToast({
         title: 'Success!',
-        message: 'Your investment opportunity has been created successfully.',
+        message: editId ? 'Investment updated successfully.' : 'Your investment opportunity has been created successfully.',
         type: 'success'
       });
 
       // Add to notification center
       this.notificationService.addNotification({
-        title: 'Investment Created',
-        message: `"${dto.businessName}" is now live and visible to investors.`,
+        title: editId ? 'Investment Updated' : 'Investment Created',
+        message: editId
+          ? `"${dto.businessName}" has been updated.`
+          : `"${dto.businessName}" is now live and visible to investors.`,
         type: 'success'
       });
 
-      // Navigate to the new investment or investments list
-      this.router.navigate(['/admin/investments', result.id]);
+      // Navigate to the investment detail
+      this.router.navigate(['/admin/investments', investmentId]);
 
     } catch (error) {
-      console.error('Error creating investment:', error);
+      console.error('Error saving investment:', error);
       const errorMsg = error instanceof Error ? error.message : 'Failed to create investment. Please try again.';
       
       this.notificationService.showToast({

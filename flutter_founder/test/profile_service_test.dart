@@ -1,22 +1,36 @@
 import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter_dark_app/services/api_client.dart';
-import 'package:flutter_dark_app/services/profile_service.dart';
-import 'package:flutter_dark_app/services/app_state.dart';
+import 'package:flutter_founder/services/api_client.dart';
+import 'package:flutter_founder/services/profile_service.dart';
+import 'package:flutter_founder/services/app_state.dart';
 
 class FakeApiClient implements ApiClient {
   final Response _response;
   FakeApiClient(this._response);
 
   @override
-  Future<Response> post(String url, {Map<String, dynamic>? data, Map<String, dynamic>? headers}) {
+  Future<Response> post(String url,
+      {dynamic data, Map<String, dynamic>? headers}) {
     throw UnimplementedError();
   }
 
   @override
-  Future<Response> get(String url, {Map<String, dynamic>? headers, Map<String, dynamic>? queryParameters}) async {
+  Future<Response> get(String url,
+      {Map<String, dynamic>? headers,
+      Map<String, dynamic>? queryParameters}) async {
     return _response;
+  }
+
+  @override
+  Future<Response> put(String url,
+      {dynamic data, Map<String, dynamic>? headers}) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Response> delete(String url, {Map<String, dynamic>? headers}) async {
+    throw UnimplementedError();
   }
 
   @override
@@ -26,16 +40,31 @@ class FakeApiClient implements ApiClient {
 class FakeApiClientDelayed implements ApiClient {
   final Response _response;
   final Duration delay;
-  FakeApiClientDelayed(this._response, {this.delay = const Duration(seconds: 10)});
+  FakeApiClientDelayed(this._response,
+      {this.delay = const Duration(seconds: 10)});
 
   @override
-  Future<Response> post(String url, {Map<String, dynamic>? data, Map<String, dynamic>? headers}) {
+  Future<Response> post(String url,
+      {dynamic data, Map<String, dynamic>? headers}) {
     throw UnimplementedError();
   }
 
   @override
-  Future<Response> get(String url, {Map<String, dynamic>? headers, Map<String, dynamic>? queryParameters}) async {
+  Future<Response> get(String url,
+      {Map<String, dynamic>? headers,
+      Map<String, dynamic>? queryParameters}) async {
     return await Future.delayed(delay, () => _response);
+  }
+
+  @override
+  Future<Response> put(String url,
+      {dynamic data, Map<String, dynamic>? headers}) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Response> delete(String url, {Map<String, dynamic>? headers}) async {
+    throw UnimplementedError();
   }
 
   @override
@@ -44,13 +73,27 @@ class FakeApiClientDelayed implements ApiClient {
 
 class FakeApiClientTimeout implements ApiClient {
   @override
-  Future<Response> post(String url, {Map<String, dynamic>? data, Map<String, dynamic>? headers}) {
+  Future<Response> post(String url,
+      {dynamic data, Map<String, dynamic>? headers}) {
     throw UnimplementedError();
   }
 
   @override
-  Future<Response> get(String url, {Map<String, dynamic>? headers, Map<String, dynamic>? queryParameters}) async {
+  Future<Response> get(String url,
+      {Map<String, dynamic>? headers,
+      Map<String, dynamic>? queryParameters}) async {
     throw TimeoutException('simulated timeout');
+  }
+
+  @override
+  Future<Response> put(String url,
+      {dynamic data, Map<String, dynamic>? headers}) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Response> delete(String url, {Map<String, dynamic>? headers}) async {
+    throw UnimplementedError();
   }
 
   @override
@@ -118,17 +161,22 @@ void main() {
         'updatedAt': '2025-12-24T23:37:06.356Z',
       });
 
-      final svc = ProfileService(client: FakeApiClient(resp), baseUrl: 'https://test');
+      final svc =
+          ProfileService(client: FakeApiClient(resp), baseUrl: 'https://test');
       final profile = await svc.fetchProfile();
 
       expect(profile, isNotNull);
       expect(profile!.userId, equals('3fa85f64-5717-4562-b3fc-2c963f66afa6'));
       expect(profile.coreMetrics!.email, equals('user@example.com'));
+      expect(profile.basicInfo!.dateOfBirth,
+          equals(DateTime.parse('2025-12-24T23:37:06.356Z')));
       expect(profile.basicInfo!.firstName, equals('John'));
       expect(profile.basicInfo!.lastName, equals('Doe'));
-      expect(profile.basicInfo!.avatarUrl, equals('https://example.com/avatar.jpg'));
+      expect(profile.basicInfo!.avatarUrl,
+          equals('https://example.com/avatar.jpg'));
       expect(profile.contactInfo!.phone1, equals('+1234567890'));
-      expect(profile.identityCompliance!.verificationStatus, equals('Verified'));
+      expect(
+          profile.identityCompliance!.verificationStatus, equals('Verified'));
       expect(profile.auditUsage!.lastLoginIP, equals('192.168.1.1'));
       expect(profile.createdAt, isNotNull);
       expect(profile.updatedAt, isNotNull);
@@ -174,14 +222,16 @@ void main() {
         'auditUsage': {
           'lastLoginIP': '::1',
           'registrationIP': null,
-          'deviceInfo': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0',
+          'deviceInfo':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0',
           'lastLoginDate': '2025-12-28T11:43:07.8341923Z',
         },
         'createdAt': '2025-12-25T14:17:29.084518',
         'updatedAt': '2025-12-28T11:43:07.834342Z',
       });
 
-      final svc = ProfileService(client: FakeApiClient(resp), baseUrl: 'https://test');
+      final svc =
+          ProfileService(client: FakeApiClient(resp), baseUrl: 'https://test');
       final profile = await svc.fetchProfile();
 
       expect(profile, isNotNull);
@@ -192,27 +242,32 @@ void main() {
       expect(profile.basicInfo!.credit, equals(70));
       expect(profile.contactInfo!.phone1, equals('01022322292'));
       expect(profile.auditUsage!.deviceInfo, contains('Mozilla/5.0'));
-      expect(profile.auditUsage!.lastLoginDate, equals(DateTime.parse('2025-12-28T11:43:07.8341923Z')));
-      expect(profile.coreMetrics!.email, equals('01022322292@phone.investa.local'));
+      expect(profile.auditUsage!.lastLoginDate,
+          equals(DateTime.parse('2025-12-28T11:43:07.8341923Z')));
+      expect(profile.coreMetrics!.email,
+          equals('01022322292@phone.investa.local'));
       expect(profile.score, equals(0));
       expect(profile.credit, equals(70));
     });
 
     test('fetchProfileRaw times out returns null', () async {
-      final svc = ProfileService(client: FakeApiClientTimeout(), baseUrl: 'https://test');
+      final svc = ProfileService(
+          client: FakeApiClientTimeout(), baseUrl: 'https://test');
       final raw = await svc.fetchProfileRaw();
       expect(raw, isNull);
     });
 
     test('fetchProfile times out returns null', () async {
-      final svc = ProfileService(client: FakeApiClientTimeout(), baseUrl: 'https://test');
+      final svc = ProfileService(
+          client: FakeApiClientTimeout(), baseUrl: 'https://test');
       final profile = await svc.fetchProfile();
       expect(profile, isNull);
     });
 
     test('returns null on server error', () async {
       final resp = makeResponse(500, {'error': 'Internal server error'});
-      final svc = ProfileService(client: FakeApiClient(resp), baseUrl: 'https://test');
+      final svc =
+          ProfileService(client: FakeApiClient(resp), baseUrl: 'https://test');
       final profile = await svc.fetchProfile();
 
       expect(profile, isNull);

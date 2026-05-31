@@ -6,6 +6,7 @@ import { InvestmentService } from '../../../services/investment.service';
 import { LanguageService } from '../../../services/language.service';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
 import { AuthService } from '../../../services/auth.service';
+import { RequestsService } from '../../../services/requests.service';
 import { ProfileService } from '../../../services/profile.service';
 import { UserService } from '../../../services/user.service';
 import { Investment } from '../../../models/investment.model';
@@ -18,6 +19,7 @@ declare var d3: any;
 interface ChartData {
   name: string;
   value: number;
+  percentage?: number;
 }
 
 interface BarChartData {
@@ -66,6 +68,8 @@ export class DashboardComponent {
   private profileService = inject(ProfileService);
   private userService = inject(UserService);
   private notificationService = inject(NotificationService);
+  private requestsService = inject(RequestsService);
+  private creditsRefreshed = signal(false);
 
   private t(path: string, fallback: string): string {
     return get(this.languageService.dictionary(), path, fallback);
@@ -82,9 +86,12 @@ export class DashboardComponent {
   myInvestments = computed(() => this.allInvestments().filter(inv => (inv.investedAmount ?? 0) > 0));
   portfolioValue = computed(() => this.myInvestments().reduce((sum, inv) => sum + (inv.investedAmount ?? 0), 0));
   favoriteInvestments = computed(() => this.allInvestments().filter(inv => inv.favorited));
+  investmentUpdates = computed(() => this.myInvestments().slice(0, 3));
+  incomingRequestsCount = computed(() => this.requestsService.incoming().length);
   featuredInvestments = computed(() => this.allInvestments().sort((a, b) => b.credibilityScore - a.credibilityScore).slice(0, 3));
   investorScore = signal(85);
-  availableCredits = this.userService.credits; // Use UserService for credits
+  currentCredits = computed(() => this.userService.credits()); // Live user credit balance
+  availableCredits = this.userService.credits; // Legacy alias for available credits
   
   // --- Founder-specific computed signals & data ---
   founderProjects = computed(() => {
@@ -93,6 +100,17 @@ export class DashboardComponent {
     return this.allInvestments().filter(inv => inv.founderId === uid);
   });
   selectedFounderProject = signal<Investment | null>(null);
+  selectedYear = signal<number>(new Date().getFullYear());
+  availableYears = computed(() => {
+    const years = new Set<number>();
+    this.myInvestments().forEach(inv => {
+      if (inv.date instanceof Date && !isNaN(inv.date.getTime())) {
+        years.add(inv.date.getFullYear());
+      }
+    });
+    const sorted = Array.from(years).sort((a, b) => b - a);
+    return sorted.length ? sorted : [new Date().getFullYear()];
+  });
 
   fundingProgress = computed(() => {
     const p = this.selectedFounderProject();
@@ -129,6 +147,14 @@ export class DashboardComponent {
     });
 
     effect(() => {
+      const credits = this.currentCredits();
+      if (credits < 0 && !this.creditsRefreshed()) {
+        this.creditsRefreshed.set(true);
+        void this.userService.refreshUser().catch(() => {});
+      }
+    });
+
+    effect(() => {
       // This effect runs when view children are ready, role or language changes
       setTimeout(() => { // Allow view to render before drawing charts
         if (this.userRole() === 'investor') {
@@ -143,6 +169,22 @@ export class DashboardComponent {
         }
       }, 0);
     });
+
+    effect(() => {
+      const years = this.availableYears();
+      if (years.length && !years.includes(this.selectedYear())) {
+        this.selectedYear.set(years[0]);
+      }
+    });
+
+    effect(() => {
+      if (this.userRole() === 'investor' && this.lineChart()) {
+        this.createLineChart();
+      }
+    });
+
+    // Ensure the dashboard reads the latest user credit balance from the database.
+    void this.userService.refreshUser().catch(() => {});
   }
 
   selectProject(project: Investment) {
@@ -157,22 +199,36 @@ export class DashboardComponent {
     return profile?.basicInfo?.avatarUrl || '';
   }
 
+  changeSelectedYear(year: string): void {
+    const parsed = Number(year);
+    if (!Number.isNaN(parsed)) {
+      this.selectedYear.set(parsed);
+    }
+  }
+
   getImageSrc(inv: Investment): string {
     if (!inv) return '';
     const img = inv.imageUrl || (inv.images && inv.images.find(i => i.isPrimary)?.url) || (inv.images && inv.images.length ? inv.images[0].url : undefined);
     if (img) return img;
-    // Try team member avatar if available
     const tm = inv.teamMembers && inv.teamMembers.length ? inv.teamMembers[0] : undefined;
     if (tm && tm.avatar) return tm.avatar;
     return '';
+  }
+
+  getNameInitial(name?: string): string {
+    return name?.trim().charAt(0).toUpperCase() || 'I';
   }
 
   unselectProject() {
     this.selectedFounderProject.set(null);
   }
 
-  toggleFavorite(investment: Investment) {
-    this.investmentService.toggleFavorite(investment);
+  async toggleFavorite(investment: Investment) {
+    try {
+      await this.investmentService.toggleFavorite(investment);
+    } catch (error) {
+      console.error('Failed to update favorite status', error);
+    }
   }
 
   promptWithdraw(request: SentRequest) {
@@ -247,36 +303,74 @@ export class DashboardComponent {
     const investments = this.userRole() === 'investor' ? this.myInvestments() : this.allInvestments();
     const valueField: 'investedAmount' | 'currentFunding' = this.userRole() === 'investor' ? 'investedAmount' : 'currentFunding';
 
-    // Fix: Replaced `reduce` with a `for...of` loop for clearer type handling and to resolve inference issues with the accumulator.
     const categoryTotals: Record<string, number> = {};
     const lang = this.languageService.language();
     for (const investment of investments) {
       const value = investment[valueField];
+      if (typeof value !== 'number' || value <= 0) continue;
+
       const categoryName = lang === 'ar'
         ? (investment.businessCategoryNameAr || investment.businessCategoryName || this.t('dashboard.uncategorized', 'Uncategorized'))
         : (investment.businessCategoryName || this.t('dashboard.uncategorized', 'Uncategorized'));
-      if (typeof value === 'number') {
-        categoryTotals[categoryName] = (categoryTotals[categoryName] || 0) + value;
-      }
+
+      categoryTotals[categoryName] = (categoryTotals[categoryName] || 0) + value;
     }
 
+    const total = Object.values(categoryTotals).reduce((sum, value) => sum + value, 0);
+
     return Object.entries(categoryTotals)
-      .map(([name, value]) => ({ name, value }))
+      .map(([name, value]) => ({
+        name,
+        value,
+        percentage: total > 0 ? (value / total) * 100 : 0
+      }))
       .sort((a, b) => b.value - a.value);
   }
 
   private getLineChartData(): LineChartData[] {
-    // Mock data for personal portfolio performance
-    return [
-      { month: this.t('common.months.jan', 'Jan'), value: 78000 },
-      { month: this.t('common.months.feb', 'Feb'), value: 81000 },
-      { month: this.t('common.months.mar', 'Mar'), value: 85000 },
-      { month: this.t('common.months.apr', 'Apr'), value: 83000 },
-      { month: this.t('common.months.may', 'May'), value: 90000 },
-      { month: this.t('common.months.jun', 'Jun'), value: 92000 },
-      { month: this.t('common.months.jul', 'Jul'), value: 95000 },
-      { month: this.t('common.months.aug', 'Aug'), value: 98000 },
+    if (this.userRole() !== 'investor') {
+      return [
+        { month: this.t('common.months.jan', 'Jan'), value: 78000 },
+        { month: this.t('common.months.feb', 'Feb'), value: 81000 },
+        { month: this.t('common.months.mar', 'Mar'), value: 85000 },
+        { month: this.t('common.months.apr', 'Apr'), value: 83000 },
+        { month: this.t('common.months.may', 'May'), value: 90000 },
+        { month: this.t('common.months.jun', 'Jun'), value: 92000 },
+        { month: this.t('common.months.jul', 'Jul'), value: 95000 },
+        { month: this.t('common.months.aug', 'Aug'), value: 98000 },
+      ];
+    }
+
+    const year = this.selectedYear();
+    const monthNames = [
+      this.t('common.months.jan', 'Jan'),
+      this.t('common.months.feb', 'Feb'),
+      this.t('common.months.mar', 'Mar'),
+      this.t('common.months.apr', 'Apr'),
+      this.t('common.months.may', 'May'),
+      this.t('common.months.jun', 'Jun'),
+      this.t('common.months.jul', 'Jul'),
+      this.t('common.months.aug', 'Aug'),
+      this.t('common.months.sep', 'Sep'),
+      this.t('common.months.oct', 'Oct'),
+      this.t('common.months.nov', 'Nov'),
+      this.t('common.months.dec', 'Dec'),
     ];
+
+    const monthlyTotals = new Array<number>(12).fill(0);
+    for (const investment of this.myInvestments()) {
+      if (!investment.date || !(investment.date instanceof Date) || isNaN(investment.date.getTime())) continue;
+      if (investment.date.getFullYear() !== year) continue;
+
+      const invested = investment.investedAmount ?? 0;
+      if (invested <= 0) continue;
+      monthlyTotals[investment.date.getMonth()] += invested;
+    }
+
+    return monthlyTotals.map((value, index) => ({
+      month: monthNames[index],
+      value,
+    }));
   }
 
   private getBarChartData(): BarChartData[] {
@@ -392,10 +486,29 @@ export class DashboardComponent {
       .sort(null);
 
     const data_ready = pie(data as any);
+    const totalValue = data.reduce((sum, d) => sum + d.value, 0);
+    const centerLabel = this.userRole() === 'investor' ? this.t('dashboard.allocationTotal', 'Total Invested') : this.t('dashboard.allocationTotal', 'Total');
+    const formattedTotal = `$${totalValue.toLocaleString()}`;
 
     const arc = d3.arc()
       .innerRadius(radius * 0.5)
       .outerRadius(radius * 0.9);
+
+    svg.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dy', '-0.5em')
+      .style('fill', '#e2e8f0')
+      .style('font-size', '13px')
+      .style('font-weight', '600')
+      .text(centerLabel);
+
+    svg.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dy', '1em')
+      .style('fill', '#93a5b4')
+      .style('font-size', '20px')
+      .style('font-weight', '700')
+      .text(formattedTotal);
       
     const tooltip = d3.select(element)
       .append('div')
@@ -425,8 +538,9 @@ export class DashboardComponent {
             tooltip.style('opacity', 1);
         })
         .on('mousemove', function(event: MouseEvent, d: D3PieArcDatum) {
+            const percentage = d.data.percentage ? d.data.percentage.toFixed(1) : '0.0';
             tooltip
-              .html(`<b>${d.data.name}</b><br>${valueLabel}: <b>$${d.data.value.toLocaleString()}</b>`)
+              .html(`<b>${d.data.name}</b><br>${valueLabel}: <b>$${d.data.value.toLocaleString()}</b><br>${percentage}% of portfolio`)
               .style('left', (event.pageX - element.getBoundingClientRect().left + 15) + 'px')
               .style('top', (event.pageY - element.getBoundingClientRect().top - 15) + 'px');
         })
@@ -468,7 +582,10 @@ export class DashboardComponent {
     legendItems.append('text')
       .attr('x', lang === 'ar' ? -24 : 24)
       .attr('y', 14)
-      .text((d: ChartData) => d.name)
+      .text((d: ChartData) => {
+        const percentage = d.percentage ? d.percentage.toFixed(1) : '0.0';
+        return `${d.name} (${percentage}%)`;
+      })
       .style('fill', '#e2e8f0')
       .style('font-size', '14px')
       .style('text-anchor', lang === 'ar' ? 'end' : 'start');

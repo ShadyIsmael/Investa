@@ -136,7 +136,11 @@ export class InvestmentPreviewComponent {
     if (!inv) return '';
     const uid = inv.founderId;
     const cached = uid ? this.founderAvatarCache()[uid] : undefined;
-    return cached || inv.imageUrl || '';
+    return cached || this.resolveImageUrl(inv.imageUrl) || '';
+  }
+
+  resolveImageUrl(url?: string | null): string {
+    return this.fileStoreService.getPublicUrl(url);
   }
   
   async promptEngage(investment: Investment): Promise<void> {

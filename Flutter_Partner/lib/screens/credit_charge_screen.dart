@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
-import '../l10n/app_localizations.dart';
 import '../services/app_state.dart';
 import '../services/app_logger.dart';
 
@@ -139,7 +138,6 @@ class _CreditChargeScreenState extends State<CreditChargeScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final loc = AppLocalizations.of(context);
     final currentCredits =
         AppState.instance.profile?.basicInfo?.credit?.toDouble() ??
             AppState.instance.profile?.coreMetrics?.walletBalance ??

@@ -232,7 +232,7 @@ config.baseUrl  // https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev
 config.signalRHuburl  // https://scaling-memory-554v4q9wwg375p9-5000.app.github.dev/hubs/chat
 
 // Override if needed
-config.setCustomBaseUrl('http://192.168.1.100:5000');
+config.setCustomBaseUrl('http://DESKTOP-DIH7CQH:5000');
 
 // Get fallback candidates
 config.getBaseUrlCandidates()  // [mDNS, direct hostname, localhost]
@@ -426,3 +426,50 @@ result.fold(
 ---
 
 **🎉 Refactoring Complete! The Investa app is now a scalable, modular, and crash-proof application following Google Expert Level standards.**
+
+---
+
+## May 2026 — Code Quality Audit & Cleanup
+
+**Result:** `dart analyze lib` → **0 errors, 0 warnings** (exit code 0)
+
+### Compilation Errors Fixed (3)
+
+| File | Issue |
+|---|---|
+| `screens/auth_screen.dart` | 3× `_serverError` used after field was deleted — removed orphaned assignments |
+
+### Warnings Resolved (11)
+
+| File | Issue |
+|---|---|
+| `screens/edit_profile_screen.dart` | Unused `_formKey`, unused `_selectedNationality` field + assignments removed |
+| `screens/edit_profile_screen.dart` | `WillPopScope` deprecated → migrated to `PopScope(canPop: false, onPopInvokedWithResult: ...)` |
+| `core/services/fcm_service.dart` | Unused local `investmentId` variable removed |
+| `screens/investment_info_screen.dart` | Dead `_handleInvest()` method removed; unused `config.dart` import removed |
+| `screens/main_wrapper.dart` | Unused `_tabProfile` constant and dead `_buildNavItem()` method removed |
+| `screens/new_investment_screen.dart` | Unused `_picker` field and `_risks` list removed |
+| `screens/settings_screen.dart` | Dead `_logout()` method removed (logout handled by `widget.onLogout` callback) |
+| `services/investments_service.dart` | Dead `_client.post()` block and unused `resp` variable removed from `deleteImage()` |
+
+### BuildContext Async-Gap Safety Fixes (26)
+
+Fixed `use_build_context_synchronously` violations across 7 files by pre-capturing `ScaffoldMessenger`/`Navigator` references before `await` calls or adding `if (!mounted) return;` guards:
+- `screens/edit_profile_screen.dart` — `_save()`, `_pickHrLetter()`, email-verify button
+- `screens/otp_screen.dart` — `_sendOtp()`, `_verifyOtp()`, `_handleVerificationSuccess()`
+- `screens/profile_screen.dart` — `_handleLogout()`, provider access after `service.connect()`
+- `screens/signalr_config_screen.dart` — navigation after dialog dismiss
+- `screens/chat_waiting_screen.dart` — cancel button context check
+- `widgets/signalr_demo.dart` — `_connect()`, `_loginSample()`
+- `screens/investment_info_screen.dart` — nested lambdas for `setPrimaryImage` / `deleteImage`
+
+### Library API & Pubspec Fixes (6)
+
+| File | Issue |
+|---|---|
+| `screens/chat_box_screen.dart` | `createState()` return type changed to `State<ChatBoxScreen>` |
+| `screens/chat_waiting_screen.dart` | `createState()` return type changed to `State<ChatWaitingScreen>` |
+| `screens/otp_screen.dart` | `createState()` return type changed to `State<OTPScreen>` |
+| `screens/signalr_config_screen.dart` | `createState()` return type changed to `State<SignalRConfigScreen>` |
+| `pubspec.yaml` | Added `intl: any` (was only a transitive dependency) |
+| `pubspec.yaml` | Added `path: ^1.9.0` (was only a transitive dependency) |

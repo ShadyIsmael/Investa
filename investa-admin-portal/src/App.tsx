@@ -1,5 +1,6 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Dashboard } from '@/components/layout/Dashboard';
 import { UsersList } from '@/features/rbac/UsersList';
 import { ClientsList } from '@/features/clients/ClientsList';
@@ -32,6 +33,7 @@ import { SupportProvider } from '@/context/SupportProvider';
 
 const ComingSoon = ({ title, subtitle }: { title: string; subtitle: string }) => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     return (
         <div className="flex flex-col items-center justify-center h-[60vh] text-slate-400 text-center space-y-4 animate-in fade-in zoom-in duration-500">
             <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-3xl shadow-lg flex items-center justify-center text-slate-200 dark:text-slate-700 border border-slate-100 dark:border-slate-800 mb-2 rotate-3 hover:rotate-0 transition-transform duration-300">
@@ -47,13 +49,19 @@ const ComingSoon = ({ title, subtitle }: { title: string; subtitle: string }) =>
                 onClick={() => navigate('/dashboard')}
                 className="px-5 py-2 bg-indigo-600 text-white rounded-xl text-[13px] font-bold shadow-md shadow-indigo-600/20 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all active:scale-95"
             >
-                Return to Overview
+                {t('common.back')}
             </button>
         </div>
     )
 };
 
+const ClientDetailsRoute: React.FC = () => {
+    const { clientId } = useParams<{ clientId: string }>();
+    return <ClientDetails clientId={clientId || null} />;
+};
+
 const AppContent: React.FC = () => {
+    const { t } = useTranslation();
     const { isAuthenticated, logout: handleLogout, user: authUser } = usePermissions();
     const [authView, setAuthView] = useState<'login' | 'reset'>('login');
     const navigate = useNavigate();
@@ -61,12 +69,21 @@ const AppContent: React.FC = () => {
     // Legacy user state for backward compatibility with existing components
     const [currentUser, setCurrentUser] = useState<User>({
         id: "00000000-0000-0000-0000-000000000999",
+        firstName: null,
+        lastName: null,
         name: authUser?.name || "System Admin",
         email: authUser?.email || "admin@investa.com",
         role: "Admin", // Deprecated - kept for backward compatibility
+        roleId: null,
+        groupName: null,
+        groupId: null,
+        roleName: null,
         status: "Active",
         lastLogin: "Now",
-        avatar: authUser?.avatar || "https://picsum.photos/100/100?random=admin"
+        createdAt: new Date().toISOString(),
+        updatedAt: null,
+        avatar: authUser?.avatar || "https://picsum.photos/100/100?random=admin",
+        metadata: {}
     });
 
     // Splash screen - show on initial boot only
@@ -85,13 +102,22 @@ const AppContent: React.FC = () => {
         if (authUser) {
             setCurrentUser(prev => ({
                 ...prev,
-                id: Number(authUser.id) || prev.id,
+                id: String(authUser.id) || prev.id,
                 name: authUser.name || prev.name,
                 email: authUser.email || prev.email,
                 avatar: authUser.avatar || prev.avatar,
             }));
         }
     }, [authUser]);
+
+    const handleProfileUpdated = useCallback((profileUpdate: { name: string; email: string; avatar: string }) => {
+      setCurrentUser(prev => ({
+        ...prev,
+        name: profileUpdate.name || prev.name,
+        email: profileUpdate.email || prev.email,
+        avatar: profileUpdate.avatar || prev.avatar,
+      }));
+    }, []);
 
     // When authenticated, fetch the full profile for the current user and update UI
     useEffect(() => {
@@ -147,12 +173,12 @@ const AppContent: React.FC = () => {
                                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
                                     <Route path="/dashboard" element={<Dashboard />} />
                                     <Route path="/clients" element={<ClientsList />} />
-                                    <Route path="/clients/:clientId" element={<ClientDetails />} />
-                                    <Route path="/user-onboarding" element={<ComingSoon title="User Onboarding" subtitle="This feature is coming soon. Stay tuned!" />} />
+                                    <Route path="/clients/:clientId" element={<ClientDetailsRoute />} />
+                                    <Route path="/user-onboarding" element={<ComingSoon title={t('pages.userOnboarding')} subtitle={t('messages.comingSoonSubtitle')} />} />
                                     <Route path="/groups" element={<Groups />} />
                                     <Route path="/users" element={<UsersList />} />
                                     <Route path="/roles" element={<Roles />} />
-                                    <Route path="/permissions" element={<ComingSoon title="Permissions" subtitle="This feature is coming soon. Stay tuned!" />} />
+                                    <Route path="/permissions" element={<ComingSoon title={t('breadcrumb.permissions')} subtitle={t('messages.comingSoonSubtitle')} />} />
                                     <Route path="/support" element={<SupportRequests />} />
                                     <Route path="/support-dashboard" element={<SupportDashboard />} />
                                     <Route path="/admin-support" element={<SupportAdmin />} />
@@ -162,8 +188,9 @@ const AppContent: React.FC = () => {
                                     <Route path="/journals" element={<JournalEntries />} />
                                     <Route path="/cashflow" element={<CashFlowManagement />} />
                                     <Route path="/bankrec" element={<BankReconciliation />} />
-                                    <Route path="/profile" element={<MyProfile user={currentUser} />} />
+                                    <Route path="/profile" element={<MyProfile user={currentUser} onProfileUpdated={handleProfileUpdated} />} />
                                     <Route path="/credit" element={<CreditSetup />} />
+                                    <Route path="/config/credit" element={<CreditSetup />} />
                                     <Route path="/apitester" element={<ApiTester />} />
                                     <Route path="/system-config" element={<SystemConfiguration />} />
                                     <Route path="/config/notification-templates" element={<NotificationTemplates />} />

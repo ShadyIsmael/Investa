@@ -1,10 +1,10 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../../../core/services/logger_service.dart';
-import '../../../../core/services/signalr_service.dart';
+import '../../../../core/services/support_chat_http_service.dart';
+import '../../../../core/services/fcm_service.dart';
 import '../../domain/entities/support_message.dart';
 
-/// Remote data source for support feature using SignalR.
+/// Remote data source for support feature using HTTP + FCM.
 abstract class SupportRemoteDataSource {
   Future<void> sendSupportRequest({
     required String userMobile,
@@ -29,11 +29,13 @@ abstract class SupportRemoteDataSource {
 }
 
 class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
-  final SignalRService signalRService;
+  final SupportChatHttpService httpService;
+  final FCMService fcmService;
   final LoggerService logger;
 
   SupportRemoteDataSourceImpl({
-    required this.signalRService,
+    required this.httpService,
+    required this.fcmService,
     required this.logger,
   });
 
@@ -44,51 +46,55 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
     required String type,
     required String sessionId,
   }) async {
-    final url = Uri.parse(
-        'https://api.example.com/api/support/sessions/$sessionId/messages');
-
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'userMobile': userMobile,
-        'message': message,
-        'type': type,
-      }),
+    // Use HTTP service to send the message in the conversation
+    await httpService.sendMessage(
+      conversationId: sessionId,
+      message: message,
+      userMobile: userMobile,
     );
-
-    if (response.statusCode != 200) {
-      throw Exception('Failed to send support request');
-    }
   }
 
   @override
   Stream<SupportMessage> listenToMessages() {
-    return signalRService.onSupportMessage.map((dto) {
+    // Map incoming FCM messages to domain SupportMessage entities
+    return fcmService.onMessage.map((RemoteMessage m) {
+      final data = m.data;
+      final convId = data['conversationId']?.toString() ?? '';
+      final msgText = data['message']?.toString() ?? m.notification?.body ?? '';
+      final isFromAdmin =
+          data['isFromAdmin'] == 'true' || data['isFromAdmin'] == true;
+      final senderName = data['senderName']?.toString() ?? 'Support';
+      final id = data['messageId']?.toString() ??
+          m.messageId ??
+          DateTime.now().microsecondsSinceEpoch.toString();
+
       return SupportMessage(
-        id: dto.id ?? '',
-        conversationId: dto.conversationId ?? '',
-        message: dto.message ?? '',
-        senderName: dto.senderName ?? 'Unknown',
-        isFromAdmin: dto.isFromAdmin,
-        timestamp: dto.timestamp ?? DateTime.now(),
+        id: id,
+        conversationId: convId,
+        message: msgText,
+        senderName: senderName,
+        isFromAdmin: isFromAdmin,
+        timestamp: DateTime.now(),
       );
     });
   }
 
   @override
   Future<void> connect() async {
-    await signalRService.connect();
+    // Ensure FCM is initialized (no-op if already initialized)
+    await fcmService.initialize();
   }
 
   @override
   Future<void> disconnect() async {
-    await signalRService.disconnect();
+    // Nothing to disconnect for HTTP/FCM stack
+    return;
   }
 
   @override
   bool isConnected() {
-    return signalRService.isConnected;
+    // HTTP/FCM doesn't maintain a persistent hub connection; report true if FCM token exists
+    return fcmService.currentToken != null;
   }
 
   @override
@@ -96,22 +102,13 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
     required String userMobile,
     required String type,
   }) async {
-    final url = Uri.parse('https://api.example.com/api/support/sessions');
-
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'userMobile': userMobile,
-        'type': type,
-      }),
+    // Create a new support conversation and return its ID
+    final convId = await httpService.createSupportRequest(
+      userMobile: userMobile,
+      message: 'Support Request',
+      category: type,
     );
 
-    if (response.statusCode == 201) {
-      final responseData = jsonDecode(response.body);
-      return responseData['sessionId'];
-    } else {
-      throw Exception('Failed to initiate support session');
-    }
+    return convId;
   }
 }

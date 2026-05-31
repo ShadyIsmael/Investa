@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_dark_app/widgets/request_summary_row.dart';
+import 'package:flutter_founder/widgets/request_summary_row.dart';
 
 void main() {
   testWidgets('RequestSummaryRow builds and shows counts',

@@ -165,18 +165,14 @@ VALUES (@id,@un,@nun,@email,@nemail,1,@ph,@ss,@cs,0,0,0,0)";
     }
     db.Database.ExecuteSqlRaw("INSERT INTO [AspNetUserRoles] ([UserId],[RoleId]) VALUES ({0},{1})", identityId, orgRoleId);
 
-    // Create domain user
+    // Create AuthUser record
     var domainUserId = Guid.NewGuid();
     var name = roleName + " User";
-    db.ApplicationUsers.Add(new User { Id = domainUserId, Name = name, Email = email, Role = roleName, ClientType = ClientType.Investor });
+    db.AuthUsers.Add(new AuthUser { Id = domainUserId, Email = email, PasswordHash = pwdHash, UserType = UserType.OrgUser, Name = name, Status = true, CreatedAt = now });
     db.SaveChanges();
 
     // Create profile
     db.UserProfiles.Add(new UserProfile { UserId = domainUserId, FullName = name, FirstName = roleName, LastName = "User", Email = email, CreatedAt = now, UpdatedAt = now, AvatarUrl = $"https://i.pravatar.cc/150?img={rnd.Next(1,70)}" });
-    db.SaveChanges();
-
-    // Create AuthUser with UserType.OrgUser
-    db.AuthUsers.Add(new AuthUser { Id = domainUserId, Email = email, PasswordHash = pwdHash, UserType = UserType.OrgUser, Status = true, CreatedAt = now });
     db.SaveChanges();
 
     createdOrg++;
@@ -225,20 +221,16 @@ VALUES (@id,@un,@nun,@email,@nemail,1,@ph,@ss,@cs,0,0,0,0)", new[] {
 
     var domainUserId = Guid.NewGuid();
     var fullName = $"{first} {last}";
-    var role = "Founder"; // role string in domain User
-    var clientType = (rnd.NextDouble() < 0.6) ? ClientType.Founder : ClientType.Investor; // treat Investor in ClientType as Partner fallback or both
-    if (rnd.NextDouble() < 0.25) clientType = ClientType.Both; // some both
+    var clientType = (rnd.NextDouble() < 0.6) ? ClientType.Founder : ClientType.Investor;
+    if (rnd.NextDouble() < 0.25) clientType = ClientType.Both;
 
-    db.ApplicationUsers.Add(new User { Id = domainUserId, Name = fullName, Email = email, Role = role, ClientType = clientType });
+    // AuthUser - map to domain user id to simplify
+    db.AuthUsers.Add(new AuthUser { Id = domainUserId, Name = fullName, Email = email, PasswordHash = pwdHash, UserType = UserType.Client, ClientType = clientType, Status = true, CreatedAt = now });
     db.SaveChanges();
 
     // profile + avatar
     var avatarUrl = $"https://i.pravatar.cc/150?img={rnd.Next(1,70)}";
     db.UserProfiles.Add(new UserProfile { UserId = domainUserId, FullName = fullName, FirstName = first, LastName = last, Email = email, AvatarUrl = avatarUrl, CreatedAt = now, UpdatedAt = now });
-    db.SaveChanges();
-
-    // AuthUser - map to domain user id to simplify
-    db.AuthUsers.Add(new AuthUser { Id = domainUserId, Email = email, PasswordHash = pwdHash, UserType = clientType == ClientType.Founder ? UserType.Founder : UserType.OrgUser, Status = true, CreatedAt = now });
     db.SaveChanges();
 
     // client record

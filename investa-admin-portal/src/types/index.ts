@@ -22,6 +22,8 @@ export interface User {
   createdAt: string; // ISO 8601 datetime
   updatedAt: string | null; // ISO 8601 datetime
   avatar: string | null; // URL
+  kycCompletionPercentage?: number;
+  isKycVerified?: boolean;
   metadata: {
     department?: string;
     location?: string;
@@ -60,6 +62,8 @@ export interface Group {
     departmentCode?: string;
     [key: string]: any;
   };
+  members?: Array<{ userId: string | number; roleId?: string | number }>;
+  roleIds?: (string | number)[];
 }
 
 export interface PaginatedGroups {
@@ -93,7 +97,7 @@ export interface Role {
   groupName?: string;
   isActive: boolean;
   createdAt: string; // ISO 8601 datetime
-  members?: number[];
+  members?: string[]; // user IDs (GUIDs)
 }
 
 export interface RoleWithGroup extends Role {
@@ -184,6 +188,7 @@ export interface DashboardStat {
 export interface NavItem {
   id: string;
   label: string;
+  labelKey?: string;
   iconName: string;
   path: string;
   /** Permission required to view this navigation item (e.g., 'Dashboard.View', 'Users.Manage') */

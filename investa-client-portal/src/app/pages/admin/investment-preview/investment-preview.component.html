@@ -14,7 +14,7 @@
       <!-- Hero Section with Image -->
       <div class="relative h-96 bg-gradient-to-b from-slate-800 to-slate-900 overflow-hidden">
         @if (inv.imageUrl) {
-          <img [src]="inv.imageUrl" alt="{{ inv.name }}" class="w-full h-full object-cover opacity-30">
+          <img [src]="resolveImageUrl(inv.imageUrl)" alt="{{ inv.name }}" class="w-full h-full object-cover opacity-30">
         }
         <div class="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent"></div>
         
@@ -47,7 +47,7 @@
 
           <!-- Gallery Thumbnails -->
           <div class="flex gap-2 overflow-auto">
-            <img *ngFor="let img of inv.images || []; let i = index" [src]="img.url" class="h-28 w-auto rounded-md object-cover" [attr.alt]="'Image ' + (i+1)" />
+            <img *ngFor="let img of inv.images || []; let i = index" [src]="resolveImageUrl(img.url)" class="h-28 w-auto rounded-md object-cover" [attr.alt]="'Image ' + (i+1)" />
           </div>
         </div>
       </div>
