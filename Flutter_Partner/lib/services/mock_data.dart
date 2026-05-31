@@ -90,19 +90,8 @@ Future<DashboardData> fetchDashboardData({String interval = 'month'}) async {
     Category('Cash', 10),
   ];
 
-  final activities = [
-    Activity('Bought 50 shares of XYZ', 'Equities',
-        DateTime.now().subtract(const Duration(hours: 2))),
-    Activity('Received coupon payment', 'Bonds',
-        DateTime.now().subtract(const Duration(days: 2))),
-    Activity('Sold 10% of Real Estate fund', 'Real Estate',
-        DateTime.now().subtract(const Duration(days: 7))),
-    Activity('Allocated to Commodities', 'Commodities',
-        DateTime.now().subtract(const Duration(days: 12))),
-  ];
-
-  // Generate synthetic transactions and aggregate according to the selected interval
-  final transactions = _generateMockTransactions(now);
+  // Transactions will be populated from the server; start with an empty list.
+  final transactions = <CreditTransaction>[];
 
   // Initial aggregation (fallback/mock) according to interval/buckets
   List<MonthlyCredit> creditHistory = _aggregateByInterval(transactions,
@@ -303,7 +292,7 @@ Future<DashboardData> fetchDashboardData({String interval = 'month'}) async {
     totalIncome: income,
     totalOutcome: outcome,
     categories: categories,
-    activities: activities,
+    activities: const [],
     creditHistory: creditHistory,
     scoreHistory: scoreHistory,
     transactions: transactions,
@@ -313,42 +302,6 @@ Future<DashboardData> fetchDashboardData({String interval = 'month'}) async {
   );
 }
 
-List<CreditTransaction> _generateMockTransactions(DateTime now) {
-  final rnd = DateTime.now().millisecondsSinceEpoch % 100; // deterministic-ish
-  final List<CreditTransaction> list = [];
-  var idCounter = 1000;
-  for (var m = 0; m < 12; m++) {
-    final monthDate = DateTime(now.year, now.month - (11 - m), 1);
-    // create between 3..8 transactions per month
-    final count = 3 + ((m + rnd) % 6);
-    for (var i = 0; i < count; i++) {
-      final day = 1 + (i * 3) % 28;
-      final amount = 20 + ((m * 7 + i * 5) % 120).toDouble();
-      list.add(CreditTransaction(
-        id: idCounter++,
-        userId: 'local',
-        amount: amount.toInt(),
-        type: 'Earn',
-        referenceId: null,
-        description: 'Mock earn',
-        createdAt: DateTime(monthDate.year, monthDate.month, day),
-      ));
-    }
-    // occasional debit to ensure filtering works
-    if (m % 4 == 0) {
-      list.add(CreditTransaction(
-        id: idCounter++,
-        userId: 'local',
-        amount: -15,
-        type: 'Spend',
-        referenceId: null,
-        description: 'Mock spend',
-        createdAt: DateTime(monthDate.year, monthDate.month, 2),
-      ));
-    }
-  }
-  return list;
-}
 
 List<MonthlyCredit> _aggregateByInterval(List<CreditTransaction> transactions,
     {required String interval,
