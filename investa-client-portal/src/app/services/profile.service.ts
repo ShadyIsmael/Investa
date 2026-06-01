@@ -76,12 +76,41 @@ export interface UserProfile {
   updatedAt?: string;
 }
 
+export interface PublicProfile {
+  userId: string;
+  fullName?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  bio?: string | null;
+  avatarUrl?: string | null;
+  companyName?: string | null;
+  country?: string | null;
+  nationality?: string | null;
+  isKycVerified: boolean;
+  credibilityScore: number;
+  role?: string | null;
+  linkedInUrl?: string | null;
+  facebookUrl?: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ProfileService {
   private _profile = signal<UserProfile | null>(null);
   public profile = this._profile.asReadonly();
 
   constructor(private http: HttpClient, @Inject(API_BASE) private apiBase: string) {}
+
+  async getPublicProfile(userId: string): Promise<PublicProfile | null> {
+    try {
+      const url = `${this.apiBase}/api/profile/${encodeURIComponent(userId)}/public`;
+      const token = this.getAccessTokenFromLocalStorage();
+      const options = token ? { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) } : undefined;
+      const raw = await firstValueFrom(this.http.get<any>(url, options));
+      return this.extractData<PublicProfile>(raw) ?? (raw as PublicProfile) ?? null;
+    } catch {
+      return null;
+    }
+  }
 
   async loadMyProfile(): Promise<UserProfile | null> {
     try {

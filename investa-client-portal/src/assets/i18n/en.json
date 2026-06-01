@@ -790,7 +790,21 @@
     "daysLeft": "days left",
     "learnMore": "Learn More",
     "valuation": "Valuation",
-    "author": "Author"
+    "author": "Author",
+    "viewAllMedia": "View Project Media",
+    "images": "images",
+    "video": "video",
+    "noMediaYet": "No media uploaded yet",
+    "recentInvestors": "Recent Investors",
+    "noInvestors": "No investors yet"
+  },
+  "founderProfile": {
+    "title": "Founder Profile",
+    "projects": "Projects",
+    "noProjects": "No active projects found.",
+    "kycVerified": "KYC Verified",
+    "notFound": "Founder Not Found",
+    "notFoundSubtitle": "This profile may not exist or is not available."
   },
   "common": {
     "loading": "Loading...",

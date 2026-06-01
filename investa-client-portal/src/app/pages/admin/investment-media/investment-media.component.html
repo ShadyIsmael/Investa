@@ -1,0 +1,219 @@
+<div class="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-900">
+
+  <!-- Sticky nav bar -->
+  <div class="sticky top-0 z-40 border-b border-slate-800/50 bg-slate-950/80 backdrop-blur-md">
+    <div class="container mx-auto px-6 py-4 flex items-center justify-between gap-4">
+      @if (investment(); as inv) {
+        <a [routerLink]="['/admin/investments', inv.id]"
+           class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
+          <svg class="w-5 h-5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+          {{ inv.name }}
+        </a>
+      } @else {
+        <a routerLink="/admin/investments"
+           class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
+          <svg class="w-5 h-5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+          {{ 'investmentPreview.backButton' | translate }}
+        </a>
+      }
+      <span class="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+        {{ 'investmentPreview.media' | translate }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Loading state -->
+  @if (loading()) {
+    <div class="flex items-center justify-center py-40">
+      <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+    </div>
+  }
+
+  @if (!loading() && investment(); as inv) {
+    <div class="container mx-auto px-6 py-12 animate-fade-in">
+
+      <!-- Page header -->
+      <div class="mb-10">
+        <h1 class="text-3xl font-bold text-white mb-1">{{ inv.name }}</h1>
+        <p class="text-gray-400 text-sm">
+          @if (inv.images?.length) {
+            {{ inv.images!.length }}&nbsp;{{ 'investmentPreview.images' | translate }}
+          }
+          @if (inv.images?.length && inv.videoUrl) { &nbsp;·&nbsp; }
+          @if (inv.videoUrl) {
+            1&nbsp;{{ 'investmentPreview.video' | translate }}
+          }
+        </p>
+      </div>
+
+      <!-- ── Video ── -->
+      @if (inv.videoUrl) {
+        <section class="mb-12">
+          <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"/>
+            </svg>
+            {{ 'investmentPreview.video' | translate }}
+          </h2>
+
+          @if (isYoutube || isVimeo) {
+            <div class="relative w-full max-w-4xl rounded-2xl overflow-hidden bg-black shadow-2xl shadow-black/50"
+                 style="padding-top: 56.25%">
+              <iframe class="absolute inset-0 w-full h-full"
+                      [src]="inv.videoUrl"
+                      [title]="inv.name"
+                      frameborder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowfullscreen>
+              </iframe>
+            </div>
+          } @else {
+            <!-- Direct video file -->
+            <video class="w-full max-w-4xl rounded-2xl shadow-2xl shadow-black/50 bg-black"
+                   controls
+                   preload="metadata">
+              <source [src]="inv.videoUrl">
+              Your browser does not support the video tag.
+            </video>
+          }
+        </section>
+      }
+
+      <!-- ── Images ── -->
+      @if (inv.images && inv.images.length > 0) {
+        <section>
+          <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+            </svg>
+            {{ 'investmentPreview.images' | translate }}
+            <span class="ms-1 text-sm font-normal text-gray-500">({{ inv.images.length }})</span>
+          </h2>
+
+          <!-- Masonry-style grid -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            @for (img of inv.images; track img.id; let i = $index) {
+              <button type="button"
+                      (click)="openLightbox(i)"
+                      class="relative aspect-video rounded-xl overflow-hidden group ring-1 ring-white/5 hover:ring-2 hover:ring-blue-400/50 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all shadow-lg"
+                      [title]="img.caption || ''">
+                <img [src]="resolveImageUrl(img.url)"
+                     [alt]="img.caption || ('Image ' + (i + 1))"
+                     class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+                <!-- Hover overlay -->
+                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                  <svg class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg"
+                       fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803 7.5 7.5 0 0016.803 15.803zM10.5 7.5v6m3-3h-6"/>
+                  </svg>
+                </div>
+                <!-- Caption -->
+                @if (img.caption) {
+                  <div class="absolute bottom-0 inset-x-0 px-2.5 py-2 bg-gradient-to-t from-black/80 to-transparent text-xs text-white font-medium truncate">
+                    {{ img.caption }}
+                  </div>
+                }
+                <!-- Primary badge -->
+                @if (img.isPrimary) {
+                  <div class="absolute top-2 start-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-600/90 text-white shadow">
+                    {{ 'investmentPreview.primaryImage' | translate }}
+                  </div>
+                }
+                <!-- Index badge -->
+                <div class="absolute top-2 end-2 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-black/50 text-gray-300">
+                  {{ i + 1 }}/{{ inv.images!.length }}
+                </div>
+              </button>
+            }
+          </div>
+        </section>
+      }
+
+      <!-- Empty state -->
+      @if (!inv.videoUrl && (!inv.images || inv.images.length === 0)) {
+        <div class="flex flex-col items-center justify-center py-32 text-center animate-fade-in">
+          <div class="w-20 h-20 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center mb-4">
+            <svg class="w-9 h-9 text-gray-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-1">{{ 'investmentPreview.noMedia' | translate }}</h3>
+          <p class="text-sm text-gray-500">{{ 'investmentPreview.noMediaSubtitle' | translate }}</p>
+        </div>
+      }
+
+    </div>
+  }
+
+  <!-- Not found -->
+  @if (!loading() && !investment()) {
+    <div class="container mx-auto px-6 py-40 text-center">
+      <h2 class="text-2xl font-bold text-white mb-2">{{ 'investmentPreview.notFound.title' | translate }}</h2>
+      <a routerLink="/admin/investments" class="text-blue-400 hover:underline text-sm">
+        {{ 'investmentPreview.backButton' | translate }}
+      </a>
+    </div>
+  }
+
+</div>
+
+<!-- ── Lightbox ── -->
+@if (lightboxIndex() !== null && investment()?.images?.length) {
+  @let images = investment()!.images!;
+  @let idx    = lightboxIndex()!;
+
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm animate-fade-in"
+       (click)="closeLightbox()"
+       (keydown.escape)="closeLightbox()"
+       (keydown.arrowLeft)="prevImage(images.length)"
+       (keydown.arrowRight)="nextImage(images.length)"
+       tabindex="0"
+       role="dialog">
+
+    <!-- Close -->
+    <button type="button" (click)="closeLightbox()"
+            class="absolute top-4 end-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors focus:outline-none">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+
+    <!-- Counter -->
+    <div class="absolute top-4 start-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/50 text-white text-sm font-semibold">
+      {{ idx + 1 }} / {{ images.length }}
+    </div>
+
+    <!-- Prev -->
+    <button type="button" (click)="prevImage(images.length); $event.stopPropagation()"
+            class="absolute start-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors focus:outline-none">
+      <svg class="w-6 h-6 rtl:rotate-180" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>
+    </button>
+
+    <!-- Image -->
+    <img [src]="resolveImageUrl(images[idx].url)"
+         [alt]="images[idx].caption || ('Image ' + (idx + 1))"
+         class="max-h-[90vh] max-w-[90vw] rounded-xl shadow-2xl object-contain"
+         (click)="$event.stopPropagation()">
+
+    <!-- Next -->
+    <button type="button" (click)="nextImage(images.length); $event.stopPropagation()"
+            class="absolute end-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors focus:outline-none">
+      <svg class="w-6 h-6 rtl:rotate-180" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+      </svg>
+    </button>
+
+    <!-- Caption -->
+    @if (images[idx].caption) {
+      <div class="absolute bottom-6 start-1/2 -translate-x-1/2 max-w-lg px-4 py-2 rounded-lg bg-black/60 text-white text-sm text-center">
+        {{ images[idx].caption }}
+      </div>
+    }
+  </div>
+}
