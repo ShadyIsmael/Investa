@@ -50,6 +50,12 @@ export class InvestmentPreviewComponent {
   // User credits from UserService
   userCredits = this.userService.credits;
 
+  /** URL of the image currently shown in the lightbox (null = closed) */
+  lightboxUrl = signal<string | null>(null);
+
+  openLightbox(url: string): void { this.lightboxUrl.set(url); }
+  closeLightbox(): void { this.lightboxUrl.set(null); }
+
   /**
    * Navigate to a team member's profile if an id is available
    */
@@ -420,6 +426,12 @@ export class InvestmentPreviewComponent {
 
   getInvestmentTypeBadgeClass(type: InvestmentType | number | undefined): string {
     return getInvestmentTypeBadgeClass(type);
+  }
+
+  getDaysRemaining(endDate: string | Date | undefined): number {
+    if (!endDate) return -1;
+    const diff = new Date(endDate).getTime() - Date.now();
+    return Math.max(0, Math.ceil(diff / 86400000));
   }
 
   /**

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import '../l10n/app_localizations.dart';
+import '../services/notification_api_service.dart';
 import 'dashboard_screen.dart';
 import 'investments_screen.dart';
 import 'requests_screen.dart';
 import 'engagement_screen.dart';
 import 'profile_screen.dart';
+import 'notifications_screen.dart';
 
 class MainWrapper extends StatefulWidget {
   final ThemeMode themeMode;
@@ -31,6 +33,28 @@ class _MainWrapperState extends State<MainWrapper> {
   int _selectedIndex = 0;
   int _pendingRequestsCount = 0;
   int _unreadMessagesCount = 0;
+  int _unreadNotifCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshNotifBadge();
+  }
+
+  Future<void> _refreshNotifBadge() async {
+    try {
+      final page = await NotificationApiService()
+          .fetchNotifications(page: 1, pageSize: 1);
+      _safeSetState(() => _unreadNotifCount = page.unreadCount);
+    } catch (_) {}
+  }
+
+  void _openNotifications() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+    ).then((_) => _refreshNotifBadge());
+  }
 
   void _safeSetState(VoidCallback updater) {
     if (!mounted) return;
@@ -107,6 +131,15 @@ class _MainWrapperState extends State<MainWrapper> {
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
             child: _currentScreen(),
+          ),
+          // Notifications bell — top-right overlay
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            right: 12,
+            child: _NotificationBell(
+              unreadCount: _unreadNotifCount,
+              onTap: _openNotifications,
+            ),
           ),
         ],
       ),
@@ -299,6 +332,76 @@ class _MainWrapperState extends State<MainWrapper> {
                     fontSize: 11,
                     fontWeight:
                         isSelected ? FontWeight.bold : FontWeight.normal)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Notifications bell widget ─────────────────────────────────────────────────
+
+class _NotificationBell extends StatelessWidget {
+  final int unreadCount;
+  final VoidCallback onTap;
+
+  const _NotificationBell({
+    required this.unreadCount,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(40),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            )
+          ],
+        ),
+        child: Stack(
+          children: [
+            Center(
+              child: Icon(
+                Icons.notifications_outlined,
+                color: theme.colorScheme.onSurface,
+                size: 22,
+              ),
+            ),
+            if (unreadCount > 0)
+              Positioned(
+                right: 6,
+                top: 6,
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  constraints:
+                      const BoxConstraints(minWidth: 16, minHeight: 16),
+                  child: Text(
+                    unreadCount > 99 ? '99+' : '$unreadCount',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
           ],
         ),
       ),

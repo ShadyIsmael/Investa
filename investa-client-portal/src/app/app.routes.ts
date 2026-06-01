@@ -70,10 +70,20 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/admin/submit-investment/submit-investment.component').then(m => m.SubmitInvestmentComponent),
         title: 'Edit Investment - Investa' 
       },
+      {
+        path: 'investments/:id/media',
+        loadComponent: () => import('./pages/admin/investment-media/investment-media.component').then(m => m.InvestmentMediaComponent),
+        title: 'Project Media - Investa'
+      },
       { 
         path: 'investments/:id', 
         loadComponent: () => import('./pages/admin/investment-preview/investment-preview.component').then(m => m.InvestmentPreviewComponent),
         title: 'Investment Preview - Investa' 
+      },
+      {
+        path: 'founders/:id',
+        loadComponent: () => import('./pages/admin/founder-profile/founder-profile.component').then(m => m.FounderProfileComponent),
+        title: 'Founder Profile - Investa'
       },
 
       { 

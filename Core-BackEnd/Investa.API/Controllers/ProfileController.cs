@@ -548,6 +548,55 @@ public class ProfileController : ControllerBase
     }
 
     /// <summary>
+    /// Returns a public-safe subset of another user's profile (name, avatar, bio, company, score).
+    /// Sensitive fields (contact info, KYC documents, financial data) are intentionally omitted.
+    /// </summary>
+    [HttpGet("{id}/public")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetPublicProfile(string id)
+    {
+        if (!Guid.TryParse(id, out var userId))
+            return BadRequest(new { message = "Invalid user ID format." });
+
+        try
+        {
+            var profile = await _profileService.GetUserProfileAsync(userId);
+            if (profile == null)
+                return NotFound(new { message = "Profile not found." });
+
+            // Return only public-safe fields — no contact info, KYC docs, or financial data
+            var publicProfile = new
+            {
+                userId = profile.UserId,
+                fullName = profile.BasicInfo?.FullName,
+                firstName = profile.BasicInfo?.FirstName,
+                lastName = profile.BasicInfo?.LastName,
+                bio = profile.BasicInfo?.Bio,
+                avatarUrl = profile.BasicInfo?.AvatarUrl,
+                companyName = profile.BasicInfo?.CompanyName,
+                country = profile.BasicInfo?.Country,
+                nationality = profile.BasicInfo?.Nationality,
+                isKycVerified = profile.BasicInfo?.IsKycVerified ?? false,
+                credibilityScore = profile.BasicInfo?.Score ?? 0,
+                role = profile.CoreMetrics?.Role,
+                linkedInUrl = profile.ContactInfo?.LinkedInUrl,
+                facebookUrl = profile.ContactInfo?.FacebookUrl,
+            };
+
+            _logger.LogInformation("Public profile requested for user {UserId}", userId);
+            return Ok(publicProfile);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving public profile for user {UserId}", userId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Error retrieving profile." });
+        }
+    }
+
+    /// <summary>
     /// Debug endpoint to echo back Authorization header and any claims (development only)
     /// </summary>
     [HttpGet("debug")]

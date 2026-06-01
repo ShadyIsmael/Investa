@@ -421,7 +421,21 @@
     "daysLeft": "أيام متبقية",
     "learnMore": "اعرف المزيد",
     "valuation": "التقييم",
-    "author": "المؤلف"
+    "author": "المؤلف",
+    "viewAllMedia": "عرض وسائط المشروع",
+    "images": "صور",
+    "video": "فيديو",
+    "noMediaYet": "لم يتم رفع أي وسائط بعد",
+    "recentInvestors": "المستثمرون الأخيرون",
+    "noInvestors": "لا يوجد مستثمرون بعد"
+  },
+  "founderProfile": {
+    "title": "الملف الشخصي للمؤسس",
+    "projects": "المشاريع",
+    "noProjects": "لا توجد مشاريع نشطة.",
+    "kycVerified": "تم التحقق من الهوية",
+    "notFound": "المؤسس غير موجود",
+    "notFoundSubtitle": "هذا الملف الشخصي غير موجود أو غير متاح."
   },
   "dashboard": {
     "investorTitle": "لوحة تحكم المستثمر",

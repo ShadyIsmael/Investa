@@ -81,17 +81,29 @@
           <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
             <h2 class="text-lg font-semibold text-white mb-3">{{ 'settings.notifications.title' | translate }}</h2>
             <div class="space-y-3">
-              <label class="flex items-center gap-3">
-                <input type="checkbox" class="accent-blue-500" [checked]="settings().notifications.email" (change)="toggleNotifications('email', $any($event.target).checked)">
-                <span class="text-gray-300">{{ 'settings.notifications.email' | translate }}</span>
+              <label class="flex items-center justify-between gap-4 cursor-pointer group py-1">
+                <span class="text-sm text-gray-300 group-hover:text-white transition-colors">{{ 'settings.notifications.email' | translate }}</span>
+                <div class="relative flex-shrink-0">
+                  <input type="checkbox" class="sr-only peer" [checked]="settings().notifications.email" (change)="toggleNotifications('email', $any($event.target).checked)">
+                  <div class="w-11 h-6 bg-slate-700 peer-checked:bg-blue-600 rounded-full transition-colors border border-slate-600 peer-checked:border-blue-500"></div>
+                  <div class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5 shadow-sm"></div>
+                </div>
               </label>
-              <label class="flex items-center gap-3">
-                <input type="checkbox" class="accent-blue-500" [checked]="settings().notifications.push" (change)="toggleNotifications('push', $any($event.target).checked)">
-                <span class="text-gray-300">{{ 'settings.notifications.push' | translate }}</span>
+              <label class="flex items-center justify-between gap-4 cursor-pointer group py-1">
+                <span class="text-sm text-gray-300 group-hover:text-white transition-colors">{{ 'settings.notifications.push' | translate }}</span>
+                <div class="relative flex-shrink-0">
+                  <input type="checkbox" class="sr-only peer" [checked]="settings().notifications.push" (change)="toggleNotifications('push', $any($event.target).checked)">
+                  <div class="w-11 h-6 bg-slate-700 peer-checked:bg-blue-600 rounded-full transition-colors border border-slate-600 peer-checked:border-blue-500"></div>
+                  <div class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5 shadow-sm"></div>
+                </div>
               </label>
-              <label class="flex items-center gap-3">
-                <input type="checkbox" class="accent-blue-500" [checked]="settings().notifications.sms" (change)="toggleNotifications('sms', $any($event.target).checked)">
-                <span class="text-gray-300">{{ 'settings.notifications.sms' | translate }}</span>
+              <label class="flex items-center justify-between gap-4 cursor-pointer group py-1">
+                <span class="text-sm text-gray-300 group-hover:text-white transition-colors">{{ 'settings.notifications.sms' | translate }}</span>
+                <div class="relative flex-shrink-0">
+                  <input type="checkbox" class="sr-only peer" [checked]="settings().notifications.sms" (change)="toggleNotifications('sms', $any($event.target).checked)">
+                  <div class="w-11 h-6 bg-slate-700 peer-checked:bg-blue-600 rounded-full transition-colors border border-slate-600 peer-checked:border-blue-500"></div>
+                  <div class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5 shadow-sm"></div>
+                </div>
               </label>
             </div>
           </div>
@@ -100,13 +112,21 @@
           <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
             <h2 class="text-lg font-semibold text-white mb-3">{{ 'settings.privacy.title' | translate }}</h2>
             <div class="space-y-3">
-              <label class="flex items-center gap-3">
-                <input type="checkbox" class="accent-blue-500" [checked]="settings().privacy.showPublicProfile" (change)="togglePrivacy('showPublicProfile', $any($event.target).checked)">
-                <span class="text-gray-300">{{ 'settings.privacy.showPublicProfile' | translate }}</span>
+              <label class="flex items-center justify-between gap-4 cursor-pointer group py-1">
+                <span class="text-sm text-gray-300 group-hover:text-white transition-colors">{{ 'settings.privacy.showPublicProfile' | translate }}</span>
+                <div class="relative flex-shrink-0">
+                  <input type="checkbox" class="sr-only peer" [checked]="settings().privacy.showPublicProfile" (change)="togglePrivacy('showPublicProfile', $any($event.target).checked)">
+                  <div class="w-11 h-6 bg-slate-700 peer-checked:bg-blue-600 rounded-full transition-colors border border-slate-600 peer-checked:border-blue-500"></div>
+                  <div class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5 shadow-sm"></div>
+                </div>
               </label>
-              <label class="flex items-center gap-3">
-                <input type="checkbox" class="accent-blue-500" [checked]="settings().privacy.sharePortfolioPerformance" (change)="togglePrivacy('sharePortfolioPerformance', $any($event.target).checked)">
-                <span class="text-gray-300">{{ 'settings.privacy.sharePortfolioPerformance' | translate }}</span>
+              <label class="flex items-center justify-between gap-4 cursor-pointer group py-1">
+                <span class="text-sm text-gray-300 group-hover:text-white transition-colors">{{ 'settings.privacy.sharePortfolioPerformance' | translate }}</span>
+                <div class="relative flex-shrink-0">
+                  <input type="checkbox" class="sr-only peer" [checked]="settings().privacy.sharePortfolioPerformance" (change)="togglePrivacy('sharePortfolioPerformance', $any($event.target).checked)">
+                  <div class="w-11 h-6 bg-slate-700 peer-checked:bg-blue-600 rounded-full transition-colors border border-slate-600 peer-checked:border-blue-500"></div>
+                  <div class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5 shadow-sm"></div>
+                </div>
               </label>
             </div>
           </div>
@@ -150,9 +170,13 @@
                 </div>
               </div>
               <div class="md:col-span-2">
-                <label class="flex items-center gap-3">
-                  <input type="checkbox" class="accent-blue-500" [checked]="settings().personalization.showRiskIndicators" (change)="setPersonalization({ showRiskIndicators: $any($event.target).checked })">
-                  <span class="text-gray-300">{{ 'settings.personalization.showRiskIndicators' | translate }}</span>
+                <label class="flex items-center justify-between gap-4 cursor-pointer group py-1">
+                  <span class="text-sm text-gray-300 group-hover:text-white transition-colors">{{ 'settings.personalization.showRiskIndicators' | translate }}</span>
+                  <div class="relative flex-shrink-0">
+                    <input type="checkbox" class="sr-only peer" [checked]="settings().personalization.showRiskIndicators" (change)="setPersonalization({ showRiskIndicators: $any($event.target).checked })">
+                    <div class="w-11 h-6 bg-slate-700 peer-checked:bg-blue-600 rounded-full transition-colors border border-slate-600 peer-checked:border-blue-500"></div>
+                    <div class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5 shadow-sm"></div>
+                  </div>
                 </label>
               </div>
             </div>
@@ -162,9 +186,13 @@
           <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
             <h2 class="text-lg font-semibold text-white mb-3">{{ 'settings.support.title' | translate }}</h2>
             <div class="space-y-4">
-              <label class="flex items-center gap-3">
-                <input type="checkbox" class="accent-blue-500" [checked]="settings().support?.available" (change)="setSupportAvailability($any($event.target).checked)">
-                <span class="text-gray-300">{{ 'settings.support.available' | translate }}</span>
+              <label class="flex items-center justify-between gap-4 cursor-pointer group py-1">
+                <span class="text-sm text-gray-300 group-hover:text-white transition-colors">{{ 'settings.support.available' | translate }}</span>
+                <div class="relative flex-shrink-0">
+                  <input type="checkbox" class="sr-only peer" [checked]="settings().support?.available" (change)="setSupportAvailability($any($event.target).checked)">
+                  <div class="w-11 h-6 bg-slate-700 peer-checked:bg-blue-600 rounded-full transition-colors border border-slate-600 peer-checked:border-blue-500"></div>
+                  <div class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5 shadow-sm"></div>
+                </div>
               </label>
               <div>
                 <label class="block text-sm font-medium text-gray-300 mb-2">{{ 'settings.support.hours' | translate }}</label>
