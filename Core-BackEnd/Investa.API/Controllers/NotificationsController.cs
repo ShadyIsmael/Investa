@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 using Investa.API.Authorization;
 using Investa.Application.DTOs;
 using Investa.Application.Interfaces;
+using Investa.Domain.Entities;
+using Investa.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,13 +22,16 @@ namespace Investa.API.Controllers
     {
         private readonly INotificationService _notificationService;
         private readonly ILogger<NotificationsController> _logger;
+        private readonly ApplicationDbContext _db;
 
         public NotificationsController(
             INotificationService notificationService,
-            ILogger<NotificationsController> logger)
+            ILogger<NotificationsController> logger,
+            ApplicationDbContext db)
         {
             _notificationService = notificationService;
             _logger = logger;
+            _db = db;
         }
 
         /// <summary>
@@ -135,15 +140,32 @@ namespace Investa.API.Controllers
                 var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 _logger.LogInformation("Admin {AdminId} sending test notification to user {UserId}", currentUserId, request.UserId);
 
+                var storedNotification = new UserNotification
+                {
+                    UserId = request.UserId,
+                    Title = request.Title,
+                    Body = request.Body,
+                    Type = "info",
+                    Icon = "bell",
+                    CreatedAt = DateTime.UtcNow,
+                };
+
+                _db.UserNotifications.Add(storedNotification);
+                await _db.SaveChangesAsync();
+
                 var result = await _notificationService.SendNotificationAsync(
                     request.UserId,
                     request.Title,
                     request.Body);
 
+                var message = result.Success
+                    ? $"Notification stored and push sent. {result.Message}"
+                    : $"Notification stored in-app, but push delivery was unavailable. {result.Message}";
+
                 return Ok(new SendNotificationResponseDto
                 {
-                    Success = result.Success,
-                    Message = result.Message,
+                    Success = true,
+                    Message = message,
                     TokensFound = result.TokensFound,
                     SuccessCount = result.SuccessCount,
                     FailureCount = result.FailureCount

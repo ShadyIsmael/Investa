@@ -4,6 +4,8 @@ using Investa.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Investa.Domain.Entities.Security;
+using Investa.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace Investa.API.Controllers.Admin
 {
@@ -14,10 +16,12 @@ namespace Investa.API.Controllers.Admin
     public class ClientsAdminController : ControllerBase
     {
         private readonly IClientService _clientService;
+        private readonly ApplicationDbContext _context;
 
-        public ClientsAdminController(IClientService clientService)
+        public ClientsAdminController(IClientService clientService, ApplicationDbContext context)
         {
             _clientService = clientService;
+            _context = context;
         }
 
         [HttpGet]
@@ -27,15 +31,35 @@ namespace Investa.API.Controllers.Admin
             if (pageSize <= 0 || pageSize > 200) pageSize = 20;
 
             var (total, items) = await _clientService.GetClientsForAdminAsync(page, pageSize, search);
+            var userIds = items
+                .Select(i => i.UserId)
+                .Where(userId => userId != Guid.Empty)
+                .Distinct()
+                .Select(id => id.ToString())
+                .ToList();
 
-            var projected = items.Select(i => new {
-                Id = i.Id,
-                UserId = i.UserId,
-                FullName = string.Join(" ", new[] { i.FirstName, i.LastName }.Where(s => !string.IsNullOrWhiteSpace(s))),
-                Score = i.Score,
-                Credit = i.Credit,
-                RegisteredDate = i.CreatedAt,
-                AccountStatus = i.StatusName ?? i.StatusNameEn ?? i.StatusNameAr
+            var tokenCounts = userIds.Count == 0
+                ? new Dictionary<string, int>()
+                : _context.UserTokens
+                    .Where(token => token.IsActive)
+                    .AsEnumerable()
+                    .Where(token => userIds.Contains(token.UserId))
+                    .GroupBy(token => token.UserId)
+                    .ToDictionary(group => group.Key, group => group.Count());
+
+            var projected = items.Select(i => {
+                var userIdString = i.UserId != Guid.Empty ? i.UserId.ToString() : string.Empty;
+                return new {
+                    Id = i.Id,
+                    UserId = userIdString,
+                    FullName = string.Join(" ", new[] { i.FirstName, i.LastName }.Where(s => !string.IsNullOrWhiteSpace(s))),
+                    Score = i.Score,
+                    Credit = i.Credit,
+                    RegisteredDate = i.CreatedAt,
+                    AccountStatus = i.StatusName ?? i.StatusNameEn ?? i.StatusNameAr,
+                    HasActiveNotificationToken = !string.IsNullOrWhiteSpace(userIdString) && tokenCounts.ContainsKey(userIdString),
+                    ActiveNotificationTokens = !string.IsNullOrWhiteSpace(userIdString) && tokenCounts.TryGetValue(userIdString, out var count) ? count : 0
+                };
             }).ToList();
 
             return Ok(new { total, page, pageSize, items = projected });
@@ -50,15 +74,35 @@ namespace Investa.API.Controllers.Admin
             if (limit <= 0 || limit > 1000) limit = 100; // protect against excessive values
 
             var items = await _clientService.GetTopClientsByScoreAsync(limit);
+            var userIds = items
+                .Select(i => i.UserId)
+                .Where(userId => userId != Guid.Empty)
+                .Distinct()
+                .Select(id => id.ToString())
+                .ToList();
 
-            var projected = items.Select(i => new {
-                Id = i.Id,
-                UserId = i.UserId,
-                FullName = string.Join(" ", new[] { i.FirstName, i.LastName }.Where(s => !string.IsNullOrWhiteSpace(s))),
-                Score = i.Score,
-                Credit = i.Credit,
-                RegisteredDate = i.CreatedAt,
-                AccountStatus = i.StatusName ?? i.StatusNameEn ?? i.StatusNameAr
+            var tokenCounts = userIds.Count == 0
+                ? new Dictionary<string, int>()
+                : _context.UserTokens
+                    .Where(token => token.IsActive)
+                    .AsEnumerable()
+                    .Where(token => userIds.Contains(token.UserId))
+                    .GroupBy(token => token.UserId)
+                    .ToDictionary(group => group.Key, group => group.Count());
+
+            var projected = items.Select(i => {
+                var userIdString = i.UserId != Guid.Empty ? i.UserId.ToString() : string.Empty;
+                return new {
+                    Id = i.Id,
+                    UserId = userIdString,
+                    FullName = string.Join(" ", new[] { i.FirstName, i.LastName }.Where(s => !string.IsNullOrWhiteSpace(s))),
+                    Score = i.Score,
+                    Credit = i.Credit,
+                    RegisteredDate = i.CreatedAt,
+                    AccountStatus = i.StatusName ?? i.StatusNameEn ?? i.StatusNameAr,
+                    HasActiveNotificationToken = !string.IsNullOrWhiteSpace(userIdString) && tokenCounts.ContainsKey(userIdString),
+                    ActiveNotificationTokens = !string.IsNullOrWhiteSpace(userIdString) && tokenCounts.TryGetValue(userIdString, out var count) ? count : 0
+                };
             }).ToList();
 
             return Ok(projected);

@@ -302,7 +302,6 @@ Future<DashboardData> fetchDashboardData({String interval = 'month'}) async {
   );
 }
 
-
 List<MonthlyCredit> _aggregateByInterval(List<CreditTransaction> transactions,
     {required String interval,
     required int buckets,

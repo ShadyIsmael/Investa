@@ -82,10 +82,12 @@ class NotificationApiService {
     int page = 1,
     int pageSize = 20,
   }) async {
-    final uri = '$_baseUrl/api/v1/user-notifications?page=$page&pageSize=$pageSize';
+    final uri =
+        '$_baseUrl/api/v1/user-notifications?page=$page&pageSize=$pageSize';
     try {
       AppLogger.logInfo('NotificationApiService', 'GET $uri');
-      final resp = await _client.get(uri, headers: {'accept': 'application/json'});
+      final resp =
+          await _client.get(uri, headers: {'accept': 'application/json'});
       final status = resp.statusCode ?? 0;
 
       if (status >= 200 && status < 300) {
@@ -116,10 +118,12 @@ class NotificationApiService {
         );
       }
 
-      AppLogger.logError('NotificationApiService', 'Server error: $status', null);
+      AppLogger.logError(
+          'NotificationApiService', 'Server error: $status', null);
       return const NotificationPage(items: [], totalCount: 0, unreadCount: 0);
     } catch (e, s) {
-      AppLogger.logError('NotificationApiService', 'fetchNotifications error: $e', s);
+      AppLogger.logError(
+          'NotificationApiService', 'fetchNotifications error: $e', s);
       return const NotificationPage(items: [], totalCount: 0, unreadCount: 0);
     }
   }
@@ -132,7 +136,9 @@ class NotificationApiService {
       AppLogger.logInfo('NotificationApiService', 'POST $uri id=$id');
       await _client.post(
         uri,
-        data: {'ids': [id]},
+        data: {
+          'ids': [id]
+        },
         headers: {'content-type': 'application/json'},
       );
     } catch (e, s) {
@@ -152,7 +158,8 @@ class NotificationApiService {
         headers: {'content-type': 'application/json'},
       );
     } catch (e, s) {
-      AppLogger.logError('NotificationApiService', 'markAllAsRead error: $e', s);
+      AppLogger.logError(
+          'NotificationApiService', 'markAllAsRead error: $e', s);
     }
   }
 
@@ -164,7 +171,8 @@ class NotificationApiService {
       AppLogger.logInfo('NotificationApiService', 'DELETE $uri');
       await _client.delete(uri, headers: {'accept': 'application/json'});
     } catch (e, s) {
-      AppLogger.logError('NotificationApiService', 'deleteNotification error: $e', s);
+      AppLogger.logError(
+          'NotificationApiService', 'deleteNotification error: $e', s);
     }
   }
 }

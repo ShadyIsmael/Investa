@@ -153,6 +153,8 @@ export interface Client {
   status: 'Active' | 'Inactive' | 'Suspended' | 'Pending';
   verificationPercent: number;
   avatar: string;
+  hasActiveNotificationToken?: boolean;
+  activeNotificationTokens?: number;
 }
 
 export interface SupportRequest {

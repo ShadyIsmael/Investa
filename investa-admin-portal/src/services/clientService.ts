@@ -41,6 +41,8 @@ export const clientService = {
 
         const avatar = item.personalImageUrl ?? item.avatar ?? `https://picsum.photos/seed/${id}/100/100`;
         const email = item.email ?? item.Email ?? '';
+        const hasActiveNotificationToken = Boolean(item.hasActiveNotificationToken ?? item.HasActiveNotificationToken ?? false);
+        const activeNotificationTokens = Number(item.activeNotificationTokens ?? item.ActiveNotificationTokens ?? 0);
         return {
           id,
           name,
@@ -49,6 +51,8 @@ export const clientService = {
           status,
           verificationPercent,
           avatar,
+          hasActiveNotificationToken,
+          activeNotificationTokens,
         } as Client;
       });
     } catch (err) {
@@ -86,6 +90,8 @@ export const clientService = {
           verificationPercent,
           score: scoreValue,
           avatar: `https://picsum.photos/seed/${encodeURIComponent(id)}/100/100`,
+          hasActiveNotificationToken: Boolean(item.hasActiveNotificationToken ?? item.HasActiveNotificationToken ?? false),
+          activeNotificationTokens: Number(item.activeNotificationTokens ?? item.ActiveNotificationTokens ?? 0),
         } as any as Client;
       }).slice(0, 10);
 
@@ -114,6 +120,8 @@ export const clientService = {
       const verificationPercent = typeof data.score === 'number' ? Math.round(Math.min(100, data.score)) : 0;
       const avatar = data.personalImageUrl || data.personalImage || data.avatar || `https://picsum.photos/seed/${id}/100/100`;
       const email = data.email || '';
+      const hasActiveNotificationToken = Boolean(data.hasActiveNotificationToken ?? data.HasActiveNotificationToken ?? false);
+      const activeNotificationTokens = Number(data.activeNotificationTokens ?? data.ActiveNotificationTokens ?? 0);
 
       return {
         id,
@@ -123,6 +131,8 @@ export const clientService = {
         status,
         verificationPercent,
         avatar,
+        hasActiveNotificationToken,
+        activeNotificationTokens,
       } as Client;
     } catch (err) {
       console.error('[clientService] getClient error', err);

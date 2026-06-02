@@ -390,8 +390,8 @@ class _CreditChargeScreenState extends State<CreditChargeScreen> {
           ? Text(
               'Select a plan to continue',
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withAlpha(120)),
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: theme.colorScheme.onSurface.withAlpha(120)),
             )
           : Column(
               children: [
@@ -434,8 +434,7 @@ class _CreditChargeScreenState extends State<CreditChargeScreen> {
                     const SizedBox(width: 4),
                     Text('Secure Payment',
                         style: theme.textTheme.labelSmall?.copyWith(
-                            color:
-                                theme.colorScheme.onSurface.withAlpha(100))),
+                            color: theme.colorScheme.onSurface.withAlpha(100))),
                   ],
                 ),
               ],
@@ -495,12 +494,9 @@ class _PlanCard extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected
-              ? theme.colorScheme.primary.withAlpha(20)
-              : cardBg,
+          color: isSelected ? theme.colorScheme.primary.withAlpha(20) : cardBg,
           border: Border.all(
-            color:
-                isSelected ? theme.colorScheme.primary : theme.dividerColor,
+            color: isSelected ? theme.colorScheme.primary : theme.dividerColor,
             width: isSelected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(16),
@@ -590,8 +586,8 @@ class _PlanCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               '${plan.pricePerCredit.toStringAsFixed(2)} EGP/credit',
-              style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withAlpha(100)),
+              style: theme.textTheme.labelSmall
+                  ?.copyWith(color: theme.colorScheme.onSurface.withAlpha(100)),
             ),
             if (isSelected) ...[
               const SizedBox(height: 8),
@@ -604,8 +600,7 @@ class _PlanCard extends StatelessWidget {
                     color: theme.colorScheme.primary,
                     shape: BoxShape.circle,
                   ),
-                  child:
-                      const Icon(Icons.check, color: Colors.white, size: 14),
+                  child: const Icon(Icons.check, color: Colors.white, size: 14),
                 ),
               ),
             ],
