@@ -104,7 +104,8 @@ class CreditPlansService {
     final uri = '$_baseUrl/api/credit-plans';
     try {
       AppLogger.logInfo('CreditPlansService', 'GET $uri');
-      final resp = await _client.get(uri, headers: {'accept': 'application/json'});
+      final resp =
+          await _client.get(uri, headers: {'accept': 'application/json'});
       final status = resp.statusCode ?? 0;
       AppLogger.logInfo('CreditPlansService', 'Response status=$status');
 
@@ -142,10 +143,14 @@ class CreditPlansService {
       final resp = await _client.post(
         uri,
         data: <String, dynamic>{},
-        headers: {'content-type': 'application/json', 'accept': 'application/json'},
+        headers: {
+          'content-type': 'application/json',
+          'accept': 'application/json'
+        },
       );
       final status = resp.statusCode ?? 0;
-      AppLogger.logInfo('CreditPlansService', 'Purchase response status=$status');
+      AppLogger.logInfo(
+          'CreditPlansService', 'Purchase response status=$status');
 
       if (status >= 200 && status < 300) {
         final raw = resp.data;
@@ -155,7 +160,8 @@ class CreditPlansService {
         return PurchaseResult.fromJson(body);
       }
 
-      final errorMsg = _extractErrorMessage(resp.data) ?? 'Purchase failed (HTTP $status)';
+      final errorMsg =
+          _extractErrorMessage(resp.data) ?? 'Purchase failed (HTTP $status)';
       throw Exception(errorMsg);
     } catch (e, s) {
       AppLogger.logError('CreditPlansService', 'purchasePlan error: $e', s);

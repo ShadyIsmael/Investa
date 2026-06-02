@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { clientService } from '@/services/clientService';
+import { adminNotificationService, type SpecialNotificationResult } from '@/services/adminNotificationService';
 import { MOCK_CLIENTS } from '@/mocks';
 import { Icon } from '@/components/common/Icons';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +12,14 @@ interface ClientsListProps {
 
 export const ClientsList: React.FC<ClientsListProps> = ({ onViewClient }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedClientIds, setSelectedClientIds] = useState<string[]>([]);
+  const [showNotifyModal, setShowNotifyModal] = useState(false);
+  const [notifyTitle, setNotifyTitle] = useState('');
+  const [notifyBody, setNotifyBody] = useState('');
+  const [notifyError, setNotifyError] = useState<string | null>(null);
+  const [notifyResult, setNotifyResult] = useState<string | null>(null);
+  const [notifyDetails, setNotifyDetails] = useState<SpecialNotificationResult[]>([]);
+  const [sendingNotification, setSendingNotification] = useState(false);
 
   const { t } = useTranslation();
   const [clients, setClients] = useState(MOCK_CLIENTS);
@@ -38,6 +47,80 @@ export const ClientsList: React.FC<ClientsListProps> = ({ onViewClient }) => {
     (client.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     String(client.id).toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const filteredClientIds = filteredClients.map((c) => String(c.id));
+  const allFilteredSelected = filteredClientIds.length > 0 && filteredClientIds.every((id) => selectedClientIds.includes(id));
+
+  const toggleClientSelection = (clientId: string) => {
+    setSelectedClientIds((prev) => (
+      prev.includes(clientId) ? prev.filter((id) => id !== clientId) : [...prev, clientId]
+    ));
+  };
+
+  const toggleAllFiltered = () => {
+    if (allFilteredSelected) {
+      setSelectedClientIds((prev) => prev.filter((id) => !filteredClientIds.includes(id)));
+      return;
+    }
+
+    setSelectedClientIds((prev) => Array.from(new Set([...prev, ...filteredClientIds])));
+  };
+
+  const openNotificationModal = (ids?: string[]) => {
+    setNotifyError(null);
+    setNotifyResult(null);
+    setNotifyDetails([]);
+
+    if (ids && ids.length > 0) {
+      const distinct = Array.from(new Set(ids));
+      setSelectedClientIds(distinct);
+    }
+
+    setShowNotifyModal(true);
+  };
+
+  const closeNotificationModal = () => {
+    setShowNotifyModal(false);
+    setNotifyTitle('');
+    setNotifyBody('');
+    setNotifyError(null);
+    setNotifyResult(null);
+    setNotifyDetails([]);
+  };
+
+  const sendSpecialNotification = async () => {
+    const recipients = selectedClientIds.filter(Boolean);
+
+    if (recipients.length === 0) {
+      setNotifyError('Please select at least one client.');
+      return;
+    }
+
+    if (!notifyTitle.trim() || !notifyBody.trim()) {
+      setNotifyError('Title and message are required.');
+      return;
+    }
+
+    setSendingNotification(true);
+    setNotifyError(null);
+    setNotifyResult(null);
+    setNotifyDetails([]);
+
+    try {
+      const summary = await adminNotificationService.sendSpecialNotificationToUsers(
+        recipients,
+        notifyTitle.trim(),
+        notifyBody.trim(),
+      );
+
+      setNotifyResult(`Special notification sent. Success: ${summary.succeeded}, Failed: ${summary.failed}.`);
+      setNotifyDetails(summary.results);
+    } catch (e: any) {
+      setNotifyError(e?.message || 'Failed to send notification.');
+    } finally {
+      setSendingNotification(false);
+    }
+  };
 
   const getVerificationBadge = (percent: number) => {
     if (percent === 100) {
@@ -73,6 +156,13 @@ export const ClientsList: React.FC<ClientsListProps> = ({ onViewClient }) => {
           <p className="text-muted-foreground text-sm font-medium">{t('pages.clientPortfolioDescription', { defaultValue: 'Manage corporate identities, verification lifecycles, and access status.' })}</p>
         </div>
         <div className="flex gap-2">
+          <button
+            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95 shadow-sm border ${selectedClientIds.length > 0 ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700' : 'bg-surface text-muted-foreground border-border cursor-not-allowed opacity-70'}`}
+            disabled={selectedClientIds.length === 0}
+            onClick={() => openNotificationModal()}
+          >
+            Special Notification
+          </button>
           <button className="bg-surface hover:bg-background text-muted-foreground border border-border px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95 shadow-sm">
             Reports
           </button>
@@ -110,6 +200,15 @@ export const ClientsList: React.FC<ClientsListProps> = ({ onViewClient }) => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-surface text-text text-xs uppercase tracking-[0.15em] font-semibold">
+                <th className="px-4 py-4 w-10">
+                  <input
+                    type="checkbox"
+                    checked={allFilteredSelected}
+                    onChange={toggleAllFiltered}
+                    className="w-4 h-4 rounded border-border text-primary focus:ring-primary/40"
+                    aria-label="Select all clients in current filter"
+                  />
+                </th>
                 <th className="px-6 py-4">Client Identity</th>
                 <th className="px-6 py-4">Reg. Date</th>
                 <th className="px-6 py-4">Status</th>
@@ -121,6 +220,15 @@ export const ClientsList: React.FC<ClientsListProps> = ({ onViewClient }) => {
               {filteredClients.length > 0 ? (
                 filteredClients.map((client) => (
                   <tr key={client.id} className="hover:bg-background/40 transition-all group">
+                    <td className="px-4 py-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedClientIds.includes(String(client.id))}
+                        onChange={() => toggleClientSelection(String(client.id))}
+                        className="w-4 h-4 rounded border-border text-primary focus:ring-primary/40"
+                        aria-label={`Select ${client.name}`}
+                      />
+                    </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="relative">
@@ -132,6 +240,12 @@ export const ClientsList: React.FC<ClientsListProps> = ({ onViewClient }) => {
                         <div>
                           <p className="font-bold text-text text-sm leading-tight group-hover:text-primary transition-colors">{client.name}</p>
                           <p className="text-muted-foreground text-xxs mt-0.5 font-medium">{client.email}</p>
+                          <div className="mt-2">
+                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xxs font-bold border ${client.hasActiveNotificationToken ? 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-300 dark:border-indigo-500/20' : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${client.hasActiveNotificationToken ? 'bg-indigo-500' : 'bg-slate-400'}`}></span>
+                              {client.hasActiveNotificationToken ? `Push Ready${(client.activeNotificationTokens ?? 0) > 1 ? ` • ${client.activeNotificationTokens} devices` : ''}` : 'No Device Token'}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -179,6 +293,14 @@ export const ClientsList: React.FC<ClientsListProps> = ({ onViewClient }) => {
                           <Icon name="sparkles" className="w-3.5 h-3.5 group-hover/btn:scale-110 transition-transform" />
                           View
                         </button>
+                        <button
+                          className={`p-1.5 rounded-xl transition-all border ${client.hasActiveNotificationToken ? 'text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 border-transparent hover:border-indigo-200 dark:hover:border-indigo-500/20' : 'text-slate-400 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 cursor-not-allowed'}`}
+                          title="Send special notification"
+                          onClick={() => client.hasActiveNotificationToken && openNotificationModal([String(client.id)])}
+                          disabled={!client.hasActiveNotificationToken}
+                        >
+                          <Icon name="bell" className="w-4 h-4" />
+                        </button>
                         <button className="p-1.5 text-muted-foreground hover:text-text hover:bg-background rounded-xl transition-all border border-transparent hover:border-border" title="Modify Details">
                           <Icon name="settings" className="w-4 h-4" />
                         </button>
@@ -188,7 +310,7 @@ export const ClientsList: React.FC<ClientsListProps> = ({ onViewClient }) => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-6 py-20 text-center">
+                  <td colSpan={6} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center justify-center">
                        <div className="w-16 h-16 bg-background rounded-full flex items-center justify-center mb-4 border border-border">
                          <Icon name="search" className="w-8 h-8 text-muted-foreground" />
@@ -219,6 +341,102 @@ export const ClientsList: React.FC<ClientsListProps> = ({ onViewClient }) => {
           </div>
         </div>
       </div>
+
+      {showNotifyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="w-full max-w-xl rounded-2xl border border-border bg-surface shadow-xl">
+            <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-text">Send Special Notification</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Recipients: {selectedClientIds.length} client(s)</p>
+              </div>
+              <button
+                onClick={closeNotificationModal}
+                className="w-8 h-8 rounded-lg border border-border text-muted-foreground hover:text-text hover:bg-background transition-colors"
+                aria-label="Close notification modal"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-muted-foreground mb-2">Title</label>
+                <input
+                  value={notifyTitle}
+                  onChange={(e) => setNotifyTitle(e.target.value)}
+                  placeholder="e.g. Important update from Investa Admin"
+                  className="w-full px-3 py-2 bg-background border border-border rounded-xl text-sm text-text focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-muted-foreground mb-2">Message</label>
+                <textarea
+                  value={notifyBody}
+                  onChange={(e) => setNotifyBody(e.target.value)}
+                  placeholder="Write your special message for selected clients"
+                  className="w-full px-3 py-2 bg-background border border-border rounded-xl text-sm text-text h-28 resize-none focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary"
+                />
+              </div>
+
+              {notifyError && <p className="text-sm text-rose-600 dark:text-rose-400 font-semibold">{notifyError}</p>}
+              {notifyResult && <p className="text-sm text-emerald-600 dark:text-emerald-400 font-semibold">{notifyResult}</p>}
+
+              {notifyDetails.length > 0 && (
+                <div className="rounded-2xl border border-border bg-background/60 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-bold text-text">Delivery details</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Each selected client is sent individually through the backend notification service.</p>
+                    </div>
+                  </div>
+
+                  <div className="max-h-56 overflow-auto divide-y divide-border">
+                    {notifyDetails.map((item) => {
+                      const client = clients.find((entry) => String(entry.id) === item.userId);
+                      return (
+                        <div key={item.userId} className="px-4 py-3 flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-text truncate">{client?.name || item.userId}</p>
+                            <p className="text-xs text-muted-foreground mt-1 break-words">{item.message}</p>
+                            {typeof item.tokensFound === 'number' && (
+                              <p className="text-[11px] text-muted-foreground mt-1">
+                                Tokens: {item.tokensFound} | Success: {item.successCount ?? 0} | Failures: {item.failureCount ?? 0}
+                              </p>
+                            )}
+                          </div>
+                          <span className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${item.success ? 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20'}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${item.success ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                            {item.success ? 'Sent' : 'Failed'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 border-t border-border flex items-center justify-end gap-2">
+              <button
+                onClick={closeNotificationModal}
+                className="px-4 py-2 rounded-xl border border-border bg-surface text-sm font-bold text-muted-foreground hover:text-text transition-colors"
+                disabled={sendingNotification}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={sendSpecialNotification}
+                className="px-5 py-2 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition-colors disabled:opacity-70"
+                disabled={sendingNotification}
+              >
+                {sendingNotification ? 'Sending...' : 'Send Notification'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

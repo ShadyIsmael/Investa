@@ -47,8 +47,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       _currentPage = 1;
     });
     try {
-      final page = await _service.fetchNotifications(
-          page: 1, pageSize: _pageSize);
+      final page =
+          await _service.fetchNotifications(page: 1, pageSize: _pageSize);
       if (!mounted) return;
       setState(() {
         _items = page.items;
@@ -154,12 +154,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               icon: Icon(Icons.done_all,
                   size: 16, color: theme.colorScheme.primary),
               label: Text('Mark All Read',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.primary)),
+                  style: theme.textTheme.labelMedium
+                      ?.copyWith(color: theme.colorScheme.primary)),
             ),
           IconButton(
-            icon: Icon(Icons.refresh_rounded,
-                color: theme.colorScheme.onSurface),
+            icon:
+                Icon(Icons.refresh_rounded, color: theme.colorScheme.onSurface),
             onPressed: _loading ? null : _loadFirst,
           ),
         ],
@@ -180,8 +180,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ? _buildEmpty(theme)
                     : ListView.builder(
                         padding: const EdgeInsets.only(top: 8, bottom: 24),
-                        itemCount:
-                            filtered.length + (_hasMore && _filter == 'all' ? 1 : 0),
+                        itemCount: filtered.length +
+                            (_hasMore && _filter == 'all' ? 1 : 0),
                         itemBuilder: (ctx, i) {
                           if (i == filtered.length) {
                             return _buildLoadMore(theme);
@@ -218,9 +218,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              isUnread
-                  ? 'No unread notifications'
-                  : 'No notifications yet',
+              isUnread ? 'No unread notifications' : 'No notifications yet',
               style: GoogleFonts.outfit(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -293,8 +291,7 @@ class _FilterTabs extends StatelessWidget {
     );
   }
 
-  Widget _tab(
-      BuildContext ctx, String value, String label, int? badgeCount) {
+  Widget _tab(BuildContext ctx, String value, String label, int? badgeCount) {
     final theme = Theme.of(ctx);
     final isActive = active == value;
     return Expanded(
@@ -313,8 +310,7 @@ class _FilterTabs extends StatelessWidget {
               Text(
                 label,
                 style: GoogleFonts.outfit(
-                  fontWeight:
-                      isActive ? FontWeight.bold : FontWeight.w500,
+                  fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
                   fontSize: 14,
                   color: isActive
                       ? Colors.white
@@ -324,8 +320,8 @@ class _FilterTabs extends StatelessWidget {
               if (badgeCount != null) ...[
                 const SizedBox(width: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: isActive
                         ? Colors.white.withAlpha(60)
@@ -335,9 +331,7 @@ class _FilterTabs extends StatelessWidget {
                   child: Text(
                     '$badgeCount',
                     style: TextStyle(
-                      color: isActive
-                          ? Colors.white
-                          : Colors.white,
+                      color: isActive ? Colors.white : Colors.white,
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
                     ),
@@ -464,9 +458,8 @@ class _NotificationTile extends StatelessWidget {
                             n.title,
                             style: GoogleFonts.outfit(
                               fontSize: 14,
-                              fontWeight: n.isRead
-                                  ? FontWeight.w500
-                                  : FontWeight.bold,
+                              fontWeight:
+                                  n.isRead ? FontWeight.w500 : FontWeight.bold,
                               color: theme.colorScheme.onSurface,
                             ),
                           ),
@@ -488,16 +481,14 @@ class _NotificationTile extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color:
-                            theme.colorScheme.onSurface.withAlpha(160),
+                        color: theme.colorScheme.onSurface.withAlpha(160),
                       ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       _relativeTime(n.createdAt),
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color:
-                            theme.colorScheme.onSurface.withAlpha(100),
+                        color: theme.colorScheme.onSurface.withAlpha(100),
                       ),
                     ),
                   ],

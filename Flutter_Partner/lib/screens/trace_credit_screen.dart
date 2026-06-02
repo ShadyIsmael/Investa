@@ -53,9 +53,7 @@ class _TraceCreditScreenState extends State<TraceCreditScreen> {
         });
         return;
       }
-      final items = raw
-          .map((e) => CreditTransactionItem.fromJson(e))
-          .toList()
+      final items = raw.map((e) => CreditTransactionItem.fromJson(e)).toList()
         ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
       setState(() {
         _all = items;
@@ -82,16 +80,14 @@ class _TraceCreditScreenState extends State<TraceCreditScreen> {
     return _all.sublist(start, end);
   }
 
-  int get _runningTotal =>
-      _all.fold(0, (sum, tx) => sum + tx.amount);
+  int get _runningTotal => _all.fold(0, (sum, tx) => sum + tx.amount);
 
   // ── Detail bottom-sheet ──────────────────────────────────────────────────
 
   void _showDetail(BuildContext ctx, CreditTransactionItem tx) {
     final theme = Theme.of(ctx);
     final isAr = Localizations.localeOf(ctx).languageCode == 'ar';
-    final justification =
-        isAr ? tx.justificationAr : tx.justificationEn;
+    final justification = isAr ? tx.justificationAr : tx.justificationEn;
     final fmt = DateFormat('dd MMM yyyy – HH:mm');
 
     showModalBottomSheet(
@@ -133,7 +129,7 @@ class _TraceCreditScreenState extends State<TraceCreditScreen> {
               '${tx.amount > 0 ? '+' : ''}${tx.amount} Credits',
               valueColor: tx.amount >= 0 ? Colors.green : AppPalette.danger,
             ),
-            if (justification != null && justification.isNotEmpty) ...[
+            if (justification.isNotEmpty) ...[
               const SizedBox(height: 12),
               _detailRow(theme, 'Note', justification),
             ],
@@ -203,8 +199,8 @@ class _TraceCreditScreenState extends State<TraceCreditScreen> {
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh_rounded,
-                color: theme.colorScheme.onSurface),
+            icon:
+                Icon(Icons.refresh_rounded, color: theme.colorScheme.onSurface),
             onPressed: _loading ? null : _loadHistory,
             tooltip: 'Refresh',
           ),
@@ -313,8 +309,10 @@ class _TraceCreditScreenState extends State<TraceCreditScreen> {
   }
 
   Widget _buildSummaryCard(ThemeData theme, bool isDark) {
-    final positive = _all.where((t) => t.amount > 0).fold(0, (s, t) => s + t.amount);
-    final negative = _all.where((t) => t.amount < 0).fold(0, (s, t) => s + t.amount);
+    final positive =
+        _all.where((t) => t.amount > 0).fold(0, (s, t) => s + t.amount);
+    final negative =
+        _all.where((t) => t.amount < 0).fold(0, (s, t) => s + t.amount);
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -331,7 +329,7 @@ class _TraceCreditScreenState extends State<TraceCreditScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Credit Balance',
+          const Text('Credit Balance',
               style: TextStyle(color: Colors.white60, fontSize: 13)),
           const SizedBox(height: 4),
           Text(
@@ -349,8 +347,8 @@ class _TraceCreditScreenState extends State<TraceCreditScreen> {
               const SizedBox(width: 12),
               _statChip('$negative', 'Spent', AppPalette.danger),
               const SizedBox(width: 12),
-              _statChip('${_all.length}', 'Total Txns',
-                  Colors.white.withAlpha(160)),
+              _statChip(
+                  '${_all.length}', 'Total Txns', Colors.white.withAlpha(160)),
             ],
           ),
         ],
@@ -366,8 +364,7 @@ class _TraceCreditScreenState extends State<TraceCreditScreen> {
             style: TextStyle(
                 color: color, fontSize: 16, fontWeight: FontWeight.bold)),
         Text(label,
-            style:
-                TextStyle(color: Colors.white60, fontSize: 11)),
+            style: const TextStyle(color: Colors.white60, fontSize: 11)),
       ],
     );
   }
@@ -384,8 +381,8 @@ class _TraceCreditScreenState extends State<TraceCreditScreen> {
           Text(
             loc.t('credit_tracing_message'),
             textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withAlpha(140)),
+            style: theme.textTheme.bodyMedium
+                ?.copyWith(color: theme.colorScheme.onSurface.withAlpha(140)),
           ),
         ],
       ),
@@ -400,9 +397,8 @@ class _TraceCreditScreenState extends State<TraceCreditScreen> {
         children: [
           IconButton(
             icon: const Icon(Icons.chevron_left),
-            onPressed: _currentPage > 0
-                ? () => setState(() => _currentPage--)
-                : null,
+            onPressed:
+                _currentPage > 0 ? () => setState(() => _currentPage--) : null,
           ),
           Text(
             'Page ${_currentPage + 1} of $_totalPages',
@@ -449,9 +445,9 @@ class CreditTransactionItem {
           get('justificationEn', 'JustificationEn') as String? ?? '',
       justificationAr:
           get('justificationAr', 'JustificationAr') as String? ?? '',
-      createdAt: DateTime.tryParse(
-              (get('createdAt', 'CreatedAt') as String?) ?? '') ??
-          DateTime.now(),
+      createdAt:
+          DateTime.tryParse((get('createdAt', 'CreatedAt') as String?) ?? '') ??
+              DateTime.now(),
     );
   }
 }
@@ -531,15 +527,13 @@ class _TransactionTile extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color:
-                              theme.colorScheme.onSurface.withAlpha(20),
+                          color: theme.colorScheme.onSurface.withAlpha(20),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
                           tx.type,
                           style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onSurface
-                                .withAlpha(180),
+                            color: theme.colorScheme.onSurface.withAlpha(180),
                             fontWeight: FontWeight.w600,
                             letterSpacing: 0.4,
                           ),
@@ -549,8 +543,7 @@ class _TransactionTile extends StatelessWidget {
                       Text(
                         fmt.format(tx.createdAt.toLocal()),
                         style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onSurface
-                                .withAlpha(120)),
+                            color: theme.colorScheme.onSurface.withAlpha(120)),
                       ),
                     ],
                   ),
