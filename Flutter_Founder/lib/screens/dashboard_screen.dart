@@ -220,7 +220,8 @@ class _ScoreItem extends StatelessWidget {
       children: [
         Text(label,
             style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withAlpha((0.7 * 255).round()))),
+                color: theme.colorScheme.onSurface
+                    .withAlpha((0.7 * 255).round()))),
         const SizedBox(height: 8),
         Text(value,
             style: theme.textTheme.headlineSmall
@@ -249,8 +250,8 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: isDark
-          ? AppDecorations.glass(radius: 20)
-              .copyWith(border: Border.all(color: color.withAlpha((0.3 * 255).round())))
+          ? AppDecorations.glass(radius: 20).copyWith(
+              border: Border.all(color: color.withAlpha((0.3 * 255).round())))
           : BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
@@ -267,7 +268,8 @@ class _StatCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-                color: color.withAlpha((0.1 * 255).round()), shape: BoxShape.circle),
+                color: color.withAlpha((0.1 * 255).round()),
+                shape: BoxShape.circle),
             child: Icon(icon, color: color, size: 20),
           ),
           Column(
@@ -281,7 +283,8 @@ class _StatCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withAlpha((0.6 * 255).round()))),
+                      color: theme.colorScheme.onSurface
+                          .withAlpha((0.6 * 255).round()))),
             ],
           ),
         ],
@@ -306,7 +309,8 @@ class _ActivityTile extends StatelessWidget {
           : BoxDecoration(
               color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: theme.dividerColor.withAlpha((0.1 * 255).round())),
+              border: Border.all(
+                  color: theme.dividerColor.withAlpha((0.1 * 255).round())),
             ),
       child: Row(
         children: [
@@ -366,8 +370,8 @@ class LineChartCard extends StatelessWidget {
           Expanded(
             child: LineChart(
               LineChartData(
-                gridData: FlGridData(show: false),
-                titlesData: FlTitlesData(show: false),
+                gridData: const FlGridData(show: false),
+                titlesData: const FlTitlesData(show: false),
                 borderData: FlBorderData(show: false),
                 lineBarsData: [
                   LineChartBarData(
@@ -375,10 +379,11 @@ class LineChartCard extends StatelessWidget {
                     isCurved: true,
                     color: theme.colorScheme.primary,
                     barWidth: 3,
-                    dotData: FlDotData(show: false),
+                    dotData: const FlDotData(show: false),
                     belowBarData: BarAreaData(
                         show: true,
-                        color: theme.colorScheme.primary.withAlpha((0.1 * 255).round())),
+                        color: theme.colorScheme.primary
+                            .withAlpha((0.1 * 255).round())),
                   ),
                 ],
               ),
