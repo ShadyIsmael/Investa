@@ -1,3 +1,5 @@
+using Investa.Application.DTOs.Profile;
+
 namespace Investa.Application.DTOs;
 
 public class DashboardSummaryDto

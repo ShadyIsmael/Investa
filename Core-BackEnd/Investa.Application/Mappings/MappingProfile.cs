@@ -55,9 +55,6 @@ public class MappingProfile : Profile
         CreateMap<CreditTransaction, DTOs.Profile.CreditTransactionDto>()
             .ForMember(d => d.AdminName, opt => opt.MapFrom(s => s.Admin != null ? (s.Admin.Name ?? s.Admin.Email) : null));
 
-        // CreditTransaction mapping for general DTO usage (e.g., credit services)
-        CreateMap<CreditTransaction, DTOs.CreditTransactionDto>();
-
         // Investment request mapping
         CreateMap<InvestmentRequest, DTOs.Requests.InvestmentRequestDto>()
             .ForMember(d => d.Status, opt => opt.MapFrom(s => s.Status.ToString()))

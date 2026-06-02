@@ -1,4 +1,5 @@
 using Investa.Application.DTOs;
+using Investa.Application.DTOs.Profile;
 using Investa.Application.Interfaces;
 using Investa.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -47,7 +48,7 @@ public class DashboardController : ControllerBase
         var credibility = await _scoreService.GetCredibilityScoreAsync(userId);
 
         // Fetch transactions and limit to the last 5 years
-        var creditTxs = (await _creditService.GetClientTransactionsAsync(userId))?.ToList() ?? new List<CreditTransactionDto>();
+        var creditTxs = (await _creditService.GetClientTransactionsAsync(userId))?.ToList() ?? new List<Investa.Application.DTOs.Profile.CreditTransactionDto>();
         var scoreTxs = (await _scoreService.GetClientScoreTransactionsAsync(userId))?.ToList() ?? new List<ScoreTransactionDto>();
 
         var cutoff = DateTime.UtcNow.AddYears(-5);

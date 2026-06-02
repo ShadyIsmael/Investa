@@ -1,5 +1,0 @@
-﻿"LineNumber","Path","Line"
-"436","D:\projects\Investa\gitInvesta\Core-BackEnd\Investa.API\Program.cs","                    Id = Guid.NewGuid(),"
-"466","D:\projects\Investa\gitInvesta\Core-BackEnd\Investa.API\Program.cs","                                CreatedAt = DateTime.UtcNow"
-"45","D:\projects\Investa\gitInvesta\Core-BackEnd\Investa.Application.Tests\ProfileServiceTests.cs","            var under18Dob = DateTime.UtcNow.Date.AddYears(-17); // clearly under 18"
-"59","D:\projects\Investa\gitInvesta\Core-BackEnd\Investa.Application.Tests\ProfileServiceTests.cs","            var adultDob = DateTime.UtcNow.Date.AddYears(-25);"

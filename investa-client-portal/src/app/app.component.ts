@@ -5,7 +5,6 @@ import { LanguageService } from './services/language.service';
 import { NotificationHostComponent } from './components/notification-host/notification-host.component';
 import { UiService } from './services/ui.service';
 import { RoleSelectComponent } from './components/role-select/role-select.component';
-import { ApiBaseSwitcherComponent } from './components/api-base-switcher/api-base-switcher.component';
 import { SessionService } from './services/session.service';
 
 @Component({
@@ -15,11 +14,10 @@ import { SessionService } from './services/session.service';
     <router-outlet></router-outlet>
     <app-notification-host></app-notification-host>
     <app-role-select *ngIf="isRoleSelectOpen()"></app-role-select>
-    <app-api-base-switcher></app-api-base-switcher>
   `,
   styleUrls: ['./app.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, NotificationHostComponent, CommonModule, RoleSelectComponent, ApiBaseSwitcherComponent]
+  imports: [RouterOutlet, NotificationHostComponent, CommonModule, RoleSelectComponent]
 })
 export class AppComponent {
   private languageService = inject(LanguageService);

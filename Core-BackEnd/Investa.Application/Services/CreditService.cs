@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Investa.Application.DTOs;
+using Investa.Application.DTOs.Profile;
 using Investa.Application.Interfaces;
 using System.Globalization;
 using Investa.Domain.Entities;

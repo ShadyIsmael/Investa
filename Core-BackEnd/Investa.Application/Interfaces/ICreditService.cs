@@ -1,5 +1,6 @@
 using System;
 using Investa.Application.DTOs;
+using Investa.Application.DTOs.Profile;
 
 namespace Investa.Application.Interfaces;
 
