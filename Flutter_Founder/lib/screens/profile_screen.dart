@@ -16,6 +16,8 @@ import '../core/services/logger_service.dart';
 import '../core/services/secure_storage_service.dart';
 import '../core/network/network_config.dart';
 import '../services/app_state.dart';
+import '../services/trust_service.dart';
+import '../models/trust_profile.dart';
 import 'settings_screen.dart';
 import 'edit_profile_screen.dart';
 import 'new_investment_screen.dart';
@@ -23,6 +25,7 @@ import 'trace_score_screen.dart';
 import 'trace_credit_screen.dart';
 import 'support_choice_screen.dart';
 import '../widgets/credibility_score_badge.dart';
+import '../widgets/trust_badge_widget.dart';
 import '../services/messages.dart';
 import '../models/chat_user.dart';
 import 'chat_box_screen.dart';
@@ -48,6 +51,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   Profile? _profile;
+  TrustProfile? _trustProfile;
   bool _isLoading = true;
   String? _error;
 
@@ -66,6 +70,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!mounted) return;
     setState(() {
       _profile = AppState.instance.profile;
+      _trustProfile = AppState.instance.trustProfile;
     });
   }
 
@@ -116,7 +121,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _profile = profile ?? AppState.instance.profile;
         _isLoading = false;
       });
+Load trust profile (non-blocking)
+      TrustService().fetchMyTrustProfile().then((trust) {
+        if (trust != null && mounted) {
+          AppState.instance.setTrustProfile(trust);
+          setState(() => _trustProfile = trust);
+        }
+      }).catchError((_) {});
 
+      // 
       // Start SignalR connection with JWT token from secure storage
       try {
         final service = SignalRService(
@@ -481,12 +494,14 @@ class _ProfileHeader extends StatelessWidget {
               ),
             ],
           ),
-        // KYC Completion Progress
         const SizedBox(height: 24),
-        _KycCompletionCard(
           completionPercentage:
-              profile?.basicInfo?.kycCompletionPercentage ?? 0,
-          isVerified: profile?.basicInfo?.isKycVerified ?? false,
+          isDarkMode: isDarkMode,
+        ),
+        // Trust Level Card
+        const SizedBox(height: 16),
+        _TrustLevelCard(
+          trustProfile: _trustProfile,
           isDarkMode: isDarkMode,
         ),
       ],
@@ -494,12 +509,10 @@ class _ProfileHeader extends StatelessWidget {
   }
 }
 
-class _KycCompletionCard extends StatelessWidget {
   final int completionPercentage;
   final bool isVerified;
   final bool isDarkMode;
 
-  const _KycCompletionCard({
     required this.completionPercentage,
     required this.isVerified,
     required this.isDarkMode,
@@ -544,7 +557,6 @@ class _KycCompletionCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    loc.t('KYC Completion'),
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -609,9 +621,7 @@ class _KycCompletionCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             isVerified
-                ? loc.t('Your KYC is complete and verified')
                 : completionPercentage >= 80
-                    ? loc.t('Almost there! Complete your profile to verify')
                     : loc.t('Complete your profile to unlock verification'),
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
@@ -799,6 +809,147 @@ class _Divider extends StatelessWidget {
       thickness: 1,
       indent: 60,
       color: Theme.of(context).dividerColor.withAlpha((0.1 * 255).round()),
+    );
+  }
+}
+
+// ─── Trust Level Card ────────────────────────────────────────────────────────
+
+class _TrustLevelCard extends StatelessWidget {
+  final TrustProfile? trustProfile;
+  final bool isDarkMode;
+
+  const _TrustLevelCard({required this.trustProfile, required this.isDarkMode});
+
+  @override
+  Widget build(BuildContext context) {
+    final trust = trustProfile;
+    final cardColor = isDarkMode ? const Color(0xFF1E293B) : Colors.white;
+    final borderColor = isDarkMode ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor, width: 1),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.verified_user_outlined, size: 18, color: Color(0xFF10B981)),
+              const SizedBox(width: 8),
+              Text(
+                'Trust & Verification',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: isDarkMode ? Colors.white : const Color(0xFF1E293B),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (trust == null)
+            const Center(
+              child: SizedBox(
+                width: 20, height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF10B981)),
+              ),
+            )
+          else ...[
+            // Trust badge
+            TrustBadgeWidget(trustLevel: trust.trustLevel),
+            const SizedBox(height: 12),
+            // Profile completion bar
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Profile Completion', style: TextStyle(fontSize: 12, color: isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+                Text('${trust.profileCompletionPercentage}%',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold,
+                    color: trust.profileCompletionPercentage >= 60 ? const Color(0xFF10B981) : const Color(0xFF3B82F6))),
+              ],
+            ),
+            const SizedBox(height: 6),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: trust.profileCompletionPercentage / 100.0,
+                minHeight: 6,
+                backgroundColor: isDarkMode ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                color: trust.profileCompletionPercentage >= 60 ? const Color(0xFF10B981) : const Color(0xFF3B82F6),
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Verification items
+            _VerificationRow(label: 'Email', verified: trust.isEmailVerified, isDarkMode: isDarkMode),
+            const SizedBox(height: 6),
+            _VerificationRow(label: 'Phone', verified: trust.isPhoneVerified, isDarkMode: isDarkMode),
+            const SizedBox(height: 6),
+            _VerificationRow(label: 'Government ID', verified: trust.isIdentityVerified, isDarkMode: isDarkMode),
+            // Next level requirements
+            if (trust.nextLevelRequirements.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              Text('To reach next level:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+                color: isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+              const SizedBox(height: 8),
+              ...trust.nextLevelRequirements.map((req) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  children: [
+                    Icon(
+                      req.isMet ? Icons.check_circle_outline : Icons.radio_button_unchecked,
+                      size: 14,
+                      color: req.isMet ? const Color(0xFF10B981) : const Color(0xFF64748B),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(req.labelEn,
+                        style: TextStyle(fontSize: 12,
+                          color: req.isMet
+                            ? const Color(0xFF10B981)
+                            : (isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF64748B)))),
+                    ),
+                  ],
+                ),
+              )),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _VerificationRow extends StatelessWidget {
+  final String label;
+  final bool verified;
+  final bool isDarkMode;
+
+  const _VerificationRow({required this.label, required this.verified, required this.isDarkMode});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: TextStyle(fontSize: 12, color: isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: verified ? const Color(0xFF10B981).withAlpha(30) : const Color(0xFF64748B).withAlpha(30),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            verified ? 'Verified' : 'Pending',
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600,
+              color: verified ? const Color(0xFF10B981) : const Color(0xFF94A3B8)),
+          ),
+        ),
+      ],
     );
   }
 }

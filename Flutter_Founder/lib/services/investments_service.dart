@@ -33,7 +33,7 @@ class CreateInvestmentRequest {
   final String? currency;
 
   // Investment type
-  final int? investmentTypeId; // 1 = Founding, 2 = Equity
+  final int? investmentTypeId; // 1 = Founding, 2 = Equity, 3 = Revenue Sharing, 4 = Loan
 
   // Timeline
   final String? startDate;
@@ -42,6 +42,35 @@ class CreateInvestmentRequest {
   // Media
   final String? imageUrl;
   final String? videoUrl;
+
+  // Founding-specific fields
+  final int? durationMonths;
+  final double? profitPercentage;
+  final String? payoutFrequency;
+
+  // ==================== Equity Exit Strategy Fields ====================
+  final double? currentValuation;
+  final double? estimatedFutureValuation;
+  final int? equityExitType;
+  final String? exitTargetDate;
+  final String? expectedExitStrategy;
+
+  // ==================== Revenue Sharing Exit Strategy Fields ====================
+  final String? contractStartDate;
+  final String? contractEndDate;
+  final double? totalExpectedPayout;
+  final double? remainingPayoutAmount;
+  final String? revenueDistributionFrequency;
+  final String? contractCompletionStatus;
+
+  // ==================== Loan/Debt Exit Strategy Fields ====================
+  final String? repaymentStartDate;
+  final String? finalRepaymentDate;
+  final double? remainingBalance;
+  final double? totalPaidAmount;
+  final String? nextInstallmentDate;
+  final String? defaultRiskLevel;
+  final String? loanCompletionStatus;
 
   CreateInvestmentRequest({
     required this.initialCapital,
@@ -65,6 +94,31 @@ class CreateInvestmentRequest {
     this.endDate,
     this.imageUrl,
     this.videoUrl,
+    // Founding-specific fields
+    this.durationMonths,
+    this.profitPercentage,
+    this.payoutFrequency,
+    // Equity exit strategy fields
+    this.currentValuation,
+    this.estimatedFutureValuation,
+    this.equityExitType,
+    this.exitTargetDate,
+    this.expectedExitStrategy,
+    // Revenue sharing exit strategy fields
+    this.contractStartDate,
+    this.contractEndDate,
+    this.totalExpectedPayout,
+    this.remainingPayoutAmount,
+    this.revenueDistributionFrequency,
+    this.contractCompletionStatus,
+    // Loan/Debt exit strategy fields
+    this.repaymentStartDate,
+    this.finalRepaymentDate,
+    this.remainingBalance,
+    this.totalPaidAmount,
+    this.nextInstallmentDate,
+    this.defaultRiskLevel,
+    this.loanCompletionStatus,
   });
 
   Map<String, dynamic> toJson() => {
@@ -89,6 +143,31 @@ class CreateInvestmentRequest {
         'endDate': endDate,
         'imageUrl': imageUrl,
         'videoUrl': videoUrl,
+        // Founding-specific fields
+        if (durationMonths != null) 'durationMonths': durationMonths,
+        if (profitPercentage != null) 'profitPercentage': profitPercentage,
+        if (payoutFrequency != null) 'payoutFrequency': payoutFrequency,
+        // Equity exit strategy fields
+        if (currentValuation != null) 'currentValuation': currentValuation,
+        if (estimatedFutureValuation != null) 'estimatedFutureValuation': estimatedFutureValuation,
+        if (equityExitType != null) 'equityExitType': equityExitType,
+        if (exitTargetDate != null) 'exitTargetDate': exitTargetDate,
+        if (expectedExitStrategy != null) 'expectedExitStrategy': expectedExitStrategy,
+        // Revenue sharing exit strategy fields
+        if (contractStartDate != null) 'contractStartDate': contractStartDate,
+        if (contractEndDate != null) 'contractEndDate': contractEndDate,
+        if (totalExpectedPayout != null) 'totalExpectedPayout': totalExpectedPayout,
+        if (remainingPayoutAmount != null) 'remainingPayoutAmount': remainingPayoutAmount,
+        if (revenueDistributionFrequency != null) 'revenueDistributionFrequency': revenueDistributionFrequency,
+        if (contractCompletionStatus != null) 'contractCompletionStatus': contractCompletionStatus,
+        // Loan/Debt exit strategy fields
+        if (repaymentStartDate != null) 'repaymentStartDate': repaymentStartDate,
+        if (finalRepaymentDate != null) 'finalRepaymentDate': finalRepaymentDate,
+        if (remainingBalance != null) 'remainingBalance': remainingBalance,
+        if (totalPaidAmount != null) 'totalPaidAmount': totalPaidAmount,
+        if (nextInstallmentDate != null) 'nextInstallmentDate': nextInstallmentDate,
+        if (defaultRiskLevel != null) 'defaultRiskLevel': defaultRiskLevel,
+        if (loanCompletionStatus != null) 'loanCompletionStatus': loanCompletionStatus,
       };
 }
 
@@ -255,19 +334,31 @@ class InvestmentsService {
     }
   }
 
-  /// Fetch investments created by the current user.
-  Future<List<dynamic>> fetchMyInvestments() async {
+  /// Upload an investment image and return the URL.
+  Future<String?> uploadInvestmentImage(String filePath, int investmentId) async {
     var apiBase = baseUrl;
     if (!apiBase.startsWith('http')) apiBase = 'http://$apiBase';
-    final uri = Uri.parse('$apiBase/api/v1/investments/GetMyInvestments');
+    final uri = Uri.parse('$apiBase/api/v1/investments/$investmentId/images');
     try {
-      AppLogger.logInfo('InvestmentsService', 'GET ${uri.toString()}');
       final token = await SecureStorage().read('auth_token');
-      final headers = {'accept': 'application/json'};
+      final headers = <String, String>{};
       if (token != null && token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
       }
-      final resp = await _client.get(uri.toString(), headers: headers);
+      final file = File(filePath);
+      if (!file.existsSync()) {
+        AppLogger.logError('InvestmentsService',
+            'File does not exist: $filePath', null);
+        return null;
+      }
+      final fileName = p.basename(filePath);
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(filePath, filename: fileName),
+      });
+      AppLogger.logInfo('InvestmentsService',
+          'POST ${uri.toString()} file=$fileName');
+      final resp =
+          await _client.post(uri.toString(), data: formData, headers: headers);
       final status = resp.statusCode ?? 0;
       AppLogger.logInfo('InvestmentsService', 'Response status=$status');
       if (status >= 200 && status < 300) {
@@ -275,154 +366,93 @@ class InvestmentsService {
           final body = resp.data is Map
               ? resp.data as Map<String, dynamic>
               : jsonDecode(resp.toString()) as Map<String, dynamic>;
-          final data = body['data'] as List? ?? (body['items'] as List?);
-          if (data == null) return <dynamic>[];
-          // Normalize investment item keys
-          for (var i = 0; i < data.length; i++) {
-            final item = data[i];
-            if (item is Map) {
-              final m = Map<String, dynamic>.from(item);
-              final founder = m['FounderDisplay'] ??
-                  m['founderDisplay'] ??
-                  m['founderName'] ??
-                  m['authorName'];
-              if (founder != null) m['FounderDisplay'] = founder;
-              final cred = m['CredibilityScore'] ??
-                  m['credibilityScore'] ??
-                  m['credibility'] ??
-                  m['authorScore'];
-              if (cred != null) {
-                if (cred is num) {
-                  m['CredibilityScore'] = cred;
-                } else if (cred is String) {
-                  final parsed = double.tryParse(cred);
-                  if (parsed != null) m['CredibilityScore'] = parsed;
-                }
-              }
-              data[i] = m;
-            }
-          }
-          return data;
-        } catch (_) {
-          if (resp.data is List) return resp.data as List<dynamic>;
-          return <dynamic>[];
+          final url = body['url'] ?? body['imageUrl'];
+          if (url is String) return url as String;
+        } catch (e, s) {
+          AppLogger.logError('InvestmentsService', 'Parse error: $e', s);
         }
-      }
-      AppLogger.logError('InvestmentsService', 'Server error: $status', null);
-      return <dynamic>[];
-    } on DioException catch (e) {
-      AppLogger.logError(
-          'InvestmentsService', 'Network error: ${e.message}', e.stackTrace);
-      return <dynamic>[];
-    } catch (e, s) {
-      AppLogger.logError('InvestmentsService', 'Unexpected: $e', s);
-      return <dynamic>[];
-    }
-  }
-
-  /// Fetch single investment by id
-  Future<Map<String, dynamic>?> getInvestmentById(int id) async {
-    var apiBase = baseUrl;
-    if (!apiBase.startsWith('http')) apiBase = 'http://$apiBase';
-    final uri = Uri.parse('$apiBase/api/v1/investments/$id');
-    try {
-      final resp = await _client.get(uri.toString());
-      final status = resp.statusCode ?? 0;
-      if (status >= 200 && status < 300) {
-        final body = resp.data is Map
-            ? resp.data as Map<String, dynamic>
-            : jsonDecode(resp.toString()) as Map<String, dynamic>;
-        return body['data'] as Map<String, dynamic>?;
-      }
-      return null;
-    } catch (e) {
-      AppLogger.logError(
-          'InvestmentsService', 'getInvestmentById failed: $e', null);
-      return null;
-    }
-  }
-
-  /// Upload image for investment (multipart)
-  Future<Map<String, dynamic>?> uploadImage(int investmentId, File file,
-      {String? caption}) async {
-    var apiBase = baseUrl;
-    if (!apiBase.startsWith('http')) apiBase = 'http://$apiBase';
-    final url = '$apiBase/api/v1/investments/$investmentId/images';
-    try {
-      final fileName = p.basename(file.path);
-      final form = FormData.fromMap({
-        'file': await MultipartFile.fromFile(file.path, filename: fileName),
-        if (caption != null) 'caption': caption,
-      });
-      final resp = await _client.post(url,
-          data: form, headers: {'content-type': 'multipart/form-data'});
-      final status = resp.statusCode ?? 0;
-      if (status >= 200 && status < 300) {
-        final body = resp.data is Map
-            ? resp.data as Map<String, dynamic>
-            : jsonDecode(resp.toString()) as Map<String, dynamic>;
-        return body['data'] as Map<String, dynamic>?;
       }
       return null;
     } on DioException catch (e) {
       AppLogger.logError('InvestmentsService',
-          'uploadImage network error: ${e.message}', e.stackTrace);
+          'Upload error: ${e.message}', e.stackTrace);
       return null;
-    } catch (e) {
-      AppLogger.logError('InvestmentsService', 'uploadImage failed: $e', null);
+    } catch (e, s) {
+      AppLogger.logError('InvestmentsService', 'Unexpected upload error: $e', s);
       return null;
     }
   }
 
-  Future<bool> deleteImage(int investmentId, int imageId) async {
+  /// Fetch a single investment by ID.
+  Future<Map<String, dynamic>?> getById(String investmentId) async {
     var apiBase = baseUrl;
     if (!apiBase.startsWith('http')) apiBase = 'http://$apiBase';
-    final url = '$apiBase/api/v1/investments/$investmentId/images/$imageId';
+    final uri = Uri.parse('$apiBase/api/v1/investments/$investmentId');
     try {
-      final r = await _client.delete(url);
-      final status = r.statusCode ?? 0;
-      return status >= 200 && status < 300;
-    } catch (e) {
-      AppLogger.logError('InvestmentsService', 'deleteImage failed: $e', null);
-      return false;
-    }
-  }
-
-  Future<bool> setPrimaryImage(int investmentId, int imageId) async {
-    var apiBase = baseUrl;
-    if (!apiBase.startsWith('http')) apiBase = 'http://$apiBase';
-    final url =
-        '$apiBase/api/v1/investments/$investmentId/images/$imageId/set-primary';
-    try {
-      final resp = await _client.put(url);
+      AppLogger.logInfo('InvestmentsService', 'GET ${uri.toString()}');
+      final resp = await _client
+          .get(uri.toString(), headers: {'accept': 'application/json'});
       final status = resp.statusCode ?? 0;
-      return status >= 200 && status < 300;
-    } catch (e) {
+      AppLogger.logInfo('InvestmentsService', 'Response status=$status');
+      if (status >= 200 && status < 300) {
+        try {
+          final body = resp.data is Map
+              ? resp.data as Map<String, dynamic>
+              : jsonDecode(resp.toString()) as Map<String, dynamic>;
+          return body['data'] is Map<String, dynamic>
+              ? Map<String, dynamic>.from(body['data'] as Map)
+              : null;
+        } catch (e, s) {
+          AppLogger.logError('InvestmentsService', 'Parse error: $e', s);
+        }
+      }
+      return null;
+    } on DioException catch (e) {
       AppLogger.logError(
-          'InvestmentsService', 'setPrimaryImage failed: $e', null);
-      return false;
+          'InvestmentsService', 'Network error: ${e.message}', e.stackTrace);
+      return null;
+    } catch (e, s) {
+      AppLogger.logError('InvestmentsService', 'Unexpected: $e', s);
+      return null;
     }
   }
 
-  Future<bool> reorderImages(
-      int investmentId, List<Map<String, int>> ordering) async {
+  /// Update an existing investment.
+  Future<Map<String, dynamic>?> updateInvestment(
+      String investmentId, Map<String, dynamic> updates) async {
     var apiBase = baseUrl;
     if (!apiBase.startsWith('http')) apiBase = 'http://$apiBase';
-    final url = '$apiBase/api/v1/investments/$investmentId/images/reorder';
+    final uri = Uri.parse('$apiBase/api/v1/investments/$investmentId');
     try {
-      final resp = await _client.put(url, data: ordering);
+      final token = await SecureStorage().read('auth_token');
+      final headers = <String, String>{'content-type': 'application/json'};
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+      AppLogger.logInfo('InvestmentsService', 'PUT ${uri.toString()}');
+      final resp = await _client.put(uri.toString(), data: updates, headers: headers);
       final status = resp.statusCode ?? 0;
-      return status >= 200 && status < 300;
-    } catch (e) {
+      AppLogger.logInfo('InvestmentsService', 'Response status=$status');
+      if (status >= 200 && status < 300) {
+        try {
+          final body = resp.data is Map
+              ? resp.data as Map<String, dynamic>
+              : jsonDecode(resp.toString()) as Map<String, dynamic>;
+          return body['data'] is Map<String, dynamic>
+              ? Map<String, dynamic>.from(body['data'] as Map)
+              : null;
+        } catch (e, s) {
+          AppLogger.logError('InvestmentsService', 'Parse error: $e', s);
+        }
+      }
+      return null;
+    } on DioException catch (e) {
       AppLogger.logError(
-          'InvestmentsService', 'reorderImages failed: $e', null);
-      return false;
+          'InvestmentsService', 'Network error: ${e.message}', e.stackTrace);
+      return null;
+    } catch (e, s) {
+      AppLogger.logError('InvestmentsService', 'Unexpected: $e', s);
+      return null;
     }
-  }
-
-  /// Attempt to resolve investorId from secure storage if available.
-  Future<String> resolveInvestorId() async {
-    final id = await SecureStorage().read('user_id');
-    return id ?? '';
   }
 }

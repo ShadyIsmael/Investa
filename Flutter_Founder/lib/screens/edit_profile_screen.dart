@@ -75,8 +75,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _deviceInfoController;
 
   bool _isSaving = false;
-  String? _hrLetterFileName;
-  String? _hrLetterBase64;
   String? _deviceMacAddress;
 
   Future<void> _popToProfile({bool saved = false}) async {
@@ -105,7 +103,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     await _popToProfile();
   }
 
-  Future<void> _pickHrLetter() async {
     final loc = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     try {
@@ -120,16 +117,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final bytes = file.bytes;
       if (bytes != null && bytes.isNotEmpty) {
         setState(() {
-          _hrLetterFileName = file.name;
-          _hrLetterBase64 = base64Encode(bytes);
         });
         messenger.showSnackBar(
           SnackBar(content: Text(loc.t('file_selected'))),
         );
       } else {
         setState(() {
-          _hrLetterFileName = file.name;
-          _hrLetterBase64 = null;
         });
         messenger.showSnackBar(
           SnackBar(content: Text(loc.t('file_selected'))),
@@ -242,10 +235,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         text: p?.coreMetrics?.walletBalance?.toString() ?? '');
 
     _docNumberController = TextEditingController(
-        text: p?.identityCompliance?.documentNumber ?? '');
     _docExpiryController = TextEditingController(
         text:
-            p?.identityCompliance?.documentExpiryDate?.toIso8601String() ?? '');
     _verificationController = TextEditingController(
         text: p?.identityCompliance?.verificationStatus ?? '');
 
@@ -354,18 +345,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'companyEmail': _companyEmailController.text.trim(),
     };
 
-    final identity = <String, dynamic>{
-      if (_docNumberController.text.trim().isNotEmpty)
-        'documentNumber': _docNumberController.text.trim(),
-      if (_verificationController.text.trim().isNotEmpty)
-        'verificationStatus': _verificationController.text.trim(),
-      if (_hrLetterFileName != null && _hrLetterFileName!.trim().isNotEmpty)
-        'hrLetterFileName': _hrLetterFileName!.trim(),
-      if (_hrLetterBase64 != null && _hrLetterBase64!.trim().isNotEmpty)
-        'hrLetterBase64': _hrLetterBase64!.trim(),
-      if (_deviceMacAddress != null && _deviceMacAddress!.trim().isNotEmpty)
-        'deviceMacAddress': _deviceMacAddress!.trim(),
-    };
 
     // Handle date: if provided, attempt parse, otherwise omit to avoid binding errors
     final docExpiryText = _docExpiryController.text.trim();
@@ -398,13 +377,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         if (mounted) setState(() => _isSaving = false);
         return;
       }
-      identity['documentExpiryDate'] = parsed.toIso8601String();
     }
 
     final payload = <String, dynamic>{
       if (basic.isNotEmpty) 'BasicInfo': basic,
       if (contact.isNotEmpty) 'ContactInfo': contact,
-      if (identity.isNotEmpty) 'IdentityCompliance': identity,
+      
     };
 
     AppLogger.logInfo(
@@ -976,7 +954,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           const SizedBox(height: 24),
           _buildSectionHeader(loc.t('hr_letter')),
           InkWell(
-            onTap: _pickHrLetter,
             borderRadius: BorderRadius.circular(12),
             child: Container(
               width: double.infinity,
@@ -992,7 +969,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      _hrLetterFileName ?? loc.t('upload_hr_letter'),
                       style: const TextStyle(color: Colors.white70),
                       overflow: TextOverflow.ellipsis,
                     ),
