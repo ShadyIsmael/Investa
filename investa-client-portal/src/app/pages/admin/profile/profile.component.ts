@@ -10,6 +10,9 @@ import { LanguageService } from '../../../services/language.service';
 import { Router } from '@angular/router';
 import { FileStoreService } from '../../../services/file-store.service';
 import { GoogleMap, MapMarker } from '@angular/google-maps';
+import { TrustService } from '../../../services/trust.service';
+import { TrustBadgeComponent } from '../../../components/trust-badge/trust-badge.component';
+import { TrustLevel, TRUST_LEVEL_LABELS } from '../../../models/trust.model';
 
 export const passwordMatchValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
   const password = control.get('newPassword');
@@ -17,13 +20,13 @@ export const passwordMatchValidator: ValidatorFn = (control: AbstractControl): V
   return password && confirmPassword && password.value === confirmPassword.value ? null : { passwordMismatch: true };
 };
 
-type ActiveSection = 'details' | 'communication' | 'security' | 'notifications';
+type ActiveSection = 'details' | 'communication' | 'security' | 'notifications' | 'trust';
 
 @Component({
   standalone: true,
   selector: 'app-profile',
   templateUrl: './profile.component.html',  styleUrls: ['./profile.component.scss'],  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, TranslatePipe, GoogleMap, MapMarker]
+  imports: [CommonModule, ReactiveFormsModule, TranslatePipe, GoogleMap, MapMarker, TrustBadgeComponent]
 })
 export class ProfileComponent {
   @ViewChild('avatarInput') avatarInput!: ElementRef<HTMLInputElement>;
@@ -48,10 +51,15 @@ export class ProfileComponent {
   private destroyRef = inject(DestroyRef);
   private ngZone = inject(NgZone);
   public profileService = inject(ProfileService);
+  public trustService = inject(TrustService);
   private notificationService = inject(NotificationService);
   private languageService = inject(LanguageService);
   private router = inject(Router);
   private fileStoreService = inject(FileStoreService);
+
+  // Expose to template
+  readonly TrustLevel = TrustLevel;
+  readonly trustLevelLabels = TRUST_LEVEL_LABELS;
 
   // ── Google Maps ──────────────────────────────────────────────
   /** Default center: Cairo, Egypt */
@@ -576,6 +584,8 @@ export class ProfileComponent {
         await this.loadCreditHistory();
         // Load any existing national-id files for preview/delete
         await this.loadNationalIdFiles();
+        // Load trust profile in parallel (non-blocking for UI)
+        this.trustService.loadProfile().subscribe();
       }
     } catch (e) {
       this.errorMessage.set(this.t('profile.errors.loadFailed'));
@@ -832,6 +842,8 @@ export class ProfileComponent {
             const p = this.profileService.profile();
             if (p) this.initializeSnapshots(p);
             this.profileForm.markAsPristine();
+            // Recalculate trust level after profile fields change
+            this.trustService.recalculate().catch(() => {});
 
             this.notificationService.showToast({ title: this.t('profile.toasts.savedTitle'), message: this.t('profile.toasts.savedMessage'), type: 'success' });
           }

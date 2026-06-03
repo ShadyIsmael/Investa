@@ -57,14 +57,10 @@ public static class ApplicationConstants
     }
 
     /// <summary>
-    /// KYC and compliance constants.
+    /// Compliance constants.
     /// </summary>
     public static class Compliance
     {
-        /// <summary>National ID pattern for validation (Saudi Arabia).</summary>
-        // Allow national ID formats with 10 to 14 digits (covers Saudi 10-digit and Egyptian 14-digit IDs)
-        public const string SaudiNationalIdPattern = @"^\d{10,14}$";
-        
         /// <summary>Minimum age for investors.</summary>
         public const int MinimumInvestorAge = 18;
     }

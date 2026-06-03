@@ -1,11 +1,10 @@
 namespace Investa.Application.DTOs.Profile;
 
 /// <summary>
-/// Comprehensive user profile DTO with 4 organized sections:
+/// Comprehensive user profile DTO with 3 organized sections:
 /// 1. Basic Info
 /// 2. Contact Info
-/// 3. Identity & Compliance
-/// 4. Audit & Usage
+/// 3. Audit & Usage
 /// </summary>
 public class UserProfileDto
 {
@@ -27,12 +26,7 @@ public class UserProfileDto
     public ContactInfoDto? ContactInfo { get; set; }
 
     /// <summary>
-    /// Section 3: Identity and compliance (KYC/AML)
-    /// </summary>
-    public IdentityComplianceDto? IdentityCompliance { get; set; }
-
-    /// <summary>
-    /// Section 4: Audit and usage tracking
+    /// Section 3: Audit and usage tracking
     /// </summary>
     public AuditUsageDto? AuditUsage { get; set; }
 

@@ -88,9 +88,6 @@
   <data name="ErrorRetrievingProfile" xml:space="preserve">
     <value>حدث خطأ أثناء استرداد الملف الشخصي</value>
   </data>
-  <data name="ErrorStartingKyc" xml:space="preserve">
-    <value>حدث خطأ أثناء بدء إجراءات التحقق من الهوية</value>
-  </data>
   <data name="ErrorRetrievingCreditHistory" xml:space="preserve">
     <value>حدث خطأ أثناء جلب تاريخ الائتمان</value>
   </data>

@@ -48,7 +48,7 @@ public class CreditTransaction
 
     /// <summary>
     /// Optional reference to the admin who manually triggered this transaction
-    /// Null if the transaction was system-generated (e.g., KYC rewards)
+    /// Null if the transaction was system-generated
     /// </summary>
     [ForeignKey(nameof(Admin))]
     public Guid? AdminId { get; set; }

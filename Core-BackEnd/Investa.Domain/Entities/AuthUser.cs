@@ -70,6 +70,32 @@ public class AuthUser
     /// <summary>Optional client business profile. Only present for Client accounts.</summary>
     public Client? Client { get; set; }
 
+    // ── Progressive Trust System ─────────────────────────────────────────────
+
+    /// <summary>Current trust level controlling what the user can do on the platform.</summary>
+    public TrustLevel TrustLevel { get; set; } = TrustLevel.Registered;
+
+    /// <summary>Dynamic reputation score (0–10000). Increases with positive activity.</summary>
+    [Range(0, 10000)]
+    public int ReputationScore { get; set; } = 0;
+
+    /// <summary>Profile completion percentage (0–100). Drives trust-level upgrades.</summary>
+    [Range(0, 100)]
+    public int ProfileCompletionPercentage { get; set; } = 0;
+
+    /// <summary>Phone number has been verified via OTP.</summary>
+    public bool IsPhoneVerified { get; set; } = false;
+
+    /// <summary>Email address has been verified.</summary>
+    public bool IsEmailVerified { get; set; } = false;
+
+    /// <summary>
+    /// Comma-separated risk flags (e.g., "repeated_failures,report_flag").
+    /// Used by fraud/compliance checks.
+    /// </summary>
+    [StringLength(500)]
+    public string? RiskFlags { get; set; }
+
     public ICollection<Investment> Investments { get; set; } = new List<Investment>();
     public ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
     public ICollection<CreditTransaction> CreditTransactions { get; set; } = new List<CreditTransaction>();
@@ -78,4 +104,5 @@ public class AuthUser
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
     public ICollection<UserGroup> UserGroups { get; set; } = new List<UserGroup>();
     public ICollection<UserSession> UserSessions { get; set; } = new List<UserSession>();
+    public ICollection<UserVerification> Verifications { get; set; } = new List<UserVerification>();
 }

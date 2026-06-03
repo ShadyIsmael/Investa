@@ -1,7 +1,7 @@
 namespace Investa.Domain.Entities.Enums;
 
 /// <summary>
-/// Represents the identity and compliance verification status for user profiles.
+/// Represents the verification status for user verifications (email, phone, LinkedIn, etc.).
 /// </summary>
 public enum VerificationStatus
 {

@@ -18,61 +18,6 @@ namespace Investa.Application.Tests
         }
 
         [Fact]
-        public async Task UpdateUserProfile_Should_Persist_BusinessRole_And_NationalId()
-        {
-            // Arrange: use a seeded test user ID from TestFixture
-            var testUserId = TestFixture.SeededUserId;
-            var update = new UserProfileDto
-            {
-                BasicInfo = new BasicInfoDto { FirstName = "Test", LastName = "User" },
-                CoreMetrics = new UserCoreMetricsDto { Role = "Founder", ClientType = "Founder" },
-                IdentityCompliance = new IdentityComplianceDto { DocumentNumber = "NID-123456" }
-            };
-
-            // Act
-            var updated = await _profileService.UpdateUserProfileAsync(testUserId, update);
-
-            // Assert
-            Assert.NotNull(updated);
-            Assert.Equal("Founder", updated.CoreMetrics?.Role ?? updated.CoreMetrics?.ClientType);
-            Assert.Equal("NID-123456", updated.IdentityCompliance?.DocumentNumber);
-        }
-
-        [Fact]
-        public async Task UpdateUserProfile_Should_Compute_KycCompletion_For_RequestedFields()
-        {
-            var testUserId = TestFixture.SeededUserId;
-            var update = new UserProfileDto
-            {
-                BasicInfo = new BasicInfoDto
-                {
-                    FirstName = "Test",
-                    LastName = "User",
-                    Gender = "Male",
-                    Nationality = "Egyptian",
-                    Country = "Egypt",
-                    DateOfBirth = DateTime.UtcNow.Date.AddYears(-30),
-                    AvatarUrl = "https://example.com/avatar.png"
-                },
-                ContactInfo = new ContactInfoDto
-                {
-                    Email = "test@example.com",
-                    Phone1 = "+201234567890"
-                },
-                IdentityCompliance = new IdentityComplianceDto
-                {
-                    DocumentNumber = "NID-123456",
-                    DocumentFrontImageUrl = "https://example.com/id.png"
-                }
-            };
-
-            var updated = await _profileService.UpdateUserProfileAsync(testUserId, update);
-
-            Assert.NotNull(updated);
-            Assert.Equal(100, updated.BasicInfo.KycCompletionPercentage);
-        }
-
-        [Fact]
         public async Task UpdateUserProfile_Should_Reject_Under18()
         {
             var testUserId = TestFixture.SeededUserId;

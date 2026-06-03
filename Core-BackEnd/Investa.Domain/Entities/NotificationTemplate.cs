@@ -15,7 +15,7 @@ namespace Investa.Domain.Entities
         [Key]
         public int Id { get; set; }
 
-        /// <summary>Machine-readable key used to reference the template in code (e.g. "kyc.approved")</summary>
+        /// <summary>Machine-readable key used to reference the template in code (e.g. "verification.approved")</summary>
         [Required]
         [MaxLength(100)]
         public string Key { get; set; } = string.Empty;
@@ -44,7 +44,7 @@ namespace Investa.Domain.Entities
         [MaxLength(100)]
         public string? Icon { get; set; }
 
-        /// <summary>Category label for grouping in the admin portal (e.g. "KYC", "Investment")</summary>
+        /// <summary>Category label for grouping in the admin portal (e.g. "Verification", "Investment")</summary>
         [MaxLength(100)]
         public string? Category { get; set; }
 

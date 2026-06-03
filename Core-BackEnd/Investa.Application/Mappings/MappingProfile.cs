@@ -73,8 +73,6 @@ public class MappingProfile : Profile
         // Sectional profile mappings
         CreateMap<UserProfile, BasicInfoDto>();
         CreateMap<UserProfile, ContactInfoDto>();
-        CreateMap<UserProfile, IdentityComplianceDto>()
-            .ForMember(dest => dest.VerificationStatus, opt => opt.MapFrom(src => src.VerificationStatus.ToString()));
         CreateMap<UserProfile, AuditUsageDto>();
 
         // Full profile mapping
@@ -83,7 +81,6 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.CoreMetrics, opt => opt.MapFrom(src => src))
             .ForMember(dest => dest.BasicInfo, opt => opt.MapFrom(src => src.Profile))
             .ForMember(dest => dest.ContactInfo, opt => opt.MapFrom(src => src.Profile))
-            .ForMember(dest => dest.IdentityCompliance, opt => opt.MapFrom(src => src.Profile))
             .ForMember(dest => dest.AuditUsage, opt => opt.MapFrom(src => src.Profile))
             .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.Profile != null ? src.Profile.CreatedAt : default))
             .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.Profile != null ? src.Profile.UpdatedAt : default));

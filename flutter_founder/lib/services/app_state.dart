@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_founder/services/profile_service.dart';
+import 'package:flutter_founder/models/trust_profile.dart';
 
 /// Global app state singleton holding the current user's profile.
 class AppState extends ChangeNotifier {
@@ -10,6 +11,19 @@ class AppState extends ChangeNotifier {
 
   Profile? _profile;
   Map<String, dynamic>? _profileJson;
+
+  // ── Progressive Trust ─────────────────────────────────────────────────────
+  TrustProfile? _trustProfile;
+  TrustProfile? get trustProfile => _trustProfile;
+
+  void setTrustProfile(TrustProfile? tp) {
+    _trustProfile = tp;
+    notifyListeners();
+  }
+
+  bool meetsLevel(TrustLevel level) =>
+      _trustProfile?.meetsLevel(level) ?? false;
+  // ──────────────────────────────────────────────────────────────────────────
 
   Profile? get profile => _profile;
   Map<String, dynamic>? get profileJson => _profileJson;
@@ -47,6 +61,7 @@ class AppState extends ChangeNotifier {
   Future<void> clear() async {
     _profile = null;
     _profileJson = null;
+    _trustProfile = null;
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('profile_json');

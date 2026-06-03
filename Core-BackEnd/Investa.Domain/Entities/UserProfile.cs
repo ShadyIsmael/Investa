@@ -6,7 +6,7 @@ namespace Investa.Domain.Entities;
 
 /// <summary>
 /// Represents the extended profile information for a user.
-/// Organized into 4 logical sections: Basic Info, Contact Info, Identity & Compliance, and Audit & Usage.
+/// Organized into 3 logical sections: Basic Info, Contact Info, and Audit & Usage.
 /// </summary>
 public class UserProfile
 {
@@ -127,6 +127,19 @@ public class UserProfile
     public string? AvatarUrl { get; set; }
 
     /// <summary>
+    /// User's professional/business role (e.g., "CEO", "Investor", "Startup Founder").
+    /// Required for Level 2 trust upgrade.
+    /// </summary>
+    [StringLength(200)]
+    public string? BusinessRole { get; set; }
+
+    /// <summary>
+    /// Investment interests (comma-separated or JSON array as string).
+    /// </summary>
+    [StringLength(500)]
+    public string? InvestmentInterests { get; set; }
+
+    /// <summary>
     /// LinkedIn profile URL
     /// </summary>
     [StringLength(250)]
@@ -140,70 +153,15 @@ public class UserProfile
 
     #endregion
 
-    #region Section 3: Identity & Compliance (Future Proof - All Nullable)
-
-    /// <summary>
-    /// National ID or Passport number. Nullable to allow gradual profile completion.
-    /// </summary>
-    [StringLength(50)]
-    public string? DocumentNumber { get; set; }
-
-    /// <summary>
-    /// Expiry date of the identity document. Nullable for optional initial registration.
-    /// </summary>
-    public DateTime? DocumentExpiryDate { get; set; }
-
-    /// <summary>
-    /// Current verification status of the user's identity (None, Pending, Verified)
+    #region Section 3: Professional Info
     /// </summary>
     public VerificationStatus VerificationStatus { get; set; } = VerificationStatus.None;
-
-    /// <summary>
-    /// Indicates whether KYC is fully verified (100% complete and marked as verified)
-    /// </summary>
-    public bool IsKycVerified { get; set; } = false;
-
-    /// <summary>
-    /// KYC completion percentage (0-100) based on filled required fields
-    /// </summary>
-    public int KycCompletionPercentage { get; set; } = 0;
-
     /// <summary>
     /// Current total credibility score for this user
     /// This is the accumulated sum of all CreditTransaction amounts
     /// </summary>
     [Column(TypeName = "decimal(18,2)")]
     public decimal CurrentCredibilityScore { get; set; } = 0;
-
-    /// <summary>
-    /// URL/Path to the front image of the identity document (for Azure Blob Storage or local storage integration)
-    /// </summary>
-    [StringLength(500)]
-    public string? DocumentFrontImageUrl { get; set; }
-
-    /// <summary>
-    /// URL/Path to the back image of the identity document (for Azure Blob Storage or local storage integration)
-    /// </summary>
-    [StringLength(500)]
-    public string? DocumentBackImageUrl { get; set; }
-
-    /// <summary>
-    /// HR letter original filename (upload metadata)
-    /// </summary>
-    [StringLength(260)]
-    public string? HrLetterFileName { get; set; }
-
-    /// <summary>
-    /// HR letter content (Base64). Stored as text for now.
-    /// </summary>
-    [Column(TypeName = "nvarchar(max)")]
-    public string? HrLetterBase64 { get; set; }
-
-    /// <summary>
-    /// Device MAC address captured on client side (best-effort)
-    /// </summary>
-    [StringLength(100)]
-    public string? DeviceMacAddress { get; set; }
 
     #endregion
 

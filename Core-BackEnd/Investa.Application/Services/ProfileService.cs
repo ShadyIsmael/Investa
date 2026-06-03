@@ -31,10 +31,6 @@ public class ProfileService : IProfileService
         if (user == null || user.Profile == null)
             return null;
 
-        // Calculate KYC completion percentage
-        CalculateKycCompletion(user.Profile);
-        await _unitOfWork.SaveChangesAsync();
-
         return await MapToProfileDtoAsync(user)!;
     }
 
@@ -58,12 +54,6 @@ public class ProfileService : IProfileService
             };
 
             await _unitOfWork.Repository<UserProfile>().AddAsync(user.Profile);
-            await _unitOfWork.SaveChangesAsync();
-        }
-        else
-        {
-            // Calculate KYC completion for existing profile
-            CalculateKycCompletion(user.Profile);
             await _unitOfWork.SaveChangesAsync();
         }
 
@@ -138,61 +128,7 @@ public class ProfileService : IProfileService
                 profile.City = profileDto.ContactInfo.City;
         }
 
-        // Update identity & compliance
-        bool identityFieldsUpdated = false;
-        if (profileDto.IdentityCompliance != null)
-        {
-            identityFieldsUpdated =
-                !string.Equals(profile.DocumentNumber, profileDto.IdentityCompliance.DocumentNumber, StringComparison.OrdinalIgnoreCase)
-                || !string.Equals(profile.DocumentFrontImageUrl, profileDto.IdentityCompliance.DocumentFrontImageUrl, StringComparison.OrdinalIgnoreCase)
-                || !string.Equals(profile.DocumentBackImageUrl, profileDto.IdentityCompliance.DocumentBackImageUrl, StringComparison.OrdinalIgnoreCase);
-
-            profile.DocumentNumber = profileDto.IdentityCompliance.DocumentNumber;
-            profile.DocumentExpiryDate = profileDto.IdentityCompliance.DocumentExpiryDate;
-            profile.DocumentFrontImageUrl = profileDto.IdentityCompliance.DocumentFrontImageUrl;
-            profile.DocumentBackImageUrl = profileDto.IdentityCompliance.DocumentBackImageUrl;
-            profile.HrLetterFileName = profileDto.IdentityCompliance.HrLetterFileName;
-            profile.HrLetterBase64 = profileDto.IdentityCompliance.HrLetterBase64;
-            profile.DeviceMacAddress = profileDto.IdentityCompliance.DeviceMacAddress;
-        }
-
-        // Update client-level fields (NationalId) when provided. BusinessRole is no longer part of profile updates.
-        var client = await _unitOfWork.Repository<Client>().GetSingleAsync(c => c.UserId == userId);
-        if (client != null)
-        {
-            if (profileDto.IdentityCompliance != null && !string.IsNullOrEmpty(profileDto.IdentityCompliance.DocumentNumber))
-            {
-                if (client.NationalId != profileDto.IdentityCompliance.DocumentNumber)
-                {
-                    // Audit national id change
-                    var audit = new ProfileChangeAudit
-                    {
-                        UserId = userId,
-                        FieldName = "NationalId",
-                        OldValue = client.NationalId,
-                        NewValue = profileDto.IdentityCompliance.DocumentNumber,
-                        Reason = "User updated national ID",
-                        CreatedAt = DateTime.UtcNow
-                    };
-                    await _unitOfWork.Repository<ProfileChangeAudit>().AddAsync(audit);
-
-                    // Reset verification status and set to Pending for review
-                    profile.VerificationStatus = Domain.Entities.Enums.VerificationStatus.Pending;
-
-                    client.NationalId = profileDto.IdentityCompliance.DocumentNumber;
-                }
-            }
-        }
-
-        if (identityFieldsUpdated && !string.IsNullOrEmpty(profile.DocumentNumber))
-        {
-            profile.VerificationStatus = Domain.Entities.Enums.VerificationStatus.Pending;
-        }
-
         profile.UpdatedAt = DateTime.UtcNow;
-
-        // Calculate KYC completion percentage
-        CalculateKycCompletion(profile);
 
         await _unitOfWork.SaveChangesAsync();
 
@@ -252,56 +188,6 @@ public class ProfileService : IProfileService
     }
 
     /// <inheritdoc/>
-    public async Task<UserProfileDto> StartKycAsync(Guid userId)
-    {
-        var user = await _unitOfWork.Repository<AuthUser>()
-            .GetSingleAsync(u => u.Id == userId, u => u.Profile);
-
-        if (user == null)
-            throw new InvalidOperationException($"User with ID {userId} not found.");
-
-        var profile = user.Profile ?? new UserProfile { UserId = userId, CreatedAt = DateTime.UtcNow };
-
-        if (user.Profile == null)
-        {
-            user.Profile = profile;
-            await _unitOfWork.Repository<UserProfile>().AddAsync(profile);
-        }
-
-        // Validation: User must not have already started KYC
-        if (profile.VerificationStatus != Domain.Entities.Enums.VerificationStatus.None)
-        {
-            throw new InvalidOperationException(
-                $"KYC already initiated. Current status: {profile.VerificationStatus}");
-        }
-
-        // Set verification status to Pending
-        profile.VerificationStatus = Domain.Entities.Enums.VerificationStatus.Pending;
-        profile.UpdatedAt = DateTime.UtcNow;
-
-        // Create credit transaction for KYC initiation reward (+10 points)
-        var creditTransaction = new CreditTransaction
-        {
-            UserId = userId,
-            Amount = 10m,
-            JustificationAr = "مكافأة بدء إجراءات توثيق الهوية",
-            JustificationEn = "Reward for initiating identity verification",
-            CreatedAt = DateTime.UtcNow,
-            AdminId = null // System-generated transaction
-        };
-
-        await _unitOfWork.Repository<CreditTransaction>().AddAsync(creditTransaction);
-
-        // Update user's current credibility score
-        profile.CurrentCredibilityScore += 10m;
-
-        // Save all changes atomically
-        await _unitOfWork.SaveChangesAsync();
-
-        return await MapToProfileDtoAsync(user)!;;
-    }
-
-    /// <inheritdoc/>
     public async Task<List<CreditTransactionDto>> GetCreditHistoryAsync(Guid userId)
     {
         var transactions = (await _unitOfWork.Repository<CreditTransaction>()
@@ -313,43 +199,7 @@ public class ProfileService : IProfileService
     }
 
     /// <summary>
-    /// Calculates KYC completion percentage based on required profile fields.
-    /// Auto-verifies user when reaching 100% completion.
-    /// </summary>
-    /// <param name="profile">The user profile to calculate completion for</param>
-    private void CalculateKycCompletion(UserProfile profile)
-    {
-        int totalFields = 10; // KYC fields required by the new criteria
-        int filledFields = 0;
-
-        if (!string.IsNullOrWhiteSpace(profile.FirstName)) filledFields++;
-        if (!string.IsNullOrWhiteSpace(profile.LastName)) filledFields++;
-        if (!string.IsNullOrWhiteSpace(profile.Email)) filledFields++;
-        if (!string.IsNullOrWhiteSpace(profile.Phone1)) filledFields++;
-        if (profile.DateOfBirth.HasValue) filledFields++;
-        if (!string.IsNullOrWhiteSpace(profile.Gender)) filledFields++;
-        if (!string.IsNullOrWhiteSpace(profile.Country)) filledFields++;
-        if (!string.IsNullOrWhiteSpace(profile.Nationality)) filledFields++;
-        if (!string.IsNullOrWhiteSpace(profile.DocumentNumber)) filledFields++;
-
-        var uploadImagePresent = !string.IsNullOrWhiteSpace(profile.DocumentFrontImageUrl) || !string.IsNullOrWhiteSpace(profile.AvatarUrl);
-        if (uploadImagePresent) filledFields++;
-
-        profile.KycCompletionPercentage = (int)Math.Round((double)filledFields / totalFields * 100);
-
-        if (profile.KycCompletionPercentage >= 100 && profile.VerificationStatus == Domain.Entities.Enums.VerificationStatus.Pending)
-        {
-            profile.VerificationStatus = Domain.Entities.Enums.VerificationStatus.Verified;
-            profile.IsKycVerified = true;
-        }
-        else if (profile.KycCompletionPercentage < 100)
-        {
-            profile.IsKycVerified = false;
-        }
-    }
-
-    /// <summary>
-    /// Maps User and UserProfile entities to UserProfileDto with all 4 sections.
+    /// Maps User and UserProfile entities to UserProfileDto with all 3 sections.
     /// </summary>
     private async Task<UserProfileDto> MapToProfileDtoAsync(AuthUser user)
     {
@@ -366,13 +216,6 @@ public class ProfileService : IProfileService
         {
             dto.BasicInfo.Score = client.Score;
             dto.BasicInfo.Credit = client.Credit;
-        }
-
-        // Include KYC completion fields
-        if (user.Profile != null)
-        {
-            dto.BasicInfo.IsKycVerified = user.Profile.IsKycVerified;
-            dto.BasicInfo.KycCompletionPercentage = user.Profile.KycCompletionPercentage;
         }
 
         return dto;

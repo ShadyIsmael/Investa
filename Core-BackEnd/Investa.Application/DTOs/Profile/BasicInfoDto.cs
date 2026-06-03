@@ -10,7 +10,7 @@ public class BasicInfoDto
     public string? FullName { get; set; }
     public string? Gender { get; set; }
     public string? Nationality { get; set; }
-    // Birth date to support age verification and KYC
+    // Birth date to support age verification
     public DateTime? DateOfBirth { get; set; }
     // Country selection (dropdown) separate from nationality
     public string? Country { get; set; }
@@ -19,6 +19,4 @@ public class BasicInfoDto
     public string? AvatarUrl { get; set; }
     public decimal Score { get; set; }
     public decimal Credit { get; set; }
-    public bool IsKycVerified { get; set; }
-    public int KycCompletionPercentage { get; set; }
 }

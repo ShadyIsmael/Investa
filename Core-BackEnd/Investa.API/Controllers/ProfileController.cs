@@ -220,73 +220,6 @@ public class ProfileController : ControllerBase
     }
 
     /// <summary>
-    /// Initiates the KYC flow for the current user (marks identity verification as Pending).
-    /// </summary>
-    [HttpPost("me/kyc/start")]
-    [ProducesResponseType(typeof(UserProfileDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> StartKyc()
-    {
-        try
-        {
-            // Extract user ID claim value
-            var userIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
-            Guid userId;
-
-            if (!Guid.TryParse(userIdClaim, out userId))
-            {
-                // Fallback heuristics (same as GetMyProfile)
-                var firebaseUid = User.FindFirst("firebase_uid")?.Value;
-                var userName = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-                Investa.Domain.Entities.AuthUser? authUser = null;
-
-                if (!string.IsNullOrEmpty(firebaseUid))
-                {
-                    authUser = (await _unitOfWork.Repository<Investa.Domain.Entities.AuthUser>()
-                        .FindAsync(a => a.FirebaseUid == firebaseUid)).FirstOrDefault();
-                }
-
-                if (authUser == null && !string.IsNullOrEmpty(userName))
-                {
-                    var possibleEmail = userName + "@phone.investa.local";
-                    authUser = (await _unitOfWork.Repository<Investa.Domain.Entities.AuthUser>()
-                        .FindAsync(a => a.Email == possibleEmail)).FirstOrDefault();
-                }
-
-                if (authUser == null && !string.IsNullOrEmpty(userName))
-                {
-                    authUser = (await _unitOfWork.Repository<Investa.Domain.Entities.AuthUser>()
-                        .FindAsync(a => a.Email == (userName + "@phone.investa.local") || a.Name == userName)).FirstOrDefault();
-                }
-
-                if (authUser == null)
-                {
-                    _logger.LogWarning("Unable to resolve AuthUser for KYC start. sub: {Sub}, name: {Name}, firebase_uid: {Firebase}", userIdClaim, userName, firebaseUid);
-                    return Unauthorized(_localizer["UnableToIdentifyUserFromToken"].Value);
-                }
-
-                userId = authUser.Id;
-            }
-
-            var updated = await _profileService.StartKycAsync(userId);
-            _logger.LogInformation("User {UserId} started KYC", userId);
-            return Ok(updated);
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning($"Start KYC failed: {ex.Message}");
-            return NotFound(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError($"Error starting KYC: {ex.Message}");
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = _localizer["ErrorStartingKyc"].Value });
-        }
-    }
-
-    /// <summary>
     /// Retrieves the current user's credibility score transaction history.
     /// </summary>
     [HttpGet("me/credits")]
@@ -416,22 +349,9 @@ public class ProfileController : ControllerBase
                 UserId = Guid.Empty, // service ignores this and uses userId from claims
                 BasicInfo = updateReq.BasicInfo,
                 ContactInfo = updateReq.ContactInfo,
-                IdentityCompliance = updateReq.IdentityCompliance
+
             };
 
-            // Server-side validation for DocumentNumber (BusinessRole has been removed from profile payload)
-
-            if (updateReq.IdentityCompliance != null)
-            {
-                if (!string.IsNullOrEmpty(updateReq.IdentityCompliance.DocumentNumber) && updateReq.IdentityCompliance.DocumentNumber.Length > 50)
-                    return BadRequest(new { errors = new[] { _localizer["DocumentNumberMaxLength"].Value } });
-
-                if (!string.IsNullOrEmpty(updateReq.IdentityCompliance.HrLetterFileName) && updateReq.IdentityCompliance.HrLetterFileName.Length > 260)
-                    return BadRequest(new { errors = new[] { _localizer["HrLetterFileNameMaxLength"].Value } });
-
-                if (!string.IsNullOrEmpty(updateReq.IdentityCompliance.DeviceMacAddress) && updateReq.IdentityCompliance.DeviceMacAddress.Length > 100)
-                    return BadRequest(new { errors = new[] { _localizer["DeviceMacAddressMaxLength"].Value } });
-            }
 
             var updatedProfile = await _profileService.UpdateUserProfileAsync(userId, profileDto);
 
@@ -579,9 +499,7 @@ public class ProfileController : ControllerBase
                 companyName = profile.BasicInfo?.CompanyName,
                 country = profile.BasicInfo?.Country,
                 nationality = profile.BasicInfo?.Nationality,
-                isKycVerified = profile.BasicInfo?.IsKycVerified ?? false,
-                credibilityScore = profile.BasicInfo?.Score ?? 0,
-                role = profile.CoreMetrics?.Role,
+
                 linkedInUrl = profile.ContactInfo?.LinkedInUrl,
                 facebookUrl = profile.ContactInfo?.FacebookUrl,
             };

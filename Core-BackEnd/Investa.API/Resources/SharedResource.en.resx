@@ -88,9 +88,6 @@
   <data name="ErrorRetrievingProfile" xml:space="preserve">
     <value>An error occurred while retrieving the profile</value>
   </data>
-  <data name="ErrorStartingKyc" xml:space="preserve">
-    <value>An error occurred while starting KYC</value>
-  </data>
   <data name="ErrorRetrievingCreditHistory" xml:space="preserve">
     <value>An error occurred while retrieving credit history</value>
   </data>

@@ -171,7 +171,28 @@ public class InvestmentService : IInvestmentService
             // Founding-specific fields
             DurationMonths = dto.DurationMonths,
             ProfitPercentage = dto.ProfitPercentage,
-            PayoutFrequency = dto.PayoutFrequency
+            PayoutFrequency = dto.PayoutFrequency,
+            // Equity exit strategy fields
+            CurrentValuation = dto.CurrentValuation,
+            EstimatedFutureValuation = dto.EstimatedFutureValuation,
+            EquityExitType = dto.EquityExitType,
+            ExitTargetDate = dto.ExitTargetDate,
+            ExpectedExitStrategy = dto.ExpectedExitStrategy,
+            // Revenue sharing exit strategy fields
+            ContractStartDate = dto.ContractStartDate,
+            ContractEndDate = dto.ContractEndDate,
+            TotalExpectedPayout = dto.TotalExpectedPayout,
+            RemainingPayoutAmount = dto.RemainingPayoutAmount,
+            RevenueDistributionFrequency = dto.RevenueDistributionFrequency,
+            ContractCompletionStatus = dto.ContractCompletionStatus,
+            // Loan/Debt exit strategy fields
+            RepaymentStartDate = dto.RepaymentStartDate,
+            FinalRepaymentDate = dto.FinalRepaymentDate,
+            RemainingBalance = dto.RemainingBalance,
+            TotalPaidAmount = dto.TotalPaidAmount,
+            NextInstallmentDate = dto.NextInstallmentDate,
+            DefaultRiskLevel = dto.DefaultRiskLevel,
+            LoanCompletionStatus = dto.LoanCompletionStatus
         };
 
         await _unitOfWork.Repository<Investment>().AddAsync(entity);
@@ -211,48 +232,114 @@ public class InvestmentService : IInvestmentService
         if (dto.BusinessStageId.HasValue) entity.BusinessStageId = dto.BusinessStageId;
         if (dto.BusinessCategoryId.HasValue) entity.BusinessCategoryId = dto.BusinessCategoryId;
         if (dto.ProjectPhaseId.HasValue) entity.ProjectPhaseId = dto.ProjectPhaseId;
-        if (dto.TargetFund.HasValue) entity.TargetFund = dto.TargetFund;
+        if (dto.TargetFund.HasValue) entity.TargetFund = dto.TargetFund.Value;
         if (dto.SharePrice.HasValue) entity.SharePrice = dto.SharePrice.Value;
         if (dto.TotalShares.HasValue) 
         {
-            var soldShares = entity.TotalShares - entity.AvailableShares;
+            var oldTotalShares = entity.TotalShares;
             entity.TotalShares = dto.TotalShares.Value;
-            entity.AvailableShares = entity.TotalShares - soldShares;
+            // If this is the first time setting TotalShares, set AvailableShares equal to it
+            if (!oldTotalShares.HasValue || oldTotalShares == 0)
+            {
+                entity.AvailableShares = dto.TotalShares.Value;
+            }
         }
-        if (dto.MinInvestment.HasValue) entity.MinInvestment = dto.MinInvestment;
-        if (dto.MaxInvestment.HasValue) entity.MaxInvestment = dto.MaxInvestment;
-        if (dto.ValuationCap.HasValue) entity.ValuationCap = dto.ValuationCap;
-        if (dto.ExpectedROI.HasValue) entity.ExpectedROI = dto.ExpectedROI;
+        if (dto.MinInvestment.HasValue) entity.MinInvestment = dto.MinInvestment.Value;
+        if (dto.MaxInvestment.HasValue) entity.MaxInvestment = dto.MaxInvestment.Value;
+        if (dto.ValuationCap.HasValue) entity.ValuationCap = dto.ValuationCap.Value;
+        if (dto.ExpectedROI.HasValue) entity.ExpectedROI = dto.ExpectedROI.Value;
         if (dto.InvestmentTypeId.HasValue) entity.InvestmentTypeId = dto.InvestmentTypeId.Value;
         if (dto.Status != null) entity.Status = dto.Status;
         if (dto.EndDate.HasValue) entity.EndDate = dto.EndDate;
         if (dto.ImageUrl != null) entity.ImageUrl = dto.ImageUrl;
         if (dto.VideoUrl != null) entity.VideoUrl = dto.VideoUrl;
-        // Founding-specific fields
-        if (dto.DurationMonths.HasValue) entity.DurationMonths = dto.DurationMonths;
-        if (dto.ProfitPercentage.HasValue) entity.ProfitPercentage = dto.ProfitPercentage;
+        if (dto.DurationMonths.HasValue) entity.DurationMonths = dto.DurationMonths.Value;
+        if (dto.ProfitPercentage.HasValue) entity.ProfitPercentage = dto.ProfitPercentage.Value;
         if (dto.PayoutFrequency != null) entity.PayoutFrequency = dto.PayoutFrequency;
+        
+        // Equity exit strategy fields
+        if (dto.CurrentValuation.HasValue) entity.CurrentValuation = dto.CurrentValuation.Value;
+        if (dto.EstimatedFutureValuation.HasValue) entity.EstimatedFutureValuation = dto.EstimatedFutureValuation.Value;
+        if (dto.EquityExitType.HasValue) entity.EquityExitType = dto.EquityExitType.Value;
+        if (dto.ExitTargetDate.HasValue) entity.ExitTargetDate = dto.ExitTargetDate;
+        if (dto.ExpectedExitStrategy != null) entity.ExpectedExitStrategy = dto.ExpectedExitStrategy;
+        
+        // Revenue sharing exit strategy fields
+        if (dto.ContractStartDate.HasValue) entity.ContractStartDate = dto.ContractStartDate;
+        if (dto.ContractEndDate.HasValue) entity.ContractEndDate = dto.ContractEndDate;
+        if (dto.TotalExpectedPayout.HasValue) entity.TotalExpectedPayout = dto.TotalExpectedPayout.Value;
+        if (dto.RemainingPayoutAmount.HasValue) entity.RemainingPayoutAmount = dto.RemainingPayoutAmount.Value;
+        if (dto.RevenueDistributionFrequency != null) entity.RevenueDistributionFrequency = dto.RevenueDistributionFrequency;
+        if (dto.ContractCompletionStatus != null) entity.ContractCompletionStatus = dto.ContractCompletionStatus;
+        
+        // Loan/Debt exit strategy fields
+        if (dto.RepaymentStartDate.HasValue) entity.RepaymentStartDate = dto.RepaymentStartDate;
+        if (dto.FinalRepaymentDate.HasValue) entity.FinalRepaymentDate = dto.FinalRepaymentDate;
+        if (dto.RemainingBalance.HasValue) entity.RemainingBalance = dto.RemainingBalance.Value;
+        if (dto.TotalPaidAmount.HasValue) entity.TotalPaidAmount = dto.TotalPaidAmount.Value;
+        if (dto.NextInstallmentDate.HasValue) entity.NextInstallmentDate = dto.NextInstallmentDate;
+        if (dto.DefaultRiskLevel != null) entity.DefaultRiskLevel = dto.DefaultRiskLevel;
+        if (dto.LoanCompletionStatus != null) entity.LoanCompletionStatus = dto.LoanCompletionStatus;
 
         await repo.UpdateAsync(entity);
         await _unitOfWork.SaveChangesAsync();
 
-        // If status changed, append an event (best-effort)
-        if (dto.Status != null && dto.Status != oldStatus)
+        // Emit status change event if status changed
+        if (oldStatus != entity.Status)
         {
             try
             {
-                var ev = new CreateInvestmentEventDto
+                var payload = System.Text.Json.JsonSerializer.Serialize(new
                 {
-                    EventType = "StatusUpdated",
-                    Payload = System.Text.Json.JsonSerializer.Serialize(new { OldStatus = oldStatus, NewStatus = dto.Status }),
-                    CreatedBy = null
+                    OldStatus = oldStatus,
+                    NewStatus = entity.Status
+                });
+
+                var evDto = new CreateInvestmentEventDto
+                {
+                    EventType = "StatusChanged",
+                    Payload = payload,
+                    CreatedBy = entity.FounderId
                 };
-                await _eventService.AppendEventAsync(id, ev);
+
+                await _eventService.AppendEventAsync(entity.Id, evDto);
             }
             catch
             {
-                // ignore
+                // ignore event failures
             }
+        }
+
+        return true;
+    }
+
+    public async Task<bool> DeleteAsync(int id)
+    {
+        var repo = _unitOfWork.Repository<Investment>();
+        var entity = await repo.GetByIdAsync(id);
+        if (entity == null) return false;
+
+        // Only allow deletion of Draft investments
+        if (entity.Status != "Draft")
+            throw new InvalidOperationException("Only draft investments can be deleted.");
+
+        await repo.DeleteAsync(entity);
+        await _unitOfWork.SaveChangesAsync();
+
+        // Best-effort: append Deleted event
+        try
+        {
+            var evDto = new CreateInvestmentEventDto
+            {
+                EventType = "Deleted",
+                Payload = System.Text.Json.JsonSerializer.Serialize(new { entity.Id, entity.BusinessName }),
+                CreatedBy = entity.FounderId
+            };
+            await _eventService.AppendEventAsync(entity.Id, evDto);
+        }
+        catch
+        {
+            // ignore event failures
         }
 
         return true;
@@ -260,69 +347,81 @@ public class InvestmentService : IInvestmentService
 
     public async Task<Investment?> GetByIdAsync(int id)
     {
-        // Use specialized repository for full details including User/UserProfile for team members
-        return await _investmentRepository.GetByIdWithFullDetailsAsync(id);
+        return await _unitOfWork.Repository<Investment>().GetByIdAsync(id);
+    }
+
+    public async Task<IEnumerable<Investment>> GetAllAsync()
+    {
+        return await _unitOfWork.Repository<Investment>().GetAllAsync();
+    }
+
+    public async Task<IEnumerable<Investment>> GetByFounderIdAsync(Guid founderId)
+    {
+        var allInvestments = await _unitOfWork.Repository<Investment>().GetAllAsync();
+        return allInvestments.Where(i => i.FounderId == founderId);
     }
 
     public async Task<IEnumerable<Investment>> GetByCategoryAsync(int? categoryId)
     {
-        // Use specialized repository for full details including User/UserProfile for team members
-        if (!categoryId.HasValue)
-            return await _investmentRepository.GetAllWithFullDetailsAsync();
-
-        return await _investmentRepository.GetByCategoryWithFullDetailsAsync(categoryId.Value);
+        var allInvestments = await _unitOfWork.Repository<Investment>().GetAllAsync();
+        if (categoryId.HasValue)
+        {
+            return allInvestments.Where(i => i.BusinessCategoryId == categoryId.Value);
+        }
+        return allInvestments;
     }
 
-    /// <summary>
-    /// Gets all investments created by a specific founder.
-    /// </summary>
     public async Task<IEnumerable<Investment>> GetMyInvestmentsAsync(Guid founderId)
     {
-        return await _investmentRepository.FindAsync(i => i.FounderId == founderId);
+        var allInvestments = await _unitOfWork.Repository<Investment>().GetAllAsync();
+        return allInvestments.Where(i => i.FounderId == founderId);
     }
 
     public async Task<IEnumerable<int>> GetFavoriteInvestmentIdsAsync(Guid investorId)
     {
         var favorites = await _unitOfWork.Repository<InvestmentFavorite>()
-            .FindAsync(f => f.InvestorId == investorId);
-
-        return favorites.Select(f => f.InvestmentId).Distinct();
+            .GetAllAsync();
+        return favorites.Where(f => f.InvestorId == investorId).Select(f => f.InvestmentId);
     }
 
     public async Task<bool> ToggleFavoriteAsync(Guid investorId, int investmentId, bool favorited)
     {
-        var repository = _unitOfWork.Repository<InvestmentFavorite>();
-        var existing = (await repository.FindAsync(f => f.InvestorId == investorId && f.InvestmentId == investmentId)).FirstOrDefault();
-
+        var repo = _unitOfWork.Repository<InvestmentFavorite>();
+        
         if (favorited)
         {
-            if (existing != null)
-                return true;
-
-            var favorite = new InvestmentFavorite
+            // Check if already exists
+            var existing = (await repo.GetAllAsync())
+                .FirstOrDefault(f => f.InvestorId == investorId && f.InvestmentId == investmentId);
+            if (existing == null)
             {
-                InvestorId = investorId,
-                InvestmentId = investmentId,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            await repository.AddAsync(favorite);
+                await repo.AddAsync(new InvestmentFavorite
+                {
+                    InvestorId = investorId,
+                    InvestmentId = investmentId,
+                    CreatedAt = DateTime.UtcNow
+                });
+                await _unitOfWork.SaveChangesAsync();
+            }
         }
         else
         {
-            if (existing == null)
-                return false;
-
-            await repository.DeleteAsync(existing);
+            var existing = (await repo.GetAllAsync())
+                .FirstOrDefault(f => f.InvestorId == investorId && f.InvestmentId == investmentId);
+            if (existing != null)
+            {
+                await repo.DeleteAsync(existing);
+                await _unitOfWork.SaveChangesAsync();
+            }
         }
-
-        await _unitOfWork.SaveChangesAsync();
-        return favorited;
+        
+        return true;
     }
 
     public async Task<IEnumerable<InvestmentParticipant>> GetParticipantsAsync(int investmentId)
     {
-        return await _unitOfWork.Repository<InvestmentParticipant>()
-            .FindAsync(p => p.InvestmentId == investmentId);
+        var repo = _unitOfWork.Repository<InvestmentParticipant>();
+        var participants = await repo.GetAllAsync();
+        return participants.Where(p => p.InvestmentId == investmentId);
     }
 }

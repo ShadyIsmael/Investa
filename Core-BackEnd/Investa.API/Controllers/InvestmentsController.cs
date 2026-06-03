@@ -45,7 +45,7 @@ public class InvestmentsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = nameof(UserRoles.Client))]
+    [Authorize(Policy = "TrustLevel3")]
     public async Task<IActionResult> Create([FromBody] CreateInvestmentDto dto)
     {
         if (dto == null) return BadRequest(new { success = false, message = _localizer["InvalidPayload"].Value });
@@ -113,6 +113,7 @@ public class InvestmentsController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
+    [Authorize(Policy = "TrustLevel1")]
     public async Task<IActionResult> Get(int id)
     {
         var entity = await _service.GetByIdAsync(id);
@@ -189,7 +190,7 @@ public class InvestmentsController : ControllerBase
     }
 
     [HttpPost("{id:int}/favorite")]
-    [Authorize(Roles = nameof(UserRoles.Client))]
+    [Authorize(Policy = "TrustLevel2")]
     public async Task<IActionResult> SetFavorite(int id, [FromBody] SetFavoriteDto dto)
     {
         if (dto == null)

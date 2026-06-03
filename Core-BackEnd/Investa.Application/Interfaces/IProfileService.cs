@@ -8,7 +8,7 @@ namespace Investa.Application.Interfaces;
 public interface IProfileService
 {
     /// <summary>
-    /// Retrieves the complete user profile with all 4 sections (Basic Info, Contact Info, Identity & Compliance, Audit & Usage).
+    /// Retrieves the complete user profile with all 3 sections (Basic Info, Contact Info, Audit & Usage).
     /// </summary>
     /// <param name="userId">The user ID</param>
     /// <returns>The complete UserProfileDto, or null if profile not found</returns>
@@ -45,13 +45,6 @@ public interface IProfileService
     /// <param name="ipAddress">The registration IP address</param>
     /// <returns>The updated UserProfileDto</returns>
     Task<UserProfileDto> SetRegistrationIpAsync(Guid userId, string? ipAddress);
-
-    /// <summary>
-    /// Initiates the KYC flow for the user by setting identity verification status to Pending.
-    /// </summary>
-    /// <param name="userId">The user ID</param>
-    /// <returns>The updated UserProfileDto</returns>
-    Task<UserProfileDto> StartKycAsync(Guid userId);
 
     /// <summary>
     /// Retrieves the user's credibility score transaction history.

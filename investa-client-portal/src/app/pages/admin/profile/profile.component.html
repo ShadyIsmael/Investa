@@ -27,6 +27,14 @@
         <h2 class="text-2xl font-bold text-white">{{ fullName() || ('profile.titleDefault' | translate) }}</h2>
         <p class="text-gray-400 mb-4">{{ getCountryLabel(profileForm.get('nationality')?.value) || getCountryLabel(profileService.profile()?.basicInfo?.nationality) }}</p>
 
+        <!-- Trust Level Badge -->
+        @if (trustService.isLoaded()) {
+          <div class="flex items-center justify-center gap-2 mb-2">
+            <app-trust-badge [lang]="currentLanguage()"></app-trust-badge>
+            <span class="text-xs text-gray-400">{{ trustService.profile()?.reputationScore }}/10000 pts</span>
+          </div>
+        }
+
         <!-- Credits (moved to top) -->
         <div class="bg-slate-800/50 p-4 rounded-lg mt-4">
           <div class="flex items-center justify-between mb-3">
@@ -99,6 +107,19 @@
                     [class.hover:text-white]="activeSection() !== 'notifications'">
               <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
               {{ 'profile.tabs.notifications' | translate }}
+            </button>
+            <!-- Trust & Verification Tab -->
+            <button (click)="selectSection('trust')"
+                    class="w-full flex items-center gap-3 text-start px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
+                    [class.bg-emerald-500/20]="activeSection() === 'trust'"
+                    [class.text-emerald-300]="activeSection() === 'trust'"
+                    [class.border-emerald-500/30]="activeSection() === 'trust'"
+                    [class.border]="activeSection() === 'trust'"
+                    [class.text-gray-400]="activeSection() !== 'trust'"
+                    [class.hover:bg-slate-800/50]="activeSection() !== 'trust'"
+                    [class.hover:text-white]="activeSection() !== 'trust'">
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
+              Trust &amp; Verification
             </button>
           </nav>
         </div>
@@ -529,6 +550,127 @@
               </button>
             </div>
           </form>
+        }
+        @case ('trust') {
+          <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl animate-fade-in p-8 space-y-6">
+            <h2 class="text-2xl font-bold text-white flex items-center gap-3">
+              <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
+              Trust &amp; Verification
+            </h2>
+
+            @if (!trustService.isLoaded()) {
+              <div class="flex items-center gap-3 text-gray-400">
+                <div class="w-5 h-5 border-2 border-gray-600 border-t-emerald-400 rounded-full animate-spin"></div>
+                Loading trust profile…
+              </div>
+            } @else {
+              <!-- Level + score row -->
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="bg-slate-800/60 rounded-xl p-4 flex flex-col items-center gap-2">
+                  <span class="text-xs text-gray-400 uppercase tracking-wide">Trust Level</span>
+                  <app-trust-badge [lang]="currentLanguage()" class="mt-1"></app-trust-badge>
+                </div>
+                <div class="bg-slate-800/60 rounded-xl p-4 flex flex-col items-center gap-2">
+                  <span class="text-xs text-gray-400 uppercase tracking-wide">Reputation Score</span>
+                  <span class="text-3xl font-bold text-emerald-400">{{ trustService.profile()?.reputationScore ?? 0 }}</span>
+                  <span class="text-xs text-gray-500">out of 10,000</span>
+                </div>
+                <div class="bg-slate-800/60 rounded-xl p-4 flex flex-col items-center gap-2">
+                  <span class="text-xs text-gray-400 uppercase tracking-wide">Profile Completion</span>
+                  <span class="text-3xl font-bold" [class.text-emerald-400]="(trustService.profile()?.profileCompletionPercentage ?? 0) >= 60" [class.text-blue-400]="(trustService.profile()?.profileCompletionPercentage ?? 0) < 60">
+                    {{ trustService.profile()?.profileCompletionPercentage ?? 0 }}%
+                  </span>
+                  <div class="w-full bg-slate-700 rounded-full h-1.5">
+                    <div class="h-1.5 rounded-full transition-all" [class.bg-emerald-500]="(trustService.profile()?.profileCompletionPercentage ?? 0) >= 60" [class.bg-blue-500]="(trustService.profile()?.profileCompletionPercentage ?? 0) < 60" [style.width.%]="trustService.profile()?.profileCompletionPercentage ?? 0"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Verification status -->
+              <div>
+                <h3 class="text-sm font-semibold text-gray-300 mb-3">Verification Status</h3>
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between p-3 bg-slate-800/40 rounded-lg">
+                    <div class="flex items-center gap-2 text-sm">
+                      <svg class="w-4 h-4" [class.text-emerald-400]="trustService.profile()?.isEmailVerified" [class.text-gray-500]="!trustService.profile()?.isEmailVerified" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/></svg>
+                      <span class="text-gray-300">Email</span>
+                    </div>
+                    @if (trustService.profile()?.isEmailVerified) {
+                      <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold">Verified</span>
+                    } @else {
+                      <span class="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 font-semibold">Pending</span>
+                    }
+                  </div>
+                  <div class="flex items-center justify-between p-3 bg-slate-800/40 rounded-lg">
+                    <div class="flex items-center gap-2 text-sm">
+                      <svg class="w-4 h-4" [class.text-emerald-400]="trustService.profile()?.isPhoneVerified" [class.text-gray-500]="!trustService.profile()?.isPhoneVerified" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/></svg>
+                      <span class="text-gray-300">Phone</span>
+                    </div>
+                    @if (trustService.profile()?.isPhoneVerified) {
+                      <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold">Verified</span>
+                    } @else {
+                      <span class="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 font-semibold">Pending</span>
+                    }
+                  </div>
+                  <div class="flex items-center justify-between p-3 bg-slate-800/40 rounded-lg">
+                    <div class="flex items-center gap-2 text-sm">
+                      <svg class="w-4 h-4" [class.text-emerald-400]="trustService.profile()?.isIdentityVerified" [class.text-gray-500]="!trustService.profile()?.isIdentityVerified" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z"/></svg>
+                      <span class="text-gray-300">Government ID</span>
+                    </div>
+                    @if (trustService.profile()?.isIdentityVerified) {
+                      <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold">Verified</span>
+                    } @else {
+                      <span class="text-xs px-2 py-0.5 rounded-full bg-gray-500/20 text-gray-400 font-semibold">Not submitted</span>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <!-- Next level checklist -->
+              @if ((trustService.profile()?.nextLevelRequirements?.length ?? 0) > 0) {
+                <div>
+                  <h3 class="text-sm font-semibold text-gray-300 mb-3">What's needed to reach the next level</h3>
+                  <div class="space-y-2">
+                    @for (req of trustService.profile()!.nextLevelRequirements; track req.key) {
+                      <div class="flex items-center gap-3 p-3 rounded-lg" [class.bg-emerald-500/10]="req.isMet" [class.bg-slate-800/40]="!req.isMet">
+                        @if (req.isMet) {
+                          <svg class="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        } @else {
+                          <svg class="w-4 h-4 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+                        }
+                        <span class="text-sm" [class.text-emerald-300]="req.isMet" [class.text-gray-400]="!req.isMet">
+                          {{ currentLanguage() === 'ar' ? req.labelAr : req.labelEn }}
+                        </span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
+              <!-- Submitted verifications list -->
+              @if ((trustService.profile()?.verifications?.length ?? 0) > 0) {
+                <div>
+                  <h3 class="text-sm font-semibold text-gray-300 mb-3">Submitted Verifications</h3>
+                  <div class="space-y-2">
+                    @for (v of trustService.profile()!.verifications; track v.id) {
+                      <div class="flex items-center justify-between p-3 bg-slate-800/40 rounded-lg text-sm">
+                        <span class="text-gray-300">{{ v.verificationType }}</span>
+                        <span class="text-xs px-2 py-0.5 rounded-full"
+                          [class.bg-emerald-500/20]="v.status === 2"
+                          [class.text-emerald-300]="v.status === 2"
+                          [class.bg-yellow-500/20]="v.status === 1"
+                          [class.text-yellow-300]="v.status === 1"
+                          [class.bg-gray-500/20]="v.status === 0"
+                          [class.text-gray-400]="v.status === 0">
+                          {{ v.status === 2 ? 'Verified' : v.status === 1 ? 'Pending' : 'None' }}
+                        </span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            }
+          </div>
         }
       }
 

@@ -44,8 +44,6 @@ class BasicInfo {
   final String? avatarUrl;
   final int? score;
   final int? credit;
-  final bool isKycVerified;
-  final int kycCompletionPercentage;
 
   BasicInfo({
     this.firstName,
@@ -59,11 +57,8 @@ class BasicInfo {
     this.avatarUrl,
     this.score,
     this.credit,
-    this.isKycVerified = false,
-    this.kycCompletionPercentage = 0,
   });
 
-  static int _normalizeKycCompletionPercentage(num? raw) {
     if (raw == null) return 0;
     final value = raw.round();
     if (value < 0) return 0;
@@ -86,9 +81,6 @@ class BasicInfo {
       avatarUrl: json['avatarUrl'] as String?,
       score: (json['score'] as num?)?.toInt(),
       credit: (json['credit'] as num?)?.toInt(),
-      isKycVerified: json['isKycVerified'] as bool? ?? false,
-      kycCompletionPercentage: _normalizeKycCompletionPercentage(
-          json['kycCompletionPercentage'] as num?),
     );
   }
 }
@@ -137,42 +129,6 @@ class ContactInfo {
   }
 }
 
-class IdentityCompliance {
-  final String? documentNumber;
-  final DateTime? documentExpiryDate;
-  final String? verificationStatus;
-  final String? documentFrontImageUrl;
-  final String? documentBackImageUrl;
-  final String? hrLetterFileName;
-  final String? hrLetterBase64;
-  final String? deviceMacAddress;
-
-  IdentityCompliance({
-    this.documentNumber,
-    this.documentExpiryDate,
-    this.verificationStatus,
-    this.documentFrontImageUrl,
-    this.documentBackImageUrl,
-    this.hrLetterFileName,
-    this.hrLetterBase64,
-    this.deviceMacAddress,
-  });
-
-  factory IdentityCompliance.fromJson(Map<String, dynamic> json) {
-    return IdentityCompliance(
-      documentNumber: json['documentNumber'] as String?,
-      documentExpiryDate: json['documentExpiryDate'] != null
-          ? DateTime.parse(json['documentExpiryDate'] as String)
-          : null,
-      verificationStatus: json['verificationStatus'] as String?,
-      documentFrontImageUrl: json['documentFrontImageUrl'] as String?,
-      documentBackImageUrl: json['documentBackImageUrl'] as String?,
-      hrLetterFileName: json['hrLetterFileName'] as String?,
-      hrLetterBase64: json['hrLetterBase64'] as String?,
-      deviceMacAddress: json['deviceMacAddress'] as String?,
-    );
-  }
-}
 
 class AuditUsage {
   final String? lastLoginIP;
@@ -501,18 +457,15 @@ class ProfileService {
   }
 
   /// Start KYC verification process
-  Future<Map<String, dynamic>?> startKyc() async {
     var apiBase = baseUrl;
     if (!apiBase.startsWith('http')) apiBase = 'http://$apiBase';
     final uri = Uri.parse('$apiBase/api/Profile/start-kyc');
     try {
-      AppLogger.logInfo('ProfileService.startKyc', 'POST ${uri.toString()}');
       final resp = await _client.post(uri.toString(), headers: {
         'accept': 'application/json',
         'Content-Type': 'application/json'
       });
       final status = resp.statusCode ?? 0;
-      AppLogger.logInfo('ProfileService.startKyc', 'Response status=$status');
       if (status >= 200 && status < 300) {
         final body = resp.data is Map
             ? resp.data as Map<String, dynamic>
@@ -521,17 +474,13 @@ class ProfileService {
       }
 
       AppLogger.logError(
-          'ProfileService.startKyc', 'Server error: $status', null);
       return null;
     } on TimeoutException catch (_) {
-      AppLogger.logError('ProfileService.startKyc', 'Request timed out', null);
       return null;
     } on DioException catch (e) {
-      AppLogger.logError('ProfileService.startKyc',
           'Network error: ${e.message}', e.stackTrace);
       return null;
     } catch (e, s) {
-      AppLogger.logError('ProfileService.startKyc', 'Unexpected: $e', s);
       return null;
     }
   }

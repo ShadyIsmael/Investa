@@ -8,9 +8,4 @@ public class UpdateProfileRequestDto
 {
     public BasicInfoDto? BasicInfo { get; set; }
     public ContactInfoDto? ContactInfo { get; set; }
-
-    /// <summary>
-    /// Optional identity/compliance section for KYC (DocumentNumber etc.)
-    /// </summary>
-    public IdentityComplianceDto? IdentityCompliance { get; set; }
 }
