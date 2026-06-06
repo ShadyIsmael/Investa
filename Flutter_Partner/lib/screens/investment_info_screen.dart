@@ -880,6 +880,35 @@ class _InvestmentInfoScreenState extends State<InvestmentInfoScreen> {
 
                       const SizedBox(height: 32),
 
+                      // Video Player
+                      if (item['videoUrl'] != null &&
+                          item['videoUrl'].toString().isNotEmpty) ...[
+                        const SizedBox(height: 24),
+                        Text('Project Video',
+                            style: GoogleFonts.outfit(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.onSurface)),
+                        const SizedBox(height: 12),
+                        AspectRatio(
+                          aspectRatio: 16 / 9,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              item['videoUrl'],
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                color: Colors.grey[900],
+                                child: const Center(
+                                  child: Icon(Icons.play_circle_outline,
+                                      size: 48, color: Colors.white),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+
                       // Additional lists (Investors, Reviews) could go here...
                       const SizedBox(
                           height: 100), // Bottom padding for fixed button

@@ -72,12 +72,24 @@ public class AuthUser
 
     // ── Progressive Trust System ─────────────────────────────────────────────
 
+    /// <summary>Verification eligibility score (0-100). Controls access to advanced actions.</summary>
+    [Range(0, 100)]
+    public int VerificationTrustScore { get; set; } = 0;
+
     /// <summary>Current trust level controlling what the user can do on the platform.</summary>
     public TrustLevel TrustLevel { get; set; } = TrustLevel.Registered;
 
     /// <summary>Dynamic reputation score (0–10000). Increases with positive activity.</summary>
     [Range(0, 10000)]
     public int ReputationScore { get; set; } = 0;
+
+    /// <summary>Activity contribution score (0-10000). Tracks meaningful platform participation.</summary>
+    [Range(0, 10000)]
+    public int ActivityScore { get; set; } = 0;
+
+    /// <summary>Human-readable reputation level used by product surfaces.</summary>
+    [StringLength(80)]
+    public string ReputationLevel { get; set; } = "Rising Member";
 
     /// <summary>Profile completion percentage (0–100). Drives trust-level upgrades.</summary>
     [Range(0, 100)]

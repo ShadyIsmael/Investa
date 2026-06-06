@@ -20,6 +20,7 @@ class TrustBadgeWidget extends StatelessWidget {
         return Colors.blue;
       case TrustLevel.interactive:
         return Colors.amber;
+      case TrustLevel.trustedActive:
       case TrustLevel.verified:
         return Colors.green;
     }
@@ -33,6 +34,7 @@ class TrustBadgeWidget extends StatelessWidget {
         return '✅';
       case TrustLevel.interactive:
         return '⭐';
+      case TrustLevel.trustedActive:
       case TrustLevel.verified:
         return '🛡️';
     }

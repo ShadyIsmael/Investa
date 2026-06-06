@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
 using Investa.API.Resources;
 using Investa.API.Utilities;
+using Investa.Application.Common;
 
 namespace Investa.API.Controllers;
 
@@ -90,10 +91,22 @@ public class ProfileController : ControllerBase
                 profile.BasicInfo.FullName = string.Join(' ', new[] { profile.BasicInfo.FirstName, profile.BasicInfo.LastName }
                     .Where(x => !string.IsNullOrWhiteSpace(x))).Trim();
             }
-            if (!string.IsNullOrWhiteSpace(req.Mobile) && req.Mobile != profile.ContactInfo.Phone1)
+            if (!string.IsNullOrWhiteSpace(req.Mobile))
             {
-                profile.ContactInfo.Phone1 = req.Mobile.Trim();
-                changed = true;
+                var normalizedPhone = PhoneNumberNormalizer.NormalizePhoneNumber(req.Mobile);
+                if (normalizedPhone == null)
+                    return BadRequest(_localizer["InvalidPhoneNumber"].Value);
+
+                if (normalizedPhone != profile.ContactInfo.Phone1)
+                {
+                    var existingProfile = await _unitOfWork.Repository<UserProfile>()
+                        .GetSingleAsync(p => p.UserId != userId && p.Phone1 == normalizedPhone);
+                    if (existingProfile != null)
+                        return BadRequest(new { message = _localizer["PhoneAlreadyInUse"].Value });
+
+                    profile.ContactInfo.Phone1 = normalizedPhone;
+                    changed = true;
+                }
             }
             if (!string.IsNullOrWhiteSpace(req.Image) && req.Image != profile.BasicInfo.AvatarUrl)
             {

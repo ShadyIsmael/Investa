@@ -11,6 +11,12 @@ export enum RiskLevel {
  * Investment type enumeration - matches backend InvestmentType enum
  * Supports Founding, Equity, Revenue Sharing, and Loan/Debt
  */
+export enum MediaType {
+  CoverImage = 0,
+  Image = 1,
+  Video = 2
+}
+
 export enum InvestmentType {
   Founding = 1,
   Equity = 2,
@@ -129,13 +135,18 @@ export function getEquityExitTypeDisplay(type: EquityExitType | number | undefin
 }
 
 /**
- * Investment status lifecycle (generic, use model-specific enums when possible)
+ * Investment status lifecycle - matches backend
+ * All investment types share these statuses
  */
 export enum InvestmentStatus {
   Draft = 'Draft',
   Active = 'Active',
-  Funded = 'Funded',
-  Closed = 'Closed'
+  ReviewingParticipants = 'Reviewing Participants',
+  InProgress = 'In Progress',
+  FullyFunded = 'Fully Funded',
+  Paused = 'Paused',
+  Completed = 'Completed',
+  Archived = 'Archived'
 }
 
 /**
@@ -233,6 +244,12 @@ export interface Investment {
   milestone?: string;
   riskLevel: RiskLevel;
   currency?: string;
+  momentumScore?: number;
+  momentumLabel?: string;
+  lastActivityAt?: Date;
+  publicActivityCount?: number;
+  participantOnlyActivityCount?: number;
+  visibilityLabel?: string;
 
   // Founding-specific fields
   durationMonths?: number;
@@ -309,5 +326,5 @@ export interface Investment {
   
   // UI state
   favorited: boolean;
-  images?: Array<{ id: number; url: string; caption?: string; sortOrder?: number; isPrimary?: boolean }>
+  images?: Array<{ id: number; mediaType: number; url: string; thumbnailUrl?: string; fileName?: string; caption?: string; sortOrder?: number; isPrimary?: boolean; uploadedBy?: string }>
 }

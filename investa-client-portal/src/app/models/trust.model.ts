@@ -4,7 +4,7 @@ export enum TrustLevel {
   Visitor = 0,
   Registered = 1,
   Interactive = 2,
-  Verified = 3
+  TrustedActive = 3
 }
 
 export enum VerificationType {
@@ -58,7 +58,12 @@ export interface UserVerificationDto {
 export interface TrustProfileDto {
   userId: string;
   trustLevel: TrustLevel;
+  verificationTrustScore?: number;
   reputationScore: number;
+  activityScore?: number;
+  reputationLevel?: string;
+  reputationLabel?: string;
+  riskFlags?: string[];
   profileCompletionPercentage: number;
   isPhoneVerified: boolean;
   isEmailVerified: boolean;
@@ -79,12 +84,12 @@ export const TRUST_LEVEL_LABELS: Record<TrustLevel, { en: string; ar: string }> 
   [TrustLevel.Visitor]: { en: 'Visitor', ar: 'زائر' },
   [TrustLevel.Registered]: { en: 'Registered', ar: 'مسجل' },
   [TrustLevel.Interactive]: { en: 'Interactive', ar: 'تفاعلي' },
-  [TrustLevel.Verified]: { en: 'Verified', ar: 'موثق' }
+  [TrustLevel.TrustedActive]: { en: 'Trusted Active', ar: 'نشط وموثوق' }
 };
 
 export const TRUST_LEVEL_COLORS: Record<TrustLevel, string> = {
   [TrustLevel.Visitor]: '#9ca3af',
   [TrustLevel.Registered]: '#3b82f6',
   [TrustLevel.Interactive]: '#f59e0b',
-  [TrustLevel.Verified]: '#10b981'
+  [TrustLevel.TrustedActive]: '#10b981'
 };

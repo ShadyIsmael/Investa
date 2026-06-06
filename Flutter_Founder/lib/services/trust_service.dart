@@ -42,7 +42,7 @@ class TrustService {
   Future<TrustProfile?> recalculate() async {
     try {
       final uri = '$_trustBase/me/recalculate';
-      final resp = await _client.post(uri, {});
+      final resp = await _client.post(uri, data: {});
       if ((resp.statusCode ?? 0) >= 200 && (resp.statusCode ?? 0) < 300) {
         final body = resp.data is Map
             ? resp.data as Map<String, dynamic>
@@ -72,7 +72,7 @@ class TrustService {
         if (providerReferenceId != null)
           'providerReferenceId': providerReferenceId,
       };
-      final resp = await _client.post(uri, payload);
+      final resp = await _client.post(uri, data: payload);
       return (resp.statusCode ?? 0) >= 200 && (resp.statusCode ?? 0) < 300;
     } catch (e, s) {
       AppLogger.logError('TrustService', 'submitVerification failed: $e', s);

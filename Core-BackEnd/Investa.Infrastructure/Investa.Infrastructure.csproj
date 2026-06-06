@@ -25,39 +25,6 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <!-- Exclude legacy migrations and compile only the consolidated migration -->
-  <ItemGroup>
-    <Compile Remove="Migrations\**\*.cs" />
-    <Compile Include="Migrations\20260123125914_InitialConsolidated.cs" />
-    <Compile Include="Migrations\20260123125914_InitialConsolidated.Designer.cs" />
-    <Compile Include="Migrations\20260125213807_AddInvestmentTeamMembers.cs" />
-    <Compile Include="Migrations\20260125213807_AddInvestmentTeamMembers.Designer.cs" />
-    <Compile Include="Migrations\20260125215353_RequireTeamMemberUser.cs" />
-    <Compile Include="Migrations\20260125215353_RequireTeamMemberUser.Designer.cs" />
-    <Compile Include="Migrations\ApplicationDbContextModelSnapshot.cs" />
-    <Compile Include="Migrations\20260127221923_AddUserProfileDateOfBirthAndCountry.cs" />
-    <Compile Include="Migrations\20260127221923_AddUserProfileDateOfBirthAndCountry.Designer.cs" />
-    <Compile Include="Migrations\20260129200642_BE-341-InvestmentRequests.cs" />
-    <Compile Include="Migrations\20260129200642_BE-341-InvestmentRequests.Designer.cs" />
-    <Compile Include="Migrations\20260130120000_BE-XXX_AddRequestTypeToInvestmentRequests.cs" />
-    <Compile Include="Migrations\20260130120000_BE-XXX_AddRequestTypeToInvestmentRequests.Designer.cs" />
-    <Compile Include="Migrations\20260130041351_20260130152000_BE-XXX_CapturePendingModelChanges.cs" />
-    <Compile Include="Migrations\20260130041351_20260130152000_BE-XXX_CapturePendingModelChanges.Designer.cs" />
-    <Compile Include="Migrations\20260208193915_AddCompanyAndHrLetterToUserProfile.cs" />
-    <Compile Include="Migrations\20260208193915_AddCompanyAndHrLetterToUserProfile.Designer.cs" />
-    <Compile Include="Migrations\20260209230505_EnsureProfileCompanyColumns.cs" />
-    <Compile Include="Migrations\20260209230505_EnsureProfileCompanyColumns.Designer.cs" />
-    <Compile Include="Migrations\20260210145831_AddKycCompletionTracking.cs" />
-    <Compile Include="Migrations\20260210145831_AddKycCompletionTracking.Designer.cs" />
-    <Compile Include="Migrations\20260210213643_AddContactCity_RemoveWorkAddress_Auto.cs" />
-    <Compile Include="Migrations\20260210213643_AddContactCity_RemoveWorkAddress_Auto.Designer.cs" />
-    <Compile Include="Migrations\20260509130500_ConsolidateUserToAuthUser.cs" />
-    <Compile Include="Migrations\20260509130500_ConsolidateUserToAuthUser.Designer.cs" />
-    <Compile Include="Migrations\20260509184344_SeedRbacPermissions.cs" />
-    <Compile Include="Migrations\20260509184344_SeedRbacPermissions.Designer.cs" />
-    <Compile Include="Migrations\20260530172504_AddInvestmentFavorites.cs" />
-    <Compile Include="Migrations\20260530172504_AddInvestmentFavorites.Designer.cs" />
-  </ItemGroup>
 
 
 </Project>

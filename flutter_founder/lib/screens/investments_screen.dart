@@ -645,6 +645,31 @@ class _InvestmentCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Cover Image
+                if (investment.coverImageUrl != null)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      investment.coverImageUrl!,
+                      height: 120,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        height: 120,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.image_not_supported_outlined,
+                          size: 48,
+                          color: theme.colorScheme.onSurface.withOpacityCompat(0.3),
+                        ),
+                      ),
+                    ),
+                  ),
+                if (investment.coverImageUrl != null) const SizedBox(height: 16),
                 // Header: Title + Type Badge + Pin
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,

@@ -31,6 +31,7 @@ public class InvestmentEventService : IInvestmentEventService
             {
                 InvestmentId = investmentId,
                 EventType = dto.EventType,
+                Visibility = NormalizeVisibility(dto.Visibility),
                 Payload = dto.Payload,
                 CreatedBy = dto.CreatedBy,
                 CorrelationId = dto.CorrelationId,
@@ -40,6 +41,7 @@ public class InvestmentEventService : IInvestmentEventService
             };
 
             await _unitOfWork.Repository<InvestmentEvent>().AddAsync(ev);
+            await UpdateInvestmentMomentumAsync(investmentId, ev);
             await _unitOfWork.SaveChangesAsync();
             await _unitOfWork.CommitTransactionAsync();
 
@@ -48,6 +50,7 @@ public class InvestmentEventService : IInvestmentEventService
                 Id = ev.Id,
                 InvestmentId = ev.InvestmentId,
                 EventType = ev.EventType,
+                Visibility = ev.Visibility,
                 Payload = ev.Payload,
                 OccurredAt = ev.OccurredAt,
                 CreatedBy = ev.CreatedBy,
@@ -72,6 +75,7 @@ public class InvestmentEventService : IInvestmentEventService
                             Id = e.Id,
                             InvestmentId = e.InvestmentId,
                             EventType = e.EventType,
+                            Visibility = e.Visibility,
                             Payload = e.Payload,
                             OccurredAt = e.OccurredAt,
                             CreatedBy = e.CreatedBy,
@@ -81,5 +85,50 @@ public class InvestmentEventService : IInvestmentEventService
                         }).ToList();
 
         return events;
+    }
+
+    private async Task UpdateInvestmentMomentumAsync(int investmentId, InvestmentEvent ev)
+    {
+        var investment = await _unitOfWork.Repository<Investment>().GetByIdAsync(investmentId);
+        if (investment == null)
+            return;
+
+        var isParticipantOnly = string.Equals(ev.Visibility, "ParticipantOnly", StringComparison.OrdinalIgnoreCase);
+        if (isParticipantOnly)
+            investment.ParticipantOnlyActivityCount++;
+        else
+            investment.PublicActivityCount++;
+
+        investment.LastActivityAt = ev.OccurredAt;
+        investment.MomentumScore = Math.Clamp(
+            investment.MomentumScore + GetMomentumWeight(ev.EventType),
+            0,
+            10000);
+
+        await _unitOfWork.Repository<Investment>().UpdateAsync(investment);
+    }
+
+    private static string NormalizeVisibility(string? visibility)
+    {
+        return string.Equals(visibility, "ParticipantOnly", StringComparison.OrdinalIgnoreCase)
+            ? "ParticipantOnly"
+            : "Public";
+    }
+
+    private static int GetMomentumWeight(string eventType)
+    {
+        return eventType.ToUpperInvariant() switch
+        {
+            "PROJECT_CREATED" => 300,
+            "UPDATE_POSTED" => 180,
+            "MILESTONE_ADDED" => 300,
+            "ACHIEVEMENT_UPLOADED" => 240,
+            "FUNDING_PROGRESS_UPDATED" => 220,
+            "PARTICIPANT_APPROVED" => 160,
+            "NEW_DISCUSSION_STARTED" => 120,
+            "DOCUMENT_UPLOADED" => 100,
+            "STATUS_CHANGED" => 140,
+            _ => 75
+        };
     }
 }

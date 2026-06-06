@@ -1,4 +1,5 @@
 using System;
+using Investa.Domain.Entities.Enums;
 
 namespace Investa.Application.DTOs;
 
@@ -15,6 +16,11 @@ public class InvestorParticipationDto
     public int SharesPurchased { get; set; }
     public decimal AmountInvested { get; set; }
     public DateTime InvestmentDate { get; set; }
-    public string Status { get; set; } = "Confirmed";
+    
+    /// <summary>
+    /// Lifecycle status of the participation
+    /// </summary>
+    public ParticipationLifecycle Status { get; set; } = ParticipationLifecycle.Interested;
+    
     public bool IsAnonymous { get; set; }
 }

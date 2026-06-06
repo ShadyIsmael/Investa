@@ -138,10 +138,12 @@ class _VerificationScreenState extends State<VerificationScreen> {
               : () => _submitVerification(VerificationType.phone),
         ),
         _VerificationItem(
+          label: 'Identity Document',
           icon: Icons.badge_outlined,
           isDone: p.isIdentityVerified,
           onTap: p.isIdentityVerified
               ? null
+              : () => _submitVerification(VerificationType.legalAgreement),
         ),
 
         // Next level requirements

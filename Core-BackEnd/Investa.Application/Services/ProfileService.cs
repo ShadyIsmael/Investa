@@ -1,4 +1,5 @@
 using AutoMapper;
+using Investa.Application.Common;
 using Investa.Application.DTOs.Profile;
 using Investa.Application.Interfaces;
 using Investa.Domain.Entities;
@@ -113,8 +114,27 @@ public class ProfileService : IProfileService
         if (profileDto.ContactInfo != null)
         {
             profile.Email = profileDto.ContactInfo.Email;
-            profile.Phone1 = profileDto.ContactInfo.Phone1;
-            profile.Phone2 = profileDto.ContactInfo.Phone2;
+
+            if (!string.IsNullOrWhiteSpace(profileDto.ContactInfo.Phone1))
+            {
+                var normalizedPhone1 = PhoneNumberNormalizer.NormalizePhoneNumber(profileDto.ContactInfo.Phone1);
+                profile.Phone1 = normalizedPhone1 ?? profileDto.ContactInfo.Phone1.Trim();
+            }
+            else
+            {
+                profile.Phone1 = profileDto.ContactInfo.Phone1;
+            }
+
+            if (!string.IsNullOrWhiteSpace(profileDto.ContactInfo.Phone2))
+            {
+                var normalizedPhone2 = PhoneNumberNormalizer.NormalizePhoneNumber(profileDto.ContactInfo.Phone2);
+                profile.Phone2 = normalizedPhone2 ?? profileDto.ContactInfo.Phone2.Trim();
+            }
+            else
+            {
+                profile.Phone2 = profileDto.ContactInfo.Phone2;
+            }
+
             profile.Address = profileDto.ContactInfo.Address;
             profile.CompanyAddress = profileDto.ContactInfo.CompanyAddress;
             profile.CompanyEmail = profileDto.ContactInfo.CompanyEmail;

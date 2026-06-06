@@ -103,12 +103,13 @@ export class ApiService {
     return (this.unwrap(response, 'Failed to update favorite state') ?? { favorited }).favorited;
   }
 
-  /** Upload image for an investment (multipart/form-data) */
-  async uploadInvestmentImage(investmentId: number, file: File, caption?: string): Promise<any> {
+/** Upload image for an investment (multipart/form-data) */
+  async uploadInvestmentImage(investmentId: number, file: File, caption?: string, mediaType?: number): Promise<any> {
     const url = `${this.apiBase}/api/v1/investments/${investmentId}/images`;
     const form = new FormData();
     form.append('file', file, file.name);
     if (caption) form.append('caption', caption);
+    if (mediaType !== undefined) form.append('mediaType', mediaType.toString());
 
     const response = await firstValueFrom(
       this.http.post<ApiResponse<any>>(url, form, {
@@ -140,6 +141,20 @@ export class ApiService {
       this.http.put<ApiResponse<any>>(url, ordering, { headers: this.getHeaders() })
     );
     this.unwrap(response, 'Failed to reorder images');
+  }
+
+  async uploadInvestmentVideo(investmentId: number, file: File, caption?: string): Promise<any> {
+    const url = `${this.apiBase}/api/v1/investments/${investmentId}/videos`;
+    const form = new FormData();
+    form.append('file', file, file.name);
+    if (caption) form.append('caption', caption);
+
+    const response = await firstValueFrom(
+      this.http.post<ApiResponse<any>>(url, form, {
+        headers: this.getHeaders().delete('Content-Type')
+      })
+    );
+    return this.unwrap(response, 'Failed to upload video');
   }
 
   /**

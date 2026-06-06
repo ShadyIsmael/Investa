@@ -63,7 +63,10 @@ const UserTrustPanel: React.FC<UserTrustPanelProps> = ({ userId }) => {
           {TRUST_LEVEL_LABELS[profile.trustLevel as TrustLevel]}
         </span>
         <span className="text-gray-500 text-sm">
-          Reputation: <strong>{profile.reputationScore}</strong>/10000
+          Reputation: <strong>{profile.reputationLevel || 'Rising Member'}</strong>
+        </span>
+        <span className="text-gray-500 text-sm">
+          Activity: <strong>{profile.activityScore ?? 0}</strong>/10000
         </span>
         <span className="text-gray-500 text-sm">
           Profile: <strong>{profile.profileCompletionPercentage}%</strong>

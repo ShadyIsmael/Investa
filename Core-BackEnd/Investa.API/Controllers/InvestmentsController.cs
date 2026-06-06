@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Investa.Domain.Entities.Security;
 using Investa.Domain.Entities;
+using Investa.Domain.Entities.Enums;
 using Investa.API.Controllers.Dtos;
 using Microsoft.Extensions.Localization;
 using Investa.API.Resources;
@@ -25,6 +26,7 @@ public class InvestmentsController : ControllerBase
     private readonly INotificationService _notificationService;
     private readonly IStringLocalizer<SharedResource> _localizer;
     private readonly ILogger<InvestmentsController> _logger;
+    private readonly IFileStorage _fileStorage;
 
     public InvestmentsController(
         IInvestmentService service, 
@@ -33,7 +35,8 @@ public class InvestmentsController : ControllerBase
         IScoreService scoreService, 
         INotificationService notificationService, 
         IStringLocalizer<SharedResource> localizer,
-        ILogger<InvestmentsController> logger)
+        ILogger<InvestmentsController> logger,
+        IFileStorage fileStorage)
     {
         _service = service;
         _mapper = mapper;
@@ -42,6 +45,7 @@ public class InvestmentsController : ControllerBase
         _notificationService = notificationService;
         _localizer = localizer;
         _logger = logger;
+        _fileStorage = fileStorage;
     }
 
     [HttpPost]
@@ -238,11 +242,22 @@ public class InvestmentsController : ControllerBase
 
         try
         {
+            // Get optional mediaType parameter (default to Image)
+            var mediaTypeStr = Request.Form["mediaType"].FirstOrDefault();
+            var mediaType = MediaType.Image;
+            if (int.TryParse(mediaTypeStr, out var mt))
+            {
+                mediaType = (MediaType)(mt == 0 ? 0 : mt == 2 ? 2 : 1); // Validate: 0=CoverImage, 1=Image, 2=Video
+            }
+
             // Create DB record first with temp url; then save file and update url
             var img = new InvestmentImage
             {
                 InvestmentId = investmentId,
+                MediaType = mediaType,
                 Caption = Request.Form["caption"].FirstOrDefault(),
+                FileName = file.FileName,
+                UploadedBy = userId,
                 SortOrder = (int?) (await _unitOfWork.Repository<InvestmentImage>().FindAsync(i => i.InvestmentId == investmentId)).Count() ?? 0,
                 IsPrimary = false,
                 CreatedAt = DateTime.UtcNow
@@ -251,15 +266,13 @@ public class InvestmentsController : ControllerBase
             await _unitOfWork.Repository<InvestmentImage>().AddAsync(img);
             await _unitOfWork.SaveChangesAsync(); // get Id
 
-            // Save file to wwwroot/uploads/investments/{investmentId}/{img.Id}_{filename}
+            // Upload file to Investa.FileStore (centralized storage)
             var safeName = Path.GetFileName(file.FileName);
-            var relDir = $"uploads/investments/{investmentId}";
-            await ((IFileStorage)HttpContext.RequestServices.GetService(typeof(IFileStorage))).EnsureDirectoryAsync(relDir);
-            var relPath = $"{relDir}/{img.Id}_{safeName}";
+            var relPath = $"uploads/investments/{investmentId}/{img.Id}_{safeName}";
 
             await using (var stream = file.OpenReadStream())
             {
-                var url = await ((IFileStorage)HttpContext.RequestServices.GetService(typeof(IFileStorage))).SaveFileAsync(relPath, stream, file.ContentType);
+                var url = await _fileStorage.SaveFileAsync(relPath, stream, file.ContentType);
                 img.Url = url;
             }
 
@@ -271,6 +284,71 @@ public class InvestmentsController : ControllerBase
         catch (Exception ex)
         {
             return StatusCode(500, new { success = false, message = _localizer["FailedToUploadImage"].Value, error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Upload a video for an investment (multipart form file). Only founder or OrgUser (admin) can upload.
+    /// </summary>
+    [HttpPost("{investmentId:int}/videos")]
+    [Authorize]
+    public async Task<IActionResult> UploadVideo(int investmentId)
+    {
+        var userIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
+        if (!Guid.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized(new { success = false, message = "Unable to identify user from token" });
+        }
+
+        var investment = await _service.GetByIdAsync(investmentId);
+        if (investment == null) return NotFound(new { success = false, message = "Investment not found" });
+
+        if (investment.FounderId != userId && !User.IsInRole(nameof(UserRoles.OrgUser)))
+        {
+            return Forbid();
+        }
+
+        if (!Request.HasFormContentType || !Request.Form.Files.Any())
+            return BadRequest(new { success = false, message = "No file uploaded" });
+
+        var file = Request.Form.Files.First();
+        if (file.Length == 0) return BadRequest(new { success = false, message = "Empty file" });
+
+        try
+        {
+            var video = new InvestmentImage
+            {
+                InvestmentId = investmentId,
+                MediaType = MediaType.Video,
+                Caption = Request.Form["caption"].FirstOrDefault(),
+                FileName = file.FileName,
+                UploadedBy = userId,
+                SortOrder = (int?) (await _unitOfWork.Repository<InvestmentImage>().FindAsync(i => i.InvestmentId == investmentId)).Count() ?? 0,
+                IsPrimary = false,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _unitOfWork.Repository<InvestmentImage>().AddAsync(video);
+            await _unitOfWork.SaveChangesAsync();
+
+            // Upload file to Investa.FileStore (centralized storage)
+            var safeName = Path.GetFileName(file.FileName);
+            var relPath = $"uploads/investments/{investmentId}/videos/{video.Id}_{safeName}";
+
+            await using (var stream = file.OpenReadStream())
+            {
+                var url = await _fileStorage.SaveFileAsync(relPath, stream, file.ContentType);
+                video.Url = url;
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+
+            var dto = _mapper.Map<InvestmentImageDto>(video);
+            return Ok(new { success = true, data = dto });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { success = false, message = "Failed to upload video", error = ex.Message });
         }
     }
 
@@ -300,9 +378,9 @@ public class InvestmentsController : ControllerBase
 
         try
         {
-            // Delete file
+            // Delete file from Investa.FileStore (centralized storage)
             var relPath = image.Url?.TrimStart('/') ?? string.Empty;
-            await ((IFileStorage)HttpContext.RequestServices.GetService(typeof(IFileStorage))).DeleteFileAsync(relPath);
+            await _fileStorage.DeleteFileAsync(relPath);
             // Delete DB record
             await _unitOfWork.Repository<InvestmentImage>().DeleteAsync(image);
             await _unitOfWork.SaveChangesAsync();

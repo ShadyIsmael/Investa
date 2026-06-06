@@ -188,7 +188,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
             
         modelBuilder.Entity<InvestmentParticipant>()
             .Property(p => p.Status)
-            .HasDefaultValue("Confirmed");
+            .HasDefaultValue(ParticipationLifecycle.Participated);
             
         modelBuilder.Entity<InvestmentParticipant>()
             .Property(p => p.CreatedAt)
@@ -986,7 +986,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
                 SharesPurchased = 300,
                 AmountInvested = 300m * 10.00m,
                 InvestmentDate = seedCreatedAt.AddDays(-5),
-                Status = "Confirmed",
+                Status = ParticipationLifecycle.Participated,
                 IsAnonymous = false,
                 CreatedAt = seedCreatedAt.AddDays(-5)
             },
@@ -997,7 +997,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
                 SharesPurchased = 200,
                 AmountInvested = 200m * 10.00m,
                 InvestmentDate = seedCreatedAt.AddDays(-3),
-                Status = "Confirmed",
+                Status = ParticipationLifecycle.Participated,
                 IsAnonymous = false,
                 CreatedAt = seedCreatedAt.AddDays(-3)
             },
@@ -1008,7 +1008,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
                 SharesPurchased = 100,
                 AmountInvested = 100m * 5.00m,
                 InvestmentDate = seedCreatedAt.AddDays(-2),
-                Status = "Confirmed",
+                Status = ParticipationLifecycle.Participated,
                 IsAnonymous = false,
                 CreatedAt = seedCreatedAt.AddDays(-2)
             }

@@ -31,7 +31,7 @@
         @if (trustService.isLoaded()) {
           <div class="flex items-center justify-center gap-2 mb-2">
             <app-trust-badge [lang]="currentLanguage()"></app-trust-badge>
-            <span class="text-xs text-gray-400">{{ trustService.profile()?.reputationScore }}/10000 pts</span>
+            <span class="text-xs text-gray-400">{{ trustService.profile()?.reputationLevel || 'Rising Member' }}</span>
           </div>
         }
 
@@ -571,9 +571,9 @@
                   <app-trust-badge [lang]="currentLanguage()" class="mt-1"></app-trust-badge>
                 </div>
                 <div class="bg-slate-800/60 rounded-xl p-4 flex flex-col items-center gap-2">
-                  <span class="text-xs text-gray-400 uppercase tracking-wide">Reputation Score</span>
-                  <span class="text-3xl font-bold text-emerald-400">{{ trustService.profile()?.reputationScore ?? 0 }}</span>
-                  <span class="text-xs text-gray-500">out of 10,000</span>
+                  <span class="text-xs text-gray-400 uppercase tracking-wide">Reputation</span>
+                  <span class="text-xl font-bold text-emerald-400 text-center">{{ trustService.profile()?.reputationLevel || 'Rising Member' }}</span>
+                  <span class="text-xs text-gray-500">{{ trustService.profile()?.reputationScore ?? 0 }} / 10,000</span>
                 </div>
                 <div class="bg-slate-800/60 rounded-xl p-4 flex flex-col items-center gap-2">
                   <span class="text-xs text-gray-400 uppercase tracking-wide">Profile Completion</span>

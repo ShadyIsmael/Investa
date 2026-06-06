@@ -42,7 +42,6 @@ dependencies:
   image_picker: ^0.8.7+4
   intl: any
   path: ^1.9.0
-  signalr_netcore: ^1.4.4
 
 dev_dependencies:
   flutter_test:

@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/color_extensions.dart';
+import '../utils/opportunity_status_ui.dart';
+
 import '../services/categories_service.dart';
 import '../services/investments_service.dart';
 import '../services/config.dart';
@@ -815,6 +817,27 @@ class _InvestmentCardState extends State<_InvestmentCard> {
     return raw.toLowerCase() == 'equity';
   }
 
+  String? _getCoverImage(Map<String, dynamic> item) {
+    // Try to get cover image from images array
+    final images = item['images'] as List?;
+    if (images != null && images.isNotEmpty) {
+      for (final img in images) {
+        if (img is Map) {
+          // Check for primary image
+          if (img['isPrimary'] == true) {
+            return img['url'] as String?;
+          }
+        }
+      }
+      // Fall back to first image
+      if (images.first is Map) {
+        return images.first['url'] as String?;
+      }
+    }
+    // Fall back to legacy imageUrl field
+    return item['imageUrl'] as String?;
+  }
+
   double _parseDouble(dynamic v) {
     if (v is num) return v.toDouble();
     if (v is String) return double.tryParse(v.replaceAll(',', '')) ?? 0;
@@ -1009,6 +1032,33 @@ class _InvestmentCardState extends State<_InvestmentCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Cover Image
+                  if (_getCoverImage(item) != null) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        _getCoverImage(item)!,
+                        height: 120,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          height: 120,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.image_not_supported_outlined,
+                            size: 48,
+                            color: theme.colorScheme.onSurface
+                                .withOpacityCompat(0.3),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   // Header with Avatar and Status
                   Row(
                     children: [
@@ -1050,7 +1100,20 @@ class _InvestmentCardState extends State<_InvestmentCard> {
                               ),
                             ),
                             const SizedBox(height: 6),
+                            // Status badge (Opportunity Lifecycle)
+                            OpportunityStatusUi.badge(
+                              rawStatus: item['status'] ??
+                                  item['opportunityStatus'] ??
+                                  item['opportunity_status'] ??
+                                  item['lifecycleStatus'],
+                              fontSize: 11,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                            ),
+
+                            // Risk badge (existing UI)
                             Container(
+                              margin: const EdgeInsets.only(top: 6),
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(

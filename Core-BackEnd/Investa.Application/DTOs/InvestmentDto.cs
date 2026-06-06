@@ -58,6 +58,21 @@ public class InvestmentDto
     public string? Milestone { get; set; }
     public string? RiskLevel { get; set; }
     public string? Currency { get; set; }
+    public int MomentumScore { get; set; }
+    public string MomentumLabel => MomentumScore switch
+    {
+        >= 8000 => "Strong Momentum",
+        >= 6500 => "Trending Opportunity",
+        >= 4500 => "Highly Active",
+        >= 2500 => "Recently Updated",
+        _ => "Building Momentum"
+    };
+    public DateTime? LastActivityAt { get; set; }
+    public int PublicActivityCount { get; set; }
+    public int ParticipantOnlyActivityCount { get; set; }
+    public string VisibilityLabel => ParticipantOnlyActivityCount > 0
+        ? "Participant Updates Available"
+        : "Public Overview";
     
     // Founding-specific fields
     public int? DurationMonths { get; set; }

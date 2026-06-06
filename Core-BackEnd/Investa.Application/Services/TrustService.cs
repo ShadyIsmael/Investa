@@ -56,10 +56,13 @@ public class TrustService : ITrustService
         user.IsEmailVerified = user.IsEmailVerified ||
             verifications.Any(v => v.VerificationType == VerificationType.Email && v.Status == VerificationStatus.Verified);
 
-        // 2. Compute profile completion
+        // 2. Compute profile completion and dual trust dimensions
         user.ProfileCompletionPercentage = CalculateProfileCompletion(user);
+        user.VerificationTrustScore = CalculateVerificationTrustScore(user, verifications);
+        user.ActivityScore = CalculateActivityScore(user);
+        user.ReputationLevel = DeriveReputationLevel(user);
 
-        // 3. Derive trust level based on engagement and activity
+        // 3. Derive trust level based on eligibility and behavior
         user.TrustLevel = DeriveTrustLevel(user);
 
         await _uow.Repository<AuthUser>().UpdateAsync(user);
@@ -78,6 +81,8 @@ public class TrustService : ITrustService
             ?? throw new KeyNotFoundException($"User {userId} not found");
 
         user.ReputationScore = Math.Max(0, Math.Min(10000, user.ReputationScore + delta));
+        user.ActivityScore = Math.Max(0, Math.Min(10000, user.ActivityScore + Math.Max(delta, 0) / 2));
+        user.ReputationLevel = DeriveReputationLevel(user);
         await _uow.Repository<AuthUser>().UpdateAsync(user);
         await _uow.SaveChangesAsync();
 
@@ -178,8 +183,12 @@ public class TrustService : ITrustService
         return new TrustProfileDto
         {
             UserId = user.Id,
+            VerificationTrustScore = user.VerificationTrustScore,
             TrustLevel = user.TrustLevel,
             ReputationScore = user.ReputationScore,
+            ActivityScore = user.ActivityScore,
+            ReputationLevel = user.ReputationLevel,
+            RiskFlags = ParseFlags(user.RiskFlags),
             ProfileCompletionPercentage = user.ProfileCompletionPercentage,
             IsPhoneVerified = user.IsPhoneVerified,
             IsEmailVerified = user.IsEmailVerified,
@@ -198,14 +207,14 @@ public class TrustService : ITrustService
         return new TrustPermissionsDto
         {
             CanBrowseOpportunities = true,                      // Everyone
-            CanViewOpportunityDetails = level >= 1,
+            CanViewOpportunityDetails = level >= 1 && user.VerificationTrustScore >= 20,
             CanSaveOpportunities = level >= 1,
             CanFollowUsers = level >= 1,
             CanComment = level >= 2,
-            CanRequestJoinOpportunity = level >= 2,
+            CanRequestJoinOpportunity = level >= 2 && user.VerificationTrustScore >= 45,
             CanParticipateInDiscussions = level >= 2,
-            CanPublishOpportunity = level >= 3 && isFounder,
-            CanJoinVerifiedDeals = level >= 3 && isInvestor,
+            CanPublishOpportunity = level >= 3 && isFounder && user.VerificationTrustScore >= 70,
+            CanJoinVerifiedDeals = level >= 3 && isInvestor && user.VerificationTrustScore >= 70,
             CanDirectMessage = level >= 3,
             CanAccessAnalytics = level >= 3 && isFounder
         };
@@ -281,6 +290,13 @@ public class TrustService : ITrustService
             });
             requirements.Add(new TrustRequirementDto
             {
+                Key = "verification_trust_70",
+                LabelEn = "Reach 70% verification trust",
+                LabelAr = "Reach 70% verification trust",
+                IsMet = user.VerificationTrustScore >= 70
+            });
+            requirements.Add(new TrustRequirementDto
+            {
                 Key = "legal_agreement",
                 LabelEn = "Accept legal agreement",
                 LabelAr = "قبول الاتفاقية القانونية",
@@ -326,13 +342,58 @@ public class TrustService : ITrustService
         return total == 0 ? 0 : (int)Math.Round((double)points / total * 100);
     }
 
+    private static int CalculateVerificationTrustScore(AuthUser user, List<UserVerification> verifications)
+    {
+        var score = 0;
+
+        if (user.IsEmailVerified || verifications.Any(v => v.VerificationType == VerificationType.Email && v.Status == VerificationStatus.Verified))
+            score += 20;
+        if (user.IsPhoneVerified || verifications.Any(v => v.VerificationType == VerificationType.Phone && v.Status == VerificationStatus.Verified))
+            score += 20;
+        if (!string.IsNullOrWhiteSpace(user.Profile?.LinkedInUrl))
+            score += 20;
+        if (!string.IsNullOrWhiteSpace(user.Profile?.CompanyName) || !string.IsNullOrWhiteSpace(user.Profile?.BusinessRole))
+            score += 20;
+        if (user.ProfileCompletionPercentage >= 80)
+            score += 20;
+
+        return Math.Clamp(score, 0, 100);
+    }
+
+    private static int CalculateActivityScore(AuthUser user)
+    {
+        var accountAgeDays = Math.Max(0, (DateTime.UtcNow - user.CreatedAt).Days);
+        var ageScore = Math.Min(1000, accountAgeDays * 10);
+        var reputationContribution = Math.Min(7000, user.ReputationScore);
+        var completionContribution = user.ProfileCompletionPercentage * 20;
+
+        return Math.Clamp(ageScore + reputationContribution + completionContribution, 0, 10000);
+    }
+
+    private static string DeriveReputationLevel(AuthUser user)
+    {
+        if (!string.IsNullOrWhiteSpace(user.RiskFlags))
+            return "Needs Review";
+        if (user.ReputationScore >= 7500 && user.ActivityScore >= 6000)
+            return user.ClientType == ClientType.Founder ? "Trusted Founder" : "Strategic Partner";
+        if (user.ReputationScore >= 4000)
+            return "Top Contributor";
+        if (user.ActivityScore >= 2500)
+            return "Highly Engaged";
+        if (user.ReputationScore >= 500)
+            return user.ClientType == ClientType.Founder ? "Rising Founder" : "Active Investor";
+
+        return "Rising Member";
+    }
+
     private static TrustLevel DeriveTrustLevel(AuthUser user)
     {
         // Level 3: Trusted Active - Based on engagement metrics
         var accountAgeDays = (DateTime.UtcNow - user.CreatedAt).Days;
         if (accountAgeDays >= 30 &&
             user.ReputationScore >= 500 &&
-            user.ProfileCompletionPercentage >= 80)
+            user.ProfileCompletionPercentage >= 80 &&
+            user.VerificationTrustScore >= 70)
         {
             return TrustLevel.TrustedActive;
         }
