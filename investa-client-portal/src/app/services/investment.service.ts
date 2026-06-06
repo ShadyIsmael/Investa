@@ -1,5 +1,5 @@
 import { Injectable, signal, computed, inject, DestroyRef } from '@angular/core';
-import { Investment, RiskLevel, InvestmentCategory, InvestmentType, InvestmentStatus } from '../models/investment.model';
+import { Investment, RiskLevel, InvestmentCategory, InvestmentType, InvestmentStatus, EquityExitType } from '../models/investment.model';
 import { ApiService } from './api.service';
 import { InvestmentDto } from '../models/api-response.model';
 import { AuthService } from './auth.service';
@@ -159,9 +159,9 @@ export class InvestmentService {
   }
 
   // --- Image management wrappers ---
-  async uploadInvestmentImage(investmentId: number, file: File, caption?: string): Promise<any> {
-    return this.apiService.uploadInvestmentImage(investmentId, file, caption);
-  }
+async uploadInvestmentImage(investmentId: number, file: File, caption?: string, mediaType?: number): Promise<any> {
+     return this.apiService.uploadInvestmentImage(investmentId, file, caption, mediaType);
+   }
 
   async uploadProjectImage(projectId: number, file: File): Promise<string> {
     return this.fileStoreService.uploadProjectImage(projectId, file);
@@ -179,6 +179,10 @@ export class InvestmentService {
     return this.apiService.reorderInvestmentImages(investmentId, ordering);
   }
 
+  async uploadInvestmentVideo(investmentId: number, file: File, caption?: string): Promise<any> {
+    return this.apiService.uploadInvestmentVideo(investmentId, file, caption);
+  }
+
   /**
    * Get participants for an investment opportunity
    */
@@ -191,10 +195,39 @@ export class InvestmentService {
     }
   }
 
-  /**
-   * Map backend DTO to UI Investment model
-   */
-  private mapDtoToInvestment(dto: InvestmentDto): Investment {
+/**
+    * Get the cover image URL for an investment.
+    * Priority: coverImage type -> isPrimary flag -> first image -> ImageUrl fallback
+    */
+   getCoverImageUrl(investment: Investment): string | null {
+     if (!investment) return null;
+     
+     // Priority 1: Find CoverImage type
+     if (investment.images && investment.images.length > 0) {
+       const coverImage = investment.images.find(img => img.mediaType === 0); // MediaType.CoverImage = 0
+       if (coverImage) return this.fileStoreService.getPublicUrl(coverImage.url);
+       
+       // Priority 2: Find primary image
+       const primary = investment.images.find(img => img.isPrimary === true);
+       if (primary) return this.fileStoreService.getPublicUrl(primary.url);
+       
+       // Priority 3: First image
+       return this.fileStoreService.getPublicUrl(investment.images[0].url);
+     }
+     
+     // Priority 4: Fallback to ImageUrl
+     if (investment.imageUrl) {
+       return this.fileStoreService.getPublicUrl(investment.imageUrl);
+     }
+     
+     return null;
+   }
+
+   /**
+    * Map backend DTO to UI Investment model
+    * Supports Founding, Equity, Revenue Sharing, and Loan/Debt investment types
+    */
+   private mapDtoToInvestment(dto: InvestmentDto): Investment {
     // Look up category name from loaded categories
     const category = this._categories().find(c => c.id === dto.businessCategoryId);
     
@@ -234,16 +267,20 @@ export class InvestmentService {
 
       riskLevel: this.parseRiskLevel(dto.riskLevel),
       currency: dto.currency,
+      momentumScore: dto.momentumScore ?? 0,
+      momentumLabel: dto.momentumLabel ?? 'Building Momentum',
+      lastActivityAt: dto.lastActivityAt ? new Date(dto.lastActivityAt) : undefined,
+      publicActivityCount: dto.publicActivityCount ?? 0,
+      participantOnlyActivityCount: dto.participantOnlyActivityCount ?? 0,
+      visibilityLabel: dto.visibilityLabel ?? 'Public Overview',
       durationMonths: dto.durationMonths,
       profitPercentage: dto.profitPercentage,
       payoutFrequency: dto.payoutFrequency,
 
       founderDisplay: dto.founderDisplay,
-      // Prefer explicit businessRole from DTO, fall back to older fields, or parse from FounderDisplay when present
       businessRole: (() => {
         let br = (dto as any).businessRole || (dto as any).founderRole || (dto as any).founderBusinessRole || '';
         if (!br && dto.founderDisplay) {
-          // FounderDisplay may include role like "Name - Role"; extract the trailing part
           const parts = (dto.founderDisplay as string).split(' - ');
           if (parts.length > 1) br = parts[parts.length - 1].trim();
         }
@@ -251,15 +288,27 @@ export class InvestmentService {
       })(),
       credibilityScore: dto.credibilityScore || 0,
 
-      imageUrl: dto.imageUrl,
-      videoUrl: dto.videoUrl,
-      milestone: dto.milestone,
+imageUrl: dto.imageUrl,
+       videoUrl: dto.videoUrl,
+       milestone: dto.milestone,
 
-      investors: dto.participants || [],
+       // Map the images array from DTO for cover image lookup
+       images: dto.images?.map(img => ({
+         id: img.id,
+         mediaType: img.mediaType,
+         url: img.url,
+         thumbnailUrl: img.thumbnailUrl,
+         fileName: img.fileName,
+         caption: img.caption,
+         sortOrder: img.sortOrder,
+         isPrimary: img.isPrimary,
+         uploadedBy: img.uploadedBy
+       })),
+
+       investors: dto.participants || [],
       
-      // Map team members from backend - registered Founder/Partner users only
       teamMembers: dto.teamMembers?.map(tm => ({
-        id: tm.userId,  // Required - team members must be registered users
+        id: tm.userId,
         name: tm.name,
         role: tm.role,
         avatar: tm.avatar,
@@ -267,7 +316,31 @@ export class InvestmentService {
         bio: tm.bio,
         clientType: tm.clientType
       })) || [],
-      favorited: dto.favorited ?? false
+      favorited: dto.favorited ?? false,
+
+      // ==================== Equity Exit Strategy Fields ====================
+      currentValuation: dto.currentValuation,
+      estimatedFutureValuation: dto.estimatedFutureValuation,
+      equityExitType: dto.equityExitType as EquityExitType | undefined,
+      exitTargetDate: dto.exitTargetDate ? new Date(dto.exitTargetDate) : undefined,
+      expectedExitStrategy: dto.expectedExitStrategy,
+
+      // ==================== Revenue Sharing Exit Strategy Fields ====================
+      contractStartDate: dto.contractStartDate ? new Date(dto.contractStartDate) : undefined,
+      contractEndDate: dto.contractEndDate ? new Date(dto.contractEndDate) : undefined,
+      totalExpectedPayout: dto.totalExpectedPayout,
+      remainingPayoutAmount: dto.remainingPayoutAmount,
+      revenueDistributionFrequency: dto.revenueDistributionFrequency,
+      contractCompletionStatus: dto.contractCompletionStatus,
+
+      // ==================== Loan/Debt Exit Strategy Fields ====================
+      repaymentStartDate: dto.repaymentStartDate ? new Date(dto.repaymentStartDate) : undefined,
+      finalRepaymentDate: dto.finalRepaymentDate ? new Date(dto.finalRepaymentDate) : undefined,
+      remainingBalance: dto.remainingBalance,
+      totalPaidAmount: dto.totalPaidAmount,
+      nextInstallmentDate: dto.nextInstallmentDate ? new Date(dto.nextInstallmentDate) : undefined,
+      defaultRiskLevel: dto.defaultRiskLevel,
+      loanCompletionStatus: dto.loanCompletionStatus
     } as Investment;
   }
   

@@ -12,13 +12,15 @@ import { UserService } from '../../../services/user.service';
 import { FileStoreService } from '../../../services/file-store.service';
 import { Investment, RiskLevel, InvestmentType, getInvestmentTypeDisplay, getInvestmentTypeBadgeClass } from '../../../models/investment.model';
 
+const DEFAULT_PLACEHOLDER = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0tpZHM9ImV4dGxhbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjY2NjYyIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPgogIDxwYXRoIGQ9Ik0wMCAwMmgNDBwLTAgMEwwIDQwIiBmaWxsPSIjMzUwOSIgLz4KICA8cGF0aCBkPSJNMCA0MHY0MCIgZmlsbD0iIzM1MTEiIC8+CiAgPHBhdGggZD0iTTEwMCAxMEw1MCAxMCIgZmlsbD0iIzY2NyIgc3Ryb2tlLXdpZHRoPSIzLjUiIC8+CiAgPHBhdGggZD0iTTEwMCAxNUw1MCAxNSIgcmlnaHQ9NTAiIGZpbGw9IiNmZmYiIHN0cm9rZS13aWR0aD0iMy41IiAvPgogIDxwYXRoIGQ9Ik0xMDAgMjBMNTAgMjAiIHJpZ2h0PSI1MCIgZmlsbD0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIzLjUiIC8+CiAgPC9nPgogIDx0ZXh0IGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY2NyIgdGV4dC0tLW0tbW0gbWF0Y2hlcmUgdGV4dCIgZmlsbD0iIzY2NyIvPgo8L3N2Zz4=';
+
 const ITEMS_PER_PAGE = 8;
 const ENGAGEMENT_CREDIT_COST = 5;
 
 type InvestmentFilters = {
   searchTerm: string;
   riskLevels: { low: boolean; medium: boolean; high: boolean };
-  investmentTypes: { founding: boolean; equity: boolean };
+  investmentTypes: { founding: boolean; equity: boolean; revenueSharing: boolean; loan: boolean };
   minFunding: number;
   maxFunding: number;
   onlyFavorites: boolean;
@@ -349,6 +351,11 @@ export class InvestmentsComponent {
   getFounderAvatarUrl(investment: Investment): string {
     const url = investment?.founderId ? this.founderAvatarCache()[investment.founderId] : undefined;
     return url || '';
+  }
+
+  getCoverImageUrl(investment: Investment): string {
+    const url = this.investmentService.getCoverImageUrl(investment);
+    return url || DEFAULT_PLACEHOLDER;
   }
 
   private lookupPath(object: any, path: string, fallback: any): any {

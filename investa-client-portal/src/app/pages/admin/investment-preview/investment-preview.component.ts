@@ -142,7 +142,27 @@ export class InvestmentPreviewComponent {
     if (!inv) return '';
     const uid = inv.founderId;
     const cached = uid ? this.founderAvatarCache()[uid] : undefined;
-    return cached || this.resolveImageUrl(inv.imageUrl) || '';
+    // Try cover image first
+    const coverImg = inv.images?.find(i => i.mediaType === 0);
+    if (coverImg) return this.fileStoreService.getPublicUrl(coverImg.url);
+    // Then try primary image
+    const primary = inv.images?.find(i => i.isPrimary === true);
+    if (primary) return this.fileStoreService.getPublicUrl(primary.url);
+    // Then first image
+    if (inv.images && inv.images.length > 0) return this.fileStoreService.getPublicUrl(inv.images[0].url);
+    // Finally fall back to imageUrl
+    return this.resolveImageUrl(inv.imageUrl) || '';
+  }
+
+  getHeroImageUrl(inv: Investment | null): string {
+    if (!inv) return '';
+    // Priority: cover image -> primary image -> first image -> imageUrl
+    const coverImg = inv.images?.find(i => i.mediaType === 0);
+    if (coverImg) return this.fileStoreService.getPublicUrl(coverImg.url);
+    const primary = inv.images?.find(i => i.isPrimary === true);
+    if (primary) return this.fileStoreService.getPublicUrl(primary.url);
+    if (inv.images && inv.images.length > 0) return this.fileStoreService.getPublicUrl(inv.images[0].url);
+    return this.resolveImageUrl(inv.imageUrl) || '';
   }
 
   resolveImageUrl(url?: string | null): string {
@@ -432,6 +452,24 @@ export class InvestmentPreviewComponent {
     if (!endDate) return -1;
     const diff = new Date(endDate).getTime() - Date.now();
     return Math.max(0, Math.ceil(diff / 86400000));
+  }
+
+  /**
+   * Get a human-readable description for the current status
+   */
+  getStatusDescription(status: string): string {
+    const descriptions: Record<string, string> = {
+      'Draft': 'Draft - Not yet published',
+      'Active': 'Currently accepting participants',
+      'Reviewing Participants': 'Reviewing participation requests',
+      'In Progress': 'Project is in progress',
+      'Fully Funded': 'Funding target reached',
+      'Paused': 'Temporarily paused',
+      'Completed': 'Project completed',
+      'Archived': 'Archived',
+      'Closed': 'Campaign ended'
+    };
+    return descriptions[status] || status || 'Unknown';
   }
 
   /**

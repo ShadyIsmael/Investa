@@ -1,4 +1,3 @@
-// Fix: Import `signal` from @angular/core to create signals for component state.
 import { Component, ChangeDetectionStrategy, inject, ElementRef, viewChild, computed, effect, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -9,8 +8,9 @@ import { AuthService } from '../../../services/auth.service';
 import { RequestsService } from '../../../services/requests.service';
 import { ProfileService } from '../../../services/profile.service';
 import { UserService } from '../../../services/user.service';
-import { Investment } from '../../../models/investment.model';
 import { NotificationService } from '../../../services/notification.service';
+import { FileStoreService } from '../../../services/file-store.service';
+import { Investment } from '../../../models/investment.model';
 import { TIME_INTERVALS } from '../../../config/constants';
 import { get } from 'lodash-es';
 
@@ -66,9 +66,10 @@ export class DashboardComponent {
   private languageService = inject(LanguageService);
   private authService = inject(AuthService);
   private profileService = inject(ProfileService);
+  private requestsService = inject(RequestsService);
   private userService = inject(UserService);
   private notificationService = inject(NotificationService);
-  private requestsService = inject(RequestsService);
+  private fileStoreService = inject(FileStoreService);
   private creditsRefreshed = signal(false);
 
   private t(path: string, fallback: string): string {
@@ -191,27 +192,37 @@ export class DashboardComponent {
     this.selectedFounderProject.set(project);
   }
 
-  getProjectAvatar(project: Investment): string {
+getProjectAvatar(project: Investment): string {
     // Prefer project image for project overview, fall back to profile avatar
-    const projectImage = project.imageUrl || (project.images && project.images.find(i => i.isPrimary)?.url) || (project.images && project.images.length ? project.images[0].url : undefined);
+    const projectImage = this.getImageSrc(project);
     if (projectImage) return projectImage;
     const profile = this.profileService.profile();
-    return profile?.basicInfo?.avatarUrl || '';
-  }
-
-  changeSelectedYear(year: string): void {
-    const parsed = Number(year);
-    if (!Number.isNaN(parsed)) {
-      this.selectedYear.set(parsed);
-    }
+    return profile?.basicInfo?.avatarUrl ? this.fileStoreService.getPublicUrl(profile.basicInfo.avatarUrl) : '';
   }
 
   getImageSrc(inv: Investment): string {
     if (!inv) return '';
-    const img = inv.imageUrl || (inv.images && inv.images.find(i => i.isPrimary)?.url) || (inv.images && inv.images.length ? inv.images[0].url : undefined);
-    if (img) return img;
+    
+    // Priority 1: Find CoverImage type (mediaType === 0)
+    if (inv.images && inv.images.length > 0) {
+      const coverImage = inv.images.find(i => i.mediaType === 0);
+      if (coverImage) return this.fileStoreService.getPublicUrl(coverImage.url);
+      
+      // Priority 2: Find primary image
+      const primary = inv.images.find(i => i.isPrimary === true);
+      if (primary) return this.fileStoreService.getPublicUrl(primary.url);
+      
+      // Priority 3: First image
+      return this.fileStoreService.getPublicUrl(inv.images[0].url);
+    }
+    
+    // Priority 4: Use imageUrl from investment
+    if (inv.imageUrl) return this.fileStoreService.getPublicUrl(inv.imageUrl);
+    
+    // Priority 5: Team member avatar fallback
     const tm = inv.teamMembers && inv.teamMembers.length ? inv.teamMembers[0] : undefined;
-    if (tm && tm.avatar) return tm.avatar;
+    if (tm && tm.avatar) return this.fileStoreService.getPublicUrl(tm.avatar);
+    
     return '';
   }
 
