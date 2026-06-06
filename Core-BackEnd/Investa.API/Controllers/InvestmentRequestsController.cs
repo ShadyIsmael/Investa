@@ -102,4 +102,94 @@ public class InvestmentRequestsController : ControllerBase
                 new { message = _localizer["FailedToFetchInvestmentRequests"].Value, error = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Approves an investment request (founder only)
+    /// </summary>
+    [HttpPost("{requestId}/approve")]
+    [ProducesResponseType(typeof(InvestmentRequestDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> ApproveInvestmentRequest(int requestId)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
+            if (!Guid.TryParse(userIdClaim, out var userId))
+            {
+                _logger.LogWarning("Unable to identify user from token");
+                return Unauthorized("Unable to identify user from token");
+            }
+
+            _logger.LogInformation("Approving investment request {RequestId} by user {UserId}", requestId, userId);
+
+            var result = await _investmentRequestService.ApproveInvestmentRequestAsync(requestId, userId);
+            
+            _logger.LogInformation("Investment request {RequestId} approved successfully by user {UserId}", requestId, userId);
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized approval attempt for request {RequestId}", requestId);
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Invalid operation approving request {RequestId}", requestId);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error approving investment request {RequestId}", requestId);
+            return StatusCode(StatusCodes.Status500InternalServerError, 
+                new { message = _localizer["FailedToApproveInvestmentRequest"].Value, error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Rejects an investment request (founder only)
+    /// </summary>
+    [HttpPost("{requestId}/reject")]
+    [ProducesResponseType(typeof(InvestmentRequestDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> RejectInvestmentRequest(int requestId)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
+            if (!Guid.TryParse(userIdClaim, out var userId))
+            {
+                _logger.LogWarning("Unable to identify user from token");
+                return Unauthorized("Unable to identify user from token");
+            }
+
+            _logger.LogInformation("Rejecting investment request {RequestId} by user {UserId}", requestId, userId);
+
+            var result = await _investmentRequestService.RejectInvestmentRequestAsync(requestId, userId);
+            
+            _logger.LogInformation("Investment request {RequestId} rejected successfully by user {UserId}", requestId, userId);
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized rejection attempt for request {RequestId}", requestId);
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Invalid operation rejecting request {RequestId}", requestId);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error rejecting investment request {RequestId}", requestId);
+            return StatusCode(StatusCodes.Status500InternalServerError, 
+                new { message = _localizer["FailedToRejectInvestmentRequest"].Value, error = ex.Message });
+        }
+    }
 }

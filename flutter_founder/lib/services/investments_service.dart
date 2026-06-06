@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:path/path.dart' as p;
 import 'package:flutter_founder/services/api_client.dart';
 import 'package:flutter_founder/services/app_logger.dart';
 import 'package:flutter_founder/services/secure_storage.dart';
+import 'file_store_service.dart';
 import 'endpoint_resolver.dart';
 
 class CreateInvestmentRequest {
@@ -33,7 +33,8 @@ class CreateInvestmentRequest {
   final String? currency;
 
   // Investment type
-  final int? investmentTypeId; // 1 = Founding, 2 = Equity, 3 = Revenue Sharing, 4 = Loan
+  final int?
+      investmentTypeId; // 1 = Founding, 2 = Equity, 3 = Revenue Sharing, 4 = Loan
 
   // Timeline
   final String? startDate;
@@ -149,25 +150,35 @@ class CreateInvestmentRequest {
         if (payoutFrequency != null) 'payoutFrequency': payoutFrequency,
         // Equity exit strategy fields
         if (currentValuation != null) 'currentValuation': currentValuation,
-        if (estimatedFutureValuation != null) 'estimatedFutureValuation': estimatedFutureValuation,
+        if (estimatedFutureValuation != null)
+          'estimatedFutureValuation': estimatedFutureValuation,
         if (equityExitType != null) 'equityExitType': equityExitType,
         if (exitTargetDate != null) 'exitTargetDate': exitTargetDate,
-        if (expectedExitStrategy != null) 'expectedExitStrategy': expectedExitStrategy,
+        if (expectedExitStrategy != null)
+          'expectedExitStrategy': expectedExitStrategy,
         // Revenue sharing exit strategy fields
         if (contractStartDate != null) 'contractStartDate': contractStartDate,
         if (contractEndDate != null) 'contractEndDate': contractEndDate,
-        if (totalExpectedPayout != null) 'totalExpectedPayout': totalExpectedPayout,
-        if (remainingPayoutAmount != null) 'remainingPayoutAmount': remainingPayoutAmount,
-        if (revenueDistributionFrequency != null) 'revenueDistributionFrequency': revenueDistributionFrequency,
-        if (contractCompletionStatus != null) 'contractCompletionStatus': contractCompletionStatus,
+        if (totalExpectedPayout != null)
+          'totalExpectedPayout': totalExpectedPayout,
+        if (remainingPayoutAmount != null)
+          'remainingPayoutAmount': remainingPayoutAmount,
+        if (revenueDistributionFrequency != null)
+          'revenueDistributionFrequency': revenueDistributionFrequency,
+        if (contractCompletionStatus != null)
+          'contractCompletionStatus': contractCompletionStatus,
         // Loan/Debt exit strategy fields
-        if (repaymentStartDate != null) 'repaymentStartDate': repaymentStartDate,
-        if (finalRepaymentDate != null) 'finalRepaymentDate': finalRepaymentDate,
+        if (repaymentStartDate != null)
+          'repaymentStartDate': repaymentStartDate,
+        if (finalRepaymentDate != null)
+          'finalRepaymentDate': finalRepaymentDate,
         if (remainingBalance != null) 'remainingBalance': remainingBalance,
         if (totalPaidAmount != null) 'totalPaidAmount': totalPaidAmount,
-        if (nextInstallmentDate != null) 'nextInstallmentDate': nextInstallmentDate,
+        if (nextInstallmentDate != null)
+          'nextInstallmentDate': nextInstallmentDate,
         if (defaultRiskLevel != null) 'defaultRiskLevel': defaultRiskLevel,
-        if (loanCompletionStatus != null) 'loanCompletionStatus': loanCompletionStatus,
+        if (loanCompletionStatus != null)
+          'loanCompletionStatus': loanCompletionStatus,
       };
 }
 
@@ -334,53 +345,26 @@ class InvestmentsService {
     }
   }
 
-  /// Upload an investment image and return the URL.
-  Future<String?> uploadInvestmentImage(String filePath, int investmentId) async {
-    var apiBase = baseUrl;
-    if (!apiBase.startsWith('http')) apiBase = 'http://$apiBase';
-    final uri = Uri.parse('$apiBase/api/v1/investments/$investmentId/images');
-    try {
-      final token = await SecureStorage().read('auth_token');
-      final headers = <String, String>{};
-      if (token != null && token.isNotEmpty) {
-        headers['Authorization'] = 'Bearer $token';
-      }
-      final file = File(filePath);
-      if (!file.existsSync()) {
-        AppLogger.logError('InvestmentsService',
-            'File does not exist: $filePath', null);
-        return null;
-      }
-      final fileName = p.basename(filePath);
-      final formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(filePath, filename: fileName),
-      });
-      AppLogger.logInfo('InvestmentsService',
-          'POST ${uri.toString()} file=$fileName');
-      final resp =
-          await _client.post(uri.toString(), data: formData, headers: headers);
-      final status = resp.statusCode ?? 0;
-      AppLogger.logInfo('InvestmentsService', 'Response status=$status');
-      if (status >= 200 && status < 300) {
-        try {
-          final body = resp.data is Map
-              ? resp.data as Map<String, dynamic>
-              : jsonDecode(resp.toString()) as Map<String, dynamic>;
-          final url = body['url'] ?? body['imageUrl'];
-          if (url is String) return url as String;
-        } catch (e, s) {
-          AppLogger.logError('InvestmentsService', 'Parse error: $e', s);
-        }
-      }
-      return null;
-    } on DioException catch (e) {
-      AppLogger.logError('InvestmentsService',
-          'Upload error: ${e.message}', e.stackTrace);
-      return null;
-    } catch (e, s) {
-      AppLogger.logError('InvestmentsService', 'Unexpected upload error: $e', s);
-      return null;
-    }
+  /// Alias for fetchByCategory(null)
+  Future<List<dynamic>> fetchMyInvestments() async {
+    return fetchByCategory(null);
+  }
+
+  /// Upload an investment image via Investa.FileStore (centralized storage).
+  Future<String?> uploadInvestmentImage(
+      String filePath, int investmentId) async {
+    return FileStoreService().uploadInvestmentImage(filePath, investmentId);
+  }
+
+  /// Alias for uploadInvestmentImage using File object and standard parameter order
+  Future<String?> uploadImage(int investmentId, File file) async {
+    return uploadInvestmentImage(file.path, investmentId);
+  }
+
+  /// Upload an investment video via Investa.FileStore (centralized storage).
+  Future<String?> uploadInvestmentVideo(
+      String filePath, int investmentId) async {
+    return FileStoreService().uploadInvestmentVideo(filePath, investmentId);
   }
 
   /// Fetch a single investment by ID.
@@ -417,6 +401,52 @@ class InvestmentsService {
     }
   }
 
+  /// Set an image as primary for an investment.
+  Future<bool> setPrimaryImage(int investmentId, int imageId) async {
+    var apiBase = baseUrl;
+    if (!apiBase.startsWith('http')) apiBase = 'http://$apiBase';
+    final uri = Uri.parse(
+        '$apiBase/api/v1/investments/$investmentId/images/$imageId/set-primary');
+    try {
+      final token = await SecureStorage().read('auth_token');
+      final headers = <String, String>{'content-type': 'application/json'};
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+      final resp =
+          await _client.put(uri.toString(), data: {}, headers: headers);
+      return (resp.statusCode ?? 0) >= 200 && (resp.statusCode ?? 0) < 300;
+    } catch (e, s) {
+      AppLogger.logError('InvestmentsService', 'Set primary failed: $e', s);
+      return false;
+    }
+  }
+
+  /// Delete an image from an investment.
+  Future<bool> deleteImage(int investmentId, int imageId) async {
+    var apiBase = baseUrl;
+    if (!apiBase.startsWith('http')) apiBase = 'http://$apiBase';
+    final uri =
+        Uri.parse('$apiBase/api/v1/investments/$investmentId/images/$imageId');
+    try {
+      final token = await SecureStorage().read('auth_token');
+      final headers = <String, String>{};
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+      final resp = await _client.delete(uri.toString(), headers: headers);
+      return (resp.statusCode ?? 0) >= 200 && (resp.statusCode ?? 0) < 300;
+    } catch (e, s) {
+      AppLogger.logError('InvestmentsService', 'Delete image failed: $e', s);
+      return false;
+    }
+  }
+
+  /// Fetch a single investment by ID (int version).
+  Future<Map<String, dynamic>?> getInvestmentById(int investmentId) async {
+    return getById(investmentId.toString());
+  }
+
   /// Update an existing investment.
   Future<Map<String, dynamic>?> updateInvestment(
       String investmentId, Map<String, dynamic> updates) async {
@@ -430,7 +460,8 @@ class InvestmentsService {
         headers['Authorization'] = 'Bearer $token';
       }
       AppLogger.logInfo('InvestmentsService', 'PUT ${uri.toString()}');
-      final resp = await _client.put(uri.toString(), data: updates, headers: headers);
+      final resp =
+          await _client.put(uri.toString(), data: updates, headers: headers);
       final status = resp.statusCode ?? 0;
       AppLogger.logInfo('InvestmentsService', 'Response status=$status');
       if (status >= 200 && status < 300) {

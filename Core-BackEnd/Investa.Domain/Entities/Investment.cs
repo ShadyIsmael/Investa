@@ -68,6 +68,12 @@ public class Investment
     public decimal? ValuationCap { get; set; }
 
     /// <summary>
+    /// Percentage of equity being offered to investors (Equity type only)
+    /// </summary>
+    [Column(TypeName = "decimal(5,2)")]
+    public decimal? EquityOfferedPercentage { get; set; }
+
+    /// <summary>
     /// Expected return on investment (percentage)
     /// </summary>
     [Column(TypeName = "decimal(5,2)")]
@@ -120,6 +126,21 @@ public class Investment
 
     [StringLength(10)]
     public string? Currency { get; set; }
+
+    // ==================== Engagement / Momentum ====================
+
+    /// <summary>Automatically maintained momentum score (0-10000) for discovery ranking.</summary>
+    [Range(0, 10000)]
+    public int MomentumScore { get; set; } = 0;
+
+    /// <summary>Last meaningful activity timestamp used for decay and recommendations.</summary>
+    public DateTime? LastActivityAt { get; set; }
+
+    /// <summary>Number of public timeline activities for this opportunity.</summary>
+    public int PublicActivityCount { get; set; } = 0;
+
+    /// <summary>Number of participant-only timeline activities for this opportunity.</summary>
+    public int ParticipantOnlyActivityCount { get; set; } = 0;
 
     // ==================== Timeline ====================
     
@@ -220,6 +241,18 @@ public class Investment
     public string? RevenueDistributionFrequency { get; set; }
 
     /// <summary>
+    /// Percentage of revenue shared with investors (Revenue Sharing type only)
+    /// </summary>
+    [Column(TypeName = "decimal(5,2)")]
+    public decimal? RevenueSharePercentage { get; set; }
+
+    /// <summary>
+    /// Expected monthly return amount to investors (Revenue Sharing type only)
+    /// </summary>
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal? ExpectedMonthlyReturn { get; set; }
+
+    /// <summary>
     /// Contract completion status (Revenue Sharing type only)
     /// Tracks progress of payout schedule
     /// </summary>
@@ -273,6 +306,38 @@ public class Investment
     /// </summary>
     [StringLength(50)]
     public string? LoanCompletionStatus { get; set; }
+
+    // ==================== Additional Loan/Debt Fields ====================
+
+    /// <summary>
+    /// Annual interest rate for the loan (Loan type only)
+    /// </summary>
+    [Column(TypeName = "decimal(5,2)")]
+    public decimal? InterestRate { get; set; }
+
+    /// <summary>
+    /// Frequency of loan repayments (Loan type only)
+    /// Monthly, Quarterly, Semi-Annually, Annually
+    /// </summary>
+    [StringLength(50)]
+    public string? RepaymentFrequency { get; set; }
+
+    /// <summary>
+    /// Grace period before repayments begin in months (Loan type only)
+    /// </summary>
+    public int? GracePeriodMonths { get; set; }
+
+    /// <summary>
+    /// Estimated installment amount per payment (Loan type only)
+    /// </summary>
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal? EstimatedInstallment { get; set; }
+
+    /// <summary>
+    /// Total repayment amount including principal and interest (Loan type only)
+    /// </summary>
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal? TotalRepaymentAmount { get; set; }
 
     // ==================== Navigation Properties ====================
     

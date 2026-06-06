@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Investa.Application.Common;
 using Investa.Application.Interfaces;
 using Investa.Infrastructure.Repositories;using Investa.Domain.Entities.Security;using Microsoft.IdentityModel.Tokens;
 using Investa.Infrastructure.Identity;
@@ -67,10 +68,17 @@ public class AuthController : BaseApiController
         if (string.IsNullOrWhiteSpace(request.PhoneNumber) || string.IsNullOrWhiteSpace(request.Password))
             return ErrorResponse("Phone number and password are required", 400);
 
-        var normalizedPhone = request.PhoneNumber?.Trim().Replace(" ", "") ?? string.Empty;
-        var existingUser = await _userManager.FindByNameAsync(normalizedPhone);
-        if (existingUser != null)
-            return ErrorResponse("This phone number is already registered", 409);
+        var normalizedPhone = PhoneNumberNormalizer.NormalizePhoneNumber(request.PhoneNumber);
+        if (normalizedPhone == null)
+            return ErrorResponse("Invalid phone number format", 400);
+
+        var phoneCandidates = PhoneNumberNormalizer.GetPhoneVariants(normalizedPhone);
+        foreach (var candidate in phoneCandidates)
+        {
+            var existingUser = await TryFindByNameAsync(candidate);
+            if (existingUser != null)
+                return ErrorResponse("This phone number is already registered", 409);
+        }
 
         try
         {
@@ -168,68 +176,50 @@ public class AuthController : BaseApiController
         if (string.IsNullOrWhiteSpace(request.PhoneNumber) || string.IsNullOrWhiteSpace(request.Password))
             return ErrorResponse("Phone number and password are required", 400);
 
-        var normalizedPhone = request.PhoneNumber.Trim().Replace(" ", "");
+        var normalizedPhone = PhoneNumberNormalizer.NormalizePhoneNumber(request.PhoneNumber);
+        if (normalizedPhone == null)
+            return ErrorResponse("Invalid phone number format", 400);
+
         ApplicationIdentityUser? identityUser = null;
         var usedLegacyAuthFallback = false;
 
-        try
-        {
-            identityUser = await _userManager.FindByNameAsync(normalizedPhone);
-        }
-        catch (InvalidCastException ex)
-        {
-            _logger.LogWarning(ex, "Identity phone lookup failed for {Phone}; falling back to AuthUser records", normalizedPhone);
-            usedLegacyAuthFallback = true;
-        }
-
-        // Fallback: try common phone variants so users who updated their profile
-        // to international format (e.g., +2010...) can still log in with that number.
-        // Examples handled: '+20xxxxxxxxxx', '0020xxxxxxxxxx', '20xxxxxxxxxx' -> '0xxxxxxxxxx'
+        identityUser = await TryFindByNameAsync(normalizedPhone);
         if (identityUser == null)
         {
-            var candidates = new List<string> { normalizedPhone };
-            var noPlus = normalizedPhone.StartsWith("+") ? normalizedPhone.Substring(1) : normalizedPhone;
-            if (!candidates.Contains(noPlus)) candidates.Add(noPlus);
+            usedLegacyAuthFallback = false;
+        }
 
-            var prefixes = new[] { "20", "0020" };
-            foreach (var p in prefixes)
-            {
-                if (noPlus.StartsWith(p))
-                {
-                    var rest = noPlus.Substring(p.Length);
-                    if (!rest.StartsWith("0")) rest = "0" + rest;
-                    if (!candidates.Contains(rest)) candidates.Add(rest);
-                }
-            }
-
+        if (identityUser == null)
+        {
+            var candidates = PhoneNumberNormalizer.GetPhoneVariants(normalizedPhone).ToList();
             foreach (var candidate in candidates)
             {
                 if (!usedLegacyAuthFallback)
                 {
-                    try
+                    identityUser = await TryFindByNameAsync(candidate);
+                    if (identityUser != null)
                     {
-                        identityUser = await _userManager.FindByNameAsync(candidate);
-                    }
-                    catch (InvalidCastException ex)
-                    {
-                        _logger.LogWarning(ex, "Identity phone candidate lookup failed for {PhoneCandidate}; falling back to AuthUser records", candidate);
-                        usedLegacyAuthFallback = true;
+                        _logger.LogInformation("Login resolved using phone candidate: {Candidate}", candidate);
+                        break;
                     }
                 }
 
                 if (identityUser == null)
                 {
-                    identityUser = await TryAuthenticateLegacyPhoneUserAsync(candidate, request.Password);
-                    if (identityUser != null)
+                    try
                     {
-                        usedLegacyAuthFallback = true;
+                        identityUser = await TryAuthenticateLegacyPhoneUserAsync(candidate, request.Password);
+                        if (identityUser != null)
+                        {
+                            usedLegacyAuthFallback = true;
+                            _logger.LogInformation("Login resolved using legacy phone candidate: {Candidate}", candidate);
+                            break;
+                        }
                     }
-                }
-
-                if (identityUser != null)
-                {
-                    _logger.LogInformation("Login resolved using phone candidate: {Candidate}", candidate);
-                    break;
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error during legacy phone authentication fallback for {PhoneCandidate}", candidate);
+                    }
                 }
             }
         }
@@ -291,7 +281,15 @@ public class AuthController : BaseApiController
 
         if (identityUser == null)
         {
-            identityUser = await TryAuthenticateLegacyEmailUserAsync(normalizedEmail, request.Password);
+            try
+            {
+                identityUser = await TryAuthenticateLegacyEmailUserAsync(normalizedEmail, request.Password);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during legacy email authentication fallback for {Email}", normalizedEmail);
+            }
+
             if (identityUser == null)
                 return ErrorResponse("Invalid credentials", 401);
 
@@ -389,7 +387,11 @@ public class AuthController : BaseApiController
         if (string.IsNullOrWhiteSpace(request.PhoneNumber))
             return ErrorResponse("Phone number is required", 400);
 
-        var identityUser = await _userManager.FindByNameAsync(request.PhoneNumber);
+        var normalizedPhone = PhoneNumberNormalizer.NormalizePhoneNumber(request.PhoneNumber);
+        if (normalizedPhone == null)
+            return ErrorResponse("Invalid phone number format", 400);
+
+        var identityUser = await _userManager.FindByNameAsync(normalizedPhone);
         if (identityUser == null)
             return ErrorResponse("User not found", 404);
 
@@ -397,7 +399,7 @@ public class AuthController : BaseApiController
         {
             var token = await _userManager.GeneratePasswordResetTokenAsync(identityUser);
             var smsMessage = $"Your Investa password reset token is: {token}";
-            await _smsSender.SendSmsAsync(request.PhoneNumber, smsMessage);
+            await _smsSender.SendSmsAsync(normalizedPhone, smsMessage);
 
             _logger.LogInformation("Password reset token sent to: {Phone}", request.PhoneNumber);
             return SuccessResponse(message: "Password reset token sent via SMS");
@@ -421,7 +423,11 @@ public class AuthController : BaseApiController
             string.IsNullOrWhiteSpace(request.NewPassword))
             return ErrorResponse("Phone, token, and new password are required", 400);
 
-        var identityUser = await _userManager.FindByNameAsync(request.PhoneNumber);
+        var normalizedPhone = PhoneNumberNormalizer.NormalizePhoneNumber(request.PhoneNumber);
+        if (normalizedPhone == null)
+            return ErrorResponse("Invalid phone number format", 400);
+
+        var identityUser = await _userManager.FindByNameAsync(normalizedPhone);
         if (identityUser == null)
             return ErrorResponse("User not found", 404);
 
@@ -557,21 +563,35 @@ public class AuthController : BaseApiController
     {
         try
         {
-            // Check if phone number is already registered
-            var existingUser = await _userManager.FindByNameAsync(request.PhoneNumber);
-            if (existingUser != null)
+            var normalizedPhone = PhoneNumberNormalizer.NormalizePhoneNumber(request.PhoneNumber);
+            if (normalizedPhone == null)
             {
-                _logger.LogWarning($"Sign-up attempt with existing phone number: {request.PhoneNumber}");
-                return Conflict(new
+                _logger.LogWarning($"Sign-up attempt with invalid phone number: {request.PhoneNumber}");
+                return BadRequest(new
                 {
                     success = false,
-                    message = "This phone number is already registered.",
-                    code = "PHONE_EXISTS"
+                    message = "Invalid phone number format.",
+                    code = "INVALID_PHONE"
                 });
             }
 
-            // Normalize phone (basic): trim spaces
-            var normalizedPhone = request.PhoneNumber?.Trim().Replace(" ", "") ?? string.Empty;
+            // Check if phone number is already registered using normalized and legacy variants.
+            var phoneCandidates = PhoneNumberNormalizer.GetPhoneVariants(normalizedPhone);
+            foreach (var candidate in phoneCandidates)
+            {
+                var existingUser = await TryFindByNameAsync(candidate);
+                if (existingUser != null)
+                {
+                    _logger.LogWarning($"Sign-up attempt with existing phone number: {request.PhoneNumber}");
+                    return Conflict(new
+                    {
+                        success = false,
+                        message = "This phone number is already registered.",
+                        code = "PHONE_EXISTS"
+                    });
+                }
+            }
+
             // Create new IdentityUser with phone number as username
             var user = new ApplicationIdentityUser
             {
@@ -713,10 +733,26 @@ public class AuthController : BaseApiController
         }
     }    
 
+    private async Task<ApplicationIdentityUser?> TryFindByNameAsync(string username)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+            return null;
+
+        try
+        {
+            return await _userManager.FindByNameAsync(username);
+        }
+        catch (InvalidCastException ex)
+        {
+            _logger.LogWarning(ex, "Identity user lookup failed for {Username}; falling back to legacy auth records", username);
+            return null;
+        }
+    }
+
     private async Task<ApplicationIdentityUser?> TryAuthenticateLegacyEmailUserAsync(string normalizedEmail, string password)
     {
         var authUser = (await _unitOfWork.Repository<AuthUser>()
-            .FindAsync(a => a.Email != null && a.Email.ToLower() == normalizedEmail))
+            .FindAsync(a => a.Email != null && a.Email == normalizedEmail))
             .FirstOrDefault();
 
         if (authUser == null)
@@ -740,16 +776,13 @@ public class AuthController : BaseApiController
 
     private async Task<ApplicationIdentityUser?> TryAuthenticateLegacyPhoneUserAsync(string normalizedPhone, string password)
     {
-        var legacyEmails = new[]
-        {
-            $"{normalizedPhone}@phone.investa.local",
-            $"{normalizedPhone.TrimStart('+')}@phone.investa.local"
-        }
-        .Distinct(StringComparer.OrdinalIgnoreCase)
-        .ToList();
+        var emailVariants = PhoneNumberNormalizer.GetPhoneVariants(normalizedPhone)
+            .Select(v => $"{v}@phone.investa.local")
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
         var authUser = (await _unitOfWork.Repository<AuthUser>()
-            .FindAsync(a => a.Email != null && legacyEmails.Contains(a.Email.ToLower())))
+            .FindAsync(a => a.Email != null && emailVariants.Contains(a.Email)))
             .FirstOrDefault();
 
         if (authUser == null)

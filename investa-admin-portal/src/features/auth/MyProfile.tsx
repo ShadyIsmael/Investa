@@ -54,7 +54,11 @@ export const MyProfile: React.FC<MyProfileProps> = ({ user, onProfileUpdated }) 
       }
     } else {
       const digits = cleaned.replace(/\D/g, '');
-      if (digits.startsWith('20')) {
+      // Handle Egyptian local format (starts with 0, 11 digits)
+      if (digits.startsWith('0') && digits.length === 11) {
+        phoneCountry = '+20';
+        phoneNumber = digits.slice(1); // Remove leading zero
+      } else if (digits.startsWith('20') && digits.length === 12) {
         phoneCountry = '+20';
         phoneNumber = digits.slice(2);
       } else if (digits.startsWith('234')) {

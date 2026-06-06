@@ -5,7 +5,7 @@ import { ProfileService, PublicProfile } from '../../../services/profile.service
 import { InvestmentService } from '../../../services/investment.service';
 import { FileStoreService } from '../../../services/file-store.service';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
-import { Investment } from '../../../models/investment.model';
+import { Investment, InvestmentStatus } from '../../../models/investment.model';
 
 @Component({
   standalone: true,
@@ -35,8 +35,8 @@ export class FounderProfileComponent {
   founderStats = computed(() => {
     const investments = this.founderInvestments();
     const totalRaised = investments.reduce((sum, investment) => sum + (investment.currentFunding ?? 0), 0);
-    const activeProjects = investments.filter(investment => investment.status === 'Active').length;
-    const fundedProjects = investments.filter(investment => investment.status === 'Funded').length;
+    const activeProjects = investments.filter(investment => investment.status === InvestmentStatus.Active).length;
+    const fundedProjects = investments.filter(investment => investment.status === InvestmentStatus.FullyFunded).length;
 
     return {
       totalProjects: investments.length,

@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Investa.Application.Common;
 using Investa.Application.DTOs;
 using Investa.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -39,10 +40,12 @@ namespace Investa.API.Controllers
             if (string.IsNullOrWhiteSpace(phone))
                 return BadRequest(new { message = "Phone is required" });
 
-            var normalized = phone.Trim();
+            var normalized = PhoneNumberNormalizer.NormalizePhoneNumber(phone);
+            if (normalized == null)
+                return BadRequest(new { message = "Invalid phone format" });
+
             var clients = await _db.Clients.AsNoTracking()
-                .Where(c => (!string.IsNullOrEmpty(c.MobileNumber) && c.MobileNumber.Contains(normalized))
-                         )
+                .Where(c => !string.IsNullOrEmpty(c.MobileNumber) && c.MobileNumber.Contains(normalized))
                 .ToListAsync();
 
             if (clients == null || !clients.Any())
@@ -64,8 +67,12 @@ namespace Investa.API.Controllers
             if (string.IsNullOrWhiteSpace(phone))
                 return BadRequest(new { message = "Phone is required" });
 
+            var normalized = PhoneNumberNormalizer.NormalizePhoneNumber(phone);
+            if (normalized == null)
+                return BadRequest(new { message = "Invalid phone format" });
+
             // find identity user by phone (UserName or PhoneNumber)
-            var identityUser = await _db.Users.FirstOrDefaultAsync(u => u.UserName == phone || u.PhoneNumber == phone);
+            var identityUser = await _db.Users.FirstOrDefaultAsync(u => u.UserName == normalized || u.PhoneNumber == normalized);
             if (identityUser == null)
                 return NotFound(new { message = "Identity user not found for provided phone" });
 
@@ -77,7 +84,7 @@ namespace Investa.API.Controllers
 
             var entity = MapFromDto(model);
             entity.UserId = userGuid;
-            entity.MobileNumber = entity.MobileNumber ?? phone;
+            entity.MobileNumber = entity.MobileNumber ?? normalized;
 
             _db.Clients.Add(entity);
             await _db.SaveChangesAsync();

@@ -88,7 +88,7 @@ public class InvestmentService : IInvestmentService
                 SharesPurchased = sharesPurchased,
                 AmountInvested = amount,
                 InvestmentDate = DateTime.UtcNow,
-                Status = "Confirmed"
+                Status = ParticipationLifecycle.Participated
             };
 
             // Create transaction
@@ -347,33 +347,32 @@ public class InvestmentService : IInvestmentService
 
     public async Task<Investment?> GetByIdAsync(int id)
     {
-        return await _unitOfWork.Repository<Investment>().GetByIdAsync(id);
+        return await _investmentRepository.GetByIdWithFullDetailsAsync(id);
     }
 
     public async Task<IEnumerable<Investment>> GetAllAsync()
     {
-        return await _unitOfWork.Repository<Investment>().GetAllAsync();
+        return await _investmentRepository.GetAllWithFullDetailsAsync();
     }
 
     public async Task<IEnumerable<Investment>> GetByFounderIdAsync(Guid founderId)
     {
-        var allInvestments = await _unitOfWork.Repository<Investment>().GetAllAsync();
+        var allInvestments = await _investmentRepository.GetAllWithFullDetailsAsync();
         return allInvestments.Where(i => i.FounderId == founderId);
     }
 
     public async Task<IEnumerable<Investment>> GetByCategoryAsync(int? categoryId)
     {
-        var allInvestments = await _unitOfWork.Repository<Investment>().GetAllAsync();
         if (categoryId.HasValue)
         {
-            return allInvestments.Where(i => i.BusinessCategoryId == categoryId.Value);
+            return await _investmentRepository.GetByCategoryWithFullDetailsAsync(categoryId.Value);
         }
-        return allInvestments;
+        return await _investmentRepository.GetAllWithFullDetailsAsync();
     }
 
     public async Task<IEnumerable<Investment>> GetMyInvestmentsAsync(Guid founderId)
     {
-        var allInvestments = await _unitOfWork.Repository<Investment>().GetAllAsync();
+        var allInvestments = await _investmentRepository.GetAllWithFullDetailsAsync();
         return allInvestments.Where(i => i.FounderId == founderId);
     }
 

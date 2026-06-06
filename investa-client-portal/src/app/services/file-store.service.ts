@@ -125,6 +125,57 @@ export class FileStoreService {
   }
 
   /**
+   * Upload an investment image directly to FileStore.
+   * Returns the public URL of the uploaded image.
+   */
+  async uploadInvestmentImage(investmentId: number | string, file: File): Promise<string> {
+    const category = `investment-images-${String(investmentId).trim()}`;
+    const url = `${this.base}/files/${encodeURIComponent(category)}`;
+    const form = new FormData();
+    form.append('file', file, file.name);
+
+    const resp = await firstValueFrom(
+      this.http.post<FileStoreUploadResponse>(url, form, { headers: this.authHeaders })
+    );
+
+    return `${this.base}${resp.url}`;
+  }
+
+  /**
+   * Upload an investment video directly to FileStore.
+   * Returns the public URL of the uploaded video.
+   */
+  async uploadInvestmentVideo(investmentId: number | string, file: File): Promise<string> {
+    const category = `investment-videos-${String(investmentId).trim()}`;
+    const url = `${this.base}/files/${encodeURIComponent(category)}`;
+    const form = new FormData();
+    form.append('file', file, file.name);
+
+    const resp = await firstValueFrom(
+      this.http.post<FileStoreUploadResponse>(url, form, { headers: this.authHeaders })
+    );
+
+    return `${this.base}${resp.url}`;
+  }
+
+  /**
+   * Upload an investment document (PDF, PPTX, etc.) directly to FileStore.
+   * Returns the public URL of the uploaded document.
+   */
+  async uploadInvestmentDocument(investmentId: number | string, file: File): Promise<string> {
+    const category = `investment-docs-${String(investmentId).trim()}`;
+    const url = `${this.base}/files/${encodeURIComponent(category)}`;
+    const form = new FormData();
+    form.append('file', file, file.name);
+
+    const resp = await firstValueFrom(
+      this.http.post<FileStoreUploadResponse>(url, form, { headers: this.authHeaders })
+    );
+
+    return `${this.base}${resp.url}`;
+  }
+
+  /**
    * List uploaded national-id files for a user.
    */
   async getNationalIdFiles(userId: string): Promise<Array<{ fileName: string; url: string; sizeBytes: number; createdAt: string }>> {

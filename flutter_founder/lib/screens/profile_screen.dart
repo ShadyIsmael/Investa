@@ -121,7 +121,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _profile = profile ?? AppState.instance.profile;
         _isLoading = false;
       });
-Load trust profile (non-blocking)
+
+      // Load trust profile (non-blocking)
       TrustService().fetchMyTrustProfile().then((trust) {
         if (trust != null && mounted) {
           AppState.instance.setTrustProfile(trust);
@@ -294,6 +295,7 @@ Load trust profile (non-blocking)
             children: [
               _ProfileHeader(
                 profile: _profile,
+                trustProfile: _trustProfile,
                 onEdit: _openEdit,
                 isDarkMode: isDarkMode,
               ),
@@ -387,11 +389,13 @@ Load trust profile (non-blocking)
 
 class _ProfileHeader extends StatelessWidget {
   final Profile? profile;
+  final TrustProfile? trustProfile;
   final VoidCallback onEdit;
   final bool isDarkMode;
 
   const _ProfileHeader({
     required this.profile,
+    required this.trustProfile,
     required this.onEdit,
     required this.isDarkMode,
   });
@@ -495,13 +499,15 @@ class _ProfileHeader extends StatelessWidget {
             ],
           ),
         const SizedBox(height: 24),
-          completionPercentage:
+        _VerificationStatusCard(
+          completionPercentage: trustProfile?.profileCompletionPercentage ?? 0,
+          isVerified: trustProfile?.isIdentityVerified ?? false,
           isDarkMode: isDarkMode,
         ),
         // Trust Level Card
         const SizedBox(height: 16),
         _TrustLevelCard(
-          trustProfile: _trustProfile,
+          trustProfile: trustProfile,
           isDarkMode: isDarkMode,
         ),
       ],
@@ -509,10 +515,12 @@ class _ProfileHeader extends StatelessWidget {
   }
 }
 
+class _VerificationStatusCard extends StatelessWidget {
   final int completionPercentage;
   final bool isVerified;
   final bool isDarkMode;
 
+  const _VerificationStatusCard({
     required this.completionPercentage,
     required this.isVerified,
     required this.isDarkMode,
@@ -557,6 +565,7 @@ class _ProfileHeader extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
+                    loc.t('Verification Status'),
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -621,7 +630,9 @@ class _ProfileHeader extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             isVerified
+                ? loc.t('Identity verified and confirmed')
                 : completionPercentage >= 80
+                    ? loc.t('Profile almost complete! Submit for verification')
                     : loc.t('Complete your profile to unlock verification'),
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),

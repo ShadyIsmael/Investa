@@ -54,15 +54,15 @@ export class TrustBadgeComponent implements OnInit {
       [TrustLevel.Visitor]: '👤',
       [TrustLevel.Registered]: '✅',
       [TrustLevel.Interactive]: '⭐',
-      [TrustLevel.Verified]: '🛡️'
+      [TrustLevel.TrustedActive]: '🛡️'
     };
     return icons[this.effectiveLevel()];
   });
 
   tooltip = computed(() => {
     const level = this.effectiveLevel();
-    const rep = this.profile?.reputationScore ?? this.trustService.profile()?.reputationScore ?? 0;
-    return `Trust Level ${level} • Reputation: ${rep}/10000`;
+    const reputation = this.profile?.reputationLevel ?? this.trustService.profile()?.reputationLevel ?? 'Rising Member';
+    return `Trust Level ${level} • Reputation: ${reputation}`;
   });
 
   ngOnInit() {

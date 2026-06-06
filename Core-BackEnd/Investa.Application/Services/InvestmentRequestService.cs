@@ -280,4 +280,202 @@ public class InvestmentRequestService : IInvestmentRequestService
             Outgoing = outgoing
         };
     }
+
+    public async Task<InvestmentRequestDto> ApproveInvestmentRequestAsync(int requestId, Guid founderId)
+    {
+        _logger.LogInformation("Approving investment request {RequestId} by founder {FounderId}", requestId, founderId);
+
+        var request = await _unitOfWork.Repository<InvestmentRequest>().GetByIdAsync(requestId);
+        if (request == null)
+        {
+            throw new InvalidOperationException("Investment request not found");
+        }
+
+        // Verify the requester is the founder
+        if (request.FounderId != founderId)
+        {
+            throw new UnauthorizedAccessException("Only the founder can approve investment requests");
+        }
+
+        if (request.Status != InvestmentRequestStatus.Pending)
+        {
+            throw new InvalidOperationException("Only pending requests can be approved");
+        }
+
+        // Update request status
+        request.Status = InvestmentRequestStatus.Accepted;
+        request.UpdatedAt = DateTime.UtcNow;
+
+        await _unitOfWork.SaveChangesAsync();
+
+        // Create or update InvestmentParticipant record
+        var existingParticipant = (await _unitOfWork.Repository<InvestmentParticipant>()
+            .FindAsync(p => p.InvestmentId == request.InvestmentId && p.InvestorId == request.InvestorId))
+            .FirstOrDefault();
+
+        if (existingParticipant == null)
+        {
+            var participant = new InvestmentParticipant
+            {
+                InvestmentId = request.InvestmentId,
+                InvestorId = request.InvestorId,
+                SharesPurchased = request.Shares ?? 0,
+                AmountInvested = request.Amount,
+                InvestmentDate = DateTime.UtcNow,
+                Status = ParticipationLifecycle.Approved,
+                CreatedAt = DateTime.UtcNow
+            };
+            await _unitOfWork.Repository<InvestmentParticipant>().AddAsync(participant);
+        }
+        else
+        {
+            existingParticipant.Status = ParticipationLifecycle.Approved;
+            existingParticipant.SharesPurchased = request.Shares ?? existingParticipant.SharesPurchased;
+            existingParticipant.AmountInvested = request.Amount;
+        }
+
+        await _unitOfWork.SaveChangesAsync();
+
+        // Send notification to investor
+        try
+        {
+            var investment = await _unitOfWork.Repository<Investment>().GetByIdAsync(request.InvestmentId);
+            var investmentName = investment?.BusinessName ?? "Investment";
+            
+            await _notificationService.SendNotificationAsync(
+                request.InvestorId.ToString(),
+                "Investment Request Approved",
+                $"Your investment request for {investmentName} has been approved",
+                new Dictionary<string, string>
+                {
+                    ["requestId"] = request.Id.ToString(),
+                    ["investmentId"] = request.InvestmentId.ToString(),
+                    ["type"] = "investment_request",
+                    ["action"] = "approved"
+                });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to send approval notification to investor {InvestorId}", request.InvestorId);
+        }
+
+        var dto = _mapper.Map<InvestmentRequestDto>(request);
+        
+        // Populate display fields
+        try
+        {
+            var inv = await _unitOfWork.Repository<Investment>().GetByIdAsync(request.InvestmentId);
+            dto.InvestmentTitle = inv?.BusinessName;
+            dto.BusinessName = inv?.BusinessName;
+        }
+        catch { /* ignore */ }
+
+        try
+        {
+            var investor = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.InvestorId, u => u.Profile);
+            dto.InvestorDisplayName = investor?.Profile?.FullName ?? investor?.Name;
+        }
+        catch { /* ignore */ }
+
+        _logger.LogInformation("Investment request {RequestId} approved successfully", requestId);
+        return dto;
+    }
+
+    public async Task<InvestmentRequestDto> RejectInvestmentRequestAsync(int requestId, Guid founderId)
+    {
+        _logger.LogInformation("Rejecting investment request {RequestId} by founder {FounderId}", requestId, founderId);
+
+        var request = await _unitOfWork.Repository<InvestmentRequest>().GetByIdAsync(requestId);
+        if (request == null)
+        {
+            throw new InvalidOperationException("Investment request not found");
+        }
+
+        // Verify the requester is the founder
+        if (request.FounderId != founderId)
+        {
+            throw new UnauthorizedAccessException("Only the founder can reject investment requests");
+        }
+
+        if (request.Status != InvestmentRequestStatus.Pending)
+        {
+            throw new InvalidOperationException("Only pending requests can be rejected");
+        }
+
+        // Update request status
+        request.Status = InvestmentRequestStatus.Declined;
+        request.UpdatedAt = DateTime.UtcNow;
+
+        await _unitOfWork.SaveChangesAsync();
+
+        // Refund credits to investor
+        try
+        {
+            var investment = await _unitOfWork.Repository<Investment>().GetByIdAsync(request.InvestmentId);
+            var investmentName = investment?.BusinessName ?? "Investment";
+            var descriptionEn = $"Refund for rejected investment request: {investmentName}";
+
+            await _creditService.CreateTransactionAsync(request.InvestorId, request.Amount, "credit", descriptionEn);
+            _logger.LogInformation("Refunded {Amount} credits to investor {InvestorId}", request.Amount, request.InvestorId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to refund credits to investor {InvestorId}", request.InvestorId);
+        }
+
+        // Update InvestmentParticipant status if exists
+        var existingParticipant = (await _unitOfWork.Repository<InvestmentParticipant>()
+            .FindAsync(p => p.InvestmentId == request.InvestmentId && p.InvestorId == request.InvestorId))
+            .FirstOrDefault();
+
+        if (existingParticipant != null)
+        {
+            existingParticipant.Status = ParticipationLifecycle.Rejected;
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+        // Send notification to investor
+        try
+        {
+            var investment = await _unitOfWork.Repository<Investment>().GetByIdAsync(request.InvestmentId);
+            var investmentName = investment?.BusinessName ?? "Investment";
+            
+            await _notificationService.SendNotificationAsync(
+                request.InvestorId.ToString(),
+                "Investment Request Rejected",
+                $"Your investment request for {investmentName} has been rejected",
+                new Dictionary<string, string>
+                {
+                    ["requestId"] = request.Id.ToString(),
+                    ["investmentId"] = request.InvestmentId.ToString(),
+                    ["type"] = "investment_request",
+                    ["action"] = "rejected"
+                });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to send rejection notification to investor {InvestorId}", request.InvestorId);
+        }
+
+        var dto = _mapper.Map<InvestmentRequestDto>(request);
+        
+        // Populate display fields
+        try
+        {
+            var inv = await _unitOfWork.Repository<Investment>().GetByIdAsync(request.InvestmentId);
+            dto.InvestmentTitle = inv?.BusinessName;
+            dto.BusinessName = inv?.BusinessName;
+        }
+        catch { /* ignore */ }
+
+        try
+        {
+            var investor = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.InvestorId, u => u.Profile);
+            dto.InvestorDisplayName = investor?.Profile?.FullName ?? investor?.Name;
+        }
+        catch { /* ignore */ }
+
+        _logger.LogInformation("Investment request {RequestId} rejected successfully", requestId);
+        return dto;
+    }
 }

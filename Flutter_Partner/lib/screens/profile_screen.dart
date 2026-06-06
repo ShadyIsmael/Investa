@@ -556,13 +556,10 @@ class _ProfileHeader extends StatelessWidget {
             ],
           ),
         const SizedBox(height: 24),
-          completionPercentage:
-          isDarkMode: isDarkMode,
-        ),
         // Trust Level Card
         const SizedBox(height: 16),
         _TrustLevelCard(
-          trustProfile: _trustProfile,
+          profile: profile,
           isDarkMode: isDarkMode,
         ),
       ],
@@ -570,15 +567,16 @@ class _ProfileHeader extends StatelessWidget {
   }
 }
 
+class _VerificationStatusCard extends StatelessWidget {
   final int completionPercentage;
   final bool isVerified;
   final bool isDarkMode;
 
-    Key? key,
+  const _VerificationStatusCard({
     required this.completionPercentage,
     required this.isVerified,
     required this.isDarkMode,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -619,6 +617,7 @@ class _ProfileHeader extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
+                    loc.t('Verification Status'),
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -683,7 +682,9 @@ class _ProfileHeader extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             isVerified
+                ? loc.t('Identity verified and confirmed')
                 : completionPercentage >= 80
+                    ? loc.t('Profile almost complete! Submit for verification')
                     : loc.t('Complete your profile to unlock verification'),
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
@@ -876,14 +877,13 @@ class _Divider extends StatelessWidget {
 // ─── Trust Level Card ────────────────────────────────────────────────────────
 
 class _TrustLevelCard extends StatelessWidget {
-  final TrustProfile? trustProfile;
+  final Profile? profile;
   final bool isDarkMode;
 
-  const _TrustLevelCard({required this.trustProfile, required this.isDarkMode});
+  const _TrustLevelCard({required this.profile, required this.isDarkMode});
 
   @override
   Widget build(BuildContext context) {
-    final trust = trustProfile;
     final cardColor = isDarkMode ? const Color(0xFF1E293B) : Colors.white;
     final borderColor =
         isDarkMode ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
@@ -914,7 +914,7 @@ class _TrustLevelCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          if (trust == null)
+          if (profile == null)
             const Center(
               child: SizedBox(
                 width: 20,

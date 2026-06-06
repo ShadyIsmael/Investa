@@ -1,6 +1,7 @@
-﻿/// Progressive Trust System - Flutter Partner Models
+/// Progressive Trust System - Flutter Partner Models
+library;
 
-enum TrustLevel { visitor, registered, interactive, trustedActive }
+enum TrustLevel { visitor, registered, interactive, trustedActive, verified }
 
 extension TrustLevelValue on TrustLevel {
   int get value {
@@ -12,6 +13,7 @@ extension TrustLevelValue on TrustLevel {
       case TrustLevel.interactive:
         return 2;
       case TrustLevel.trustedActive:
+      case TrustLevel.verified:
         return 3;
     }
   }
@@ -38,6 +40,7 @@ extension TrustLevelValue on TrustLevel {
       case TrustLevel.interactive:
         return 'Interactive';
       case TrustLevel.trustedActive:
+      case TrustLevel.verified:
         return 'Trusted Active';
     }
   }
@@ -51,6 +54,7 @@ extension TrustLevelValue on TrustLevel {
       case TrustLevel.interactive:
         return 'تفاعلي';
       case TrustLevel.trustedActive:
+      case TrustLevel.verified:
         return 'نشط وموثوق';
     }
   }
@@ -139,12 +143,13 @@ class TrustRequirement {
     required this.isMet,
   });
 
-  factory TrustRequirement.fromJson(Map<String, dynamic> json) => TrustRequirement(
-    key:     json['key'] as String,
-    labelEn: json['labelEn'] as String,
-    labelAr: json['labelAr'] as String,
-    isMet:   json['isMet'] as bool? ?? false,
-  );
+  factory TrustRequirement.fromJson(Map<String, dynamic> json) =>
+      TrustRequirement(
+        key: json['key'] as String,
+        labelEn: json['labelEn'] as String,
+        labelAr: json['labelAr'] as String,
+        isMet: json['isMet'] as bool? ?? false,
+      );
 }
 
 class UserVerificationModel {
@@ -168,23 +173,31 @@ class UserVerificationModel {
 
   factory UserVerificationModel.fromJson(Map<String, dynamic> json) =>
       UserVerificationModel(
-        id:               json['id'] as int,
-        userId:           json['userId'] as String,
-        verificationType: VerificationType.values[json['verificationType'] as int? ?? 0],
-        status:           VerificationStatus.values[json['status']          as int? ?? 0],
-        documentUrl:      json['documentUrl'] as String?,
-        submittedAt:      DateTime.parse(json['submittedAt'] as String),
-        verifiedAt:       json['verifiedAt'] != null ? DateTime.parse(json['verifiedAt'] as String) : null,
+        id: json['id'] as int,
+        userId: json['userId'] as String,
+        verificationType:
+            VerificationType.values[json['verificationType'] as int? ?? 0],
+        status: VerificationStatus.values[json['status'] as int? ?? 0],
+        documentUrl: json['documentUrl'] as String?,
+        submittedAt: DateTime.parse(json['submittedAt'] as String),
+        verifiedAt: json['verifiedAt'] != null
+            ? DateTime.parse(json['verifiedAt'] as String)
+            : null,
       );
 }
 
 class TrustProfile {
   final String userId;
   final TrustLevel trustLevel;
+  final int verificationTrustScore;
   final int reputationScore;
+  final int activityScore;
+  final String reputationLevel;
+  final List<String> riskFlags;
   final int profileCompletionPercentage;
   final bool isPhoneVerified;
   final bool isEmailVerified;
+  final bool isIdentityVerified;
   final List<TrustRequirement> nextLevelRequirements;
   final TrustPermissions permissions;
   final List<UserVerificationModel> verifications;
@@ -192,33 +205,51 @@ class TrustProfile {
   const TrustProfile({
     required this.userId,
     required this.trustLevel,
+    required this.verificationTrustScore,
     required this.reputationScore,
+    required this.activityScore,
+    required this.reputationLevel,
+    required this.riskFlags,
     required this.profileCompletionPercentage,
     required this.isPhoneVerified,
     required this.isEmailVerified,
+    required this.isIdentityVerified,
     required this.nextLevelRequirements,
     required this.permissions,
     required this.verifications,
   });
 
   factory TrustProfile.fromJson(Map<String, dynamic> json) => TrustProfile(
-    userId:                     json['userId'] as String,
-    trustLevel:                 TrustLevelValue.fromInt(json['trustLevel'] as int? ?? 0),
-    reputationScore:            json['reputationScore'] as int? ?? 0,
-    profileCompletionPercentage: json['profileCompletionPercentage'] as int? ?? 0,
-    isPhoneVerified:            json['isPhoneVerified']    as bool? ?? false,
-    isEmailVerified:            json['isEmailVerified']    as bool? ?? false,
-    nextLevelRequirements: (json['nextLevelRequirements'] as List<dynamic>?)
-        ?.map((e) => TrustRequirement.fromJson(e as Map<String, dynamic>))
-        .toList() ?? [],
-    permissions: json['permissions'] != null
-        ? TrustPermissions.fromJson(json['permissions'] as Map<String, dynamic>)
-        : TrustPermissions.visitor,
-    verifications: (json['verifications'] as List<dynamic>?)
-        ?.map((e) =>
-            UserVerificationModel.fromJson(e as Map<String, dynamic>))
-        .toList() ?? [],
-  );
+        userId: json['userId'] as String,
+        trustLevel: TrustLevelValue.fromInt(json['trustLevel'] as int? ?? 0),
+        verificationTrustScore: json['verificationTrustScore'] as int? ?? 0,
+        reputationScore: json['reputationScore'] as int? ?? 0,
+        activityScore: json['activityScore'] as int? ?? 0,
+        reputationLevel: json['reputationLevel'] as String? ?? 'Rising Member',
+        riskFlags: (json['riskFlags'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            [],
+        profileCompletionPercentage:
+            json['profileCompletionPercentage'] as int? ?? 0,
+        isPhoneVerified: json['isPhoneVerified'] as bool? ?? false,
+        isEmailVerified: json['isEmailVerified'] as bool? ?? false,
+        isIdentityVerified: json['isIdentityVerified'] as bool? ?? false,
+        nextLevelRequirements: (json['nextLevelRequirements'] as List<dynamic>?)
+                ?.map(
+                    (e) => TrustRequirement.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            [],
+        permissions: json['permissions'] != null
+            ? TrustPermissions.fromJson(
+                json['permissions'] as Map<String, dynamic>)
+            : TrustPermissions.visitor,
+        verifications: (json['verifications'] as List<dynamic>?)
+                ?.map((e) =>
+                    UserVerificationModel.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            [],
+      );
 
   /// Quick permission check.
   bool meetsLevel(TrustLevel minLevel) => trustLevel.value >= minLevel.value;

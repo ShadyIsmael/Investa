@@ -182,6 +182,28 @@ class EndpointResolver {
     return signalrCandidates.first;
   }
 
+  // ── Investa.FileStore configuration ──────────────────────────────────────
+  static const _defaultFileStoreBase = 'http://localhost:5240';
+  static const _defaultFileStoreApiKey =
+      'investa-filestore-key-change-in-production';
+
+  String get fileStoreBaseUrl {
+    // Allow override via environment variable or .env
+    final envUrl = dotenv.env['FILE_STORE_BASE_URL'] ?? '';
+    if (envUrl.isNotEmpty) {
+      return envUrl.trimRight().replaceAll(RegExp(r'/+$'), '');
+    }
+    return _defaultFileStoreBase;
+  }
+
+  String get fileStoreApiKey {
+    final envKey = dotenv.env['FILE_STORE_API_KEY'] ?? '';
+    if (envKey.isNotEmpty) {
+      return envKey;
+    }
+    return _defaultFileStoreApiKey;
+  }
+
   int get selectedIndex => _selectedIndex;
 
   Future<void> setSelectedIndex(int idx) async {

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Investa.Domain.Entities.Enums;
 
 namespace Investa.Domain.Entities;
 
@@ -30,8 +31,11 @@ public class InvestmentParticipant
     [Required]
     public DateTime InvestmentDate { get; set; }
 
-    [StringLength(20)]
-    public string Status { get; set; } = "Confirmed";  // Pending, Confirmed, Cancelled
+    /// <summary>
+    /// Lifecycle status of the participation request
+    /// Tracks the journey from interest through to participation or rejection
+    /// </summary>
+    public ParticipationLifecycle Status { get; set; } = ParticipationLifecycle.Interested;
 
     public bool IsAnonymous { get; set; }
 

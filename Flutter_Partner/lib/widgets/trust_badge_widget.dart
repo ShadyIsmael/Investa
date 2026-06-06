@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_partner/models/trust_profile.dart';
 
 /// A badge widget displaying the user's current trust level.
@@ -14,19 +14,29 @@ class TrustBadgeWidget extends StatelessWidget {
 
   Color get _color {
     switch (trustLevel) {
-      case TrustLevel.visitor:     return Colors.grey;
-      case TrustLevel.registered:  return Colors.blue;
-      case TrustLevel.interactive: return Colors.amber;
-      case TrustLevel.verified:    return Colors.green;
+      case TrustLevel.visitor:
+        return Colors.grey;
+      case TrustLevel.registered:
+        return Colors.blue;
+      case TrustLevel.interactive:
+        return Colors.amber;
+      case TrustLevel.trustedActive:
+      case TrustLevel.verified:
+        return Colors.green;
     }
   }
 
   String get _icon {
     switch (trustLevel) {
-      case TrustLevel.visitor:     return 'ðŸ‘¤';
-      case TrustLevel.registered:  return 'âœ…';
-      case TrustLevel.interactive: return 'â­';
-      case TrustLevel.verified:    return 'ðŸ›¡ï¸';
+      case TrustLevel.visitor:
+        return '👤';
+      case TrustLevel.registered:
+        return '✅';
+      case TrustLevel.interactive:
+        return '⭐';
+      case TrustLevel.trustedActive:
+      case TrustLevel.verified:
+        return '🛡️';
     }
   }
 
@@ -57,4 +67,3 @@ class TrustBadgeWidget extends StatelessWidget {
     );
   }
 }
-

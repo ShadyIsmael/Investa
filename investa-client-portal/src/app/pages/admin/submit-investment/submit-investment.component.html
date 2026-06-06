@@ -206,10 +206,10 @@
                     </select>
                   </div>
 
-                  <!-- Risk Level (auto-calculated from Business Stage) -->
+                  <!-- Risk Level -->
                   <div>
                     <label class="block text-sm font-medium text-slate-300 mb-2">
-                      {{ t('submitInvestment.labels.milestone') }}
+                      {{ t('submitInvestment.labels.riskLevel') }}
                     </label>
                     <div class="flex items-center gap-3">
                       <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold"
@@ -260,7 +260,6 @@
                     }
                     <div>
                       <button type="button" (click)="addTeamMember()" class="px-4 py-2 bg-blue-600 text-white rounded-lg">{{ t('submitInvestment.actions.addTeamMember') }}</button>
-                      <p class="text-xs text-slate-400 mt-2">Team members must be registered users (provide User ID). Backend persistence for team members will be added in a subsequent change.</p>
                     </div>
                   </div>
                 </div>
@@ -271,6 +270,9 @@
           <!-- Step 2: Financial Structure -->
           @if (currentStep() === 2) {
             <div class="p-8">
+              @let selectedType = investmentForm.get('investmentTypeId')?.value;
+              
+              <!-- Investment Type selection first -->
               <div class="flex items-center gap-3 mb-6">
                 <div class="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
                   <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -278,18 +280,23 @@
                   </svg>
                 </div>
                 <div>
-                  @if (investmentForm.get('investmentTypeId')?.value === 1) {
-                    <h2 class="text-xl font-bold text-white">{{ t('submitInvestment.step.financialStructure') }}</h2>
-                      <p class="text-slate-400 text-sm">{{ t('submitInvestment.step.financialStructure') }}</p>
-                  } @else {
-                    <h2 class="text-xl font-bold text-white">Equity Structure</h2>
-                    <p class="text-slate-400 text-sm">Define your equity and funding terms</p>
-                  }
+                  <h2 class="text-xl font-bold text-white">
+                    @if (selectedType === InvestmentType.Equity) { Equity Structure }
+                    @else if (selectedType === InvestmentType.Founding) { Founding Investment }
+                    @else if (selectedType === InvestmentType.RevenueSharing) { Revenue Sharing Structure }
+                    @else if (selectedType === InvestmentType.Loan) { Loan / Debt Structure }
+                  </h2>
+                  <p class="text-slate-400 text-sm">
+                    @if (selectedType === InvestmentType.Equity) { Define your equity and funding terms }
+                    @else if (selectedType === InvestmentType.Founding) { Define your founding investment terms }
+                    @else if (selectedType === InvestmentType.RevenueSharing) { Define revenue sharing contract terms }
+                    @else if (selectedType === InvestmentType.Loan) { Define loan repayment and interest terms }
+                  </p>
                 </div>
               </div>
 
               <div class="space-y-6">
-                <!-- Investment Type -->
+                <!-- Investment Type Selection -->
                 <div>
                   <label class="block text-sm font-medium text-slate-300 mb-3">
                     Investment Type <span class="text-red-400">*</span>
@@ -314,8 +321,12 @@
                   </div>
                 </div>
 
-                <!-- Founding-Specific Fields -->
-                @if (investmentForm.get('investmentTypeId')?.value === 1) {
+                <!-- ===== FOUNDING INVESTMENT FIELDS ===== -->
+                @if (selectedType === InvestmentType.Founding) {
+                  <div class="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
+                    <p class="text-sm text-purple-300">Founding Investment: Fixed duration with profit-based returns to investors.</p>
+                  </div>
+                  
                   <!-- Duration & Profit Row -->
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -326,7 +337,7 @@
                         type="number" 
                         formControlName="durationMonths"
                         class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        placeholder="{{ t('submitInvestment.placeholders.duration') }}"
+                        placeholder="e.g. 24"
                       />
                       @if (hasError('durationMonths')) {
                         <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('durationMonths') }}</p>
@@ -342,7 +353,7 @@
                           type="number" 
                           formControlName="profitPercentage"
                           class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                          placeholder="{{ t('submitInvestment.placeholders.expectedProfit') }}"
+                          placeholder="e.g. 20"
                         />
                         <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">%</span>
                       </div>
@@ -362,11 +373,9 @@
                       class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     >
                       <option value="">Select frequency</option>
-                      <option value="Monthly">Monthly</option>
-                      <option value="Quarterly">Quarterly</option>
-                      <option value="Semi-Annually">Semi-Annually</option>
-                      <option value="Annually">Annually</option>
-                      <option value="At Maturity">At Maturity</option>
+                      @for (freq of payoutFrequencies; track freq) {
+                        <option [value]="freq">{{ freq }}</option>
+                      }
                     </select>
                     @if (hasError('payoutFrequency')) {
                       <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('payoutFrequency') }}</p>
@@ -374,8 +383,12 @@
                   </div>
                 }
 
-                <!-- Equity-Specific Fields -->
-                @if (investmentForm.get('investmentTypeId')?.value === 2) {
+                <!-- ===== EQUITY INVESTMENT FIELDS ===== -->
+                @if (selectedType === InvestmentType.Equity) {
+                  <div class="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                    <p class="text-sm text-blue-300">Equity Investment: Raise capital by selling shares in your company.</p>
+                  </div>
+
                   <!-- Share Price & Total Shares -->
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -388,7 +401,7 @@
                           type="number" 
                           formControlName="sharePrice"
                           class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                          placeholder="{{ t('submitInvestment.placeholders.pricePerShare') }}"
+                          placeholder="e.g. 10.00"
                         />
                       </div>
                       @if (hasError('sharePrice')) {
@@ -404,7 +417,7 @@
                         type="number" 
                         formControlName="totalShares"
                         class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        placeholder="{{ t('submitInvestment.placeholders.numberOfShares') }}"
+                        placeholder="e.g. 10000"
                       />
                       @if (hasError('totalShares')) {
                         <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('totalShares') }}</p>
@@ -412,13 +425,13 @@
                     </div>
                   </div>
 
-                  <!-- Calculated Target Fund (Equity Only) -->
+                  <!-- Calculated Target Fund -->
                   <div class="p-4 rounded-xl bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20">
                     <div class="flex items-center justify-between">
                       <div>
                         <div class="text-sm text-slate-400 mb-1">Target Fundraising Amount</div>
                         <div class="text-2xl font-bold text-white">
-                          {{ formatCurrency(investmentForm.get('targetFund')?.value) }}
+                          {{ formatCurrency(investmentForm.get('targetFund')?.value || targetFundCalculated()) }}
                         </div>
                       </div>
                       <div class="text-sm text-slate-400">
@@ -430,7 +443,7 @@
                   <!-- Valuation Cap (Equity Only) -->
                   <div>
                     <label class="block text-sm font-medium text-slate-300 mb-2">
-                      Valuation Cap <span class="text-red-400">*</span>
+                      Valuation Cap
                     </label>
                     <div class="relative">
                       <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{{ getCurrencySymbol() }}</span>
@@ -438,133 +451,426 @@
                         type="number" 
                         formControlName="valuationCap"
                         class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        placeholder="{{ t('submitInvestment.placeholders.valuationCap') }}"
+                        placeholder="e.g. 5000000"
                       />
                     </div>
                     @if (hasError('valuationCap')) {
                       <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('valuationCap') }}</p>
                     }
                   </div>
+
+                  <!-- Equity Exit Strategy Section -->
+                  <div class="border-t border-slate-700/50 pt-6 mt-6">
+                    <h3 class="text-lg font-semibold text-white mb-4">Exit Strategy</h3>
+
+                    <!-- Equity Exit Type -->
+                    <div class="mb-4">
+                      <label class="block text-sm font-medium text-slate-300 mb-2">
+                        Planned Exit Type
+                      </label>
+                      <select 
+                        formControlName="equityExitType"
+                        class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                      >
+                        <option [ngValue]="null">Select exit type (optional)</option>
+                        @for (exitType of equityExitTypes; track exitType.id) {
+                          <option [ngValue]="exitType.id">{{ displayLookup(exitType) }}</option>
+                        }
+                      </select>
+                    </div>
+
+                    <!-- Current & Estimated Valuation -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">
+                          Current Valuation
+                        </label>
+                        <div class="relative">
+                          <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{{ getCurrencySymbol() }}</span>
+                          <input 
+                            type="number" 
+                            formControlName="currentValuation"
+                            class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                            placeholder="Company valuation"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">
+                          Estimated Future Valuation
+                        </label>
+                        <div class="relative">
+                          <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{{ getCurrencySymbol() }}</span>
+                          <input 
+                            type="number" 
+                            formControlName="estimatedFutureValuation"
+                            class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                            placeholder="Projected value at exit"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Exit Target Date -->
+                    <div class="mb-4">
+                      <label class="block text-sm font-medium text-slate-300 mb-2">
+                        Target Exit Date
+                      </label>
+                      <input 
+                        type="date" 
+                        formControlName="exitTargetDate"
+                        class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                      />
+                    </div>
+
+                    <!-- Exit Strategy Description -->
+                    <div>
+                      <label class="block text-sm font-medium text-slate-300 mb-2">
+                        Exit Strategy Details
+                      </label>
+                      <textarea 
+                        formControlName="expectedExitStrategy"
+                        rows="3"
+                        class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
+                        placeholder="Describe your planned exit strategy"
+                      ></textarea>
+                    </div>
+                  </div>
                 }
 
-                <!-- Common Fields: Initial Capital & Currency Row -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-slate-300 mb-2">
-                      Your Initial Capital <span class="text-red-400">*</span>
-                    </label>
-                    <div class="relative">
-                      <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{{ getCurrencySymbol() }}</span>
-                      <input 
-                        type="number" 
-                        formControlName="initialCapital"
-                        class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        placeholder="{{ t('submitInvestment.placeholders.amountInvesting') }}"
-                      />
-                    </div>
-                    @if (hasError('initialCapital')) {
-                      <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('initialCapital') }}</p>
-                    }
+                <!-- ===== REVENUE SHARING FIELDS ===== -->
+                @if (selectedType === InvestmentType.RevenueSharing) {
+                  <div class="p-4 rounded-xl bg-green-500/10 border border-green-500/20">
+                    <p class="text-sm text-green-300">Revenue Sharing: Share a percentage of your revenue with investors over a fixed term.</p>
                   </div>
 
+                  <!-- Revenue Share % & Expected Payout -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label class="block text-sm font-medium text-slate-300 mb-2">
+                        Revenue Share % <span class="text-red-400">*</span>
+                      </label>
+                      <div class="relative">
+                        <input 
+                          type="number" 
+                          formControlName="revenueSharePercentage"
+                          class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                          placeholder="e.g. 10"
+                        />
+                        <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">%</span>
+                      </div>
+                      @if (hasError('revenueSharePercentage')) {
+                        <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('revenueSharePercentage') }}</p>
+                      }
+                    </div>
+
+                    <div>
+                      <label class="block text-sm font-medium text-slate-300 mb-2">
+                        Total Expected Payout <span class="text-red-400">*</span>
+                      </label>
+                      <div class="relative">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{{ getCurrencySymbol() }}</span>
+                        <input 
+                          type="number" 
+                          formControlName="totalExpectedPayout"
+                          class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                          placeholder="Total to be shared"
+                        />
+                      </div>
+                      @if (hasError('totalExpectedPayout')) {
+                        <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('totalExpectedPayout') }}</p>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Contract Start/End Dates -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label class="block text-sm font-medium text-slate-300 mb-2">
+                        Contract Start Date <span class="text-red-400">*</span>
+                      </label>
+                      <input 
+                        type="date" 
+                        formControlName="contractStartDate"
+                        class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                      />
+                      @if (hasError('contractStartDate')) {
+                        <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('contractStartDate') }}</p>
+                      }
+                    </div>
+
+                    <div>
+                      <label class="block text-sm font-medium text-slate-300 mb-2">
+                        Contract End Date <span class="text-red-400">*</span>
+                      </label>
+                      <input 
+                        type="date" 
+                        formControlName="contractEndDate"
+                        class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                      />
+                      @if (hasError('contractEndDate')) {
+                        <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('contractEndDate') }}</p>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Distribution Frequency -->
                   <div>
                     <label class="block text-sm font-medium text-slate-300 mb-2">
-                      Currency <span class="text-red-400">*</span>
+                      Distribution Frequency <span class="text-red-400">*</span>
                     </label>
                     <select 
-                      formControlName="currency"
+                      formControlName="revenueDistributionFrequency"
                       class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     >
-                      @for (curr of currencies; track curr.code) {
-                        <option [value]="curr.code">{{ displayLookup(curr) }} ({{ curr.symbol }})</option>
+                      <option value="">Select frequency</option>
+                      @for (freq of revenueFrequencies; track freq) {
+                        <option [value]="freq">{{ freq }}</option>
                       }
                     </select>
+                    @if (hasError('revenueDistributionFrequency')) {
+                      <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('revenueDistributionFrequency') }}</p>
+                    }
                   </div>
-                </div>
+                }
 
-                <!-- Min/Max Investment -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">
-                      Minimum Investment
-                    </label>
-                    <div class="relative">
-                      <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{{ getCurrencySymbol() }}</span>
-                      <input 
-                        type="number" 
-                        formControlName="minInvestment"
-                        class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        placeholder="{{ t('submitInvestment.placeholders.minPerInvestor') }}"
-                      />
+                <!-- ===== LOAN / DEBT FIELDS ===== -->
+                @if (selectedType === InvestmentType.Loan) {
+                  <div class="p-4 rounded-xl bg-orange-500/10 border border-orange-500/20">
+                    <p class="text-sm text-orange-300">Loan / Debt Funding: Borrow capital with interest and repay over a fixed term.</p>
+                  </div>
+
+                  <!-- Loan Amount & Interest Rate -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label class="block text-sm font-medium text-slate-300 mb-2">
+                        Loan Amount <span class="text-red-400">*</span>
+                      </label>
+                      <div class="relative">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{{ getCurrencySymbol() }}</span>
+                        <input 
+                          type="number" 
+                          formControlName="totalRepaymentAmount"
+                          class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                          placeholder="Total loan amount"
+                        />
+                      </div>
+                      @if (hasError('totalRepaymentAmount')) {
+                        <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('totalRepaymentAmount') }}</p>
+                      }
+                    </div>
+
+                    <div>
+                      <label class="block text-sm font-medium text-slate-300 mb-2">
+                        Interest Rate <span class="text-red-400">*</span>
+                      </label>
+                      <div class="relative">
+                        <input 
+                          type="number" 
+                          formControlName="interestRate"
+                          class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                          placeholder="e.g. 8"
+                        />
+                        <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">%</span>
+                      </div>
+                      @if (hasError('interestRate')) {
+                        <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('interestRate') }}</p>
+                      }
                     </div>
                   </div>
 
+                  <!-- Loan Duration -->
                   <div>
                     <label class="block text-sm font-medium text-slate-300 mb-2">
-                      Maximum Investment
+                      Duration (Months) <span class="text-red-400">*</span>
                     </label>
-                    <div class="relative">
-                      <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{{ getCurrencySymbol() }}</span>
-                      <input 
-                        type="number" 
-                        formControlName="maxInvestment"
-                        class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                        placeholder="{{ t('submitInvestment.placeholders.maxPerInvestor') }}"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Expected ROI -->
-                <div>
-                  <label class="block text-sm font-medium text-slate-300 mb-2">
-                    Expected ROI (%)
-                  </label>
-                  <div class="relative">
                     <input 
                       type="number" 
-                      formControlName="expectedROI"
+                      formControlName="loanDurationMonths"
                       class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                      placeholder="{{ t('submitInvestment.placeholders.expectedReturn') }}"
+                      placeholder="e.g. 36"
                     />
-                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">%</span>
-                  </div>
-                  @if (hasError('expectedROI')) {
-                    <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('expectedROI') }}</p>
-                  }
-                </div>
-
-                <!-- Dates -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">
-                      Start Date <span class="text-red-400">*</span>
-                    </label>
-                    <input 
-                      type="date" 
-                      formControlName="startDate"
-                      class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                    />
-                    @if (hasError('startDate')) {
-                      <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('startDate') }}</p>
+                    @if (hasError('loanDurationMonths')) {
+                      <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('loanDurationMonths') }}</p>
                     }
                   </div>
 
+                  <!-- Repayment Frequency & Estimated Installment -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label class="block text-sm font-medium text-slate-300 mb-2">
+                        Repayment Frequency <span class="text-red-400">*</span>
+                      </label>
+                      <select 
+                        formControlName="repaymentFrequency"
+                        class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                      >
+                        <option value="">Select frequency</option>
+                        @for (freq of repaymentFrequencies; track freq) {
+                          <option [value]="freq">{{ freq }}</option>
+                        }
+                      </select>
+                      @if (hasError('repaymentFrequency')) {
+                        <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('repaymentFrequency') }}</p>
+                      }
+                    </div>
+
+                    <div>
+                      <label class="block text-sm font-medium text-slate-300 mb-2">
+                        Estimated Installment <span class="text-red-400">*</span>
+                      </label>
+                      <div class="relative">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{{ getCurrencySymbol() }}</span>
+                        <input 
+                          type="number" 
+                          formControlName="estimatedInstallment"
+                          class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                          placeholder="Per installment"
+                        />
+                      </div>
+                      @if (hasError('estimatedInstallment')) {
+                        <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('estimatedInstallment') }}</p>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Grace Period -->
                   <div>
                     <label class="block text-sm font-medium text-slate-300 mb-2">
-                      End Date
+                      Grace Period (Months)
                     </label>
                     <input 
-                      type="date" 
-                      formControlName="endDate"
-                      class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                      type="number" 
+                      formControlName="gracePeriodMonths"
+                      class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                      placeholder="e.g. 3"
                     />
-                    <p class="mt-1 text-xs text-slate-500">When the fundraising campaign closes</p>
+                  </div>
+                }
+
+                <!-- ===== COMMON FIELDS (All Types) ===== -->
+                <div class="mt-6 pt-6 border-t border-slate-700/50">
+                  <h3 class="text-lg font-semibold text-white mb-4">Common Financial Details</h3>
+
+                  <!-- Initial Capital & Currency Row -->
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="md:col-span-2">
+                      <label class="block text-sm font-medium text-slate-300 mb-2">
+                        Your Initial Capital <span class="text-red-400">*</span>
+                      </label>
+                      <div class="relative">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{{ getCurrencySymbol() }}</span>
+                        <input 
+                          type="number" 
+                          formControlName="initialCapital"
+                          class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                          placeholder="e.g. 50000"
+                        />
+                      </div>
+                      @if (hasError('initialCapital')) {
+                        <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('initialCapital') }}</p>
+                      }
+                    </div>
+
+                    <div>
+                      <label class="block text-sm font-medium text-slate-300 mb-2">
+                        Currency <span class="text-red-400">*</span>
+                      </label>
+                      <select 
+                        formControlName="currency"
+                        class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                      >
+                        @for (curr of currencies; track curr.code) {
+                          <option [value]="curr.code">{{ displayLookup(curr) }} ({{ curr.symbol }})</option>
+                        }
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Min/Max Investment -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                    <div>
+                      <label class="block text-sm font-medium text-slate-300 mb-2">
+                        Minimum Investment
+                      </label>
+                      <div class="relative">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{{ getCurrencySymbol() }}</span>
+                        <input 
+                          type="number" 
+                          formControlName="minInvestment"
+                          class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                          placeholder="Min per investor"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label class="block text-sm font-medium text-slate-300 mb-2">
+                        Maximum Investment
+                      </label>
+                      <div class="relative">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{{ getCurrencySymbol() }}</span>
+                        <input 
+                          type="number" 
+                          formControlName="maxInvestment"
+                          class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                          placeholder="Max per investor"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Expected ROI -->
+                  <div class="mt-4">
+                    <label class="block text-sm font-medium text-slate-300 mb-2">
+                      Expected ROI (%)
+                    </label>
+                    <div class="relative">
+                      <input 
+                        type="number" 
+                        formControlName="expectedROI"
+                        class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                        placeholder="Expected return percentage"
+                      />
+                      <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">%</span>
+                    </div>
+                    @if (hasError('expectedROI')) {
+                      <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('expectedROI') }}</p>
+                    }
+                  </div>
+
+                  <!-- Dates -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                    <div>
+                      <label class="block text-sm font-medium text-slate-300 mb-2">
+                        Start Date <span class="text-red-400">*</span>
+                      </label>
+                      <input 
+                        type="date" 
+                        formControlName="startDate"
+                        class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                      />
+                      @if (hasError('startDate')) {
+                        <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('startDate') }}</p>
+                      }
+                    </div>
+
+                    <div>
+                      <label class="block text-sm font-medium text-slate-300 mb-2">
+                        End Date
+                      </label>
+                      <input 
+                        type="date" 
+                        formControlName="endDate"
+                        class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                      />
+                      <p class="mt-1 text-xs text-slate-500">When the fundraising campaign closes</p>
+                    </div>
                   </div>
                 </div>
 
-                <!-- Cover Image (full-width row) -->
-                <div class="mb-6">
+                <!-- Cover Image -->
+                <div class="mb-6 mt-6 pt-6 border-t border-slate-700/50">
                   <label class="block text-sm font-medium text-slate-300 mb-2">Cover Image</label>
                   <div class="w-full h-64 bg-slate-800 rounded overflow-hidden flex items-center justify-center">
                     @if (coverPreview()) {
@@ -587,14 +893,15 @@
                       type="url" 
                       formControlName="imageUrl"
                       class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                      placeholder="{{ t('submitInvestment.placeholders.coverImageUrlExample') }}"
+                      placeholder="https://example.com/image.jpg"
                     />
                     @if (hasError('imageUrl')) {
                       <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('imageUrl') }}</p>
                     }
                   </div>
                 </div>
-                <!-- Image Gallery (thumbnails) -->
+
+                <!-- Image Gallery -->
                 <div class="mt-6">
                   <label class="block text-sm font-medium text-slate-300 mb-2">Image Gallery <span class="text-slate-400 text-xs">(up to {{ maxGalleryImages }})</span></label>
                   <div class="grid grid-cols-5 gap-2">
@@ -613,20 +920,42 @@
                   </div>
                 </div>
 
-                <!-- Pitch Video URL (separate row) -->
+                <!-- Pitch Video -->
                 <div class="mt-6">
                   <label class="block text-sm font-medium text-slate-300 mb-2">
-                    Pitch Video URL
+                    Pitch Video
                   </label>
-                  <input 
-                    type="url" 
-                    formControlName="videoUrl"
-                    class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                    placeholder="{{ t('submitInvestment.placeholders.pitchVideoUrl') }}"
-                  />
-                  @if (hasError('videoUrl')) {
-                    <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('videoUrl') }}</p>
+                  <p class="text-xs text-slate-400 mb-3">Upload a video file or paste a YouTube/Vimeo URL</p>
+                  
+                  <div class="flex items-center gap-3 mb-3">
+                    <input id="videoFile" type="file" accept="video/*" (change)="onVideoSelected($event)" class="hidden" />
+                    <label for="videoFile" class="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg cursor-pointer transition-colors">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                      {{ videoFile ? 'Change Video' : 'Upload Video' }}
+                    </label>
+                    @if (videoFile) {
+                      <span class="text-sm text-slate-300">{{ videoFile.name }}</span>
+                      <button type="button" (click)="removeVideo()" class="px-3 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm transition-colors">Remove</button>
+                    }
+                  </div>
+
+                  @if (videoPreview()) {
+                    <div class="relative w-full max-w-xl rounded-lg overflow-hidden bg-black mb-3">
+                      <video [src]="videoPreview()" controls preload="metadata" class="w-full max-h-64"></video>
+                    </div>
                   }
+
+                  <div class="mt-3">
+                    <input 
+                      type="url" 
+                      formControlName="videoUrl"
+                      class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                      placeholder="Or paste YouTube/Vimeo URL..."
+                    />
+                    @if (hasError('videoUrl')) {
+                      <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('videoUrl') }}</p>
+                    }
+                  </div>
                 </div>
               </div>
             </div>
@@ -676,15 +1005,11 @@
                     </div>
                     <div>
                       <dt class="text-sm text-slate-400">Category</dt>
-                      <dd class="text-white font-medium">
-                        {{ selectedCategoryName() }}
-                      </dd>
+                      <dd class="text-white font-medium">{{ selectedCategoryName() }}</dd>
                     </div>
                     <div>
                       <dt class="text-sm text-slate-400">Stage</dt>
-                      <dd class="text-white font-medium">
-                        {{ selectedStageName() }}
-                      </dd>
+                      <dd class="text-white font-medium">{{ selectedStageName() }}</dd>
                     </div>
                     <div>
                       <dt class="text-sm text-slate-400">Risk Level</dt>
@@ -702,60 +1027,80 @@
                   </div>
                 </div>
 
-                <!-- Financial Summary -->
+                <!-- Financial Summary - Dynamic based on type -->
                 <div class="p-6 rounded-xl bg-slate-900/50 border border-slate-700">
                   <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                     <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
-                    Financial Structure
+                    {{ selectedInvestmentTypeName() }} - Financial Details
                   </h3>
                   <dl class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                       <dt class="text-sm text-slate-400">Initial Capital</dt>
                       <dd class="text-white font-medium">{{ formatCurrency(investmentForm.get('initialCapital')?.value) }}</dd>
                     </div>
-                    <div>
-                      <dt class="text-sm text-slate-400">Share Price</dt>
-                      <dd class="text-white font-medium">{{ formatCurrency(investmentForm.get('sharePrice')?.value) }}</dd>
-                    </div>
-                    <div>
-                      <dt class="text-sm text-slate-400">Total Shares</dt>
-                      <dd class="text-white font-medium">{{ investmentForm.get('totalShares')?.value | number }}</dd>
-                    </div>
-                    <div>
-                      <dt class="text-sm text-slate-400">Target Fund</dt>
-                      <dd class="text-green-400 font-bold">{{ formatCurrency(investmentForm.get('targetFund')?.value) }}</dd>
-                    </div>
+                    
+                    @if (selectedType === InvestmentType.Equity) {
+                      <div>
+                        <dt class="text-sm text-slate-400">Share Price</dt>
+                        <dd class="text-white font-medium">{{ formatCurrency(investmentForm.get('sharePrice')?.value) }}</dd>
+                      </div>
+                      <div>
+                        <dt class="text-sm text-slate-400">Total Shares</dt>
+                        <dd class="text-white font-medium">{{ investmentForm.get('totalShares')?.value }}</dd>
+                      </div>
+                      <div>
+                        <dt class="text-sm text-slate-400">Target Fund</dt>
+                        <dd class="text-green-400 font-bold">{{ formatCurrency(investmentForm.get('targetFund')?.value) }}</dd>
+                      </div>
+                    }
+
+                    @if (selectedType === InvestmentType.RevenueSharing) {
+                      <div>
+                        <dt class="text-sm text-slate-400">Revenue Share %</dt>
+                        <dd class="text-white font-medium">{{ investmentForm.get('revenueSharePercentage')?.value }}%</dd>
+                      </div>
+                      <div>
+                        <dt class="text-sm text-slate-400">Total Payout</dt>
+                        <dd class="text-white font-medium">{{ formatCurrency(investmentForm.get('totalExpectedPayout')?.value) }}</dd>
+                      </div>
+                    }
+
+                    @if (selectedType === InvestmentType.Loan) {
+                      <div>
+                        <dt class="text-sm text-slate-400">Loan Amount</dt>
+                        <dd class="text-white font-medium">{{ formatCurrency(investmentForm.get('totalRepaymentAmount')?.value) }}</dd>
+                      </div>
+                      <div>
+                        <dt class="text-sm text-slate-400">Interest Rate</dt>
+                        <dd class="text-white font-medium">{{ investmentForm.get('interestRate')?.value }}%</dd>
+                      </div>
+                      <div>
+                        <dt class="text-sm text-slate-400">Est. Installment</dt>
+                        <dd class="text-white font-medium">{{ formatCurrency(investmentForm.get('estimatedInstallment')?.value) }}</dd>
+                      </div>
+                      <div>
+                        <dt class="text-sm text-slate-400">Duration</dt>
+                        <dd class="text-white font-medium">{{ investmentForm.get('loanDurationMonths')?.value }} mo</dd>
+                      </div>
+                    }
+
+                    @if (selectedType === InvestmentType.Founding) {
+                      <div>
+                        <dt class="text-sm text-slate-400">Duration</dt>
+                        <dd class="text-white font-medium">{{ investmentForm.get('durationMonths')?.value }} mo</dd>
+                      </div>
+                      <div>
+                        <dt class="text-sm text-slate-400">Profit %</dt>
+                        <dd class="text-white font-medium">{{ investmentForm.get('profitPercentage')?.value }}%</dd>
+                      </div>
+                      <div>
+                        <dt class="text-sm text-slate-400">Payout Freq.</dt>
+                        <dd class="text-white font-medium">{{ investmentForm.get('payoutFrequency')?.value }}</dd>
+                      </div>
+                    }
                   </dl>
-                  @if (investmentForm.get('minInvestment')?.value || investmentForm.get('maxInvestment')?.value || investmentForm.get('valuationCap')?.value || investmentForm.get('expectedROI')?.value) {
-                    <dl class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-slate-700">
-                      @if (investmentForm.get('minInvestment')?.value) {
-                        <div>
-                          <dt class="text-sm text-slate-400">Min Investment</dt>
-                          <dd class="text-white">{{ formatCurrency(investmentForm.get('minInvestment')?.value) }}</dd>
-                        </div>
-                      }
-                      @if (investmentForm.get('maxInvestment')?.value) {
-                        <div>
-                          <dt class="text-sm text-slate-400">Max Investment</dt>
-                          <dd class="text-white">{{ formatCurrency(investmentForm.get('maxInvestment')?.value) }}</dd>
-                        </div>
-                      }
-                      @if (investmentForm.get('valuationCap')?.value) {
-                        <div>
-                          <dt class="text-sm text-slate-400">Valuation Cap</dt>
-                          <dd class="text-white">{{ formatCurrency(investmentForm.get('valuationCap')?.value) }}</dd>
-                        </div>
-                      }
-                      @if (investmentForm.get('expectedROI')?.value) {
-                        <div>
-                          <dt class="text-sm text-slate-400">Expected ROI</dt>
-                          <dd class="text-white">{{ investmentForm.get('expectedROI')?.value }}%</dd>
-                        </div>
-                      }
-                    </dl>
-                  }
                 </div>
 
                 <!-- Timeline -->
@@ -769,12 +1114,12 @@
                   <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <dt class="text-sm text-slate-400">Start Date</dt>
-                      <dd class="text-white font-medium">{{ investmentForm.get('startDate')?.value | date:'mediumDate' }}</dd>
+                      <dd class="text-white font-medium">{{ investmentForm.get('startDate')?.value }}</dd>
                     </div>
                     @if (investmentForm.get('endDate')?.value) {
                       <div>
                         <dt class="text-sm text-slate-400">End Date</dt>
-                        <dd class="text-white font-medium">{{ investmentForm.get('endDate')?.value | date:'mediumDate' }}</dd>
+                        <dd class="text-white font-medium">{{ investmentForm.get('endDate')?.value }}</dd>
                       </div>
                     }
                   </dl>

@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Investa.Domain.Entities;
@@ -19,6 +20,12 @@ public class InvestmentEvent
     /// Type of event (StatusUpdated, ParticipantAdded, SharesUpdated, etc.)
     /// </summary>
     public string EventType { get; set; } = null!;
+
+    /// <summary>
+    /// Visibility scope for timeline consumers: Public or ParticipantOnly.
+    /// </summary>
+    [StringLength(32)]
+    public string Visibility { get; set; } = "Public";
 
     /// <summary>
     /// JSON payload describing the details of the event

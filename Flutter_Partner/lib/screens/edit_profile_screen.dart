@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:network_info_plus/network_info_plus.dart';
@@ -67,6 +65,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   // Phone2 masking
   late FocusNode _phone2FocusNode;
   String _phone2Raw = '';
+
   Future<void> _popToProfile({bool saved = false}) async {
     final rootNavigator = Navigator.of(context, rootNavigator: true);
     if (rootNavigator.canPop()) {
@@ -93,6 +92,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     await _popToProfile();
   }
 
+  Future<void> _pickFile() async {
     final loc = AppLocalizations.of(context);
     try {
       final result = await FilePicker.platform.pickFiles(
@@ -105,14 +105,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final file = result.files.first;
       final bytes = file.bytes;
       if (bytes != null && bytes.isNotEmpty) {
-        setState(() {
-        });
+        setState(() {});
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(loc.t('file_selected'))),
         );
       } else {
-        setState(() {
-        });
+        setState(() {});
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(loc.t('file_selected'))),
         );
@@ -218,10 +216,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             '');
 
     _docNumberController = TextEditingController(
+        text: p?.identityCompliance?.documentNumber ?? '');
     _docExpiryController = TextEditingController(
-        text:
+        text: p?.identityCompliance?.documentExpiry
+                ?.toIso8601String()
+                .split('T')
+                .first ??
+            '');
     _verificationController = TextEditingController(
-        text: p?.identityCompliance?.verificationStatus ?? '');
+        text: p?.identityCompliance?.isIdentityVerified == true
+            ? 'Verified'
+            : 'Unverified');
 
     _lastLoginIpController =
         TextEditingController(text: p?.auditUsage?.lastLoginIP ?? '');
@@ -375,7 +380,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'city': _cityController.text.trim(),
     };
 
-
     // Handle date: if provided, attempt parse, otherwise omit to avoid binding errors
     final docExpiryText = _docExpiryController.text.trim();
     if (docExpiryText.isNotEmpty) {
@@ -392,7 +396,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final payload = <String, dynamic>{
       if (basic.isNotEmpty) 'BasicInfo': basic,
       if (contact.isNotEmpty) 'ContactInfo': contact,
-      
     };
 
     AppLogger.logInfo(
@@ -1079,6 +1082,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           const SizedBox(height: 24),
           _buildSectionHeader(loc.t('hr_letter')),
           InkWell(
+            onTap: _pickFile,
             borderRadius: BorderRadius.circular(12),
             child: Container(
               width: double.infinity,
@@ -1094,6 +1098,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
+                      loc.t('upload_hr_letter'),
                       style: const TextStyle(color: Colors.white70),
                       overflow: TextOverflow.ellipsis,
                     ),

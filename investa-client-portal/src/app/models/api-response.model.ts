@@ -48,6 +48,7 @@ export interface TeamMemberDto {
 
 /**
  * Investment DTO matching backend InvestmentDto
+ * Supports Founding, Equity, Revenue Sharing, and Loan/Debt investment types
  */
 export interface InvestmentDto {
   id: number;
@@ -66,7 +67,7 @@ export interface InvestmentDto {
   maxInvestment?: number;
   valuationCap?: number;
   expectedROI?: number;
-  investmentTypeId?: number; // 1 = Founding, 2 = Equity
+  investmentTypeId?: number; // 1 = Founding, 2 = Equity, 3 = Revenue Sharing, 4 = Loan
   status?: string;
   endDate?: string;
   
@@ -90,6 +91,12 @@ export interface InvestmentDto {
   milestone?: string;
   riskLevel?: string;
   currency?: string;
+  momentumScore?: number;
+  momentumLabel?: string;
+  lastActivityAt?: string;
+  publicActivityCount?: number;
+  participantOnlyActivityCount?: number;
+  visibilityLabel?: string;
 
   // Founding-specific fields
   durationMonths?: number;
@@ -102,14 +109,47 @@ export interface InvestmentDto {
   
   // Enriched data
   founderDisplay?: string;
+  businessRole?: string;
   credibilityScore: number;
   participants?: any[];
   
-  // Team members from backend
-  teamMembers?: TeamMemberDto[];
+// Team members from backend
+   teamMembers?: TeamMemberDto[];
 
-  // Indicates whether the current requesting user has favorited this investment.
-  favorited?: boolean;
+   // Image gallery for the investment (ordered by SortOrder)
+   images?: Array<{ id: number; mediaType: number; url: string; thumbnailUrl?: string; fileName?: string; caption?: string; sortOrder?: number; isPrimary?: boolean; uploadedBy?: string }>;
+
+   // Indicates whether the current requesting user has favorited this investment.
+   favorited?: boolean;
+
+  // ==================== Equity Exit Strategy Fields ====================
+  currentValuation?: number;
+  estimatedFutureValuation?: number;
+  equityExitType?: number;
+  exitTargetDate?: string;
+  expectedExitStrategy?: string;
+
+  // ==================== Revenue Sharing Exit Strategy Fields ====================
+  contractStartDate?: string;
+  contractEndDate?: string;
+  totalExpectedPayout?: number;
+  remainingPayoutAmount?: number;
+  revenueDistributionFrequency?: string;
+  contractCompletionStatus?: string;
+
+  // ==================== Loan/Debt Exit Strategy Fields ====================
+  repaymentStartDate?: string;
+  finalRepaymentDate?: string;
+  remainingBalance?: number;
+  totalPaidAmount?: number;
+  nextInstallmentDate?: string;
+  defaultRiskLevel?: string;
+  loanCompletionStatus?: string;
+  interestRate?: number;
+  repaymentFrequency?: string;
+  gracePeriodMonths?: number;
+  estimatedInstallment?: number;
+  totalRepaymentAmount?: number;
 }
 
 /**
@@ -120,17 +160,17 @@ export interface CreateInvestmentDto {
   // Founder info (set from auth token on backend)
   founderId?: string;
   
-  // Financial structure - Required for equity crowdfunding
-  initialCapital: number;       // Founder's initial capital contribution
-  sharePrice: number;           // Price per share
-  totalShares: number;          // Total shares available for this round
-  targetFund?: number;          // Total fundraising goal
+  // Financial structure
+  initialCapital: number;
+  sharePrice?: number;
+  totalShares?: number;
+  targetFund?: number;
   
   // Optional financial limits
-  minInvestment?: number;       // Minimum investment per investor
-  maxInvestment?: number;       // Maximum investment per investor
-  valuationCap?: number;        // Company valuation cap
-  expectedROI?: number;         // Expected return on investment (percentage)
+  minInvestment?: number;
+  maxInvestment?: number;
+  valuationCap?: number;
+  expectedROI?: number;
   
   // Business details - Required
   businessName: string;
@@ -142,12 +182,12 @@ export interface CreateInvestmentDto {
   
   // Classification - Optional
   projectPhaseId?: number;
-  milestone?: string;           // Current milestone
-  riskLevel?: string;           // Low, Medium, High
-  currency?: string;            // USD, EUR, SAR, EGP
+  milestone?: string;
+  riskLevel?: string;
+  currency?: string;
   
-  // Investment type
-  investmentTypeId?: number;    // 1 = Founding, 2 = Equity
+  // Investment type (1=Founding, 2=Equity, 3=RevenueSharing, 4=Loan)
+  investmentTypeId?: number;
   
   // Founding-specific fields
   durationMonths?: number;
@@ -155,12 +195,41 @@ export interface CreateInvestmentDto {
   payoutFrequency?: string;
   
   // Timeline
-  startDate?: string;           // ISO date string
-  endDate?: string;             // ISO date string - investment deadline
+  startDate?: string;
+  endDate?: string;
   
   // Media
   imageUrl?: string;
   videoUrl?: string;
+
+  // ==================== Equity Exit Strategy Fields ====================
+  currentValuation?: number;
+  estimatedFutureValuation?: number;
+  equityExitType?: number;
+  exitTargetDate?: string;
+  expectedExitStrategy?: string;
+
+  // ==================== Revenue Sharing Exit Strategy Fields ====================
+  contractStartDate?: string;
+  contractEndDate?: string;
+  totalExpectedPayout?: number;
+  remainingPayoutAmount?: number;
+  revenueDistributionFrequency?: string;
+  contractCompletionStatus?: string;
+
+  // ==================== Loan/Debt Exit Strategy Fields ====================
+  repaymentStartDate?: string;
+  finalRepaymentDate?: string;
+  remainingBalance?: number;
+  totalPaidAmount?: number;
+  nextInstallmentDate?: string;
+  defaultRiskLevel?: string;
+  loanCompletionStatus?: string;
+  interestRate?: number;
+  repaymentFrequency?: string;
+  gracePeriodMonths?: number;
+  estimatedInstallment?: number;
+  totalRepaymentAmount?: number;
 }
 
 /**

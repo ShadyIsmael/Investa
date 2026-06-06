@@ -28,6 +28,9 @@ namespace Investa.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int>("ActivityScore")
+                        .HasColumnType("int");
+
                     b.Property<int>("ClientType")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
@@ -51,6 +54,12 @@ namespace Investa.Infrastructure.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
+                    b.Property<bool>("IsEmailVerified")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPhoneVerified")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -60,6 +69,21 @@ namespace Investa.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(512)
                         .HasColumnType("nvarchar(512)");
+
+                    b.Property<int>("ProfileCompletionPercentage")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReputationLevel")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<int>("ReputationScore")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RiskFlags")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<bool>("Status")
                         .ValueGeneratedOnAdd()
@@ -72,10 +96,16 @@ namespace Investa.Infrastructure.Migrations
                     b.Property<Guid?>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int>("TrustLevel")
+                        .HasColumnType("int");
+
                     b.Property<string>("UserType")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("VerificationTrustScore")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("WalletBalance")
                         .ValueGeneratedOnAdd()
@@ -98,40 +128,64 @@ namespace Investa.Infrastructure.Migrations
                         new
                         {
                             Id = new Guid("11111111-1111-1111-1111-111111111111"),
+                            ActivityScore = 0,
                             ClientType = 1,
                             CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, 0, DateTimeKind.Utc),
                             CredibilityScore = 4200,
                             Email = "alice.founder@example.com",
+                            IsEmailVerified = false,
+                            IsPhoneVerified = false,
                             Name = "Alice Founder",
                             PasswordHash = "seeded",
+                            ProfileCompletionPercentage = 0,
+                            ReputationLevel = "Rising Member",
+                            ReputationScore = 0,
                             Status = true,
+                            TrustLevel = 1,
                             UserType = "Client",
+                            VerificationTrustScore = 0,
                             WalletBalance = 100000m
                         },
                         new
                         {
                             Id = new Guid("22222222-2222-2222-2222-222222222222"),
+                            ActivityScore = 0,
                             ClientType = 0,
                             CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, 0, DateTimeKind.Utc),
                             CredibilityScore = 3750,
                             Email = "bob.investor@example.com",
+                            IsEmailVerified = false,
+                            IsPhoneVerified = false,
                             Name = "Bob Investor",
                             PasswordHash = "seeded",
+                            ProfileCompletionPercentage = 0,
+                            ReputationLevel = "Rising Member",
+                            ReputationScore = 0,
                             Status = true,
+                            TrustLevel = 1,
                             UserType = "Client",
+                            VerificationTrustScore = 0,
                             WalletBalance = 25000m
                         },
                         new
                         {
                             Id = new Guid("33333333-3333-3333-3333-333333333333"),
+                            ActivityScore = 0,
                             ClientType = 0,
                             CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, 0, DateTimeKind.Utc),
                             CredibilityScore = 3600,
                             Email = "clara.investor@example.com",
+                            IsEmailVerified = false,
+                            IsPhoneVerified = false,
                             Name = "Clara Investor",
                             PasswordHash = "seeded",
+                            ProfileCompletionPercentage = 0,
+                            ReputationLevel = "Rising Member",
+                            ReputationScore = 0,
                             Status = true,
+                            TrustLevel = 1,
                             UserType = "Client",
+                            VerificationTrustScore = 0,
                             WalletBalance = 15000m
                         });
                 });
@@ -948,12 +1002,29 @@ namespace Investa.Infrastructure.Migrations
                     b.Property<int?>("BusinessStageId")
                         .HasColumnType("int");
 
+                    b.Property<string>("ContractCompletionStatus")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("ContractEndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ContractStartDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Currency")
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
+                    b.Property<decimal?>("CurrentValuation")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("DefaultRiskLevel")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
@@ -964,12 +1035,40 @@ namespace Investa.Infrastructure.Migrations
                     b.Property<DateTime?>("EndDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("EquityExitType")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("EquityOfferedPercentage")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal?>("EstimatedFutureValuation")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("EstimatedInstallment")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("ExitTargetDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ExpectedExitStrategy")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<decimal?>("ExpectedMonthlyReturn")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal?>("ExpectedROI")
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)");
 
+                    b.Property<DateTime?>("FinalRepaymentDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<Guid>("FounderId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("GracePeriodMonths")
+                        .HasColumnType("int");
 
                     b.Property<string>("ImageUrl")
                         .HasMaxLength(500)
@@ -979,8 +1078,18 @@ namespace Investa.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<decimal?>("InterestRate")
+                        .HasColumnType("decimal(5,2)");
+
                     b.Property<int>("InvestmentTypeId")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("LastActivityAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LoanCompletionStatus")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<decimal?>("MaxInvestment")
                         .HasPrecision(18, 2)
@@ -994,6 +1103,15 @@ namespace Investa.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int>("MomentumScore")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("NextInstallmentDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ParticipantOnlyActivityCount")
+                        .HasColumnType("int");
+
                     b.Property<string>("PayoutFrequency")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -1003,6 +1121,29 @@ namespace Investa.Infrastructure.Migrations
 
                     b.Property<int?>("ProjectPhaseId")
                         .HasColumnType("int");
+
+                    b.Property<int>("PublicActivityCount")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("RemainingBalance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("RemainingPayoutAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("RepaymentFrequency")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("RepaymentStartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RevenueDistributionFrequency")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal?>("RevenueSharePercentage")
+                        .HasColumnType("decimal(5,2)");
 
                     b.Property<string>("RiskLevel")
                         .HasMaxLength(50)
@@ -1024,6 +1165,15 @@ namespace Investa.Infrastructure.Migrations
 
                     b.Property<decimal?>("TargetFund")
                         .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("TotalExpectedPayout")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("TotalPaidAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("TotalRepaymentAmount")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int?>("TotalShares")
@@ -1060,6 +1210,9 @@ namespace Investa.Infrastructure.Migrations
                             InvestmentTypeId = 2,
                             MaxInvestment = 5000m,
                             MinInvestment = 100m,
+                            MomentumScore = 0,
+                            ParticipantOnlyActivityCount = 0,
+                            PublicActivityCount = 0,
                             RiskLevel = "Medium",
                             SharePrice = 10.00m,
                             StartDate = new DateTime(2025, 12, 15, 0, 0, 0, 0, DateTimeKind.Utc),
@@ -1084,6 +1237,9 @@ namespace Investa.Infrastructure.Migrations
                             InvestmentTypeId = 2,
                             MaxInvestment = 2000m,
                             MinInvestment = 50m,
+                            MomentumScore = 0,
+                            ParticipantOnlyActivityCount = 0,
+                            PublicActivityCount = 0,
                             RiskLevel = "Low",
                             SharePrice = 5.00m,
                             StartDate = new DateTime(2025, 12, 22, 0, 0, 0, 0, DateTimeKind.Utc),
@@ -1127,6 +1283,11 @@ namespace Investa.Infrastructure.Migrations
 
                     b.Property<int>("Version")
                         .HasColumnType("int");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
 
                     b.HasKey("Id");
 
@@ -1186,6 +1347,10 @@ namespace Investa.Infrastructure.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETDATE()");
 
+                    b.Property<string>("FileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
                     b.Property<int>("InvestmentId")
                         .HasColumnType("int");
 
@@ -1194,10 +1359,20 @@ namespace Investa.Infrastructure.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<int>("MediaType")
+                        .HasColumnType("int");
+
                     b.Property<int>("SortOrder")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(0);
+
+                    b.Property<string>("ThumbnailUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid?>("UploadedBy")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Url")
                         .IsRequired()
@@ -1207,6 +1382,8 @@ namespace Investa.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("InvestmentId");
+
+                    b.HasIndex("UploadedBy");
 
                     b.ToTable("InvestmentImages");
                 });
@@ -1245,12 +1422,10 @@ namespace Investa.Infrastructure.Migrations
                     b.Property<int>("SharesPurchased")
                         .HasColumnType("int");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
+                    b.Property<int>("Status")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasDefaultValue("Confirmed");
+                        .HasColumnType("int")
+                        .HasDefaultValue(4);
 
                     b.HasKey("Id");
 
@@ -1271,7 +1446,7 @@ namespace Investa.Infrastructure.Migrations
                             InvestorId = new Guid("22222222-2222-2222-2222-222222222222"),
                             IsAnonymous = false,
                             SharesPurchased = 300,
-                            Status = "Confirmed"
+                            Status = 4
                         },
                         new
                         {
@@ -1283,7 +1458,7 @@ namespace Investa.Infrastructure.Migrations
                             InvestorId = new Guid("33333333-3333-3333-3333-333333333333"),
                             IsAnonymous = false,
                             SharesPurchased = 200,
-                            Status = "Confirmed"
+                            Status = 4
                         },
                         new
                         {
@@ -1295,7 +1470,7 @@ namespace Investa.Infrastructure.Migrations
                             InvestorId = new Guid("22222222-2222-2222-2222-222222222222"),
                             IsAnonymous = false,
                             SharesPurchased = 100,
-                            Status = "Confirmed"
+                            Status = 4
                         });
                 });
 
@@ -2444,6 +2619,10 @@ namespace Investa.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<string>("BusinessRole")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<string>("City")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -2482,25 +2661,6 @@ namespace Investa.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<string>("DeviceMacAddress")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("DocumentBackImageUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime?>("DocumentExpiryDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DocumentFrontImageUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("DocumentNumber")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
                     b.Property<string>("Email")
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
@@ -2521,18 +2681,9 @@ namespace Investa.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<string>("HrLetterBase64")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("HrLetterFileName")
-                        .HasMaxLength(260)
-                        .HasColumnType("nvarchar(260)");
-
-                    b.Property<bool>("IsKycVerified")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("KycCompletionPercentage")
-                        .HasColumnType("int");
+                    b.Property<string>("InvestmentInterests")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<DateTime?>("LastLoginDate")
                         .HasColumnType("datetime2");
@@ -2612,6 +2763,55 @@ namespace Investa.Infrastructure.Migrations
                     b.HasKey("UserId");
 
                     b.ToTable("UserTokens");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.UserVerification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("DocumentUrl")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<DateTime?>("ExpirationDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Provider")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ProviderReferenceId")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("VerificationType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserVerification");
                 });
 
             modelBuilder.Entity("Investa.Infrastructure.Identity.ApplicationIdentityRole", b =>
@@ -3018,7 +3218,13 @@ namespace Investa.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Investa.Domain.Entities.AuthUser", "Uploader")
+                        .WithMany()
+                        .HasForeignKey("UploadedBy");
+
                     b.Navigation("Investment");
+
+                    b.Navigation("Uploader");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.InvestmentParticipant", b =>
@@ -3232,6 +3438,17 @@ namespace Investa.Infrastructure.Migrations
                     b.Navigation("AuthUser");
                 });
 
+            modelBuilder.Entity("Investa.Domain.Entities.UserVerification", b =>
+                {
+                    b.HasOne("Investa.Domain.Entities.AuthUser", "User")
+                        .WithMany("Verifications")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
                 {
                     b.HasOne("Investa.Infrastructure.Identity.ApplicationIdentityRole", null)
@@ -3304,6 +3521,8 @@ namespace Investa.Infrastructure.Migrations
                     b.Navigation("UserRoles");
 
                     b.Navigation("UserSessions");
+
+                    b.Navigation("Verifications");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.BusinessCategory", b =>
