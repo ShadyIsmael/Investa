@@ -1,5 +1,17 @@
-﻿// FILE REMOVED: archived to ../ArchivedMigrations/20260123/20260109230628_AddCreditConfiguration.cs.original
-// Migration removed during consolidation.            migrationBuilder.CreateTable(
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace Investa.Infrastructure.Migrations
+{
+    /// <inheritdoc />
+    public partial class AddCreditConfiguration : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.CreateTable(
                 name: "CreditConfigurations",
                 columns: table => new
                 {

@@ -9,7 +9,7 @@ class PhoneAuthService {
   /// - `defaultCountryCode` should be an E.164 country code like '+1' and is used
   ///   when the user provided a national number (no leading '+').
   /// Returns `null` when the input cannot be normalized.
-  String? normalizePhoneNumber(String raw, {String defaultCountryCode = '+20'}) {
+  String? normalizePhoneNumber(String raw, {String defaultCountryCode = '+1'}) {
     if (raw.trim().isEmpty) return null;
     var s = raw.trim();
     // remove common separators

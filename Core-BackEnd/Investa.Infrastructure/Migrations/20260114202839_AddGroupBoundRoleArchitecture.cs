@@ -1,16 +1,16 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace Investa.Infrastructure.Migrations
 {
-    // Migration neutralized during consolidation.
+    /// <inheritdoc />
     public partial class AddGroupBoundRoleArchitecture : Migration
     {
-        protected override void Up(MigrationBuilder migrationBuilder) { }
-        protected override void Down(MigrationBuilder migrationBuilder) { }
-    }
-}
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
             migrationBuilder.CreateTable(
                 name: "Roles",
                 columns: table => new

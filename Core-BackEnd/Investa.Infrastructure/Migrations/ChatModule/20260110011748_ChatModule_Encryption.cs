@@ -1,5 +1,16 @@
-﻿// REMOVED: ChatModule migration archived to ../ArchivedMigrations/20260123/ChatModule__files.original.txt
-// This file was removed from active use as part of migration consolidation.
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace Investa.Infrastructure.Migrations.ChatModule
+{
+    /// <inheritdoc />
+    public partial class ChatModule_Encryption : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
             migrationBuilder.CreateTable(
                 name: "Conversations",
                 columns: table => new

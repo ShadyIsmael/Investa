@@ -5,13 +5,12 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Investa.Infrastructure.Migrations.ChatModule
 {
-    // Migration neutralized during consolidation.
+    /// <inheritdoc />
     public partial class AddSupportSessionAndMessage : Migration
     {
-        protected override void Up(MigrationBuilder migrationBuilder) { }
-        protected override void Down(MigrationBuilder migrationBuilder) { }
-    }
-}
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
             migrationBuilder.CreateTable(
                 name: "SupportSessions",
                 columns: table => new
