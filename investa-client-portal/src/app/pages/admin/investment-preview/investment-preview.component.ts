@@ -31,7 +31,7 @@ import { get } from 'lodash-es';
 @Component({
   standalone: true,
   selector: 'app-investment-preview',
-  templateUrl: './investment-preview.component.html',  styleUrls: ['./investment-preview.component.scss'],  changeDetection: ChangeDetectionStrategy.OnPush,
+  templateUrl: './investment-preview.component.html', styleUrls: ['./investment-preview.component.scss'], changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, RouterLink, TranslatePipe]
 })
 export class InvestmentPreviewComponent {
@@ -43,7 +43,7 @@ export class InvestmentPreviewComponent {
   private requestsService = inject(RequestsService);
   private userService = inject(UserService);
   private fileStoreService = inject(FileStoreService);
-  
+
   protected readonly RiskLevel = RiskLevel;
   protected readonly InvestmentType = InvestmentType;
 
@@ -168,148 +168,165 @@ export class InvestmentPreviewComponent {
   resolveImageUrl(url?: string | null): string {
     return this.fileStoreService.getPublicUrl(url);
   }
+
+  /**
+   * Get project media images (excluding cover images)
+   * Cover images (mediaType === 0) are not part of the project media gallery
+   */
+  getProjectMediaImages(inv: Investment | null): any[] {
+    if (!inv || !inv.images) return [];
+    return inv.images.filter(img => img.mediaType !== 0); // Filter out CoverImage type
+  }
+
+  /**
+   * Get the current active cover image (if any)
+   */
+  getCoverImage(inv: Investment | null): any {
+    if (!inv || !inv.images) return null;
+    return inv.images.find(img => img.mediaType === 0); // MediaType.CoverImage = 0
+  }
   
-  async promptEngage(investment: Investment): Promise<void> {
-    // Ensure profile is fresh so dialog shows correct credits
-    try {
-      await this.userService.refreshUser();
-    } catch (err) {
-      console.warn('Failed to refresh user before engagement dialog:', err);
-    }
+  async promptEngage(investment: Investment): Promise < void> {
+  // Ensure profile is fresh so dialog shows correct credits
+  try {
+    await this.userService.refreshUser();
+  } catch(err) {
+    console.warn('Failed to refresh user before engagement dialog:', err);
+  }
 
     // Set investment and open initial engagement modal
     this.investmentToEngage.set(investment);
-  }
+}
 
   // --- Image Management ---
-  async openManageImages(investment: Investment): Promise<void> {
-    // Open a simple dialog via prompt for demo (replace with modal in future)
-    try {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.onchange = async () => {
-        const file = input.files?.[0];
-        if (!file) return;
-        try {
-          await this.investmentService.uploadInvestmentImage(investment.id, file as File);
-          this.notificationService.showToast({ title: 'Success', message: 'Image uploaded', type: 'success' });
-          await this.loadInvestment();
-        } catch (err: any) {
-          this.notificationService.showToast({ title: 'Upload failed', message: err?.message || 'Failed to upload', type: 'error' });
-        }
-      };
-      input.click();
-    } catch (err) {
-      console.error('Failed to open image picker', err);
-      this.notificationService.showToast({ title: 'Error', message: 'Unable to open file picker', type: 'error' });
-    }
+  async openManageImages(investment: Investment): Promise < void> {
+  // Open a simple dialog via prompt for demo (replace with modal in future)
+  try {
+    const input = document.createElement('input') as HTMLInputElement;
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        await this.investmentService.uploadInvestmentImage(investment.id, file as File);
+        this.notificationService.showToast({ title: 'Success', message: 'Image uploaded', type: 'success' });
+        await this.loadInvestment();
+      } catch (err: any) {
+        this.notificationService.showToast({ title: 'Upload failed', message: err?.message || 'Failed to upload', type: 'error' });
+      }
+    };
+    input.click();
+  } catch(err) {
+    console.error('Failed to open image picker', err);
+    this.notificationService.showToast({ title: 'Error', message: 'Unable to open file picker', type: 'error' });
   }
+}
 
-  async deleteImage(investment: Investment, imageId: number): Promise<void> {
-    try {
-      await this.investmentService.deleteInvestmentImage(investment.id, imageId);
-      this.notificationService.showToast({ title: 'Deleted', message: 'Image deleted', type: 'success' });
-      await this.loadInvestment();
-    } catch (err: any) {
-      this.notificationService.showToast({ title: 'Failed', message: err?.message || 'Delete failed', type: 'error' });
-    }
+  async deleteImage(investment: Investment, imageId: number): Promise < void> {
+  try {
+    await this.investmentService.deleteInvestmentImage(investment.id, imageId);
+    this.notificationService.showToast({ title: 'Deleted', message: 'Image deleted', type: 'success' });
+    await this.loadInvestment();
+  } catch(err: any) {
+    this.notificationService.showToast({ title: 'Failed', message: err?.message || 'Delete failed', type: 'error' });
   }
+}
 
-  async setPrimaryImage(investment: Investment, imageId: number): Promise<void> {
-    try {
-      await this.investmentService.setPrimaryInvestmentImage(investment.id, imageId);
-      this.notificationService.showToast({ title: 'Updated', message: 'Primary image set', type: 'success' });
-      await this.loadInvestment();
-    } catch (err: any) {
-      this.notificationService.showToast({ title: 'Failed', message: err?.message || 'Operation failed', type: 'error' });
-    }
+  async setPrimaryImage(investment: Investment, imageId: number): Promise < void> {
+  try {
+    await this.investmentService.setPrimaryInvestmentImage(investment.id, imageId);
+    this.notificationService.showToast({ title: 'Updated', message: 'Primary image set', type: 'success' });
+    await this.loadInvestment();
+  } catch(err: any) {
+    this.notificationService.showToast({ title: 'Failed', message: err?.message || 'Operation failed', type: 'error' });
   }
+}
 
-  async reorderImage(investment: Investment, fromIndex: number, toIndex: number): Promise<void> {
-    const imgs = [...(investment.images || [])];
-    if (fromIndex < 0 || toIndex < 0 || fromIndex >= imgs.length || toIndex >= imgs.length) return;
-    const [item] = imgs.splice(fromIndex, 1);
-    imgs.splice(toIndex, 0, item);
-    const ordering = imgs.map((img, idx) => ({ imageId: img.id, sortOrder: idx }));
-    try {
-      await this.investmentService.reorderInvestmentImages(investment.id, ordering);
-      this.notificationService.showToast({ title: 'Reordered', message: 'Images reordered', type: 'success' });
-      await this.loadInvestment();
-    } catch (err: any) {
-      this.notificationService.showToast({ title: 'Failed', message: err?.message || 'Reorder failed', type: 'error' });
-    }
+  async reorderImage(investment: Investment, fromIndex: number, toIndex: number): Promise < void> {
+  const imgs = [...(investment.images || [])];
+  if(fromIndex < 0 || toIndex < 0 || fromIndex >= imgs.length || toIndex >= imgs.length) return;
+const [item] = imgs.splice(fromIndex, 1);
+imgs.splice(toIndex, 0, item);
+const ordering = imgs.map((img, idx) => ({ imageId: img.id, sortOrder: idx }));
+try {
+  await this.investmentService.reorderInvestmentImages(investment.id, ordering);
+  this.notificationService.showToast({ title: 'Reordered', message: 'Images reordered', type: 'success' });
+  await this.loadInvestment();
+} catch (err: any) {
+  this.notificationService.showToast({ title: 'Failed', message: err?.message || 'Reorder failed', type: 'error' });
+}
   }
 
   /**
    * Open invest dialog for equity, or engagement for funding
    */
-  async promptInvest(investment: Investment): Promise<void> {
-    // Refresh profile first so credits are up-to-date
-    try {
-      await this.userService.refreshUser();
-    } catch (err) {
-      console.warn('Failed to refresh user before invest dialog:', err);
-    }
+  async promptInvest(investment: Investment): Promise < void> {
+  // Refresh profile first so credits are up-to-date
+  try {
+    await this.userService.refreshUser();
+  } catch(err) {
+    console.warn('Failed to refresh user before invest dialog:', err);
+  }
 
     // Show user info
     const user = this.userService.user();
-    if (user) {
-      this.notificationService.showToast({
-        title: 'User Information',
-        message: `User ID: ${user.userId} | Credits: ${this.userCredits()}`,
-        type: 'info'
-      });
-    }
-
-    if (investment.investmentType === InvestmentType.Equity) {
-      this.sharesToPurchaseValue = 1;
-      this.investmentToInvest.set(investment);
-    } else {
-      await this.promptEngage(investment);
-    }
+  if(user) {
+    this.notificationService.showToast({
+      title: 'User Information',
+      message: `User ID: ${user.userId} | Credits: ${this.userCredits()}`,
+      type: 'info'
+    });
   }
 
-  closeInvestDialog(): void {
-    this.investmentToInvest.set(null);
-    this.investmentError.set(null);
-    this.investmentProcessing.set(false);
-    this.sharesToPurchaseValue = 1;
+    if(investment.investmentType === InvestmentType.Equity) {
+  this.sharesToPurchaseValue = 1;
+  this.investmentToInvest.set(investment);
+} else {
+  await this.promptEngage(investment);
+}
   }
 
-  increaseShares(investment: Investment): void {
-    if (this.sharesToPurchaseValue < (investment.availableShares || 0)) {
-      this.sharesToPurchaseValue++;
-    }
+closeInvestDialog(): void {
+  this.investmentToInvest.set(null);
+  this.investmentError.set(null);
+  this.investmentProcessing.set(false);
+  this.sharesToPurchaseValue = 1;
+}
+
+increaseShares(investment: Investment): void {
+  if(this.sharesToPurchaseValue < (investment.availableShares || 0)) {
+  this.sharesToPurchaseValue++;
+}
   }
 
-  decreaseShares(): void {
-    if (this.sharesToPurchaseValue > 1) {
-      this.sharesToPurchaseValue--;
-    }
+decreaseShares(): void {
+  if(this.sharesToPurchaseValue > 1) {
+  this.sharesToPurchaseValue--;
+}
   }
 
-  validateShares(investment: Investment): void {
-    const val = this.sharesToPurchaseValue;
-    const dictionary = this.languageService.dictionary();
-    const minError = get(dictionary, 'investments.shareValidation.minError', 'Shares must be at least 1');
-    const maxErrorTemplate = get(dictionary, 'investments.shareValidation.maxError', 'Maximum {available} shares available');
+validateShares(investment: Investment): void {
+  const val = this.sharesToPurchaseValue;
+  const dictionary = this.languageService.dictionary();
+  const minError = get(dictionary, 'investments.shareValidation.minError', 'Shares must be at least 1');
+  const maxErrorTemplate = get(dictionary, 'investments.shareValidation.maxError', 'Maximum {available} shares available');
 
-    if (isNaN(val) || val < 1) {
-      this.sharesToPurchaseValue = 1;
-      this.investmentError.set(minError);
-    } else if (val > (investment.availableShares || 0)) {
-      this.sharesToPurchaseValue = investment.availableShares || 1;
-      const available = investment.availableShares || 0;
-      this.investmentError.set(maxErrorTemplate.replace('{available}', String(available)));
-    } else {
-      this.investmentError.set(null);
-    }
+  if(isNaN(val) || val < 1) {
+  this.sharesToPurchaseValue = 1;
+  this.investmentError.set(minError);
+} else if (val > (investment.availableShares || 0)) {
+  this.sharesToPurchaseValue = investment.availableShares || 1;
+  const available = investment.availableShares || 0;
+  this.investmentError.set(maxErrorTemplate.replace('{available}', String(available)));
+} else {
+  this.investmentError.set(null);
+}
   }
 
-  calculateInvestmentAmount(investment: Investment): number {
-    return (investment.sharePrice || 0) * this.sharesToPurchaseValue;
-  }
+calculateInvestmentAmount(investment: Investment): number {
+  return (investment.sharePrice || 0) * this.sharesToPurchaseValue;
+}
 
   /**
    * Confirm investment request
@@ -318,66 +335,66 @@ export class InvestmentPreviewComponent {
    * Credits are deducted immediately and request is sent to founder for approval
    * If founder accepts, investment is processed; if declined, credits are refunded
    */
-  async confirmInvestment(investment: Investment): Promise<void> {
-    if (this.investmentProcessing() || this.investmentError()) return;
+  async confirmInvestment(investment: Investment): Promise < void> {
+  if(this.investmentProcessing() || this.investmentError()) return;
 
-    this.investmentProcessing.set(true);
-    this.investmentError.set(null);
+  this.investmentProcessing.set(true);
+  this.investmentError.set(null);
 
-    // Refresh user profile to get latest credits before checking
-    try {
-      await this.userService.refreshUser();
-    } catch (err) {
-      console.warn('Failed to refresh user before confirming investment:', err);
-    }
+  // Refresh user profile to get latest credits before checking
+  try {
+    await this.userService.refreshUser();
+  } catch(err) {
+    console.warn('Failed to refresh user before confirming investment:', err);
+  }
 
     const investmentAmount = this.calculateInvestmentAmount(investment);
-    const currentCredits = this.userCredits();
+  const currentCredits = this.userCredits();
 
-    // Validate sufficient credits
-    if (currentCredits < investmentAmount) {
-      this.investmentError.set('Insufficient credits. Please add more credits to your account.');
-      this.investmentProcessing.set(false);
-      this.notificationService.showToast({
-        title: 'Insufficient Credits',
-        message: 'You do not have enough credits to complete this investment.',
-        type: 'error'
-      });
-      return;
-    }
+  // Validate sufficient credits
+  if(currentCredits <investmentAmount) {
+    this.investmentError.set('Insufficient credits. Please add more credits to your account.');
+    this.investmentProcessing.set(false);
+    this.notificationService.showToast({
+      title: 'Insufficient Credits',
+      message: 'You do not have enough credits to complete this investment.',
+      type: 'error'
+    });
+    return;
+  }
 
     // Create investment request via API
     try {
-      await this.requestsService.createInvestmentRequest(
-        investment,
-        investmentAmount,
-        this.sharesToPurchaseValue
-      );
+    await this.requestsService.createInvestmentRequest(
+      investment,
+      investmentAmount,
+      this.sharesToPurchaseValue
+    );
 
-      const { title, message } = this.getRequestSubmittedCopy(investment);
-      this.notificationService.showToast({ title, message, type: 'success' });
-      this.closeInvestDialog();
-    } catch (error: any) {
-      console.error('Investment request failed:', error);
-      const apiMessage = error?.error?.message || error?.message;
-      this.investmentError.set(apiMessage || 'Failed to submit investment request');
-      this.notificationService.showToast({ title: 'Request Failed', message: apiMessage || 'Failed to submit investment request. Please try again.', type: 'error' });
-    } finally {
-      this.investmentProcessing.set(false);
-    }
+    const { title, message } = this.getRequestSubmittedCopy(investment);
+    this.notificationService.showToast({ title, message, type: 'success' });
+    this.closeInvestDialog();
+  } catch(error: any) {
+    console.error('Investment request failed:', error);
+    const apiMessage = error?.error?.message || error?.message;
+    this.investmentError.set(apiMessage || 'Failed to submit investment request');
+    this.notificationService.showToast({ title: 'Request Failed', message: apiMessage || 'Failed to submit investment request. Please try again.', type: 'error' });
+  } finally {
+    this.investmentProcessing.set(false);
   }
+}
 
-  cancelEngage(): void {
-    this.investmentToEngage.set(null);
-    this.engagementConfirmationOpen.set(false);
-  }
+cancelEngage(): void {
+  this.investmentToEngage.set(null);
+  this.engagementConfirmationOpen.set(false);
+}
 
-  /**
-   * Cancel engagement confirmation and return to initial modal
-   */
-  cancelEngagementConfirmation(): void {
-    this.engagementConfirmationOpen.set(false);
-  }
+/**
+ * Cancel engagement confirmation and return to initial modal
+ */
+cancelEngagementConfirmation(): void {
+  this.engagementConfirmationOpen.set(false);
+}
 
   /**
    * Confirm engagement for funding-based investments
@@ -385,120 +402,120 @@ export class InvestmentPreviewComponent {
    * For funding/debt investments, engagement costs a fixed credit amount
    * Creates investment request similar to equity investment
    */
-  async confirmEngage(): Promise<void> {
-    const investment = this.investmentToEngage();
-    if (!investment || this.engagementProcessing()) return;
+  async confirmEngage(): Promise < void> {
+  const investment = this.investmentToEngage();
+  if(!investment || this.engagementProcessing()) return;
 
-    // Refresh user profile to ensure latest credits
-    try {
-      await this.userService.refreshUser();
-    } catch (err) {
-      console.warn('Failed to refresh user before engagement confirmation:', err);
-    }
+// Refresh user profile to ensure latest credits
+try {
+  await this.userService.refreshUser();
+} catch (err) {
+  console.warn('Failed to refresh user before engagement confirmation:', err);
+}
 
-    const currentCredits = this.userCredits();
+const currentCredits = this.userCredits();
 
-    // Validate sufficient credits for engagement
-    if (currentCredits < this.engagementCreditCost) {
-      this.notificationService.showToast({
-        title: 'Insufficient Credits',
-        message: 'You do not have enough credits for engagement.',
-        type: 'error'
-      });
-      return;
-    }
+// Validate sufficient credits for engagement
+if (currentCredits < this.engagementCreditCost) {
+  this.notificationService.showToast({
+    title: 'Insufficient Credits',
+    message: 'You do not have enough credits for engagement.',
+    type: 'error'
+  });
+  return;
+}
 
-    this.engagementProcessing.set(true);
+this.engagementProcessing.set(true);
 
-    try {
-      await this.requestsService.createInvestmentRequest(investment, this.engagementCreditCost, 0);
-      const { title, message } = this.getRequestSubmittedCopy(investment);
-      this.notificationService.showToast({ title, message, type: 'success' });
-      this.investmentToEngage.set(null);
-      this.engagementConfirmationOpen.set(false);
-    } catch (error: any) {
-      console.error('Engagement request failed:', error);
-      this.notificationService.showToast({ title: 'Request Failed', message: error.message || 'Failed to submit engagement request. Please try again.', type: 'error' });
-    } finally {
-      this.engagementProcessing.set(false);
-    }
+try {
+  await this.requestsService.createInvestmentRequest(investment, this.engagementCreditCost, 0);
+  const { title, message } = this.getRequestSubmittedCopy(investment);
+  this.notificationService.showToast({ title, message, type: 'success' });
+  this.investmentToEngage.set(null);
+  this.engagementConfirmationOpen.set(false);
+} catch (error: any) {
+  console.error('Engagement request failed:', error);
+  this.notificationService.showToast({ title: 'Request Failed', message: error.message || 'Failed to submit engagement request. Please try again.', type: 'error' });
+} finally {
+  this.engagementProcessing.set(false);
+}
   }
 
   private getRequestSubmittedCopy(investment: Investment): { title: string; message: string } {
-    const dictionary = this.languageService.dictionary();
-    const title = get(dictionary, 'investments.requestSubmittedTitle', 'Request Sent');
-    const messageTemplate = get(
-      dictionary,
-      'investments.requestSubmittedMessage',
-      'Your request for {investmentName} was submitted. We will notify you once it is accepted.'
-    );
+  const dictionary = this.languageService.dictionary();
+  const title = get(dictionary, 'investments.requestSubmittedTitle', 'Request Sent');
+  const messageTemplate = get(
+    dictionary,
+    'investments.requestSubmittedMessage',
+    'Your request for {investmentName} was submitted. We will notify you once it is accepted.'
+  );
 
-    return {
-      title,
-      message: messageTemplate.replace('{investmentName}', investment.name)
-    };
+  return {
+    title,
+    message: messageTemplate.replace('{investmentName}', investment.name)
+  };
+}
+
+// Helpers for template
+getInvestmentTypeDisplay(type: InvestmentType | number | undefined): string {
+  return getInvestmentTypeDisplay(type);
+}
+
+getInvestmentTypeBadgeClass(type: InvestmentType | number | undefined): string {
+  return getInvestmentTypeBadgeClass(type);
+}
+
+getDaysRemaining(endDate: string | Date | undefined): number {
+  if (!endDate) return -1;
+  const diff = new Date(endDate).getTime() - Date.now();
+  return Math.max(0, Math.ceil(diff / 86400000));
+}
+
+/**
+ * Get a human-readable description for the current status
+ */
+getStatusDescription(status: string): string {
+  const descriptions: Record<string, string> = {
+    'Draft': 'Draft - Not yet published',
+    'Active': 'Currently accepting participants',
+    'Reviewing Participants': 'Reviewing participation requests',
+    'In Progress': 'Project is in progress',
+    'Fully Funded': 'Funding target reached',
+    'Paused': 'Temporarily paused',
+    'Completed': 'Project completed',
+    'Archived': 'Archived',
+    'Closed': 'Campaign ended'
+  };
+  return descriptions[status] || status || 'Unknown';
+}
+
+/**
+ * Get project stages for the roadmap
+ */
+getProjectStages(): string[] {
+  return [
+    'MVP Development',
+    'Beta Testing',
+    'Market Launch',
+    'User Acquisition',
+    'Revenue Generation',
+    'Scale Operations'
+  ];
+}
+
+/**
+ * Get the current stage index based on projectPhaseId
+ * Maps projectPhaseId (6-11) to stage index (0-5)
+ */
+getCurrentStageIndex(): number {
+  const inv = this.investment();
+  if (!inv || inv.projectPhaseId === undefined || inv.projectPhaseId === null) {
+    return 0;
   }
 
-  // Helpers for template
-  getInvestmentTypeDisplay(type: InvestmentType | number | undefined): string {
-    return getInvestmentTypeDisplay(type);
-  }
-
-  getInvestmentTypeBadgeClass(type: InvestmentType | number | undefined): string {
-    return getInvestmentTypeBadgeClass(type);
-  }
-
-  getDaysRemaining(endDate: string | Date | undefined): number {
-    if (!endDate) return -1;
-    const diff = new Date(endDate).getTime() - Date.now();
-    return Math.max(0, Math.ceil(diff / 86400000));
-  }
-
-  /**
-   * Get a human-readable description for the current status
-   */
-  getStatusDescription(status: string): string {
-    const descriptions: Record<string, string> = {
-      'Draft': 'Draft - Not yet published',
-      'Active': 'Currently accepting participants',
-      'Reviewing Participants': 'Reviewing participation requests',
-      'In Progress': 'Project is in progress',
-      'Fully Funded': 'Funding target reached',
-      'Paused': 'Temporarily paused',
-      'Completed': 'Project completed',
-      'Archived': 'Archived',
-      'Closed': 'Campaign ended'
-    };
-    return descriptions[status] || status || 'Unknown';
-  }
-
-  /**
-   * Get project stages for the roadmap
-   */
-  getProjectStages(): string[] {
-    return [
-      'MVP Development',
-      'Beta Testing',
-      'Market Launch',
-      'User Acquisition',
-      'Revenue Generation',
-      'Scale Operations'
-    ];
-  }
-
-  /**
-   * Get the current stage index based on projectPhaseId
-   * Maps projectPhaseId (6-11) to stage index (0-5)
-   */
-  getCurrentStageIndex(): number {
-    const inv = this.investment();
-    if (!inv || inv.projectPhaseId === undefined || inv.projectPhaseId === null) {
-      return 0;
-    }
-
-    // projectPhaseId ranges from 6 to 11 (6 phases total)
-    // Map to index 0-5
-    const index = inv.projectPhaseId - 6;
-    return Math.max(0, Math.min(5, index));
-  }
+  // projectPhaseId ranges from 6 to 11 (6 phases total)
+  // Map to index 0-5
+  const index = inv.projectPhaseId - 6;
+  return Math.max(0, Math.min(5, index));
+}
 }

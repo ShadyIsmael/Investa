@@ -98,6 +98,10 @@ export class FounderProfileComponent {
   }
 
   getInvestmentImage(inv: Investment): string {
+    if (!inv || !inv.images) return '';
+    // Priority: cover image -> primary image -> first image
+    const coverImage = inv.images.find(i => i.mediaType === 0);
+    if (coverImage) return this.resolveUrl(coverImage.url);
     const primary = inv.images?.find(i => i.isPrimary) ?? inv.images?.[0];
     return this.resolveUrl(primary?.url);
   }

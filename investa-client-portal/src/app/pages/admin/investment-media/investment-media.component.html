@@ -40,69 +40,36 @@
       <div class="mb-10">
         <h1 class="text-3xl font-bold text-white mb-1">{{ inv.name }}</h1>
         <p class="text-gray-400 text-sm">
-          @if (inv.images?.length) {
-            {{ inv.images!.length }}&nbsp;{{ 'investmentPreview.images' | translate }}
+          @if (getPhotos(inv).length) {
+            {{ getPhotos(inv).length }}&nbsp;{{ 'investmentPreview.images' | translate }}
           }
-          @if (inv.images?.length && inv.videoUrl) { &nbsp;·&nbsp; }
-          @if (inv.videoUrl) {
-            1&nbsp;{{ 'investmentPreview.video' | translate }}
+          @if (getPhotos(inv).length && (inv.videoUrl || getVideos(inv).length > 0)) { &nbsp;·&nbsp; }
+          @if (inv.videoUrl || getVideos(inv).length > 0) {
+            {{ (inv.videoUrl ? 1 : 0) + getVideos(inv).length }}&nbsp;{{ 'investmentPreview.video' | translate }}
           }
         </p>
       </div>
 
-      <!-- ── Video ── -->
-      @if (inv.videoUrl) {
+      <!-- ── Photos Section ── -->
+      @if (getPhotos(inv).length > 0) {
         <section class="mb-12">
-          <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"/>
-            </svg>
-            {{ 'investmentPreview.video' | translate }}
-          </h2>
-
-          @if (isYoutube || isVimeo) {
-            <div class="relative w-full max-w-4xl rounded-2xl overflow-hidden bg-black shadow-2xl shadow-black/50"
-                 style="padding-top: 56.25%">
-              <iframe class="absolute inset-0 w-full h-full"
-                      [src]="inv.videoUrl"
-                      [title]="inv.name"
-                      frameborder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowfullscreen>
-              </iframe>
-            </div>
-          } @else {
-            <!-- Direct video file -->
-            <video class="w-full max-w-4xl rounded-2xl shadow-2xl shadow-black/50 bg-black"
-                   controls
-                   preload="metadata">
-              <source [src]="inv.videoUrl">
-              Your browser does not support the video tag.
-            </video>
-          }
-        </section>
-      }
-
-      <!-- ── Images ── -->
-      @if (inv.images && inv.images.length > 0) {
-        <section>
           <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <svg class="w-5 h-5 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
             </svg>
-            {{ 'investmentPreview.images' | translate }}
-            <span class="ms-1 text-sm font-normal text-gray-500">({{ inv.images.length }})</span>
+            Photos
+            <span class="ms-1 text-sm font-normal text-gray-500">({{ getPhotos(inv).length }})</span>
           </h2>
 
           <!-- Masonry-style grid -->
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            @for (img of inv.images; track img.id; let i = $index) {
+            @for (img of getPhotos(inv); track img.id; let i = $index) {
               <button type="button"
                       (click)="openLightbox(i)"
                       class="relative aspect-video rounded-xl overflow-hidden group ring-1 ring-white/5 hover:ring-2 hover:ring-blue-400/50 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all shadow-lg"
-                      [title]="img.caption || ''">
+                      [title]="img.caption || img.fileName || ''">
                 <img [src]="resolveImageUrl(img.url)"
-                     [alt]="img.caption || ('Image ' + (i + 1))"
+                     [alt]="img.caption || img.fileName || ('Photo ' + (i + 1))"
                      class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
                 <!-- Hover overlay -->
                 <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
@@ -111,10 +78,10 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803 7.5 7.5 0 0016.803 15.803zM10.5 7.5v6m3-3h-6"/>
                   </svg>
                 </div>
-                <!-- Caption -->
-                @if (img.caption) {
+                <!-- File name or caption -->
+                @if (img.fileName || img.caption) {
                   <div class="absolute bottom-0 inset-x-0 px-2.5 py-2 bg-gradient-to-t from-black/80 to-transparent text-xs text-white font-medium truncate">
-                    {{ img.caption }}
+                    {{ img.caption || img.fileName }}
                   </div>
                 }
                 <!-- Primary badge -->
@@ -125,7 +92,7 @@
                 }
                 <!-- Index badge -->
                 <div class="absolute top-2 end-2 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-black/50 text-gray-300">
-                  {{ i + 1 }}/{{ inv.images!.length }}
+                  {{ i + 1 }}/{{ getPhotos(inv).length }}
                 </div>
               </button>
             }
@@ -133,12 +100,72 @@
         </section>
       }
 
+      <!-- ── Videos Section ── -->
+      @if (inv.videoUrl || getVideos(inv).length > 0) {
+        <section class="mb-12">
+          <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"/>
+            </svg>
+            Videos
+            <span class="ms-1 text-sm font-normal text-gray-500">({{ (inv.videoUrl ? 1 : 0) + getVideos(inv).length }})</span>
+          </h2>
+
+          <!-- Legacy video URL (main pitch video) -->
+          @if (inv.videoUrl) {
+            <div class="mb-6">
+              @if (isYoutube || isVimeo) {
+                <div class="relative w-full max-w-4xl rounded-2xl overflow-hidden bg-black shadow-2xl shadow-black/50"
+                     style="padding-top: 56.25%">
+                  <iframe class="absolute inset-0 w-full h-full"
+                          [src]="inv.videoUrl"
+                          [title]="inv.name"
+                          frameborder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowfullscreen>
+                  </iframe>
+                </div>
+              } @else {
+                <!-- Direct video file -->
+                <video class="w-full max-w-4xl rounded-2xl shadow-2xl shadow-black/50 bg-black"
+                       controls
+                       preload="metadata">
+                  <source [src]="inv.videoUrl">
+                  Your browser does not support the video tag.
+                </video>
+              }
+            </div>
+          }
+
+          <!-- Additional video files from media gallery -->
+          @if (getVideos(inv).length > 0) {
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              @for (video of getVideos(inv); track video.id; let i = $index) {
+                <div class="relative rounded-xl overflow-hidden bg-black shadow-lg">
+                  <video class="w-full aspect-video"
+                         controls
+                         preload="metadata">
+                    <source [src]="resolveImageUrl(video.url)">
+                    Your browser does not support the video tag.
+                  </video>
+                  @if (video.fileName || video.caption) {
+                    <div class="absolute bottom-0 inset-x-0 px-3 py-2 bg-gradient-to-t from-black/80 to-transparent text-sm text-white font-medium">
+                      {{ video.caption || video.fileName }}
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </section>
+      }
+
       <!-- Empty state -->
-      @if (!inv.videoUrl && (!inv.images || inv.images.length === 0)) {
+      @if (!inv.videoUrl && getPhotos(inv).length === 0 && getVideos(inv).length === 0) {
         <div class="flex flex-col items-center justify-center py-32 text-center animate-fade-in">
           <div class="w-20 h-20 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center mb-4">
             <svg class="w-9 h-9 text-gray-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375 0 0111-.75 0 .375 0 01.75 0z"/>
             </svg>
           </div>
           <h3 class="text-lg font-semibold text-white mb-1">{{ 'investmentPreview.noMedia' | translate }}</h3>
@@ -161,9 +188,9 @@
 
 </div>
 
-<!-- ── Lightbox ── -->
-@if (lightboxIndex() !== null && investment()?.images?.length) {
-  @let images = investment()!.images!;
+<!-- ── Lightbox (Photos only) ── -->
+@if (lightboxIndex() !== null && getPhotos(investment()).length) {
+  @let images = getPhotos(investment());
   @let idx    = lightboxIndex()!;
 
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm animate-fade-in"
@@ -182,37 +209,40 @@
       </svg>
     </button>
 
-    <!-- Counter -->
-    <div class="absolute top-4 start-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/50 text-white text-sm font-semibold">
-      {{ idx + 1 }} / {{ images.length }}
+    <!-- Image -->
+    <div class="relative max-w-5xl max-h-[90vh] w-full mx-4" (click)="$event.stopPropagation()">
+      <img [src]="resolveImageUrl(images[idx].url)"
+           [alt]="images[idx].caption || images[idx].fileName || ''"
+           class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl">
+      
+      <!-- Caption -->
+      @if (images[idx].caption || images[idx].fileName) {
+        <div class="absolute bottom-0 inset-x-0 px-4 py-3 bg-gradient-to-t from-black/90 to-transparent text-center">
+          <p class="text-white text-sm font-medium">{{ images[idx].caption || images[idx].fileName }}</p>
+        </div>
+      }
     </div>
 
-    <!-- Prev -->
-    <button type="button" (click)="prevImage(images.length); $event.stopPropagation()"
-            class="absolute start-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors focus:outline-none">
-      <svg class="w-6 h-6 rtl:rotate-180" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
-      </svg>
-    </button>
+    <!-- Navigation -->
+    @if (images.length > 1) {
+      <button type="button" (click)="prevImage(images.length)"
+              class="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors focus:outline-none">
+        <svg class="w-6 h-6 rtl:rotate-180" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+        </svg>
+      </button>
+      <button type="button" (click)="nextImage(images.length)"
+              class="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors focus:outline-none">
+        <svg class="w-6 h-6 rtl:rotate-180" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+        </svg>
+      </button>
+    }
 
-    <!-- Image -->
-    <img [src]="resolveImageUrl(images[idx].url)"
-         [alt]="images[idx].caption || ('Image ' + (idx + 1))"
-         class="max-h-[90vh] max-w-[90vw] rounded-xl shadow-2xl object-contain"
-         (click)="$event.stopPropagation()">
-
-    <!-- Next -->
-    <button type="button" (click)="nextImage(images.length); $event.stopPropagation()"
-            class="absolute end-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors focus:outline-none">
-      <svg class="w-6 h-6 rtl:rotate-180" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
-      </svg>
-    </button>
-
-    <!-- Caption -->
-    @if (images[idx].caption) {
-      <div class="absolute bottom-6 start-1/2 -translate-x-1/2 max-w-lg px-4 py-2 rounded-lg bg-black/60 text-white text-sm text-center">
-        {{ images[idx].caption }}
+    <!-- Counter -->
+    @if (images.length > 1) {
+      <div class="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/50 text-white text-xs font-medium">
+        {{ idx + 1 }} / {{ images.length }}
       </div>
     }
   </div>

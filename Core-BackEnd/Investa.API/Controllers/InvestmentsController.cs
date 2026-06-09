@@ -250,6 +250,25 @@ public class InvestmentsController : ControllerBase
                 mediaType = (MediaType)(mt == 0 ? 0 : mt == 2 ? 2 : 1); // Validate: 0=CoverImage, 1=Image, 2=Video
             }
 
+            // Enforce one active Cover Image per project
+            // If uploading a new Cover Image, delete existing cover images (do NOT demote to project media)
+            if (mediaType == MediaType.CoverImage)
+            {
+                var existingCoverImages = await _unitOfWork.Repository<InvestmentImage>()
+                    .FindAsync(i => i.InvestmentId == investmentId && i.MediaType == MediaType.CoverImage);
+                
+                foreach (var existingCover in existingCoverImages)
+                {
+                    // Delete file from storage
+                    var oldCoverFilePath = existingCover.Url?.TrimStart('/') ?? string.Empty;
+                    await _fileStorage.DeleteFileAsync(oldCoverFilePath);
+                    // Delete DB record
+                    await _unitOfWork.Repository<InvestmentImage>().DeleteAsync(existingCover);
+
+                }
+                await _unitOfWork.SaveChangesAsync();
+            }
+
             // Upload file to Investa.FileStore first to get valid URL
             var safeName = Path.GetFileName(file.FileName);
             var relPath = $"uploads/investments/{investmentId}/{Guid.NewGuid()}_{safeName}";

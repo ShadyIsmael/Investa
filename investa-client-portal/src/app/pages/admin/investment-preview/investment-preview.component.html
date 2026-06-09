@@ -82,9 +82,9 @@
           </div>
 
           <!-- Gallery Thumbnails -->
-          @if (inv.images && inv.images.length > 0) {
+          @if (getProjectMediaImages(inv).length > 0) {
             <div class="flex gap-2 overflow-x-auto pb-1">
-              @for (img of inv.images; track img.id; let i = $index) {
+              @for (img of getProjectMediaImages(inv); track img.id; let i = $index) {
                 <button type="button" (click)="openLightbox(resolveImageUrl(img.url))"
                         class="flex-shrink-0 h-24 w-36 rounded-lg overflow-hidden ring-1 ring-white/10 hover:ring-2 hover:ring-blue-400/70 transition-all focus:outline-none focus:ring-2 focus:ring-blue-400">
                   <img [src]="resolveImageUrl(img.url)" [alt]="img.caption || ('Image ' + (i + 1))" class="w-full h-full object-cover">
@@ -242,9 +242,9 @@
                 }
 
                 <!-- Image grid -->
-                @if (inv.images && inv.images.length > 0) {
+                @if (getProjectMediaImages(inv).length > 0) {
                   <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    @for (img of inv.images; track img.id; let i = $index) {
+                    @for (img of getProjectMediaImages(inv); track img.id; let i = $index) {
                       <button type="button" (click)="openLightbox(resolveImageUrl(img.url))"
                               [title]="img.caption || ('investmentPreview.imageAlt' | translate)"
                               class="relative aspect-video rounded-lg overflow-hidden group/img ring-1 ring-white/5 hover:ring-2 hover:ring-blue-400/50 transition-all focus:outline-none focus:ring-2 focus:ring-blue-400">
@@ -529,9 +529,9 @@
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-semibold text-purple-300 group-hover:text-purple-200 transition-colors">{{ 'investmentPreview.viewAllMedia' | translate }}</p>
                   <p class="text-[11px] text-gray-500 mt-0.5">
-                    @if (inv.images?.length) { {{ inv.images!.length }}&nbsp;{{ 'investmentPreview.images' | translate }}&nbsp; }
+                    @if (getProjectMediaImages(inv).length) { {{ getProjectMediaImages(inv).length }}&nbsp;{{ 'investmentPreview.images' | translate }}&nbsp; }
                     @if (inv.videoUrl) { · 1&nbsp;{{ 'investmentPreview.video' | translate }} }
-                    @if (!inv.images?.length && !inv.videoUrl) { {{ 'investmentPreview.noMediaYet' | translate }} }
+                    @if (getProjectMediaImages(inv).length === 0 && !inv.videoUrl) { {{ 'investmentPreview.noMediaYet' | translate }} }
                   </p>
                 </div>
                 <svg class="w-4 h-4 text-purple-500 group-hover:text-purple-300 transition-colors flex-shrink-0 rtl:rotate-180" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">

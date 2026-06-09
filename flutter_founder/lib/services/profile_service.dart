@@ -59,7 +59,6 @@ class BasicInfo {
     this.credit,
   });
 
-  static int _normalizePercentage(num? raw) {
     if (raw == null) return 0;
     final value = raw.round();
     if (value < 0) return 0;
@@ -458,7 +457,6 @@ class ProfileService {
   }
 
   /// Start KYC verification process
-  Future<Map<String, dynamic>?> startKYC() async {
     var apiBase = baseUrl;
     if (!apiBase.startsWith('http')) apiBase = 'http://$apiBase';
     final uri = Uri.parse('$apiBase/api/Profile/start-kyc');
@@ -475,17 +473,14 @@ class ProfileService {
         return body;
       }
 
-      AppLogger.logError('ProfileService.startKYC', 'Server error: $status', null);
+      AppLogger.logError(
       return null;
     } on TimeoutException catch (_) {
-      AppLogger.logError('ProfileService.startKYC', 'Request timed out', null);
       return null;
     } on DioException catch (e) {
-      AppLogger.logError('ProfileService.startKYC',
           'Network error: ${e.message}', e.stackTrace);
       return null;
     } catch (e, s) {
-      AppLogger.logError('ProfileService.startKYC', 'Unexpected: $e', s);
       return null;
     }
   }
@@ -548,36 +543,5 @@ class ProfileService {
           'ProfileService.getCreditHistory', 'Unexpected: $e', s);
       return null;
     }
-  }
-}
-
-class IdentityCompliance {
-  final bool isIdentityVerified;
-  final bool isEmailVerified;
-  final bool isPhoneVerified;
-  final String? documentType;
-  final String? documentNumber;
-  final DateTime? documentExpiry;
-
-  IdentityCompliance({
-    this.isIdentityVerified = false,
-    this.isEmailVerified = false,
-    this.isPhoneVerified = false,
-    this.documentType,
-    this.documentNumber,
-    this.documentExpiry,
-  });
-
-  factory IdentityCompliance.fromJson(Map<String, dynamic> json) {
-    return IdentityCompliance(
-      isIdentityVerified: json['isIdentityVerified'] as bool? ?? false,
-      isEmailVerified: json['isEmailVerified'] as bool? ?? false,
-      isPhoneVerified: json['isPhoneVerified'] as bool? ?? false,
-      documentType: json['documentType'] as String?,
-      documentNumber: json['documentNumber'] as String?,
-      documentExpiry: json['documentExpiry'] != null
-          ? DateTime.parse(json['documentExpiry'] as String)
-          : null,
-    );
   }
 }
