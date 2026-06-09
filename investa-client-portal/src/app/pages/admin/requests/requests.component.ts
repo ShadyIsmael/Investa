@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy, inject, signal, computed } from '@a
 import { CommonModule } from '@angular/common';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
 import { RequestsService } from '../../../services/requests.service';
+import { FileStoreService } from '../../../services/file-store.service';
 import { InvestmentRequest } from '../../../models/request.model';
 
 @Component({
@@ -14,6 +15,7 @@ import { InvestmentRequest } from '../../../models/request.model';
 })
 export class RequestsComponent {
   private requestsService = inject(RequestsService);
+  private fileStoreService = inject(FileStoreService);
 
   tab = signal<'incoming' | 'outgoing'>('incoming');
 
@@ -38,6 +40,10 @@ export class RequestsComponent {
 
   withdraw(request: InvestmentRequest) {
     this.requestsService.withdrawRequest(request);
+  }
+
+  resolveImageUrl(url?: string | null): string {
+    return this.fileStoreService.getPublicUrl(url);
   }
 
   getTimeAgo(date: Date): string {

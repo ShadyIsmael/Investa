@@ -5,7 +5,7 @@
       <div>
         <!-- Post Header -->
         <header class="relative bg-gray-950 text-white pt-32 pb-16 lg:pt-40 lg:pb-24 overflow-hidden">
-          <div class="absolute inset-0 bg-cover bg-center opacity-20" [style.background-image]="'url(' + p.imageUrl + ')'"></div>
+          <div class="absolute inset-0 bg-cover bg-center opacity-20" [style.background-image]="'url(' + resolveImageUrl(p.imageUrl) + ')'"></div>
           <div class="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/80 to-transparent"></div>
           <div class="container mx-auto px-6 relative z-10 text-center animate-fade-in">
             <p class="text-sm font-semibold text-blue-400 uppercase tracking-wider mb-4">{{ p.category }}</p>
@@ -69,7 +69,7 @@
                     <div class="space-y-4">
                       @for(related of relatedPosts(); track related.slug) {
                         <a [routerLink]="['/blog', related.slug]" class="flex items-center gap-4 group">
-                          <img [src]="related.imageUrl" alt="" class="w-20 h-16 object-cover rounded-md flex-shrink-0">
+                          <img [src]="resolveImageUrl(related.imageUrl)" alt="" class="w-20 h-16 object-cover rounded-md flex-shrink-0">
                           <div>
                             <h4 class="font-semibold text-white group-hover:text-blue-400 transition-colors text-sm line-clamp-2">{{ related.titleKey | translate }}</h4>
                             <p class="text-xs text-gray-500">{{ related.publishedDate }}</p>

@@ -876,7 +876,7 @@
                     @if (coverPreview()) {
                       <img [src]="coverPreview()" class="object-cover w-full h-full" />
                     } @else if (investmentForm.get('imageUrl')?.value) {
-                      <img [src]="investmentForm.get('imageUrl')?.value" class="object-cover w-full h-full" />
+                      <img [src]="resolveImageUrl(investmentForm.get('imageUrl')?.value)" class="object-cover w-full h-full" />
                     } @else {
                       <div class="text-slate-500 text-sm">No cover selected</div>
                     }

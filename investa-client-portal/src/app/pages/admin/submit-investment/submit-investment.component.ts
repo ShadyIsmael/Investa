@@ -6,6 +6,7 @@ import { ApiService } from '../../../services/api.service';
 import { NotificationService } from '../../../services/notification.service';
 import { LanguageService } from '../../../services/language.service';
 import { InvestmentService } from '../../../services/investment.service';
+import { FileStoreService } from '../../../services/file-store.service';
 import { CreateInvestmentDto, BusinessCategory, BusinessStage, ProjectPhase } from '../../../models/api-response.model';
 import { InvestmentType, EquityExitType } from '../../../models/investment.model';
 
@@ -64,6 +65,7 @@ export class SubmitInvestmentComponent implements OnInit {
   private notificationService = inject(NotificationService);
   private languageService = inject(LanguageService);
   private cdr = inject(ChangeDetectorRef);
+  private fileStoreService = inject(FileStoreService);
 
   // Form state
   investmentForm!: FormGroup;
@@ -1007,6 +1009,10 @@ export class SubmitInvestmentComponent implements OnInit {
     if (url) URL.revokeObjectURL(url);
     this.coverPreview.set(null);
     this.coverFile = null;
+  }
+
+  resolveImageUrl(url?: string | null): string {
+    return this.fileStoreService.getPublicUrl(url);
   }
 
   onGallerySelected(event: Event): void {

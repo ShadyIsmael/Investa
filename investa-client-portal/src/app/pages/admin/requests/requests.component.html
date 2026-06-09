@@ -68,7 +68,7 @@
             <div class="flex items-start gap-4">
               <!-- Project image -->
               <div class="relative flex-shrink-0">
-                <img [src]="request.projectImageUrl" alt="project"
+                <img [src]="resolveImageUrl(request.projectImageUrl)" alt="project"
                      class="w-14 h-14 rounded-xl object-cover ring-2 ring-slate-700 group-hover:ring-slate-500 transition-all">
               </div>
 
@@ -163,7 +163,7 @@
           <div class="p-5">
             <div class="flex items-start gap-4">
               <div class="relative flex-shrink-0">
-                <img [src]="request.projectImageUrl" alt="project"
+                <img [src]="resolveImageUrl(request.projectImageUrl)" alt="project"
                      class="w-14 h-14 rounded-xl object-cover ring-2 ring-slate-700 group-hover:ring-slate-500 transition-all">
               </div>
 

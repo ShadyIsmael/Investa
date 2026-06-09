@@ -7,6 +7,7 @@ import { CtaComponent } from '../../components/cta/cta.component';
 import { BlogService, BlogPost, BlogPostContent } from '../../services/blog.service';
 import { TranslatePipe } from '../../pipes/translate.pipe';
 import { LanguageService } from '../../services/language.service';
+import { FileStoreService } from '../../services/file-store.service';
 import { get } from 'lodash-es';
 
 @Component({
@@ -27,6 +28,7 @@ export class BlogPostPageComponent {
   private route: ActivatedRoute = inject(ActivatedRoute);
   private blogService = inject(BlogService);
   private languageService = inject(LanguageService);
+  private fileStoreService = inject(FileStoreService);
   
   post = signal<BlogPost | undefined>(undefined);
   relatedPosts = signal<BlogPost[]>([]);
@@ -61,5 +63,9 @@ export class BlogPostPageComponent {
         window.scrollTo(0, 0);
       }
     });
+  }
+
+  resolveImageUrl(url?: string | null): string {
+    return this.fileStoreService.getPublicUrl(url);
   }
 }
