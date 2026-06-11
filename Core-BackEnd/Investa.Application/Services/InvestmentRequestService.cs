@@ -15,19 +15,22 @@ public class InvestmentRequestService : IInvestmentRequestService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICreditService _creditService;
     private readonly INotificationService _notificationService;
+    private readonly IChatService _chatService;
     private readonly IMapper _mapper;
     private readonly ILogger<InvestmentRequestService> _logger;
 
     public InvestmentRequestService(
         IUnitOfWork unitOfWork, 
         ICreditService creditService, 
-        INotificationService notificationService, 
+        INotificationService notificationService,
+        IChatService chatService,
         IMapper mapper,
         ILogger<InvestmentRequestService> logger)
     {
         _unitOfWork = unitOfWork;
         _creditService = creditService;
         _notificationService = notificationService;
+        _chatService = chatService;
         _mapper = mapper;
         _logger = logger;
     }
@@ -48,6 +51,19 @@ public class InvestmentRequestService : IInvestmentRequestService
         if (client == null && user == null)
         {
             throw new InvalidOperationException("Investor account not found");
+        }
+
+        // Check for existing pending request for same investor and investment
+        var existingRequest = (await _unitOfWork.Repository<InvestmentRequest>()
+            .FindAsync(r => r.InvestmentId == dto.InvestmentId 
+                        && r.InvestorId == investorId 
+                        && r.Status == InvestmentRequestStatus.Pending))
+            .FirstOrDefault();
+
+        if (existingRequest != null)
+        {
+            _logger.LogWarning("Investor {InvestorId} already has a pending request for investment {InvestmentId}", investorId, dto.InvestmentId);
+            throw new InvalidOperationException("You already have a pending request for this investment");
         }
 
         var availableCredit = client?.Credit ?? user?.WalletBalance ?? 0m;
@@ -335,6 +351,26 @@ public class InvestmentRequestService : IInvestmentRequestService
         }
 
         await _unitOfWork.SaveChangesAsync();
+
+        // Create chat between founder and investor
+        try
+        {
+            var investment = await _unitOfWork.Repository<Investment>().GetByIdAsync(request.InvestmentId);
+            var investmentName = investment?.BusinessName ?? "Investment";
+            
+            var conversation = await _chatService.CreateConversationAsync(
+                request.FounderId,
+                request.InvestorId,
+                $"Investment: {investmentName}"
+            );
+            
+            _logger.LogInformation("Chat {ConversationId} created for approved request {RequestId}", conversation.Id, requestId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to create chat for approved request {RequestId}", requestId);
+            // Don't fail the approval if chat creation fails
+        }
 
         // Send notification to investor
         try

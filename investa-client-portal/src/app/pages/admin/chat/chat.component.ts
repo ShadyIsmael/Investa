@@ -1,15 +1,19 @@
-import { Component, ChangeDetectionStrategy, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
+import { API_BASE } from '../../../config/api.token';
 
 interface Contact {
-  id: number;
+  id: string;
   name: string;
   avatarUrl: string;
   lastMessage: string;
   timestamp: string;
   online: boolean;
+  otherUserId?: string;
 }
 
 interface MessageFile {
@@ -19,8 +23,8 @@ interface MessageFile {
 }
 
 interface Message {
-  id: number;
-  contactId: number;
+  id: string;
+  senderId: string;
   text?: string;
   file?: MessageFile;
   timestamp: string;
@@ -35,26 +39,15 @@ interface Message {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, ReactiveFormsModule, TranslatePipe]
 })
-export class ChatComponent {
-  contacts = signal<Contact[]>([
-    { id: 1, name: 'Sarah J.', avatarUrl: 'https://picsum.photos/seed/person1/100/100', lastMessage: 'Thanks for the tip on Quantum Leap AI!', timestamp: '10:30 AM', online: true },
-    { id: 2, name: 'Michael B.', avatarUrl: 'https://picsum.photos/seed/person2/100/100', lastMessage: 'Let\'s discuss the portfolio strategy tomorrow.', timestamp: 'Yesterday', online: false },
-    { id: 3, name: 'Jessica L.', avatarUrl: 'https://picsum.photos/seed/person3/100/100', lastMessage: 'The new bot is performing well.', timestamp: '9:15 AM', online: true },
-    { id: 4, name: 'EcoVest', avatarUrl: 'https://picsum.photos/seed/author2/100/100', lastMessage: 'See attached report for Green Energy Bonds.', timestamp: 'Monday', online: false },
-    { id: 5, name: 'Chain Analytics', avatarUrl: 'https://picsum.photos/seed/author3/100/100', lastMessage: 'DeFi ChainLink update is live.', timestamp: '11:45 AM', online: true },
-  ]);
+export class ChatComponent implements OnInit {
+  private http = inject(HttpClient);
+  private apiBase = inject(API_BASE);
 
-  messages = signal<Message[]>([
-    { id: 1, contactId: 1, text: 'Hey, just wanted to follow up on our last conversation.', timestamp: '10:28 AM', isSender: false },
-    { id: 2, contactId: 1, text: 'Absolutely. I\'ve been looking at the projections.', timestamp: '10:29 AM', isSender: true },
-    { id: 3, contactId: 1, text: 'Thanks for the tip on Quantum Leap AI!', timestamp: '10:30 AM', isSender: false },
-    { id: 4, contactId: 2, text: 'Let\'s discuss the portfolio strategy tomorrow.', timestamp: 'Yesterday', isSender: false },
-    { id: 5, contactId: 3, text: 'How is the new automated trading bot performing?', timestamp: '9:14 AM', isSender: true },
-    { id: 6, contactId: 3, text: 'The new bot is performing well.', timestamp: '9:15 AM', isSender: false },
-    { id: 7, contactId: 5, text: 'DeFi ChainLink update is live.', timestamp: '11:45 AM', isSender: false },
-  ]);
+  contacts = signal<Contact[]>([]);
+  messages = signal<Message[]>([]);
+  loading = signal(true);
   
-  selectedContact = signal<Contact | null>(this.contacts()[0]);
+  selectedContact = signal<Contact | null>(null);
   attachedFile = signal<File | null>(null);
   
   messageControl = new FormControl('');
@@ -64,14 +57,65 @@ export class ChatComponent {
     if (!contact) {
       return [];
     }
-    return this.messages().filter(m => m.contactId === contact.id);
+    return this.messages().filter(m => m.senderId !== 'system'); // Filter system messages
   });
+
+  async ngOnInit() {
+    await this.loadConversations();
+  }
+
+  private async loadConversations() {
+    try {
+      this.loading.set(true);
+      const response = await firstValueFrom(this.http.get<any>(`${this.apiBase}/api/conversations`, this.getHttpOptions()));
+      
+      const contacts: Contact[] = response.map((conv: any) => ({
+        id: conv.id,
+        name: conv.otherUserName || conv.title || 'Unknown',
+        avatarUrl: 'https://picsum.photos/seed/person1/100/100',
+        lastMessage: 'Start a conversation',
+        timestamp: new Date(conv.createdAt).toLocaleDateString(),
+        online: false,
+        otherUserId: conv.otherUserId
+      }));
+
+      this.contacts.set(contacts);
+      
+      if (contacts.length > 0) {
+        this.selectContact(contacts[0]);
+      }
+    } catch (error) {
+      console.error('Failed to load conversations:', error);
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  private async loadMessages(conversationId: string) {
+    try {
+      const response = await firstValueFrom(this.http.get<any>(`${this.apiBase}/api/conversations/${conversationId}/messages`, this.getHttpOptions()));
+      
+      const userId = localStorage.getItem('userId');
+      const messages: Message[] = response.map((msg: any) => ({
+        id: msg.id,
+        senderId: msg.senderId,
+        text: msg.text,
+        timestamp: new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isSender: msg.senderId === userId
+      }));
+
+      this.messages.set(messages);
+    } catch (error) {
+      console.error('Failed to load messages:', error);
+    }
+  }
 
   selectContact(contact: Contact) {
     this.selectedContact.set(contact);
+    this.loadMessages(contact.id);
   }
 
-  sendMessage() {
+  async sendMessage() {
     const text = this.messageControl.value?.trim();
     const file = this.attachedFile();
     const contact = this.selectedContact();
@@ -80,28 +124,28 @@ export class ChatComponent {
         return;
     }
 
-    const newMessage: Message = {
-        id: this.messages().length + 1,
-        contactId: contact.id,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isSender: true,
-    };
+    try {
+      const response = await firstValueFrom(this.http.post<any>(
+        `${this.apiBase}/api/conversations/${contact.id}/messages`,
+        { text: text || '' },
+        this.getHttpOptions()
+      ));
 
-    if (text) {
-        newMessage.text = text;
+      const userId = localStorage.getItem('userId');
+      const newMessage: Message = {
+        id: response.id,
+        senderId: response.senderId,
+        text: response.text,
+        timestamp: new Date(response.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isSender: response.senderId === userId
+      };
+
+      this.messages.update(msgs => [...msgs, newMessage]);
+      this.messageControl.setValue('');
+      this.attachedFile.set(null);
+    } catch (error) {
+      console.error('Failed to send message:', error);
     }
-
-    if (file) {
-        newMessage.file = {
-            name: file.name,
-            size: file.size,
-            type: file.type
-        };
-    }
-
-    this.messages.update(msgs => [...msgs, newMessage]);
-    this.messageControl.setValue('');
-    this.attachedFile.set(null);
   }
 
   onFileSelected(event: Event) {
@@ -130,5 +174,15 @@ export class ChatComponent {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  private getHttpOptions() {
+    const token = localStorage.getItem('accessToken');
+    return {
+      headers: new HttpHeaders({
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      })
+    };
   }
 }

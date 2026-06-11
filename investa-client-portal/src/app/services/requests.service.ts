@@ -185,12 +185,11 @@ export class RequestsService {
 
   /**
    * Decline an incoming investment request
-   * Should call API and potentially refund credits to investor
+   * Calls API to update request status and refund credits to investor
    */
   async declineRequest(request: InvestmentRequest): Promise<void> {
     try {
-      // TODO: Implement API call
-      // await firstValueFrom(this.http.put(`${this.apiBase}/api/investment-requests/${request.id}/decline`, {}, this.getHttpOptions()));
+      await firstValueFrom(this.http.put(`${this.apiBase}/api/investment-requests/${request.id}/reject`, {}, this.getHttpOptions()));
       
       this._incoming.update(list => list.map(r => r.id === request.id ? { ...r, status: 'Declined' } : r));
       this.notifications.showToast({ 

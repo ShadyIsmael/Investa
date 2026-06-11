@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:dio/dio.dart';
+import '../config/env.dart';
 
 class RequestItem {
   final String id;
@@ -27,6 +29,9 @@ class RequestItem {
 enum RequestStatus { pending, accepted, declined, canceled }
 
 class RequestsService {
+  final Dio _dio = Dio();
+  final String _baseUrl = Env.apiBaseUrl;
+
   // In-memory mock lists.
   final List<RequestItem> _income = [
     RequestItem(
@@ -69,23 +74,41 @@ class RequestsService {
   }
 
   Future<void> acceptRequest(String id) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    final it = _income.firstWhere((e) => e.id == id,
-        orElse: () => throw StateError('Not found'));
-    it.status = RequestStatus.accepted;
+    try {
+      final response = await _dio.put('$_baseUrl/api/investment-requests/$id/approve');
+      
+      // Update local state after successful API call
+      final it = _income.firstWhere((e) => e.id == id,
+          orElse: () => throw StateError('Not found'));
+      it.status = RequestStatus.accepted;
+    } catch (e) {
+      throw Exception('Failed to accept request: $e');
+    }
   }
 
   Future<void> declineRequest(String id) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    final it = _income.firstWhere((e) => e.id == id,
-        orElse: () => throw StateError('Not found'));
-    it.status = RequestStatus.declined;
+    try {
+      final response = await _dio.put('$_baseUrl/api/investment-requests/$id/reject');
+      
+      // Update local state after successful API call
+      final it = _income.firstWhere((e) => e.id == id,
+          orElse: () => throw StateError('Not found'));
+      it.status = RequestStatus.declined;
+    } catch (e) {
+      throw Exception('Failed to decline request: $e');
+    }
   }
 
   Future<void> cancelRequest(String id) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    final it = _outcome.firstWhere((e) => e.id == id,
-        orElse: () => throw StateError('Not found'));
-    it.status = RequestStatus.canceled;
+    try {
+      final response = await _dio.delete('$_baseUrl/api/investment-requests/$id');
+      
+      // Update local state after successful API call
+      final it = _outcome.firstWhere((e) => e.id == id,
+          orElse: () => throw StateError('Not found'));
+      it.status = RequestStatus.canceled;
+    } catch (e) {
+      throw Exception('Failed to cancel request: $e');
+    }
   }
 }
