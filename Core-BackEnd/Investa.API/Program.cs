@@ -557,6 +557,7 @@ static void RegisterApplicationServices(IServiceCollection services)
     services.AddScoped<IInvestmentEventService, InvestmentEventService>();
     services.AddScoped<ILookupService, LookupService>();
     services.AddScoped<IInvestmentRequestService, InvestmentRequestService>();
+    services.AddScoped<IInvestmentAnalyticsService, InvestmentAnalyticsService>();
     services.AddScoped<IScoreService, ScoreService>();
     services.AddScoped<ITrustService, TrustService>();
     services.AddScoped<ICreditService, CreditService>();

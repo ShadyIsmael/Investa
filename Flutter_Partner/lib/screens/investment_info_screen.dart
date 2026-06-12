@@ -948,23 +948,52 @@ class _InvestmentInfoScreenState extends State<InvestmentInfoScreen> {
                   ])),
               child: SafeArea(
                 top: false,
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _handleInvest,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.colorScheme.primary,
-                      foregroundColor: Colors.white,
-                      elevation: 8,
-                      shadowColor:
-                          theme.colorScheme.primary.withOpacityCompat(0.4),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
-                    ),
-                    child: Text('Invest Now',
-                        style: GoogleFonts.outfit(
-                            fontSize: 18, fontWeight: FontWeight.bold)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Two-card UI section
+                      Row(
+                        children: [
+                          // Contact Founder Card
+                          Expanded(
+                            child: _buildActionCard(
+                              context,
+                              icon: Icons.chat_bubble_outline,
+                              title: 'Contact Founder',
+                              description: 'Need more information? Want to discuss details with the founder?',
+                              buttonText: 'Send Request',
+                              onPressed: () => _handleContactFounder(),
+                              gradient: LinearGradient(
+                                colors: [
+                                  theme.colorScheme.primary.withOpacity(0.8),
+                                  theme.colorScheme.primary.withOpacity(0.6),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          // Invest Now Card
+                          Expanded(
+                            child: _buildActionCard(
+                              context,
+                              icon: Icons.rocket_launch,
+                              title: 'Invest Now',
+                              description: 'Ready to move forward? Indicate your serious investment interest immediately.',
+                              buttonText: 'Invest Now',
+                              onPressed: () => _handleInvestNow(),
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.purple.withOpacity(0.8),
+                                  Colors.pink.withOpacity(0.6),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -973,6 +1002,144 @@ class _InvestmentInfoScreenState extends State<InvestmentInfoScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildActionCard(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String description,
+    required String buttonText,
+    required VoidCallback onPressed,
+    required Gradient gradient,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+              : [Colors.white, const Color(0xFFF9FAFB)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.outline.withOpacity(isDark ? 0.15 : 0.08),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.primary.withOpacity(0.08),
+            offset: const Offset(0, 4),
+            blurRadius: 16,
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Icon
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              gradient: gradient,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: Colors.white, size: 24),
+          ),
+          const SizedBox(height: 12),
+          // Title
+          Text(
+            title,
+            style: GoogleFonts.outfit(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Description
+          Text(
+            description,
+            style: GoogleFonts.dmSans(
+              fontSize: 12,
+              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Button
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: ElevatedButton(
+              onPressed: onPressed,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: gradient.colors.first,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: Text(
+                buttonText,
+                style: GoogleFonts.outfit(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleContactFounder() {
+    // Use existing engagement workflow
+    _handleInvest();
+  }
+
+  void _handleInvestNow() {
+    // Show type-aware Invest Now form
+    _showInvestNowDialog();
+  }
+
+  void _showInvestNowDialog() {
+    final item = widget.item;
+    final investmentType = _getInvestmentType(item);
+    
+    showDialog(
+      context: context,
+      builder: (context) => _InvestNowDialog(
+        investment: item,
+        investmentType: investmentType,
+        onSubmit: (data) {
+          // UX validation only - no backend persistence
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Interest submitted (UX validation only)'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  String _getInvestmentType(Map<String, dynamic> item) {
+    final type = item['investmentType']?.toString().toLowerCase() ?? 
+                  item['type']?.toString().toLowerCase() ?? 
+                  'equity';
+    return type;
   }
 
   Widget _buildTag(String text, ThemeData theme) {
@@ -1448,5 +1615,638 @@ class _RoundIconButton extends StatelessWidget {
                 : theme.disabledColor),
       ),
     );
+  }
+}
+
+class _InvestNowDialog extends StatefulWidget {
+  final Map<String, dynamic> investment;
+  final String investmentType;
+  final Function(Map<String, dynamic>) onSubmit;
+
+  const _InvestNowDialog({
+    required this.investment,
+    required this.investmentType,
+    required this.onSubmit,
+  });
+
+  @override
+  State<_InvestNowDialog> createState() => _InvestNowDialogState();
+}
+
+class _InvestNowDialogState extends State<_InvestNowDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _sharesController = TextEditingController(text: '1');
+  final _participationAmountController = TextEditingController();
+  final _fundingAmountController = TextEditingController();
+  final _interestMessageController = TextEditingController();
+
+  @override
+  void dispose() {
+    _sharesController.dispose();
+    _participationAmountController.dispose();
+    _fundingAmountController.dispose();
+    _interestMessageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark
+                ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+                : [Colors.white, const Color(0xFFF9FAFB)],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: theme.colorScheme.outline.withOpacity(isDark ? 0.15 : 0.08),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.purple.withOpacity(0.1),
+                    Colors.pink.withOpacity(0.1),
+                  ],
+                ),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.purple.withOpacity(0.8),
+                          Colors.pink.withOpacity(0.6),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.rocket_launch, color: Colors.white, size: 24),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Invest Now',
+                          style: GoogleFonts.outfit(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                        ),
+                        Text(
+                          widget.investment['businessName'] ?? widget.investment['title'] ?? 'Investment',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 12,
+                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                ],
+              ),
+            ),
+            // Body
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Form(
+                  key: _formKey,
+                  child: _buildFormContent(context, theme),
+                ),
+              ),
+            ),
+            // Footer
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(20),
+                  bottomRight: Radius.circular(20),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: GoogleFonts.outfit(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _handleSubmit,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.purple,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'Submit Interest',
+                        style: GoogleFonts.outfit(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFormContent(BuildContext context, ThemeData theme) {
+    switch (widget.investmentType.toLowerCase()) {
+      case 'equity':
+        return _buildEquityForm(context, theme);
+      case 'revenuesharing':
+      case 'revenue_sharing':
+        return _buildRevenueSharingForm(context, theme);
+      case 'loan':
+        return _buildLoanForm(context, theme);
+      case 'foundingpartner':
+      case 'founding_partner':
+        return _buildFoundingPartnerForm(context, theme);
+      default:
+        return _buildEquityForm(context, theme);
+    }
+  }
+
+  Widget _buildEquityForm(BuildContext context, ThemeData theme) {
+    final sharePrice = _parseDouble(widget.investment['sharePrice'] ?? widget.investment['share_price']);
+    final availableShares = _parseInt(widget.investment['availableShares'] ?? widget.investment['available_shares']);
+    final currency = widget.investment['currency']?.toString() ?? r'$';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Info Cards
+        Row(
+          children: [
+            Expanded(
+              child: _infoCard(context, 'Share Price', '$currency${sharePrice.toStringAsFixed(2)}', Icons.attach_money),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _infoCard(context, 'Available Shares', '$availableShares', Icons.inventory_2),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        // Shares Input
+        Text(
+          'Number Of Shares',
+          style: GoogleFonts.outfit(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _sharesController,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            hintText: 'Enter number of shares',
+          ),
+          style: GoogleFonts.outfit(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.onSurface,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 20),
+        // Calculated Total
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.purple.withOpacity(0.1),
+                Colors.pink.withOpacity(0.1),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.purple.withOpacity(0.3),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Calculated Total',
+                style: GoogleFonts.outfit(
+                  fontSize: 14,
+                  color: theme.colorScheme.onSurface.withOpacity(0.8),
+                ),
+              ),
+              Text(
+                '$currency${(double.tryParse(_sharesController.text) ?? 1) * sharePrice}',
+                style: GoogleFonts.outfit(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.purple,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRevenueSharingForm(BuildContext context, ThemeData theme) {
+    final revenueShare = _parseDouble(widget.investment['revenueSharePercentage'] ?? 0);
+    final targetAmount = _parseDouble(widget.investment['targetAmount'] ?? 0);
+    final currency = widget.investment['currency']?.toString() ?? r'$';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _infoCard(context, 'Revenue Share %', '${revenueShare.toStringAsFixed(1)}%', Icons.percent),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _infoCard(context, 'Target Amount', '$currency${targetAmount.toStringAsFixed(0)}', Icons.target),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'Desired Participation Amount',
+          style: GoogleFonts.outfit(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _participationAmountController,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            hintText: 'Enter participation amount',
+            prefixText: '$currency ',
+          ),
+        ),
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.purple.withOpacity(0.1),
+                Colors.pink.withOpacity(0.1),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.purple.withOpacity(0.3),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Expected Revenue Share',
+                style: GoogleFonts.outfit(
+                  fontSize: 14,
+                  color: theme.colorScheme.onSurface.withOpacity(0.8),
+                ),
+              ),
+              Text(
+                '$currency${(double.tryParse(_participationAmountController.text) ?? 0) * (revenueShare / 100)}',
+                style: GoogleFonts.outfit(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.purple,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLoanForm(BuildContext context, ThemeData theme) {
+    final loanAmount = _parseDouble(widget.investment['loanAmount'] ?? 0);
+    final interestRate = _parseDouble(widget.investment['interestRate'] ?? 0);
+    final duration = _parseInt(widget.investment['duration'] ?? 0);
+    final currency = widget.investment['currency']?.toString() ?? r'$';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _infoCard(context, 'Loan Amount', '$currency${loanAmount.toStringAsFixed(0)}', Icons.account_balance),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _infoCard(context, 'Interest', '${interestRate.toStringAsFixed(1)}%', Icons.trending_up),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _infoCard(context, 'Duration', '${duration}mo', Icons.schedule),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'Desired Funding Amount',
+          style: GoogleFonts.outfit(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _fundingAmountController,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            hintText: 'Enter funding amount',
+            prefixText: '$currency ',
+          ),
+        ),
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.purple.withOpacity(0.1),
+                Colors.pink.withOpacity(0.1),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.purple.withOpacity(0.3),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Expected Interest',
+                style: GoogleFonts.outfit(
+                  fontSize: 14,
+                  color: theme.colorScheme.onSurface.withOpacity(0.8),
+                ),
+              ),
+              Text(
+                '$currency${(double.tryParse(_fundingAmountController.text) ?? 0) * (interestRate / 100)}',
+                style: GoogleFonts.outfit(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.purple,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFoundingPartnerForm(BuildContext context, ThemeData theme) {
+    final requiredSkills = widget.investment['requiredSkills'] ?? 'Not specified';
+    final expectations = widget.investment['expectations'] ?? 'Not specified';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Required Skills',
+                style: GoogleFonts.outfit(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                requiredSkills,
+                style: GoogleFonts.dmSans(
+                  fontSize: 14,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Expectations',
+                style: GoogleFonts.outfit(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                expectations,
+                style: GoogleFonts.dmSans(
+                  fontSize: 14,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'Interest Message',
+          style: GoogleFonts.outfit(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _interestMessageController,
+          maxLines: 4,
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            hintText: 'Describe your interest and relevant experience...',
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _infoCard(BuildContext context, String title, String value, IconData icon) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: theme.colorScheme.primary),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: GoogleFonts.dmSans(
+              fontSize: 10,
+              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: GoogleFonts.outfit(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleSubmit() {
+    final data = <String, dynamic>{};
+    
+    switch (widget.investmentType.toLowerCase()) {
+      case 'equity':
+        data['shares'] = int.tryParse(_sharesController.text) ?? 1;
+        break;
+      case 'revenuesharing':
+      case 'revenue_sharing':
+        data['participationAmount'] = double.tryParse(_participationAmountController.text) ?? 0;
+        break;
+      case 'loan':
+        data['fundingAmount'] = double.tryParse(_fundingAmountController.text) ?? 0;
+        break;
+      case 'foundingpartner':
+      case 'founding_partner':
+        data['interestMessage'] = _interestMessageController.text;
+        break;
+    }
+    
+    widget.onSubmit(data);
+  }
+
+  double _parseDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
+
+  int _parseInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
   }
 }

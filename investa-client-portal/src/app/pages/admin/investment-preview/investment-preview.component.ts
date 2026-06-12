@@ -10,6 +10,7 @@ import { LanguageService } from '../../../services/language.service';
 import { RequestsService } from '../../../services/requests.service';
 import { UserService } from '../../../services/user.service';
 import { FileStoreService } from '../../../services/file-store.service';
+import { AnalyticsService } from '../../../services/analytics.service';
 import { get } from 'lodash-es';
 
 /**
@@ -43,6 +44,7 @@ export class InvestmentPreviewComponent {
   private requestsService = inject(RequestsService);
   private userService = inject(UserService);
   private fileStoreService = inject(FileStoreService);
+  private analyticsService = inject(AnalyticsService);
 
   protected readonly RiskLevel = RiskLevel;
   protected readonly InvestmentType = InvestmentType;
@@ -88,6 +90,19 @@ export class InvestmentPreviewComponent {
   engagementConfirmationOpen = signal(false);
   engagementProcessing = signal(false);
 
+  // Invest Now form data
+  investNowForm = signal<{
+    shares: number;
+    participationAmount: number;
+    fundingAmount: number;
+    interestMessage: string;
+  }>({
+    shares: 1,
+    participationAmount: 0,
+    fundingAmount: 0,
+    interestMessage: ''
+  });
+
   constructor() {
     this.loadInvestment();
   }
@@ -108,6 +123,15 @@ export class InvestmentPreviewComponent {
     try {
       const inv = await this.investmentService.getInvestmentById(id);
       this.investment.set(inv);
+      
+      // Record view for analytics
+      try {
+        this.analyticsService.recordView(id).subscribe();
+      } catch (err) {
+        // Don't block main functionality if analytics fails
+        console.warn('Failed to record view:', err);
+      }
+      
       // Load founder avatar if founderId present
       try {
         if (inv?.founderId) {
@@ -259,7 +283,8 @@ try {
   }
 
   /**
-   * Open invest dialog for equity, or engagement for funding
+   * Open invest dialog for all investment types (UX validation only)
+   * This is a UX flow only - no backend persistence
    */
   async promptInvest(investment: Investment): Promise < void> {
   // Refresh profile first so credits are up-to-date
@@ -269,22 +294,17 @@ try {
     console.warn('Failed to refresh user before invest dialog:', err);
   }
 
-    // Show user info
-    const user = this.userService.user();
-  if(user) {
-    this.notificationService.showToast({
-      title: 'User Information',
-      message: `User ID: ${user.userId} | Credits: ${this.userCredits()}`,
-      type: 'info'
-    });
-  }
+    // Reset form data
+    this.investNowForm.update(form => ({
+      ...form,
+      shares: 1,
+      participationAmount: 0,
+      fundingAmount: 0,
+      interestMessage: ''
+    }));
 
-    if(investment.investmentType === InvestmentType.Equity) {
-  this.sharesToPurchaseValue = 1;
-  this.investmentToInvest.set(investment);
-} else {
-  await this.promptEngage(investment);
-}
+    // Open invest dialog for all investment types
+    this.investmentToInvest.set(investment);
   }
 
 closeInvestDialog(): void {
@@ -292,6 +312,16 @@ closeInvestDialog(): void {
   this.investmentError.set(null);
   this.investmentProcessing.set(false);
   this.sharesToPurchaseValue = 1;
+}
+
+submitInvestNow(investment: Investment): void {
+  // UX validation only - no backend persistence
+  this.notificationService.showToast({
+    title: 'Interest Submitted',
+    message: 'Your investment interest has been recorded (UX validation only)',
+    type: 'success'
+  });
+  this.closeInvestDialog();
 }
 
 increaseShares(investment: Investment): void {
@@ -428,6 +458,14 @@ if (currentCredits < this.engagementCreditCost) {
 this.engagementProcessing.set(true);
 
 try {
+  // Record learn more for analytics
+  try {
+    this.analyticsService.recordLearnMore(investment.id).subscribe();
+  } catch (err) {
+    // Don't block main functionality if analytics fails
+    console.warn('Failed to record learn more:', err);
+  }
+
   await this.requestsService.createInvestmentRequest(investment, this.engagementCreditCost, 0);
   const { title, message } = this.getRequestSubmittedCopy(investment);
   this.notificationService.showToast({ title, message, type: 'success' });

@@ -132,6 +132,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
     public DbSet<NotificationTemplate> NotificationTemplates { get; set; }
     public DbSet<UserNotification> UserNotifications { get; set; }
 
+    // Analytics tracking entities
+    public DbSet<InvestmentView> InvestmentViews { get; set; }
+    public DbSet<InvestmentLearnMore> InvestmentLearnMores { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -275,6 +279,34 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
                .HasForeignKey(x => x.InvestorId)
                .OnDelete(DeleteBehavior.Cascade);
             fav.HasOne(x => x.Investment)
+               .WithMany()
+               .HasForeignKey(x => x.InvestmentId)
+               .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Investment views tracking for analytics
+        modelBuilder.Entity<InvestmentView>(iv =>
+        {
+            iv.HasKey(x => x.Id);
+            iv.Property(x => x.ViewedAt).HasDefaultValueSql("GETUTCDATE()");
+            iv.HasIndex(x => x.InvestmentId);
+            iv.HasIndex(x => x.ViewedAt);
+            iv.HasIndex(x => x.UserId);
+            iv.HasOne(x => x.Investment)
+               .WithMany()
+               .HasForeignKey(x => x.InvestmentId)
+               .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Investment learn more tracking for analytics
+        modelBuilder.Entity<InvestmentLearnMore>(ilm =>
+        {
+            ilm.HasKey(x => x.Id);
+            ilm.Property(x => x.OpenedAt).HasDefaultValueSql("GETUTCDATE()");
+            ilm.HasIndex(x => x.InvestmentId);
+            ilm.HasIndex(x => x.OpenedAt);
+            ilm.HasIndex(x => x.UserId);
+            ilm.HasOne(x => x.Investment)
                .WithMany()
                .HasForeignKey(x => x.InvestmentId)
                .OnDelete(DeleteBehavior.Cascade);

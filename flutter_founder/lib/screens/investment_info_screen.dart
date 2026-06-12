@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../services/investments_service.dart';
 import '../services/secure_storage.dart';
+import '../services/analytics_service.dart';
 
 // A small set of public test images (Unsplash) used when no images available.
 const List<String> _kTestImages = [
@@ -35,6 +36,7 @@ class _InvestmentInfoScreenState extends State<InvestmentInfoScreen> {
   List<String> _images = [];
   bool _isOwner = false;
   final _investmentsService = InvestmentsService();
+  final _analyticsService = AnalyticsService();
   final ImagePicker _picker = ImagePicker();
 
   @override
@@ -42,6 +44,7 @@ class _InvestmentInfoScreenState extends State<InvestmentInfoScreen> {
     super.initState();
     _fav = widget.item['isFavorite'] as bool? ?? false;
     _initImageState();
+    _recordView();
   }
 
   Future<void> _initImageState() async {
@@ -66,6 +69,18 @@ class _InvestmentInfoScreenState extends State<InvestmentInfoScreen> {
       setState(
           () => _isOwner = (uid != null && uid.isNotEmpty && uid == founder));
     } catch (_) {}
+  }
+
+  Future<void> _recordView() async {
+    final investmentId = widget.item['id'];
+    if (investmentId != null) {
+      try {
+        await _analyticsService.recordView(investmentId as int);
+      } catch (e) {
+        // Don't block main functionality if analytics fails
+        print('Failed to record view: $e');
+      }
+    }
   }
 
   @override
