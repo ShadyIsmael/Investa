@@ -146,3 +146,6 @@ Core-BackEnd/conversion_results.txt
 Core-BackEnd/indexes.txt
 Core-BackEnd/diagnose_*.sql
 Core-BackEnd/check_*.sql
+Flutter_Partner/android/.gradle/buildOutputCleanup/buildOutputCleanup.lock
+Flutter_Partner/android/.gradle/buildOutputCleanup/buildOutputCleanup.lock
+Flutter_Partner/android/.gradle/8.10.2/fileHashes/fileHashes.lock

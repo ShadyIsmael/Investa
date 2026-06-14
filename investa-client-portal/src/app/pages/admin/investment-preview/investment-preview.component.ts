@@ -76,6 +76,27 @@ export class InvestmentPreviewComponent {
     }
   }
 
+  /** Founder actions */
+  openContactFounder(investment: Investment): void {
+    // This matches the existing engagement request flow
+    void this.promptEngage(investment);
+  }
+
+  openInvestNow(investment: Investment): void {
+    // Matches the existing invest dialog flow
+    void this.promptInvest(investment);
+  }
+
+  openFounderProfile(investment: Investment): void {
+    if (!investment?.founderId) return;
+    try {
+      this.router.navigate(['/admin/founders', investment.founderId]);
+    } catch (err) {
+      console.error('Navigation error:', err);
+      this.notificationService.showToast({ title: 'Navigation error', message: 'Unable to open founder profile', type: 'error' });
+    }
+  }
+
   investment = signal<Investment | null>(null);
   // Cache of founder avatar URLs by userId
   founderAvatarCache = signal<Record<string, string>>({});
@@ -546,14 +567,59 @@ getProjectStages(): string[] {
  * Maps projectPhaseId (6-11) to stage index (0-5)
  */
 getCurrentStageIndex(): number {
-  const inv = this.investment();
-  if (!inv || inv.projectPhaseId === undefined || inv.projectPhaseId === null) {
-    return 0;
+    const inv = this.investment();
+    if (!inv || inv.projectPhaseId === undefined || inv.projectPhaseId === null) {
+      return 0;
+    }
+
+    // projectPhaseId ranges from 6 to 11 (6 phases total)
+    // Map to index 0-5
+    const index = inv.projectPhaseId - 6;
+    return Math.max(0, Math.min(5, index));
   }
 
-  // projectPhaseId ranges from 6 to 11 (6 phases total)
-  // Map to index 0-5
-  const index = inv.projectPhaseId - 6;
-  return Math.max(0, Math.min(5, index));
-}
+  /**
+   * Get founder's total opportunities count
+   */
+  getFounderTotalOpportunities(): number {
+    const inv = this.investment();
+    // Use investorCount as a proxy for total opportunities for now
+    return inv?.investorCount || 0;
+  }
+
+  /**
+   * Get founder's active opportunities count
+   */
+  getFounderActiveOpportunities(): number {
+    const inv = this.investment();
+    return inv?.investorCount || 0;
+  }
+
+/**
+    * Check if investment type is Equity
+    */
+  isEquity(inv: Investment | null): boolean {
+    return inv?.investmentType === InvestmentType.Equity;
+  }
+
+   /**
+    * Check if investment type is Revenue Sharing
+    */
+   isRevenueSharing(inv: Investment | null): boolean {
+     return inv?.investmentType === InvestmentType.RevenueSharing;
+   }
+
+  /**
+   * Check if investment type is Loan
+   */
+  isLoan(inv: Investment | null): boolean {
+    return inv?.investmentType === InvestmentType.Loan;
+  }
+
+  /**
+   * Check if investment type is Founding
+   */
+  isFounding(inv: Investment | null): boolean {
+    return inv?.investmentType === InvestmentType.Founding;
+  }
 }
