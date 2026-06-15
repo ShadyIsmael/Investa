@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
 import { RequestsService } from '../../../services/requests.service';
 import { FileStoreService } from '../../../services/file-store.service';
-import { InvestmentRequest } from '../../../models/request.model';
+import { InvestmentRequest, InvestmentRequestType } from '../../../models/request.model';
 
 @Component({
   standalone: true,
@@ -61,5 +61,65 @@ export class RequestsComponent {
     interval = seconds / 60;
     if (interval > 1) { const minutes = Math.floor(interval); return `${minutes} minute${minutes > 1 ? 's' : ''} ago`; }
     return `${Math.floor(seconds)} second${seconds > 1 ? 's' : ''} ago`;
+  }
+
+  /**
+   * Get display text for request type
+   */
+  getRequestTypeDisplay(request: InvestmentRequest): string {
+    if (!request.requestType) return 'Investment Request';
+
+    switch (request.requestType) {
+      case InvestmentRequestType.ContactFounder:
+        return 'Contact Founder';
+      case InvestmentRequestType.InvestmentInterest:
+        return 'Investment Interest';
+      default:
+        return 'Investment Request';
+    }
+  }
+
+  /**
+   * Get badge class for request type
+   */
+  getRequestTypeBadgeClass(request: InvestmentRequest): string {
+    if (!request.requestType) return 'bg-slate-500/15 text-slate-300 border-slate-500/30';
+
+    switch (request.requestType) {
+      case InvestmentRequestType.ContactFounder:
+        return 'bg-blue-500/15 text-blue-300 border-blue-500/30';
+      case InvestmentRequestType.InvestmentInterest:
+        return 'bg-purple-500/15 text-purple-300 border-purple-500/30';
+      default:
+        return 'bg-slate-500/15 text-slate-300 border-slate-500/30';
+    }
+  }
+
+  /**
+   * Check if request has investment interest metadata
+   */
+  hasInvestmentMetadata(request: InvestmentRequest): boolean {
+    return request.requestType === InvestmentRequestType.InvestmentInterest && request.requestMetadata;
+  }
+
+  /**
+   * Get shares requested from metadata
+   */
+  getSharesRequested(request: InvestmentRequest): number {
+    return request.requestMetadata?.sharesRequested || 0;
+  }
+
+  /**
+   * Get share price from metadata
+   */
+  getSharePrice(request: InvestmentRequest): number {
+    return request.requestMetadata?.sharePrice || 0;
+  }
+
+  /**
+   * Get total value from metadata
+   */
+  getTotalValue(request: InvestmentRequest): number {
+    return request.requestMetadata?.totalValue || 0;
   }
 }

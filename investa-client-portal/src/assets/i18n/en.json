@@ -127,18 +127,6 @@
   "businessPlan": "Whitepaper or Business Plan",
   "businessPlanHint": "Upload your detailed project documentation (PDF).",
   "upload": "Upload PDF",
-  "requests": {
-    "title": "Requests",
-    "incoming": "Incoming",
-    "outgoing": "Outgoing",
-    "from": "From",
-    "to": "To",
-    "accept": "Accept",
-    "decline": "Decline",
-    "withdraw": "Withdraw",
-    "noIncoming": "No incoming requests.",
-    "noOutgoing": "No outgoing requests."
-  },
   "problemPlaceholder": "صف المشكلة أو الحاجة التي يعالجها مشروعك.",
   "solution": "الحل",
   "solutionPlaceholder": "اشرح كيف يحل مشروعك هذه المشكلة.",
@@ -734,6 +722,7 @@
     "withdraw": "Withdraw",
     "noIncoming": "No incoming requests.",
     "noOutgoing": "No outgoing requests.",
+    "pendingRequestExists": "You already have a pending request for this opportunity. Please wait for the founder's response before submitting another request.",
     "notifications": {
       "accepted": "Request Accepted",
       "acceptedMessage": "{projectName} invitation accepted.",

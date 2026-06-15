@@ -73,9 +73,17 @@
               </div>
 
               <div class="flex-1 min-w-0">
-                <!-- Title + Status -->
+                <!-- Title + Status + Request Type -->
                 <div class="flex items-start justify-between gap-2 mb-1">
-                  <h3 class="text-white font-bold text-base truncate group-hover:text-blue-300 transition-colors">{{ request.projectName }}</h3>
+                  <div class="flex-1 min-w-0">
+                    <h3 class="text-white font-bold text-base truncate group-hover:text-blue-300 transition-colors">{{ request.projectName }}</h3>
+                    <div class="flex items-center gap-2 mt-1">
+                      <span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded border"
+                            [ngClass]="getRequestTypeBadgeClass(request)">
+                        {{ getRequestTypeDisplay(request) }}
+                      </span>
+                    </div>
+                  </div>
                   <span class="flex-shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full"
                         [class.bg-yellow-500/15]="request.status === 'Pending'"
                         [class.text-yellow-300]="request.status === 'Pending'"
@@ -114,6 +122,27 @@
                     {{ getTimeAgo(request.createdAt) }}
                   </span>
                 </div>
+
+                <!-- Investment Interest Metadata -->
+                @if (hasInvestmentMetadata(request)) {
+                  <div class="mt-3 p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+                    <p class="text-xs text-purple-300 font-semibold mb-2">Investment Details</p>
+                    <div class="grid grid-cols-3 gap-2 text-xs">
+                      <div>
+                        <p class="text-gray-400">Shares</p>
+                        <p class="text-white font-semibold">{{ getSharesRequested(request) | number }}</p>
+                      </div>
+                      <div>
+                        <p class="text-gray-400">Price</p>
+                        <p class="text-white font-semibold">${{ getSharePrice(request) | number:'1.2-2' }}</p>
+                      </div>
+                      <div>
+                        <p class="text-gray-400">Total</p>
+                        <p class="text-white font-semibold">${{ getTotalValue(request) | number:'1.2-2' }}</p>
+                      </div>
+                    </div>
+                  </div>
+                }
               </div>
             </div>
 
@@ -168,8 +197,17 @@
               </div>
 
               <div class="flex-1 min-w-0">
+                <!-- Title + Status + Request Type -->
                 <div class="flex items-start justify-between gap-2 mb-1">
-                  <h3 class="text-white font-bold text-base truncate group-hover:text-blue-300 transition-colors">{{ request.projectName }}</h3>
+                  <div class="flex-1 min-w-0">
+                    <h3 class="text-white font-bold text-base truncate group-hover:text-blue-300 transition-colors">{{ request.projectName }}</h3>
+                    <div class="flex items-center gap-2 mt-1">
+                      <span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded border"
+                            [ngClass]="getRequestTypeBadgeClass(request)">
+                        {{ getRequestTypeDisplay(request) }}
+                      </span>
+                    </div>
+                  </div>
                   <span class="flex-shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border"
                         [class.bg-amber-500/15]="request.status === 'Pending' || request.status === 'Negotiating'"
                         [class.text-amber-300]="request.status === 'Pending' || request.status === 'Negotiating'"
@@ -206,6 +244,27 @@
                     {{ getTimeAgo(request.createdAt) }}
                   </span>
                 </div>
+
+                <!-- Investment Interest Metadata -->
+                @if (hasInvestmentMetadata(request)) {
+                  <div class="mt-3 p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+                    <p class="text-xs text-purple-300 font-semibold mb-2">Investment Details</p>
+                    <div class="grid grid-cols-3 gap-2 text-xs">
+                      <div>
+                        <p class="text-gray-400">Shares</p>
+                        <p class="text-white font-semibold">{{ getSharesRequested(request) | number }}</p>
+                      </div>
+                      <div>
+                        <p class="text-gray-400">Price</p>
+                        <p class="text-white font-semibold">${{ getSharePrice(request) | number:'1.2-2' }}</p>
+                      </div>
+                      <div>
+                        <p class="text-gray-400">Total</p>
+                        <p class="text-white font-semibold">${{ getTotalValue(request) | number:'1.2-2' }}</p>
+                      </div>
+                    </div>
+                  </div>
+                }
               </div>
             </div>
 

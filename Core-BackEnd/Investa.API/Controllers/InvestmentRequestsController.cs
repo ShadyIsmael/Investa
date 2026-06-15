@@ -36,6 +36,7 @@ public class InvestmentRequestsController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("Investment Request DTO: {@Dto}", dto);
             _logger.LogInformation("CreateInvestmentRequest called with investmentId={InvestmentId}, amount={Amount}, shares={Shares}",
                 dto.InvestmentId, dto.Amount, dto.Shares);
 

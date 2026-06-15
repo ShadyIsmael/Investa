@@ -836,6 +836,7 @@
     "withdraw": "سحب",
     "noIncoming": "لا توجد طلبات واردة.",
     "noOutgoing": "لا توجد طلبات مرسلة.",
+    "pendingRequestExists": "لديك بالفعل طلب قيد المراجعة لهذه الفرصة الاستثمارية. برجاء انتظار رد المؤسس قبل إرسال طلب جديد.",
     "notifications": {
       "accepted": "تم قبول الطلب",
       "acceptedMessage": "تم قبول دعوة {projectName}.",

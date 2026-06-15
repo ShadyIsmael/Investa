@@ -3,6 +3,14 @@ export type RequestDirection = 'incoming' | 'outgoing';
 export type RequestStatus = 'Pending' | 'Negotiating' | 'Partner' | 'Rejected' | 'Accepted' | 'Declined';
 
 /**
+ * Investment Request Type enum - matches backend InvestmentRequestType
+ */
+export enum InvestmentRequestType {
+  ContactFounder = 'contact_founder',
+  InvestmentInterest = 'investment_interest'
+}
+
+/**
  * Investment Request Model
  * Represents a request for investment, partnership, or collaboration
  */
@@ -24,6 +32,8 @@ export interface InvestmentRequest {
   investmentId?: number; // Reference to the investment/project
   investorId?: number; // Reference to the investor
   founderId?: number; // Reference to the founder
+  requestType?: InvestmentRequestType; // Type of investment request (ContactFounder or InvestmentInterest)
+  requestMetadata?: any; // JSON metadata for investment interest details (shares, price, total value)
 }
 
 /**

@@ -192,7 +192,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
             
         modelBuilder.Entity<InvestmentParticipant>()
             .Property(p => p.Status)
-            .HasDefaultValue(ParticipationLifecycle.Participated);
+            .HasDefaultValue(ParticipationLifecycle.Interested);
             
         modelBuilder.Entity<InvestmentParticipant>()
             .Property(p => p.CreatedAt)
@@ -535,6 +535,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
                         ir.Property(x => x.Direction).HasConversion<string>().HasMaxLength(20).IsRequired();
                         ir.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
                         ir.Property(x => x.UpdatedAt).IsRequired(false);
+
+                        // RequestMetadata JSON payload for request forms
+                        ir.Property(x => x.RequestMetadata).HasColumnType("nvarchar(max)").IsRequired(false);
+
+                        // RequestType logical kind
+                        ir.Property(x => x.RequestType).HasColumnType("nvarchar(max)").IsRequired(false);
+
                         ir.HasIndex(x => x.InvestmentId);
                         ir.HasIndex(x => x.InvestorId);
                         ir.HasIndex(x => x.FounderId);

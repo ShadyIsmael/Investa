@@ -37,8 +37,22 @@ public class InvestmentRequestService : IInvestmentRequestService
 
     public async Task<CreateInvestmentRequestResponseDto> CreateInvestmentRequestAsync(Guid investorId, CreateInvestmentRequestDto dto)
     {
-        _logger.LogInformation("Creating investment request for investor {InvestorId}, investment {InvestmentId}, amount {Amount}",
-            investorId, dto.InvestmentId, dto.Amount);
+        _logger.LogInformation("Creating investment request for investor {InvestorId}, investment {InvestmentId}, amount {Amount}, requestType={RequestType}",
+            investorId, dto.InvestmentId, dto.Amount, dto.RequestType);
+
+        // Validate RequestType using strongly typed enum + centralized codec (no scattered string comparisons)
+        var requestType = InvestmentRequestTypeCodec.Parse(dto.RequestType);
+
+        // RequestMetadata rules:
+        // - ContactFounder: optional
+        // - InvestmentInterest: required
+        if (requestType == InvestmentRequestType.InvestmentInterest && string.IsNullOrWhiteSpace(dto.RequestMetadata))
+        {
+            throw new InvalidOperationException("RequestMetadata is required for InvestmentInterest.");
+        }
+
+        // Canonicalize persisted value for backward compatibility and consistent reads
+        var persistedRequestType = InvestmentRequestTypeCodec.ToPersistedString(requestType);
 
         var investment = await _unitOfWork.Repository<Investment>().GetByIdAsync(dto.InvestmentId);
         if (investment == null)
@@ -98,7 +112,8 @@ public class InvestmentRequestService : IInvestmentRequestService
             Shares = dto.Shares,
             Status = InvestmentRequestStatus.Pending,
             Direction = InvestmentRequestDirection.Outgoing, // keep for compatibility
-            RequestType = "investment_request",
+            RequestType = persistedRequestType,
+            RequestMetadata = dto.RequestMetadata,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -150,7 +165,7 @@ public class InvestmentRequestService : IInvestmentRequestService
                     ["shares"] = dto.Shares?.ToString() ?? "0",
                     ["investmentName"] = investmentName,
                     ["investorName"] = investorName,
-                    ["type"] = "investment_request",
+                    ["type"] = persistedRequestType,
                     ["action"] = "new_request"
                 });
             
@@ -386,7 +401,7 @@ public class InvestmentRequestService : IInvestmentRequestService
                 {
                     ["requestId"] = request.Id.ToString(),
                     ["investmentId"] = request.InvestmentId.ToString(),
-                    ["type"] = "investment_request",
+                    ["type"] = InvestmentRequestTypeCodec.ToPersistedString(InvestmentRequestTypeCodec.Parse(request.RequestType)),
                     ["action"] = "approved"
                 });
         }
@@ -484,7 +499,7 @@ public class InvestmentRequestService : IInvestmentRequestService
                 {
                     ["requestId"] = request.Id.ToString(),
                     ["investmentId"] = request.InvestmentId.ToString(),
-                    ["type"] = "investment_request",
+                    ["type"] = InvestmentRequestTypeCodec.ToPersistedString(InvestmentRequestTypeCodec.Parse(request.RequestType)),
                     ["action"] = "rejected"
                 });
         }

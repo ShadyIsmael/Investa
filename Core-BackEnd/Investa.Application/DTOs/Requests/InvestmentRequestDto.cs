@@ -12,7 +12,12 @@ public class InvestmentRequestDto
     public int? Shares { get; set; }
     public string Status { get; set; } = string.Empty;
     public string Direction { get; set; } = string.Empty;
+
+    // RequestType logical kind (contact_founder | investment_interest)
     public string? Type { get; set; }
+
+    // Type-specific payload stored as JSON
+    public string? RequestMetadata { get; set; }
 
     // Additional display fields
     public string? InvestmentTitle { get; set; }
