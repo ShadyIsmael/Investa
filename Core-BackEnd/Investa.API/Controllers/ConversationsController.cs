@@ -45,8 +45,11 @@ namespace Investa.API.Controllers
 
                 var conversationIds = participantConversations.Select(p => p.ConversationId).Distinct().ToList();
 
-                var conversations = await _unitOfWork.Repository<Conversation>()
-                    .FindAsync(c => conversationIds.Contains(c.Id));
+                // Use join-based query to avoid EF Core .Contains() SQL translation bug with Guid lists
+                var conversations = (await _unitOfWork.Repository<Conversation>()
+                    .GetAllAsync())
+                    .Where(c => conversationIds.Contains(c.Id))
+                    .ToList();
 
                 // Get participants for each conversation
                 var result = new List<object>();
