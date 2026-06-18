@@ -34,6 +34,11 @@ export interface InvestmentRequest {
   founderId?: number; // Reference to the founder
   requestType?: InvestmentRequestType; // Type of investment request (ContactFounder or InvestmentInterest)
   requestMetadata?: any; // JSON metadata for investment interest details (shares, price, total value)
+  // Credibility and trust fields from backend
+  investorCredibilityScore?: number;
+  founderCredibilityScore?: number;
+  investorTrustLevel?: string;
+  founderTrustLevel?: string;
 }
 
 /**

@@ -193,4 +193,49 @@ public class InvestmentRequestsController : ControllerBase
                 new { message = _localizer["FailedToRejectInvestmentRequest"].Value, error = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Withdraws an investment request (investor only)
+    /// </summary>
+    [HttpPost("{requestId}/withdraw")]
+    [ProducesResponseType(typeof(InvestmentRequestDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> WithdrawInvestmentRequest(int requestId)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
+            if (!Guid.TryParse(userIdClaim, out var userId))
+            {
+                _logger.LogWarning("Unable to identify user from token");
+                return Unauthorized("Unable to identify user from token");
+            }
+
+            _logger.LogInformation("Withdrawing investment request {RequestId} by user {UserId}", requestId, userId);
+
+            var result = await _investmentRequestService.WithdrawInvestmentRequestAsync(requestId, userId);
+            
+            _logger.LogInformation("Investment request {RequestId} withdrawn successfully by user {UserId}", requestId, userId);
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized withdrawal attempt for request {RequestId}", requestId);
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Invalid operation withdrawing request {RequestId}", requestId);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error withdrawing investment request {RequestId}", requestId);
+            return StatusCode(StatusCodes.Status500InternalServerError, 
+                new { message = "Failed to withdraw investment request", error = ex.Message });
+        }
+    }
 }

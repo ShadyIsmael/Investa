@@ -1,1 +1,132 @@
-.badge { border-radius: 9999px; padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+/* Badge Styles */
+.badge {
+  border-radius: 9999px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+/* Card Hover Effects - DISABLED */
+/* article {
+  &:hover {
+    transform: translateY(-2px);
+  }
+} */
+
+/* Status Badge Colors */
+.status-badge {
+  &.pending {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.3);
+  }
+
+  &.accepted {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border-color: rgba(16, 185, 129, 0.3);
+  }
+
+  &.declined {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.3);
+  }
+}
+
+/* Request Type Badge Colors */
+.request-type-badge {
+  &.contact-founder {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    border-color: rgba(59, 130, 246, 0.3);
+  }
+
+  &.investment-interest {
+    background: rgba(168, 85, 247, 0.15);
+    color: #c084fc;
+    border-color: rgba(168, 85, 247, 0.3);
+  }
+}
+
+/* Credibility/Trust Badge Colors */
+.score-badge {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.trust-badge {
+  background: rgba(6, 182, 212, 0.15);
+  color: #22d3ee;
+  border-color: rgba(6, 182, 212, 0.3);
+}
+
+/* Investment Details Section */
+.investment-details {
+  background: rgba(168, 85, 247, 0.1);
+  border-color: rgba(168, 85, 247, 0.3);
+
+  .detail-box {
+    background: rgba(30, 41, 59, 0.5);
+  }
+}
+
+/* Project Info Section */
+.project-info {
+  background: rgba(30, 41, 59, 0.5);
+}
+
+/* Avatar Styles */
+.avatar {
+  &.investor {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(168, 85, 247, 0.2));
+  }
+
+  &.founder {
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.2), rgba(239, 68, 68, 0.2));
+  }
+}
+
+/* Timeline Progress - DISABLED TRANSITION */
+/* .timeline-progress {
+  .progress-bar {
+    transition: width 0.5s ease-in-out;
+  }
+} */
+
+/* Button Styles - DISABLED HOVER TRANSITIONS */
+.action-button {
+  &.approve {
+    background: rgba(16, 185, 129, 0.9);
+  }
+
+  &.reject,
+  &.withdraw {
+    background: rgba(30, 41, 59, 1);
+    border-color: rgba(51, 65, 85, 1);
+  }
+}
+
+/* Empty State */
+.empty-state {
+  .empty-icon {
+    background: rgba(30, 41, 59, 1);
+    border-color: rgba(51, 65, 85, 1);
+  }
+}
+
+/* Animation - DISABLED */
+/* @keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+} */
+
+/* .animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+} */

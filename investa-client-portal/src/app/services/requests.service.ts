@@ -46,15 +46,29 @@ export class RequestsService {
   }
 
   /**
+   * Clear all cached request state
+   * Call this on logout or user change
+   */
+  clearState(): void {
+    this._incoming.set([]);
+    this._outgoing.set([]);
+    this._creditTransactions.set([]);
+  }
+
+  /**
    * Load all requests from API
    */
   private async loadRequests(): Promise<void> {
     try {
       const response = await firstValueFrom(this.http.get<any>(`${this.apiBase}/api/investment-requests`, this.getHttpOptions()));
-      
+
       const incoming: InvestmentRequest[] = (response?.incoming || []).map((r: any) => this.mapRequest(r, 'incoming'));
       const outgoing: InvestmentRequest[] = (response?.outgoing || []).map((r: any) => this.mapRequest(r, 'outgoing'));
-      
+
+      // Sort by createdAt DESC (newest first)
+      incoming.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      outgoing.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
       this._incoming.set(incoming);
       this._outgoing.set(outgoing);
     } catch (error) {
@@ -72,8 +86,8 @@ export class RequestsService {
       direction: direction,
       projectName: data.investmentTitle || data.investmentName || 'Investment',
       projectImageUrl: '',
-      counterpartName: direction === 'incoming' 
-        ? (data.investorDisplayName || data.senderName || 'Investor') 
+      counterpartName: direction === 'incoming'
+        ? (data.investorDisplayName || data.senderName || 'Investor')
         : (data.founderDisplayName || data.receiverName || 'Founder'),
       senderName: data.investorDisplayName || data.senderName,
       receiverName: data.founderDisplayName || data.receiverName,
@@ -86,8 +100,12 @@ export class RequestsService {
       investmentId: data.investmentId,
       investorId: data.investorId,
       founderId: data.founderId,
-      requestType: data.requestType,
-      requestMetadata: data.requestMetadata
+      requestType: data.type,
+      requestMetadata: data.requestMetadata,
+      investorCredibilityScore: data.investorCredibilityScore,
+      founderCredibilityScore: data.founderCredibilityScore,
+      investorTrustLevel: data.investorTrustLevel,
+      founderTrustLevel: data.founderTrustLevel
     };
   }
 
@@ -138,34 +156,13 @@ export class RequestsService {
         payload.requestMetadata = requestMetadata;
       }
 
-      console.log('Investment Request Payload', payload);
       const response = await firstValueFrom(this.http.post<any>(`${this.apiBase}/api/investment-requests`, payload, this.getHttpOptions()));
 
       // Refresh user credits from API to reflect server-side update
       await this.userService.refreshUser();
 
-      // Use new response shape { request, updatedCreditBalance } with fallback
-      const apiRequest = response?.request ?? response?.outgoingRequest;
-
-      const outgoingRequest: InvestmentRequest = {
-        id: apiRequest?.id ?? Date.now(),
-        type: 'investment',
-        direction: 'outgoing',
-        projectName: investment.name,
-        projectImageUrl: investment.imageUrl || '',
-        counterpartName: investment.founderDisplay || 'Founder',
-        status: apiRequest?.status ?? 'Pending',
-        createdAt: apiRequest?.createdAt ? new Date(apiRequest.createdAt) : new Date(),
-        investmentAmount: amount,
-        shares: shares > 0 ? shares : undefined,
-        investmentId: investment.id,
-        investorId: parseInt(user.userId),
-        founderId: investment.founderId ? parseInt(investment.founderId) : undefined,
-        requestType: requestType,
-        requestMetadata: requestMetadata
-      };
-
-      this._outgoing.update(list => [...list, outgoingRequest]);
+      // Reload requests to get the updated list from API
+      await this.loadRequests();
 
       // Update local balance immediately if server returned it (fallbacks to refreshUser())
       if (response?.updatedCreditBalance != null) {
@@ -189,7 +186,8 @@ export class RequestsService {
     try {
       await firstValueFrom(this.http.post(`${this.apiBase}/api/investment-requests/${request.id}/approve`, {}, this.getHttpOptions()));
 
-      this._incoming.update(list => list.map(r => r.id === request.id ? { ...r, status: 'Accepted' } : r));
+      await this.loadRequests();
+
       this.notifications.showToast({
         title: 'Request Accepted',
         message: `${request.projectName} investment request accepted.`,
@@ -209,7 +207,8 @@ export class RequestsService {
     try {
       await firstValueFrom(this.http.post(`${this.apiBase}/api/investment-requests/${request.id}/reject`, {}, this.getHttpOptions()));
 
-      this._incoming.update(list => list.map(r => r.id === request.id ? { ...r, status: 'Declined' } : r));
+      await this.loadRequests();
+
       this.notifications.showToast({
         title: 'Request Declined',
         message: `${request.projectName} investment request declined.`,
@@ -223,24 +222,18 @@ export class RequestsService {
 
   /**
    * Withdraw an outgoing request
-   * Should call API and refund credits to user
+   * Calls backend API to update status to Withdrawn and refund credits
    */
   async withdrawRequest(request: InvestmentRequest): Promise<void> {
     try {
-      // TODO: Implement API call with credit refund
-      // await firstValueFrom(this.http.delete(`${this.apiBase}/api/investment-requests/${request.id}`, this.getHttpOptions()));
-      
+      await firstValueFrom(this.http.post(`${this.apiBase}/api/investment-requests/${request.id}/withdraw`, {}, this.getHttpOptions()));
+
       this._outgoing.update(list => list.filter(r => r.id !== request.id));
-      
-      // Refund credits if applicable
-      if (request.investmentAmount) {
-        this.userService.addCredits(request.investmentAmount);
-      }
-      
-      this.notifications.showToast({ 
-        title: 'Request Withdrawn', 
-        message: `${request.projectName} request withdrawn and credits refunded.`, 
-        type: 'success' 
+
+      this.notifications.showToast({
+        title: 'Request Withdrawn',
+        message: `${request.projectName} request withdrawn and credits refunded.`,
+        type: 'success'
       });
     } catch (error) {
       console.error('Failed to withdraw request:', error);
