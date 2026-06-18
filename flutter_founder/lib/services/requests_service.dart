@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'package:dio/dio.dart';
-import '../config/env.dart';
 
 class RequestItem {
   final String id;
