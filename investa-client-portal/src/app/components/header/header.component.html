@@ -17,21 +17,70 @@
       @for(link of navLinks(); track link.label) {
         <a [routerLink]="link.routerLink" [href]="link.href" class="text-gray-300 hover:text-white transition-colors duration-300 py-1 px-2 inline-block">{{ 'header.nav.' + link.label.toLowerCase() | translate }}</a>
       }
+
+      @if (isAuthenticated()) {
+        <a (click)="navigateToMyOffice()" class="flex items-center space-x-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 font-semibold py-2 px-4 rounded-lg cursor-pointer transition-all duration-300 border border-blue-500/30">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+          </svg>
+          <span>My Office</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+          </svg>
+        </a>
+      }
     </nav>
-    
-    <!-- Action Buttons (Language Toggle, Login, Signup) -->
+
+    <!-- Action Buttons (Language Toggle, Login, Signup, User Account) -->
     <div class="flex items-center space-x-4 order-3 md:order-2 w-auto justify-end mt-0">
       <a href="#" (click)="toggleLanguage($event)" class="text-gray-300 hover:text-white font-semibold py-2 px-4 transition-colors duration-300">
          {{ 'language.toggle' | translate }}
       </a>
-      
-      <a href="#" (click)="openLoginModal($event)" class="text-gray-300 hover:text-white font-semibold py-2 px-4 transition-colors duration-300">
-        {{ 'header.login' | translate }}
-      </a>
 
-      <a routerLink="/signup" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 transition-opacity duration-300">
-        {{ 'header.signup' | translate }}
-      </a>
+      @if (!isAuthenticated()) {
+        <a href="#" (click)="openLoginModal($event)" class="text-gray-300 hover:text-white font-semibold py-2 px-4 transition-colors duration-300">
+          {{ 'header.login' | translate }}
+        </a>
+
+        <a routerLink="/signup" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 transition-opacity duration-300">
+          {{ 'header.signup' | translate }}
+        </a>
+      } @else {
+        <!-- User Account Avatar -->
+        <div class="relative user-menu-container">
+          <button (click)="toggleUserMenu($event)" class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-slate-800/50 transition-colors duration-200 overflow-hidden">
+            @if (userAvatarUrl() && !imageLoadFailed()) {
+              <!-- Profile Image -->
+              <img [src]="userAvatarUrl()" [alt]="userDisplayName()" (error)="onImageError()" class="w-full h-full object-cover">
+            } @else {
+              <!-- Initials Avatar -->
+              <div class="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                <span class="text-white font-bold text-sm">{{ userInitials() }}</span>
+              </div>
+            }
+          </button>
+
+          <!-- User Menu Dropdown -->
+          @if (isUserMenuOpen()) {
+            <div class="absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-lg py-2 z-50">
+              @for (item of userMenuItems(); track item.label) {
+                <button (click)="handleUserMenuItemClick(item)" class="w-full text-left px-4 py-2 text-gray-300 hover:bg-slate-700 hover:text-white transition-colors duration-200 flex items-center space-x-3">
+                  @if (item.action === 'logout') {
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                    </svg>
+                  } @else {
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                    </svg>
+                  }
+                  <span>{{ item.label }}</span>
+                </button>
+              }
+            </div>
+          }
+        </div>
+      }
     </div>
   </div>
 </header>

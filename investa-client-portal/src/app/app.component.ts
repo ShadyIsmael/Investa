@@ -8,6 +8,7 @@ import { RoleSelectComponent } from './components/role-select/role-select.compon
 import { SessionService } from './services/session.service';
 import { AuthService } from './services/auth.service';
 import { RequestsService } from './services/requests.service';
+import { UserService } from './services/user.service';
 
 @Component({
   standalone: true,
@@ -27,10 +28,12 @@ export class AppComponent {
   private sessionService = inject(SessionService);
   private authService = inject(AuthService);
   private requestsService = inject(RequestsService);
+  private userService = inject(UserService);
 
   isRoleSelectOpen = this.uiService.isRoleSelectOpen;
 
   constructor() {
+    // Set up effects for reactive state
     effect(() => {
       document.documentElement.lang = this.languageService.language();
       document.documentElement.dir = this.languageService.direction();
@@ -45,11 +48,28 @@ export class AppComponent {
       }
     });
 
-    // start session tracking for inactivity timeout
+    // Initialize authentication and user state on app startup
+    this.initializeApp();
+  }
+
+  private async initializeApp(): Promise<void> {
     try {
-      this.sessionService.start();
-    } catch {
-      // ignore if session service can't start in some environments
+      // Step 1: Initialize authentication (validate token)
+      await this.authService.initialize();
+
+      // Step 2: Initialize user profile (only if authenticated)
+      await this.userService.initializeUser();
+
+      // Step 3: Start session service (only if authenticated)
+      if (this.authService.isAuthenticated()) {
+        try {
+          this.sessionService.start();
+        } catch {
+          // ignore if session service can't start in some environments
+        }
+      }
+    } catch (error) {
+      console.error('Failed to initialize application:', error);
     }
   }
 }

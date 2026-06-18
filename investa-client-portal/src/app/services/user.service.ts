@@ -30,29 +30,46 @@ export class UserService {
   private http = inject(HttpClient);
   private profileService = inject(ProfileService);
   private authService = inject(AuthService);
-  
+
   private currentUser = signal<User | null>(null);
+  private initialized = false;
 
   user = computed(() => this.currentUser());
   credits = computed(() => this.currentUser()?.credits ?? 0);
 
   constructor(@Inject(API_BASE) private apiBase: string) {
-    // Load user profile on service initialization
-    this.initializeUser();
   }
 
   /**
    * Initialize user from ProfileService
+   * Waits for AuthService to validate token first
    */
-  private async initializeUser(): Promise<void> {
+  async initializeUser(): Promise<void> {
+    if (this.initialized) return;
+
+    // Wait for AuthService to validate token
+    await this.authService.initialize();
+
+    // If not authenticated, clear user state
+    if (!this.authService.isAuthenticated()) {
+      this.currentUser.set(null);
+      this.initialized = true;
+      return;
+    }
+
     try {
       const profile = await this.profileService.loadMyProfile();
       if (profile) {
         this.setUserFromProfile(profile);
       }
     } catch (error) {
+      // If profile load fails, clear auth state
       console.error('Failed to initialize user:', error);
+      this.authService.logout();
+      this.currentUser.set(null);
     }
+
+    this.initialized = true;
   }
 
   /**
