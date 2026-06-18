@@ -127,18 +127,6 @@
   "businessPlan": "Whitepaper or Business Plan",
   "businessPlanHint": "Upload your detailed project documentation (PDF).",
   "upload": "Upload PDF",
-  "requests": {
-    "title": "Requests",
-    "incoming": "Incoming",
-    "outgoing": "Outgoing",
-    "from": "From",
-    "to": "To",
-    "accept": "Accept",
-    "decline": "Decline",
-    "withdraw": "Withdraw",
-    "noIncoming": "No incoming requests.",
-    "noOutgoing": "No outgoing requests."
-  },
   "problemPlaceholder": "صف المشكلة أو الحاجة التي يعالجها مشروعك.",
   "solution": "الحل",
   "solutionPlaceholder": "اشرح كيف يحل مشروعك هذه المشكلة.",
@@ -734,6 +722,7 @@
     "withdraw": "Withdraw",
     "noIncoming": "No incoming requests.",
     "noOutgoing": "No outgoing requests.",
+    "pendingRequestExists": "You already have a pending request for this opportunity. Please wait for the founder's response before submitting another request.",
     "notifications": {
       "accepted": "Request Accepted",
       "acceptedMessage": "{projectName} invitation accepted.",
@@ -746,6 +735,8 @@
   "investmentPreview": {
     "backButton": "Back to Investments",
     "investmentType": "Investment Type",
+    "industry": "Industry",
+    "founderRating": "Founder Rating",
     "earlyStage": "Early-stage funding round",
     "equityOpportunity": "Equity ownership opportunity",
     "riskLevel": "Risk Level",
@@ -796,7 +787,81 @@
     "video": "video",
     "noMediaYet": "No media uploaded yet",
     "recentInvestors": "Recent Investors",
-    "noInvestors": "No investors yet"
+    "noInvestors": "No investors yet",
+    "published": "Published",
+    "sections": {
+      "hero": {
+        "title": "Opportunity Overview"
+      },
+      "summary": {
+        "title": "Opportunity Summary",
+        "problem": "Problem",
+        "solution": "Solution",
+        "market": "Market",
+        "valueProposition": "Value Proposition"
+      },
+      "noDescription": "No description available",
+      "noSolution": "No solution details available",
+      "noMarket": "Industry not specified",
+      "noValueProp": "No value proposition details",
+      "investmentInfo": {
+        "title": "Investment Information",
+        "equity": {
+          "sharePrice": "Share Price",
+          "totalShares": "Total Shares",
+          "availableShares": "Available Shares",
+          "minParticipation": "Minimum Participation"
+        },
+        "revenueSharing": {
+          "revenueShare": "Revenue Share%",
+          "targetAmount": "Target Amount"
+        },
+        "loan": {
+          "interestRate": "Interest Rate",
+          "duration": "Duration",
+          "requiredAmount": "Required Amount"
+        },
+        "founding": {
+          "requiredSkills": "Required Skills",
+          "expectations": "Expectations"
+        }
+      },
+      "founder": {
+        "title": "Founder Information",
+        "totalOpportunities": "Total Opportunities",
+        "activeOpportunities": "Active Opportunities",
+        "viewFounderProfile": "View Founder Profile"
+      },
+      "media": {
+        "title": "Project Media",
+        "viewProjectMedia": "View Project Media",
+        "photos": "Photos",
+        "videos": "Videos",
+        "documents": "Documents"
+      },
+      "cta": {
+        "title": "Interested In This Opportunity?",
+        "contactCard": {
+          "title": "Contact Founder",
+          "description": "Need more information? Want to discuss the opportunity?",
+          "button": "Send Request"
+        },
+        "investCard": {
+          "title": "Invest Now",
+          "description": "Already understand the opportunity? Ready to move forward?",
+          "button": "Invest Now"
+        }
+      },
+      "months": "months",
+      "duration": "duration",
+      "foundingSkillsLabel": "Skills Required for Founding",
+      "analytics": {
+        "title": "Analytics",
+        "views": "Views",
+        "learnMoreOpens": "Learn More Opens",
+        "requestsReceived": "Requests Received"
+      }
+    }
   },
   "founderProfile": {
     "title": "Founder Profile",

@@ -8,4 +8,5 @@ public interface IInvestmentRequestService
     Task<GetMyRequestsResponseDto> GetMyRequestsAsync(Guid userId);
     Task<InvestmentRequestDto> ApproveInvestmentRequestAsync(int requestId, Guid founderId);
     Task<InvestmentRequestDto> RejectInvestmentRequestAsync(int requestId, Guid founderId);
+    Task<InvestmentRequestDto> WithdrawInvestmentRequestAsync(int requestId, Guid investorId);
 }

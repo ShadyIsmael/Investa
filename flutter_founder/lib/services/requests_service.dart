@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:dio/dio.dart';
+import '../config/env.dart';
 
 class RequestItem {
   final String id;
@@ -22,70 +24,110 @@ class RequestItem {
     required this.isIncome,
     this.credibilityScore = 50,
   }) : createdAt = createdAt ?? DateTime.now();
+
+  factory RequestItem.fromJson(Map<String, dynamic> json) {
+    return RequestItem(
+      id: json['id']?.toString() ?? '',
+      founderName: json['founderDisplayName'] ?? json['investorDisplayName'] ?? 'Unknown',
+      avatarUrl: null,
+      businessName: json['businessName'] ?? json['investmentTitle'] ?? 'Unknown',
+      amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
+      status: _parseStatus(json['status']),
+      createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
+      isIncome: json['isIncome'] ?? false,
+      credibilityScore: json['credibilityScore'] ?? 50,
+    );
+  }
+
+  static RequestStatus _parseStatus(String? status) {
+    if (status == null) return RequestStatus.pending;
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return RequestStatus.pending;
+      case 'accepted':
+        return RequestStatus.accepted;
+      case 'declined':
+        return RequestStatus.declined;
+      case 'canceled':
+        return RequestStatus.canceled;
+      default:
+        return RequestStatus.pending;
+    }
+  }
 }
 
 enum RequestStatus { pending, accepted, declined, canceled }
 
 class RequestsService {
-  // In-memory mock lists.
-  final List<RequestItem> _income = [
-    RequestItem(
-        id: 'inc-1',
-        founderName: 'Ali Hassan',
-        avatarUrl: null,
-        businessName: 'GreenTech Co',
-        amount: 1200.0,
-        isIncome: true,
-        credibilityScore: 88),
-    RequestItem(
-        id: 'inc-2',
-        founderName: 'Sara Omar',
-        avatarUrl: null,
-        businessName: 'BlueFoods',
-        amount: 450.0,
-        isIncome: true,
-        credibilityScore: 72),
-  ];
-
-  final List<RequestItem> _outcome = [
-    RequestItem(
-        id: 'out-1',
-        founderName: 'My Request',
-        avatarUrl: null,
-        businessName: 'Your Venture',
-        amount: 300.0,
-        isIncome: false,
-        credibilityScore: 55),
-  ];
+  final Dio _dio = Dio();
+  final String _baseUrl = Env.apiBaseUrl;
 
   Future<List<RequestItem>> fetchIncomeRequests() async {
-    await Future.delayed(const Duration(milliseconds: 400));
-    return List<RequestItem>.from(_income);
+    try {
+      final response = await _dio.get('$_baseUrl/api/investment-requests');
+      
+      if (response.statusCode == 200) {
+        final data = response.data as Map<String, dynamic>;
+        final incoming = data['incoming'] as List<dynamic>? ?? [];
+        return incoming.map((json) => RequestItem.fromJson(json as Map<String, dynamic>)).toList();
+      }
+      
+      throw Exception('Failed to load requests');
+    } catch (e) {
+      throw Exception('Failed to load requests: $e');
+    }
   }
 
   Future<List<RequestItem>> fetchOutcomeRequests() async {
-    await Future.delayed(const Duration(milliseconds: 400));
-    return List<RequestItem>.from(_outcome);
+    try {
+      final response = await _dio.get('$_baseUrl/api/investment-requests');
+      
+      if (response.statusCode == 200) {
+        final data = response.data as Map<String, dynamic>;
+        final outgoing = data['outgoing'] as List<dynamic>? ?? [];
+        return outgoing.map((json) => RequestItem.fromJson(json as Map<String, dynamic>)).toList();
+      }
+      
+      throw Exception('Failed to load requests');
+    } catch (e) {
+      throw Exception('Failed to load requests: $e');
+    }
   }
 
   Future<void> acceptRequest(String id) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    final it = _income.firstWhere((e) => e.id == id,
-        orElse: () => throw StateError('Not found'));
-    it.status = RequestStatus.accepted;
+    try {
+      final response = await _dio.post('$_baseUrl/api/investment-requests/$id/approve');
+      
+      if (response.statusCode != 200) {
+        throw Exception('Failed to accept request');
+      }
+    } catch (e) {
+      throw Exception('Failed to accept request: $e');
+    }
   }
 
   Future<void> declineRequest(String id) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    final it = _income.firstWhere((e) => e.id == id,
-        orElse: () => throw StateError('Not found'));
-    it.status = RequestStatus.declined;
+    try {
+      final response = await _dio.post('$_baseUrl/api/investment-requests/$id/reject');
+      
+      if (response.statusCode != 200) {
+        throw Exception('Failed to decline request');
+      }
+    } catch (e) {
+      throw Exception('Failed to decline request: $e');
+    }
   }
 
   Future<void> cancelRequest(String id) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    final it = _outcome.firstWhere((e) => e.id == id,
-        orElse: () => throw StateError('Not found'));
-    it.status = RequestStatus.canceled;
+    try {
+      // Cancel endpoint may not exist, using decline for now
+      final response = await _dio.post('$_baseUrl/api/investment-requests/$id/reject');
+      
+      if (response.statusCode != 200) {
+        throw Exception('Failed to cancel request');
+      }
+    } catch (e) {
+      throw Exception('Failed to cancel request: $e');
+    }
   }
 }

@@ -1,27 +1,30 @@
-# Investa — Opportunity Lifecycle UI Implementation (UI-only)
+# TODO - Investa (Implementation Only)
 
-## Plan steps
-- [x] A) Add UI-only status mapping utilities (label + color) for Founder Flutter and Partner Flutter
-
-- [ ] B) Update opportunity/investment cards to display lifecycle Status Badge (8 statuses)
-
-- [ ] C) Update opportunity/investment details page to display prominent status badge
-- [ ] D) Update Create Opportunity screens (Founder + Partner) to include status selector (all 8)
-- [ ] E) Update Edit Opportunity flow (Founder) to display current status and allow status update
-- [ ] F) Update dashboards:
-  - [ ] Founder dashboard: status-aware counts (Active, In Progress, Fully Funded, Completed)
-  - [ ] Partner dashboard: ensure badges visible across lists/recs
-- [ ] G) Update filters + search results:
-  - [ ] Add lifecycle status filters (Active, In Progress, Fully Funded, Completed, Archived)
-  - [ ] Ensure badges in search results / listings / recommendations / watchlists
-- [ ] H) Update Angular/Admin portal UI:
-  - [ ] Add badge rendering + colors on list cards
-  - [ ] Ensure details/create/edit show lifecycle status
-- [ ] Final validation:
-  - [ ] All statuses visible
-  - [ ] Badges correct labels + colors
-  - [ ] Cards show status
-  - [ ] Details show status
-  - [ ] Dashboards use status counts
-  - [ ] Angular + Founder Flutter + Partner Flutter updated
+## Plan Steps
+1. Confirm backend DTO/request payload fields for `CreateInvestmentRequestDto` (requestType + requestMetadata + amount/shares semantics).
+2. Update Angular `RequestsService.createInvestmentRequest(...)` to send:
+   - `requestType` as enum value (no magic strings)
+   - `requestMetadata` JSON (null for ContactFounder; structured for InvestmentInterest)
+   - existing fields `investmentId`, `amount`, `shares` kept consistent with backend DTO.
+3. Update Angular Investment Preview (investa-client-portal) to implement UX:
+   - Contact Founder card: open Credit Confirmation dialog; then call RequestsService with requestType=ContactFounder and requestMetadata=null.
+   - Invest Now card: equity dialog (share price, available shares, shares input, live total); then Credit Confirmation dialog; then call RequestsService with requestType=InvestmentInterest and requestMetadata payload.
+4. Update Angular Requests page to render:
+   - Request Type explicitly
+   - For InvestmentInterest: metadata visually (Shares Requested, Share Price, Total Value)
+   - No raw JSON.
+5. Update Angular request model/interfaces to include `requestType` and `requestMetadata`.
+6. Update Flutter Partner:
+   - Contact Founder flow with credit confirmation + create request (requestType ContactFounder, requestMetadata null)
+   - Invest Now (equity only) with equity form + total calc + credit confirmation + create request (requestType InvestmentInterest, structured requestMetadata)
+7. Update Flutter Founder:
+   - Requests list to render request type
+   - For InvestmentInterest: render metadata visually
+   - Approve/Reject call backend APIs.
+8. Update Flutter request service payload parsing to include requestType + requestMetadata exactly matching Angular/Backend.
+9. Run builds/tests:
+   - `dotnet build` (Core-BackEnd)
+   - `npm run build` (investa-client-portal)
+   - `flutter build` (per your platform)
+10. Critical path validation results + screenshots + known issues.
 

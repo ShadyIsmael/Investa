@@ -1,0 +1,203 @@
+<div class="founder-analytics-container">
+  <div class="header">
+    <h1>{{ 'Founder Analytics' | translate }}</h1>
+    <div class="time-filter">
+      <select [(ngModel)]="selectedTimeFilter" (change)="onTimeFilterChange(selectedTimeFilter)">
+        @for (filter of timeFilters; track filter.value) {
+          <option [value]="filter.value">{{ filter.label }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading">
+      <div class="spinner"></div>
+    </div>
+  } @else {
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">{{ 'Total Opportunities' | translate }}</div>
+        <div class="kpi-value">{{ summary()?.totalOpportunities || 0 }}</div>
+        <div class="kpi-subtitle">{{ summary()?.publishedOpportunities || 0 }} {{ 'Published' | translate }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">{{ 'Total Views' | translate }}</div>
+        <div class="kpi-value">{{ formatNumber(summary()?.totalViews || 0) }}</div>
+        <div class="kpi-subtitle">{{ formatNumber(summary()?.uniqueViews || 0) }} {{ 'Unique' | translate }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">{{ 'Learn More Opens' | translate }}</div>
+        <div class="kpi-value">{{ formatNumber(summary()?.learnMoreOpens || 0) }}</div>
+        <div class="kpi-subtitle">{{ formatNumber(summary()?.uniqueLearnMoreOpens || 0) }} {{ 'Unique' | translate }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">{{ 'Requests Received' | translate }}</div>
+        <div class="kpi-value">{{ summary()?.requestsReceived || 0 }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">{{ 'Approved Requests' | translate }}</div>
+        <div class="kpi-value">{{ summary()?.approvedRequests || 0 }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">{{ 'Approval Rate' | translate }}</div>
+        <div class="kpi-value">{{ summary()?.approvalRate?.toFixed(1) || 0 }}%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">{{ 'Rejected Requests' | translate }}</div>
+        <div class="kpi-value">{{ summary()?.rejectedRequests || 0 }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">{{ 'Active Conversations' | translate }}</div>
+        <div class="kpi-value">{{ summary()?.activeConversations || 0 }}</div>
+      </div>
+    </div>
+
+    <!-- Conversion Funnel -->
+    <div class="section">
+      <h2>{{ 'Conversion Funnel' | translate }}</h2>
+      @if (!loadingFunnel()) {
+        <div class="funnel-chart">
+          <div class="funnel-bar">
+            <div class="funnel-label">{{ 'Views' | translate }}</div>
+            <div class="funnel-track">
+              <div class="funnel-fill" [style.width.%]="getPercentage(conversionFunnel()?.uniqueViews || 0, conversionFunnel()?.uniqueViews || 1)"></div>
+            </div>
+            <div class="funnel-value">{{ formatNumber(conversionFunnel()?.uniqueViews || 0) }}</div>
+          </div>
+          <div class="funnel-bar">
+            <div class="funnel-label">{{ 'Learn More' | translate }}</div>
+            <div class="funnel-track">
+              <div class="funnel-fill" [style.width.%]="getPercentage(conversionFunnel()?.uniqueLearnMore || 0, conversionFunnel()?.uniqueViews || 1)"></div>
+            </div>
+            <div class="funnel-value">{{ formatNumber(conversionFunnel()?.uniqueLearnMore || 0) }}</div>
+          </div>
+          <div class="funnel-bar">
+            <div class="funnel-label">{{ 'Requests' | translate }}</div>
+            <div class="funnel-track">
+              <div class="funnel-fill" [style.width.%]="getPercentage(conversionFunnel()?.requests || 0, conversionFunnel()?.views || 1)"></div>
+            </div>
+            <div class="funnel-value">{{ formatNumber(conversionFunnel()?.requests || 0) }}</div>
+          </div>
+          <div class="funnel-bar">
+            <div class="funnel-label">{{ 'Approvals' | translate }}</div>
+            <div class="funnel-track">
+              <div class="funnel-fill" [style.width.%]="getPercentage(conversionFunnel()?.approvals || 0, conversionFunnel()?.views || 1)"></div>
+            </div>
+            <div class="funnel-value">{{ formatNumber(conversionFunnel()?.approvals || 0) }}</div>
+          </div>
+          <div class="funnel-bar">
+            <div class="funnel-label">{{ 'Chats' | translate }}</div>
+            <div class="funnel-track">
+              <div class="funnel-fill" [style.width.%]="getPercentage(conversionFunnel()?.chats || 0, conversionFunnel()?.views || 1)"></div>
+            </div>
+            <div class="funnel-value">{{ formatNumber(conversionFunnel()?.chats || 0) }}</div>
+          </div>
+        </div>
+      } @else {
+        <div class="loading-small">
+          <div class="spinner-small"></div>
+        </div>
+      }
+    </div>
+
+    <!-- Top Performing Opportunities -->
+    <div class="section">
+      <h2>{{ 'Top Performing Opportunities' | translate }}</h2>
+      @if (!loadingTopPerforming()) {
+        @if (topPerforming().length > 0) {
+          <div class="opportunities-grid">
+            @for (opp of topPerforming(); track opp.investmentId) {
+              <div class="opportunity-card">
+                @if (opp.coverImage) {
+                  <img [src]="opp.coverImage" [alt]="opp.investmentName" class="opportunity-image">
+                }
+                <div class="opportunity-content">
+                  <h3>{{ opp.investmentName }}</h3>
+                  <div class="opportunity-metrics">
+                    <div class="metric">
+                      <span class="metric-label">{{ 'Views' | translate }}:</span>
+                      <span class="metric-value">{{ formatNumber(opp.uniqueViews) }}</span>
+                    </div>
+                    <div class="metric">
+                      <span class="metric-label">{{ 'Requests' | translate }}:</span>
+                      <span class="metric-value">{{ opp.requests }}</span>
+                    </div>
+                    <div class="metric">
+                      <span class="metric-label">{{ 'Approval' | translate }}:</span>
+                      <span class="metric-value">{{ opp.approvalRate.toFixed(1) }}%</span>
+                    </div>
+                    <div class="metric">
+                      <span class="metric-label">{{ 'Learn More Conv.' | translate }}:</span>
+                      <span class="metric-value">{{ opp.learnMoreConversion.toFixed(1) }}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="empty-state">{{ 'No opportunities found' | translate }}</div>
+        }
+      } @else {
+        <div class="loading-small">
+          <div class="spinner-small"></div>
+        </div>
+      }
+    </div>
+
+    <!-- Low Performing Opportunities -->
+    <div class="section">
+      <h2>{{ 'Low Performing Opportunities' | translate }}</h2>
+      @if (!loadingLowPerforming()) {
+        @if (lowPerforming().length > 0) {
+          <div class="table-container">
+            <table class="performance-table">
+              <thead>
+                <tr>
+                  <th>{{ 'Name' | translate }}</th>
+                  <th>{{ 'Views' | translate }}</th>
+                  <th>{{ 'Unique Views' | translate }}</th>
+                  <th>{{ 'Learn More' | translate }}</th>
+                  <th>{{ 'Unique Learn More' | translate }}</th>
+                  <th>{{ 'Requests' | translate }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (opp of lowPerforming(); track opp.investmentId) {
+                  <tr>
+                    <td>{{ opp.investmentName }}</td>
+                    <td>{{ opp.views }}</td>
+                    <td>{{ opp.uniqueViews }}</td>
+                    <td>{{ opp.learnMore }}</td>
+                    <td>{{ opp.uniqueLearnMore }}</td>
+                    <td>{{ opp.requests }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <div class="empty-state">{{ 'No opportunities found' | translate }}</div>
+        }
+      } @else {
+        <div class="loading-small">
+          <div class="spinner-small"></div>
+        </div>
+      }
+    </div>
+
+    <!-- Founder Insights -->
+    @if (insights().length > 0) {
+      <div class="section">
+        <h2>{{ 'Founder Insights' | translate }}</h2>
+        <div class="insights-grid">
+          @for (insight of insights(); track insight) {
+            <div class="insight-card">{{ insight }}</div>
+          }
+        </div>
+      </div>
+    }
+  }
+</div>

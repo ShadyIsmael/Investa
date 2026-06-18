@@ -2,7 +2,7 @@ import { Injectable, signal, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE } from '../config/api.token';
-import { InvestmentRequest, CreditTransaction } from '../models/request.model';
+import { InvestmentRequest, CreditTransaction, InvestmentRequestType } from '../models/request.model';
 import { NotificationService } from './notification.service';
 import { UserService } from './user.service';
 import { Investment } from '../models/investment.model';
@@ -46,15 +46,29 @@ export class RequestsService {
   }
 
   /**
+   * Clear all cached request state
+   * Call this on logout or user change
+   */
+  clearState(): void {
+    this._incoming.set([]);
+    this._outgoing.set([]);
+    this._creditTransactions.set([]);
+  }
+
+  /**
    * Load all requests from API
    */
   private async loadRequests(): Promise<void> {
     try {
       const response = await firstValueFrom(this.http.get<any>(`${this.apiBase}/api/investment-requests`, this.getHttpOptions()));
-      
+
       const incoming: InvestmentRequest[] = (response?.incoming || []).map((r: any) => this.mapRequest(r, 'incoming'));
       const outgoing: InvestmentRequest[] = (response?.outgoing || []).map((r: any) => this.mapRequest(r, 'outgoing'));
-      
+
+      // Sort by createdAt DESC (newest first)
+      incoming.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      outgoing.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
       this._incoming.set(incoming);
       this._outgoing.set(outgoing);
     } catch (error) {
@@ -72,8 +86,8 @@ export class RequestsService {
       direction: direction,
       projectName: data.investmentTitle || data.investmentName || 'Investment',
       projectImageUrl: '',
-      counterpartName: direction === 'incoming' 
-        ? (data.investorDisplayName || data.senderName || 'Investor') 
+      counterpartName: direction === 'incoming'
+        ? (data.investorDisplayName || data.senderName || 'Investor')
         : (data.founderDisplayName || data.receiverName || 'Founder'),
       senderName: data.investorDisplayName || data.senderName,
       receiverName: data.founderDisplayName || data.receiverName,
@@ -85,7 +99,13 @@ export class RequestsService {
       shares: data.shares,
       investmentId: data.investmentId,
       investorId: data.investorId,
-      founderId: data.founderId
+      founderId: data.founderId,
+      requestType: data.type,
+      requestMetadata: data.requestMetadata,
+      investorCredibilityScore: data.investorCredibilityScore,
+      founderCredibilityScore: data.founderCredibilityScore,
+      investorTrustLevel: data.investorTrustLevel,
+      founderTrustLevel: data.founderTrustLevel
     };
   }
 
@@ -100,12 +120,16 @@ export class RequestsService {
    * @param investment The investment to request
    * @param amount The investment amount (in credits)
    * @param shares Number of shares (for equity investments, 0 for funding)
+   * @param requestType Type of request (ContactFounder or InvestmentInterest)
+   * @param requestMetadata JSON metadata for investment interest details
    * @returns Promise that resolves when request is created
    */
   async createInvestmentRequest(
     investment: Investment,
     amount: number,
-    shares: number
+    shares: number,
+    requestType?: InvestmentRequestType,
+    requestMetadata?: any
   ): Promise<void> {
     const user = this.userService.user();
     if (!user) {
@@ -118,35 +142,27 @@ export class RequestsService {
     }
 
     try {
-      const response = await firstValueFrom(this.http.post<any>(`${this.apiBase}/api/investment-requests`, {
+      const payload: any = {
         investmentId: investment.id,
         amount,
         shares: shares > 0 ? shares : undefined
-      }, this.getHttpOptions()));
+      };
+
+      // Add requestType and requestMetadata if provided
+      if (requestType) {
+        payload.requestType = requestType;
+      }
+      if (requestMetadata) {
+        payload.requestMetadata = requestMetadata;
+      }
+
+      const response = await firstValueFrom(this.http.post<any>(`${this.apiBase}/api/investment-requests`, payload, this.getHttpOptions()));
 
       // Refresh user credits from API to reflect server-side update
       await this.userService.refreshUser();
 
-      // Use new response shape { request, updatedCreditBalance } with fallback
-      const payload = response?.request ?? response?.outgoingRequest;
-
-      const outgoingRequest: InvestmentRequest = {
-        id: payload?.id ?? Date.now(),
-        type: 'investment',
-        direction: 'outgoing',
-        projectName: investment.name,
-        projectImageUrl: investment.imageUrl || '',
-        counterpartName: investment.founderDisplay || 'Founder',
-        status: payload?.status ?? 'Pending',
-        createdAt: payload?.createdAt ? new Date(payload.createdAt) : new Date(),
-        investmentAmount: amount,
-        shares: shares > 0 ? shares : undefined,
-        investmentId: investment.id,
-        investorId: parseInt(user.userId),
-        founderId: investment.founderId ? parseInt(investment.founderId) : undefined
-      };
-
-      this._outgoing.update(list => [...list, outgoingRequest]);
+      // Reload requests to get the updated list from API
+      await this.loadRequests();
 
       // Update local balance immediately if server returned it (fallbacks to refreshUser())
       if (response?.updatedCreditBalance != null) {
@@ -164,18 +180,18 @@ export class RequestsService {
 
   /**
    * Accept an incoming investment request
-   * Should call API to update request status and process investment
+   * Calls API to update request status and process investment
    */
   async acceptRequest(request: InvestmentRequest): Promise<void> {
     try {
-      // TODO: Implement API call
-      // await firstValueFrom(this.http.put(`${this.apiBase}/api/investment-requests/${request.id}/accept`, {}, this.getHttpOptions()));
-      
-      this._incoming.update(list => list.map(r => r.id === request.id ? { ...r, status: 'Accepted' } : r));
-      this.notifications.showToast({ 
-        title: 'Request Accepted', 
-        message: `${request.projectName} investment request accepted.`, 
-        type: 'success' 
+      await firstValueFrom(this.http.post(`${this.apiBase}/api/investment-requests/${request.id}/approve`, {}, this.getHttpOptions()));
+
+      await this.loadRequests();
+
+      this.notifications.showToast({
+        title: 'Request Accepted',
+        message: `${request.projectName} investment request accepted.`,
+        type: 'success'
       });
     } catch (error) {
       console.error('Failed to accept request:', error);
@@ -185,18 +201,18 @@ export class RequestsService {
 
   /**
    * Decline an incoming investment request
-   * Should call API and potentially refund credits to investor
+   * Calls API to update request status and refund credits to investor
    */
   async declineRequest(request: InvestmentRequest): Promise<void> {
     try {
-      // TODO: Implement API call
-      // await firstValueFrom(this.http.put(`${this.apiBase}/api/investment-requests/${request.id}/decline`, {}, this.getHttpOptions()));
-      
-      this._incoming.update(list => list.map(r => r.id === request.id ? { ...r, status: 'Declined' } : r));
-      this.notifications.showToast({ 
-        title: 'Request Declined', 
-        message: `${request.projectName} investment request declined.`, 
-        type: 'warning' 
+      await firstValueFrom(this.http.post(`${this.apiBase}/api/investment-requests/${request.id}/reject`, {}, this.getHttpOptions()));
+
+      await this.loadRequests();
+
+      this.notifications.showToast({
+        title: 'Request Declined',
+        message: `${request.projectName} investment request declined.`,
+        type: 'warning'
       });
     } catch (error) {
       console.error('Failed to decline request:', error);
@@ -206,24 +222,18 @@ export class RequestsService {
 
   /**
    * Withdraw an outgoing request
-   * Should call API and refund credits to user
+   * Calls backend API to update status to Withdrawn and refund credits
    */
   async withdrawRequest(request: InvestmentRequest): Promise<void> {
     try {
-      // TODO: Implement API call with credit refund
-      // await firstValueFrom(this.http.delete(`${this.apiBase}/api/investment-requests/${request.id}`, this.getHttpOptions()));
-      
+      await firstValueFrom(this.http.post(`${this.apiBase}/api/investment-requests/${request.id}/withdraw`, {}, this.getHttpOptions()));
+
       this._outgoing.update(list => list.filter(r => r.id !== request.id));
-      
-      // Refund credits if applicable
-      if (request.investmentAmount) {
-        this.userService.addCredits(request.investmentAmount);
-      }
-      
-      this.notifications.showToast({ 
-        title: 'Request Withdrawn', 
-        message: `${request.projectName} request withdrawn and credits refunded.`, 
-        type: 'success' 
+
+      this.notifications.showToast({
+        title: 'Request Withdrawn',
+        message: `${request.projectName} request withdrawn and credits refunded.`,
+        type: 'success'
       });
     } catch (error) {
       console.error('Failed to withdraw request:', error);

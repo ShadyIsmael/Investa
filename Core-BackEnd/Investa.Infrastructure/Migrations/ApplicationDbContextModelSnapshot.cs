@@ -1388,6 +1388,44 @@ namespace Investa.Infrastructure.Migrations
                     b.ToTable("InvestmentImages");
                 });
 
+            modelBuilder.Entity("Investa.Domain.Entities.InvestmentLearnMore", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("InvestmentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("OpenedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("UserIp")
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvestmentId");
+
+                    b.HasIndex("OpenedAt");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("InvestmentLearnMores");
+                });
+
             modelBuilder.Entity("Investa.Domain.Entities.InvestmentParticipant", b =>
                 {
                     b.Property<int>("Id")
@@ -1425,7 +1463,7 @@ namespace Investa.Infrastructure.Migrations
                     b.Property<int>("Status")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasDefaultValue(4);
+                        .HasDefaultValue(0);
 
                     b.HasKey("Id");
 
@@ -1505,6 +1543,9 @@ namespace Investa.Infrastructure.Migrations
                     b.Property<Guid>("InvestorId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("RequestMetadata")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("RequestType")
                         .HasColumnType("nvarchar(max)");
 
@@ -1577,6 +1618,44 @@ namespace Investa.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("InvestmentTeamMembers");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.InvestmentView", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("InvestmentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("UserIp")
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
+
+                    b.Property<DateTime>("ViewedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvestmentId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("ViewedAt");
+
+                    b.ToTable("InvestmentViews");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Lookup", b =>
@@ -3227,6 +3306,17 @@ namespace Investa.Infrastructure.Migrations
                     b.Navigation("Uploader");
                 });
 
+            modelBuilder.Entity("Investa.Domain.Entities.InvestmentLearnMore", b =>
+                {
+                    b.HasOne("Investa.Domain.Entities.Investment", "Investment")
+                        .WithMany()
+                        .HasForeignKey("InvestmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Investment");
+                });
+
             modelBuilder.Entity("Investa.Domain.Entities.InvestmentParticipant", b =>
                 {
                     b.HasOne("Investa.Domain.Entities.Investment", "Investment")
@@ -3274,6 +3364,17 @@ namespace Investa.Infrastructure.Migrations
                     b.Navigation("Investment");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.InvestmentView", b =>
+                {
+                    b.HasOne("Investa.Domain.Entities.Investment", "Investment")
+                        .WithMany()
+                        .HasForeignKey("InvestmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Investment");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Message", b =>

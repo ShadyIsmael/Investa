@@ -10,6 +10,14 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
     public ApplicationDbContext CreateDbContext(string[] args)
     {
         var basePath = Directory.GetCurrentDirectory();
+        
+        // Look for appsettings.json in the API project directory
+        var apiProjectPath = Path.Combine(basePath, "..", "Investa.API");
+        if (Directory.Exists(apiProjectPath))
+        {
+            basePath = Path.GetFullPath(apiProjectPath);
+        }
+        
         var builder = new ConfigurationBuilder()
             .SetBasePath(basePath)
             .AddJsonFile("appsettings.json", optional: true)

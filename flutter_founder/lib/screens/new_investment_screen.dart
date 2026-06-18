@@ -52,7 +52,6 @@ class _NewInvestmentScreenState extends State<NewInvestmentScreen> {
   bool _isSaving = false;
 
   List<XFile> _selectedImages = []; // client-side selected images (max 5)
-  XFile? _selectedVideo; // client-side selected video
 
   // Selected Values
   int? _catId;
@@ -66,8 +65,6 @@ class _NewInvestmentScreenState extends State<NewInvestmentScreen> {
   final List<Map<String, dynamic>> _investmentTypes = const [
     {'id': 1, 'label': 'Founding'},
     {'id': 2, 'label': 'Equity'},
-    {'id': 3, 'label': 'Revenue Sharing'},
-    {'id': 4, 'label': 'Loan / Debt'},
   ];
 
   @override
@@ -312,8 +309,9 @@ class _NewInvestmentScreenState extends State<NewInvestmentScreen> {
             int success = 0;
             for (final x in _selectedImages) {
               try {
-                final res = await InvestmentsService()
-                    .uploadInvestmentImage(x.path, createdId);
+                final file = File(x.path);
+                final res =
+                    await InvestmentsService().uploadImage(createdId, file);
                 if (res != null) success++;
               } catch (e) {
                 AppLogger.logError(
@@ -324,21 +322,6 @@ class _NewInvestmentScreenState extends State<NewInvestmentScreen> {
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                 content: Text(
                     'Uploaded $success of ${_selectedImages.length} images')));
-          }
-
-          // Upload video if selected
-          if (createdId > 0 && _selectedVideo != null) {
-            try {
-              final res = await InvestmentsService()
-                  .uploadInvestmentVideo(_selectedVideo!.path, createdId);
-              if (res != null) {
-                AppLogger.logInfo(
-                    'NewInvestmentScreen', 'Video uploaded: $res');
-              }
-            } catch (e) {
-              AppLogger.logError(
-                  'NewInvestmentScreen', 'Video upload failed: $e', null);
-            }
           }
         } catch (e) {
           AppLogger.logError(
@@ -829,8 +812,7 @@ class _NewInvestmentScreenState extends State<NewInvestmentScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionHeader('Media'),
-        // Images section
+        _sectionHeader('Images'),
         Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: Row(
@@ -887,62 +869,6 @@ class _NewInvestmentScreenState extends State<NewInvestmentScreen> {
               ),
               separatorBuilder: (_, __) => const SizedBox(width: 6),
               itemCount: _selectedImages.length,
-            ),
-          ),
-        const SizedBox(height: 24),
-        // Video section
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Text('Video (Optional)',
-              style: GoogleFonts.dmSans(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: theme.colorScheme.onSurface.withOpacity(0.7))),
-        ),
-        if (_selectedVideo != null)
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppPalette.flame.withOpacity(0.3)),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.videocam_rounded, color: AppPalette.flame, size: 24),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    _selectedVideo!.name,
-                    style: GoogleFonts.dmSans(fontWeight: FontWeight.w600),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close, size: 18),
-                  onPressed: () => setState(() => _selectedVideo = null),
-                ),
-              ],
-            ),
-          )
-        else
-          OutlinedButton.icon(
-            onPressed: () async {
-              final picker = ImagePicker();
-              final picked = await picker.pickVideo(
-                  source: ImageSource.gallery,
-                  maxDuration: const Duration(minutes: 5));
-              if (picked != null) {
-                setState(() => _selectedVideo = picked);
-              }
-            },
-            icon: const Icon(Icons.video_library_rounded),
-            label: Text('Select Video',
-                style: GoogleFonts.dmSans(fontWeight: FontWeight.w600)),
-            style: OutlinedButton.styleFrom(
-              padding: EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
             ),
           ),
         const SizedBox(height: 24),

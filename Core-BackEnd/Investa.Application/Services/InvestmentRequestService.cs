@@ -15,27 +15,44 @@ public class InvestmentRequestService : IInvestmentRequestService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICreditService _creditService;
     private readonly INotificationService _notificationService;
+    private readonly IChatService _chatService;
     private readonly IMapper _mapper;
     private readonly ILogger<InvestmentRequestService> _logger;
 
     public InvestmentRequestService(
         IUnitOfWork unitOfWork, 
         ICreditService creditService, 
-        INotificationService notificationService, 
+        INotificationService notificationService,
+        IChatService chatService,
         IMapper mapper,
         ILogger<InvestmentRequestService> logger)
     {
         _unitOfWork = unitOfWork;
         _creditService = creditService;
         _notificationService = notificationService;
+        _chatService = chatService;
         _mapper = mapper;
         _logger = logger;
     }
 
     public async Task<CreateInvestmentRequestResponseDto> CreateInvestmentRequestAsync(Guid investorId, CreateInvestmentRequestDto dto)
     {
-        _logger.LogInformation("Creating investment request for investor {InvestorId}, investment {InvestmentId}, amount {Amount}",
-            investorId, dto.InvestmentId, dto.Amount);
+        _logger.LogInformation("Creating investment request for investor {InvestorId}, investment {InvestmentId}, amount {Amount}, requestType={RequestType}",
+            investorId, dto.InvestmentId, dto.Amount, dto.RequestType);
+
+        // Validate RequestType using strongly typed enum + centralized codec (no scattered string comparisons)
+        var requestType = InvestmentRequestTypeCodec.Parse(dto.RequestType);
+
+        // RequestMetadata rules:
+        // - ContactFounder: optional
+        // - InvestmentInterest: required
+        if (requestType == InvestmentRequestType.InvestmentInterest && string.IsNullOrWhiteSpace(dto.RequestMetadata))
+        {
+            throw new InvalidOperationException("RequestMetadata is required for InvestmentInterest.");
+        }
+
+        // Canonicalize persisted value for backward compatibility and consistent reads
+        var persistedRequestType = InvestmentRequestTypeCodec.ToPersistedString(requestType);
 
         var investment = await _unitOfWork.Repository<Investment>().GetByIdAsync(dto.InvestmentId);
         if (investment == null)
@@ -48,6 +65,19 @@ public class InvestmentRequestService : IInvestmentRequestService
         if (client == null && user == null)
         {
             throw new InvalidOperationException("Investor account not found");
+        }
+
+        // Check for existing pending request for same investor and investment
+        var existingRequest = (await _unitOfWork.Repository<InvestmentRequest>()
+            .FindAsync(r => r.InvestmentId == dto.InvestmentId 
+                        && r.InvestorId == investorId 
+                        && r.Status == InvestmentRequestStatus.Pending))
+            .FirstOrDefault();
+
+        if (existingRequest != null)
+        {
+            _logger.LogWarning("Investor {InvestorId} already has a pending request for investment {InvestmentId}", investorId, dto.InvestmentId);
+            throw new InvalidOperationException("You already have a pending request for this investment");
         }
 
         var availableCredit = client?.Credit ?? user?.WalletBalance ?? 0m;
@@ -82,7 +112,8 @@ public class InvestmentRequestService : IInvestmentRequestService
             Shares = dto.Shares,
             Status = InvestmentRequestStatus.Pending,
             Direction = InvestmentRequestDirection.Outgoing, // keep for compatibility
-            RequestType = "investment_request",
+            RequestType = persistedRequestType,
+            RequestMetadata = dto.RequestMetadata,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -134,7 +165,7 @@ public class InvestmentRequestService : IInvestmentRequestService
                     ["shares"] = dto.Shares?.ToString() ?? "0",
                     ["investmentName"] = investmentName,
                     ["investorName"] = investorName,
-                    ["type"] = "investment_request",
+                    ["type"] = persistedRequestType,
                     ["action"] = "new_request"
                 });
             
@@ -171,6 +202,8 @@ public class InvestmentRequestService : IInvestmentRequestService
             {
                 var founder = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.FounderId, u => u.Profile);
                 mapped.FounderDisplayName = founder?.Profile?.FullName ?? founder?.Name;
+                mapped.FounderCredibilityScore = founder?.Profile?.CurrentCredibilityScore;
+                mapped.FounderTrustLevel = GetTrustLevelFromVerificationStatus(founder?.Profile?.VerificationStatus);
             }
             catch
             {
@@ -181,6 +214,8 @@ public class InvestmentRequestService : IInvestmentRequestService
             {
                 var investor = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.InvestorId, u => u.Profile);
                 mapped.InvestorDisplayName = investor?.Profile?.FullName ?? investor?.Name;
+                mapped.InvestorCredibilityScore = investor?.Profile?.CurrentCredibilityScore;
+                mapped.InvestorTrustLevel = GetTrustLevelFromVerificationStatus(investor?.Profile?.VerificationStatus);
             }
             catch
             {
@@ -209,24 +244,15 @@ public class InvestmentRequestService : IInvestmentRequestService
 
     public async Task<GetMyRequestsResponseDto> GetMyRequestsAsync(Guid userId)
     {
-        _logger.LogInformation("Fetching investment requests for user {UserId}", userId);
+        // Fetch incoming requests (user is the receiver/founder)
+        var incomingRequests = await _unitOfWork.Repository<InvestmentRequest>()
+            .FindAsync(r => r.FounderId == userId);
 
-        // Fetch all requests where user is sender (InvestorId) or receiver (FounderId)
-        var requests = await _unitOfWork.Repository<InvestmentRequest>()
-            .FindAsync(r => r.InvestorId == userId || r.FounderId == userId);
-
-        var requestsList = requests.ToList();
-        _logger.LogInformation("Found {Count} requests for user {UserId}", requestsList.Count, userId);
-
-        // Classify as incoming or outgoing based on user's position
         var incoming = new List<InvestmentRequestDto>();
-        var outgoing = new List<InvestmentRequestDto>();
-
-        foreach (var request in requestsList)
+        foreach (var request in incomingRequests)
         {
             var dto = _mapper.Map<InvestmentRequestDto>(request);
 
-            // Populate investment and founder display fields
             try
             {
                 var inv = await _unitOfWork.Repository<Investment>().GetByIdAsync(request.InvestmentId);
@@ -234,45 +260,67 @@ public class InvestmentRequestService : IInvestmentRequestService
                 dto.InvestmentDescription = inv?.Description;
                 dto.BusinessName = inv?.BusinessName;
             }
-            catch
-            {
-                // ignore failures
-            }
+            catch { }
 
             try
             {
                 var founder = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.FounderId, u => u.Profile);
                 dto.FounderDisplayName = founder?.Profile?.FullName ?? founder?.Name;
+                dto.FounderCredibilityScore = founder?.Profile?.CurrentCredibilityScore;
+                dto.FounderTrustLevel = GetTrustLevelFromVerificationStatus(founder?.Profile?.VerificationStatus);
             }
-            catch
-            {
-                // ignore failures
-            }
+            catch { }
 
             try
             {
                 var investor = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.InvestorId, u => u.Profile);
                 dto.InvestorDisplayName = investor?.Profile?.FullName ?? investor?.Name;
+                dto.InvestorCredibilityScore = investor?.Profile?.CurrentCredibilityScore;
+                dto.InvestorTrustLevel = GetTrustLevelFromVerificationStatus(investor?.Profile?.VerificationStatus);
             }
-            catch
-            {
-                // ignore failures
-            }
+            catch { }
 
-            // If user is the receiver (FounderId), it's incoming
-            if (request.FounderId == userId)
-            {
-                incoming.Add(dto);
-            }
-            // If user is the sender (InvestorId), it's outgoing
-            else if (request.InvestorId == userId)
-            {
-                outgoing.Add(dto);
-            }
+            incoming.Add(dto);
         }
 
-        _logger.LogInformation("User {UserId} has {IncomingCount} incoming and {OutgoingCount} outgoing requests",
-            userId, incoming.Count, outgoing.Count);
+        // Fetch outgoing requests (user is the sender/investor)
+        var outgoingRequests = await _unitOfWork.Repository<InvestmentRequest>()
+            .FindAsync(r => r.InvestorId == userId);
+
+        var outgoing = new List<InvestmentRequestDto>();
+        foreach (var request in outgoingRequests)
+        {
+            var dto = _mapper.Map<InvestmentRequestDto>(request);
+
+            try
+            {
+                var inv = await _unitOfWork.Repository<Investment>().GetByIdAsync(request.InvestmentId);
+                dto.InvestmentTitle = inv?.BusinessName;
+                dto.InvestmentDescription = inv?.Description;
+                dto.BusinessName = inv?.BusinessName;
+            }
+            catch { }
+
+            try
+            {
+                var founder = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.FounderId, u => u.Profile);
+                dto.FounderDisplayName = founder?.Profile?.FullName ?? founder?.Name;
+                dto.FounderCredibilityScore = founder?.Profile?.CurrentCredibilityScore;
+                dto.FounderTrustLevel = GetTrustLevelFromVerificationStatus(founder?.Profile?.VerificationStatus);
+            }
+            catch { }
+
+            try
+            {
+                var investor = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.InvestorId, u => u.Profile);
+                dto.InvestorDisplayName = investor?.Profile?.FullName ?? investor?.Name;
+                dto.InvestorCredibilityScore = investor?.Profile?.CurrentCredibilityScore;
+                dto.InvestorTrustLevel = GetTrustLevelFromVerificationStatus(investor?.Profile?.VerificationStatus);
+            }
+            catch { }
+
+            outgoing.Add(dto);
+        }
 
         return new GetMyRequestsResponseDto
         {
@@ -336,6 +384,26 @@ public class InvestmentRequestService : IInvestmentRequestService
 
         await _unitOfWork.SaveChangesAsync();
 
+        // Create chat between founder and investor
+        try
+        {
+            var investment = await _unitOfWork.Repository<Investment>().GetByIdAsync(request.InvestmentId);
+            var investmentName = investment?.BusinessName ?? "Investment";
+            
+            var conversation = await _chatService.CreateConversationAsync(
+                request.FounderId,
+                request.InvestorId,
+                $"Investment: {investmentName}"
+            );
+            
+            _logger.LogInformation("Chat {ConversationId} created for approved request {RequestId}", conversation.Id, requestId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to create chat for approved request {RequestId}", requestId);
+            // Don't fail the approval if chat creation fails
+        }
+
         // Send notification to investor
         try
         {
@@ -350,7 +418,7 @@ public class InvestmentRequestService : IInvestmentRequestService
                 {
                     ["requestId"] = request.Id.ToString(),
                     ["investmentId"] = request.InvestmentId.ToString(),
-                    ["type"] = "investment_request",
+                    ["type"] = InvestmentRequestTypeCodec.ToPersistedString(InvestmentRequestTypeCodec.Parse(request.RequestType)),
                     ["action"] = "approved"
                 });
         }
@@ -360,7 +428,7 @@ public class InvestmentRequestService : IInvestmentRequestService
         }
 
         var dto = _mapper.Map<InvestmentRequestDto>(request);
-        
+
         // Populate display fields
         try
         {
@@ -374,6 +442,8 @@ public class InvestmentRequestService : IInvestmentRequestService
         {
             var investor = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.InvestorId, u => u.Profile);
             dto.InvestorDisplayName = investor?.Profile?.FullName ?? investor?.Name;
+            dto.InvestorCredibilityScore = investor?.Profile?.CurrentCredibilityScore;
+            dto.InvestorTrustLevel = GetTrustLevelFromVerificationStatus(investor?.Profile?.VerificationStatus);
         }
         catch { /* ignore */ }
 
@@ -448,7 +518,7 @@ public class InvestmentRequestService : IInvestmentRequestService
                 {
                     ["requestId"] = request.Id.ToString(),
                     ["investmentId"] = request.InvestmentId.ToString(),
-                    ["type"] = "investment_request",
+                    ["type"] = InvestmentRequestTypeCodec.ToPersistedString(InvestmentRequestTypeCodec.Parse(request.RequestType)),
                     ["action"] = "rejected"
                 });
         }
@@ -458,7 +528,7 @@ public class InvestmentRequestService : IInvestmentRequestService
         }
 
         var dto = _mapper.Map<InvestmentRequestDto>(request);
-        
+
         // Populate display fields
         try
         {
@@ -472,10 +542,108 @@ public class InvestmentRequestService : IInvestmentRequestService
         {
             var investor = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.InvestorId, u => u.Profile);
             dto.InvestorDisplayName = investor?.Profile?.FullName ?? investor?.Name;
+            dto.InvestorCredibilityScore = investor?.Profile?.CurrentCredibilityScore;
+            dto.InvestorTrustLevel = GetTrustLevelFromVerificationStatus(investor?.Profile?.VerificationStatus);
         }
         catch { /* ignore */ }
 
         _logger.LogInformation("Investment request {RequestId} rejected successfully", requestId);
         return dto;
+    }
+
+    public async Task<InvestmentRequestDto> WithdrawInvestmentRequestAsync(int requestId, Guid investorId)
+    {
+        _logger.LogInformation("Withdrawing investment request {RequestId} by investor {InvestorId}", requestId, investorId);
+
+        var request = await _unitOfWork.Repository<InvestmentRequest>().GetByIdAsync(requestId);
+        if (request == null)
+        {
+            throw new InvalidOperationException("Investment request not found");
+        }
+
+        if (request.InvestorId != investorId)
+        {
+            throw new UnauthorizedAccessException("Only the investor can withdraw investment requests");
+        }
+
+        if (request.Status != InvestmentRequestStatus.Pending)
+        {
+            throw new InvalidOperationException("Only pending requests can be withdrawn");
+        }
+
+        // Update request status
+        request.Status = InvestmentRequestStatus.Withdrawn;
+        request.UpdatedAt = DateTime.UtcNow;
+
+        await _unitOfWork.SaveChangesAsync();
+
+        // Refund credits to investor
+        try
+        {
+            var investment = await _unitOfWork.Repository<Investment>().GetByIdAsync(request.InvestmentId);
+            var investmentName = investment?.BusinessName ?? "Investment";
+            var descriptionEn = $"Refund for withdrawn investment request: {investmentName}";
+
+            await _creditService.CreateTransactionAsync(request.InvestorId, request.Amount, "credit", descriptionEn);
+            _logger.LogInformation("Refunded {Amount} credits to investor {InvestorId}", request.Amount, request.InvestorId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to refund credits to investor {InvestorId}", request.InvestorId);
+        }
+
+        var dto = _mapper.Map<InvestmentRequestDto>(request);
+
+        // Populate display fields
+        try
+        {
+            var inv = await _unitOfWork.Repository<Investment>().GetByIdAsync(request.InvestmentId);
+            dto.InvestmentTitle = inv?.BusinessName;
+            dto.InvestmentDescription = inv?.Description;
+            dto.BusinessName = inv?.BusinessName;
+        }
+        catch
+        {
+            // ignore failures
+        }
+
+        try
+        {
+            var founder = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.FounderId, u => u.Profile);
+            dto.FounderDisplayName = founder?.Profile?.FullName ?? founder?.Name;
+            dto.FounderCredibilityScore = founder?.Profile?.CurrentCredibilityScore;
+            dto.FounderTrustLevel = GetTrustLevelFromVerificationStatus(founder?.Profile?.VerificationStatus);
+        }
+        catch
+        {
+            // ignore failures
+        }
+
+        try
+        {
+            var investor = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.InvestorId, u => u.Profile);
+            dto.InvestorDisplayName = investor?.Profile?.FullName ?? investor?.Name;
+            dto.InvestorCredibilityScore = investor?.Profile?.CurrentCredibilityScore;
+            dto.InvestorTrustLevel = GetTrustLevelFromVerificationStatus(investor?.Profile?.VerificationStatus);
+        }
+        catch
+        {
+            // ignore failures
+        }
+
+        _logger.LogInformation("Investment request {RequestId} withdrawn successfully", requestId);
+        return dto;
+    }
+
+    private string? GetTrustLevelFromVerificationStatus(VerificationStatus? status)
+    {
+        if (!status.HasValue) return "Basic";
+        return status switch
+        {
+            VerificationStatus.None => "Basic",
+            VerificationStatus.Pending => "Medium",
+            VerificationStatus.Verified => "High",
+            _ => "Basic"
+        };
     }
 }

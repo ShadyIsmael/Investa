@@ -27,19 +27,44 @@ interface AuthResponseDto {
 export class AuthService {
   isAuthenticated = signal<boolean>(false);
   userRole = signal<UserRole | null>(null);
+  private initialized = false;
 
   constructor(private http: HttpClient, @Inject(API_BASE) private apiBase: string, private notificationService: NotificationService) {
-    // Restore authentication state from localStorage if present
-    const token = localStorage.getItem('accessToken');
-    const role = localStorage.getItem('userRole') as UserRole | null;
-    if (token) {
-      this.isAuthenticated.set(true);
-      // Start polling for notifications if already authenticated
-      this.notificationService.startPolling();
+  }
+
+  /**
+   * Initialize authentication state on application startup
+   * Validates token and restores session if valid
+   */
+  async initialize(): Promise<void> {
+    if (this.initialized) return;
+
+    const token = this.getAccessToken();
+    const expiry = this.getTokenExpiry();
+
+    if (!token) {
+      this.isAuthenticated.set(false);
+      this.userRole.set(null);
+      this.initialized = true;
+      return;
     }
+
+    // Check if token is expired
+    if (expiry && expiry < new Date()) {
+      // Token expired, clear auth state
+      this.logout();
+      this.initialized = true;
+      return;
+    }
+
+    // Token exists and is not expired, restore session
+    const role = localStorage.getItem('userRole') as UserRole | null;
+    this.isAuthenticated.set(true);
     if (role) {
       this.userRole.set(role);
     }
+    this.notificationService.startPolling();
+    this.initialized = true;
   }
 
   /**

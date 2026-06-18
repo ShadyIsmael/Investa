@@ -1,0 +1,831 @@
+<div class="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-900">
+  <!-- Header with Navigation -->
+  <div class="sticky top-0 z-40 border-b border-slate-800/50 bg-slate-950/80 backdrop-blur-md">
+    <div class="container mx-auto px-6 py-4">
+      <a routerLink="/admin/investments" class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
+        <svg class="w-5 h-5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        {{ 'investmentPreview.backButton' | translate }}
+      </a>
+    </div>
+  </div>
+
+  @if (investment(); as inv) {
+    <div class="animate-fade-in">
+// Hero Section with Image -->
+       <div class="relative h-96 bg-gradient-to-b from-slate-800 to-slate-900 overflow-hidden">
+         <!-- Status accent strip -->
+          <div class="absolute top-0 inset-x-0 h-1 z-10"
+               [class]="inv.status === 'Active'                 ? 'bg-gradient-to-r from-emerald-500 to-green-400' :
+                        inv.status === 'Fully Funded'           ? 'bg-gradient-to-r from-blue-500 to-cyan-400' :
+                        inv.status === 'Reviewing Participants' ? 'bg-gradient-to-r from-amber-400 to-orange-400' :
+                        inv.status === 'In Progress'            ? 'bg-gradient-to-r from-blue-500 to-purple-500' :
+                        inv.status === 'Completed'              ? 'bg-gradient-to-r from-green-500 to-teal-400' :
+                        inv.status === 'Paused'                 ? 'bg-gradient-to-r from-yellow-400 to-amber-500' :
+                        inv.status === 'Archived'               ? 'bg-gradient-to-r from-gray-500 to-slate-400' :
+                        inv.status === 'Closed'                 ? 'bg-gradient-to-r from-red-500 to-rose-400' :
+                                                                 'bg-slate-700'">
+          </div>
+          <!-- Hero cover image -->
+          @if (inv.images && inv.images.length > 0 || inv.imageUrl) {
+            <img [src]="getHeroImageUrl(inv)" [alt]="inv.name" class="w-full h-full object-cover opacity-30">
+          }
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent"></div>
+        
+        <div class="absolute inset-0 flex flex-col justify-end p-8">
+          <div class="flex items-start justify-between mb-4">
+            <div>
+              <div class="flex flex-wrap items-center gap-2 mb-3">
+                <span class="px-3 py-1 text-sm font-semibold rounded-full inline-flex" [ngClass]="getInvestmentTypeBadgeClass(inv.investmentType)">
+                  {{ getInvestmentTypeDisplay(inv.investmentType) }}
+                </span>
+                <span class="px-3 py-1 text-sm font-semibold rounded-full inline-flex"
+                      [class]="inv.riskLevel === RiskLevel.Low ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : inv.riskLevel === RiskLevel.Medium ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-red-500/20 text-red-300 border border-red-500/30'">
+                  {{ ('investments.risk.' + (inv.riskLevel | lowercase)) | translate }}
+                </span>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 text-sm font-semibold rounded-full border"
+                      [ngClass]="{
+                        'bg-slate-600/30 text-gray-300 border-slate-600/30': inv.status === 'Draft',
+                        'bg-emerald-500/15 text-emerald-300 border-emerald-500/25': inv.status === 'Active',
+                        'bg-amber-500/15 text-amber-300 border-amber-500/25': inv.status === 'Reviewing Participants',
+                        'bg-blue-500/15 text-blue-300 border-blue-500/25': inv.status === 'In Progress' || inv.status === 'Funded',
+                        'bg-cyan-500/15 text-cyan-300 border-cyan-500/25': inv.status === 'Fully Funded',
+                        'bg-yellow-500/15 text-yellow-300 border-yellow-500/25': inv.status === 'Paused',
+                        'bg-green-500/15 text-green-300 border-green-500/25': inv.status === 'Completed',
+                        'bg-gray-500/15 text-gray-300 border-gray-500/25': inv.status === 'Archived',
+                        'bg-red-500/15 text-red-300 border-red-500/25': inv.status === 'Closed'
+                      }">
+                  @if (inv.status === 'Active' || inv.status === 'In Progress') {
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  }
+                  {{ inv.status }}
+                </span>
+                @if (inv.endDate && getDaysRemaining(inv.endDate) >= 0) {
+                  <span class="inline-flex items-center gap-1 px-3 py-1 text-sm font-semibold rounded-full bg-slate-800/60 border"
+                        [class]="getDaysRemaining(inv.endDate) <= 7  ? 'text-red-400 border-red-500/30' :
+                                 getDaysRemaining(inv.endDate) <= 30 ? 'text-amber-400 border-amber-500/30' : 'text-gray-400 border-slate-600/30'">
+                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
+                    {{ getDaysRemaining(inv.endDate) }}d {{ 'investmentPreview.daysLeft' | translate }}
+                  </span>
+                }
+              </div>
+              <h1 class="text-5xl font-bold text-white mb-2">{{ inv.name }}</h1>
+              <p class="text-gray-400 text-lg max-w-2xl">{{ languageService.language() === 'ar' ? (inv.businessCategoryNameAr || inv.businessCategoryName) : (inv.businessCategoryName || '') }}</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <button type="button" class="p-3 rounded-full hover:bg-white/10 transition-colors text-gray-400 hover:text-white" (click)="openManageImages(inv)">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M4 6h16v12H4z" /></svg>
+              </button>
+              <button type="button" class="p-3 rounded-full hover:bg-white/10 transition-colors text-gray-400 hover:text-white">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M11.645 20.761A9.865 9.865 0 015.12 5.12a9.865 9.865 0 0115.625 13.625 9.865 9.865 0 01-9.1 1.016zM12 1a11 11 0 110 22 11 11 0 010-22z"></path></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Gallery Thumbnails -->
+          @if (getProjectMediaImages(inv).length > 0) {
+            <div class="flex gap-2 overflow-x-auto pb-1">
+              @for (img of getProjectMediaImages(inv); track img.id; let i = $index) {
+                <button type="button" (click)="openLightbox(resolveImageUrl(img.url))"
+                        class="flex-shrink-0 h-24 w-36 rounded-lg overflow-hidden ring-1 ring-white/10 hover:ring-2 hover:ring-blue-400/70 transition-all focus:outline-none focus:ring-2 focus:ring-blue-400">
+                  <img [src]="resolveImageUrl(img.url)" [alt]="img.caption || ('Image ' + (i + 1))" class="w-full h-full object-cover">
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="container mx-auto px-6 py-12">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <!-- Left Column: Main Details -->
+          <div class="lg:col-span-2 space-y-8">
+            <!-- Quick Info Strip -->
+            <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
+              <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
+                <!-- Type -->
+                <div class="flex items-center gap-2">
+                  <span class="text-xs uppercase tracking-wider text-gray-500">{{ 'investmentPreview.investmentType' | translate }}</span>
+                  <span class="px-2.5 py-0.5 text-xs font-bold rounded-md" [ngClass]="getInvestmentTypeBadgeClass(inv.investmentType)">
+                    {{ getInvestmentTypeDisplay(inv.investmentType) }}
+                  </span>
+                  <span class="text-xs text-gray-500">{{ inv.investmentType === InvestmentType.Founding ? ('investmentPreview.earlyStage' | translate) : ('investmentPreview.equityOpportunity' | translate) }}</span>
+                </div>
+                <div class="w-px h-4 bg-slate-700 hidden md:block"></div>
+                <!-- Risk -->
+                <div class="flex items-center gap-2">
+                  <span class="text-xs uppercase tracking-wider text-gray-500">{{ 'investmentPreview.riskLevel' | translate }}</span>
+                  <span class="px-2.5 py-0.5 text-xs font-bold rounded-md"
+                        [class]="inv.riskLevel === RiskLevel.Low ? 'bg-emerald-500/15 text-emerald-300' : inv.riskLevel === RiskLevel.Medium ? 'bg-amber-500/15 text-amber-300' : 'bg-red-500/15 text-red-300'">
+                    {{ ('investments.risk.' + (inv.riskLevel | lowercase)) | translate }}
+                  </span>
+                  <span class="text-xs text-gray-500">{{ inv.riskLevel === RiskLevel.Low ? ('investmentPreview.conservativeProfile' | translate) : inv.riskLevel === RiskLevel.Medium ? ('investmentPreview.moderateExposure' | translate) : ('investmentPreview.highVolatility' | translate) }}</span>
+                </div>
+                <div class="w-px h-4 bg-slate-700 hidden md:block"></div>
+                <!-- Status -->
+                <div class="flex items-center gap-2">
+                  <span class="text-xs uppercase tracking-wider text-gray-500">{{ 'investmentPreview.campaignStatus' | translate }}</span>
+                  <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-bold rounded-md border"
+                        [ngClass]="{
+                          'bg-slate-600/30 text-gray-400 border-slate-600/30': inv.status === 'Draft',
+                          'bg-emerald-500/15 text-emerald-300 border-emerald-500/25': inv.status === 'Active',
+                          'bg-amber-500/15 text-amber-300 border-amber-500/25': inv.status === 'Reviewing Participants',
+                          'bg-blue-500/15 text-blue-300 border-blue-500/25': inv.status === 'In Progress' || inv.status === 'Funded',
+                          'bg-cyan-500/15 text-cyan-300 border-cyan-500/25': inv.status === 'Fully Funded',
+                          'bg-yellow-500/15 text-yellow-300 border-yellow-500/25': inv.status === 'Paused',
+                          'bg-green-500/15 text-green-300 border-green-500/25': inv.status === 'Completed',
+                          'bg-gray-500/15 text-gray-300 border-gray-500/25': inv.status === 'Archived',
+                          'bg-red-500/15 text-red-300 border-red-500/25': inv.status === 'Closed'
+                        }">
+                    @if (inv.status === 'Active' || inv.status === 'In Progress') {
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span>
+                    }
+                    {{ inv.status }}
+                  </span>
+                  <span class="text-xs text-gray-500">{{ getStatusDescription(inv.status) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Project Stages Timeline -->
+            <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-8">
+              <h3 class="text-xl font-bold text-white mb-6">{{ 'investmentPreview.projectRoadmap' | translate }}</h3>
+              
+              <div class="relative">
+                <!-- Horizontal line connecting stages -->
+                <div class="absolute top-6 left-0 right-0 h-1 bg-gradient-to-r from-slate-700 to-slate-700"></div>
+
+                <!-- Stages -->
+                <div class="grid grid-cols-2 md:grid-cols-6 gap-4 relative z-10">
+                  @let stages = getProjectStages();
+                  @let currentStageIndex = getCurrentStageIndex();
+                  
+                  @for (stage of stages; track $index; let first = $first; let last = $last) {
+                    <div class="text-center">
+                      <!-- Stage Circle -->
+                      <div class="flex justify-center mb-3">
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm ring-4" 
+                          [class]="$index <= currentStageIndex 
+                            ? 'bg-gradient-to-br from-blue-500 to-purple-600 text-white ring-purple-500/30' 
+                            : 'bg-slate-700 text-gray-400 ring-slate-700/50'">
+                          {{ $index + 1 }}
+                        </div>
+                      </div>
+
+                      <!-- Stage Name -->
+                      <p class="text-sm font-semibold" [class]="$index === currentStageIndex ? 'text-white' : $index < currentStageIndex ? 'text-gray-400' : 'text-gray-500'">
+                        {{ stage }}
+                      </p>
+
+                      <!-- Current Stage Badge -->
+                      @if ($index === currentStageIndex) {
+                        <span class="inline-block mt-2 px-2 py-1 text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-full">
+                          {{ 'investmentPreview.current' | translate }}
+                        </span>
+                      } @else if ($index < currentStageIndex) {
+                        <span class="inline-block mt-2 px-2 py-1 text-xs font-semibold text-green-400">
+                          ✓ {{ 'investmentPreview.complete' | translate }}
+                        </span>
+                      }
+                    </div>
+                  }
+                </div>
+
+                <!-- Milestone Display -->
+                @if (inv.milestone) {
+                  <div class="mt-8 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                    <p class="text-blue-300 text-sm font-semibold mb-1">{{ 'investmentPreview.currentMilestone' | translate }}</p>
+                    <p class="text-blue-100 text-lg font-bold">{{ inv.milestone }}</p>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Description -->
+
+            <!-- ── Media Gallery ── -->
+            @if ((inv.images && inv.images.length > 0) || inv.videoUrl) {
+              <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
+                <h3 class="text-xl font-bold text-white mb-5">{{ 'investmentPreview.media' | translate }}</h3>
+
+                <!-- Video -->
+                @if (inv.videoUrl) {
+                  <div class="mb-5">
+                    @let isYoutube = inv.videoUrl.includes('youtube') || inv.videoUrl.includes('youtu.be');
+                    @let isVimeo   = inv.videoUrl.includes('vimeo');
+                    @if (isYoutube || isVimeo) {
+                      <!-- Embeddable iframe -->
+                      <div class="relative w-full rounded-xl overflow-hidden bg-black" style="padding-top:56.25%">
+                        <iframe class="absolute inset-0 w-full h-full"
+                                [src]="inv.videoUrl"
+                                title="{{ inv.name }}"
+                                frameborder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowfullscreen>
+                        </iframe>
+                      </div>
+                    } @else {
+                      <!-- Direct video file link -->
+                      <a [href]="inv.videoUrl" target="_blank" rel="noopener noreferrer"
+                         class="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 hover:bg-blue-500/20 hover:text-blue-200 transition-colors group">
+                        <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <p class="text-sm font-semibold truncate">{{ 'investmentPreview.watchProjectVideo' | translate }}</p>
+                          <p class="text-xs text-blue-400/60 truncate mt-0.5">{{ inv.videoUrl }}</p>
+                        </div>
+                        <svg class="w-4 h-4 text-blue-400/70 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                      </a>
+                    }
+                  </div>
+                }
+
+                <!-- Image grid -->
+                @if (getProjectMediaImages(inv).length > 0) {
+                  <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    @for (img of getProjectMediaImages(inv); track img.id; let i = $index) {
+                      <button type="button" (click)="openLightbox(resolveImageUrl(img.url))"
+                              [title]="img.caption || ('investmentPreview.imageAlt' | translate)"
+                              class="relative aspect-video rounded-lg overflow-hidden group/img ring-1 ring-white/5 hover:ring-2 hover:ring-blue-400/50 transition-all focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        <img [src]="resolveImageUrl(img.url)" [alt]="img.caption || ('Image ' + (i + 1))" class="w-full h-full object-cover transition-transform duration-300 group-hover/img:scale-105">
+                        <!-- Hover overlay -->
+                        <div class="absolute inset-0 bg-black/0 group-hover/img:bg-black/30 transition-colors flex items-center justify-center">
+                          <svg class="w-7 h-7 text-white opacity-0 group-hover/img:opacity-100 transition-opacity drop-shadow-lg" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803 7.5 7.5 0 0016.803 15.803zM10.5 7.5v6m3-3h-6"/></svg>
+                        </div>
+                        @if (img.caption) {
+                          <div class="absolute bottom-0 inset-x-0 px-2 py-1.5 bg-gradient-to-t from-black/70 to-transparent text-[11px] text-white font-medium truncate">
+                            {{ img.caption }}
+                          </div>
+                        }
+                        @if (img.isPrimary) {
+                          <div class="absolute top-1.5 start-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/80 text-white">
+                            {{ 'investmentPreview.primaryImage' | translate }}
+                          </div>
+                        }
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- Key Metrics Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <!-- Share Price (Equity Only) -->
+              @if (inv.investmentType === InvestmentType.Equity && inv.sharePrice) {
+                <div class="bg-slate-800/40 border border-slate-700/50 rounded-lg p-4">
+                  <p class="text-sm text-gray-400 mb-2">{{ 'investmentPreview.sharePrice' | translate }}</p>
+                  <p class="text-2xl font-bold text-blue-400">${{ inv.sharePrice | number:'1.2-2' }}</p>
+                </div>
+              }
+              <!-- Min Investment -->
+              @if (inv.minInvestment) {
+                <div class="bg-slate-800/40 border border-slate-700/50 rounded-lg p-4">
+                  <p class="text-sm text-gray-400 mb-2">{{ 'investmentPreview.minInvestment' | translate }}</p>
+                  <p class="text-2xl font-bold text-purple-400">${{ inv.minInvestment | number:'1.0-0' }}</p>
+                </div>
+              }
+              <!-- Expected ROI (Equity Only) -->
+              @if (inv.investmentType === InvestmentType.Equity && inv.expectedROI) {
+                <div class="bg-slate-800/40 border border-slate-700/50 rounded-lg p-4">
+                  <p class="text-sm text-gray-400 mb-2">{{ 'investmentPreview.expectedROI' | translate }}</p>
+                  <p class="text-2xl font-bold text-green-400">{{ inv.expectedROI }}%</p>
+                </div>
+              }
+              <!-- Total Shares (Equity Only) -->
+              @if (inv.investmentType === InvestmentType.Equity && inv.totalShares) {
+                <div class="bg-slate-800/40 border border-slate-700/50 rounded-lg p-4">
+                  <p class="text-sm text-gray-400 mb-2">{{ 'investmentPreview.totalShares' | translate }}</p>
+                  <p class="text-2xl font-bold text-blue-300">{{ inv.totalShares | number }}</p>
+                </div>
+              }
+              <!-- Available Shares (Equity Only) -->
+              @if (inv.investmentType === InvestmentType.Equity && inv.availableShares) {
+                <div class="bg-slate-800/40 border border-slate-700/50 rounded-lg p-4">
+                  <p class="text-sm text-gray-400 mb-2">{{ 'investmentPreview.available' | translate }}</p>
+                  <p class="text-2xl font-bold text-cyan-400">{{ inv.availableShares | number }}</p>
+                </div>
+              }
+              <!-- Valuation Cap (Equity Only) -->
+              @if (inv.investmentType === InvestmentType.Equity && inv.valuationCap) {
+                <div class="bg-slate-800/40 border border-slate-700/50 rounded-lg p-4">
+                  <p class="text-sm text-gray-400 mb-2">{{ 'investmentPreview.valuationCap' | translate }}</p>
+                  <p class="text-2xl font-bold text-indigo-400">${{ inv.valuationCap | number:'1.0-0' }}</p>
+                </div>
+              }
+            </div>
+
+            <!-- Funding Progress Section -->
+            <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-8">
+              <h3 class="text-xl font-bold text-white mb-6">{{ 'investmentPreview.fundingProgress' | translate }}</h3>
+              @let rawProgress = inv.targetFund > 0 ? ((inv.currentFunding ?? 0) / inv.targetFund) * 100 : 0;
+              @let progress = rawProgress > 100 ? 100 : rawProgress;
+              
+              <div class="mb-6">
+                <div class="flex justify-between items-end mb-3">
+                  <div>
+                    <p class="text-gray-400 text-sm mb-1">{{ 'investmentPreview.amountRaised' | translate }}</p>
+                    <p class="text-3xl font-bold text-white">${{ inv.currentFunding | number:'1.0-0' }}</p>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-gray-400 text-sm mb-1">{{ 'investmentPreview.target' | translate }}</p>
+                    <p class="text-2xl font-bold text-gray-300">${{ inv.targetFund | number:'1.0-0' }}</p>
+                  </div>
+                </div>
+                
+                <div class="w-full bg-slate-700/50 rounded-full h-4 overflow-hidden border border-slate-600/50">
+                  <div class="h-full transition-all duration-700 ease-out"
+                       [style.width]="progress + '%'"
+                       [class]="rawProgress >= 100 ? 'bg-gradient-to-r from-blue-500 to-cyan-400' :
+                                rawProgress >= 75  ? 'bg-gradient-to-r from-emerald-500 to-green-400' :
+                                rawProgress >= 40  ? 'bg-gradient-to-r from-amber-400 to-orange-400' :
+                                                    'bg-gradient-to-r from-slate-400 to-slate-500'">
+                  </div>
+                </div>
+                
+                <div class="flex justify-between items-center mt-3">
+                  <span class="text-gray-400 text-sm">{{ progress | number:'1.0-0' }}% {{ 'investmentPreview.funded' | translate }}</span>
+                  <div class="flex items-center gap-3">
+                    <span class="text-gray-400 text-sm">{{ inv.investorCount }} {{ 'investments.investors' | translate }}</span>
+                    @if (inv.endDate) {
+                      <span class="text-xs font-semibold"
+                            [class]="getDaysRemaining(inv.endDate) <= 7  ? 'text-red-400' :
+                                     getDaysRemaining(inv.endDate) <= 30 ? 'text-amber-400' : 'text-gray-500'">
+                        {{ getDaysRemaining(inv.endDate) }}d {{ 'investmentPreview.daysLeft' | translate }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <!-- Your Investment -->
+              @if (inv.investedAmount && inv.investedAmount > 0) {
+                <div class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mt-4">
+                  <p class="text-blue-300 text-sm">{{ 'investmentPreview.yourInvestment' | translate }}</p>
+                  <p class="text-2xl font-bold text-blue-200">${{ inv.investedAmount | number }}</p>
+                </div>
+              }
+            </div>
+
+            <!-- Team Section -->
+            <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-8">
+              <h3 class="text-xl font-bold text-white mb-6">{{ 'investmentPreview.projectTeam' | translate }}</h3>
+              @if (inv.teamMembers && inv.teamMembers.length > 0) {
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  @for (member of inv.teamMembers; track member.name) {
+                    <button type="button" (click)="navigateToMemberProfile(member.id); $event.stopPropagation()" class="flex items-center gap-4 p-4 bg-slate-700/30 hover:bg-slate-700/50 rounded-lg transition-all hover:border-blue-500/50 border border-slate-600/50">
+                      @if (member.avatar) {
+                        <img [src]="member.avatar" [alt]="member.name" class="w-14 h-14 rounded-lg object-cover">
+                      } @else {
+                        <div class="w-14 h-14 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-lg font-bold">{{ member.name.charAt(0).toUpperCase() }}</div>
+                      }
+                      <div class="flex-1 text-left">
+                        <p class="font-semibold text-white">{{ member.name }}</p>
+                        <p class="text-sm text-gray-400">{{ member.role }}</p>
+                        @if (member.bio) {
+                          <p class="text-xs text-gray-500 mt-1 line-clamp-1">{{ member.bio }}</p>
+                        }
+                      </div>
+                      <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </button>
+                  }
+                </div>
+              } @else {
+                <p class="text-gray-500 text-center py-8">{{ 'investmentPreview.noTeamMembers' | translate }}</p>
+              }
+            </div>
+
+            <!-- Additional Info -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- Timeline -->
+              <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
+                <h4 class="font-semibold text-white mb-4">{{ 'investmentPreview.timeline' | translate }}</h4>
+                <div class="space-y-3">
+                  @if (inv.startDate) {
+                    <div class="flex justify-between text-sm">
+                      <span class="text-gray-400">{{ 'investmentPreview.started' | translate }}</span>
+                      <span class="text-white font-medium">{{ inv.startDate | date:'MMM d, yyyy' }}</span>
+                    </div>
+                  }
+                  @if (inv.endDate) {
+                    <div class="flex justify-between text-sm">
+                      <span class="text-gray-400">{{ 'investmentPreview.targetEnd' | translate }}</span>
+                      <span class="text-white font-medium">{{ inv.endDate | date:'MMM d, yyyy' }}</span>
+                    </div>
+                  }
+                  <div class="flex justify-between text-sm">
+                    <span class="text-gray-400">{{ 'investmentPreview.posted' | translate }}</span>
+                    <span class="text-white font-medium">{{ inv.date | date:'MMM d, yyyy' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quick Stats -->
+              <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
+                <h4 class="font-semibold text-white mb-4">{{ 'investmentPreview.quickStats' | translate }}</h4>
+                <div class="space-y-3">
+                  <div class="flex justify-between text-sm">
+                    <span class="text-gray-400">{{ 'investmentPreview.credibilityScore' | translate }}</span>
+                    <span class="text-blue-300 font-bold">{{ inv.credibilityScore }}/100</span>
+                  </div>
+                  <div class="flex justify-between text-sm">
+                    <span class="text-gray-400">{{ 'investmentPreview.activeInvestors' | translate }}</span>
+                    <span class="text-green-300 font-bold">{{ inv.investorCount }}</span>
+                  </div>
+                  @if (inv.currency) {
+                    <div class="flex justify-between text-sm">
+                      <span class="text-gray-400">{{ 'investmentPreview.currency' | translate }}</span>
+                      <span class="text-gray-300 font-medium">{{ inv.currency }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Sidebar -->
+          <div class="lg:col-span-1">
+            <!-- Founder Card -->
+            <div class="sticky top-24 space-y-6">
+              <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5 backdrop-blur-sm">
+                <!-- Founder header -->
+                <div class="flex items-center gap-3 mb-4">
+                  <a [routerLink]="['/admin/founders', inv.founderId]"
+                     class="relative flex-shrink-0 rounded-xl ring-2 ring-slate-700 hover:ring-blue-500/50 transition-all">
+                    <img [src]="founderAvatar(inv)" alt="{{ inv.founderDisplay }}" class="w-12 h-12 rounded-xl object-cover">
+                    @if (inv.status === 'Active') {
+                      <span class="absolute -bottom-0.5 -end-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-slate-900"></span>
+                    }
+                  </a>
+                  <a [routerLink]="['/admin/founders', inv.founderId]" class="flex-1 min-w-0 group">
+                    <p class="font-bold text-white truncate group-hover:text-blue-300 transition-colors">{{ inv.founderDisplay }}</p>
+                    @if (inv.businessRole) {
+                      <p class="text-xs text-gray-400 truncate mt-0.5">{{ inv.businessRole }}</p>
+                    }
+                  </a>
+                </div>
+                <!-- Credibility + Funding metrics -->
+                <div class="grid grid-cols-2 gap-2">
+                  <div class="rounded-lg bg-slate-700/40 border border-slate-700/30 p-3 text-center">
+                    <div class="flex items-center justify-center gap-1 mb-1">
+                      <svg class="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                      <p class="text-[10px] text-gray-400 uppercase tracking-wide">{{ 'investmentPreview.credibilityScore' | translate }}</p>
+                    </div>
+                    <p class="text-xl font-bold text-white">{{ inv.credibilityScore }}</p>
+                  </div>
+                  <div class="rounded-lg bg-slate-700/40 border border-slate-700/30 p-3 text-center">
+                    <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">{{ 'investmentPreview.fundingProgress' | translate }}</p>
+                    @let fp = (inv.targetFund > 0) ? ((inv.currentFunding ?? 0) / inv.targetFund) * 100 : 0;
+                    <p class="text-xl font-bold"
+                       [class]="fp >= 75 ? 'text-emerald-300' : fp >= 40 ? 'text-amber-300' : 'text-white'">
+                      {{ (fp | number:'1.0-0') }}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Investors -->
+              <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
+                <h3 class="text-base font-bold text-white mb-4">{{ 'investmentPreview.recentInvestors' | translate }}</h3>
+                @if (inv.investors && inv.investors.length > 0) {
+                  <div class="space-y-3">
+                    @for (investor of (inv.investors || []).slice(0, 5); track investor.investorId; let last = $last) {
+                      <div class="flex items-center gap-3" [class.pb-3]="!last" [class.border-b]="!last" [class.border-slate-700/50]="!last">
+                        @if (!investor.isAnonymous && investor.investorAvatar) {
+                          <img [src]="investor.investorAvatar" [alt]="investor.investorName" class="w-9 h-9 rounded-full object-cover ring-2 ring-slate-700 flex-shrink-0">
+                        } @else {
+                          <div class="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-gray-400 text-xs font-bold flex-shrink-0 ring-2 ring-slate-600">
+                            {{ investor.isAnonymous ? '?' : (investor.investorName?.charAt(0)?.toUpperCase() || '?') }}
+                          </div>
+                        }
+                        <div class="flex-1 min-w-0">
+                          <p class="text-sm font-medium text-white truncate">
+                            {{ investor.isAnonymous ? ('investments.anonymousInvestor' | translate) : investor.investorName }}
+                          </p>
+                          @if (investor.amountInvested) {
+                            <p class="text-xs text-gray-400 tabular-nums">{{ investor.amountInvested | number:'1.0-0' }} {{ inv.currency || 'USD' }}</p>
+                          }
+                        </div>
+                      </div>
+                    }
+                    @if (inv.investors.length > 5) {
+                      <p class="text-center text-sm text-gray-400 pt-2">+{{ inv.investors.length - 5 }} {{ 'investments.investors' | translate }}</p>
+                    }
+                  </div>
+                } @else {
+                  <p class="text-gray-500 text-center py-4">{{ 'investmentPreview.noInvestors' | translate }}</p>
+                }
+              </div>
+
+              <!-- View Media Link -->
+              <a [routerLink]="['/admin/investments', inv.id, 'media']"
+                 class="flex items-center gap-3 px-4 py-3 rounded-xl bg-purple-500/10 border border-purple-500/25 hover:border-purple-500/50 hover:bg-purple-500/15 transition-all group">
+                <div class="w-9 h-9 rounded-lg bg-purple-500/20 border border-purple-500/30 flex items-center justify-center flex-shrink-0">
+                  <svg class="w-4 h-4 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+                  </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-semibold text-purple-300 group-hover:text-purple-200 transition-colors">{{ 'investmentPreview.viewAllMedia' | translate }}</p>
+                  <p class="text-[11px] text-gray-500 mt-0.5">
+                    @if (getProjectMediaImages(inv).length) { {{ getProjectMediaImages(inv).length }}&nbsp;{{ 'investmentPreview.images' | translate }}&nbsp; }
+                    @if (inv.videoUrl) { · 1&nbsp;{{ 'investmentPreview.video' | translate }} }
+                    @if (getProjectMediaImages(inv).length === 0 && !inv.videoUrl) { {{ 'investmentPreview.noMediaYet' | translate }} }
+                  </p>
+                </div>
+                <svg class="w-4 h-4 text-purple-500 group-hover:text-purple-300 transition-colors flex-shrink-0 rtl:rotate-180" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                </svg>
+              </a>
+
+              <!-- Action Button — state-aware -->
+              <button (click)="promptInvest(inv)"
+                      [disabled]="inv.status === 'Funded' || inv.status === 'Closed'"
+                      class="w-full font-bold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2 text-base focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900"
+                      [ngClass]="{
+                        'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-lg hover:shadow-purple-500/30 active:scale-[0.98] focus:ring-purple-500': inv.status === 'Active' || inv.status === 'Draft',
+                        'bg-slate-700/50 text-gray-500 border border-slate-600/40 cursor-not-allowed': inv.status === 'Funded' || inv.status === 'Closed'
+                      }">
+                @if (inv.status === 'Funded') {
+                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                  {{ 'investmentPreview.fullyFunded' | translate }}
+                } @else if (inv.status === 'Closed') {
+                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                  {{ 'investmentPreview.closed' | translate }}
+                } @else {
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  Invest Now
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <!-- Not Found State -->
+    <div class="container mx-auto px-6 py-40">
+      <div class="text-center">
+        <div class="mb-6 flex justify-center">
+          <div class="w-20 h-20 bg-red-500/10 border-2 border-red-500/30 rounded-full flex items-center justify-center">
+            <svg class="w-10 h-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4v2m0 0v2m0-12V5m0 12V9m0-12h.01"></path></svg>
+          </div>
+        </div>
+        <h1 class="text-4xl font-bold text-white mb-2">{{ 'investmentPreview.notFound.title' | translate }}</h1>
+        <p class="text-lg text-gray-400 mb-8">{{ 'investmentPreview.notFound.subtitle' | translate }}</p>
+        <a routerLink="/admin/investments" class="inline-block bg-gradient-to-r from-blue-500 to-purple-600 font-semibold py-3 px-8 rounded-full hover:opacity-90 transition-opacity text-white">
+          {{ 'investmentPreview.backButton' | translate }}
+        </a>
+      </div>
+    </div>
+  }
+</div>
+
+<!-- Image Lightbox -->
+@if (lightboxUrl()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm animate-fade-in"
+       (click)="closeLightbox()"
+       (keydown.escape)="closeLightbox()"
+       tabindex="0"
+       role="dialog"
+       [attr.aria-label]="'investmentPreview.imageAlt' | translate">
+    <button type="button" (click)="closeLightbox()"
+            class="absolute top-4 end-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-white/50">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+    <img [src]="lightboxUrl()" alt="" class="max-h-[90vh] max-w-[90vw] rounded-xl shadow-2xl object-contain" (click)="$event.stopPropagation()">
+  </div>
+}
+
+<!-- Engagement Modal -->
+@if (investmentToEngage(); as investment) {
+  @if (engagementConfirmationOpen()) {
+    <!-- Confirmation Dialog -->
+    <div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+      <div class="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md animate-fade-in" (click)="$event.stopPropagation()">
+        <!-- Header -->
+        <div class="p-6 border-b border-slate-700 bg-gradient-to-r from-blue-500/10 to-purple-500/10">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
+              <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+              </svg>
+            </div>
+            <div class="flex-1">
+              <h3 class="text-xl font-bold text-white">Confirm Engagement</h3>
+              <p class="text-sm text-gray-400 mt-1">Please review and confirm your engagement request</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Body -->
+        <div class="p-6 space-y-4">
+          <!-- Investment Details -->
+          <div class="bg-slate-800/50 border border-slate-700 rounded-lg p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-gray-400">Investment:</span>
+              <span class="text-white font-semibold">{{ investment.name }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-gray-400">Engagement Cost:</span>
+              <span class="text-white font-bold text-lg">{{ engagementCreditCost }} Credits</span>
+            </div>
+            <div class="flex items-center justify-between pt-3 border-t border-slate-700/50">
+              <span class="text-gray-400">Current Credits:</span>
+              <span class="text-blue-300 font-semibold">{{ userCredits() | number:'1.2-2' }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-gray-400">Remaining After:</span>
+              <span [class]="(userCredits() - engagementCreditCost) >= 0 ? 'text-green-300' : 'text-red-300'" class="font-semibold">
+                {{ (userCredits() - engagementCreditCost) | number:'1.2-2' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Warning Message -->
+          <div class="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
+            <div class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+              </svg>
+              <div>
+                <p class="text-sm font-semibold text-orange-300 mb-1">Important Notice</p>
+                <p class="text-sm text-orange-200/80">This action will deduct credits from your account and submit a request to the founder. This action cannot be undone.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="p-6 border-t border-slate-700 flex items-center justify-between gap-3 bg-slate-800/50">
+          <button (click)="cancelEngagementConfirmation()" 
+                  [disabled]="engagementProcessing()"
+                  class="flex-1 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-colors">
+            Cancel
+          </button>
+          <button (click)="confirmEngage()" 
+                  [disabled]="engagementProcessing()"
+                  class="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg transition-all flex items-center justify-center gap-2">
+            @if (engagementProcessing()) {
+              <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Processing...
+            } @else {
+              Confirm and Proceed
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <!-- Initial Engagement Modal -->
+    <div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" style="animation-duration: 0.2s;">
+      <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg p-8 animate-fade-in" style="animation-delay: 0.1s; animation-duration: 0.3s;">
+        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 border-2 border-blue-500/30 mb-4">
+          <svg class="w-8 h-8 text-blue-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h3 class="text-2xl font-bold text-white text-center mb-2">{{ 'investments.engageModal.title' | translate }}</h3>
+        <p class="text-gray-400 text-center mb-6" [innerHTML]="('investments.engageModal.message' | translate)
+          .replace('{investmentName}', '<span class=\'font-bold text-blue-300\'>' + investment.name + '</span>')
+          .replace('{creditCost}', '<span class=\'font-bold text-white\'>' + engagementCreditCost + '</span>')">
+        </p>
+        <div class="space-y-3">
+          <button (click)="engagementConfirmationOpen.set(true)" class="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-all">
+            {{ 'investments.engageModal.proceedButton' | translate }}
+          </button>
+          <button (click)="cancelEngage()" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors">
+            {{ 'investments.engageModal.cancelButton' | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+}
+
+<!-- Invest Now Dialog (Shares Selection for Equity) -->
+@if (investmentToInvest(); as investment) {
+  <div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in" (click)="closeInvestDialog()">
+    <div class="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md m-4 animate-fade-in" (click)="$event.stopPropagation()">
+      <!-- Header -->
+      <div class="p-6 border-b border-slate-700 bg-gradient-to-r from-blue-500/10 to-purple-500/10">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-2xl font-bold text-white">{{ ('investments.investDialog.title' | translate)?.replace('{investmentName}', investment.name) }}</h3>
+            <p class="text-sm text-gray-400 mt-1">{{ investment.founderDisplay }}</p>
+          </div>
+          <button (click)="closeInvestDialog()" class="text-gray-400 hover:text-white transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div class="p-6 space-y-5">
+        <!-- Share Price Info -->
+        <div class="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">{{ 'investments.investDialog.sharePrice' | translate }}</p>
+              <p class="text-2xl font-bold text-white">{{ investment.sharePrice | currency:(investment.currency || 'USD') }}</p>
+            </div>
+            <div class="text-right">
+              <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">{{ 'investments.investDialog.available' | translate }}</p>
+              <p class="text-xl font-semibold text-blue-300">{{ investment.availableShares | number }}</p>
+            </div>
+          </div>
+          @if (investment.minInvestment || investment.maxInvestment) {
+            <div class="mt-3 pt-3 border-t border-slate-700/50 flex items-center justify-between text-xs text-gray-400">
+              @if (investment.minInvestment) {
+                <span>{{ 'investments.investDialog.minLabel' | translate }}: {{ investment.minInvestment | currency:(investment.currency || 'USD'):'symbol':'1.0-0' }}</span>
+              }
+              @if (investment.maxInvestment) {
+                <span>{{ 'investments.investDialog.maxLabel' | translate }}: {{ investment.maxInvestment | currency:(investment.currency || 'USD'):'symbol':'1.0-0' }}</span>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Shares Input -->
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">{{ 'investments.investDialog.sharesLabel' | translate }}</label>
+          <div class="flex items-center gap-3">
+            <button (click)="decreaseShares()" [disabled]="sharesToPurchase() <= 1" 
+                    class="bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold w-10 h-10 rounded-lg transition-colors">
+              <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+              </svg>
+            </button>
+            <input type="number" 
+                   [(ngModel)]="sharesToPurchaseValue" 
+                   (change)="validateShares(investment)"
+                   min="1" 
+                   [max]="investment.availableShares"
+                   class="flex-1 bg-slate-800 border border-slate-600 rounded-lg py-3 px-4 text-white text-center text-xl font-bold focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <button (click)="increaseShares(investment)" [disabled]="sharesToPurchase() >= (investment.availableShares || 0)"
+                    class="bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold w-10 h-10 rounded-lg transition-colors">
+              <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+              </svg>
+            </button>
+          </div>
+          <p class="text-xs text-gray-400 mt-2 text-center">
+            {{ ('investments.investDialog.availableLine' | translate)?.replace('{available}', (investment.availableShares | number)) }}
+          </p>
+        </div>
+
+        <!-- Investment Summary -->
+        <div class="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-lg p-4">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-gray-300">{{ 'investments.investDialog.totalInvestment' | translate }}</span>
+            <span class="text-2xl font-bold text-white">{{ calculateInvestmentAmount(investment) | currency:(investment.currency || 'USD') }}</span>
+          </div>
+          @if (investment.expectedROI && investment.expectedROI > 0) {
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-gray-400">{{ 'investments.investDialog.expectedROI' | translate }}</span>
+              <span class="text-green-300 font-semibold">{{ investment.expectedROI }}%</span>
+            </div>
+          }
+        </div>
+
+        <!-- Error/Warning Messages -->
+        @if (investmentError()) {
+          <div class="bg-red-500/10 border border-red-500/50 rounded-lg p-3 flex items-center gap-2">
+            <svg class="w-5 h-5 text-red-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+            </svg>
+            <p class="text-sm text-red-300">{{ investmentError() }}</p>
+          </div>
+        }
+      </div>
+
+      <!-- Footer -->
+      <div class="p-6 border-t border-slate-700 flex items-center justify-between bg-slate-800/50">
+        <button (click)="closeInvestDialog()" class="bg-slate-700 hover:bg-slate-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors">
+          {{ 'investments.investDialog.cancel' | translate }}
+        </button>
+        <button (click)="confirmInvestment(investment)" [disabled]="!!investmentError() || investmentProcessing()"
+                class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-3 px-8 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+          @if (investmentProcessing()) {
+            <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            {{ 'investments.investDialog.processing' | translate }}
+          } @else {
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            {{ 'investments.investDialog.confirm' | translate }}
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

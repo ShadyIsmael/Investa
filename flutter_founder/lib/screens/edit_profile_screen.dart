@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:network_info_plus/network_info_plus.dart';
@@ -101,7 +103,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     await _popToProfile();
   }
 
-  Future<void> _pickFile() async {
     final loc = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     try {
@@ -115,12 +116,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final file = result.files.first;
       final bytes = file.bytes;
       if (bytes != null && bytes.isNotEmpty) {
-        setState(() {});
+        setState(() {
+        });
         messenger.showSnackBar(
           SnackBar(content: Text(loc.t('file_selected'))),
         );
       } else {
-        setState(() {});
+        setState(() {
+        });
         messenger.showSnackBar(
           SnackBar(content: Text(loc.t('file_selected'))),
         );
@@ -232,17 +235,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         text: p?.coreMetrics?.walletBalance?.toString() ?? '');
 
     _docNumberController = TextEditingController(
-        text: p?.identityCompliance?.documentNumber ?? '');
     _docExpiryController = TextEditingController(
-        text: p?.identityCompliance?.documentExpiry
-                ?.toIso8601String()
-                .split('T')
-                .first ??
-            '');
+        text:
     _verificationController = TextEditingController(
-        text: p?.identityCompliance?.isIdentityVerified == true
-            ? 'Verified'
-            : 'Unverified');
+        text: p?.identityCompliance?.verificationStatus ?? '');
 
     _lastLoginIpController =
         TextEditingController(text: p?.auditUsage?.lastLoginIP ?? '');
@@ -349,6 +345,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'companyEmail': _companyEmailController.text.trim(),
     };
 
+
     // Handle date: if provided, attempt parse, otherwise omit to avoid binding errors
     final docExpiryText = _docExpiryController.text.trim();
     // Validate DOB: ensure 18+
@@ -385,6 +382,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final payload = <String, dynamic>{
       if (basic.isNotEmpty) 'BasicInfo': basic,
       if (contact.isNotEmpty) 'ContactInfo': contact,
+      
     };
 
     AppLogger.logInfo(
@@ -956,7 +954,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           const SizedBox(height: 24),
           _buildSectionHeader(loc.t('hr_letter')),
           InkWell(
-            onTap: _pickFile,
             borderRadius: BorderRadius.circular(12),
             child: Container(
               width: double.infinity,
@@ -972,7 +969,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      loc.t('upload_hr_letter'),
                       style: const TextStyle(color: Colors.white70),
                       overflow: TextOverflow.ellipsis,
                     ),

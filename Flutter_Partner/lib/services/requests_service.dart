@@ -22,6 +22,8 @@ class RequestItem {
   final DateTime createdAt;
   final bool isIncome;
   final int credibilityScore;
+  final String? requestType; // ContactFounder or InvestmentInterest
+  final Map<String, dynamic>? requestMetadata; // JSON metadata for investment interest details
 
   RequestItem({
     required this.id,
@@ -37,6 +39,8 @@ class RequestItem {
     DateTime? createdAt,
     required this.isIncome,
     this.credibilityScore = 50,
+    this.requestType,
+    this.requestMetadata,
   }) : createdAt = createdAt ?? DateTime.now();
 }
 
@@ -251,6 +255,8 @@ class RequestsService {
       createdAt: createdAt,
       isIncome: isIncome,
       credibilityScore: 50,
+      requestType: json['requestType']?.toString(),
+      requestMetadata: json['requestMetadata'] as Map<String, dynamic>?,
     );
   }
 
@@ -292,6 +298,8 @@ class RequestsService {
   /// - `investment`: The investment object containing id, name, imageUrl, etc.
   /// - `amount`: The investment amount in credits
   /// - `shares`: Number of shares (for equity investments, 0 for funding/engagement)
+  /// - `requestType`: Type of request (ContactFounder or InvestmentInterest)
+  /// - `requestMetadata`: JSON metadata for investment interest details
   ///
   /// **Throws:**
   /// - Exception if user is not authenticated
@@ -301,6 +309,8 @@ class RequestsService {
     required Map<String, dynamic> investment,
     required double amount,
     required int shares,
+    String? requestType,
+    Map<String, dynamic>? requestMetadata,
   }) async {
     final profile = AppState.instance.profile;
     if (profile == null) {
@@ -368,6 +378,14 @@ class RequestsService {
         payload['shares'] = shares;
         // Backward-compat alias used by some older API variants.
         payload['numberOfShares'] = shares;
+      }
+
+      // Add requestType and requestMetadata if provided
+      if (requestType != null) {
+        payload['requestType'] = requestType;
+      }
+      if (requestMetadata != null) {
+        payload['requestMetadata'] = requestMetadata;
       }
 
       final resp = await _apiClient.post(endpoint, data: payload);
@@ -461,6 +479,8 @@ class RequestsService {
         createdAt: createdAt,
         isIncome: false,
         credibilityScore: 50,
+        requestType: requestType,
+        requestMetadata: requestMetadata,
       );
 
       _outcome.add(outgoingRequest);

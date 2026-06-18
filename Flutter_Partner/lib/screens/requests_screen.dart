@@ -594,6 +594,11 @@ class _RequestCard extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis),
                             const SizedBox(height: 4),
+                            // Request Type Badge
+                            if (item.requestType != null) ...[
+                              _buildRequestTypeBadge(item.requestType!, theme),
+                              const SizedBox(height: 4),
+                            ],
                             Text(item.shortDescription,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                     color: theme.colorScheme.onSurface
@@ -601,6 +606,8 @@ class _RequestCard extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis),
                             const SizedBox(height: 4),
+                            // Investment Interest Metadata
+                            _buildInvestmentMetadata(item, theme),
                             Row(
                               children: [
                                 Text('From: ',
@@ -686,6 +693,141 @@ class _RequestCard extends StatelessWidget {
                 ],
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRequestTypeBadge(String requestType, ThemeData theme) {
+    String label = 'Investment Request';
+    Color backgroundColor = Colors.grey.withOpacity(0.15);
+    Color textColor = Colors.grey;
+
+    if (requestType == 'contact_founder') {
+      label = 'Contact Founder';
+      backgroundColor = Colors.blue.withOpacity(0.15);
+      textColor = Colors.blue;
+    } else if (requestType == 'investment_interest') {
+      label = 'Investment Interest';
+      backgroundColor = Colors.purple.withOpacity(0.15);
+      textColor = Colors.purple;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: textColor.withOpacity(0.3)),
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: textColor,
+          fontWeight: FontWeight.w600,
+          fontSize: 10,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInvestmentMetadata(RequestItem item, ThemeData theme) {
+    if (item.requestType != 'investment_interest' || item.requestMetadata == null) {
+      return const SizedBox.shrink();
+    }
+
+    final metadata = item.requestMetadata!;
+    final sharesRequested = (metadata['sharesRequested'] as num?)?.toInt() ?? 0;
+    final sharePrice = (metadata['sharePrice'] as num?)?.toDouble() ?? 0.0;
+    final totalValue = (metadata['totalValue'] as num?)?.toDouble() ?? 0.0;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.purple.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.purple.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Investment Details',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.purple,
+              fontWeight: FontWeight.bold,
+              fontSize: 11,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Shares',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        fontSize: 10,
+                      ),
+                    ),
+                    Text(
+                      '$sharesRequested',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Price',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        fontSize: 10,
+                      ),
+                    ),
+                    Text(
+                      '\$${sharePrice.toStringAsFixed(2)}',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Total',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        fontSize: 10,
+                      ),
+                    ),
+                    Text(
+                      '\$${totalValue.toStringAsFixed(2)}',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),

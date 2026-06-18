@@ -58,8 +58,8 @@ public class MappingProfile : Profile
         // Investment request mapping
         CreateMap<InvestmentRequest, DTOs.Requests.InvestmentRequestDto>()
             .ForMember(d => d.Status, opt => opt.MapFrom(s => s.Status.ToString()))
-            .ForMember(d => d.Direction, opt => opt.MapFrom(s => s.Direction.ToString()))
-            .ForMember(d => d.Type, opt => opt.MapFrom(s => s.RequestType));
+            .ForMember(d => d.Type, opt => opt.MapFrom(s => s.RequestType))
+            .ForMember(d => d.RequestMetadata, opt => opt.MapFrom(s => s.RequestMetadata));
 
         // User core metrics mapping
         CreateMap<AuthUser, UserCoreMetricsDto>()

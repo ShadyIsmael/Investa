@@ -250,7 +250,36 @@ public class InvestmentsController : ControllerBase
                 mediaType = (MediaType)(mt == 0 ? 0 : mt == 2 ? 2 : 1); // Validate: 0=CoverImage, 1=Image, 2=Video
             }
 
-            // Create DB record first with temp url; then save file and update url
+            // Enforce one active Cover Image per project
+            // If uploading a new Cover Image, delete existing cover images (do NOT demote to project media)
+            if (mediaType == MediaType.CoverImage)
+            {
+                var existingCoverImages = await _unitOfWork.Repository<InvestmentImage>()
+                    .FindAsync(i => i.InvestmentId == investmentId && i.MediaType == MediaType.CoverImage);
+                
+                foreach (var existingCover in existingCoverImages)
+                {
+                    // Delete file from storage
+                    var oldCoverFilePath = existingCover.Url?.TrimStart('/') ?? string.Empty;
+                    await _fileStorage.DeleteFileAsync(oldCoverFilePath);
+                    // Delete DB record
+                    await _unitOfWork.Repository<InvestmentImage>().DeleteAsync(existingCover);
+
+                }
+                await _unitOfWork.SaveChangesAsync();
+            }
+
+            // Upload file to Investa.FileStore first to get valid URL
+            var safeName = Path.GetFileName(file.FileName);
+            var relPath = $"uploads/investments/{investmentId}/{Guid.NewGuid()}_{safeName}";
+
+            string url;
+            await using (var stream = file.OpenReadStream())
+            {
+                url = await _fileStorage.SaveFileAsync(relPath, stream, file.ContentType);
+            }
+
+            // Create DB record with valid URL
             var img = new InvestmentImage
             {
                 InvestmentId = investmentId,
@@ -260,22 +289,11 @@ public class InvestmentsController : ControllerBase
                 UploadedBy = userId,
                 SortOrder = (int?) (await _unitOfWork.Repository<InvestmentImage>().FindAsync(i => i.InvestmentId == investmentId)).Count() ?? 0,
                 IsPrimary = false,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                Url = url
             };
 
             await _unitOfWork.Repository<InvestmentImage>().AddAsync(img);
-            await _unitOfWork.SaveChangesAsync(); // get Id
-
-            // Upload file to Investa.FileStore (centralized storage)
-            var safeName = Path.GetFileName(file.FileName);
-            var relPath = $"uploads/investments/{investmentId}/{img.Id}_{safeName}";
-
-            await using (var stream = file.OpenReadStream())
-            {
-                var url = await _fileStorage.SaveFileAsync(relPath, stream, file.ContentType);
-                img.Url = url;
-            }
-
             await _unitOfWork.SaveChangesAsync();
 
             var dto = _mapper.Map<InvestmentImageDto>(img);

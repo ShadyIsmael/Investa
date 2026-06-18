@@ -34,8 +34,11 @@ public class InvestmentRequest
     [Required]
     public InvestmentRequestDirection Direction { get; set; } = InvestmentRequestDirection.Outgoing;
 
-    // NEW: Logical request type (e.g., 'investment_request') to support single-record flow
+    // NEW: Logical request type (e.g., 'contact_founder', 'investment_interest')
     public string? RequestType { get; set; }
+
+    // Type-specific payload for request forms (stored as JSON)
+    public string? RequestMetadata { get; set; }
 
     [Required]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

@@ -45,6 +45,39 @@ export class InvestmentMediaComponent {
     return this.fileStoreService.getPublicUrl(url);
   }
 
+  /**
+   * Get project media images (excluding cover images)
+   * Cover images (mediaType === 0) are not part of the project media gallery
+   */
+  getProjectMediaImages(inv: Investment | null): any[] {
+    if (!inv || !inv.images) return [];
+    return inv.images.filter(img => img.mediaType !== 0); // Filter out CoverImage type
+  }
+
+  /**
+   * Get the current active cover image (if any)
+   */
+  getCoverImage(inv: Investment | null): any {
+    if (!inv || !inv.images) return null;
+    return inv.images.find(img => img.mediaType === 0); // MediaType.CoverImage = 0
+  }
+
+  /**
+   * Get photos only (mediaType === 1, excluding cover images)
+   */
+  getPhotos(inv: Investment | null): any[] {
+    if (!inv || !inv.images) return [];
+    return inv.images.filter(img => img.mediaType === 1); // MediaType.Image = 1
+  }
+
+  /**
+   * Get videos only (mediaType === 2)
+   */
+  getVideos(inv: Investment | null): any[] {
+    if (!inv || !inv.images) return [];
+    return inv.images.filter(img => img.mediaType === 2); // MediaType.Video = 2
+  }
+
   openLightbox(index: number): void { this.lightboxIndex.set(index); }
   closeLightbox(): void { this.lightboxIndex.set(null); }
 

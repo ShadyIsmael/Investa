@@ -6,6 +6,8 @@ using Investa.Application.DTOs;
 using Investa.Application.Interfaces;
 using Investa.Domain.Entities.Chat;
 using Investa.Domain.Entities;
+using Investa.Domain.Entities.Enums;
+using Microsoft.Extensions.Logging;
 
 namespace Investa.Application.Services
 {
@@ -13,11 +15,13 @@ namespace Investa.Application.Services
     {
         private readonly IUnitOfWork _uow;
         private readonly Investa.Application.Interfaces.IAdminAvailabilityService _adminAvailability;
+        private readonly ILogger<ChatService> _logger;
 
-        public ChatService(IUnitOfWork uow, Investa.Application.Interfaces.IAdminAvailabilityService adminAvailability)
+        public ChatService(IUnitOfWork uow, Investa.Application.Interfaces.IAdminAvailabilityService adminAvailability, ILogger<ChatService> logger)
         {
             _uow = uow;
             _adminAvailability = adminAvailability;
+            _logger = logger;
         }
 
         // New SignalR Chat Methods
@@ -156,6 +160,82 @@ namespace Investa.Application.Services
                 return true;
             }
             return false;
+        }
+
+        // Founder-Investor Chat Methods
+        public async Task<Conversation> CreateConversationAsync(Guid userId1, Guid userId2, string? title = null)
+        {
+            _logger.LogInformation("Creating conversation between user {UserId1} and user {UserId2}", userId1, userId2);
+
+            // Check if conversation already exists between these users
+            var existingConversation = await GetConversationBetweenUsersAsync(userId1, userId2);
+            if (existingConversation != null)
+            {
+                _logger.LogInformation("Conversation already exists between user {UserId1} and user {UserId2}", userId1, userId2);
+                return existingConversation;
+            }
+
+            // Create new conversation
+            var conversation = new Conversation
+            {
+                Id = Guid.NewGuid(),
+                UserMobile = $"{userId1}_{userId2}", // Using combined IDs as identifier
+                Category = title ?? "Investment Discussion",
+                CreatedAt = DateTime.UtcNow,
+                Status = ConversationStatus.Pending,
+                IsActive = true
+            };
+
+            await _uow.Repository<Conversation>().AddAsync(conversation);
+
+            // Add both users as participants
+            var participant1 = new ConversationParticipant
+            {
+                ConversationId = conversation.Id,
+                UserId = userId1,
+                Role = 0, // Member
+                JoinedAt = DateTimeOffset.UtcNow
+            };
+
+            var participant2 = new ConversationParticipant
+            {
+                ConversationId = conversation.Id,
+                UserId = userId2,
+                Role = 0, // Member
+                JoinedAt = DateTimeOffset.UtcNow
+            };
+
+            await _uow.Repository<ConversationParticipant>().AddAsync(participant1);
+            await _uow.Repository<ConversationParticipant>().AddAsync(participant2);
+
+            await _uow.SaveChangesAsync();
+
+            _logger.LogInformation("Conversation {ConversationId} created successfully between user {UserId1} and user {UserId2}", conversation.Id, userId1, userId2);
+
+            return conversation;
+        }
+
+        public async Task<Conversation?> GetConversationBetweenUsersAsync(Guid userId1, Guid userId2)
+        {
+            // Check if a conversation exists between these two users
+            var participant1Conversations = await _uow.Repository<ConversationParticipant>()
+                .FindAsync(p => p.UserId == userId1);
+
+            var participant2Conversations = await _uow.Repository<ConversationParticipant>()
+                .FindAsync(p => p.UserId == userId2);
+
+            // Find common conversation
+            var commonConversationId = participant1Conversations
+                .Select(p => p.ConversationId)
+                .Intersect(participant2Conversations.Select(p => p.ConversationId))
+                .FirstOrDefault();
+
+            if (commonConversationId != Guid.Empty)
+            {
+                return await _uow.Repository<Conversation>().GetByIdAsync(commonConversationId);
+            }
+
+            return null;
         }
     }
 }

@@ -1,4 +1,4 @@
-export const DEFAULT_API_BASE = 'http://desktop-dih7cqh:5235';
+export const DEFAULT_API_BASE = 'http://localhost:5235';
 export const DEFAULT_FILE_STORE_BASE = 'http://localhost:5240';
 export const FILE_STORE_API_KEY = 'investa-filestore-key-change-in-production';
 

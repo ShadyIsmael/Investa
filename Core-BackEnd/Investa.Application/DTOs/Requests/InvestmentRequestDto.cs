@@ -11,8 +11,12 @@ public class InvestmentRequestDto
     public decimal Amount { get; set; }
     public int? Shares { get; set; }
     public string Status { get; set; } = string.Empty;
-    public string Direction { get; set; } = string.Empty;
+
+    // RequestType logical kind (contact_founder | investment_interest)
     public string? Type { get; set; }
+
+    // Type-specific payload stored as JSON
+    public string? RequestMetadata { get; set; }
 
     // Additional display fields
     public string? InvestmentTitle { get; set; }
@@ -20,6 +24,12 @@ public class InvestmentRequestDto
     public string? BusinessName { get; set; }
     public string? FounderDisplayName { get; set; }
     public string? InvestorDisplayName { get; set; }
+
+    // Credibility and trust fields
+    public decimal? InvestorCredibilityScore { get; set; }
+    public decimal? FounderCredibilityScore { get; set; }
+    public string? InvestorTrustLevel { get; set; }
+    public string? FounderTrustLevel { get; set; }
 
     public DateTime CreatedAt { get; set; }
 }

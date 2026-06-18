@@ -377,6 +377,8 @@
   "investmentPreview": {
     "backButton": "العودة إلى الاستثمارات",
     "investmentType": "نوع الاستثمار",
+    "industry": "الصناعة",
+    "founderRating": "تقييم المؤسس",
     "earlyStage": "جولة تمويل مبكرة",
     "equityOpportunity": "فرصة ملكية الأسهم",
     "riskLevel": "مستوى المخاطرة",
@@ -427,7 +429,81 @@
     "video": "فيديو",
     "noMediaYet": "لم يتم رفع أي وسائط بعد",
     "recentInvestors": "المستثمرون الأخيرون",
-    "noInvestors": "لا يوجد مستثمرون بعد"
+    "noInvestors": "لا يوجد مستثمرون بعد",
+    "published": "منشور",
+    "sections": {
+      "hero": {
+        "title": "نظرة عامة على الفرصة"
+      },
+      "summary": {
+        "title": "ملخص الفرصة",
+        "problem": "المشكلة",
+        "solution": "الحل",
+        "market": "السوق",
+        "valueProposition": "العرض الفريد"
+      },
+      "noDescription": "لا يوجد وصف متوفر",
+      "noSolution": "لا توجد تفاصيل حل متوفرة",
+      "noMarket": "الصناعة غير محددة",
+      "noValueProp": "لا توجد تفاصيل للعرض الفريد",
+      "investmentInfo": {
+        "title": "معلومات الاستثمار",
+        "equity": {
+          "sharePrice": "سعر السهم",
+          "totalShares": "إجمالي الأسهم",
+          "availableShares": "الأسهم المتاحة",
+          "minParticipation": "الحد الأدنى للمشاركة"
+        },
+        "revenueSharing": {
+          "revenueShare": "نسبة المشاركة في الإيرادات%",
+          "targetAmount": "المبلغ المستهدف"
+        },
+        "loan": {
+          "interestRate": "معدل الفائدة",
+          "duration": "المدة",
+          "requiredAmount": "المبلغ المطلوب"
+        },
+        "founding": {
+          "requiredSkills": "المهارات المطلوبة",
+          "expectations": "التوقعات"
+        }
+      },
+      "founder": {
+        "title": "معلومات المؤسس",
+        "totalOpportunities": "إجمالي الفرص",
+        "activeOpportunities": "الفرص النشطة",
+        "viewFounderProfile": "عرض ملف المؤسس"
+      },
+      "media": {
+        "title": "وسائط المشروع",
+        "viewProjectMedia": "عرض وسائط المشروع",
+        "photos": "صور",
+        "videos": "فيديوهات",
+        "documents": "مستندات"
+      },
+      "cta": {
+        "title": "هل أنت مهتم بهذه الفرصة؟",
+        "contactCard": {
+          "title": "اتصل بالمؤسس",
+          "description": "هل تحتاج إلى مزيد من المعلومات؟ هل ترغب في مناقشة الفرصة؟",
+          "button": "إرسال طلب"
+        },
+        "investCard": {
+          "title": "استثمر الآن",
+          "description": "هل فهمت الفرصة بالفعل؟ هل أنت مستعد للمتابعة؟",
+          "button": "استثمر الآن"
+        }
+      },
+      "months": "شهر",
+      "duration": "المدة",
+      "foundingSkillsLabel": "المهارات المطلوبة للتأسيس",
+      "analytics": {
+        "title": "التحليلات",
+        "views": "المشاهدات",
+        "learnMoreOpens": "فتحات اعرف المزيد",
+        "requestsReceived": "الطلبات الم received"
+      }
+    }
   },
   "founderProfile": {
     "title": "الملف الشخصي للمؤسس",
@@ -760,6 +836,7 @@
     "withdraw": "سحب",
     "noIncoming": "لا توجد طلبات واردة.",
     "noOutgoing": "لا توجد طلبات مرسلة.",
+    "pendingRequestExists": "لديك بالفعل طلب قيد المراجعة لهذه الفرصة الاستثمارية. برجاء انتظار رد المؤسس قبل إرسال طلب جديد.",
     "notifications": {
       "accepted": "تم قبول الطلب",
       "acceptedMessage": "تم قبول دعوة {projectName}.",

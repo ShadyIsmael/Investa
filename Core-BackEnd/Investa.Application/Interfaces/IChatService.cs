@@ -15,5 +15,9 @@ namespace Investa.Application.Interfaces
         Task<ChatMessage> SendChatMessageAsync(Guid supportSessionId, string senderId, string text);
         Task<IEnumerable<ChatMessageDto>> GetMessagesAsync(Guid supportSessionId, int page = 1, int pageSize = 50);
         Task<bool> EndSupportChatAsync(Guid supportSessionId);
+
+        // Founder-Investor Chat Methods
+        Task<Conversation> CreateConversationAsync(Guid userId1, Guid userId2, string? title = null);
+        Task<Conversation?> GetConversationBetweenUsersAsync(Guid userId1, Guid userId2);
     }
 }
