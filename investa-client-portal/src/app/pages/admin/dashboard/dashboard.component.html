@@ -1,257 +1,355 @@
-<div class="container mx-auto p-6 lg:p-8">
-  <!-- Role-based content switching -->
+<div class="container mx-auto p-6 lg:p-8" [dir]="direction()">
   @if (userRole() === 'investor') {
-    <!-- INVESTOR DASHBOARD -->
-    <div class="animate-fade-in">
-      <div class="mb-8">
-        <h1 class="text-3xl font-bold text-white">{{ 'dashboard.investorTitle' | translate }}</h1>
-        <p class="text-gray-400 text-sm mt-1">{{ 'dashboard.welcomeSubtitle' | translate }}</p>
+    <div class="premium-dashboard">
+      <div class="dashboard-header">
+        <h1 class="dashboard-title">{{ 'dashboard.investorTitle' | translate }}</h1>
+        <p class="dashboard-subtitle">{{ 'dashboard.welcomeSubtitle' | translate }}</p>
       </div>
 
-      <!-- Stat Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
-        <!-- Portfolio Value -->
-        <div class="relative bg-slate-900/80 border border-slate-800 rounded-2xl p-5 overflow-hidden hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-200 group">
-          <div class="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          <div class="relative">
-            <div class="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/20 flex items-center justify-center mb-3">
-              <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0l.879-.659M7.5 14.25l-2.489-1.867a.75.75 0 010-1.266l2.489-1.867M16.5 14.25l2.489-1.867a.75.75 0 000-1.266l-2.489-1.867"/></svg>
-            </div>
-            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ 'dashboard.portfolioValue' | translate }}</p>
-            <p class="text-3xl font-bold text-white">${{ portfolioValue() | number:'1.0-0' }}</p>
+      <!-- KPI Cards -->
+      <div class="kpi-cards-grid">
+        <div class="kpi-card kpi-card-blue">
+          <div class="kpi-card-icon">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0l.879-.659M7.5 14.25l-2.489-1.867a.75.75 0 010-1.266l2.489-1.867M16.5 14.25l2.489-1.867a.75.75 0 000-1.266l-2.489-1.867"/></svg>
+          </div>
+          <div class="kpi-card-content">
+            <p class="kpi-card-label">{{ 'dashboard.portfolioValue' | translate }}</p>
+            <p class="kpi-card-value">${{ portfolioValue() | number:'1.0-0' }}</p>
+            <p class="kpi-card-status">+12.6% this month</p>
           </div>
         </div>
-        <!-- My Investments -->
-        <div class="relative bg-slate-900/80 border border-slate-800 rounded-2xl p-5 overflow-hidden hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-200 group">
-          <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          <div class="relative">
-            <div class="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center mb-3">
-              <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5"/></svg>
-            </div>
-            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ 'dashboard.myInvestments' | translate }}</p>
-            <p class="text-3xl font-bold text-white">{{ myInvestments().length }}</p>
+
+        <div class="kpi-card kpi-card-emerald">
+          <div class="kpi-card-icon">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5"/></svg>
+          </div>
+          <div class="kpi-card-content">
+            <p class="kpi-card-label">Active Investments</p>
+            <p class="kpi-card-value">{{ myInvestments().length }}</p>
+            <p class="kpi-card-status">Portfolio positions</p>
           </div>
         </div>
-        <!-- Requests -->
-        <div class="relative bg-slate-900/80 border border-slate-800 rounded-2xl p-5 overflow-hidden hover:border-purple-500/30 hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-200 group">
-          <div class="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          <div class="relative">
-            <div class="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/20 flex items-center justify-center mb-3">
-              <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"/></svg>
-            </div>
-            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ 'dashboard.incomingRequests' | translate }}</p>
-            <p class="text-3xl font-bold text-white">{{ incomingRequestsCount() }}</p>
+
+        <div class="kpi-card kpi-card-purple">
+          <div class="kpi-card-icon">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"/></svg>
+          </div>
+          <div class="kpi-card-content">
+            <p class="kpi-card-label">Pending Responses</p>
+            <p class="kpi-card-value">{{ incomingRequestsCount() }}</p>
+            <p class="kpi-card-status">Requires your action</p>
           </div>
         </div>
-        <!-- Score -->
-        <div class="relative bg-slate-900/80 border border-slate-800 rounded-2xl p-5 overflow-hidden hover:border-amber-500/30 hover:shadow-lg hover:shadow-amber-500/10 transition-all duration-200 group">
-          <div class="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          <div class="relative">
-            <div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center mb-3">
-              <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>
-            </div>
-            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ 'dashboard.investorScore' | translate }}</p>
-            <p class="text-3xl font-bold text-white">{{ investorScore() }}</p>
+
+        <div class="kpi-card kpi-card-cyan">
+          <div class="kpi-card-icon">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+          </div>
+          <div class="kpi-card-content">
+            <p class="kpi-card-label">Unread Messages</p>
+            <p class="kpi-card-value">5</p>
+            <p class="kpi-card-status">New conversations</p>
           </div>
         </div>
-        <!-- Credits -->
-        <div class="relative bg-slate-900/80 border border-slate-800 rounded-2xl p-5 overflow-hidden hover:border-pink-500/30 hover:shadow-lg hover:shadow-pink-500/10 transition-all duration-200 group">
-          <div class="absolute inset-0 bg-gradient-to-br from-pink-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          <div class="relative">
-            <div class="w-10 h-10 rounded-xl bg-pink-500/15 border border-pink-500/20 flex items-center justify-center mb-3">
-              <svg class="w-5 h-5 text-pink-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3"/></svg>
-            </div>
-            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ 'dashboard.currentCredits' | translate }}</p>
-            <p class="text-3xl font-bold text-white">{{ currentCredits() }}</p>
+
+        <div class="kpi-card kpi-card-amber">
+          <div class="kpi-card-icon">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>
+          </div>
+          <div class="kpi-card-content">
+            <p class="kpi-card-label">{{ 'dashboard.investorScore' | translate }}</p>
+            <p class="kpi-card-value">{{ investorScore() }}</p>
+            <p class="kpi-card-status">Top 15% of investors</p>
+          </div>
+        </div>
+
+        <div class="kpi-card kpi-card-pink">
+          <div class="kpi-card-icon">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3"/></svg>
+          </div>
+          <div class="kpi-card-content">
+            <p class="kpi-card-label">{{ 'dashboard.currentCredits' | translate }}</p>
+            <p class="kpi-card-value">{{ currentCredits() }}</p>
+            <p class="kpi-card-status">Available for actions</p>
           </div>
         </div>
       </div>
 
-      <!-- Charts -->
-      <div class="grid grid-cols-1 xl:grid-cols-5 gap-5 mb-8">
-        <div class="xl:col-span-2 bg-slate-900/80 backdrop-blur-sm p-6 rounded-2xl border border-slate-800 hover:border-slate-700 transition-colors">
-          <h3 class="text-base font-semibold text-white mb-4">{{ 'dashboard.myAllocation' | translate }}</h3>
-          <div #pieChart class="relative flex justify-center items-center min-h-[300px]"></div>
+      <!-- Request Outcomes -->
+      <div class="requests-section">
+        <div class="section-header">
+          <h3 class="section-title">{{ 'dashboard.sentRequestsTitle' | translate }}</h3>
         </div>
-        <div class="xl:col-span-3 bg-slate-900/80 backdrop-blur-sm p-6 rounded-2xl border border-slate-800 hover:border-slate-700 transition-colors">
-          <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+        <div class="requests-table-container">
+          <table class="requests-table">
+            <thead>
+              <tr>
+                <th>Project</th>
+                <th>Founder</th>
+                <th>Status</th>
+                <th>Last Update</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for(request of sentRequests(); track request.id) {
+                <tr class="requests-table-row" [routerLink]="['/admin/investments']">
+                  <td class="requests-table-cell">
+                    <div class="requests-cell-content">
+                      <img [src]="request.projectImageUrl" alt="{{ request.projectName }}" class="requests-project-image">
+                      <span class="requests-project-name">{{ request.projectName }}</span>
+                    </div>
+                  </td>
+                  <td class="requests-table-cell">{{ request.author }}</td>
+                  <td class="requests-table-cell">
+                    <span class="status-badge status-badge-{{ request.status | lowercase }}">
+                      {{ request.status }}
+                    </span>
+                  </td>
+                  <td class="requests-table-cell">{{ getTimeAgo(request.date) }}</td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="4" class="requests-table-cell">
+                    <div class="requests-empty-state">
+                      <svg class="w-10 h-10 text-gray-600 mb-3" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/></svg>
+                      <p class="requests-empty-title">No pending responses</p>
+                      <p class="requests-empty-subtitle">All founders have responded to your requests. Start exploring new opportunities.</p>
+                      <a [routerLink]="['/admin/investments']" class="requests-empty-cta">Browse Opportunities</a>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Portfolio Analytics -->
+      <div class="portfolio-overview-grid">
+        <div class="portfolio-card">
+          <div class="portfolio-card-header">
+            <h3 class="portfolio-card-title">{{ 'dashboard.myAllocation' | translate }}</h3>
+          </div>
+          <div class="portfolio-chart-container">
+            <div #pieChart class="portfolio-chart"></div>
+          </div>
+        </div>
+
+        <div class="portfolio-card">
+          <div class="portfolio-card-header">
             <div>
-              <h3 class="text-base font-semibold text-white">{{ 'dashboard.portfolioPerformance' | translate }}</h3>
-              <p class="text-xs text-gray-500 mt-0.5">{{ selectedYear() }}</p>
+              <h3 class="portfolio-card-title">{{ 'dashboard.portfolioPerformance' | translate }}</h3>
+              <p class="portfolio-card-subtitle">{{ selectedYear() }}</p>
             </div>
-            <div class="flex items-center gap-2 text-sm text-gray-300">
-              <label for="yearSelect" class="font-medium text-gray-300">{{ 'dashboard.year' | translate }}</label>
-              <select id="yearSelect" class="rounded border border-slate-700 bg-slate-800 px-3 py-1 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500" (change)="changeSelectedYear($any($event.target).value)">
-                @for(year of availableYears(); track year) {
-                  <option [value]="year" [selected]="year === selectedYear()">{{ year }}</option>
-                }
-              </select>
+            <div class="performance-selector">
+              <button class="performance-btn active" (click)="changeSelectedYear(selectedYear())">30D</button>
+              <button class="performance-btn" (click)="changeSelectedYear(selectedYear())">90D</button>
+              <button class="performance-btn" (click)="changeSelectedYear(selectedYear())">1Y</button>
             </div>
           </div>
-          <div #lineChart class="relative"></div>
-        </div>
-      </div>
-
-      <!-- Watchlist & Featured Opportunities -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <!-- My Watchlist -->
-        <div class="bg-slate-900/80 backdrop-blur-sm p-6 rounded-2xl border border-slate-800 hover:border-slate-700 transition-colors">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-base font-semibold text-white">{{ 'dashboard.watchlist' | translate }}</h3>
-            <a [routerLink]="['/admin/investments']" [queryParams]="{ onlyFavorites: true }" class="text-xs font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1">
-              {{ 'dashboard.viewAll' | translate }}
-              <svg class="w-3.5 h-3.5 rtl:rotate-180" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
-            </a>
-          </div>
-          <div class="space-y-2">
-            @for(investment of favoriteInvestments(); track investment.id) {
-              <a [routerLink]="['/admin/investments', investment.id]" class="flex items-center gap-3 p-3 bg-slate-800/40 hover:bg-slate-800/70 rounded-xl transition-colors group">
-                @let investmentAvatar = getImageSrc(investment);
-                @if (investmentAvatar) {
-                  <img [src]="investmentAvatar" alt="" class="w-9 h-9 rounded-lg flex-shrink-0 object-cover">
-                } @else {
-                  <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-violet-500 text-white font-semibold flex items-center justify-center text-sm flex-shrink-0">
-                    {{ getNameInitial(investment.name) }}
-                  </div>
-                }
-                <div class="flex-1 truncate">
-                  <p class="text-sm font-semibold text-white group-hover:text-blue-400 truncate transition-colors">{{ investment.name }}</p>
-                  <p class="text-xs text-gray-500">{{ investment.type }}</p>
-                </div>
-                <button (click)="toggleFavorite(investment); $event.preventDefault()" class="favorite-btn favorited text-red-400 hover:text-red-300 transition-colors p-1.5 rounded-lg hover:bg-red-500/10 flex-shrink-0">
-                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg>
-                </button>
-              </a>
-            } @empty {
-              <div class="flex flex-col items-center justify-center py-10 text-center">
-                <svg class="w-8 h-8 text-gray-600 mb-2" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg>
-                <p class="text-sm text-gray-500">{{ 'dashboard.emptyWatchlist' | translate }}</p>
-              </div>
-            }
-          </div>
-        </div>
-
-        <!-- Featured Opportunities -->
-        <div class="relative bg-slate-900/80 backdrop-blur-sm p-6 rounded-2xl border border-amber-400/30 ring-1 ring-amber-500/10 shadow-lg shadow-amber-500/10 overflow-hidden">
-          <div class="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent pointer-events-none"></div>
-          <div class="relative flex items-center justify-between mb-4 gap-4">
-            <h3 class="text-base font-semibold text-white">{{ 'dashboard.featuredOpportunities' | translate }}</h3>
-            <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 text-amber-300 text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 border border-amber-500/25">
-              ★ {{ 'dashboard.primeBadge' | translate }}
-            </span>
-          </div>
-          <div class="relative space-y-2">
-            @for(investment of featuredInvestments(); track investment.id) {
-              <a [routerLink]="['/admin/investments', investment.id]" class="flex items-center gap-3 p-3 bg-slate-800/40 hover:bg-amber-500/5 rounded-xl transition-colors group">
-                @let investmentAvatar = getImageSrc(investment);
-                @if (investmentAvatar) {
-                  <img [src]="investmentAvatar" alt="" class="w-9 h-9 rounded-lg flex-shrink-0 object-cover">
-                } @else {
-                  <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-white font-semibold flex items-center justify-center text-sm flex-shrink-0">
-                    {{ getNameInitial(investment.name) }}
-                  </div>
-                }
-                <div class="flex-1 truncate">
-                  <p class="text-sm font-semibold text-white group-hover:text-amber-300 truncate transition-colors">{{ investment.name }}</p>
-                  <p class="text-xs text-gray-500 truncate">{{ investment.description | slice:0:35 }}...</p>
-                </div>
-                <span class="flex-shrink-0 text-xs font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md">{{ investment.credibilityScore }}★</span>
-              </a>
-            }
-          </div>
-        </div>
-
-        <!-- Investment Updates -->
-        <div class="bg-slate-900/80 backdrop-blur-sm p-6 rounded-2xl border border-slate-800 hover:border-slate-700 transition-colors">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-base font-semibold text-white">{{ 'dashboard.investmentUpdates' | translate }}</h3>
-            <span class="text-[11px] font-semibold text-gray-500 bg-slate-800 px-2.5 py-1 rounded-full">{{ investmentUpdates().length }} {{ 'dashboard.updatesLabel' | translate }}</span>
-          </div>
-          <div class="space-y-2">
-            @for(investment of investmentUpdates(); track investment.id) {
-              <a [routerLink]="['/admin/investments', investment.id]" class="flex items-center gap-3 p-3 bg-slate-800/40 hover:bg-slate-800/70 rounded-xl transition-colors group">
-                @let investmentAvatar = getImageSrc(investment);
-                @if (investmentAvatar) {
-                  <img [src]="investmentAvatar" alt="" class="w-9 h-9 rounded-lg flex-shrink-0 object-cover">
-                } @else {
-                  <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-violet-500 text-white font-semibold flex items-center justify-center text-sm flex-shrink-0">
-                    {{ getNameInitial(investment.name) }}
-                  </div>
-                }
-                <div class="flex-1 truncate">
-                  <p class="text-sm font-semibold text-white group-hover:text-blue-400 truncate transition-colors">{{ investment.name }}</p>
-                  <p class="text-xs text-gray-500">{{ investment.type }}</p>
-                </div>
-                <svg class="w-4 h-4 text-gray-600 group-hover:text-blue-400 transition-colors rtl:rotate-180 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-              </a>
-            } @empty {
-              <div class="flex flex-col items-center justify-center py-10 text-center">
-                <svg class="w-8 h-8 text-gray-600 mb-2" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z"/></svg>
-                <p class="text-sm text-gray-500">{{ 'dashboard.noInvestmentUpdates' | translate }}</p>
-              </div>
-            }
+          <div class="portfolio-chart-container">
+            <div #lineChart class="portfolio-chart"></div>
           </div>
         </div>
       </div>
 
-      <!-- Sent Engagement Requests -->
-      <div class="mt-6">
-        <div class="bg-slate-900/80 backdrop-blur-sm p-6 rounded-2xl border border-slate-800">
-          <h3 class="text-base font-semibold text-white mb-5">{{ 'dashboard.sentRequestsTitle' | translate }}</h3>
-          <ul class="space-y-3">
-            @for(request of sentRequests(); track request.id) {
-              <li class="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-slate-800/40 hover:bg-slate-800/60 rounded-xl transition-colors">
-                <img [src]="request.projectImageUrl" alt="{{ request.projectName }}" class="w-10 h-10 rounded-xl flex-shrink-0 object-cover">
-                <div class="flex-1 truncate">
-                  <p class="text-sm font-semibold text-white truncate">{{ request.projectName }}</p>
-                  <p class="text-xs text-gray-500 mt-0.5">{{ 'investmentPreview.author' | translate }}: {{ request.author }}</p>
-                </div>
-                <div class="flex flex-wrap items-center gap-3 flex-shrink-0">
-                  <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border"
-                        [class.bg-yellow-500/15]="request.status === 'Pending'"
-                        [class.text-yellow-300]="request.status === 'Pending'"
-                        [class.border-yellow-500/30]="request.status === 'Pending'"
-                        [class.bg-blue-500/15]="request.status === 'Negotiating'"
-                        [class.text-blue-300]="request.status === 'Negotiating'"
-                        [class.border-blue-500/30]="request.status === 'Negotiating'"
-                        [class.bg-green-500/15]="request.status === 'Partner'"
-                        [class.text-green-300]="request.status === 'Partner'"
-                        [class.border-green-500/30]="request.status === 'Partner'"
-                        [class.bg-red-500/15]="request.status === 'Rejected'"
-                        [class.text-red-300]="request.status === 'Rejected'"
-                        [class.border-red-500/30]="request.status === 'Rejected'">
-                    <span class="w-1.5 h-1.5 rounded-full"
-                          [class.bg-yellow-400]="request.status === 'Pending'"
-                          [class.bg-blue-400]="request.status === 'Negotiating'"
-                          [class.bg-green-400]="request.status === 'Partner'"
-                          [class.bg-red-400]="request.status === 'Rejected'"></span>
-                    {{ ('dashboard.requestStatus.' + (request.status | lowercase)) | translate }}
-                  </span>
-                  <span class="text-xs text-gray-500">{{ getTimeAgo(request.date) }}</span>
-                  @if (request.status === 'Pending') {
-                    <button (click)="promptWithdraw(request)"
-                            class="text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/20 hover:border-red-500/40 px-3 py-1.5 rounded-lg transition-all">
-                      {{ 'dashboard.withdraw' | translate }}
-                    </button>
+      <!-- Recent Activity Timeline -->
+      <div class="recent-activity-section">
+        <div class="section-header">
+          <h3 class="section-title">Recent Activity</h3>
+          <a [routerLink]="['/admin/activity']" class="section-link">View All →</a>
+        </div>
+        <div class="recent-activity-timeline">
+          @if (recentActivityFeed().length > 0) {
+            @for(activity of recentActivityFeed().slice(0, 5); track activity.id) {
+              <div class="activity-timeline-item">
+                <div class="activity-timeline-dot activity-timeline-dot-{{ activity.type }}"></div>
+                <div class="activity-timeline-content">
+                  <div class="activity-timeline-header">
+                    <h4 class="activity-timeline-title">{{ activity.title }}</h4>
+                    <span class="activity-timeline-time">{{ activity.time }}</span>
+                  </div>
+                  <p class="activity-timeline-description">{{ activity.description }}</p>
+                  @if (activity.link) {
+                    <a [routerLink]="activity.link" class="activity-timeline-link">View Details →</a>
                   }
                 </div>
-              </li>
-            } @empty {
-              <div class="flex flex-col items-center justify-center py-12 text-center">
-                <svg class="w-9 h-9 text-gray-600 mb-2" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/></svg>
-                <p class="text-sm text-gray-500">{{ 'dashboard.noSentRequests' | translate }}</p>
               </div>
             }
-          </ul>
+          } @else {
+            <div class="recent-activity-empty">
+              <svg class="w-12 h-12 text-gray-600 mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <h4 class="recent-activity-empty-title">No recent activity</h4>
+              <p class="recent-activity-empty-subtitle">Your recent actions and updates will appear here.</p>
+            </div>
+          }
         </div>
       </div>
 
+      <!-- Quick Actions -->
+      <div class="quick-actions-card">
+        <div class="quick-actions-header">
+          <h3 class="quick-actions-title">Quick Actions</h3>
+        </div>
+        <div class="quick-actions-list">
+          <a [routerLink]="['/admin/investments']" class="quick-action-item">
+            <div class="quick-action-icon quick-action-icon-browse">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+            </div>
+            <span class="quick-action-label">Browse Opportunities</span>
+          </a>
+          <a [routerLink]="['/admin/investments']" [queryParams]="{ onlyFavorites: true }" class="quick-action-item">
+            <div class="quick-action-icon quick-action-icon-watchlist">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg>
+            </div>
+            <span class="quick-action-label">View Watchlist</span>
+          </a>
+          <a [routerLink]="['/admin/chat']" class="quick-action-item">
+            <div class="quick-action-icon quick-action-icon-messages">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+            </div>
+            <span class="quick-action-label">Open Messages</span>
+          </a>
+          <button class="quick-action-item">
+            <div class="quick-action-icon quick-action-icon-report">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12"/></svg>
+            </div>
+            <span class="quick-action-label">Generate Report</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- AI Investment Advisor -->
+      <div class="ai-advisor-card">
+        <div class="ai-advisor-header">
+          <div>
+            <h3 class="ai-advisor-title">AI Investment Advisor</h3>
+            @if (!isPremium()) {
+              <span class="ai-advisor-badge">Premium</span>
+            }
+          </div>
+          @if (isPremium()) {
+            <svg class="ai-advisor-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z"/></svg>
+          } @else {
+            <svg class="ai-advisor-icon ai-advisor-icon-locked" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
+          }
+        </div>
+
+        @if (isPremium()) {
+          <div class="ai-advisor-recommendations">
+            @for(recommendation of featuredInvestments(); track recommendation.id) {
+              <div class="ai-recommendation-item">
+                <div class="ai-recommendation-header">
+                  <div class="ai-recommendation-image">
+                    @let recAvatar = getImageSrc(recommendation);
+                    @if (recAvatar) {
+                      <img [src]="recAvatar" alt="{{ recommendation.name }}">
+                    } @else {
+                      <div class="ai-recommendation-placeholder">
+                        {{ getNameInitial(recommendation.name) }}
+                      </div>
+                    }
+                  </div>
+                  <div class="ai-recommendation-score">
+                    <span class="ai-score-value">{{ recommendation.credibilityScore }}%</span>
+                    <span class="ai-score-label">Match</span>
+                  </div>
+                </div>
+                <div class="ai-recommendation-body">
+                  <h4 class="ai-recommendation-name">{{ recommendation.name }}</h4>
+                  <p class="ai-recommendation-category">{{ recommendation.type }}</p>
+                  <div class="ai-recommendation-meta">
+                    <span class="ai-recommendation-goal">Target: ${{ recommendation.targetFund | number }}</span>
+                  </div>
+                  <p class="ai-recommendation-reason">Strong alignment with your previous investments in {{ recommendation.type }} and your medium-risk profile.</p>
+                </div>
+                <div class="ai-recommendation-actions">
+                  <a [routerLink]="['/admin/investments', recommendation.id]" class="ai-recommendation-btn ai-recommendation-btn-primary">
+                    View Details
+                  </a>
+                  <button (click)="toggleFavorite(recommendation)" class="ai-recommendation-btn ai-recommendation-btn-secondary">
+                    <svg class="w-4 h-4" [class.text-red-400]="recommendation.favorited" [class.text-gray-400]="!recommendation.favorited" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="ai-advisor-locked">
+            <p class="ai-advisor-description">Use AI-powered analysis to identify investment opportunities that best match your interests, investment history, risk profile and portfolio goals.</p>
+            <div class="ai-advisor-benefits">
+              <div class="ai-advisor-benefit">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                <span>Personalized investment suggestions</span>
+              </div>
+              <div class="ai-advisor-benefit">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                <span>Risk profile matching</span>
+              </div>
+              <div class="ai-advisor-benefit">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                <span>Opportunity scoring</span>
+              </div>
+              <div class="ai-advisor-benefit">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                <span>Market trend analysis</span>
+              </div>
+              <div class="ai-advisor-benefit">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                <span>Smart portfolio diversification insights</span>
+              </div>
+            </div>
+            <button class="ai-advisor-cta">Upgrade to Premium</button>
+          </div>
+        }
+      </div>
+
+      <!-- Watchlist -->
+      <div class="watchlist-section">
+        <div class="watchlist-header">
+          <h3 class="watchlist-title">{{ 'dashboard.watchlist' | translate }}</h3>
+          <a [routerLink]="['/admin/investments']" [queryParams]="{ onlyFavorites: true }" class="watchlist-view-all">
+            {{ 'dashboard.viewAll' | translate }}
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+          </a>
+        </div>
+        @if (favoriteInvestments().length > 0) {
+          <div class="watchlist-grid">
+            @for(investment of favoriteInvestments(); track investment.id) {
+              <a [routerLink]="['/admin/investments', investment.id]" class="watchlist-item">
+                <div class="watchlist-item-image">
+                  @let investmentAvatar = getImageSrc(investment);
+                  @if (investmentAvatar) {
+                    <img [src]="investmentAvatar" alt="{{ investment.name }}">
+                  } @else {
+                    <div class="watchlist-item-placeholder">
+                      {{ getNameInitial(investment.name) }}
+                    </div>
+                  }
+                </div>
+                <div class="watchlist-item-content">
+                  <h4 class="watchlist-item-name">{{ investment.name }}</h4>
+                  <p class="watchlist-item-type">{{ investment.type }}</p>
+                </div>
+                <button (click)="toggleFavorite(investment); $event.preventDefault()" class="watchlist-favorite-btn">
+                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg>
+                </button>
+              </a>
+            }
+          </div>
+        } @else {
+          <div class="watchlist-empty-state">
+            <svg class="w-12 h-12 text-gray-600 mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg>
+            <h4 class="watchlist-empty-title">Your watchlist is empty</h4>
+            <p class="watchlist-empty-subtitle">Save investment opportunities to track them here and receive updates on your favorite projects.</p>
+            <a [routerLink]="['/admin/investments']" class="watchlist-empty-cta">Browse Opportunities</a>
+          </div>
+        }
+      </div>
     </div>
   } @else {
-    <!-- FOUNDER DASHBOARD -->
     <div class="animate-fade-in">
       @if (selectedFounderProject(); as project) {
-        <!-- SINGLE PROJECT DASHBOARD -->
         <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div>
             <h1 class="text-3xl font-bold text-white">{{ project.name }}</h1>
@@ -265,9 +363,7 @@
           }
         </div>
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <!-- Main Column -->
           <div class="lg:col-span-2 space-y-5">
-            <!-- Project Overview -->
             <div class="bg-slate-900/80 backdrop-blur-sm p-6 rounded-2xl border border-slate-800 hover:border-slate-700 transition-colors">
               <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">{{ 'dashboard.myProjectOverview' | translate }}</h3>
               <div class="flex flex-col sm:flex-row items-center gap-5">
@@ -296,7 +392,6 @@
               </div>
             </div>
 
-            <!-- Stats -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 text-center hover:border-blue-500/30 transition-colors">
                 <div class="w-8 h-8 rounded-lg bg-blue-500/15 border border-blue-500/20 flex items-center justify-center mx-auto mb-2">
@@ -328,16 +423,13 @@
               </div>
             </div>
 
-            <!-- Investor Interest Chart -->
             <div class="bg-slate-900/80 backdrop-blur-sm p-6 rounded-2xl border border-slate-800 hover:border-slate-700 transition-colors">
               <h3 class="text-base font-semibold text-white mb-4">{{ 'dashboard.investorInterest' | translate }}</h3>
               <div #barChart class="relative"></div>
             </div>
           </div>
 
-          <!-- Side Column -->
           <div class="lg:col-span-1 space-y-5">
-            <!-- Quick Actions -->
             <div class="bg-slate-900/80 backdrop-blur-sm p-6 rounded-2xl border border-slate-800 hover:border-slate-700 transition-colors">
               <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">{{ 'dashboard.quickActions' | translate }}</h3>
               <div class="space-y-2">
@@ -359,7 +451,7 @@
                 </button>
               </div>
             </div>
-            <!-- Recent Activity -->
+
             <div class="bg-slate-900/80 backdrop-blur-sm p-6 rounded-2xl border border-slate-800 hover:border-slate-700 transition-colors">
               <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">{{ 'dashboard.recentActivity' | translate }}</h3>
               <ul class="space-y-3">
@@ -385,7 +477,6 @@
           </div>
         </div>
       } @else {
-        <!-- PROJECT SELECTION / NO PROJECT VIEW -->
         @if (founderProjects().length > 0) {
           <div class="mb-8">
             <h1 class="text-3xl font-bold text-white">{{ 'dashboard.selectProjectTitle' | translate }}</h1>

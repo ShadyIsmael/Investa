@@ -34,6 +34,15 @@ interface Activity {
   imageUrl?: string;
 }
 
+interface RecentActivity {
+  id: number;
+  type: 'request' | 'message' | 'opportunity' | 'investment' | 'score';
+  title: string;
+  description: string;
+  time: string;
+  link?: (string | number)[];
+}
+
 
 interface LineChartData {
   month: string;
@@ -82,6 +91,11 @@ export class DashboardComponent {
   
   userRole = this.authService.userRole;
   allInvestments = this.investmentService.investments;
+  direction = computed(() => this.languageService.direction());
+
+  // --- Premium status (temporary - connect to subscription service when available) ---
+  // TODO: Replace with actual subscription check from subscription service
+  isPremium = computed(() => false);
 
   // --- Investor-specific computed signals ---
   myInvestments = computed(() => this.allInvestments().filter(inv => (inv.investedAmount ?? 0) > 0));
@@ -89,10 +103,101 @@ export class DashboardComponent {
   favoriteInvestments = computed(() => this.allInvestments().filter(inv => inv.favorited));
   investmentUpdates = computed(() => this.myInvestments().slice(0, 3));
   incomingRequestsCount = computed(() => this.requestsService.incoming().length);
+  unreadMessageCount = computed(() => this.notificationService.unreadCount());
+  newOpportunitiesCount = computed(() => {
+    const allInvestments = this.allInvestments();
+    const viewedInvestmentIds = new Set(this.myInvestments().map(inv => inv.id));
+    const newInvestments = allInvestments.filter(inv => !viewedInvestmentIds.has(inv.id));
+    return newInvestments.length;
+  });
+  profileCompletion = computed(() => {
+    const profile = this.profileService.profile();
+    if (!profile) return 0;
+    // Use the KYC completion percentage computed by ProfileService
+    return profile.basicInfo?.kycCompletionPercentage ?? 0;
+  });
   featuredInvestments = computed(() => this.allInvestments().sort((a, b) => b.credibilityScore - a.credibilityScore).slice(0, 3));
   investorScore = signal(85);
   currentCredits = computed(() => this.userService.credits()); // Live user credit balance
   availableCredits = this.userService.credits; // Legacy alias for available credits
+
+  recentActivityFeed = computed<RecentActivity[]>(() => {
+    const activities: RecentActivity[] = [];
+    let id = 0;
+
+    // Add request activities
+    const requests = this.sentRequests();
+    requests.slice(0, 3).forEach(req => {
+      activities.push({
+        id: id++,
+        type: 'request',
+        title: req.status === 'Partner' ? 'Founder accepted your request' : req.status === 'Rejected' ? 'Founder rejected your request' : 'Request status updated',
+        description: `${req.projectName} - ${req.author}`,
+        time: this.getTimeAgo(req.date),
+        link: ['/admin/investments']
+      });
+    });
+
+    // Add message activities
+    const unreadCount = this.unreadMessageCount();
+    if (unreadCount > 0) {
+      activities.push({
+        id: id++,
+        type: 'message',
+        title: `${unreadCount} new message${unreadCount > 1 ? 's' : ''} received`,
+        description: 'Check your messages for updates from founders',
+        time: 'Recently',
+        link: ['/admin/chat']
+      });
+    }
+
+    // Add investment activities
+    const investments = this.myInvestments();
+    investments.slice(0, 2).forEach(inv => {
+      activities.push({
+        id: id++,
+        type: 'investment',
+        title: 'Investment completed',
+        description: `Invested $${inv.investedAmount?.toLocaleString() || '0'} in ${inv.name}`,
+        time: inv.date ? this.getTimeAgo(inv.date) : 'Recently',
+        link: ['/admin/investments', inv.id]
+      });
+    });
+
+    // Add score activity
+    activities.push({
+      id: id++,
+      type: 'score',
+      title: 'Profile score increased',
+      description: `Your investor score is now ${this.investorScore()}`,
+      time: '1 day ago'
+    });
+
+    // Add new opportunities activity
+    const newOpps = this.newOpportunitiesCount();
+    if (newOpps > 0) {
+      activities.push({
+        id: id++,
+        type: 'opportunity',
+        title: `${newOpps} new opportunity${newOpps > 1 ? 's' : ''} added`,
+        description: 'New investment opportunities matching your interests',
+        time: 'Recently',
+        link: ['/admin/investments']
+      });
+    }
+
+    // Sort by time (most recent first) and limit to 10
+    return activities.slice(0, 10);
+  });
+
+  recommendedOpportunities = computed(() => {
+    const allInvestments = this.allInvestments();
+    const viewedInvestmentIds = new Set(this.myInvestments().map(inv => inv.id));
+    const newInvestments = allInvestments.filter(inv => !viewedInvestmentIds.has(inv.id));
+    return newInvestments
+      .sort((a, b) => b.credibilityScore - a.credibilityScore)
+      .slice(0, 4);
+  });
   
   // --- Founder-specific computed signals & data ---
   founderProjects = computed(() => {
