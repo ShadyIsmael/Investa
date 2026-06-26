@@ -9,10 +9,6 @@ import { ApiErrorResponse } from '../../../models/api-response.model';
 import { LanguageService } from '../../../services/language.service';
 import { Router } from '@angular/router';
 import { FileStoreService } from '../../../services/file-store.service';
-import { GoogleMap, MapMarker } from '@angular/google-maps';
-import { TrustService } from '../../../services/trust.service';
-import { TrustBadgeComponent } from '../../../components/trust-badge/trust-badge.component';
-import { TrustLevel, TRUST_LEVEL_LABELS } from '../../../models/trust.model';
 
 export const passwordMatchValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
   const password = control.get('newPassword');
@@ -20,85 +16,63 @@ export const passwordMatchValidator: ValidatorFn = (control: AbstractControl): V
   return password && confirmPassword && password.value === confirmPassword.value ? null : { passwordMismatch: true };
 };
 
-type ActiveSection = 'details' | 'communication' | 'security' | 'notifications' | 'trust';
+type ActiveSection =
+  | 'personal'
+  | 'investment'
+  | 'personalization'
+  | 'notifications'
+  | 'security'
+  | 'credit'
+  | 'score';
 
 @Component({
   standalone: true,
   selector: 'app-profile',
-  templateUrl: './profile.component.html',  styleUrls: ['./profile.component.scss'],  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, TranslatePipe, GoogleMap, MapMarker, TrustBadgeComponent]
+  templateUrl: './profile.component.html',
+  styleUrls: ['./profile.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CommonModule, ReactiveFormsModule, TranslatePipe]
 })
 export class ProfileComponent {
   @ViewChild('avatarInput') avatarInput!: ElementRef<HTMLInputElement>;
   @ViewChild('nationalIdInput') nationalIdInput!: ElementRef<HTMLInputElement>;
 
-  activeSection = signal<ActiveSection>('details');
+  activeSection = signal<ActiveSection>('personal');
+
   nationalIdFileName = signal<string | null>(null);
   nationalIdImageUrl = signal<string | null>(null);
   isUploadingNationalId = signal(false);
   nationalIdFiles = signal<Array<{ fileName: string; url: string; thumbUrl?: string }>>([]);
-  // When user selects to replace an existing thumbnail, holds its index; null means add new
   replaceNationalIdIndex = signal<number | null>(null);
 
   isNationalIdVerified = signal(false);
   isIdCopyVerified = signal(false);
 
-  /** Tracks avatar upload state */
   isUploadingAvatar = signal(false);
-  /** Holds the newly uploaded avatar URL until the profile is saved */
   pendingAvatarUrl = signal<string | null>(null);
 
   private destroyRef = inject(DestroyRef);
   private ngZone = inject(NgZone);
+
   public profileService = inject(ProfileService);
-  public trustService = inject(TrustService);
+
   private notificationService = inject(NotificationService);
   private languageService = inject(LanguageService);
   private router = inject(Router);
   private fileStoreService = inject(FileStoreService);
 
-  // Expose to template
-  readonly TrustLevel = TrustLevel;
-  readonly trustLevelLabels = TRUST_LEVEL_LABELS;
-
-  // ── Google Maps ──────────────────────────────────────────────
-  /** Default center: Cairo, Egypt */
-  mapCenter = signal<google.maps.LatLngLiteral>({ lat: 30.0444, lng: 31.2357 });
-  mapZoom = signal(10);
-  markerPosition = signal<google.maps.LatLngLiteral | null>(null);
-  mapAuthFailed = signal(false);
-  mapOptions: google.maps.MapOptions = {
-    mapTypeControl: false,
-    streetViewControl: false,
-    fullscreenControl: false,
-    zoomControlOptions: { position: 3 /* RIGHT_CENTER */ },
-    styles: [
-      { elementType: 'geometry', stylers: [{ color: '#0f172a' }] },
-      { elementType: 'labels.text.stroke', stylers: [{ color: '#0f172a' }] },
-      { elementType: 'labels.text.fill', stylers: [{ color: '#94a3b8' }] },
-      { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#1e293b' }] },
-      { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#334155' }] },
-      { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#172554' }] },
-      { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-      { featureType: 'transit', stylers: [{ visibility: 'off' }] }
-    ]
-  };
-  private autocompleteInitialized = false;
-
   private t(path: string): string {
     return this.languageService.translate(path);
   }
 
-  // Derived fields from loaded profile
   fullName = computed(() => {
-    // Use form values for real-time updates, fall back to backend profile
     const formFirst = this.profileForm.get('firstName')?.value || '';
     const formLast = this.profileForm.get('lastName')?.value || '';
-    
+
     if (formFirst || formLast) {
       return `${formFirst} ${formLast}`.trim();
     }
-    
+
     const p = this.profileService.profile();
     if (!p) return '';
     if (p.basicInfo?.fullName) return p.basicInfo.fullName;
@@ -113,78 +87,21 @@ export class ProfileComponent {
     return `https://picsum.photos/seed/${seed}/200/200`;
   });
 
-  // Loading and error state for fetch
   isLoading = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
 
-  // KYC status derived from backend
-  kycStatus = computed(() => this.profileService.profile()?.identityCompliance?.verificationStatus ?? 'None');
+  // Phase 1 score/credibility UI removed for Profile V2.
+  // Template references currentScorePts() and credit history; keep minimal score placeholder.
+  currentScorePts = computed(() => 0);
 
-  // Credit history
   creditHistory = signal<CreditTransaction[]>([]);
+  limitedCreditHistory = computed(() => this.creditHistory().slice(0, 5));
 
-  // Current score calculated as sum of all credit transaction amounts
-  currentScore = computed(() => {
-    const transactions = this.creditHistory();
-    if (!transactions || transactions.length === 0) return 0;
-    return transactions.reduce((sum, tx) => sum + tx.amount, 0);
-  });
-  // Limited to 5 transactions for display in profile
-  limitedCreditHistory = computed(() => {
-    return this.creditHistory().slice(0, 5);
-  });
-
-  // Current language preference from LanguageService
   currentLanguage = computed<'ar' | 'en'>(() => this.languageService.language());
 
-  // Snapshot used to detect changes for enabling Save button
   profileSnapshot = signal<string>('');
 
-  isProfileChanged = computed(() => {
-    const formValues = this.profileFormValues();
-    const current = {
-      firstName: formValues.firstName ?? '',
-      lastName: formValues.lastName ?? '',
-      nationalId: formValues.nationalId ?? '',
-      companyName: formValues.companyName ?? '',
-      companyEmail: formValues.companyEmail ?? '',
-      companyAddress: formValues.companyAddress ?? '',
-      hrLetterFileName: this.hrLetterFileName() ?? '',
-      bio: formValues.bio ?? '',
-      linkedinUrl: formValues.linkedinUrl ?? '',
-      facebookUrl: formValues.facebookUrl ?? ''
-    };
-    try {
-      return JSON.stringify(current) !== this.profileSnapshot();
-    } catch {
-      return false;
-    }
-  });
-
   communicationSnapshot = signal<string>('');
-
-  isCommunicationChanged = computed(() => {
-    const formValues = this.communicationFormValues();
-    const current = {
-      email: formValues.email ?? '',
-      address: formValues.address ?? '',
-      city: formValues.city ?? '',
-      state: formValues.state ?? '',
-      businessAddress: formValues.businessAddress ?? '',
-      businessLocationSearch: formValues.businessLocationSearch ?? '',
-      businessLat: formValues.businessLat ?? null,
-      businessLng: formValues.businessLng ?? null,
-    };
-    try {
-      return JSON.stringify(current) !== this.communicationSnapshot();
-    } catch {
-      return false;
-    }
-  });
-
-  getJustification = (transaction: CreditTransaction): string => {
-    return this.currentLanguage() === 'ar' ? transaction.justificationAr : transaction.justificationEn;
-  };
 
   profileForm = new FormGroup({
     firstName: new FormControl('', [Validators.required]),
@@ -204,18 +121,7 @@ export class ProfileComponent {
     facebookUrl: new FormControl(''),
   });
 
-  // Convert form values to signal for reactive change detection
   profileFormValues = toSignal(this.profileForm.valueChanges, { initialValue: this.profileForm.value });
-
-  getCountryLabel(code?: string | null): string {
-    if (!code) return '';
-    const found = this.nationalityOptions.find(c => c.code === code);
-    if (found) return this.t(found.key);
-    // As fallback, try to map by label (if backend returned localized label)
-    const foundByLabel = this.nationalityOptions.find(c => this.t(c.key) === code);
-    if (foundByLabel) return this.t(foundByLabel.key);
-    return code;
-  }
 
   communicationForm = new FormGroup({
     email: new FormControl(''),
@@ -229,8 +135,8 @@ export class ProfileComponent {
     businessLng: new FormControl<number | null>(null),
   });
 
-  // Convert form values to signal for reactive change detection
   communicationFormValues = toSignal(this.communicationForm.valueChanges, { initialValue: this.communicationForm.value });
+
   hrLetterFileName = signal<string>('');
   hrLetterBase64 = signal<string | null>(null);
   deviceMacAddress = signal<string | null>(null);
@@ -238,12 +144,15 @@ export class ProfileComponent {
   otpSent = signal(false);
   passwordOtpMessage = signal<string>('');
 
-  passwordForm = new FormGroup({
-    currentPassword: new FormControl('', [Validators.required]),
-    otpToken: new FormControl(''),
-    newPassword: new FormControl('', [Validators.required, Validators.minLength(8)]),
-    confirmNewPassword: new FormControl('', [Validators.required])
-  }, { validators: passwordMatchValidator });
+  passwordForm = new FormGroup(
+    {
+      currentPassword: new FormControl('', [Validators.required]),
+      otpToken: new FormControl(''),
+      newPassword: new FormControl('', [Validators.required, Validators.minLength(8)]),
+      confirmNewPassword: new FormControl('', [Validators.required])
+    },
+    { validators: passwordMatchValidator }
+  );
 
   notificationSettingsForm = new FormGroup({
     newOpportunities: new FormControl(true),
@@ -252,14 +161,12 @@ export class ProfileComponent {
     marketNews: new FormControl(true),
   });
 
-  // DOB calendar popup state
   dobCalendarOpen = signal(false);
   dobCalendarMonth = signal<number>(new Date().getMonth());
   dobCalendarYear = signal<number>(new Date().getFullYear());
-  dobCalendarDay = signal<number | null>(null);
+
   isRtl = computed(() => this.languageService.direction() === 'rtl');
 
-  // nationality options (code,labelKey) — localized via translation keys
   nationalityOptions = [
     { code: 'EG', key: 'profile.personalInfo.country_egypt' },
     { code: 'SA', key: 'profile.personalInfo.country_saudi_arabia' },
@@ -271,8 +178,30 @@ export class ProfileComponent {
     { code: 'IN', key: 'profile.personalInfo.country_india' },
     { code: 'CA', key: 'profile.personalInfo.country_canada' },
     { code: 'AU', key: 'profile.personalInfo.country_australia' },
-    { code: 'OT', key: 'profile.personalInfo.country_other' }
+    { code: 'OT', key: 'profile.personalInfo.country_other' },
   ];
+
+  isProfileChanged = computed(() => {
+    const formValues = this.profileFormValues();
+    const current = {
+      firstName: formValues.firstName ?? '',
+      lastName: formValues.lastName ?? '',
+      nationalId: formValues.nationalId ?? '',
+      companyName: formValues.companyName ?? '',
+      companyEmail: formValues.companyEmail ?? '',
+      companyAddress: formValues.companyAddress ?? '',
+      hrLetterFileName: this.hrLetterFileName() ?? '',
+      bio: formValues.bio ?? '',
+      linkedinUrl: formValues.linkedinUrl ?? '',
+      facebookUrl: formValues.facebookUrl ?? ''
+    };
+
+    try {
+      return JSON.stringify(current) !== this.profileSnapshot();
+    } catch {
+      return false;
+    }
+  });
 
   toggleDobCalendar(): void {
     const current = this.profileForm.get('dateOfBirth')?.value;
@@ -292,31 +221,6 @@ export class ProfileComponent {
     this.dobCalendarOpen.set(false);
   }
 
-  prevDobMonth(): void {
-    let m = this.dobCalendarMonth();
-    let y = this.dobCalendarYear();
-    m -= 1;
-    if (m < 0) { m = 11; y -= 1; }
-    this.dobCalendarMonth.set(m);
-    this.dobCalendarYear.set(y);
-  }
-
-  nextDobMonth(): void {
-    let m = this.dobCalendarMonth();
-    let y = this.dobCalendarYear();
-    m += 1;
-    if (m > 11) { m = 0; y += 1; }
-    this.dobCalendarMonth.set(m);
-    this.dobCalendarYear.set(y);
-  }
-
-  selectDob(day: Date): void {
-    const iso = new Date(Date.UTC(day.getFullYear(), day.getMonth(), day.getDate())).toISOString().substr(0,10);
-    this.profileForm.patchValue({ dateOfBirth: iso });
-    this.profileForm.get('dateOfBirth')?.markAsDirty();
-    this.closeDobCalendar();
-  }
-  // Years / months / days helpers for scrollable picker
   getYears(rangePast = 100, rangeFuture = 10): number[] {
     const current = new Date().getFullYear();
     const years: number[] = [];
@@ -327,7 +231,20 @@ export class ProfileComponent {
   getMonths(): { idx: number; name: string }[] {
     const dict = this.languageService.dictionary();
     const m = dict?.common?.months;
-    const names = [m?.jan ?? 'Jan', m?.feb ?? 'Feb', m?.mar ?? 'Mar', m?.apr ?? 'Apr', m?.may ?? 'May', m?.jun ?? 'Jun', m?.jul ?? 'Jul', m?.aug ?? 'Aug', m?.sep ?? 'Sep', m?.oct ?? 'Oct', m?.nov ?? 'Nov', m?.dec ?? 'Dec'];
+    const names = [
+      m?.jan ?? 'Jan',
+      m?.feb ?? 'Feb',
+      m?.mar ?? 'Mar',
+      m?.apr ?? 'Apr',
+      m?.may ?? 'May',
+      m?.jun ?? 'Jun',
+      m?.jul ?? 'Jul',
+      m?.aug ?? 'Aug',
+      m?.sep ?? 'Sep',
+      m?.oct ?? 'Oct',
+      m?.nov ?? 'Nov',
+      m?.dec ?? 'Dec'
+    ];
     return names.map((n, i) => ({ idx: i, name: n }));
   }
 
@@ -346,6 +263,13 @@ export class ProfileComponent {
     this.dobCalendarMonth.set(m);
   }
 
+  selectDob(day: Date): void {
+    const iso = new Date(Date.UTC(day.getFullYear(), day.getMonth(), day.getDate())).toISOString().substr(0, 10);
+    this.profileForm.patchValue({ dateOfBirth: iso });
+    this.profileForm.get('dateOfBirth')?.markAsDirty();
+    this.closeDobCalendar();
+  }
+
   onSelectDayNumber(d: number): void {
     const y = this.dobCalendarYear();
     const m = this.dobCalendarMonth();
@@ -357,242 +281,63 @@ export class ProfileComponent {
     if (!v) return false;
     const dt = new Date(v);
     if (isNaN(dt.getTime())) return false;
-    return dt.getFullYear() === this.dobCalendarYear() && dt.getMonth() === this.dobCalendarMonth() && dt.getDate() === day;
+    return (
+      dt.getFullYear() === this.dobCalendarYear() &&
+      dt.getMonth() === this.dobCalendarMonth() &&
+      dt.getDate() === day
+    );
   }
 
-  trustScore = computed(() => {
-    const p = this.profileService.profile();
-    const backendScore = p?.coreMetrics?.currentCredibilityScore ?? p?.coreMetrics?.credibilityScore;
-    if (backendScore != null) {
-      return Math.min(100, Math.max(0, backendScore));
+  scrollToTop(): void {
+    try {
+      window.scrollTo({ top: 0, behavior: 'instant' as any });
+    } catch {
+      try {
+        window.scrollTo(0, 0);
+      } catch {}
     }
-
-    let score = 10; // Base score when backend not provided
-    const kycVerified = this.kycStatus() === 'Verified';
-    if (kycVerified) score += 60;
-    if (this.isNationalIdVerified()) score += 20;
-    if (this.isIdCopyVerified()) score += 20;
-    if (this.profileForm.get('bio')?.value) score += 15;
-    if (this.profileForm.get('linkedinUrl')?.value || this.profileForm.get('facebookUrl')?.value) score += 15;
-    return Math.min(score, 100);
-  });
-
-  circumference = 2 * Math.PI * 45; // r = 45
-  strokeOffset = computed(() => this.circumference - (this.trustScore() / 100) * this.circumference);
+  }
 
   constructor() {
-    // helper exposed to template to get localized country label
     (this as any).getCountryLabel = this.getCountryLabel.bind(this);
-    // Reset verification flags when id inputs change
+
     this.profileForm.get('nationalId')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.isNationalIdVerified.set(false);
     });
+
     this.profileForm.get('nationalIdCopy')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.isIdCopyVerified.set(false);
     });
 
-    // Load profile from API on component init
     this.loadProfile();
 
-    // Patch forms once when profile first loads
     effect(() => {
       const p = this.profileService.profile();
-      if (!p || this.profileSnapshot()) return; // Only sync if snapshot not initialized
-
+      if (!p || this.profileSnapshot()) return;
       this.syncProfileToForms(p);
       this.initializeSnapshots(p);
-
     });
 
-    // Load saved profile notification preferences from localStorage
     this.loadProfileNotificationPreferences();
-
-    // Initialize Google Places Autocomplete when the communication section becomes active
-    effect(() => {
-      if (this.activeSection() === 'communication' && !this.autocompleteInitialized) {
-        // Wait a tick for ngSwitchCase to render the input
-        setTimeout(() => this.initPlacesAutocomplete(), 150);
-      }
-    });
   }
 
-  onMapAuthFailure(): void {
-    this.mapAuthFailed.set(true);
-    console.error('[Google Maps] Authentication failed (gm_authFailure). Check that the Maps JavaScript API and Places API are enabled in Google Cloud Console, and that HTTP referrer restrictions include localhost.');
-  }
+  // Google Maps removed (Profile V2)
 
-  private initPlacesAutocomplete(): void {
-    const input = document.getElementById('businessLocation') as HTMLInputElement;
-    const gw = window as unknown as { google?: typeof google };
-    if (!input || !gw.google?.maps?.places) return;
-
-    const autocomplete = new google.maps.places.Autocomplete(input, {
-      types: ['geocode', 'establishment'],
-      fields: ['geometry', 'formatted_address', 'name'],
-    });
-
-    autocomplete.addListener('place_changed', () => {
-      this.ngZone.run(() => {
-        const place = autocomplete.getPlace();
-        if (place.geometry?.location) {
-          const lat = place.geometry.location.lat();
-          const lng = place.geometry.location.lng();
-          this.mapCenter.set({ lat, lng });
-          this.markerPosition.set({ lat, lng });
-          this.mapZoom.set(15);
-          this.communicationForm.patchValue({
-            businessLocationSearch: place.formatted_address ?? place.name ?? '',
-            businessLat: lat,
-            businessLng: lng,
-          });
-        }
-      });
-    });
-
-    this.autocompleteInitialized = true;
-  }
-
-  private syncProfileToForms(p: ReturnType<typeof this.profileService.profile>): void {
-    // Patch personal details
-    // Map backend values to our form codes if possible
-    const incomingGender = p?.basicInfo?.gender ?? '';
-    const normalizedGender = incomingGender ? (incomingGender.toString().toLowerCase().startsWith('m') ? 'M' : incomingGender.toString().toLowerCase().startsWith('f') ? 'F' : incomingGender) : '';
-
-    const incomingNationality = p?.basicInfo?.nationality ?? '';
-    let nationalityCode = '';
-    if (incomingNationality) {
-      const found = this.nationalityOptions.find(c => c.code === incomingNationality || this.t(c.key) === incomingNationality);
-      nationalityCode = found ? found.code : incomingNationality;
-    }
-
-    this.profileForm.patchValue({
-      firstName: p?.basicInfo?.firstName ?? '',
-      lastName: p?.basicInfo?.lastName ?? '',
-      dateOfBirth: p?.basicInfo?.dateOfBirth ? new Date(p.basicInfo.dateOfBirth as string).toISOString().substr(0,10) : null,
-      gender: normalizedGender ?? '',
-      nationality: nationalityCode ?? '',
-      country: p?.basicInfo?.country ?? '',
-      nationalId: p?.identityCompliance?.documentNumber ?? '',
-      companyName: p?.basicInfo?.companyName ?? '',
-      companyEmail: p?.contactInfo?.companyEmail ?? '',
-      companyAddress: p?.contactInfo?.companyAddress ?? '',
-      bio: p?.basicInfo?.bio ?? '',
-      linkedinUrl: p?.basicInfo?.linkedInUrl ?? p?.contactInfo?.linkedInUrl ?? '',
-      facebookUrl: p?.basicInfo?.facebookUrl ?? p?.contactInfo?.facebookUrl ?? '',
-    }, { emitEvent: false });
-
-    this.hrLetterFileName.set(p?.identityCompliance?.hrLetterFileName ?? '');
-    this.hrLetterBase64.set(p?.identityCompliance?.hrLetterBase64 ?? null);
-
-    // Patch communication info
-    this.communicationForm.patchValue({
-      email: p?.contactInfo?.email ?? '',
-      mobile: p?.contactInfo?.phone1 ?? '',
-      address: p?.contactInfo?.address ?? '',
-      city: p?.contactInfo?.city ?? '',
-      state: p?.contactInfo?.phone2 ?? '',
-      // Backend historically used `companyAddress`; prefer `workAddress` then fall back to `companyAddress`
-      businessAddress: p?.contactInfo?.workAddress ?? p?.contactInfo?.companyAddress ?? '',
-    }, { emitEvent: false });
-
-    // Sync identity verification flags from backend
-    const vs = p?.identityCompliance?.verificationStatus;
-    const verified = vs === 'Verified';
-    this.isNationalIdVerified.set(verified);
-    this.isIdCopyVerified.set(verified);
-  }
-
-  private initializeSnapshots(p: ReturnType<typeof this.profileService.profile>): void {
-    // Initialize profile snapshot for change detection
-    const snapshotObj = {
-      firstName: p?.basicInfo?.firstName ?? '',
-      lastName: p?.basicInfo?.lastName ?? '',
-      dateOfBirth: p?.basicInfo?.dateOfBirth ? new Date(p.basicInfo.dateOfBirth as string).toISOString().substr(0,10) : null,
-      gender: (p?.basicInfo?.gender ?? '') as string,
-      nationality: p?.basicInfo?.nationality ?? '',
-      country: p?.basicInfo?.country ?? '',
-      nationalId: p?.identityCompliance?.documentNumber ?? '',
-      companyName: p?.basicInfo?.companyName ?? '',
-      companyEmail: p?.contactInfo?.companyEmail ?? '',
-      companyAddress: p?.contactInfo?.companyAddress ?? '',
-      hrLetterFileName: p?.identityCompliance?.hrLetterFileName ?? '',
-      bio: p?.basicInfo?.bio ?? '',
-      linkedinUrl: p?.basicInfo?.linkedInUrl ?? p?.contactInfo?.linkedInUrl ?? '',
-      facebookUrl: p?.basicInfo?.facebookUrl ?? p?.contactInfo?.facebookUrl ?? ''
-    };
-    this.profileSnapshot.set(JSON.stringify(snapshotObj));
-
-    // Initialize communication snapshot for change detection
-    const commSnapshotObj = {
-      email: p?.contactInfo?.email ?? '',
-      address: p?.contactInfo?.address ?? '',
-      city: p?.contactInfo?.city ?? '',
-      state: p?.contactInfo?.phone2 ?? '',
-      // Keep snapshot consistent with displayed value: prefer workAddress then companyAddress
-      businessAddress: p?.contactInfo?.workAddress ?? p?.contactInfo?.companyAddress ?? '',
-      // Track the map search input so selecting a location will mark the form as changed
-      businessLocationSearch: '',
-      businessLat: null as number | null,
-      businessLng: null as number | null,
-    };
-    this.communicationSnapshot.set(JSON.stringify(commSnapshotObj));
-  }
-
-  async onStartKyc(): Promise<void> {
-    try {
-      this.isLoading.set(true);
-      this.errorMessage.set(null);
-      await this.profileService.startKyc();
-      await this.profileService.loadMyProfile();
-      await this.loadCreditHistory();
-      this.notificationService.showToast({
-        title: this.t('profile.toasts.kycStartedTitle'),
-        message: this.t('profile.toasts.kycStartedMessage'),
-        type: 'success'
-      });
-    } catch (e: any) {
-      const message = e?.error?.message || this.t('profile.toasts.kycFailedMessage');
-      this.errorMessage.set(message);
-      this.notificationService.showToast({
-        title: this.t('profile.toasts.kycFailedTitle'),
-        message,
-        type: 'error'
-      });
-    } finally {
-      this.isLoading.set(false);
-    }
+  getCountryLabel(code?: string | null): string {
+    if (!code) return '';
+    const found = this.nationalityOptions.find(c => c.code === code);
+    if (found) return this.t(found.key);
+    const foundByLabel = this.nationalityOptions.find(c => this.t(c.key) === code);
+    if (foundByLabel) return this.t(foundByLabel.key);
+    return code;
   }
 
   async loadCreditHistory(): Promise<void> {
     try {
       const history = await this.profileService.getCreditHistory();
       this.creditHistory.set(history);
-    } catch (e) {
-      // Silently fail - credit history is not critical
-    }
-  }
-
-  async loadProfile(): Promise<void> {
-    try {
-      this.isLoading.set(true);
-      this.errorMessage.set(null);
-      const p = await this.profileService.loadMyProfile();
-      if (!p) {
-        this.errorMessage.set(this.t('profile.errors.notFound'));
-      } else {
-        // Load credit history after loading profile
-        await this.loadCreditHistory();
-        // Load any existing national-id files for preview/delete
-        await this.loadNationalIdFiles();
-        // Load trust profile in parallel (non-blocking for UI)
-        this.trustService.loadProfile().subscribe();
-      }
-    } catch (e) {
-      this.errorMessage.set(this.t('profile.errors.loadFailed'));
-      // Clear any stale profile data
-      this.profileService.clear();
-    } finally {
-      this.isLoading.set(false);
+    } catch {
+      // non-critical
     }
   }
 
@@ -602,26 +347,26 @@ export class ProfileComponent {
       if (!userId) return;
       const files = await this.fileStoreService.getNationalIdFiles(userId);
       const items = (files || []).map(f => ({ fileName: f.fileName, url: f.url }));
-      // Generate small thumbnails client-side to avoid loading full-size images in the grid
       const withThumbs = await this.generateThumbnails(items);
       this.nationalIdFiles.set(withThumbs);
       if (withThumbs.length > 0) this.nationalIdImageUrl.set(withThumbs[0].url);
-    } catch (e) {
-      console.warn('Failed to load national id files', e);
+    } catch {
+      // non-critical
     }
   }
 
   private async generateThumbnails(items: Array<{ fileName: string; url: string }>): Promise<Array<{ fileName: string; url: string; thumbUrl?: string }>> {
     const results: Array<{ fileName: string; url: string; thumbUrl?: string }> = [];
-    await Promise.all(items.map(async (it) => {
-      try {
-        const thumb = await this.createThumbnailFromUrl(it.url, 240, 160);
-        results.push({ ...it, thumbUrl: thumb });
-      } catch (e) {
-        // If thumbnail generation fails (CORS or other), fall back to full URL
-        results.push({ ...it, thumbUrl: undefined });
-      }
-    }));
+    await Promise.all(
+      items.map(async it => {
+        try {
+          const thumb = await this.createThumbnailFromUrl(it.url, 240, 160);
+          results.push({ ...it, thumbUrl: thumb });
+        } catch {
+          results.push({ ...it, thumbUrl: undefined });
+        }
+      })
+    );
     return results;
   }
 
@@ -640,46 +385,144 @@ export class ProfileComponent {
           const ctx = canvas.getContext('2d');
           if (!ctx) return reject(new Error('Canvas 2D not supported'));
           ctx.drawImage(img, 0, 0, w, h);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-          resolve(dataUrl);
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
         } catch (err) {
           reject(err);
         }
       };
-      img.onerror = (ev) => reject(new Error('Failed to load image for thumbnail'));
+      img.onerror = () => reject(new Error('Failed to load image for thumbnail'));
       img.src = url;
-      // If cached and complete, trigger onload synchronously
-      if (img.complete && img.naturalWidth) {
-        // do nothing; onload will fire
-      }
     });
   }
 
-  async deleteNationalId(fileName: string): Promise<void> {
+  private initializeSnapshots(p: ReturnType<typeof this.profileService.profile>): void {
+    const snapshotObj = {
+      firstName: p?.basicInfo?.firstName ?? '',
+      lastName: p?.basicInfo?.lastName ?? '',
+      dateOfBirth: p?.basicInfo?.dateOfBirth ? new Date(p.basicInfo.dateOfBirth as string).toISOString().substr(0, 10) : null,
+      gender: (p?.basicInfo?.gender ?? '') as string,
+      nationality: p?.basicInfo?.nationality ?? '',
+      country: p?.basicInfo?.country ?? '',
+      nationalId: p?.identityCompliance?.documentNumber ?? '',
+      companyName: p?.basicInfo?.companyName ?? '',
+      companyEmail: p?.contactInfo?.companyEmail ?? '',
+      companyAddress: p?.contactInfo?.companyAddress ?? '',
+      hrLetterFileName: p?.identityCompliance?.hrLetterFileName ?? '',
+      bio: p?.basicInfo?.bio ?? '',
+      linkedinUrl: p?.basicInfo?.linkedInUrl ?? p?.contactInfo?.linkedInUrl ?? '',
+      facebookUrl: p?.basicInfo?.facebookUrl ?? p?.contactInfo?.facebookUrl ?? ''
+    };
+    this.profileSnapshot.set(JSON.stringify(snapshotObj));
+
+    const commSnapshotObj = {
+      email: p?.contactInfo?.email ?? '',
+      address: p?.contactInfo?.address ?? '',
+      city: p?.contactInfo?.city ?? '',
+      state: p?.contactInfo?.phone2 ?? '',
+      businessAddress: p?.contactInfo?.workAddress ?? p?.contactInfo?.companyAddress ?? '',
+      businessLocationSearch: '',
+      businessLat: null as number | null,
+      businessLng: null as number | null
+    };
+    this.communicationSnapshot.set(JSON.stringify(commSnapshotObj));
+  }
+
+  private syncProfileToForms(p: ReturnType<typeof this.profileService.profile>): void {
+    const incomingGender = p?.basicInfo?.gender ?? '';
+    const normalizedGender = incomingGender
+      ? incomingGender.toString().toLowerCase().startsWith('m')
+        ? 'M'
+        : incomingGender.toString().toLowerCase().startsWith('f')
+          ? 'F'
+          : incomingGender
+      : '';
+
+    const incomingNationality = p?.basicInfo?.nationality ?? '';
+    let nationalityCode = '';
+    if (incomingNationality) {
+      const found = this.nationalityOptions.find(c => c.code === incomingNationality || this.t(c.key) === incomingNationality);
+      nationalityCode = found ? found.code : incomingNationality;
+    }
+
+    this.profileForm.patchValue(
+      {
+        firstName: p?.basicInfo?.firstName ?? '',
+        lastName: p?.basicInfo?.lastName ?? '',
+        dateOfBirth: p?.basicInfo?.dateOfBirth ? new Date(p.basicInfo.dateOfBirth as string).toISOString().substr(0, 10) : null,
+        gender: normalizedGender ?? '',
+        nationality: nationalityCode ?? '',
+        country: p?.basicInfo?.country ?? '',
+        nationalId: p?.identityCompliance?.documentNumber ?? '',
+        companyName: p?.basicInfo?.companyName ?? '',
+        companyEmail: p?.contactInfo?.companyEmail ?? '',
+        companyAddress: p?.contactInfo?.companyAddress ?? '',
+        bio: p?.basicInfo?.bio ?? '',
+        linkedinUrl: p?.basicInfo?.linkedInUrl ?? p?.contactInfo?.linkedInUrl ?? '',
+        facebookUrl: p?.basicInfo?.facebookUrl ?? p?.contactInfo?.facebookUrl ?? ''
+      },
+      { emitEvent: false }
+    );
+
+    this.hrLetterFileName.set(p?.identityCompliance?.hrLetterFileName ?? '');
+    this.hrLetterBase64.set(p?.identityCompliance?.hrLetterBase64 ?? null);
+
+    // Communication fields retained but Google Places removed.
+    this.communicationForm.patchValue(
+      {
+        email: p?.contactInfo?.email ?? '',
+        mobile: p?.contactInfo?.phone1 ?? '',
+        address: p?.contactInfo?.address ?? '',
+        city: p?.contactInfo?.city ?? '',
+        state: p?.contactInfo?.phone2 ?? '',
+        businessAddress: p?.contactInfo?.workAddress ?? p?.contactInfo?.companyAddress ?? ''
+      },
+      { emitEvent: false }
+    );
+
+    const vs = p?.identityCompliance?.verificationStatus;
+    const verified = vs === 'Verified';
+    this.isNationalIdVerified.set(verified);
+    this.isIdCopyVerified.set(verified);
+  }
+
+  async loadProfile(): Promise<void> {
     try {
-      const userId = this.profileService.profile()?.userId;
-      if (!userId) return;
-      await this.fileStoreService.deleteNationalId(userId, fileName);
-      // Refresh list
-      await this.loadNationalIdFiles();
-      this.notificationService.showToast({ title: this.t('profile.toasts.deletedTitle') || 'Deleted', message: this.t('profile.toasts.deletedMessage') || 'File deleted', type: 'success' });
-    } catch (e: any) {
-      console.error('Failed to delete national id', e);
-      this.notificationService.showToast({ title: this.t('profile.toasts.deleteFailedTitle') || 'Delete failed', message: e?.message || this.t('profile.toasts.deleteFailedMessage') || 'Failed to delete file', type: 'error' });
+      this.isLoading.set(true);
+      this.errorMessage.set(null);
+      const p = await this.profileService.loadMyProfile();
+      if (!p) {
+        this.errorMessage.set(this.t('profile.errors.notFound'));
+      } else {
+        await this.loadCreditHistory();
+        await this.loadNationalIdFiles();
+      }
+    } catch {
+      this.errorMessage.set(this.t('profile.errors.loadFailed'));
+      this.profileService.clear();
+    } finally {
+      this.isLoading.set(false);
     }
   }
 
-  private loadProfileNotificationPreferences(): void {
+  loadProfileNotificationPreferences(): void {
     try {
       const raw = localStorage.getItem('investa:profileNotifications');
       if (!raw) return;
-      const parsed = JSON.parse(raw) as { newOpportunities?: boolean; portfolioUpdates?: boolean; securityAlerts?: boolean; marketNews?: boolean };
-      this.notificationSettingsForm.patchValue({
-        newOpportunities: parsed.newOpportunities ?? this.notificationSettingsForm.get('newOpportunities')?.value,
-        portfolioUpdates: parsed.portfolioUpdates ?? this.notificationSettingsForm.get('portfolioUpdates')?.value,
-        securityAlerts: parsed.securityAlerts ?? this.notificationSettingsForm.get('securityAlerts')?.value,
-        marketNews: parsed.marketNews ?? this.notificationSettingsForm.get('marketNews')?.value,
-      }, { emitEvent: false });
+      const parsed = JSON.parse(raw) as {
+        newOpportunities?: boolean;
+        portfolioUpdates?: boolean;
+        securityAlerts?: boolean;
+        marketNews?: boolean;
+      };
+      this.notificationSettingsForm.patchValue(
+        {
+          newOpportunities: parsed.newOpportunities ?? this.notificationSettingsForm.get('newOpportunities')?.value,
+          portfolioUpdates: parsed.portfolioUpdates ?? this.notificationSettingsForm.get('portfolioUpdates')?.value,
+          securityAlerts: parsed.securityAlerts ?? this.notificationSettingsForm.get('securityAlerts')?.value,
+          marketNews: parsed.marketNews ?? this.notificationSettingsForm.get('marketNews')?.value
+        },
+        { emitEvent: false }
+      );
     } catch {
       // ignore
     }
@@ -687,6 +530,7 @@ export class ProfileComponent {
 
   selectSection(section: ActiveSection) {
     this.activeSection.set(section);
+    this.scrollToTop();
   }
 
   viewAllTransactions() {
@@ -724,14 +568,14 @@ export class ProfileComponent {
       const url = await this.fileStoreService.uploadProfilePicture(userId, file);
       this.pendingAvatarUrl.set(url);
 
-      // Persist the new avatar URL to the backend immediately
       const existing = this.profileService.profile()!;
       await this.profileService.updateMyProfile({
         ...existing,
         basicInfo: { ...(existing.basicInfo ?? {}), avatarUrl: url }
       });
+
       await this.profileService.loadMyProfile();
-      this.pendingAvatarUrl.set(null); // clear pending; now sourced from profile signal
+      this.pendingAvatarUrl.set(null);
 
       this.notificationService.showToast({
         title: this.t('profile.toasts.avatarUpdatedTitle'),
@@ -746,7 +590,6 @@ export class ProfileComponent {
       });
     } finally {
       this.isUploadingAvatar.set(false);
-      // Reset the file input so the same file can be re-selected if needed
       input.value = '';
     }
   }
@@ -756,7 +599,6 @@ export class ProfileComponent {
     if (!input.files || input.files.length === 0) return;
 
     const files = Array.from(input.files as FileList);
-    // Update UI filename with last selected
     this.nationalIdFileName.set(files[files.length - 1].name);
     this.profileForm.patchValue({ nationalIdCopy: files[files.length - 1] });
     this.profileForm.get('nationalIdCopy')?.markAsDirty();
@@ -768,46 +610,43 @@ export class ProfileComponent {
     }
 
     (async () => {
-      const current = this.nationalIdFiles() || [];
+      const latestFiles = this.nationalIdFiles();
       let replaceIndex = this.replaceNationalIdIndex();
 
       try {
         this.isUploadingNationalId.set(true);
 
         for (const file of files) {
-          // Determine target behavior: if user selected a replace index, use it; otherwise add until 2, then replace oldest (index 0)
           let targetReplaceIndex = replaceIndex;
-          const latestCurrent = this.nationalIdFiles() || [];
+          const current = this.nationalIdFiles() || latestFiles || [];
+
           if (targetReplaceIndex === null) {
-            if (latestCurrent.length < 2) {
-              targetReplaceIndex = null; // add
-            } else {
-              targetReplaceIndex = 0; // replace oldest
-            }
+            targetReplaceIndex = current.length < 2 ? null : 0;
           }
 
           const url = await this.fileStoreService.uploadNationalId(userId, file);
           this.nationalIdImageUrl.set(url);
 
           if (targetReplaceIndex !== null) {
-            const old = latestCurrent[targetReplaceIndex];
+            const old = current[targetReplaceIndex];
             if (old) {
               try {
                 await this.fileStoreService.deleteNationalId(userId, old.fileName);
-              } catch (delErr) {
-                console.warn('Failed to delete replaced national id', delErr);
+              } catch {
+                // ignore
               }
             }
           }
 
-          // Refresh after each upload so thumbnails stay in sync
           await this.loadNationalIdFiles();
-          // reset replaceIndex after first use
           replaceIndex = null;
         }
       } catch (e) {
-        console.error('Failed to upload national ID(s)', e);
-        this.notificationService.showToast({ title: this.t('profile.toasts.uploadFailedTitle'), message: this.t('profile.toasts.uploadFailedMessage'), type: 'error' });
+        this.notificationService.showToast({
+          title: this.t('profile.toasts.uploadFailedTitle'),
+          message: this.t('profile.toasts.uploadFailedMessage'),
+          type: 'error'
+        });
       } finally {
         this.isUploadingNationalId.set(false);
         this.replaceNationalIdIndex.set(null);
@@ -820,72 +659,50 @@ export class ProfileComponent {
     try {
       this.replaceNationalIdIndex.set(typeof index === 'number' ? index : null);
       this.nationalIdInput?.nativeElement?.click();
-    } catch (e) {
+    } catch {
       // ignore
     }
   }
-    
-      async onProfileSubmit(): Promise<void> {
-        if (this.profileForm.invalid) return;
 
-        const profileDto = this.buildProfileUpdatePayload();
+  async onProfileSubmit(): Promise<void> {
+    if (this.profileForm.invalid) return;
 
-        try {
-          this.isLoading.set(true);
-          this.errorMessage.set(null);
-
-          this.notificationService.showToast({ title: this.t('profile.toasts.savingTitle'), message: this.t('profile.toasts.savingMessage'), type: 'info' });
-
-          const updated = await this.profileService.updateMyProfile(profileDto);
-          if (updated) {
-            await this.profileService.loadMyProfile();
-            const p = this.profileService.profile();
-            if (p) this.initializeSnapshots(p);
-            this.profileForm.markAsPristine();
-            // Recalculate trust level after profile fields change
-            this.trustService.recalculate().catch(() => {});
-
-            this.notificationService.showToast({ title: this.t('profile.toasts.savedTitle'), message: this.t('profile.toasts.savedMessage'), type: 'success' });
-          }
-        } catch (e: any) {
-          const apiErr = (e as any)?.error as ApiErrorResponse | undefined;
-          const message = apiErr?.message || e?.message || this.t('profile.toasts.saveFailedMessage');
-          this.errorMessage.set(message);
-          this.notificationService.showToast({ title: this.t('profile.toasts.saveFailedTitle'), message, type: 'error' });
-        } finally {
-          this.isLoading.set(false);
-        }
-  }
-
-  onCommunicationSubmit() {
-    if (this.communicationForm.invalid) return;
     const profileDto = this.buildProfileUpdatePayload();
-    this.profileService.updateMyProfile(profileDto)
-      .then(async () => {
-        // Reload profile to get fresh data from backend
+
+    try {
+      this.isLoading.set(true);
+      this.errorMessage.set(null);
+
+      this.notificationService.showToast({
+        title: this.t('profile.toasts.savingTitle'),
+        message: this.t('profile.toasts.savingMessage'),
+        type: 'info'
+      });
+
+      const updated = await this.profileService.updateMyProfile(profileDto);
+      if (updated) {
         await this.profileService.loadMyProfile();
-        
-        // Reinitialize communication snapshot with updated data
         const p = this.profileService.profile();
         if (p) this.initializeSnapshots(p);
-        
-        this.communicationForm.markAsPristine();
+        this.profileForm.markAsPristine();
+
         this.notificationService.showToast({
           title: this.t('profile.toasts.savedTitle'),
           message: this.t('profile.toasts.savedMessage'),
           type: 'success'
         });
-      })
-      .catch((e: any) => {
-        const apiErr = (e as any)?.error as ApiErrorResponse | undefined;
-        const message = apiErr?.message || this.t('profile.toasts.saveFailedMessage');
-        this.notificationService.showToast({
-          title: this.t('profile.toasts.saveFailedTitle'),
-          message,
-          type: 'error'
-        });
-      });
+      }
+    } catch (e: any) {
+      const apiErr = (e as any)?.error as ApiErrorResponse | undefined;
+      const message = apiErr?.message || e?.message || this.t('profile.toasts.saveFailedMessage');
+      this.errorMessage.set(message);
+      this.notificationService.showToast({ title: this.t('profile.toasts.saveFailedTitle'), message, type: 'error' });
+    } finally {
+      this.isLoading.set(false);
+    }
   }
+
+  // Communication submit removed (Profile V2 removes Communication tab logic)
 
   async sendPasswordOtp(): Promise<void> {
     const currentPassword = this.passwordForm.get('currentPassword')?.value || '';
@@ -936,6 +753,7 @@ export class ProfileComponent {
         control.markAsTouched();
         control.updateValueAndValidity();
       });
+
       this.notificationService.showToast({
         title: this.t('profile.toasts.passwordValidationFailed') || 'Invalid password fields',
         message: this.t('profile.toasts.passwordValidationMessage') || 'Please fix the highlighted password fields before saving.',
@@ -959,15 +777,10 @@ export class ProfileComponent {
 
     try {
       this.isLoading.set(true);
-      this.notificationService.showToast({
-        title: this.t('profile.toasts.passwordChangingTitle') || 'Changing password',
-        message: this.t('profile.toasts.passwordChangingMessage') || 'Updating your password…',
-        type: 'info'
-      });
-
       await this.profileService.confirmPasswordChange(otpToken, newPassword);
       this.passwordForm.reset();
       this.otpSent.set(false);
+
       this.notificationService.showToast({
         title: this.t('profile.toasts.passwordChangedTitle') || 'Password changed',
         message: this.t('profile.toasts.passwordChangedMessage') || 'Your password was updated successfully.',
@@ -988,19 +801,20 @@ export class ProfileComponent {
 
   onNotificationSettingsSubmit() {
     if (this.notificationSettingsForm.invalid) return;
-    // Persist profile notification preferences to localStorage
     try {
       const vals = this.notificationSettingsForm.getRawValue();
       localStorage.setItem('investa:profileNotifications', JSON.stringify(vals));
       this.notificationSettingsForm.markAsPristine();
       this.notificationService.showToast({ title: this.t('profile.toasts.savedTitle'), message: this.t('profile.toasts.savedMessage'), type: 'success' });
-    } catch (e) {
+    } catch {
       this.notificationService.showToast({ title: this.t('profile.toasts.saveFailedTitle'), message: this.t('profile.toasts.saveFailedMessage'), type: 'error' });
     }
   }
 
   private buildProfileUpdatePayload() {
-    const existing: NonNullable<ReturnType<typeof this.profileService.profile>> = this.profileService.profile() ?? { userId: '', coreMetrics: null, basicInfo: null, contactInfo: null, identityCompliance: null };
+    const existing: NonNullable<ReturnType<typeof this.profileService.profile>> =
+      this.profileService.profile() ?? { userId: '', coreMetrics: null, basicInfo: null, contactInfo: null, identityCompliance: null };
+
     const communicationRaw = this.communicationForm.getRawValue();
     const currentDocumentNumber = this.profileForm.get('nationalId')?.value ?? existing.identityCompliance?.documentNumber ?? null;
     const currentDocumentFrontImageUrl = this.nationalIdImageUrl() ?? existing.identityCompliance?.documentFrontImageUrl ?? null;
@@ -1011,7 +825,6 @@ export class ProfileComponent {
       coreMetrics: {
         ...(existing.coreMetrics ?? {})
       },
-      // Also include a top-level nationalId (some backend versions use this field)
       nationalId: currentDocumentNumber,
       basicInfo: {
         ...(existing.basicInfo ?? {}),
@@ -1036,9 +849,7 @@ export class ProfileComponent {
         city: communicationRaw.city ?? existing.contactInfo?.city ?? null,
         workAddress: communicationRaw.businessAddress ?? existing.contactInfo?.workAddress ?? null,
         companyEmail: this.profileForm.get('companyEmail')?.value ?? existing.contactInfo?.companyEmail ?? null,
-        // Ensure backend `companyAddress` receives value from either the dedicated companyAddress field,
-        // the communication form's businessAddress, or the map search `businessLocationSearch`.
-        companyAddress: this.profileForm.get('companyAddress')?.value ?? communicationRaw.businessAddress ?? communicationRaw.businessLocationSearch ?? existing.contactInfo?.companyAddress ?? null,
+        companyAddress: this.profileForm.get('companyAddress')?.value ?? communicationRaw.businessAddress ?? existing.contactInfo?.companyAddress ?? null,
         linkedInUrl: this.profileForm.get('linkedinUrl')?.value ?? existing.contactInfo?.linkedInUrl ?? null,
         facebookUrl: this.profileForm.get('facebookUrl')?.value ?? existing.contactInfo?.facebookUrl ?? null
       },
@@ -1055,21 +866,14 @@ export class ProfileComponent {
     };
   }
 
-  private computeIdentityVerificationStatus(existingIdentityCompliance: NonNullable<ReturnType<typeof this.profileService.profile>>['identityCompliance'] | null, documentNumber: string | null, documentFrontImageUrl: string | null, documentBackImageUrl: string | null): string | null {
-    const existingStatus = existingIdentityCompliance?.verificationStatus ?? null;
-    const identityValuesPresent = !!documentNumber || !!documentFrontImageUrl || !!documentBackImageUrl;
-    const hasExistingIdentity = !!existingIdentityCompliance;
-
-    const identityChanged = !hasExistingIdentity
-      ? identityValuesPresent
-      : existingIdentityCompliance!.documentNumber !== documentNumber
-        || existingIdentityCompliance!.documentFrontImageUrl !== documentFrontImageUrl
-        || existingIdentityCompliance!.documentBackImageUrl !== documentBackImageUrl;
-
-    if (identityChanged && !!documentNumber) {
-      return 'Pending';
-    }
-
-    return existingStatus;
+  // KYC/Verification logic removed; keep only backend-driven verification status passthrough.
+  private computeIdentityVerificationStatus(
+    existingIdentityCompliance: NonNullable<ReturnType<typeof this.profileService.profile>>['identityCompliance'] | null,
+    documentNumber: string | null,
+    documentFrontImageUrl: string | null,
+    documentBackImageUrl: string | null
+  ): string | null {
+    return existingIdentityCompliance?.verificationStatus ?? null;
   }
 }
+
