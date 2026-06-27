@@ -50,7 +50,47 @@ export class AdminNavbarComponent {
     const seed = (p?.basicInfo?.firstName || 'user').replace(/\s+/g, '') || 'user';
     return `https://picsum.photos/seed/${seed}/100/100`;
   });
-  
+
+  /** User's display name */
+  userName = computed(() => {
+    const p = this.profileService.profile();
+    if (p?.basicInfo?.firstName && p?.basicInfo?.lastName) {
+      return `${p.basicInfo.firstName} ${p.basicInfo.lastName}`;
+    }
+    return p?.basicInfo?.firstName || 'User';
+  });
+
+  /** User's email address */
+  userEmail = computed(() => {
+    const p = this.profileService.profile();
+    return p?.contactInfo?.email || p?.coreMetrics?.email || '';
+  });
+
+  /** User's initials for avatar fallback (e.g., "AM" for Ahmed Mohamed) */
+  userInitials = computed(() => {
+    const p = this.profileService.profile();
+    const firstName = p?.basicInfo?.firstName || '';
+    const lastName = p?.basicInfo?.lastName || '';
+    if (firstName && lastName) {
+      return `${firstName.charAt(0).toUpperCase()}${lastName.charAt(0).toUpperCase()}`;
+    }
+    if (firstName) {
+      return firstName.charAt(0).toUpperCase();
+    }
+    return 'U';
+  });
+
+  /** Whether user has a profile image */
+  hasProfileImage = computed(() => {
+    const p = this.profileService.profile();
+    return !!p?.basicInfo?.avatarUrl;
+  });
+
+  /** Unread message count */
+  unreadMessageCount = computed(() => {
+    return this.notificationService.unreadCount();
+  });
+
   /** Tracks if user dropdown menu is open */
   isUserMenuOpen = signal(false);
   

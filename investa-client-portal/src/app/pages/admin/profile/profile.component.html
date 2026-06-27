@@ -1,11 +1,12 @@
 <div class="container mx-auto p-6 lg:p-8">
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-    
+
     <!-- Left Column: User Card & Navigation -->
     <aside class="lg:col-span-4 xl:col-span-3 lg:sticky top-8">
       <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl p-6 text-center">
         <div class="w-32 h-32 mx-auto mb-4 relative group cursor-pointer" (click)="onAvatarClick()">
           <img class="w-32 h-32 rounded-full ring-4 ring-slate-800 object-cover" [src]="avatarUrl()" [alt]="('profile.avatarAlt' | translate)">
+
           <!-- Upload overlay -->
           <div class="absolute inset-0 rounded-full bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                [class.opacity-100]="isUploadingAvatar()">
@@ -19,21 +20,13 @@
               <div class="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
             </ng-template>
           </div>
+
           <!-- Hidden file input -->
-          <input #avatarInput type="file" accept="image/jpeg,image/png,image/webp,image/gif"
-                 class="hidden" (change)="onAvatarFileSelected($event)">
+          <input #avatarInput type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" (change)="onAvatarFileSelected($event)">
         </div>
 
         <h2 class="text-2xl font-bold text-white">{{ fullName() || ('profile.titleDefault' | translate) }}</h2>
         <p class="text-gray-400 mb-4">{{ getCountryLabel(profileForm.get('nationality')?.value) || getCountryLabel(profileService.profile()?.basicInfo?.nationality) }}</p>
-
-        <!-- Trust Level Badge -->
-        @if (trustService.isLoaded()) {
-          <div class="flex items-center justify-center gap-2 mb-2">
-            <app-trust-badge [lang]="currentLanguage()"></app-trust-badge>
-            <span class="text-xs text-gray-400">{{ trustService.profile()?.reputationLevel || 'Rising Member' }}</span>
-          </div>
-        }
 
         <!-- Credits (moved to top) -->
         <div class="bg-slate-800/50 p-4 rounded-lg mt-4">
@@ -45,12 +38,14 @@
               </span>
             </div>
           </div>
+
           <div class="text-center mb-3">
-            <p class="text-3xl font-bold text-blue-400">{{ currentScore() }}</p>
+            {{ currentScorePts() }}
             <p class="text-xs text-gray-400 mt-1">{{ 'profile.credits.available' | translate }}</p>
           </div>
-          <button 
-            (click)="navigateToChargeCredits()" 
+
+          <button
+            (click)="navigateToChargeCredits()"
             class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-4 rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2">
             <i class="fas fa-credit-card"></i>
             <span>{{ 'profile.credits.chargeNow' | translate }}</span>
@@ -60,162 +55,125 @@
         <!-- Navigation moved up under credits -->
         <div class="text-start mt-4">
           <nav class="mt-2 space-y-1">
-            <button (click)="selectSection('details')"
-                    class="w-full flex items-center gap-3 text-start px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
-                    [class.bg-blue-500/20]="activeSection() === 'details'"
-                    [class.text-blue-300]="activeSection() === 'details'"
-                    [class.border-blue-500/30]="activeSection() === 'details'"
-                    [class.border]="activeSection() === 'details'"
-                    [class.text-gray-400]="activeSection() !== 'details'"
-                    [class.hover:bg-slate-800/50]="activeSection() !== 'details'"
-                    [class.hover:text-white]="activeSection() !== 'details'">
-              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
+            <button
+              (click)="selectSection('personal')"
+              class="w-full flex items-center gap-3 text-start px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
+              [class.bg-blue-500/20]="activeSection() === 'personal'"
+              [class.text-blue-300]="activeSection() === 'personal'"
+              [class.border-blue-500/30]="activeSection() === 'personal'"
+              [class.border]="activeSection() === 'personal'"
+              [class.text-gray-400]="activeSection() !== 'personal'"
+              [class.hover:bg-slate-800/50]="activeSection() !== 'personal'"
+              [class.hover:text-white]="activeSection() !== 'personal'">
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
+              </svg>
               {{ 'profile.tabs.editProfile' | translate }}
             </button>
-            <button (click)="selectSection('communication')"
-                    class="w-full flex items-center gap-3 text-start px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
-                    [class.bg-blue-500/20]="activeSection() === 'communication'"
-                    [class.text-blue-300]="activeSection() === 'communication'"
-                    [class.border-blue-500/30]="activeSection() === 'communication'"
-                    [class.border]="activeSection() === 'communication'"
-                    [class.text-gray-400]="activeSection() !== 'communication'"
-                    [class.hover:bg-slate-800/50]="activeSection() !== 'communication'"
-                    [class.hover:text-white]="activeSection() !== 'communication'">
-              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/></svg>
-              {{ 'profile.tabs.communicationInfo' | translate }}
+
+            <button
+              (click)="selectSection('investment')"
+              class="w-full flex items-center gap-3 text-start px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
+              [class.bg-blue-500/20]="activeSection() === 'investment'"
+              [class.text-blue-300]="activeSection() === 'investment'"
+              [class.border-blue-500/30]="activeSection() === 'investment'"
+              [class.border]="activeSection() === 'investment'"
+              [class.text-gray-400]="activeSection() !== 'investment'"
+              [class.hover:bg-slate-800/50]="activeSection() !== 'investment'"
+              [class.hover:text-white]="activeSection() !== 'investment'">
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5V4.5m0 15h15m-15 0l6-6 4 4 4-4"/>
+              </svg>
+              {{ 'profile.tabs.investment' | translate }}
             </button>
-            <button (click)="selectSection('security')"
-                    class="w-full flex items-center gap-3 text-start px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
-                    [class.bg-blue-500/20]="activeSection() === 'security'"
-                    [class.text-blue-300]="activeSection() === 'security'"
-                    [class.border-blue-500/30]="activeSection() === 'security'"
-                    [class.border]="activeSection() === 'security'"
-                    [class.text-gray-400]="activeSection() !== 'security'"
-                    [class.hover:bg-slate-800/50]="activeSection() !== 'security'"
-                    [class.hover:text-white]="activeSection() !== 'security'">
-              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
-              {{ 'profile.tabs.security' | translate }}
+
+            <button
+              (click)="selectSection('personalization')"
+              class="w-full flex items-center gap-3 text-start px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
+              [class.bg-blue-500/20]="activeSection() === 'personalization'"
+              [class.text-blue-300]="activeSection() === 'personalization'"
+              [class.border-blue-500/30]="activeSection() === 'personalization'"
+              [class.border]="activeSection() === 'personalization'"
+              [class.text-gray-400]="activeSection() !== 'personalization'"
+              [class.hover:bg-slate-800/50]="activeSection() !== 'personalization'"
+              [class.hover:text-white]="activeSection() !== 'personalization'">
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+              </svg>
+              {{ 'profile.tabs.personalization' | translate }}
             </button>
-            <button (click)="selectSection('notifications')"
-                    class="w-full flex items-center gap-3 text-start px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
-                    [class.bg-blue-500/20]="activeSection() === 'notifications'"
-                    [class.text-blue-300]="activeSection() === 'notifications'"
-                    [class.border-blue-500/30]="activeSection() === 'notifications'"
-                    [class.border]="activeSection() === 'notifications'"
-                    [class.text-gray-400]="activeSection() !== 'notifications'"
-                    [class.hover:bg-slate-800/50]="activeSection() !== 'notifications'"
-                    [class.hover:text-white]="activeSection() !== 'notifications'">
-              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
+
+            <button
+              (click)="selectSection('notifications')"
+              class="w-full flex items-center gap-3 text-start px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
+              [class.bg-blue-500/20]="activeSection() === 'notifications'"
+              [class.text-blue-300]="activeSection() === 'notifications'"
+              [class.border-blue-500/30]="activeSection() === 'notifications'"
+              [class.border]="activeSection() === 'notifications'"
+              [class.text-gray-400]="activeSection() !== 'notifications'"
+              [class.hover:bg-slate-800/50]="activeSection() !== 'notifications'"
+              [class.hover:text-white]="activeSection() !== 'notifications'">
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
+              </svg>
               {{ 'profile.tabs.notifications' | translate }}
             </button>
-            <!-- Trust & Verification Tab -->
-            <button (click)="selectSection('trust')"
-                    class="w-full flex items-center gap-3 text-start px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
-                    [class.bg-emerald-500/20]="activeSection() === 'trust'"
-                    [class.text-emerald-300]="activeSection() === 'trust'"
-                    [class.border-emerald-500/30]="activeSection() === 'trust'"
-                    [class.border]="activeSection() === 'trust'"
-                    [class.text-gray-400]="activeSection() !== 'trust'"
-                    [class.hover:bg-slate-800/50]="activeSection() !== 'trust'"
-                    [class.hover:text-white]="activeSection() !== 'trust'">
-              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
-              Trust &amp; Verification
+
+            <button
+              (click)="selectSection('security')"
+              class="w-full flex items-center gap-3 text-start px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
+              [class.bg-blue-500/20]="activeSection() === 'security'"
+              [class.text-blue-300]="activeSection() === 'security'"
+              [class.border-blue-500/30]="activeSection() === 'security'"
+              [class.border]="activeSection() === 'security'"
+              [class.text-gray-400]="activeSection() !== 'security'"
+              [class.hover:bg-slate-800/50]="activeSection() !== 'security'"
+              [class.hover:text-white]="activeSection() !== 'security'">
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/>
+              </svg>
+              {{ 'profile.tabs.security' | translate }}
+            </button>
+
+            <button
+              (click)="selectSection('credit')"
+              class="w-full flex items-center gap-3 text-start px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
+              [class.bg-blue-500/20]="activeSection() === 'credit'"
+              [class.text-blue-300]="activeSection() === 'credit'"
+              [class.border-blue-500/30]="activeSection() === 'credit'"
+              [class.border]="activeSection() === 'credit'"
+              [class.text-gray-400]="activeSection() !== 'credit'"
+              [class.hover:bg-slate-800/50]="activeSection() !== 'credit'"
+              [class.hover:text-white]="activeSection() !== 'credit'">
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2m-3 0l4-4m0 0l-4-4m4 4H10"/>
+              </svg>
+              {{ 'profile.tabs.credit' | translate }}
+            </button>
+
+            <button
+              (click)="selectSection('score')"
+              class="w-full flex items-center gap-3 text-start px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
+              [class.bg-blue-500/20]="activeSection() === 'score'"
+              [class.text-blue-300]="activeSection() === 'score'"
+              [class.border-blue-500/30]="activeSection() === 'score'"
+              [class.border]="activeSection() === 'score'"
+              [class.text-gray-400]="activeSection() !== 'score'"
+              [class.hover:bg-slate-800/50]="activeSection() !== 'score'"
+              [class.hover:text-white]="activeSection() !== 'score'">
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5 1a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              {{ 'profile.tabs.score' | translate }}
             </button>
           </nav>
         </div>
 
-        <!-- KYC Completion Progress -->
-        <div class="bg-slate-800/50 p-4 rounded-lg mt-4">
-          <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center gap-2">
-              <span class="text-sm font-semibold" [ngClass]="profileService.profile()?.basicInfo?.isKycVerified ? 'text-green-400' : 'text-blue-400'">
-                <i class="fas" [ngClass]="profileService.profile()?.basicInfo?.isKycVerified ? 'fa-check-circle' : 'fa-clock'"></i>
-                {{ 'profile.kycCompletion' | translate }}
-              </span>
-            </div>
-            <span *ngIf="profileService.profile()?.basicInfo?.isKycVerified" class="px-3 py-1 bg-green-500/20 border border-green-500/30 rounded-full text-xs text-green-400 font-semibold flex items-center gap-1">
-              <i class="fas fa-check-circle"></i>
-              {{ 'profile.verified' | translate }}
-            </span>
-          </div>
-          <div class="relative w-full bg-gray-700 rounded-full h-2 mb-2">
-            <div 
-              class="absolute top-0 left-0 h-2 rounded-full transition-all duration-300"
-              [ngClass]="profileService.profile()?.basicInfo?.isKycVerified ? 'bg-green-500' : 'bg-blue-500'"
-              [style.width.%]="profileService.profile()?.basicInfo?.kycCompletionPercentage || 0">
-            </div>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-xs text-gray-400">
-              {{ profileService.profile()?.basicInfo?.isKycVerified 
-                ? ('profile.kycComplete' | translate) 
-                : (profileService.profile()?.basicInfo?.kycCompletionPercentage || 0) >= 80
-                  ? ('profile.kycAlmostThere' | translate)
-                  : ('profile.kycCompleteProfile' | translate) }}
-            </span>
-            <span class="text-sm font-bold" [ngClass]="profileService.profile()?.basicInfo?.isKycVerified ? 'text-green-400' : 'text-blue-400'">
-              {{ profileService.profile()?.basicInfo?.kycCompletionPercentage || 0 }}%
-            </span>
-          </div>
-        </div>
-
-        
-        <div class="text-start mt-6">
-          <ul class="space-y-3 text-sm">
-            <li class="flex items-center justify-between text-gray-300">
-              <div class="flex items-center gap-3">
-                <svg class="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                <span>{{ 'profile.communication.email' | translate }}</span>
-              </div>
-              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-green-500/20 text-green-300">{{ 'profile.verified' | translate }}</span>
-            </li>
-            <li class="flex items-center justify-between text-gray-300">
-              <div class="flex items-center gap-3">
-                <svg class="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                <span>{{ 'profile.communication.mobile' | translate }}</span>
-              </div>
-              <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-green-500/20 text-green-300">{{ 'profile.verified' | translate }}</span>
-            </li>
-             <li class="flex items-center justify-between" [class]="isNationalIdVerified() ? 'text-gray-300' : 'text-gray-400'">
-              <div class="flex items-center gap-3">
-                @if(isNationalIdVerified()) {
-                  <svg class="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                } @else {
-                  <svg class="w-5 h-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                }
-                <span>{{ 'profile.personalInfo.nationalId' | translate }}</span>
-              </div>
-              @if(isNationalIdVerified()) {
-                <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-green-500/20 text-green-300">{{ 'profile.verified' | translate }}</span>
-              } @else {
-                <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-yellow-500/20 text-yellow-300">{{ 'profile.pending' | translate }}</span>
-              }
-            </li>
-             <li class="flex items-center justify-between" [class]="isIdCopyVerified() ? 'text-gray-300' : 'text-gray-400'">
-              <div class="flex items-center gap-3">
-                @if(isIdCopyVerified()) {
-                  <svg class="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                } @else {
-                  <svg class="w-5 h-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                }
-                <span>{{ 'profile.personalInfo.uploadId' | translate }}</span>
-              </div>
-              @if(isIdCopyVerified()) {
-                <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-green-500/20 text-green-300">{{ 'profile.verified' | translate }}</span>
-              } @else {
-                <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-yellow-500/20 text-yellow-300">{{ 'profile.pending' | translate }}</span>
-              }
-            </li>
-          </ul>
-        </div>
       </div>
-      
-      
     </aside>
 
     <!-- Right Column: Content -->
     <main class="lg:col-span-8 xl:col-span-9">
-
       <div *ngIf="errorMessage()" class="mb-6 p-4 rounded-lg bg-red-800 text-white">
         <div class="flex items-start justify-between">
           <div>
@@ -229,145 +187,159 @@
       </div>
 
       @switch (activeSection()) {
-        @case ('details') {
+        @case ('personal') {
           <form [formGroup]="profileForm" (ngSubmit)="onProfileSubmit()" class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl animate-fade-in">
             <div class="p-8 space-y-6">
-                <h2 class="text-2xl font-bold text-white">{{ 'profile.personalInfo.title' | translate }}</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label for="firstName" class="block text-sm font-medium text-gray-300">{{ 'profile.personalInfo.firstName' | translate }}</label>
-                    <input id="firstName" type="text" formControlName="firstName" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  </div>
-                  <div>
-                    <label for="lastName" class="block text-sm font-medium text-gray-300">{{ 'profile.personalInfo.lastName' | translate }}</label>
-                    <input id="lastName" type="text" formControlName="lastName" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label for="dateOfBirth" class="block text-sm font-medium text-gray-300">{{ 'profile.personalInfo.dateOfBirth' | translate }}</label>
-                    <div class="relative mt-1">
-                      <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                        <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                      </div>
-                      <input id="dateOfBirth" type="text" readonly (click)="toggleDobCalendar()" [value]="profileForm.get('dateOfBirth')?.value || ''" class="cursor-pointer block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm h-10 py-2 pl-10 pr-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                      <div *ngIf="dobCalendarOpen()" class="absolute z-50 mt-2 bg-white text-slate-900 rounded-md shadow-lg border border-slate-200 w-[28rem] p-3">
-                        <div class="flex items-center justify-between mb-2">
-                          <div class="text-sm font-semibold">{{ dobCalendarYear() }}</div>
-                          <div class="text-sm font-semibold">{{ getMonths()[dobCalendarMonth()].name }} {{ dobCalendarYear() }}</div>
-                          <div></div>
-                        </div>
-                        <div class="grid grid-cols-3 gap-2">
-                          <div class="h-52 overflow-y-auto border rounded-md p-1 bg-white">
-                            <div *ngFor="let y of getYears()" class="py-1">
-                              <button type="button" (click)="onSelectYear(y)" [class]="(y === dobCalendarYear() ? 'font-semibold text-blue-600' : 'text-slate-600') + ' w-full text-left px-2 py-1 rounded'">{{ y }}</button>
-                            </div>
-                          </div>
-                          <div class="h-52 overflow-y-auto border rounded-md p-1 bg-white" [attr.dir]="isRtl ? 'rtl' : 'ltr'">
-                            <div *ngFor="let m of getMonths()" class="py-1">
-                              <button type="button" (click)="onSelectMonth(m.idx)" [class]="(m.idx === dobCalendarMonth() ? 'font-semibold text-blue-600' : 'text-slate-600') + ' w-full text-left px-2 py-1 rounded'">{{ m.name }}</button>
-                            </div>
-                          </div>
-                          <div class="h-52 overflow-y-auto border rounded-md p-1 bg-white">
-                            <div class="grid grid-cols-7 gap-1">
-                              <ng-container *ngFor="let d of getDaysForMonth(dobCalendarYear(), dobCalendarMonth())">
-                                  <button type="button" (click)="onSelectDayNumber(d)" [class]="(isSelectedDob(d) ? 'bg-blue-600 text-white' : 'text-slate-700') + ' rounded py-1'">{{ d }}</button>
-                              </ng-container>
-                            </div>
-                          </div>
-                        </div>
-                        <div class="text-end mt-2">
-                          <button type="button" (click)="closeDobCalendar()" class="text-sm text-slate-500">Close</button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <label for="gender" class="block text-sm font-medium text-gray-300">{{ 'profile.personalInfo.gender' | translate }}</label>
-                    <select id="gender" formControlName="gender" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                      <option value="">{{ 'profile.personalInfo.genderSelect' | translate }}</option>
-                      <option value="M">{{ 'profile.personalInfo.male' | translate }}</option>
-                      <option value="F">{{ 'profile.personalInfo.female' | translate }}</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label for="nationality" class="block text-sm font-medium text-gray-300 mb-1">{{ 'profile.personalInfo.nationality' | translate }}</label>
-                    <select id="nationality" formControlName="nationality" class="block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                      <option value="">{{ 'profile.personalInfo.nationalitySelect' | translate }}</option>
-                      <option *ngFor="let c of nationalityOptions" [value]="c.code">{{ c.key | translate }}</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label for="country" class="block text-sm font-medium text-gray-300 mb-1">{{ 'profile.personalInfo.country' | translate }}</label>
-                    <select id="country" formControlName="country" class="block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                      <option value="">{{ 'profile.personalInfo.countrySelect' | translate }}</option>
-                      <option value="Egypt">Egypt</option>
-                      <option value="United States">United States</option>
-                      <option value="United Kingdom">United Kingdom</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-                </div>
-                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                  <div>
-                    <label for="nationalId" class="block text-sm font-medium text-gray-300 mb-1">{{ 'profile.personalInfo.nationalId' | translate }}</label>
-                    <input id="nationalId" type="text" formControlName="nationalId" class="block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-1">{{ 'profile.personalInfo.uploadId' | translate }}</label>
-                     <div class="flex items-center">
-                      <label for="nationalIdCopy" class="cursor-pointer bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-4 rounded-md transition-colors">
-                        <span>{{ 'profile.personalInfo.chooseFile' | translate }}</span>
-                      </label>
-                      <input id="nationalIdCopy" type="file" class="hidden" (change)="onFileChange($event)">
-                      <span class="ms-3 text-gray-400 text-sm truncate">{{ nationalIdFileName() || ('profile.personalInfo.noFileChosen' | translate) }}</span>
-                    </div>
-                  </div>
-                </div>
-                <div class="space-y-6 pt-6 border-t border-slate-800">
-                  <h3 class="text-lg font-medium text-gray-200">{{ 'profile.company.title' | translate }}</h3>
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label for="companyName" class="block text-sm font-medium text-gray-300">{{ 'profile.company.name' | translate }}</label>
-                      <input id="companyName" type="text" formControlName="companyName" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    <div>
-                      <label for="companyEmail" class="block text-sm font-medium text-gray-300">{{ 'profile.company.email' | translate }}</label>
-                      <input id="companyEmail" type="email" formControlName="companyEmail" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                  </div>
-                  <div>
-                    <label for="companyAddress" class="block text-sm font-medium text-gray-300">{{ 'profile.company.address' | translate }}</label>
-                    <input id="companyAddress" type="text" formControlName="companyAddress" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-1">{{ 'profile.company.hrLetter' | translate }}</label>
-                    <div class="flex items-center">
-                      <label for="hrLetterCopy" class="cursor-pointer bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-4 rounded-md transition-colors">
-                        <span>{{ 'profile.personalInfo.chooseFile' | translate }}</span>
-                      </label>
-                      <input id="hrLetterCopy" type="file" class="hidden" (change)="onHrLetterChange($event)">
-                      <span class="ms-3 text-gray-400 text-sm truncate">{{ hrLetterFileName() || ('profile.personalInfo.noFileChosen' | translate) }}</span>
-                    </div>
-                  </div>
+              <h2 class="text-2xl font-bold text-white">{{ 'profile.personalInfo.title' | translate }}</h2>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label for="firstName" class="block text-sm font-medium text-gray-300">{{ 'profile.personalInfo.firstName' | translate }}</label>
+                  <input id="firstName" type="text" formControlName="firstName" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div>
-                  <label for="bio" class="block text-sm font-medium text-gray-300">{{ 'profile.personalInfo.bio' | translate }}</label>
-                  <textarea id="bio" formControlName="bio" rows="4" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                  <label for="lastName" class="block text-sm font-medium text-gray-300">{{ 'profile.personalInfo.lastName' | translate }}</label>
+                  <input id="lastName" type="text" formControlName="lastName" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label for="dateOfBirth" class="block text-sm font-medium text-gray-300">{{ 'profile.personalInfo.dateOfBirth' | translate }}</label>
+                  <div class="relative mt-1">
+                    <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                      <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    </div>
+                    <input id="dateOfBirth" type="text" readonly (click)="toggleDobCalendar()" [value]="profileForm.get('dateOfBirth')?.value || ''" class="cursor-pointer block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm h-10 py-2 pl-10 pr-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <div *ngIf="dobCalendarOpen()" class="absolute z-50 mt-2 bg-white text-slate-900 rounded-md shadow-lg border border-slate-200 w-[28rem] p-3">
+                      <div class="flex items-center justify-between mb-2">
+                        <div class="text-sm font-semibold">{{ dobCalendarYear() }}</div>
+                        <div class="text-sm font-semibold">{{ getMonths()[dobCalendarMonth()].name }} {{ dobCalendarYear() }}</div>
+                        <div></div>
+                      </div>
+                      <div class="grid grid-cols-3 gap-2">
+                        <div class="h-52 overflow-y-auto border rounded-md p-1 bg-white">
+                          <div *ngFor="let y of getYears()" class="py-1">
+                            <button type="button" (click)="onSelectYear(y)" [class]="(y === dobCalendarYear() ? 'font-semibold text-blue-600' : 'text-slate-600') + ' w-full text-left px-2 py-1 rounded'">{{ y }}</button>
+                          </div>
+                        </div>
+                        <div class="h-52 overflow-y-auto border rounded-md p-1 bg-white" [attr.dir]="isRtl ? 'rtl' : 'ltr'">
+                          <div *ngFor="let m of getMonths()" class="py-1">
+                            <button type="button" (click)="onSelectMonth(m.idx)" [class]="(m.idx === dobCalendarMonth() ? 'font-semibold text-blue-600' : 'text-slate-600') + ' w-full text-left px-2 py-1 rounded'">{{ m.name }}</button>
+                          </div>
+                        </div>
+                        <div class="h-52 overflow-y-auto border rounded-md p-1 bg-white">
+                          <div class="grid grid-cols-7 gap-1">
+                            <ng-container *ngFor="let d of getDaysForMonth(dobCalendarYear(), dobCalendarMonth())">
+                              <button type="button" (click)="onSelectDayNumber(d)" [class]="(isSelectedDob(d) ? 'bg-blue-600 text-white' : 'text-slate-700') + ' rounded py-1'">{{ d }}</button>
+                            </ng-container>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="text-end mt-2">
+                        <button type="button" (click)="closeDobCalendar()" class="text-sm text-slate-500">Close</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label for="gender" class="block text-sm font-medium text-gray-300">{{ 'profile.personalInfo.gender' | translate }}</label>
+                  <select id="gender" formControlName="gender" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">{{ 'profile.personalInfo.genderSelect' | translate }}</option>
+                    <option value="M">{{ 'profile.personalInfo.male' | translate }}</option>
+                    <option value="F">{{ 'profile.personalInfo.female' | translate }}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label for="nationality" class="block text-sm font-medium text-gray-300 mb-1">{{ 'profile.personalInfo.nationality' | translate }}</label>
+                  <select id="nationality" formControlName="nationality" class="block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">{{ 'profile.personalInfo.nationalitySelect' | translate }}</option>
+                    <option *ngFor="let c of nationalityOptions" [value]="c.code">{{ c.key | translate }}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label for="country" class="block text-sm font-medium text-gray-300 mb-1">{{ 'profile.personalInfo.country' | translate }}</label>
+                  <select id="country" formControlName="country" class="block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">{{ 'profile.personalInfo.countrySelect' | translate }}</option>
+                    <option value="Egypt">Egypt</option>
+                    <option value="United States">United States</option>
+                    <option value="United Kingdom">United Kingdom</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                <div>
+                  <label for="nationalId" class="block text-sm font-medium text-gray-300 mb-1">{{ 'profile.personalInfo.nationalId' | translate }}</label>
+                  <input id="nationalId" type="text" formControlName="nationalId" class="block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-300 mb-1">{{ 'profile.personalInfo.uploadId' | translate }}</label>
+                  <div class="flex items-center">
+                    <label for="nationalIdCopy" class="cursor-pointer bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                      <span>{{ 'profile.personalInfo.chooseFile' | translate }}</span>
+                    </label>
+                    <input id="nationalIdCopy" type="file" class="hidden" (change)="onFileChange($event)">
+                    <span class="ms-3 text-gray-400 text-sm truncate">{{ nationalIdFileName() || ('profile.personalInfo.noFileChosen' | translate) }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="space-y-6 pt-6 border-t border-slate-800">
+                <h3 class="text-lg font-medium text-gray-200">{{ 'profile.company.title' | translate }}</h3>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label for="linkedinUrl" class="block text-sm font-medium text-gray-300">{{ 'profile.personalInfo.linkedin' | translate }}</label>
-                    <input id="linkedinUrl" type="url" formControlName="linkedinUrl" placeholder="https://linkedin.com/in/..." class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label for="companyName" class="block text-sm font-medium text-gray-300">{{ 'profile.company.name' | translate }}</label>
+                    <input id="companyName" type="text" formControlName="companyName" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                   </div>
                   <div>
-                    <label for="facebookUrl" class="block text-sm font-medium text-gray-300">{{ 'profile.personalInfo.facebook' | translate }}</label>
-                    <input id="facebookUrl" type="url" formControlName="facebookUrl" placeholder="https://facebook.com/..." class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label for="companyEmail" class="block text-sm font-medium text-gray-300">{{ 'profile.company.email' | translate }}</label>
+                    <input id="companyEmail" type="email" formControlName="companyEmail" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                   </div>
                 </div>
+
+                <div>
+                  <label for="companyAddress" class="block text-sm font-medium text-gray-300">{{ 'profile.company.address' | translate }}</label>
+                  <input id="companyAddress" type="text" formControlName="companyAddress" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-300 mb-1">{{ 'profile.company.hrLetter' | translate }}</label>
+                  <div class="flex items-center">
+                    <label for="hrLetterCopy" class="cursor-pointer bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                      <span>{{ 'profile.personalInfo.chooseFile' | translate }}</span>
+                    </label>
+                    <input id="hrLetterCopy" type="file" class="hidden" (change)="onHrLetterChange($event)">
+                    <span class="ms-3 text-gray-400 text-sm truncate">{{ hrLetterFileName() || ('profile.personalInfo.noFileChosen' | translate) }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label for="bio" class="block text-sm font-medium text-gray-300">{{ 'profile.personalInfo.bio' | translate }}</label>
+                <textarea id="bio" formControlName="bio" rows="4" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label for="linkedinUrl" class="block text-sm font-medium text-gray-300">{{ 'profile.personalInfo.linkedin' | translate }}</label>
+                  <input id="linkedinUrl" type="url" formControlName="linkedinUrl" placeholder="https://linkedin.com/in/..." class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                  <label for="facebookUrl" class="block text-sm font-medium text-gray-300">{{ 'profile.personalInfo.facebook' | translate }}</label>
+                  <input id="facebookUrl" type="url" formControlName="facebookUrl" placeholder="https://facebook.com/..." class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+              </div>
             </div>
+
             <div class="p-6 bg-slate-900/50 border-t border-slate-800 text-end rounded-b-xl">
               <button type="submit" [disabled]="!isProfileChanged() || isLoading()" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
                 {{ 'profile.saveButton' | translate }}
@@ -375,132 +347,26 @@
             </div>
           </form>
         }
-        @case ('communication') {
-          <form [formGroup]="communicationForm" (ngSubmit)="onCommunicationSubmit()" class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl animate-fade-in">
-            <div class="p-8 space-y-8">
-              <h2 class="text-2xl font-bold text-white">{{ 'profile.communication.title' | translate }}</h2>
-              <!-- Personal Contact Info -->
-              <div class="space-y-6">
-                <h3 class="text-lg font-medium text-gray-200">{{ 'profile.communication.personalContact' | translate }}</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label for="email" class="block text-sm font-medium text-gray-300 mb-1 flex items-center justify-between">
-                      <span>{{ 'profile.communication.email' | translate }}</span>
-                      <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-green-500/20 text-green-300">{{ 'profile.verified' | translate }}</span>
-                    </label>
-                    <input id="email" type="email" formControlName="email" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  </div>
-                  <div>
-                    <label for="mobile" class="block text-sm font-medium text-gray-300">{{ 'profile.communication.mobile' | translate }}</label>
-                    <input id="mobile" type="tel" formControlName="mobile" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-gray-400 cursor-not-allowed">
-                  </div>
-                </div>
-                <div>
-                  <label for="address" class="block text-sm font-medium text-gray-300">{{ 'profile.communication.address' | translate }}</label>
-                  <input id="address" type="text" formControlName="address" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label for="city" class="block text-sm font-medium text-gray-300">{{ 'profile.communication.city' | translate }}</label>
-                    <input id="city" type="text" formControlName="city" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  </div>
-                  <div>
-                    <label for="state" class="block text-sm font-medium text-gray-300">{{ 'profile.communication.state' | translate }}</label>
-                    <input id="state" type="text" formControlName="state" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  </div>
-                </div>
-              </div>
-               <!-- Business Contact Info -->
-              <div class="space-y-6 pt-8 border-t border-slate-800">
-                <h3 class="text-lg font-medium text-gray-200">{{ 'profile.communication.businessContact' | translate }}</h3>
-                <div>
-                  <label for="businessAddress" class="block text-sm font-medium text-gray-300">{{ 'profile.communication.businessAddress' | translate }}</label>
-                  <input id="businessAddress" type="text" formControlName="businessAddress" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                  <label for="businessLocation" class="block text-sm font-medium text-gray-300 mb-2">{{ 'profile.communication.businessLocation' | translate }}</label>
-                  <div class="relative w-full h-64 rounded-lg overflow-hidden border border-slate-700">
-                    <ng-container *ngIf="mapAuthFailed(); else mapAvailable">
-                      <div class="w-full h-full bg-slate-800 flex flex-col items-center justify-center gap-3 text-center p-4">
-                        <svg class="w-10 h-10 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-                        <p class="text-sm text-gray-300 font-medium">Google Maps could not load</p>
-                        <p class="text-xs text-gray-500 max-w-xs">Enable the <strong>Maps JavaScript API</strong> &amp; <strong>Places API</strong> in Google Cloud Console, and add <code>localhost</code> to the key's HTTP referrer restrictions.</p>
-                      </div>
-                    </ng-container>
-                    <ng-template #mapAvailable>
-                      <google-map
-                        width="100%"
-                        height="100%"
-                        [center]="mapCenter()"
-                        [zoom]="mapZoom()"
-                        [options]="mapOptions"
-                        (authFailure)="onMapAuthFailure()">
-                        <map-marker *ngIf="markerPosition()" [position]="markerPosition()!"></map-marker>
-                      </google-map>
-                    </ng-template>
-                    <div class="absolute top-3 start-3 end-3 z-10">
-                      <div class="relative">
-                         <input id="businessLocation" type="text" formControlName="businessLocationSearch" [placeholder]="'profile.communication.searchLocation' | translate" class="block w-full bg-slate-800/70 backdrop-blur-sm border border-slate-600 rounded-md shadow-sm py-2 ps-10 pe-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                         <div class="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none">
-                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                         </div>
-                       </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-             <div class="p-6 bg-slate-900/50 border-t border-slate-800 text-end rounded-b-xl">
-              <button type="submit" [disabled]="!isCommunicationChanged() || communicationForm.invalid" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-                {{ 'profile.saveButton' | translate }}
-              </button>
-            </div>
-          </form>
+
+        @case ('investment') {
+          <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl animate-fade-in p-8 space-y-6">
+            <h2 class="text-2xl font-bold text-white">{{ 'profile.investment.title' | translate }}</h2>
+            <!-- Existing investment UI not present in this template batch; keeping structure only -->
+          </div>
         }
-        @case ('security') {
-          <form [formGroup]="passwordForm" (ngSubmit)="onPasswordSubmit()" class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl animate-fade-in">
-            <div class="p-8 space-y-6 max-w-lg">
-              <h2 class="text-2xl font-bold text-white">{{ 'profile.password.title' | translate }}</h2>
-              <p class="text-sm text-gray-400">{{ 'profile.password.description' | translate }}</p>
-              <div>
-                <label for="currentPassword" class="block text-sm font-medium text-gray-300">{{ 'profile.password.current' | translate }}</label>
-                <div class="mt-1 flex gap-3">
-                  <input id="currentPassword" type="password" formControlName="currentPassword" class="flex-1 bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <button type="button" (click)="sendPasswordOtp()" class="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-white font-semibold hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400">
-                    {{ otpSent() ? ('profile.password.resendOtp' | translate) : ('profile.password.sendOtp' | translate) }}
-                  </button>
-                </div>
-              </div>
-              @if (otpSent()) {
-                <div>
-                  <label for="otpToken" class="block text-sm font-medium text-gray-300">{{ 'profile.password.otp' | translate }}</label>
-                  <input id="otpToken" type="text" formControlName="otpToken" placeholder="{{ 'profile.password.otpPlaceholder' | translate }}" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                  <label for="newPassword" class="block text-sm font-medium text-gray-300">{{ 'profile.password.new' | translate }}</label>
-                  <input id="newPassword" type="password" formControlName="newPassword" placeholder="{{ 'profile.password.newPlaceholder' | translate }}" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                  <label for="confirmNewPassword" class="block text-sm font-medium text-gray-300">{{ 'profile.password.confirm' | translate }}</label>
-                  <input id="confirmNewPassword" type="password" formControlName="confirmNewPassword" placeholder="{{ 'profile.password.confirmPlaceholder' | translate }}" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                   @if (passwordForm.hasError('passwordMismatch') && passwordForm.get('confirmNewPassword')?.touched) {
-                      <p class="text-red-400 text-sm mt-1">{{ 'profile.password.mismatch' | translate }}</p>
-                   }
-                </div>
-                <div class="p-6 bg-slate-900/50 border-t border-slate-800 text-end rounded-b-xl">
-                  <button type="submit" [disabled]="passwordForm.invalid" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-                    {{ 'profile.saveButton' | translate }}
-                  </button>
-                </div>
-              }
-            </div>
-          </form>
+
+        @case ('personalization') {
+          <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl animate-fade-in p-8 space-y-6">
+            <h2 class="text-2xl font-bold text-white">{{ 'profile.personalization.title' | translate }}</h2>
+          </div>
         }
+
         @case ('notifications') {
           <form [formGroup]="notificationSettingsForm" (ngSubmit)="onNotificationSettingsSubmit()" class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl animate-fade-in">
             <div class="p-8">
               <h2 class="text-2xl font-bold text-white mb-2">{{ 'profile.notifications.title' | translate }}</h2>
               <p class="text-gray-400 mb-8 max-w-2xl">{{ 'profile.notifications.subtitle' | translate }}</p>
+
               <div class="space-y-6">
                 <div class="flex items-start justify-between p-4 rounded-lg bg-slate-800/50">
                   <div>
@@ -512,6 +378,7 @@
                     <div class="w-11 h-6 bg-slate-700 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-500/50 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                   </label>
                 </div>
+
                 <div class="flex items-start justify-between p-4 rounded-lg bg-slate-800/50">
                   <div>
                     <h3 class="font-semibold text-white">{{ 'profile.notifications.portfolio.title' | translate }}</h3>
@@ -522,6 +389,7 @@
                     <div class="w-11 h-6 bg-slate-700 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-500/50 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                   </label>
                 </div>
+
                 <div class="flex items-start justify-between p-4 rounded-lg bg-slate-800/50">
                   <div>
                     <h3 class="font-semibold text-white">{{ 'profile.notifications.security.title' | translate }}</h3>
@@ -532,6 +400,7 @@
                     <div class="w-11 h-6 bg-slate-700 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-500/50 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                   </label>
                 </div>
+
                 <div class="flex items-start justify-between p-4 rounded-lg bg-slate-800/50">
                   <div>
                     <h3 class="font-semibold text-white">{{ 'profile.notifications.news.title' | translate }}</h3>
@@ -544,138 +413,78 @@
                 </div>
               </div>
             </div>
-             <div class="p-6 bg-slate-900/50 border-t border-slate-800 text-end rounded-b-xl">
+
+            <div class="p-6 bg-slate-900/50 border-t border-slate-800 text-end rounded-b-xl">
               <button type="submit" [disabled]="notificationSettingsForm.pristine" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
                 {{ 'profile.saveButton' | translate }}
               </button>
             </div>
           </form>
         }
-        @case ('trust') {
-          <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl animate-fade-in p-8 space-y-6">
-            <h2 class="text-2xl font-bold text-white flex items-center gap-3">
-              <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
-              Trust &amp; Verification
-            </h2>
 
-            @if (!trustService.isLoaded()) {
-              <div class="flex items-center gap-3 text-gray-400">
-                <div class="w-5 h-5 border-2 border-gray-600 border-t-emerald-400 rounded-full animate-spin"></div>
-                Loading trust profile…
-              </div>
-            } @else {
-              <!-- Level + score row -->
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div class="bg-slate-800/60 rounded-xl p-4 flex flex-col items-center gap-2">
-                  <span class="text-xs text-gray-400 uppercase tracking-wide">Trust Level</span>
-                  <app-trust-badge [lang]="currentLanguage()" class="mt-1"></app-trust-badge>
-                </div>
-                <div class="bg-slate-800/60 rounded-xl p-4 flex flex-col items-center gap-2">
-                  <span class="text-xs text-gray-400 uppercase tracking-wide">Reputation</span>
-                  <span class="text-xl font-bold text-emerald-400 text-center">{{ trustService.profile()?.reputationLevel || 'Rising Member' }}</span>
-                  <span class="text-xs text-gray-500">{{ trustService.profile()?.reputationScore ?? 0 }} / 10,000</span>
-                </div>
-                <div class="bg-slate-800/60 rounded-xl p-4 flex flex-col items-center gap-2">
-                  <span class="text-xs text-gray-400 uppercase tracking-wide">Profile Completion</span>
-                  <span class="text-3xl font-bold" [class.text-emerald-400]="(trustService.profile()?.profileCompletionPercentage ?? 0) >= 60" [class.text-blue-400]="(trustService.profile()?.profileCompletionPercentage ?? 0) < 60">
-                    {{ trustService.profile()?.profileCompletionPercentage ?? 0 }}%
-                  </span>
-                  <div class="w-full bg-slate-700 rounded-full h-1.5">
-                    <div class="h-1.5 rounded-full transition-all" [class.bg-emerald-500]="(trustService.profile()?.profileCompletionPercentage ?? 0) >= 60" [class.bg-blue-500]="(trustService.profile()?.profileCompletionPercentage ?? 0) < 60" [style.width.%]="trustService.profile()?.profileCompletionPercentage ?? 0"></div>
-                  </div>
-                </div>
-              </div>
+        @case ('security') {
+          <form [formGroup]="passwordForm" (ngSubmit)="onPasswordSubmit()" class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl animate-fade-in">
+            <div class="p-8 space-y-6 max-w-lg">
+              <h2 class="text-2xl font-bold text-white">{{ 'profile.password.title' | translate }}</h2>
+              <p class="text-sm text-gray-400">{{ 'profile.password.description' | translate }}</p>
 
-              <!-- Verification status -->
               <div>
-                <h3 class="text-sm font-semibold text-gray-300 mb-3">Verification Status</h3>
-                <div class="space-y-2">
-                  <div class="flex items-center justify-between p-3 bg-slate-800/40 rounded-lg">
-                    <div class="flex items-center gap-2 text-sm">
-                      <svg class="w-4 h-4" [class.text-emerald-400]="trustService.profile()?.isEmailVerified" [class.text-gray-500]="!trustService.profile()?.isEmailVerified" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/></svg>
-                      <span class="text-gray-300">Email</span>
-                    </div>
-                    @if (trustService.profile()?.isEmailVerified) {
-                      <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold">Verified</span>
-                    } @else {
-                      <span class="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 font-semibold">Pending</span>
-                    }
-                  </div>
-                  <div class="flex items-center justify-between p-3 bg-slate-800/40 rounded-lg">
-                    <div class="flex items-center gap-2 text-sm">
-                      <svg class="w-4 h-4" [class.text-emerald-400]="trustService.profile()?.isPhoneVerified" [class.text-gray-500]="!trustService.profile()?.isPhoneVerified" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/></svg>
-                      <span class="text-gray-300">Phone</span>
-                    </div>
-                    @if (trustService.profile()?.isPhoneVerified) {
-                      <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold">Verified</span>
-                    } @else {
-                      <span class="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 font-semibold">Pending</span>
-                    }
-                  </div>
-                  <div class="flex items-center justify-between p-3 bg-slate-800/40 rounded-lg">
-                    <div class="flex items-center gap-2 text-sm">
-                      <svg class="w-4 h-4" [class.text-emerald-400]="trustService.profile()?.isIdentityVerified" [class.text-gray-500]="!trustService.profile()?.isIdentityVerified" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z"/></svg>
-                      <span class="text-gray-300">Government ID</span>
-                    </div>
-                    @if (trustService.profile()?.isIdentityVerified) {
-                      <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold">Verified</span>
-                    } @else {
-                      <span class="text-xs px-2 py-0.5 rounded-full bg-gray-500/20 text-gray-400 font-semibold">Not submitted</span>
-                    }
-                  </div>
+                <label for="currentPassword" class="block text-sm font-medium text-gray-300">{{ 'profile.password.current' | translate }}</label>
+                <div class="mt-1 flex gap-3">
+                  <input id="currentPassword" type="password" formControlName="currentPassword" class="flex-1 bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <button type="button" (click)="sendPasswordOtp()" class="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-white font-semibold hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    {{ otpSent() ? ('profile.password.resendOtp' | translate) : ('profile.password.sendOtp' | translate) }}
+                  </button>
                 </div>
               </div>
 
-              <!-- Next level checklist -->
-              @if ((trustService.profile()?.nextLevelRequirements?.length ?? 0) > 0) {
+              @if (otpSent()) {
                 <div>
-                  <h3 class="text-sm font-semibold text-gray-300 mb-3">What's needed to reach the next level</h3>
-                  <div class="space-y-2">
-                    @for (req of trustService.profile()!.nextLevelRequirements; track req.key) {
-                      <div class="flex items-center gap-3 p-3 rounded-lg" [class.bg-emerald-500/10]="req.isMet" [class.bg-slate-800/40]="!req.isMet">
-                        @if (req.isMet) {
-                          <svg class="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        } @else {
-                          <svg class="w-4 h-4 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
-                        }
-                        <span class="text-sm" [class.text-emerald-300]="req.isMet" [class.text-gray-400]="!req.isMet">
-                          {{ currentLanguage() === 'ar' ? req.labelAr : req.labelEn }}
-                        </span>
-                      </div>
-                    }
-                  </div>
+                  <label for="otpToken" class="block text-sm font-medium text-gray-300">{{ 'profile.password.otp' | translate }}</label>
+                  <input id="otpToken" type="text" formControlName="otpToken" placeholder="{{ 'profile.password.otpPlaceholder' | translate }}" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
-              }
 
-              <!-- Submitted verifications list -->
-              @if ((trustService.profile()?.verifications?.length ?? 0) > 0) {
                 <div>
-                  <h3 class="text-sm font-semibold text-gray-300 mb-3">Submitted Verifications</h3>
-                  <div class="space-y-2">
-                    @for (v of trustService.profile()!.verifications; track v.id) {
-                      <div class="flex items-center justify-between p-3 bg-slate-800/40 rounded-lg text-sm">
-                        <span class="text-gray-300">{{ v.verificationType }}</span>
-                        <span class="text-xs px-2 py-0.5 rounded-full"
-                          [class.bg-emerald-500/20]="v.status === 2"
-                          [class.text-emerald-300]="v.status === 2"
-                          [class.bg-yellow-500/20]="v.status === 1"
-                          [class.text-yellow-300]="v.status === 1"
-                          [class.bg-gray-500/20]="v.status === 0"
-                          [class.text-gray-400]="v.status === 0">
-                          {{ v.status === 2 ? 'Verified' : v.status === 1 ? 'Pending' : 'None' }}
-                        </span>
-                      </div>
-                    }
-                  </div>
+                  <label for="newPassword" class="block text-sm font-medium text-gray-300">{{ 'profile.password.new' | translate }}</label>
+                  <input id="newPassword" type="password" formControlName="newPassword" placeholder="{{ 'profile.password.newPlaceholder' | translate }}" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div>
+                  <label for="confirmNewPassword" class="block text-sm font-medium text-gray-300">{{ 'profile.password.confirm' | translate }}</label>
+                  <input id="confirmNewPassword" type="password" formControlName="confirmNewPassword" placeholder="{{ 'profile.password.confirmPlaceholder' | translate }}" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  @if (passwordForm.hasError('passwordMismatch') && passwordForm.get('confirmNewPassword')?.touched) {
+                    <p class="text-red-400 text-sm mt-1">{{ 'profile.password.mismatch' | translate }}</p>
+                  }
+                </div>
+
+                <div class="p-6 bg-slate-900/50 border-t border-slate-800 text-end rounded-b-xl">
+                  <button type="submit" [disabled]="passwordForm.invalid" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                    {{ 'profile.saveButton' | translate }}
+                  </button>
                 </div>
               }
-            }
+            </div>
+          </form>
+        }
+
+        @case ('credit') {
+          <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl animate-fade-in p-8 space-y-6">
+            <h2 class="text-2xl font-bold text-white">{{ 'profile.creditManagement.title' | translate }}</h2>
+          </div>
+        }
+
+        @case ('score') {
+          <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl animate-fade-in p-8 space-y-6">
+            <h2 class="text-2xl font-bold text-white">{{ 'profile.score.title' | translate }}</h2>
+            <div class="text-center">
+              <div class="text-4xl font-bold text-blue-400">{{ currentScorePts() }}</div>
+            </div>
           </div>
         }
       }
-
 
     </main>
 
   </div>
 </div>
+
