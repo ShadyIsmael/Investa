@@ -9,6 +9,8 @@ import { ApiErrorResponse } from '../../../models/api-response.model';
 import { LanguageService } from '../../../services/language.service';
 import { Router } from '@angular/router';
 import { FileStoreService } from '../../../services/file-store.service';
+import { SettingsService } from '../../../services/settings.service';
+import { ThemePreference } from '../../../models/settings.model';
 
 export const passwordMatchValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
   const password = control.get('newPassword');
@@ -58,8 +60,10 @@ export class ProfileComponent {
 
   private notificationService = inject(NotificationService);
   private languageService = inject(LanguageService);
+  settingsService = inject(SettingsService);
   private router = inject(Router);
   private fileStoreService = inject(FileStoreService);
+  themeOptions = [ThemePreference.System, ThemePreference.Light, ThemePreference.Dark];
 
   private t(path: string): string {
     return this.languageService.translate(path);
@@ -531,6 +535,14 @@ export class ProfileComponent {
   selectSection(section: ActiveSection) {
     this.activeSection.set(section);
     this.scrollToTop();
+  }
+
+  setTheme(theme: ThemePreference): void {
+    this.settingsService.setTheme(theme);
+  }
+
+  setLanguage(lang: string): void {
+    this.languageService.setLanguage(lang as 'en' | 'ar');
   }
 
   viewAllTransactions() {

@@ -5,7 +5,7 @@
     <aside class="lg:col-span-4 xl:col-span-3 lg:sticky top-8">
       <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl p-6 text-center">
         <div class="w-32 h-32 mx-auto mb-4 relative group cursor-pointer" (click)="onAvatarClick()">
-          <img class="w-32 h-32 rounded-full ring-4 ring-slate-800 object-cover" [src]="avatarUrl()" [alt]="('profile.avatarAlt' | translate)">
+          <img class="w-32 h-32 rounded-full ring-4 ring-slate-800 object-cover" [src]="profileService.profile()?.basicInfo?.avatarUrl || ''" [alt]="('profile.avatarAlt' | translate)">
 
           <!-- Upload overlay -->
           <div class="absolute inset-0 rounded-full bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
@@ -25,22 +25,15 @@
           <input #avatarInput type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" (change)="onAvatarFileSelected($event)">
         </div>
 
-        <h2 class="text-2xl font-bold text-white">{{ fullName() || ('profile.titleDefault' | translate) }}</h2>
-        <p class="text-gray-400 mb-4">{{ getCountryLabel(profileForm.get('nationality')?.value) || getCountryLabel(profileService.profile()?.basicInfo?.nationality) }}</p>
+        <h2 class="text-2xl font-bold text-white">{{ profileService.profile()?.basicInfo?.fullName || ((profileService.profile()?.basicInfo?.firstName || '') + ' ' + (profileService.profile()?.basicInfo?.lastName || '')).trim() || ('profile.titleDefault' | translate) }}</h2>
+        <p class="text-gray-400 mb-4">{{ profileService.profile()?.contactInfo?.email || profileService.profile()?.coreMetrics?.email || '' }}</p>
 
         <!-- Credits (moved to top) -->
         <div class="bg-slate-800/50 p-4 rounded-lg mt-4">
-          <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center gap-2">
-              <span class="text-sm font-semibold text-blue-400">
-                <i class="fas fa-coins"></i>
-                {{ 'profile.credits.title' | translate }}
-              </span>
-            </div>
-          </div>
-
           <div class="text-center mb-3">
-            {{ currentScorePts() }}
+            {{ profileService.profile()?.coreMetrics?.currentCredibilityScore ?? profileService.profile()?.coreMetrics?.credibilityScore ?? $any(profileService.profile()?.basicInfo)?.score ?? 0 }}
+            <p class="text-xs text-gray-400 mt-1">{{ 'profile.currentScore' | translate }}</p>
+            {{ profileService.profile()?.coreMetrics?.walletBalance ?? $any(profileService.profile()?.basicInfo)?.credit ?? 0 }}
             <p class="text-xs text-gray-400 mt-1">{{ 'profile.credits.available' | translate }}</p>
           </div>
 
@@ -274,24 +267,6 @@
                 </div>
               </div>
 
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                <div>
-                  <label for="nationalId" class="block text-sm font-medium text-gray-300 mb-1">{{ 'profile.personalInfo.nationalId' | translate }}</label>
-                  <input id="nationalId" type="text" formControlName="nationalId" class="block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-300 mb-1">{{ 'profile.personalInfo.uploadId' | translate }}</label>
-                  <div class="flex items-center">
-                    <label for="nationalIdCopy" class="cursor-pointer bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-4 rounded-md transition-colors">
-                      <span>{{ 'profile.personalInfo.chooseFile' | translate }}</span>
-                    </label>
-                    <input id="nationalIdCopy" type="file" class="hidden" (change)="onFileChange($event)">
-                    <span class="ms-3 text-gray-400 text-sm truncate">{{ nationalIdFileName() || ('profile.personalInfo.noFileChosen' | translate) }}</span>
-                  </div>
-                </div>
-              </div>
-
               <div class="space-y-6 pt-6 border-t border-slate-800">
                 <h3 class="text-lg font-medium text-gray-200">{{ 'profile.company.title' | translate }}</h3>
 
@@ -311,16 +286,6 @@
                   <input id="companyAddress" type="text" formControlName="companyAddress" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
 
-                <div>
-                  <label class="block text-sm font-medium text-gray-300 mb-1">{{ 'profile.company.hrLetter' | translate }}</label>
-                  <div class="flex items-center">
-                    <label for="hrLetterCopy" class="cursor-pointer bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-4 rounded-md transition-colors">
-                      <span>{{ 'profile.personalInfo.chooseFile' | translate }}</span>
-                    </label>
-                    <input id="hrLetterCopy" type="file" class="hidden" (change)="onHrLetterChange($event)">
-                    <span class="ms-3 text-gray-400 text-sm truncate">{{ hrLetterFileName() || ('profile.personalInfo.noFileChosen' | translate) }}</span>
-                  </div>
-                </div>
               </div>
 
               <div>
@@ -358,6 +323,31 @@
         @case ('personalization') {
           <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl animate-fade-in p-8 space-y-6">
             <h2 class="text-2xl font-bold text-white">{{ 'profile.personalization.title' | translate }}</h2>
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-2">{{ 'settings.appearance.theme.label' | translate }}</label>
+              <div class="flex flex-wrap gap-2">
+                @for (opt of themeOptions; track opt) {
+                  <button type="button" (click)="setTheme(opt)"
+                    class="px-4 py-2 rounded-md border transition-colors"
+                    [class.bg-blue-500/20]="settingsService.theme() === opt"
+                    [class.border-blue-500]="settingsService.theme() === opt"
+                    [class.text-blue-300]="settingsService.theme() === opt"
+                    [class.bg-slate-700/50]="settingsService.theme() !== opt"
+                    [class.border-slate-600]="settingsService.theme() !== opt"
+                    [class.text-gray-300]="settingsService.theme() !== opt">
+                    {{ ('settings.appearance.theme.options.' + opt) | translate }}
+                  </button>
+                }
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-2">{{ 'settings.localization.language.label' | translate }}</label>
+              <select class="w-full bg-slate-800 border border-slate-700 rounded-md p-2 text-gray-200"
+                [value]="currentLanguage()" (change)="setLanguage($any($event.target).value)">
+                <option value="en">{{ 'settings.localization.language.options.en' | translate }}</option>
+                <option value="ar">{{ 'settings.localization.language.options.ar' | translate }}</option>
+              </select>
+            </div>
           </div>
         }
 
