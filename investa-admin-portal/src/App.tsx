@@ -30,6 +30,7 @@ import { AuthProvider, usePermissions } from '@/context/AuthContext';
 import MainLayout from '@/components/layout/MainLayout';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import { SupportProvider } from '@/context/SupportProvider';
+import ReputationRules from '@/features/operations/ReputationRules';
 
 const ComingSoon = ({ title, subtitle }: { title: string; subtitle: string }) => {
     const navigate = useNavigate();
@@ -183,6 +184,7 @@ const AppContent: React.FC = () => {
                                     <Route path="/support-dashboard" element={<SupportDashboard />} />
                                     <Route path="/admin-support" element={<SupportAdmin />} />
                                     <Route path="/admin-support/chat/:conversationId" element={<ChatView />} />
+                                    <Route path="/operations/reputation-rules" element={<ReputationRules />} />
                                     <Route path="/coa" element={<ChartOfAccounts />} />
                                     <Route path="/billing" element={<InvoicingBilling />} />
                                     <Route path="/journals" element={<JournalEntries />} />

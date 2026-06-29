@@ -61,8 +61,7 @@ export class TrustBadgeComponent implements OnInit {
 
   tooltip = computed(() => {
     const level = this.effectiveLevel();
-    const reputation = this.profile?.reputationLevel ?? this.trustService.profile()?.reputationLevel ?? 'Rising Member';
-    return `Trust Level ${level} • Reputation: ${reputation}`;
+    return `Trust Level ${level}`;
   });
 
   ngOnInit() {

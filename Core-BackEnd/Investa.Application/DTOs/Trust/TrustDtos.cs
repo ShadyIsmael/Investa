@@ -25,8 +25,6 @@ public class TrustProfileDto
     public int VerificationTrustScore { get; set; }
     public int ReputationScore { get; set; }
     public int ActivityScore { get; set; }
-    public string ReputationLevel { get; set; } = "Rising Member";
-    public string ReputationLabel => ReputationLevel;
     public List<string> RiskFlags { get; set; } = new();
     public int ProfileCompletionPercentage { get; set; }
 

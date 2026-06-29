@@ -232,6 +232,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
     public DbSet<ScoreTransaction> ScoreTransactions { get; set; }
 
+    // Reputation rules for system and admin-defined reputation adjustments
+
+    public DbSet<ReputationRule> ReputationRules { get; set; }
+
+    // All reputation changes are stored in ReputationTransaction
+
+    public DbSet<ReputationTransaction> ReputationTransactions { get; set; }
 
 
     // Investment requests between investors and founders
@@ -812,7 +819,47 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             });
 
+            // ReputationRule mapping
+            modelBuilder.Entity<ReputationRule>(rr =>
+            {
+                rr.HasKey(r => r.Id);
+                rr.Property(r => r.RuleCode).HasMaxLength(50).IsRequired();
+                rr.Property(r => r.Description).HasMaxLength(200).IsRequired();
+                rr.Property(r => r.Points).IsRequired();
+                rr.Property(r => r.IsEnabled).HasDefaultValue(true);
+                rr.Property(r => r.IsSystem).HasDefaultValue(true);
+                rr.Property(r => r.IsAutomatic).HasDefaultValue(true);
+                rr.Property(r => r.CanRepeat).HasDefaultValue(false);
+                rr.Property(r => r.MaximumOccurrences).HasDefaultValue(1);
+                rr.Property(r => r.CreatedAt).HasDefaultValueSql("GETDATE()");
+                rr.HasIndex(r => r.RuleCode).IsUnique();
+                rr.HasOne(r => r.CreatedBy)
+                    .WithMany()
+                    .HasForeignKey(r => r.CreatedByUserId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
 
+            // ReputationTransaction mapping
+            modelBuilder.Entity<ReputationTransaction>(rt =>
+            {
+                rt.HasKey(t => t.Id);
+                rt.Property(t => t.Points).IsRequired();
+                rt.Property(t => t.ReferenceId).HasMaxLength(100);
+                rt.Property(t => t.ReferenceType).HasMaxLength(100);
+                rt.Property(t => t.OccurredAt).HasDefaultValueSql("GETDATE()");
+                rt.HasOne(t => t.User)
+                    .WithMany()
+                    .HasForeignKey(t => t.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                rt.HasOne(t => t.Rule)
+                    .WithMany()
+                    .HasForeignKey(t => t.ReputationRuleId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                rt.HasOne(t => t.CreatedBy)
+                    .WithMany()
+                    .HasForeignKey(t => t.CreatedByUserId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
 
             // CreditConfiguration mapping
 
@@ -1559,6 +1606,21 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
         );
 
 
+        // Seed Reputation rules (system-defined)
+
+        modelBuilder.Entity<ReputationRule>().HasData(
+            new ReputationRule { Id = 1, RuleCode = "profile_completed", Description = "Profile completed", Points = 50, IsEnabled = true, IsSystem = true, IsAutomatic = true, CanRepeat = false, MaximumOccurrences = 1, SortOrder = 1, CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, DateTimeKind.Utc) },
+            new ReputationRule { Id = 2, RuleCode = "email_verified", Description = "Email verified", Points = 30, IsEnabled = true, IsSystem = true, IsAutomatic = true, CanRepeat = false, MaximumOccurrences = 1, SortOrder = 2, CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, DateTimeKind.Utc) },
+            new ReputationRule { Id = 3, RuleCode = "phone_verified", Description = "Phone verified", Points = 30, IsEnabled = true, IsSystem = true, IsAutomatic = true, CanRepeat = false, MaximumOccurrences = 1, SortOrder = 3, CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, DateTimeKind.Utc) },
+            new ReputationRule { Id = 4, RuleCode = "company_verified", Description = "Company verified", Points = 100, IsEnabled = true, IsSystem = true, IsAutomatic = true, CanRepeat = false, MaximumOccurrences = 1, SortOrder = 4, CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, DateTimeKind.Utc) },
+            new ReputationRule { Id = 5, RuleCode = "investment_published", Description = "Investment published", Points = 200, IsEnabled = true, IsSystem = true, IsAutomatic = true, CanRepeat = true, MaximumOccurrences = 10, SortOrder = 5, CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, DateTimeKind.Utc) },
+            new ReputationRule { Id = 6, RuleCode = "investment_approved", Description = "Investment approved", Points = 150, IsEnabled = true, IsSystem = true, IsAutomatic = true, CanRepeat = false, MaximumOccurrences = 1, SortOrder = 6, CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, DateTimeKind.Utc) },
+            new ReputationRule { Id = 7, RuleCode = "first_investment", Description = "First investment", Points = 500, IsEnabled = true, IsSystem = true, IsAutomatic = true, CanRepeat = false, MaximumOccurrences = 1, SortOrder = 7, CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, DateTimeKind.Utc) },
+            new ReputationRule { Id = 8, RuleCode = "repeat_investment", Description = "Repeat investment", Points = 200, IsEnabled = true, IsSystem = true, IsAutomatic = true, CanRepeat = true, MaximumOccurrences = 10, SortOrder = 8, CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, DateTimeKind.Utc) },
+            new ReputationRule { Id = 9, RuleCode = "successful_investment", Description = "Successful investment", Points = 300, IsEnabled = true, IsSystem = true, IsAutomatic = true, CanRepeat = false, MaximumOccurrences = 1, SortOrder = 9, CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, DateTimeKind.Utc) },
+            new ReputationRule { Id = 10, RuleCode = "policy_violation", Description = "Policy violation", Points = -500, IsEnabled = true, IsSystem = true, IsAutomatic = false, CanRepeat = false, MaximumOccurrences = 1, SortOrder = 10, CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, DateTimeKind.Utc) },
+            new ReputationRule { Id = 11, RuleCode = "admin_penalty", Description = "Admin penalty", Points = -1000, IsEnabled = true, IsSystem = true, IsAutomatic = false, CanRepeat = false, MaximumOccurrences = 1, SortOrder = 11, CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, DateTimeKind.Utc) }
+        );
 
         // Seed ScoreTransaction types
 

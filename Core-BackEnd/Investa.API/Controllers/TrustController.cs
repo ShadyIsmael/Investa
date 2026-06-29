@@ -7,7 +7,8 @@ using System.Security.Claims;
 namespace Investa.API.Controllers;
 
 /// <summary>
-/// Manages Progressive Trust profiles, verifications, and reputation scores.
+/// Manages Progressive Trust profiles, verifications, and risk flags.
+/// Reputation endpoints are handled by ReputationController.
 /// </summary>
 [Authorize]
 [Route("api/v1/trust")]
@@ -15,11 +16,13 @@ namespace Investa.API.Controllers;
 public class TrustController : BaseApiController
 {
     private readonly ITrustService _trustService;
+    private readonly IReputationService _reputationService;
     private readonly ILogger<TrustController> _logger;
 
-    public TrustController(ITrustService trustService, ILogger<TrustController> logger)
+    public TrustController(ITrustService trustService, IReputationService reputationService, ILogger<TrustController> logger)
     {
         _trustService = trustService;
+        _reputationService = reputationService;
         _logger = logger;
     }
 
@@ -120,13 +123,13 @@ public class TrustController : BaseApiController
         return SuccessResponse(profile);
     }
 
-    /// <summary>Admin: Adjust reputation score for a user.</summary>
+    /// <summary>Admin: Adjust reputation points for a user.</summary>
     [HttpPost("admin/users/{userId:guid}/reputation")]
     [Authorize(Policy = "Permission:users.manage")]
     [ProducesResponseType(typeof(ApiResponse<bool>), 200)]
     public async Task<IActionResult> AdjustReputation(Guid userId, [FromBody] AdjustReputationRequest request)
     {
-        await _trustService.AdjustReputationScoreAsync(userId, request.Delta, request.Reason);
+        await _reputationService.AdjustReputationAsync(userId, request.Points, request.Reason, CurrentUserId);
         return SuccessResponse(true);
     }
 
@@ -151,5 +154,5 @@ public class TrustController : BaseApiController
     }
 }
 
-public record AdjustReputationRequest(int Delta, string Reason);
+public record AdjustReputationRequest(int Points, string Reason);
 public record RiskFlagRequest(string Flag);

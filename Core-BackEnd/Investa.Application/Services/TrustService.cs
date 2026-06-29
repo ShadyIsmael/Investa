@@ -8,7 +8,7 @@ namespace Investa.Application.Services;
 
 /// <summary>
 /// Implements the Progressive Trust lifecycle.
-/// Rules are centralised here — all platforms delegate to this service via the API.
+/// Responsible for trust evaluation based on verification and risk factors.
 /// </summary>
 public class TrustService : ITrustService
 {
@@ -56,13 +56,11 @@ public class TrustService : ITrustService
         user.IsEmailVerified = user.IsEmailVerified ||
             verifications.Any(v => v.VerificationType == VerificationType.Email && v.Status == VerificationStatus.Verified);
 
-        // 2. Compute profile completion and dual trust dimensions
+        // 2. Compute profile completion and verification trust score
         user.ProfileCompletionPercentage = CalculateProfileCompletion(user);
         user.VerificationTrustScore = CalculateVerificationTrustScore(user, verifications);
-        user.ActivityScore = CalculateActivityScore(user);
-        user.ReputationLevel = DeriveReputationLevel(user);
 
-        // 3. Derive trust level based on eligibility and behavior
+        // 3. Derive trust level based on eligibility
         user.TrustLevel = DeriveTrustLevel(user);
 
         await _uow.Repository<AuthUser>().UpdateAsync(user);
@@ -71,23 +69,6 @@ public class TrustService : ITrustService
         _logger.LogInformation(
             "Trust recalculated for user {UserId}: Level={Level} Completion={Pct}%",
             userId, user.TrustLevel, user.ProfileCompletionPercentage);
-    }
-
-    // ─── Reputation ──────────────────────────────────────────────────────────
-
-    public async Task AdjustReputationScoreAsync(Guid userId, int delta, string reason)
-    {
-        var user = await _uow.Repository<AuthUser>().GetByIdAsync(userId)
-            ?? throw new KeyNotFoundException($"User {userId} not found");
-
-        user.ReputationScore = Math.Max(0, Math.Min(10000, user.ReputationScore + delta));
-        user.ActivityScore = Math.Max(0, Math.Min(10000, user.ActivityScore + Math.Max(delta, 0) / 2));
-        user.ReputationLevel = DeriveReputationLevel(user);
-        await _uow.Repository<AuthUser>().UpdateAsync(user);
-        await _uow.SaveChangesAsync();
-
-        _logger.LogInformation("Reputation adjusted for {UserId}: delta={Delta} reason={Reason} newScore={Score}",
-            userId, delta, reason, user.ReputationScore);
     }
 
     // ─── Verification ────────────────────────────────────────────────────────
@@ -187,7 +168,6 @@ public class TrustService : ITrustService
             TrustLevel = user.TrustLevel,
             ReputationScore = user.ReputationScore,
             ActivityScore = user.ActivityScore,
-            ReputationLevel = user.ReputationLevel,
             RiskFlags = ParseFlags(user.RiskFlags),
             ProfileCompletionPercentage = user.ProfileCompletionPercentage,
             IsPhoneVerified = user.IsPhoneVerified,
@@ -266,7 +246,7 @@ public class TrustService : ITrustService
         }
         else if (level == TrustLevel.Interactive)
         {
-            // Requirements for Level 3 - Based on engagement and reputation
+            // Requirements for Level 3
             requirements.Add(new TrustRequirementDto
             {
                 Key = "account_age",
@@ -360,40 +340,13 @@ public class TrustService : ITrustService
         return Math.Clamp(score, 0, 100);
     }
 
-    private static int CalculateActivityScore(AuthUser user)
-    {
-        var accountAgeDays = Math.Max(0, (DateTime.UtcNow - user.CreatedAt).Days);
-        var ageScore = Math.Min(1000, accountAgeDays * 10);
-        var reputationContribution = Math.Min(7000, user.ReputationScore);
-        var completionContribution = user.ProfileCompletionPercentage * 20;
-
-        return Math.Clamp(ageScore + reputationContribution + completionContribution, 0, 10000);
-    }
-
-    private static string DeriveReputationLevel(AuthUser user)
-    {
-        if (!string.IsNullOrWhiteSpace(user.RiskFlags))
-            return "Needs Review";
-        if (user.ReputationScore >= 7500 && user.ActivityScore >= 6000)
-            return user.ClientType == ClientType.Founder ? "Trusted Founder" : "Strategic Partner";
-        if (user.ReputationScore >= 4000)
-            return "Top Contributor";
-        if (user.ActivityScore >= 2500)
-            return "Highly Engaged";
-        if (user.ReputationScore >= 500)
-            return user.ClientType == ClientType.Founder ? "Rising Founder" : "Active Investor";
-
-        return "Rising Member";
-    }
-
     private static TrustLevel DeriveTrustLevel(AuthUser user)
     {
-        // Level 3: Trusted Active - Based on engagement metrics
-        var accountAgeDays = (DateTime.UtcNow - user.CreatedAt).Days;
-        if (accountAgeDays >= 30 &&
-            user.ReputationScore >= 500 &&
+        // Level 3: Trusted Active - Based on verification and profile
+        if (user.ReputationScore >= 500 &&
             user.ProfileCompletionPercentage >= 80 &&
-            user.VerificationTrustScore >= 70)
+            user.VerificationTrustScore >= 70 &&
+            (DateTime.UtcNow - user.CreatedAt).Days >= 30)
         {
             return TrustLevel.TrustedActive;
         }

@@ -61,8 +61,6 @@ export interface TrustProfileDto {
   verificationTrustScore?: number;
   reputationScore: number;
   activityScore?: number;
-  reputationLevel?: string;
-  reputationLabel?: string;
   riskFlags?: string[];
   profileCompletionPercentage: number;
   isPhoneVerified: boolean;

@@ -561,6 +561,7 @@ static void RegisterApplicationServices(IServiceCollection services)
     services.AddScoped<IInvestmentAnalyticsService, InvestmentAnalyticsService>();
     services.AddScoped<IScoreService, ScoreService>();
     services.AddScoped<ITrustService, TrustService>();
+    services.AddScoped<IReputationService, ReputationService>();
     services.AddScoped<ICreditService, CreditService>();
     services.AddScoped<IChatService, ChatService>();
     services.AddScoped<IGroupService, GroupService>();
