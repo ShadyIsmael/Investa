@@ -346,6 +346,91 @@ export const api = {
     }
   },
 
+  async patch<T>(endpoint: string, body: any, mockData?: T): Promise<T> {
+    logger.api.request('PATCH', endpoint, body);
+
+    if (USE_MOCKS && mockData !== undefined) {
+      await simulateDelay();
+      return mockData;
+    }
+
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
+      const resolved = buildUrl(endpoint);
+      logger.debug(`API PATCH resolved URL: ${resolved}`);
+
+      let response: Response;
+      
+      try {
+        response = await fetch(resolved, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify(body),
+        });
+      } catch (err) {
+        // Retry via dev proxy if direct request fails
+        if (resolved.startsWith('http') && endpoint.startsWith('/api/')) {
+          logger.warn('Direct PATCH failed, retrying via dev proxy');
+          response = await fetch(endpoint, {
+            method: 'PATCH',
+            headers,
+            body: JSON.stringify(body),
+          });
+        } else {
+          throw err;
+        }
+      }
+
+      logger.api.response('PATCH', endpoint, response.status);
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => response.statusText);
+        let msg = text;
+        try {
+          const parsed = JSON.parse(text);
+          msg = parsed?.message || text;
+        } catch {
+          // Not JSON
+        }
+
+        if (response.status === 401) {
+          emitUnauthorizedEvent(msg);
+        }
+
+        throw new ApiError(response.status, `PATCH failed: ${msg}`);
+      }
+
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        return await response.json() as T;
+      }
+
+      const text = await response.text();
+      return text as unknown as T;
+
+    } catch (error: any) {
+      logger.api.error('PATCH', endpoint, error);
+      emitBackendUnreachableEvent(endpoint, error?.message || String(error));
+
+      // 🚨 BACKEND UNREACHABLE: Fall back to mock data if available
+      if (mockData !== undefined) {
+        logger.warn(`Backend unreachable for PATCH ${endpoint}, falling back to mock data`);
+        await simulateDelay(200);
+        return mockData;
+      }
+
+      if (error instanceof ApiError) throw error;
+      throw new ApiError(0, error?.message || String(error));
+    }
+  },
+
   async delete<T>(endpoint: string, mockData?: T): Promise<T> {
     logger.api.request('DELETE', endpoint);
 

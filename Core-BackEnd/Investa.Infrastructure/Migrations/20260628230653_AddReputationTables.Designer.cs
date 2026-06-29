@@ -4,6 +4,7 @@ using Investa.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Investa.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260628230653_AddReputationTables")]
+    partial class AddReputationTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -117,7 +120,7 @@ namespace Investa.Infrastructure.Migrations
                     b.HasIndex("FirebaseUid")
                         .HasFilter("\"FirebaseUid\" IS NOT NULL");
 
-                    b.ToTable("AuthUsers", (string)null);
+                    b.ToTable("AuthUsers");
 
                     b.HasData(
                         new
@@ -215,7 +218,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("BusinessCategories", (string)null);
+                    b.ToTable("BusinessCategories");
 
                     b.HasData(
                         new
@@ -284,7 +287,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasIndex("SupportSessionId", "Timestamp");
 
-                    b.ToTable("ChatMessages", (string)null);
+                    b.ToTable("ChatMessages");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Chat.Conversation", b =>
@@ -324,7 +327,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Conversations", (string)null);
+                    b.ToTable("Conversations");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Chat.ConversationParticipant", b =>
@@ -358,7 +361,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("ConversationParticipants", (string)null);
+                    b.ToTable("ConversationParticipants");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Chat.MessageAttachment", b =>
@@ -390,7 +393,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasIndex("MessageId");
 
-                    b.ToTable("MessageAttachments", (string)null);
+                    b.ToTable("MessageAttachments");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Chat.MessageReaction", b =>
@@ -411,7 +414,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasKey("MessageId", "UserId");
 
-                    b.ToTable("MessageReactions", (string)null);
+                    b.ToTable("MessageReactions");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Client", b =>
@@ -548,7 +551,7 @@ namespace Investa.Infrastructure.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("Clients", (string)null);
+                    b.ToTable("Clients");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.ClientBusinessCategory", b =>
@@ -563,7 +566,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasIndex("BusinessCategoryId");
 
-                    b.ToTable("ClientBusinessCategories", (string)null);
+                    b.ToTable("ClientBusinessCategories");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.ClientStatus", b =>
@@ -584,7 +587,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ClientStatuses", (string)null);
+                    b.ToTable("ClientStatuses");
 
                     b.HasData(
                         new
@@ -640,7 +643,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasIndex("ClientId");
 
-                    b.ToTable("ClientStatusHistories", (string)null);
+                    b.ToTable("ClientStatusHistories");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.CreditConfiguration", b =>
@@ -667,7 +670,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("CreditConfigurations", (string)null);
+                    b.ToTable("CreditConfigurations");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.CreditPlan", b =>
@@ -705,7 +708,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("CreditPlans", (string)null);
+                    b.ToTable("CreditPlans");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.CreditPlanPurchase", b =>
@@ -747,7 +750,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("CreditPlanPurchases", (string)null);
+                    b.ToTable("CreditPlanPurchases");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.CreditTransaction", b =>
@@ -794,7 +797,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("CreditTransactions", (string)null);
+                    b.ToTable("CreditTransactions");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Group", b =>
@@ -836,7 +839,7 @@ namespace Investa.Infrastructure.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Groups", (string)null);
+                    b.ToTable("Groups");
 
                     b.HasData(
                         new
@@ -905,7 +908,7 @@ namespace Investa.Infrastructure.Migrations
                     b.HasIndex("GroupId", "PermissionId")
                         .IsUnique();
 
-                    b.ToTable("GroupPermissions", (string)null);
+                    b.ToTable("GroupPermissions");
 
                     b.HasData(
                         new
@@ -1183,7 +1186,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasIndex("FounderId");
 
-                    b.ToTable("Investments", (string)null);
+                    b.ToTable("Investments");
 
                     b.HasData(
                         new
@@ -1290,7 +1293,7 @@ namespace Investa.Infrastructure.Migrations
                     b.HasIndex("InvestmentId", "Version")
                         .IsUnique();
 
-                    b.ToTable("InvestmentEvents", (string)null);
+                    b.ToTable("InvestmentEvents");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.InvestmentFavorite", b =>
@@ -1319,7 +1322,7 @@ namespace Investa.Infrastructure.Migrations
                     b.HasIndex("InvestorId", "InvestmentId")
                         .IsUnique();
 
-                    b.ToTable("InvestmentFavorites", (string)null);
+                    b.ToTable("InvestmentFavorites");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.InvestmentImage", b =>
@@ -1377,7 +1380,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasIndex("UploadedBy");
 
-                    b.ToTable("InvestmentImages", (string)null);
+                    b.ToTable("InvestmentImages");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.InvestmentLearnMore", b =>
@@ -1415,7 +1418,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("InvestmentLearnMores", (string)null);
+                    b.ToTable("InvestmentLearnMores");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.InvestmentParticipant", b =>
@@ -1463,7 +1466,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasIndex("InvestorId");
 
-                    b.ToTable("InvestmentParticipants", (string)null);
+                    b.ToTable("InvestmentParticipants");
 
                     b.HasData(
                         new
@@ -1560,7 +1563,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasIndex("InvestorId");
 
-                    b.ToTable("InvestmentRequests", (string)null);
+                    b.ToTable("InvestmentRequests");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.InvestmentTeamMember", b =>
@@ -1609,7 +1612,7 @@ namespace Investa.Infrastructure.Migrations
                     b.HasIndex("InvestmentId", "UserId")
                         .IsUnique();
 
-                    b.ToTable("InvestmentTeamMembers", (string)null);
+                    b.ToTable("InvestmentTeamMembers");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.InvestmentView", b =>
@@ -1647,7 +1650,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasIndex("ViewedAt");
 
-                    b.ToTable("InvestmentViews", (string)null);
+                    b.ToTable("InvestmentViews");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Lookup", b =>
@@ -1681,7 +1684,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Lookups", (string)null);
+                    b.ToTable("Lookups");
 
                     b.HasData(
                         new
@@ -1889,7 +1892,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasIndex("SupportSessionId", "Timestamp");
 
-                    b.ToTable("Messages", (string)null);
+                    b.ToTable("Messages");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.NotificationTemplate", b =>
@@ -1965,7 +1968,7 @@ namespace Investa.Infrastructure.Migrations
                     b.HasIndex("Key")
                         .IsUnique();
 
-                    b.ToTable("NotificationTemplates", (string)null);
+                    b.ToTable("NotificationTemplates");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Permission", b =>
@@ -2000,7 +2003,7 @@ namespace Investa.Infrastructure.Migrations
                     b.HasIndex("Key")
                         .IsUnique();
 
-                    b.ToTable("Permissions", (string)null);
+                    b.ToTable("Permissions");
 
                     b.HasData(
                         new
@@ -2154,7 +2157,7 @@ namespace Investa.Infrastructure.Migrations
                     b.HasIndex("Token")
                         .IsUnique();
 
-                    b.ToTable("RefreshTokens", (string)null);
+                    b.ToTable("RefreshTokens");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.ReputationRule", b =>
@@ -2224,7 +2227,7 @@ namespace Investa.Infrastructure.Migrations
                     b.HasIndex("RuleCode")
                         .IsUnique();
 
-                    b.ToTable("ReputationRules", (string)null);
+                    b.ToTable("ReputationRules");
 
                     b.HasData(
                         new
@@ -2427,7 +2430,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("ReputationTransactions", (string)null);
+                    b.ToTable("ReputationTransactions");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.ScoreTransaction", b =>
@@ -2461,7 +2464,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("ScoreTransactions", (string)null);
+                    b.ToTable("ScoreTransactions");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Security.ApplicationPermission", b =>
@@ -2530,7 +2533,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasIndex("ResourceType", "Action");
 
-                    b.ToTable("ApplicationPermissions", (string)null);
+                    b.ToTable("ApplicationPermissions");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Security.AuditLog", b =>
@@ -2600,7 +2603,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasIndex("EntityType", "EntityId");
 
-                    b.ToTable("AuditLogs", (string)null);
+                    b.ToTable("AuditLogs");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Security.Role", b =>
@@ -2651,7 +2654,7 @@ namespace Investa.Infrastructure.Migrations
                     b.HasIndex("GroupId", "Name")
                         .IsUnique();
 
-                    b.ToTable("Roles", (string)null);
+                    b.ToTable("Roles");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Security.RolePermission", b =>
@@ -2683,7 +2686,7 @@ namespace Investa.Infrastructure.Migrations
                     b.HasIndex("RoleId", "PermissionId")
                         .IsUnique();
 
-                    b.ToTable("RolePermissions", (string)null);
+                    b.ToTable("RolePermissions");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Security.UserRole", b =>
@@ -2715,7 +2718,7 @@ namespace Investa.Infrastructure.Migrations
                     b.HasIndex("UserId", "RoleId")
                         .IsUnique();
 
-                    b.ToTable("UserRoles", (string)null);
+                    b.ToTable("UserRoles");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Security.UserSession", b =>
@@ -2776,7 +2779,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasIndex("UserId", "ExpiresAt");
 
-                    b.ToTable("UserSessions", (string)null);
+                    b.ToTable("UserSessions");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.SupportSession", b =>
@@ -2813,7 +2816,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SupportSessions", (string)null);
+                    b.ToTable("SupportSessions");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Transaction", b =>
@@ -2841,7 +2844,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasIndex("WalletId");
 
-                    b.ToTable("Transactions", (string)null);
+                    b.ToTable("Transactions");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.UserGroup", b =>
@@ -2873,7 +2876,7 @@ namespace Investa.Infrastructure.Migrations
                     b.HasIndex("UserId", "GroupId")
                         .IsUnique();
 
-                    b.ToTable("UserGroups", (string)null);
+                    b.ToTable("UserGroups");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.UserNotification", b =>
@@ -2940,7 +2943,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasIndex("UserId", "IsRead");
 
-                    b.ToTable("UserNotifications", (string)null);
+                    b.ToTable("UserNotifications");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.UserProfile", b =>
@@ -3076,7 +3079,7 @@ namespace Investa.Infrastructure.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("UserProfiles", (string)null);
+                    b.ToTable("UserProfiles");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.UserToken", b =>
@@ -3106,7 +3109,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasKey("UserId");
 
-                    b.ToTable("UserTokens", (string)null);
+                    b.ToTable("UserTokens");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.UserVerification", b =>
@@ -3155,7 +3158,7 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserVerification", (string)null);
+                    b.ToTable("UserVerification");
                 });
 
             modelBuilder.Entity("Investa.Infrastructure.Identity.ApplicationIdentityRole", b =>

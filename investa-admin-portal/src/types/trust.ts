@@ -64,8 +64,6 @@ export interface TrustProfileDto {
   verificationTrustScore?: number;
   reputationScore: number;
   activityScore?: number;
-  reputationLevel?: string;
-  reputationLabel?: string;
   riskFlags?: string[];
   profileCompletionPercentage: number;
   isPhoneVerified: boolean;
@@ -105,3 +103,30 @@ export const VERIFICATION_TYPE_LABELS: Record<VerificationType, string> = {
   [VerificationType.Address]: 'Address',
   [VerificationType.LegalAgreement]: 'Legal Agreement'
 };
+
+export interface ReputationRuleDto {
+  id: number;
+  ruleCode: string;
+  description: string;
+  points: number;
+  isEnabled: boolean;
+  isSystem: boolean;
+  isAutomatic: boolean;
+  canRepeat: boolean;
+  maximumOccurrences: number;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ReputationTransactionDto {
+  id: number;
+  userId: string;
+  reputationRuleId?: number;
+  ruleCode?: string;
+  points: number;
+  reason?: string;
+  referenceId?: string;
+  referenceType?: string;
+  occurredAt: string;
+}

@@ -208,7 +208,6 @@ public class DatabaseSeeder
             userType: UserType.OrgUser,
             clientType: ClientType.Investor,
             trustLevel: TrustLevel.TrustedActive,
-            reputationLevel: "Platform Administrator",
             reputationScore: 10000,
             activityScore: 10000,
             verificationTrustScore: 100
@@ -218,14 +217,14 @@ public class DatabaseSeeder
         // Test users with phone numbers +201022322292 to +201022322299
         var testUserData = new[]
         {
-            new { Phone = "+201022322292", Name = "Ahmed Mohamed", Email = "user92@investa.test", Type = ClientType.Founder, Role = "Trusted Founder", RepScore = 8500, ActScore = 7200, Trust = TrustLevel.TrustedActive, RepLevel = "Trusted Founder" },
-            new { Phone = "+201022322293", Name = "Sara Ali", Email = "user93@investa.test", Type = ClientType.Founder, Role = "Active Founder", RepScore = 6200, ActScore = 5800, Trust = TrustLevel.Interactive, RepLevel = "Active Founder" },
-            new { Phone = "+201022322294", Name = "Omar Hassan", Email = "user94@investa.test", Type = ClientType.Founder, Role = "Rising Founder", RepScore = 3800, ActScore = 3200, Trust = TrustLevel.Interactive, RepLevel = "Rising Founder" },
-            new { Phone = "+201022322295", Name = "Fatima Ahmed", Email = "user95@investa.test", Type = ClientType.Founder, Role = "Emerging Founder", RepScore = 2100, ActScore = 1800, Trust = TrustLevel.Registered, RepLevel = "Emerging Founder" },
-            new { Phone = "+201022322296", Name = "Khalid Ibrahim", Email = "user96@investa.test", Type = ClientType.Investor, Role = "Active Partner", RepScore = 7800, ActScore = 6900, Trust = TrustLevel.TrustedActive, RepLevel = "Active Partner" },
-            new { Phone = "+201022322297", Name = "Layla Mahmoud", Email = "user97@investa.test", Type = ClientType.Investor, Role = "Top Contributor", RepScore = 9200, ActScore = 8500, Trust = TrustLevel.TrustedActive, RepLevel = "Top Contributor" },
-            new { Phone = "+201022322298", Name = "Youssef Ali", Email = "user98@investa.test", Type = ClientType.Investor, Role = "Rising Partner", RepScore = 4500, ActScore = 4100, Trust = TrustLevel.Interactive, RepLevel = "Rising Partner" },
-            new { Phone = "+201022322299", Name = "Nour Hassan", Email = "user99@investa.test", Type = ClientType.Investor, Role = "New Partner", RepScore = 1200, ActScore = 900, Trust = TrustLevel.Registered, RepLevel = "New Partner" }
+            new { Phone = "+201022322292", Name = "Ahmed Mohamed", Email = "user92@investa.test", Type = ClientType.Founder, Role = "Trusted Founder", RepScore = 8500, ActScore = 7200, Trust = TrustLevel.TrustedActive },
+            new { Phone = "+201022322293", Name = "Sara Ali", Email = "user93@investa.test", Type = ClientType.Founder, Role = "Active Founder", RepScore = 6200, ActScore = 5800, Trust = TrustLevel.Interactive },
+            new { Phone = "+201022322294", Name = "Omar Hassan", Email = "user94@investa.test", Type = ClientType.Founder, Role = "Rising Founder", RepScore = 3800, ActScore = 3200, Trust = TrustLevel.Interactive },
+            new { Phone = "+201022322295", Name = "Fatima Ahmed", Email = "user95@investa.test", Type = ClientType.Founder, Role = "Emerging Founder", RepScore = 2100, ActScore = 1800, Trust = TrustLevel.Registered },
+            new { Phone = "+201022322296", Name = "Khalid Ibrahim", Email = "user96@investa.test", Type = ClientType.Investor, Role = "Active Partner", RepScore = 7800, ActScore = 6900, Trust = TrustLevel.TrustedActive },
+            new { Phone = "+201022322297", Name = "Layla Mahmoud", Email = "user97@investa.test", Type = ClientType.Investor, Role = "Top Contributor", RepScore = 9200, ActScore = 8500, Trust = TrustLevel.TrustedActive },
+            new { Phone = "+201022322298", Name = "Youssef Ali", Email = "user98@investa.test", Type = ClientType.Investor, Role = "Rising Partner", RepScore = 4500, ActScore = 4100, Trust = TrustLevel.Interactive },
+            new { Phone = "+201022322299", Name = "Nour Hassan", Email = "user99@investa.test", Type = ClientType.Investor, Role = "New Partner", RepScore = 1200, ActScore = 900, Trust = TrustLevel.Registered }
         };
 
         for (int i = 0; i < testUserData.Length; i++)
@@ -241,7 +240,6 @@ public class DatabaseSeeder
                 userType: UserType.Client,
                 clientType: userData.Type,
                 trustLevel: userData.Trust,
-                reputationLevel: userData.RepLevel,
                 reputationScore: userData.RepScore,
                 activityScore: userData.ActScore,
                 verificationTrustScore: userData.Trust == TrustLevel.TrustedActive ? 85 : (userData.Trust == TrustLevel.Interactive ? 60 : 30)
@@ -599,7 +597,7 @@ public class DatabaseSeeder
 
     #region Helper Methods
 
-    private async Task<AuthUser> GetOrCreateUserAsync(
+private async Task<AuthUser> GetOrCreateUserAsync(
         string email,
         string name,
         string? phone,
@@ -607,7 +605,6 @@ public class DatabaseSeeder
         UserType userType,
         ClientType clientType,
         TrustLevel trustLevel,
-        string reputationLevel,
         int reputationScore,
         int activityScore,
         int verificationTrustScore)
@@ -626,25 +623,22 @@ public class DatabaseSeeder
             return existingUser;
         }
 
-        // Create user in AspNetUsers (Identity) table for login
+// Create user in AspNetUsers (Identity) table for login
         var identityUser = new ApplicationIdentityUser
         {
-            UserName = normalizedPhone ?? email,
+            Id = Guid.NewGuid(),
             Email = email,
-            PhoneNumber = normalizedPhone,
-            PhoneNumberConfirmed = normalizedPhone != null,
-            EmailConfirmed = true
+            UserName = email,
+            EmailConfirmed = true,
+            PasswordHash = new PasswordHasher<ApplicationIdentityUser>().HashPassword(null, password)
         };
 
-        var identityResult = await _userManager.CreateAsync(identityUser, password);
-        if (!identityResult.Succeeded)
-        {
-            throw new Exception($"Failed to create identity user: {string.Join(", ", identityResult.Errors.Select(e => e.Description))}");
-        }
+        _context.Users.Add(identityUser);
+        await _context.SaveChangesAsync();
 
-        var newUser = new AuthUser
+        var authUser = new AuthUser
         {
-            Id = identityUser.Id,
+            Id = Guid.Parse(identityUser.Id.ToString()),
             Name = name,
             Email = email,
             PasswordHash = identityUser.PasswordHash,
@@ -659,16 +653,15 @@ public class DatabaseSeeder
             TrustLevel = trustLevel,
             ReputationScore = reputationScore,
             ActivityScore = activityScore,
-            ReputationLevel = reputationLevel,
             ProfileCompletionPercentage = userType == UserType.Client ? 85 : 0,
             IsPhoneVerified = normalizedPhone != null,
             IsEmailVerified = true
         };
 
-        _context.AuthUsers.Add(newUser);
+        _context.AuthUsers.Add(authUser);
         await _context.SaveChangesAsync();
 
-        return newUser;
+        return authUser;
     }
 
     private async Task<UserProfile> GetOrCreateUserProfileAsync(Guid userId, string name, string? phone, string role)

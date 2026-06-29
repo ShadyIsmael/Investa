@@ -5,6 +5,7 @@ namespace Investa.Application.Interfaces;
 /// <summary>
 /// Manages the Progressive Trust lifecycle: computing levels, recalculating scores,
 /// and surfacing permission sets to all platform layers.
+/// Reputation-related operations are handled by ReputationService.
 /// </summary>
 public interface ITrustService
 {
@@ -12,18 +13,12 @@ public interface ITrustService
     Task<TrustProfileDto> GetTrustProfileAsync(Guid userId);
 
     /// <summary>
-    /// Recalculates trust level and profile completion for a user.
+    /// Recalculates trust level and verification metrics for a user.
     /// Call after any profile update, verification approval, or activity event.
     /// </summary>
     Task RecalculateTrustAsync(Guid userId);
 
-    /// <summary>
-    /// Adds/updates reputation score delta (+/-) for a user.
-    /// Positive for good activity, negative for violations.
-    /// </summary>
-    Task AdjustReputationScoreAsync(Guid userId, int delta, string reason);
-
-    /// <summary>Submits a new verification document/request for the user.</summary>
+    /// <summary>Submits a verification document/request for the user.</summary>
     Task<UserVerificationDto> SubmitVerificationAsync(Guid userId, SubmitVerificationRequest request);
 
     /// <summary>Admin: Approves or rejects a pending verification.</summary>

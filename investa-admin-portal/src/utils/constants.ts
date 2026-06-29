@@ -50,6 +50,24 @@ export const NAV_ITEMS: NavItem[] = [
   },
   { id: 'audit', label: 'Audit Trail', labelKey: 'nav.auditTrail', iconName: 'shield-check', path: '/audit', permissions: ['Audit.View'] },
   { id: 'analytics', label: 'Advanced Analytics', labelKey: 'nav.advancedAnalytics', iconName: 'sparkles', path: '/analytics', permissions: ['Analytics.View'] },
+  {
+    id: 'operations',
+    label: 'Operations',
+    labelKey: 'nav.operations',
+    iconName: 'shield-check',
+    path: '/operations',
+    permissions: ['User.Manage'],
+    children: [
+      {
+        id: 'reputation-rules',
+        label: 'Reputation Rules',
+        labelKey: 'nav.reputationRules',
+        iconName: 'shield-check',
+        path: '/operations/reputation-rules',
+        permissions: ['User.Manage'],
+      }
+    ]
+  },
   { 
     id: 'config', 
     label: 'Configurations', 

@@ -87,10 +87,6 @@ public class AuthUser
     [Range(0, 10000)]
     public int ActivityScore { get; set; } = 0;
 
-    /// <summary>Human-readable reputation level used by product surfaces.</summary>
-    [StringLength(80)]
-    public string ReputationLevel { get; set; } = "Rising Member";
-
     /// <summary>Profile completion percentage (0–100). Drives trust-level upgrades.</summary>
     [Range(0, 100)]
     public int ProfileCompletionPercentage { get; set; } = 0;
