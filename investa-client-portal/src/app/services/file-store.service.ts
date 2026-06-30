@@ -12,13 +12,22 @@ interface ProfilePictureResponse {
   uploadedAt: string;
 }
 
-interface FileStoreUploadResponse {
+export interface FileStoreFile {
+  fileId?: string;
+  fileKey?: string;
   fileName: string;
-  originalName: string;
+  originalFileName?: string;
+  originalName?: string;
+  extension?: string;
+  mimeType?: string;
+  contentType?: string;
+  fileSize?: number;
+  sizeBytes?: number;
   category: string;
-  sizeBytes: number;
-  contentType: string;
   url: string;
+  previewUrl?: string;
+  thumbnailUrl?: string;
+  uploadedBy?: string;
   uploadedAt: string;
 }
 
@@ -118,7 +127,7 @@ export class FileStoreService {
     form.append('file', file, file.name);
 
     const resp = await firstValueFrom(
-      this.http.post<FileStoreUploadResponse>(url, form, { headers: this.authHeaders })
+      this.http.post<FileStoreFile>(url, form, { headers: this.authHeaders })
     );
 
     return `${this.base}${resp.url}`;
@@ -135,7 +144,7 @@ export class FileStoreService {
     form.append('file', file, file.name);
 
     const resp = await firstValueFrom(
-      this.http.post<FileStoreUploadResponse>(url, form, { headers: this.authHeaders })
+      this.http.post<FileStoreFile>(url, form, { headers: this.authHeaders })
     );
 
     return `${this.base}${resp.url}`;
@@ -152,7 +161,7 @@ export class FileStoreService {
     form.append('file', file, file.name);
 
     const resp = await firstValueFrom(
-      this.http.post<FileStoreUploadResponse>(url, form, { headers: this.authHeaders })
+      this.http.post<FileStoreFile>(url, form, { headers: this.authHeaders })
     );
 
     return `${this.base}${resp.url}`;
@@ -169,7 +178,7 @@ export class FileStoreService {
     form.append('file', file, file.name);
 
     const resp = await firstValueFrom(
-      this.http.post<FileStoreUploadResponse>(url, form, { headers: this.authHeaders })
+      this.http.post<FileStoreFile>(url, form, { headers: this.authHeaders })
     );
 
     return `${this.base}${resp.url}`;
@@ -196,5 +205,54 @@ export class FileStoreService {
   async deleteNationalId(userId: string, fileName: string): Promise<void> {
     const url = `${this.base}/users/${encodeURIComponent(userId)}/national-id/${encodeURIComponent(fileName)}`;
     await firstValueFrom(this.http.delete(url, { headers: this.authHeaders }));
+  }
+
+  async uploadFile(category: string, file: File): Promise<FileStoreFile> {
+    const url = `${this.base}/files/${encodeURIComponent(category)}`;
+    const form = new FormData();
+    form.append('file', file, file.name);
+    const resp = await firstValueFrom(
+      this.http.post<FileStoreFile>(url, form, { headers: this.authHeaders })
+    );
+    return this.normalizeFile(resp);
+  }
+
+  getDownloadUrl(category: string, filename: string): string {
+    return `${this.base}/files/${encodeURIComponent(category)}/${encodeURIComponent(filename)}/download`;
+  }
+
+  getPreviewUrl(category: string, filename: string): string {
+    return `${this.base}/files/${encodeURIComponent(category)}/${encodeURIComponent(filename)}/preview`;
+  }
+
+  async getMetadata(category: string, filename: string): Promise<FileStoreFile> {
+    const url = `${this.base}/files/${encodeURIComponent(category)}/${encodeURIComponent(filename)}/metadata`;
+    const resp = await firstValueFrom(this.http.get<FileStoreFile>(url, { headers: this.authHeaders }));
+    return this.normalizeFile(resp);
+  }
+
+  async searchFiles(category: string, query = ''): Promise<FileStoreFile[]> {
+    const url = `${this.base}/files/search?category=${encodeURIComponent(category)}&q=${encodeURIComponent(query)}`;
+    const resp = await firstValueFrom(this.http.get<FileStoreFile[] | { items: FileStoreFile[] }>(url, { headers: this.authHeaders }));
+    const items = Array.isArray(resp) ? resp : resp.items ?? [];
+    return items.map(item => this.normalizeFile(item));
+  }
+
+  async getCategories(): Promise<string[]> {
+    const url = `${this.base}/categories`;
+    const resp = await firstValueFrom(this.http.get<Array<string | { name?: string; key?: string; value?: string }>>(url, { headers: this.authHeaders }));
+    return (resp || []).map(item => typeof item === 'string' ? item : item.name || item.key || item.value || '').filter(Boolean);
+  }
+
+  private normalizeFile(file: FileStoreFile): FileStoreFile {
+    return {
+      ...file,
+      url: this.getPublicUrl(file.url),
+      previewUrl: file.previewUrl ? this.getPublicUrl(file.previewUrl) : file.previewUrl,
+      thumbnailUrl: file.thumbnailUrl ? this.getPublicUrl(file.thumbnailUrl) : file.thumbnailUrl,
+      mimeType: file.mimeType || file.contentType,
+      fileSize: file.fileSize ?? file.sizeBytes,
+      originalFileName: file.originalFileName || file.originalName || file.fileName
+    };
   }
 }

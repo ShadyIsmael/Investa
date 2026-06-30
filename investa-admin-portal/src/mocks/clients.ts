@@ -32,9 +32,9 @@ async function refreshTopClientsFromApi() {
       if (stored === 'true') return;
     }
 
-    const base = (import.meta.env.VITE_API_BASE_URL as string) || 'http://desktop-dih7cqh:5235/';
+    const base = getDynamicBaseUrl();
     // Normalize base and strip any trailing `/api` segment to avoid duplicated `/api/api` when
-    // VITE_API_BASE_URL is configured as e.g. `http://localhost:5000/api` (common in docs/examples)
+    // VITE_API_BASE_URL may include a trailing `/api`; strip it before appending endpoint paths.
     const baseClean = base.replace(/\/api\/?$/, '').replace(/\/+$|\s+$/g, '');
     const token = storage.get('token');
     if (!token) {
@@ -42,7 +42,7 @@ async function refreshTopClientsFromApi() {
       return;
     }
 
-    const url = `${baseClean}/api/v1/admin/clients/top`;
+    const url = baseClean ? `${baseClean}/api/v1/admin/clients/top` : '/api/v1/admin/clients/top';
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,

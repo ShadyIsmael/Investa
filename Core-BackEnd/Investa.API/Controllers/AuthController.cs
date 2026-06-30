@@ -235,13 +235,19 @@ public class AuthController : BaseApiController
         }
 
         if (identityUser == null)
+        {
+            _logger.LogWarning("Phone login failed: user not found for normalized phone {NormalizedPhone}", normalizedPhone);
             return ErrorResponse("Invalid credentials", 401);
+        }
 
         if (!usedLegacyAuthFallback)
         {
             var passwordValid = await _userManager.CheckPasswordAsync(identityUser, request.Password);
             if (!passwordValid)
+            {
+                _logger.LogWarning("Phone login failed: password mismatch for user {UserId} and normalized phone {NormalizedPhone}", identityUser.Id, normalizedPhone);
                 return ErrorResponse("Invalid credentials", 401);
+            }
         }
 
         // Check account status
@@ -252,10 +258,16 @@ public class AuthController : BaseApiController
             if (authUser != null)
             {
                 if (!authUser.Status)
+                {
+                    _logger.LogWarning("Phone login failed: inactive user {UserId}", authUser.Id);
                     return ErrorResponse("Account is disabled", 401);
+                }
 
                 if (authUser.SuspendedUntil.HasValue && authUser.SuspendedUntil.Value > DateTime.UtcNow)
+                {
+                    _logger.LogWarning("Phone login failed: suspended user {UserId} until {SuspendedUntil}", authUser.Id, authUser.SuspendedUntil.Value);
                     return ErrorResponse("Account is suspended", 401);
+                }
             }
         }
 
@@ -798,17 +810,45 @@ public class AuthController : BaseApiController
 
     private async Task<ApplicationIdentityUser?> TryAuthenticateLegacyPhoneUserAsync(string normalizedPhone, string password)
     {
-        var emailVariants = PhoneNumberNormalizer.GetPhoneVariants(normalizedPhone)
+        var phoneVariants = PhoneNumberNormalizer.GetPhoneVariants(normalizedPhone)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var emailVariants = phoneVariants
             .Select(v => $"{v}@phone.investa.local")
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        var authUser = (await _unitOfWork.Repository<AuthUser>()
-            .FindAsync(a => a.Email != null && emailVariants.Contains(a.Email)))
-            .FirstOrDefault();
+        AuthUser? authUser = null;
+
+        foreach (var phoneVariant in phoneVariants)
+        {
+            authUser = (await _unitOfWork.Repository<AuthUser>()
+                .FindAsync(a => a.FirebaseUid == phoneVariant))
+                .FirstOrDefault();
+
+            if (authUser != null)
+                break;
+        }
 
         if (authUser == null)
+        {
+            foreach (var emailVariant in emailVariants)
+            {
+                authUser = (await _unitOfWork.Repository<AuthUser>()
+                    .FindAsync(a => a.Email != null && a.Email == emailVariant))
+                    .FirstOrDefault();
+
+                if (authUser != null)
+                    break;
+            }
+        }
+
+        if (authUser == null)
+        {
+            _logger.LogInformation("Legacy phone login fallback: user not found for {NormalizedPhone}", normalizedPhone);
             return null;
+        }
 
         var identityUser = new ApplicationIdentityUser
         {
@@ -823,7 +863,10 @@ public class AuthController : BaseApiController
         var passwordHasher = new PasswordHasher<ApplicationIdentityUser>();
         var verification = passwordHasher.VerifyHashedPassword(identityUser, authUser.PasswordHash, password);
         if (verification == PasswordVerificationResult.Failed)
+        {
+            _logger.LogWarning("Legacy phone login fallback: password mismatch for auth user {UserId}", authUser.Id);
             return null;
+        }
 
         return identityUser;
     }

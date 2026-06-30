@@ -83,6 +83,9 @@ public class AuthUser
     [Range(0, 10000)]
     public int ReputationScore { get; set; } = 0;
 
+    [StringLength(80)]
+    public string ReputationLevel { get; set; } = "Rising Member";
+
     /// <summary>Activity contribution score (0-10000). Tracks meaningful platform participation.</summary>
     [Range(0, 10000)]
     public int ActivityScore { get; set; } = 0;

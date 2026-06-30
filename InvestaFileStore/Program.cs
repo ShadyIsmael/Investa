@@ -1,4 +1,6 @@
 using System.Net.Mime;
+using System.Text.Json;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,6 +13,30 @@ var maxMb       = int.TryParse(cfg["Storage:MaxFileSizeMB"], out var mb) ? mb : 
 var port        = int.TryParse(cfg["Server:Port"], out var p) ? p : 5240;
 
 Directory.CreateDirectory(storagePath);
+var contentTypeProvider = new FileExtensionContentTypeProvider();
+var allowedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+{
+    ".jpg", ".jpeg", ".png", ".webp", ".gif",
+    ".mp4", ".mov", ".avi", ".webm",
+    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+    ".txt", ".csv", ".rtf", ".zip", ".json"
+};
+var fileCategories = new[]
+{
+    new FileCategoryContract("OpportunityCover", "Opportunity cover image", "image"),
+    new FileCategoryContract("OpportunityGallery", "Opportunity gallery image", "image"),
+    new FileCategoryContract("OpportunityPublicDocument", "Public opportunity document", "document"),
+    new FileCategoryContract("OpportunityPrivateDocument", "Private opportunity document", "document"),
+    new FileCategoryContract("FinancialReport", "Financial reports and statements", "document"),
+    new FileCategoryContract("Contract", "Contracts and agreements", "document"),
+    new FileCategoryContract("Legal", "Legal and compliance documents", "document"),
+    new FileCategoryContract("Image", "General image", "image"),
+    new FileCategoryContract("Video", "General video", "video"),
+    new FileCategoryContract("Presentation", "Presentation files", "document"),
+    new FileCategoryContract("Spreadsheet", "Spreadsheet files", "document"),
+    new FileCategoryContract("Archive", "Archive files", "archive"),
+    new FileCategoryContract("General", "General business files", "general")
+};
 
 // ── Services ──────────────────────────────────────────────────────────────────
 builder.Services.AddCors(o => o.AddPolicy("AllowAll", p =>
@@ -52,10 +78,13 @@ app.Use(async (ctx, next) =>
 // ── Health ────────────────────────────────────────────────────────────────────
 app.MapGet("/health", () => Results.Ok(new { status = "ok", version = "1.0" }));
 
+// File category catalog. Clients should discover supported categories here instead of hardcoding them.
+app.MapGet("/categories", () => Results.Ok(fileCategories.OrderBy(c => c.Name)));
+
 // ── Upload  POST /files/{category} ───────────────────────────────────────────
 app.MapPost("/files/{category}", async (string category, HttpRequest request) =>
 {
-    category = SanitizeSegment(category);
+    category = NormalizeCategory(category, fileCategories);
     if (category.Length == 0)
         return Results.BadRequest(new { error = "Invalid category" });
 
@@ -72,26 +101,39 @@ app.MapPost("/files/{category}", async (string category, HttpRequest request) =>
         if (file.Length > maxMb * 1024L * 1024L)
             return Results.BadRequest(new { error = $"File exceeds {maxMb} MB limit" });
 
+        var validationError = ValidateFile(file, allowedExtensions, contentTypeProvider);
+        if (validationError is not null)
+            return Results.BadRequest(new { error = validationError });
+
         var dir = Path.Combine(storagePath, category);
         Directory.CreateDirectory(dir);
 
-        var ext      = Path.GetExtension(file.FileName);
+        var ext      = Path.GetExtension(file.FileName).ToLowerInvariant();
         var safeName = $"{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}_{Guid.NewGuid():N}{ext}";
         var fullPath = Path.Combine(dir, safeName);
 
         await using var fs = File.Create(fullPath);
         await file.CopyToAsync(fs);
 
-        uploads.Add(new
-        {
-            fileName    = safeName,
-            originalName = file.FileName,
-            category,
-            sizeBytes   = file.Length,
-            contentType = file.ContentType,
-            url         = $"/storage/{category}/{safeName}",
-            uploadedAt  = DateTime.UtcNow
-        });
+        var url = $"/storage/{category}/{safeName}";
+        var mimeType = ResolveMimeType(safeName, file.ContentType, contentTypeProvider);
+        var metadata = new FileMetadataContract(
+            FileId: Guid.NewGuid().ToString("N"),
+            FileKey: $"{category}/{safeName}",
+            FileName: safeName,
+            OriginalFileName: Path.GetFileName(file.FileName),
+            Extension: ext,
+            MimeType: mimeType,
+            FileSize: file.Length,
+            Category: category,
+            Url: url,
+            PreviewUrl: SupportsPreview(mimeType, ext) ? url : null,
+            ThumbnailUrl: mimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ? url : null,
+            UploadedBy: request.Form["uploadedBy"].FirstOrDefault() ?? request.Headers["X-User-Id"].FirstOrDefault(),
+            UploadedAt: DateTime.UtcNow);
+
+        await WriteMetadataAsync(fullPath, metadata);
+        uploads.Add(ToUploadResponse(metadata));
     }
 
     return uploads.Count == 1 ? Results.Ok(uploads[0]) : Results.Ok(uploads);
@@ -100,25 +142,20 @@ app.MapPost("/files/{category}", async (string category, HttpRequest request) =>
 // ── List   GET /files/{category} ─────────────────────────────────────────────
 app.MapGet("/files/{category}", (string category) =>
 {
-    category = SanitizeSegment(category);
+    category = NormalizeCategory(category, fileCategories);
     var dir  = Path.Combine(storagePath, category);
     if (!Directory.Exists(dir))
         return Results.Ok(Array.Empty<object>());
 
     var files = Directory.GetFiles(dir)
+        .Where(f => !f.EndsWith(".meta.json", StringComparison.OrdinalIgnoreCase))
         .Select(f =>
         {
             var info = new FileInfo(f);
-            return new
-            {
-                fileName    = info.Name,
-                category,
-                sizeBytes   = info.Length,
-                url         = $"/storage/{category}/{info.Name}",
-                createdAt   = info.CreationTimeUtc
-            };
+            return ReadMetadataOrFallback(f, category, contentTypeProvider);
         })
-        .OrderByDescending(f => f.createdAt)
+        .OrderByDescending(f => f.UploadedAt)
+        .Select(ToUploadResponse)
         .ToList();
 
     return Results.Ok(files);
@@ -138,10 +175,82 @@ app.MapGet("/files", () =>
     return Results.Ok(cats);
 });
 
+// Search metadata across categories, or within one category.
+app.MapGet("/files/search", (string? category, string? q) =>
+{
+    var normalizedCategory = string.IsNullOrWhiteSpace(category) ? null : NormalizeCategory(category, fileCategories);
+    var roots = normalizedCategory == null
+        ? Directory.Exists(storagePath) ? Directory.GetDirectories(storagePath) : Array.Empty<string>()
+        : [Path.Combine(storagePath, normalizedCategory)];
+
+    var query = q?.Trim();
+    var results = roots
+        .Where(Directory.Exists)
+        .SelectMany(Directory.GetFiles)
+        .Where(f => !f.EndsWith(".meta.json", StringComparison.OrdinalIgnoreCase))
+        .Select(f => ReadMetadataOrFallback(f, Path.GetFileName(Path.GetDirectoryName(f)) ?? "General", contentTypeProvider))
+        .Where(m => string.IsNullOrWhiteSpace(query)
+                    || m.FileName.Contains(query, StringComparison.OrdinalIgnoreCase)
+                    || m.OriginalFileName.Contains(query, StringComparison.OrdinalIgnoreCase)
+                    || m.Category.Contains(query, StringComparison.OrdinalIgnoreCase))
+        .OrderByDescending(m => m.UploadedAt)
+        .Select(ToUploadResponse)
+        .ToList();
+
+    return Results.Ok(results);
+});
+
+// Metadata  GET /files/{category}/{filename}/metadata
+app.MapGet("/files/{category}/{filename}/metadata", (string category, string filename) =>
+{
+    var pathResult = ResolveStoredFilePath(storagePath, NormalizeCategory(category, fileCategories), filename);
+    if (pathResult.Error is not null)
+        return Results.BadRequest(new { error = pathResult.Error });
+
+    if (!File.Exists(pathResult.Path))
+        return Results.NotFound(new { error = "File not found" });
+
+    var metadata = ReadMetadataOrFallback(pathResult.Path, NormalizeCategory(category, fileCategories), contentTypeProvider);
+    return Results.Ok(ToUploadResponse(metadata));
+});
+
+// Download  GET /files/{category}/{filename}/download
+app.MapGet("/files/{category}/{filename}/download", (string category, string filename) =>
+{
+    var normalizedCategory = NormalizeCategory(category, fileCategories);
+    var pathResult = ResolveStoredFilePath(storagePath, normalizedCategory, filename);
+    if (pathResult.Error is not null)
+        return Results.BadRequest(new { error = pathResult.Error });
+
+    if (!File.Exists(pathResult.Path))
+        return Results.NotFound(new { error = "File not found" });
+
+    var metadata = ReadMetadataOrFallback(pathResult.Path, normalizedCategory, contentTypeProvider);
+    return Results.File(pathResult.Path, metadata.MimeType, metadata.OriginalFileName);
+});
+
+// Preview  GET /files/{category}/{filename}/preview
+app.MapGet("/files/{category}/{filename}/preview", (string category, string filename) =>
+{
+    var normalizedCategory = NormalizeCategory(category, fileCategories);
+    var pathResult = ResolveStoredFilePath(storagePath, normalizedCategory, filename);
+    if (pathResult.Error is not null)
+        return Results.BadRequest(new { error = pathResult.Error });
+
+    if (!File.Exists(pathResult.Path))
+        return Results.NotFound(new { error = "File not found" });
+
+    var metadata = ReadMetadataOrFallback(pathResult.Path, normalizedCategory, contentTypeProvider);
+    if (!SupportsPreview(metadata.MimeType, metadata.Extension))
+        return Results.BadRequest(new { error = "Preview is not supported for this file type" });
+
+    return Results.File(pathResult.Path, metadata.MimeType, enableRangeProcessing: true);
+});
+
 // ── Delete  DELETE /files/{category}/{filename} ───────────────────────────────
 app.MapDelete("/files/{category}/{filename}", (string category, string filename) =>
 {
-    category = SanitizeSegment(category);
+    category = NormalizeCategory(category, fileCategories);
     filename = SanitizeSegment(filename);
 
     if (category.Length == 0 || filename.Length == 0)
@@ -159,6 +268,10 @@ app.MapDelete("/files/{category}/{filename}", (string category, string filename)
         return Results.NotFound(new { error = "File not found" });
 
     File.Delete(fullPath);
+    var metadataPath = GetMetadataPath(fullPath);
+    if (File.Exists(metadataPath))
+        File.Delete(metadataPath);
+
     return Results.Ok(new { deleted = filename });
 });
 
@@ -173,7 +286,9 @@ app.MapGet("/stats", () =>
     {
         foreach (var dir in Directory.GetDirectories(storagePath))
         {
-            var info  = Directory.GetFiles(dir, "*", SearchOption.AllDirectories);
+            var info  = Directory.GetFiles(dir, "*", SearchOption.AllDirectories)
+                .Where(f => !f.EndsWith(".meta.json", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
             var bytes = info.Sum(f => new FileInfo(f).Length);
             totalFiles += info.Length;
             totalBytes += bytes;
@@ -381,4 +496,153 @@ app.Run();
 // ── Helpers ───────────────────────────────────────────────────────────────────
 static string SanitizeSegment(string segment) =>
     Path.GetFileName(segment.Replace("..", "").Replace("/", "").Replace("\\", "").Trim());
+
+static string NormalizeCategory(string category, IReadOnlyCollection<FileCategoryContract> knownCategories)
+{
+    var sanitized = SanitizeSegment(category);
+    var known = knownCategories.FirstOrDefault(c => string.Equals(c.Name, sanitized, StringComparison.OrdinalIgnoreCase));
+    return known?.Name ?? sanitized;
+}
+
+static string? ValidateFile(IFormFile file, ISet<string> allowedExtensions, FileExtensionContentTypeProvider contentTypeProvider)
+{
+    var originalName = Path.GetFileName(file.FileName);
+    var ext = Path.GetExtension(originalName).ToLowerInvariant();
+    if (string.IsNullOrWhiteSpace(ext) || !allowedExtensions.Contains(ext))
+        return $"File extension '{ext}' is not allowed";
+
+    var mimeType = ResolveMimeType(originalName, file.ContentType, contentTypeProvider);
+    if (string.IsNullOrWhiteSpace(mimeType) || mimeType.Equals("application/x-msdownload", StringComparison.OrdinalIgnoreCase))
+        return "File content type is not allowed";
+
+    if (mimeType.Contains("javascript", StringComparison.OrdinalIgnoreCase)
+        || mimeType.Equals("text/html", StringComparison.OrdinalIgnoreCase))
+        return "Unsafe file content type is not allowed";
+
+    return null;
+}
+
+static string ResolveMimeType(string fileName, string? suppliedContentType, FileExtensionContentTypeProvider contentTypeProvider)
+{
+    if (contentTypeProvider.TryGetContentType(fileName, out var detected))
+        return detected;
+
+    return string.IsNullOrWhiteSpace(suppliedContentType)
+        ? MediaTypeNames.Application.Octet
+        : suppliedContentType;
+}
+
+static bool SupportsPreview(string mimeType, string extension)
+{
+    return mimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)
+        || mimeType.StartsWith("video/", StringComparison.OrdinalIgnoreCase)
+        || mimeType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase)
+        || extension.Equals(".txt", StringComparison.OrdinalIgnoreCase)
+        || extension.Equals(".csv", StringComparison.OrdinalIgnoreCase);
+}
+
+static string GetMetadataPath(string fullPath) => $"{fullPath}.meta.json";
+
+static async Task WriteMetadataAsync(string fullPath, FileMetadataContract metadata)
+{
+    var json = JsonSerializer.Serialize(metadata, new JsonSerializerOptions { WriteIndented = true });
+    await File.WriteAllTextAsync(GetMetadataPath(fullPath), json);
+}
+
+static FileMetadataContract ReadMetadataOrFallback(
+    string fullPath,
+    string category,
+    FileExtensionContentTypeProvider contentTypeProvider)
+{
+    var metadataPath = GetMetadataPath(fullPath);
+    if (File.Exists(metadataPath))
+    {
+        try
+        {
+            var json = File.ReadAllText(metadataPath);
+            var metadata = JsonSerializer.Deserialize<FileMetadataContract>(json);
+            if (metadata is not null)
+                return metadata;
+        }
+        catch
+        {
+            // Fall back to filesystem metadata if sidecar metadata is unreadable.
+        }
+    }
+
+    var info = new FileInfo(fullPath);
+    var ext = info.Extension.ToLowerInvariant();
+    var mimeType = ResolveMimeType(info.Name, null, contentTypeProvider);
+    var url = $"/storage/{category}/{info.Name}";
+    return new FileMetadataContract(
+        FileId: Path.GetFileNameWithoutExtension(info.Name),
+        FileKey: $"{category}/{info.Name}",
+        FileName: info.Name,
+        OriginalFileName: info.Name,
+        Extension: ext,
+        MimeType: mimeType,
+        FileSize: info.Length,
+        Category: category,
+        Url: url,
+        PreviewUrl: SupportsPreview(mimeType, ext) ? url : null,
+        ThumbnailUrl: mimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ? url : null,
+        UploadedBy: null,
+        UploadedAt: info.CreationTimeUtc);
+}
+
+static object ToUploadResponse(FileMetadataContract metadata) => new
+{
+    metadata.FileId,
+    metadata.FileKey,
+    metadata.FileName,
+    metadata.OriginalFileName,
+    originalName = metadata.OriginalFileName,
+    metadata.Extension,
+    metadata.MimeType,
+    contentType = metadata.MimeType,
+    metadata.FileSize,
+    sizeBytes = metadata.FileSize,
+    metadata.Category,
+    metadata.Url,
+    metadata.PreviewUrl,
+    metadata.ThumbnailUrl,
+    metadata.UploadedBy,
+    metadata.UploadedAt,
+    createdAt = metadata.UploadedAt
+};
+
+static (string? Path, string? Error) ResolveStoredFilePath(string storagePath, string category, string filename)
+{
+    category = SanitizeSegment(category);
+    filename = SanitizeSegment(filename);
+
+    if (category.Length == 0 || filename.Length == 0 || filename.EndsWith(".meta.json", StringComparison.OrdinalIgnoreCase))
+        return (null, "Invalid path");
+
+    var expectedBase = Path.GetFullPath(Path.Combine(storagePath, category));
+    var fullPath = Path.Combine(expectedBase, filename);
+    var resolved = Path.GetFullPath(fullPath);
+
+    if (!resolved.StartsWith(expectedBase, StringComparison.OrdinalIgnoreCase))
+        return (null, "Invalid path");
+
+    return (resolved, null);
+}
+
+public sealed record FileCategoryContract(string Name, string Description, string Kind);
+
+public sealed record FileMetadataContract(
+    string FileId,
+    string FileKey,
+    string FileName,
+    string OriginalFileName,
+    string Extension,
+    string MimeType,
+    long FileSize,
+    string Category,
+    string Url,
+    string? PreviewUrl,
+    string? ThumbnailUrl,
+    string? UploadedBy,
+    DateTime UploadedAt);
 

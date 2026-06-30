@@ -8,11 +8,11 @@ export default defineConfig(({ mode }) => {
     const host = env.VITE_HOST || '0.0.0.0';
     const port = env.VITE_PORT ? Number(env.VITE_PORT) : 5173; // Default to Vite's default port
 
-    // Prefer an explicit VITE_API_BASE_URL but fall back to the development machine hostname for local development
-    const proxyTarget = (env.VITE_API_BASE_URL as string)?.replace(/\/api\/?$/, '') || 'http://desktop-dih7cqh:5235';
+    // Prefer the centralized API base URL; strip a trailing /api because the proxy key already includes it.
+    const proxyTarget = (env.VITE_API_BASE_URL as string)?.replace(/\/api\/?$/, '') || 'http://localhost:5235';
     return {
       server: {
-        // Bind to all interfaces so the dev server is reachable on the LAN (desktop-dih7cqh) 
+        // Bind to all interfaces when VITE_HOST is configured that way.
         host: host,
         // Use a fixed port so mobile clients and other tooling can rely on a stable URL
         port: port,
@@ -32,7 +32,6 @@ export default defineConfig(({ mode }) => {
             target: proxyTarget,
             changeOrigin: true,
             secure: false,
-            rewrite: (path) => path.replace(/^\/api/, ''),
           },
           // Proxy all other API-like requests (v1, analytics, health, moderation, support) to backend
           '/v1': {

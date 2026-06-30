@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
+import { founderOnlyGuard } from './guards/founder-only.guard';
 
 export const routes: Routes = [
   // Public routes - eager loaded for fast initial page load
@@ -60,14 +61,44 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/admin/investments/investments.component').then(m => m.InvestmentsComponent),
         title: 'Investments - Investa' 
       },
+      {
+        path: 'opportunities',
+        loadComponent: () => import('./pages/admin/opportunities/opportunity-discovery.component').then(m => m.OpportunityDiscoveryComponent),
+        title: 'Opportunities - Investa'
+      },
+      {
+        path: 'opportunities/new',
+        loadComponent: () => import('./pages/admin/opportunities/opportunity-editor.component').then(m => m.OpportunityEditorComponent),
+        canActivate: [founderOnlyGuard],
+        title: 'Create Opportunity - Investa'
+      },
+      {
+        path: 'opportunities/:id/edit',
+        loadComponent: () => import('./pages/admin/opportunities/opportunity-editor.component').then(m => m.OpportunityEditorComponent),
+        canActivate: [founderOnlyGuard],
+        title: 'Edit Opportunity - Investa'
+      },
+      {
+        path: 'opportunities/:id',
+        loadComponent: () => import('./pages/admin/opportunities/opportunity-details.component').then(m => m.OpportunityDetailsComponent),
+        title: 'Opportunity Details - Investa'
+      },
+      {
+        path: 'my-opportunities',
+        loadComponent: () => import('./pages/admin/opportunities/my-opportunities.component').then(m => m.MyOpportunitiesComponent),
+        canActivate: [founderOnlyGuard],
+        title: 'My Opportunities - Investa'
+      },
       { 
         path: 'investments/new', 
         loadComponent: () => import('./pages/admin/submit-investment/submit-investment.component').then(m => m.SubmitInvestmentComponent),
+        canActivate: [founderOnlyGuard],
         title: 'Create Investment - Investa' 
       },
       { 
         path: 'investments/:id/edit', 
         loadComponent: () => import('./pages/admin/submit-investment/submit-investment.component').then(m => m.SubmitInvestmentComponent),
+        canActivate: [founderOnlyGuard],
         title: 'Edit Investment - Investa' 
       },
       {
@@ -95,6 +126,11 @@ export const routes: Routes = [
         path: 'profile', 
         loadComponent: () => import('./pages/admin/profile/profile.component').then(m => m.ProfileComponent),
         title: 'My Profile - Investa' 
+      },
+      {
+        path: 'not-allowed',
+        loadComponent: () => import('./pages/admin/not-allowed/not-allowed.component').then(m => m.NotAllowedComponent),
+        title: 'Not Allowed - Investa'
       },
       {
         path: 'profile/wallet',

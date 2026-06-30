@@ -10,6 +10,7 @@ import { ProfileService } from '../../../services/profile.service';
 import { UserService } from '../../../services/user.service';
 import { NotificationService } from '../../../services/notification.service';
 import { FileStoreService } from '../../../services/file-store.service';
+import { RoleContextService } from '../../../services/role-context.service';
 import { Investment } from '../../../models/investment.model';
 import { TIME_INTERVALS } from '../../../config/constants';
 import { get } from 'lodash-es';
@@ -79,6 +80,7 @@ export class DashboardComponent {
   private userService = inject(UserService);
   private notificationService = inject(NotificationService);
   private fileStoreService = inject(FileStoreService);
+  roleContext = inject(RoleContextService);
   private creditsRefreshed = signal(false);
 
   private t(path: string, fallback: string): string {

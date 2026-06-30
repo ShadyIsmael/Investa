@@ -14,10 +14,10 @@
       "dotnetRunMessages": true,
       "launchBrowser": false,
       "launchUrl": "swagger",
-      "applicationUrl": "http://0.0.0.0:5000",
+      "applicationUrl": "http://0.0.0.0:5235",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "ASPNETCORE_URLS": "http://0.0.0.0:5000"
+        "ASPNETCORE_URLS": "http://0.0.0.0:5235"
       }
     },
     "Staging": {
@@ -25,10 +25,10 @@
       "dotnetRunMessages": true,
       "launchBrowser": false,
       "launchUrl": "swagger",
-      "applicationUrl": "http://0.0.0.0:5001",
+      "applicationUrl": "http://0.0.0.0:5235",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Staging",
-        "ASPNETCORE_URLS": "http://0.0.0.0:5001"
+        "ASPNETCORE_URLS": "http://0.0.0.0:5235"
       }
     },
     "Production": {

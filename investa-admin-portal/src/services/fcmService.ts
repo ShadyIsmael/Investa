@@ -4,6 +4,10 @@ import { api } from '@/api/api';
 import { toast } from 'react-toastify';
 
 const TOKEN_KEY = 'fcm_token';
+type MessageCallback = (payload: any) => void;
+
+const foregroundCallbacks = new Set<MessageCallback>();
+let foregroundListenerPromise: Promise<void> | null = null;
 
 export async function requestPermissionAndGetToken(): Promise<string | null> {
   try {
@@ -65,8 +69,11 @@ export async function sendTokenToServer(token: string) {
   }
 }
 
-export function onMessageListener(cb: (payload: any) => void) {
-  getFirebaseMessaging().then(messaging => {
+export function onMessageListener(cb: MessageCallback): () => void {
+  foregroundCallbacks.add(cb);
+
+  if (!foregroundListenerPromise) {
+    foregroundListenerPromise = getFirebaseMessaging().then(messaging => {
     if (!messaging) {
       console.warn('[FCM] Messaging not available for foreground listener');
       return;
@@ -75,13 +82,25 @@ export function onMessageListener(cb: (payload: any) => void) {
     try {
       onMessage(messaging, (payload) => {
         console.log('[FCM] Foreground message received:', payload);
-        cb(payload);
+        foregroundCallbacks.forEach(callback => {
+          try {
+            callback(payload);
+          } catch (e) {
+            console.error('[FCM] Foreground callback failed:', e);
+          }
+        });
       });
       console.log('[FCM] Foreground listener registered');
     } catch (e) {
       console.error('[FCM] Failed to register foreground listener:', e);
+      foregroundListenerPromise = null;
     }
   });
+  }
+
+  return () => {
+    foregroundCallbacks.delete(cb);
+  };
 }
 
 export function getCachedToken(): string | null {

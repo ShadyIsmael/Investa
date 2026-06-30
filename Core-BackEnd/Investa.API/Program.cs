@@ -456,7 +456,9 @@ try
                     Id = Guid.NewGuid(),
                     UserName = username,
                     Email = normalizedEmail,
-                    EmailConfirmed = true
+                    EmailConfirmed = true,
+                    SecurityStamp = Guid.NewGuid().ToString(),
+                    ConcurrencyStamp = Guid.NewGuid().ToString()
                 };
                 var res = await userManager.CreateAsync(newUser, adminPassword);
                 if (!res.Succeeded)
@@ -571,6 +573,7 @@ static void RegisterApplicationServices(IServiceCollection services)
     services.AddScoped<ICreditService, CreditService>();
     services.AddScoped<IWalletService, WalletService>();
     services.AddScoped<IPriceService, PriceService>();
+    services.AddScoped<IOpportunityService, OpportunityService>();
     services.AddScoped<IChatService, ChatService>();
     services.AddScoped<IGroupService, GroupService>();
 

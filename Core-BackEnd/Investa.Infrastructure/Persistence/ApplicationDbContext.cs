@@ -235,6 +235,17 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
     // Pricing engine source of truth for platform service prices
     public DbSet<ServicePrice> ServicePrices { get; set; }
 
+    // Investment Opportunity Lifecycle foundation
+    public DbSet<Opportunity> Opportunities { get; set; }
+    public DbSet<OpportunityMedia> OpportunityMedia { get; set; }
+    public DbSet<OpportunityDocument> OpportunityDocuments { get; set; }
+    public DbSet<OpportunityEvent> OpportunityEvents { get; set; }
+    public DbSet<OpportunityJoinRequest> OpportunityJoinRequests { get; set; }
+    public DbSet<OpportunityCategory> OpportunityCategories { get; set; }
+    public DbSet<OpportunityTag> OpportunityTags { get; set; }
+    public DbSet<OpportunityTagAssignment> OpportunityTagAssignments { get; set; }
+    public DbSet<FundingGoal> FundingGoals { get; set; }
+
 
 
     // Records score/points transactions for users (e.g., reward points)
@@ -1022,6 +1033,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             eb.Property(a => a.CredibilityScore).HasDefaultValue(3500);
 
+            eb.Property(a => a.ReputationLevel).HasMaxLength(80).IsRequired();
+
             eb.HasIndex(a => a.Email).IsUnique().HasFilter("\"Email\" IS NOT NULL");
             eb.HasIndex(a => a.FirebaseUid).IsUnique(false).HasFilter("\"FirebaseUid\" IS NOT NULL");
         });
@@ -1077,6 +1090,200 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
             sp.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
             sp.Property(x => x.UpdatedAt).HasDefaultValueSql("GETDATE()");
             sp.HasIndex(x => x.ServiceCode).IsUnique();
+        });
+
+        // Investment Opportunity Lifecycle foundation mapping
+        modelBuilder.Entity<Opportunity>(o =>
+        {
+            o.HasKey(x => x.Id);
+            o.Property(x => x.FounderId).IsRequired();
+            o.Property(x => x.Title).HasMaxLength(200).IsRequired();
+            o.Property(x => x.Description).HasMaxLength(4000);
+            o.Property(x => x.FundingTarget).HasPrecision(18, 2).IsRequired();
+            o.Property(x => x.MinimumInvestmentAmount).HasPrecision(18, 2);
+            o.Property(x => x.MaximumInvestmentAmount).HasPrecision(18, 2);
+            o.Property(x => x.InvestmentModel).HasConversion<string>().HasMaxLength(60).IsRequired();
+            o.Property(x => x.ProjectStage).HasConversion<string>().HasMaxLength(40).IsRequired();
+            o.Property(x => x.Status).HasConversion<string>().HasMaxLength(40).IsRequired();
+            o.Property(x => x.CoverImageUrl).HasMaxLength(1000);
+            o.Property(x => x.IsLockedForEditing).HasDefaultValue(false);
+            o.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            o.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            o.HasIndex(x => x.FounderId);
+            o.HasIndex(x => x.Status);
+            o.HasIndex(x => x.CategoryId);
+            o.HasIndex(x => x.FundingGoalId);
+            o.HasIndex(x => x.InvestmentModel);
+            o.HasIndex(x => x.ProjectStage);
+            o.HasOne<AuthUser>()
+             .WithMany()
+             .HasForeignKey(x => x.FounderId)
+             .OnDelete(DeleteBehavior.Restrict);
+            o.HasOne(x => x.Category)
+             .WithMany(x => x.Opportunities)
+             .HasForeignKey(x => x.CategoryId)
+             .OnDelete(DeleteBehavior.Restrict)
+             .IsRequired(false);
+            o.HasOne(x => x.FundingGoal)
+             .WithMany(x => x.Opportunities)
+             .HasForeignKey(x => x.FundingGoalId)
+             .OnDelete(DeleteBehavior.Restrict)
+             .IsRequired(false);
+            o.HasMany(x => x.Media)
+             .WithOne(x => x.Opportunity)
+             .HasForeignKey(x => x.OpportunityId)
+             .OnDelete(DeleteBehavior.Cascade);
+            o.HasMany(x => x.Documents)
+             .WithOne(x => x.Opportunity)
+             .HasForeignKey(x => x.OpportunityId)
+             .OnDelete(DeleteBehavior.Cascade);
+            o.HasMany(x => x.Events)
+             .WithOne(x => x.Opportunity)
+             .HasForeignKey(x => x.OpportunityId)
+             .OnDelete(DeleteBehavior.Cascade);
+            o.HasMany(x => x.JoinRequests)
+             .WithOne(x => x.Opportunity)
+             .HasForeignKey(x => x.OpportunityId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<OpportunityJoinRequest>(j =>
+        {
+            j.HasKey(x => x.Id);
+            j.Property(x => x.RequestedAmount).HasPrecision(18, 2);
+            j.Property(x => x.Message).HasMaxLength(1000);
+            j.Property(x => x.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
+            j.Property(x => x.RejectionReason).HasMaxLength(1000);
+            j.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            j.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            j.HasIndex(x => x.OpportunityId);
+            j.HasIndex(x => x.InvestorId);
+            j.HasIndex(x => new { x.OpportunityId, x.InvestorId, x.Status });
+            j.HasOne(x => x.Investor)
+             .WithMany()
+             .HasForeignKey(x => x.InvestorId)
+             .OnDelete(DeleteBehavior.Restrict);
+            j.HasOne(x => x.ReviewedByFounder)
+             .WithMany()
+             .HasForeignKey(x => x.ReviewedByFounderId)
+             .OnDelete(DeleteBehavior.Restrict)
+             .IsRequired(false);
+        });
+
+        modelBuilder.Entity<OpportunityCategory>(c =>
+        {
+            c.HasKey(x => x.Id);
+            c.Property(x => x.Name).HasMaxLength(120).IsRequired();
+            c.Property(x => x.Description).HasMaxLength(500);
+            c.Property(x => x.IsActive).HasDefaultValue(true);
+            c.Property(x => x.SortOrder).HasDefaultValue(0);
+            c.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            c.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            c.HasIndex(x => x.Name).IsUnique();
+            c.HasIndex(x => new { x.IsActive, x.SortOrder });
+        });
+
+        modelBuilder.Entity<OpportunityTag>(t =>
+        {
+            t.HasKey(x => x.Id);
+            t.Property(x => x.Name).HasMaxLength(120).IsRequired();
+            t.Property(x => x.Description).HasMaxLength(500);
+            t.Property(x => x.IsActive).HasDefaultValue(true);
+            t.Property(x => x.SortOrder).HasDefaultValue(0);
+            t.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            t.HasIndex(x => x.Name).IsUnique();
+            t.HasIndex(x => new { x.IsActive, x.SortOrder });
+        });
+
+        modelBuilder.Entity<FundingGoal>(g =>
+        {
+            g.HasKey(x => x.Id);
+            g.Property(x => x.Name).HasMaxLength(120).IsRequired();
+            g.Property(x => x.Description).HasMaxLength(500);
+            g.Property(x => x.IsActive).HasDefaultValue(true);
+            g.Property(x => x.SortOrder).HasDefaultValue(0);
+            g.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            g.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            g.HasIndex(x => x.Name).IsUnique();
+            g.HasIndex(x => new { x.IsActive, x.SortOrder });
+        });
+
+        modelBuilder.Entity<OpportunityTagAssignment>(ot =>
+        {
+            ot.HasKey(x => new { x.OpportunityId, x.OpportunityTagId });
+            ot.HasOne(x => x.Opportunity)
+              .WithMany(x => x.OpportunityTags)
+              .HasForeignKey(x => x.OpportunityId)
+              .OnDelete(DeleteBehavior.Cascade);
+            ot.HasOne(x => x.OpportunityTag)
+              .WithMany(x => x.OpportunityTags)
+              .HasForeignKey(x => x.OpportunityTagId)
+              .OnDelete(DeleteBehavior.Cascade);
+            ot.HasIndex(x => x.OpportunityTagId);
+        });
+
+        modelBuilder.Entity<OpportunityMedia>(m =>
+        {
+            m.HasKey(x => x.Id);
+            m.Property(x => x.FileUrl).HasMaxLength(1000).IsRequired();
+            m.Property(x => x.FileId).HasMaxLength(100);
+            m.Property(x => x.FileKey).HasMaxLength(500);
+            m.Property(x => x.FileName).HasMaxLength(255).IsRequired();
+            m.Property(x => x.FileType).HasMaxLength(100).IsRequired();
+            m.Property(x => x.MimeType).HasMaxLength(150);
+            m.Property(x => x.PreviewUrl).HasMaxLength(1000);
+            m.Property(x => x.ThumbnailUrl).HasMaxLength(1000);
+            m.Property(x => x.MediaType).HasMaxLength(50).IsRequired();
+            m.Property(x => x.IsCover).HasDefaultValue(false);
+            m.Property(x => x.SortOrder).HasDefaultValue(0);
+            m.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            m.HasIndex(x => x.OpportunityId);
+            m.HasIndex(x => new { x.OpportunityId, x.SortOrder });
+            m.HasIndex(x => x.FileId);
+            m.HasIndex(x => x.FileKey);
+        });
+
+        modelBuilder.Entity<OpportunityDocument>(d =>
+        {
+            d.HasKey(x => x.Id);
+            d.Property(x => x.FileUrl).HasMaxLength(1000).IsRequired();
+            d.Property(x => x.FileId).HasMaxLength(100);
+            d.Property(x => x.FileKey).HasMaxLength(500);
+            d.Property(x => x.FileName).HasMaxLength(255).IsRequired();
+            d.Property(x => x.FileExtension).HasMaxLength(20).IsRequired();
+            d.Property(x => x.MimeType).HasMaxLength(150);
+            d.Property(x => x.PreviewUrl).HasMaxLength(1000);
+            d.Property(x => x.ThumbnailUrl).HasMaxLength(1000);
+            d.Property(x => x.DocumentType).HasMaxLength(100).IsRequired();
+            d.Property(x => x.Visibility).HasConversion<string>().HasMaxLength(20).IsRequired();
+            d.Property(x => x.Category).HasMaxLength(100);
+            d.Property(x => x.SearchTags).HasMaxLength(1000);
+            d.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            d.HasIndex(x => x.OpportunityId);
+            d.HasIndex(x => new { x.OpportunityId, x.Visibility });
+            d.HasIndex(x => x.Category);
+            d.HasIndex(x => x.FileId);
+            d.HasIndex(x => x.FileKey);
+        });
+
+        modelBuilder.Entity<OpportunityEvent>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.EventType).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Title).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Description).HasMaxLength(4000);
+            e.Property(x => x.OldValue).HasMaxLength(4000);
+            e.Property(x => x.NewValue).HasMaxLength(4000);
+            e.Property(x => x.CreatedByUserId).IsRequired();
+            e.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.Property(x => x.IsPublic).HasDefaultValue(false);
+            e.HasIndex(x => x.OpportunityId);
+            e.HasIndex(x => new { x.OpportunityId, x.CreatedAt });
+            e.HasIndex(x => new { x.OpportunityId, x.IsPublic });
+            e.HasOne<AuthUser>()
+             .WithMany()
+             .HasForeignKey(x => x.CreatedByUserId)
+             .OnDelete(DeleteBehavior.Restrict);
         });
         // Conversation mapping (Status + Category support)
 
@@ -1766,6 +1973,54 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
         );
 
 
+
+        var opportunityLookupSeedDate = new DateTime(2026, 6, 30, 0, 0, 0, DateTimeKind.Utc);
+        modelBuilder.Entity<OpportunityCategory>().HasData(
+            new OpportunityCategory { Id = 1, Name = "Technology", Description = "Technology products, platforms, and services.", IsActive = true, SortOrder = 1, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new OpportunityCategory { Id = 2, Name = "Food & Beverage", Description = "Food production, restaurants, cafes, and beverage ventures.", IsActive = true, SortOrder = 2, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new OpportunityCategory { Id = 3, Name = "Healthcare", Description = "Healthcare services, clinics, medical products, and wellness.", IsActive = true, SortOrder = 3, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new OpportunityCategory { Id = 4, Name = "Education", Description = "Education, training, and learning products.", IsActive = true, SortOrder = 4, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new OpportunityCategory { Id = 5, Name = "Retail", Description = "Retail stores, commerce operations, and consumer goods.", IsActive = true, SortOrder = 5, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new OpportunityCategory { Id = 6, Name = "Manufacturing", Description = "Manufacturing, production lines, and industrial operations.", IsActive = true, SortOrder = 6, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new OpportunityCategory { Id = 7, Name = "Agriculture", Description = "Agriculture, farms, food supply, and agri-tech.", IsActive = true, SortOrder = 7, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new OpportunityCategory { Id = 8, Name = "Real Estate", Description = "Real estate development, operations, and property services.", IsActive = true, SortOrder = 8, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new OpportunityCategory { Id = 9, Name = "Tourism", Description = "Tourism, hospitality, and travel services.", IsActive = true, SortOrder = 9, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new OpportunityCategory { Id = 10, Name = "Transportation", Description = "Transportation, logistics, and mobility.", IsActive = true, SortOrder = 10, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new OpportunityCategory { Id = 11, Name = "Energy", Description = "Energy generation, services, and sustainability.", IsActive = true, SortOrder = 11, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new OpportunityCategory { Id = 12, Name = "Fashion", Description = "Fashion, apparel, accessories, and design.", IsActive = true, SortOrder = 12, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new OpportunityCategory { Id = 13, Name = "Media", Description = "Media, content, publishing, and creative production.", IsActive = true, SortOrder = 13, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new OpportunityCategory { Id = 14, Name = "Gaming", Description = "Games, interactive entertainment, and gaming platforms.", IsActive = true, SortOrder = 14, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new OpportunityCategory { Id = 15, Name = "FinTech", Description = "Financial technology, payments, lending, and finance tools.", IsActive = true, SortOrder = 15, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new OpportunityCategory { Id = 16, Name = "AI", Description = "Artificial intelligence products, services, and infrastructure.", IsActive = true, SortOrder = 16, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate }
+        );
+
+        modelBuilder.Entity<OpportunityTag>().HasData(
+            new OpportunityTag { Id = 1, Name = "AI", Description = "Uses or builds artificial intelligence.", IsActive = true, SortOrder = 1, CreatedAt = opportunityLookupSeedDate },
+            new OpportunityTag { Id = 2, Name = "Export", Description = "Export-oriented business.", IsActive = true, SortOrder = 2, CreatedAt = opportunityLookupSeedDate },
+            new OpportunityTag { Id = 3, Name = "Green", Description = "Sustainability or environmentally focused.", IsActive = true, SortOrder = 3, CreatedAt = opportunityLookupSeedDate },
+            new OpportunityTag { Id = 4, Name = "Women-led", Description = "Founded or led by women.", IsActive = true, SortOrder = 4, CreatedAt = opportunityLookupSeedDate },
+            new OpportunityTag { Id = 5, Name = "Franchise", Description = "Franchise or franchisable model.", IsActive = true, SortOrder = 5, CreatedAt = opportunityLookupSeedDate },
+            new OpportunityTag { Id = 6, Name = "B2B", Description = "Business-to-business model.", IsActive = true, SortOrder = 6, CreatedAt = opportunityLookupSeedDate },
+            new OpportunityTag { Id = 7, Name = "B2C", Description = "Business-to-consumer model.", IsActive = true, SortOrder = 7, CreatedAt = opportunityLookupSeedDate },
+            new OpportunityTag { Id = 8, Name = "SaaS", Description = "Software as a service.", IsActive = true, SortOrder = 8, CreatedAt = opportunityLookupSeedDate },
+            new OpportunityTag { Id = 9, Name = "Mobile App", Description = "Mobile application product.", IsActive = true, SortOrder = 9, CreatedAt = opportunityLookupSeedDate },
+            new OpportunityTag { Id = 10, Name = "Local Business", Description = "Local market business.", IsActive = true, SortOrder = 10, CreatedAt = opportunityLookupSeedDate },
+            new OpportunityTag { Id = 11, Name = "High Growth", Description = "Designed for rapid growth.", IsActive = true, SortOrder = 11, CreatedAt = opportunityLookupSeedDate },
+            new OpportunityTag { Id = 12, Name = "Low Entry Ticket", Description = "Accessible minimum investment size.", IsActive = true, SortOrder = 12, CreatedAt = opportunityLookupSeedDate }
+        );
+
+        modelBuilder.Entity<FundingGoal>().HasData(
+            new FundingGoal { Id = 1, Name = "Launch New Business", Description = "Funding to start a new venture.", IsActive = true, SortOrder = 1, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new FundingGoal { Id = 2, Name = "Expand Existing Business", Description = "Funding to scale an operating business.", IsActive = true, SortOrder = 2, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new FundingGoal { Id = 3, Name = "Buy Equipment", Description = "Funding to purchase equipment or machinery.", IsActive = true, SortOrder = 3, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new FundingGoal { Id = 4, Name = "Marketing", Description = "Funding for marketing and customer acquisition.", IsActive = true, SortOrder = 4, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new FundingGoal { Id = 5, Name = "Working Capital", Description = "Funding for operating cash flow.", IsActive = true, SortOrder = 5, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new FundingGoal { Id = 6, Name = "Open New Branch", Description = "Funding to open another location.", IsActive = true, SortOrder = 6, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new FundingGoal { Id = 7, Name = "Research & Development", Description = "Funding for product or technical development.", IsActive = true, SortOrder = 7, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new FundingGoal { Id = 8, Name = "Inventory Purchase", Description = "Funding to purchase inventory.", IsActive = true, SortOrder = 8, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new FundingGoal { Id = 9, Name = "Hiring", Description = "Funding to recruit and grow the team.", IsActive = true, SortOrder = 9, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new FundingGoal { Id = 10, Name = "Acquisition", Description = "Funding for acquisition activity.", IsActive = true, SortOrder = 10, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate }
+        );
 
         var pricingSeedDate = new DateTime(2026, 6, 29, 0, 0, 0, DateTimeKind.Utc);
         modelBuilder.Entity<ServicePrice>().HasData(
