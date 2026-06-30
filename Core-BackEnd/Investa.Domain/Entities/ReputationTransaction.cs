@@ -9,6 +9,19 @@ namespace Investa.Domain.Entities;
 /// </summary>
 public class ReputationTransaction
 {
+    /// <summary>
+    /// Where the reputation change originated.
+    /// </summary>
+    public enum SourceModule
+    {
+        Profile = 0,
+        Verification = 1,
+        Investment = 2,
+        Wallet = 3,
+        Compliance = 4,
+        Admin = 5,
+        System = 6
+    }
     [Key]
     public int Id { get; set; }
 
@@ -26,7 +39,10 @@ public class ReputationTransaction
 
     public string? ReferenceType { get; set; }
 
+    public SourceModule SourceModuleValue { get; set; } = SourceModule.System;
+
     public DateTime OccurredAt { get; set; } = DateTime.UtcNow;
+
 
     public Guid? CreatedByUserId { get; set; }
 

@@ -65,6 +65,22 @@ export const NAV_ITEMS: NavItem[] = [
         iconName: 'shield-check',
         path: '/operations/reputation-rules',
         permissions: ['User.Manage'],
+      },
+      {
+        id: 'pricing',
+        label: 'Pricing',
+        labelKey: 'nav.pricing',
+        iconName: 'cash',
+        path: '/operations/pricing',
+        permissions: ['User.Manage'],
+      },
+      {
+        id: 'notifications',
+        label: 'Notifications',
+        labelKey: 'nav.notifications',
+        iconName: 'bell',
+        path: '/operations/notifications',
+        permissions: ['User.Manage'],
       }
     ]
   },

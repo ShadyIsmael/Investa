@@ -22,6 +22,10 @@
     "agingReport": "Aging Report",
     "auditTrail": "Audit Trail",
     "advancedAnalytics": "Advanced Analytics",
+    "operations": "Operations",
+    "reputationRules": "Reputation Rules",
+    "pricing": "Pricing",
+    "notifications": "Notifications",
     "configurations": "Configurations",
     "creditSetup": "Credit Setup",
     "offerManagement": "Offer Management",
@@ -164,7 +168,9 @@
     "notification-templates": "Notification Templates",
     "profile": "My Profile",
     "user-onboarding": "User Onboarding",
-    "permissions": "Permissions"
+    "permissions": "Permissions",
+    "pricing": "Pricing",
+    "notifications": "Notifications"
   },
   "header": {
     "searchPlaceholder": "Search or ask AI…",

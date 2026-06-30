@@ -96,6 +96,16 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/admin/profile/profile.component').then(m => m.ProfileComponent),
         title: 'My Profile - Investa' 
       },
+      {
+        path: 'profile/wallet',
+        loadComponent: () => import('./pages/admin/wallet/wallet.component').then(m => m.WalletComponent),
+        title: 'Wallet - Investa'
+      },
+      {
+        path: 'profile/notifications',
+        loadComponent: () => import('./pages/admin/notification-center/notification-center.component').then(m => m.NotificationCenterComponent),
+        title: 'Notification Center - Investa'
+      },
       { 
         path: 'transactions', 
         loadComponent: () => import('./pages/admin/transactions/transactions.component').then(m => m.TransactionsComponent),

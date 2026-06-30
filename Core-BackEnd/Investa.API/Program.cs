@@ -280,8 +280,14 @@ try
     builder.Services.AddHttpClient();
     builder.Services.AddScoped<IFileStorage, Investa.Infrastructure.Services.FileStoreStorage>();
     // Register file storage implementation (local by default)
+
+    // === EMAIL CONFIGURATION (Options Pattern) ===
+    // Reads email SMTP configuration from: appsettings.json -> Email:{...}
+    builder.Services.Configure<Investa.Application.DTOs.EmailOptions>(builder.Configuration.GetSection("Email"));
+
     // === API CONFIGURATION ===
     builder.Services.AddControllers()
+
            .AddJsonOptions(options =>
            {
                // Enforce camelCase naming for all JSON responses
@@ -563,6 +569,8 @@ static void RegisterApplicationServices(IServiceCollection services)
     services.AddScoped<ITrustService, TrustService>();
     services.AddScoped<IReputationService, ReputationService>();
     services.AddScoped<ICreditService, CreditService>();
+    services.AddScoped<IWalletService, WalletService>();
+    services.AddScoped<IPriceService, PriceService>();
     services.AddScoped<IChatService, ChatService>();
     services.AddScoped<IGroupService, GroupService>();
 
@@ -574,6 +582,9 @@ static void RegisterApplicationServices(IServiceCollection services)
     
     // Communication Services (Scoped)
     services.AddScoped<ISmsSender, SmsSender>();
+    services.AddScoped<Investa.Application.Interfaces.IEmailService, Investa.Infrastructure.Services.GmailSmtpEmailService>();
+
+
 
     // === APPLICATION LAYER - Singleton Services ===
     // Admin Availability (Singleton - shared state across all requests)

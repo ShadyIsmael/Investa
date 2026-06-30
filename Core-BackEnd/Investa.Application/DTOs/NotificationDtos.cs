@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Investa.Domain.Entities.Enums;
 
 namespace Investa.Application.DTOs
 {
@@ -139,6 +140,52 @@ namespace Investa.Application.DTOs
         [Required] public string TemplateKey { get; set; } = string.Empty;
         public Dictionary<string, string>? Variables { get; set; }
         public string? ActionUrl { get; set; }
+    }
+
+    public class BroadcastNotificationRequestDto
+    {
+        [Required]
+        [MaxLength(500)]
+        public string Title { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(2000)]
+        public string Body { get; set; } = string.Empty;
+
+        [MaxLength(20)]
+        public string Type { get; set; } = "info";
+
+        [MaxLength(100)]
+        public string? Icon { get; set; }
+
+        [MaxLength(500)]
+        public string? ActionUrl { get; set; }
+
+        [Required]
+        public NotificationAudience Audience { get; set; } = NotificationAudience.All;
+
+        public Guid? SpecificUserId { get; set; }
+    }
+
+    public class NotificationDto
+    {
+        public long Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Body { get; set; } = string.Empty;
+        public string Type { get; set; } = "info";
+        public string? Icon { get; set; }
+        public string? ActionUrl { get; set; }
+        public NotificationAudience Audience { get; set; }
+        public Guid? SpecificUserId { get; set; }
+        public Guid? CreatedByUserId { get; set; }
+        public int RecipientCount { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class BroadcastNotificationResponseDto
+    {
+        public NotificationDto Notification { get; set; } = new();
+        public int RecipientCount { get; set; }
     }
 }
 

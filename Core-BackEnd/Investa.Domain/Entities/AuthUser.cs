@@ -106,6 +106,8 @@ public class AuthUser
 
     public ICollection<Investment> Investments { get; set; } = new List<Investment>();
     public ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
+    /// <summary>One-to-one wallet. Auto-created on user registration.</summary>
+    public Wallet? Wallet { get; set; }
     public ICollection<CreditTransaction> CreditTransactions { get; set; } = new List<CreditTransaction>();
     public ICollection<CreditPlanPurchase> CreditPlanPurchases { get; set; } = new List<CreditPlanPurchase>();
     public ICollection<ScoreTransaction> ScoreTransactions { get; set; } = new List<ScoreTransaction>();

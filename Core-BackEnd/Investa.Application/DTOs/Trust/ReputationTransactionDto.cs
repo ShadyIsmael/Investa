@@ -10,5 +10,8 @@ public class ReputationTransactionDto
     public string? Reason { get; set; }
     public string? ReferenceId { get; set; }
     public string? ReferenceType { get; set; }
+
+    public int SourceModuleValue { get; set; }
+
     public DateTime OccurredAt { get; set; }
 }

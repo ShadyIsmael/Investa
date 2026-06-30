@@ -30,6 +30,7 @@ public class AuthController : BaseApiController
     private readonly IJwtTokenService _jwtTokenService;
     private readonly ILogger<AuthController> _logger;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IWalletService _walletService;
     private readonly IConfiguration _configuration;
     private readonly ISmsSender _smsSender;
 
@@ -38,6 +39,7 @@ public class AuthController : BaseApiController
         IJwtTokenService jwtTokenService,
         ILogger<AuthController> logger,
         IUnitOfWork unitOfWork,
+        IWalletService walletService,
         IConfiguration configuration,
         ISmsSender smsSender)
     {
@@ -45,6 +47,7 @@ public class AuthController : BaseApiController
         _jwtTokenService = jwtTokenService;
         _logger = logger;
         _unitOfWork = unitOfWork;
+        _walletService = walletService;
         _configuration = configuration;
         _smsSender = smsSender;
     }
@@ -82,6 +85,8 @@ public class AuthController : BaseApiController
 
         try
         {
+            await _unitOfWork.BeginTransactionAsync();
+
             var user = new ApplicationIdentityUser
             {
                 UserName = normalizedPhone,
@@ -92,6 +97,7 @@ public class AuthController : BaseApiController
             var result = await _userManager.CreateAsync(user, request.Password);
             if (!result.Succeeded)
             {
+                await _unitOfWork.RollbackTransactionAsync();
                 var errors = result.Errors.Select(e => e.Description).ToList();
                 return ErrorResponse("Registration failed", 400, errors);
             }
@@ -150,7 +156,10 @@ public class AuthController : BaseApiController
                 await _unitOfWork.Repository<Client>().AddAsync(client);
 
                 await _unitOfWork.SaveChangesAsync();
+                await _walletService.CreateWalletAsync(authGuid);
             }
+
+            await _unitOfWork.CommitTransactionAsync();
 
             var authResponse = await BuildAuthResponseAsync(user);
             _logger.LogInformation("User registered successfully: {Phone} (ID: {UserId})", normalizedPhone, user.Id);
@@ -159,6 +168,7 @@ public class AuthController : BaseApiController
         }
         catch (Exception ex)
         {
+            await _unitOfWork.RollbackTransactionAsync();
             _logger.LogError(ex, "Error during sign-up for phone: {Phone}", request.PhoneNumber);
             return ErrorResponse("An error occurred during registration", 500);
         }
@@ -563,9 +573,12 @@ public class AuthController : BaseApiController
     {
         try
         {
+            await _unitOfWork.BeginTransactionAsync();
+
             var normalizedPhone = PhoneNumberNormalizer.NormalizePhoneNumber(request.PhoneNumber);
             if (normalizedPhone == null)
             {
+                await _unitOfWork.RollbackTransactionAsync();
                 _logger.LogWarning($"Sign-up attempt with invalid phone number: {request.PhoneNumber}");
                 return BadRequest(new
                 {
@@ -582,6 +595,7 @@ public class AuthController : BaseApiController
                 var existingUser = await TryFindByNameAsync(candidate);
                 if (existingUser != null)
                 {
+                    await _unitOfWork.RollbackTransactionAsync();
                     _logger.LogWarning($"Sign-up attempt with existing phone number: {request.PhoneNumber}");
                     return Conflict(new
                     {
@@ -609,6 +623,7 @@ public class AuthController : BaseApiController
 
             if (!result.Succeeded)
             {
+                await _unitOfWork.RollbackTransactionAsync();
                 _logger.LogWarning($"User creation failed for phone: {normalizedPhone}. Errors: {string.Join(", ", result.Errors.Select(e => e.Description))}");
                 return BadRequest(new
                 {
@@ -672,6 +687,7 @@ public class AuthController : BaseApiController
             catch (Exception ex)
             {
                 _logger.LogError($"Failed to create AuthUser record: {ex.Message}", ex);
+                throw;
             }
 
             // Name is set on AuthUser; no separate domain User needed
@@ -710,6 +726,11 @@ public class AuthController : BaseApiController
             await _unitOfWork.Repository<Client>().AddAsync(client);
             await _unitOfWork.SaveChangesAsync();
 
+            if (authGuid != Guid.Empty)
+                await _walletService.CreateWalletAsync(authGuid);
+
+            await _unitOfWork.CommitTransactionAsync();
+
             // Generate JWT token for the newly created user (after AuthUser exists)
             var authResponse = await BuildAuthResponseAsync(user);
 
@@ -723,6 +744,7 @@ public class AuthController : BaseApiController
         }
         catch (Exception ex)
         {
+            await _unitOfWork.RollbackTransactionAsync();
             _logger.LogError($"Error during sign-up: {ex.Message}", ex);
             return StatusCode(StatusCodes.Status500InternalServerError, new
             {

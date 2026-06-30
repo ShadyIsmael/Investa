@@ -31,6 +31,8 @@ import MainLayout from '@/components/layout/MainLayout';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import { SupportProvider } from '@/context/SupportProvider';
 import ReputationRules from '@/features/operations/ReputationRules';
+import PricingManagement from '@/features/operations/PricingManagement';
+import NotificationBroadcasts from '@/features/operations/NotificationBroadcasts';
 
 const ComingSoon = ({ title, subtitle }: { title: string; subtitle: string }) => {
     const navigate = useNavigate();
@@ -185,6 +187,8 @@ const AppContent: React.FC = () => {
                                     <Route path="/admin-support" element={<SupportAdmin />} />
                                     <Route path="/admin-support/chat/:conversationId" element={<ChatView />} />
                                     <Route path="/operations/reputation-rules" element={<ReputationRules />} />
+                                    <Route path="/operations/pricing" element={<PricingManagement />} />
+                                    <Route path="/operations/notifications" element={<NotificationBroadcasts />} />
                                     <Route path="/coa" element={<ChartOfAccounts />} />
                                     <Route path="/billing" element={<InvoicingBilling />} />
                                     <Route path="/journals" element={<JournalEntries />} />

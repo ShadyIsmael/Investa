@@ -74,13 +74,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
     public DbSet<Investment> Investments { get; set; }
 
-    
+
 
     // Tracks individual investor participation in investment opportunities
 
     public DbSet<InvestmentParticipant> InvestmentParticipants { get; set; }
 
-    
+
 
     // Team members/founders associated with investment opportunities
 
@@ -122,7 +122,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
     public DbSet<Permission> Permissions { get; set; }
 
-    
+
 
     // Enhanced permission system with resource-action model
 
@@ -140,7 +140,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
     public DbSet<UserGroup> UserGroups { get; set; }
 
-    
+
 
     // Group-Bound Role Architecture entities
 
@@ -150,13 +150,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
     public DbSet<Investa.Domain.Entities.Security.RolePermission> RolePermissions { get; set; }
 
-    
+
 
     // User session tracking for refresh tokens and security
 
     public DbSet<UserSession> UserSessions { get; set; }
 
-    
+
 
     // Audit trail for compliance and security monitoring
 
@@ -205,8 +205,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
 
     // Records credit-related balance changes per user
-
     public DbSet<CreditTransaction> CreditTransactions { get; set; }
+    // ── Wallet Engine (Sprint 1) ────────────────────────────────────
+    // One wallet per user. Holds the canonical spendable balance.
+    public DbSet<Wallet> Wallets { get; set; }
+    // Immutable, append-only audit log of every wallet balance change.
+    public DbSet<WalletTransaction> WalletTransactions { get; set; }
 
 
 
@@ -225,6 +229,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
     // Records every credit-plan purchase by a user
 
     public DbSet<CreditPlanPurchase> CreditPlanPurchases { get; set; }
+
+
+
+    // Pricing engine source of truth for platform service prices
+    public DbSet<ServicePrice> ServicePrices { get; set; }
 
 
 
@@ -269,6 +278,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
     public DbSet<NotificationTemplate> NotificationTemplates { get; set; }
 
+    public DbSet<Notification> Notifications { get; set; }
+
     public DbSet<UserNotification> UserNotifications { get; set; }
 
 
@@ -301,7 +312,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             .HasPrecision(18, 2);
 
-            
+
 
         // Configure new Investment equity crowdfunding fields
 
@@ -311,7 +322,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             .HasPrecision(18, 2);
 
-            
+
 
         modelBuilder.Entity<Investment>()
 
@@ -319,7 +330,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             .HasPrecision(18, 2);
 
-            
+
 
         modelBuilder.Entity<Investment>()
 
@@ -327,7 +338,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             .HasPrecision(18, 2);
 
-            
+
 
         modelBuilder.Entity<Investment>()
 
@@ -335,7 +346,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             .HasPrecision(18, 2);
 
-            
+
 
         modelBuilder.Entity<Investment>()
 
@@ -343,7 +354,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             .HasPrecision(5, 2);
 
-            
+
 
         modelBuilder.Entity<Investment>()
 
@@ -351,7 +362,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             .HasDefaultValue("Draft");
 
-            
+
 
         // Configure Investment navigation properties
 
@@ -365,7 +376,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             .OnDelete(DeleteBehavior.Restrict);
 
-            
+
 
         modelBuilder.Entity<Investment>()
 
@@ -377,7 +388,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             .OnDelete(DeleteBehavior.Cascade);
 
-            
+
 
         // Configure InvestmentParticipant entity
 
@@ -387,7 +398,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             .HasPrecision(18, 2);
 
-            
+
 
         modelBuilder.Entity<InvestmentParticipant>()
 
@@ -395,7 +406,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             .HasDefaultValue(ParticipationLifecycle.Interested);
 
-            
+
 
         modelBuilder.Entity<InvestmentParticipant>()
 
@@ -403,7 +414,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             .HasDefaultValueSql("GETDATE()");
 
-            
+
 
         modelBuilder.Entity<InvestmentParticipant>()
 
@@ -411,7 +422,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             .HasDefaultValueSql("GETDATE()");
 
-            
+
 
         modelBuilder.Entity<InvestmentParticipant>()
 
@@ -441,7 +452,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             tm.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
 
-            
+
 
             tm.HasIndex(x => x.InvestmentId);
 
@@ -453,7 +464,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             tm.HasIndex(x => new { x.InvestmentId, x.UserId }).IsUnique();
 
-            
+
 
             tm.HasOne(x => x.Investment)
 
@@ -463,7 +474,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
                 .OnDelete(DeleteBehavior.Cascade);
 
-                
+
 
             // UserId is required - team members must be registered users
 
@@ -673,6 +684,36 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
 
 
+        // Notification Center broadcasts
+
+        modelBuilder.Entity<Notification>(n =>
+
+        {
+
+            n.HasKey(x => x.Id);
+
+            n.Property(x => x.Title).HasMaxLength(500).IsRequired();
+
+            n.Property(x => x.Body).HasMaxLength(2000).IsRequired();
+
+            n.Property(x => x.Type).HasMaxLength(20).IsRequired().HasDefaultValue("info");
+
+            n.Property(x => x.Icon).HasMaxLength(100);
+
+            n.Property(x => x.ActionUrl).HasMaxLength(500);
+
+            n.Property(x => x.Audience).HasConversion<string>().HasMaxLength(30).IsRequired();
+
+            n.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+
+            n.HasIndex(x => x.CreatedAt);
+
+            n.HasIndex(x => x.Audience);
+
+        });
+
+
+
         // Per-user in-app notifications
 
         modelBuilder.Entity<UserNotification>(un =>
@@ -682,6 +723,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
             un.HasKey(x => x.Id);
 
             un.Property(x => x.UserId).HasMaxLength(450).IsRequired();
+
+            un.Property(x => x.NotificationId).IsRequired(false);
 
             un.Property(x => x.Title).HasMaxLength(500).IsRequired();
 
@@ -699,6 +742,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             un.HasIndex(x => x.UserId);
 
+            un.HasIndex(x => x.NotificationId);
+
             un.HasIndex(x => new { x.UserId, x.CreatedAt });
 
             un.HasIndex(x => new { x.UserId, x.IsRead });
@@ -710,6 +755,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
               .HasForeignKey(x => x.TemplateId)
 
               .OnDelete(DeleteBehavior.SetNull)
+
+              .IsRequired(false);
+
+            un.HasOne(x => x.Notification)
+
+              .WithMany(x => x.UserNotifications)
+
+              .HasForeignKey(x => x.NotificationId)
+
+              .OnDelete(DeleteBehavior.Cascade)
 
               .IsRequired(false);
 
@@ -968,13 +1023,61 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
             eb.Property(a => a.CredibilityScore).HasDefaultValue(3500);
 
             eb.HasIndex(a => a.Email).IsUnique().HasFilter("\"Email\" IS NOT NULL");
-
             eb.HasIndex(a => a.FirebaseUid).IsUnique(false).HasFilter("\"FirebaseUid\" IS NOT NULL");
-
         });
-
-
-
+        // ── Wallet Engine mapping (Sprint 1) ─────────────────────────
+        // One AuthUser has exactly one Wallet (1:1, unique FK).
+        // Wallet owns many immutable WalletTransaction rows (1:N, cascade delete).
+        modelBuilder.Entity<Wallet>(w =>
+        {
+            w.HasKey(x => x.Id);
+            w.Property(x => x.CurrentBalance).HasPrecision(18, 2).HasDefaultValue(0m);
+            w.Property(x => x.TotalPurchasedCredits).HasPrecision(18, 2).HasDefaultValue(0m);
+            w.Property(x => x.TotalBonusCredits).HasPrecision(18, 2).HasDefaultValue(0m);
+            w.Property(x => x.TotalRefundCredits).HasPrecision(18, 2).HasDefaultValue(0m);
+            w.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+            w.Property(x => x.UpdatedAt).HasDefaultValueSql("GETDATE()");
+            w.HasIndex(x => x.UserId).IsUnique();
+            w.HasOne(x => x.User)
+             .WithOne(u => u.Wallet)
+             .HasForeignKey<Wallet>(x => x.UserId)
+             .OnDelete(DeleteBehavior.Cascade);
+            w.HasMany(x => x.Transactions)
+             .WithOne(t => t.Wallet)
+             .HasForeignKey(t => t.WalletId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+        // Immutable transaction log. No update / delete paths are exposed.
+        modelBuilder.Entity<WalletTransaction>(t =>
+        {
+            t.HasKey(x => x.Id);
+            t.Property(x => x.CreditAmount).HasPrecision(18, 2).IsRequired();
+            t.Property(x => x.BalanceBefore).HasPrecision(18, 2).IsRequired();
+            t.Property(x => x.BalanceAfter).HasPrecision(18, 2).IsRequired();
+            t.Property(x => x.Direction).HasConversion<string>().HasMaxLength(10).IsRequired();
+            t.Property(x => x.Reason).HasConversion<string>().HasMaxLength(40).IsRequired();
+            t.Property(x => x.ReferenceType).HasConversion<string>().HasMaxLength(20).HasDefaultValue(ReferenceType.None);
+            t.Property(x => x.ReferenceId).HasMaxLength(100);
+            t.Property(x => x.Description).HasMaxLength(500);
+            t.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+            t.HasIndex(x => x.WalletId);
+            t.HasIndex(x => new { x.WalletId, x.CreatedAt });
+            t.HasIndex(x => x.ReferenceId);
+        });
+        // Pricing Engine mapping (Sprint 2)
+        modelBuilder.Entity<ServicePrice>(sp =>
+        {
+            sp.HasKey(x => x.Id);
+            sp.Property(x => x.ServiceCode).HasMaxLength(100).IsRequired();
+            sp.Property(x => x.ServiceName).HasMaxLength(200).IsRequired();
+            sp.Property(x => x.Description).HasMaxLength(500);
+            sp.Property(x => x.Price).HasPrecision(18, 2).IsRequired();
+            sp.Property(x => x.Currency).HasMaxLength(10).IsRequired();
+            sp.Property(x => x.IsActive).HasDefaultValue(true);
+            sp.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+            sp.Property(x => x.UpdatedAt).HasDefaultValueSql("GETDATE()");
+            sp.HasIndex(x => x.ServiceCode).IsUnique();
+        });
         // Conversation mapping (Status + Category support)
 
         modelBuilder.Entity<Investa.Domain.Entities.Chat.Conversation>(c =>
@@ -1275,7 +1378,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
         });
 
-        
+
 
         // Role configuration (Group-Bound Role Architecture)
 
@@ -1297,7 +1400,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             r.HasIndex(x => new { x.GroupId, x.Name }).IsUnique(); // Unique role name per group
 
-            
+
 
             // MANDATORY: Every role must belong to a group
 
@@ -1313,7 +1416,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
         });
 
-        
+
 
         // UserRole configuration — UserId now points to AuthUsers (master user table)
 
@@ -1327,7 +1430,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             ur.HasIndex(x => new { x.UserId, x.RoleId }).IsUnique();
 
-            
+
 
             ur.HasOne(x => x.User)
 
@@ -1339,7 +1442,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
               .IsRequired();
 
-              
+
 
             ur.HasOne(x => x.Role)
 
@@ -1353,7 +1456,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
         });
 
-        
+
 
         // RolePermission configuration
 
@@ -1367,7 +1470,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             rp.HasIndex(x => new { x.RoleId, x.PermissionId }).IsUnique();
 
-            
+
 
             rp.HasOne(x => x.Role)
 
@@ -1379,7 +1482,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
               .IsRequired();
 
-              
+
 
             rp.HasOne(x => x.Permission)
 
@@ -1393,7 +1496,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
         });
 
-        
+
 
         // ApplicationPermission configuration
 
@@ -1417,7 +1520,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             ap.HasIndex(x => x.TenantId);
 
-            
+
 
             // Self-referencing for hierarchical permissions
 
@@ -1431,7 +1534,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
         });
 
-        
+
 
         // UserSession configuration
 
@@ -1457,7 +1560,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             us.Property(x => x.Location).HasMaxLength(200);
 
-            
+
 
             us.HasOne(x => x.User)
 
@@ -1469,7 +1572,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
         });
 
-        
+
 
         // AuditLog configuration
 
@@ -1663,6 +1766,82 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
         );
 
 
+
+        var pricingSeedDate = new DateTime(2026, 6, 29, 0, 0, 0, DateTimeKind.Utc);
+        modelBuilder.Entity<ServicePrice>().HasData(
+            new ServicePrice
+            {
+                Id = 1,
+                ServiceCode = PricingService.PublishOpportunity.ToString(),
+                ServiceName = "Publish Opportunity",
+                Description = "Fee charged to publish an investment opportunity.",
+                Price = 100m,
+                Currency = "Credits",
+                IsActive = true,
+                CreatedAt = pricingSeedDate,
+                UpdatedAt = pricingSeedDate
+            },
+            new ServicePrice
+            {
+                Id = 2,
+                ServiceCode = PricingService.FeaturedOpportunity.ToString(),
+                ServiceName = "Featured Opportunity",
+                Description = "Fee charged to feature an investment opportunity.",
+                Price = 300m,
+                Currency = "Credits",
+                IsActive = true,
+                CreatedAt = pricingSeedDate,
+                UpdatedAt = pricingSeedDate
+            },
+            new ServicePrice
+            {
+                Id = 3,
+                ServiceCode = PricingService.InvestmentFee.ToString(),
+                ServiceName = "Investment Fee",
+                Description = "Platform fee for investment activity.",
+                Price = 25m,
+                Currency = "Credits",
+                IsActive = true,
+                CreatedAt = pricingSeedDate,
+                UpdatedAt = pricingSeedDate
+            },
+            new ServicePrice
+            {
+                Id = 4,
+                ServiceCode = PricingService.SubscriptionBasic.ToString(),
+                ServiceName = "Subscription Basic",
+                Description = "Basic subscription service price.",
+                Price = 500m,
+                Currency = "Credits",
+                IsActive = true,
+                CreatedAt = pricingSeedDate,
+                UpdatedAt = pricingSeedDate
+            },
+            new ServicePrice
+            {
+                Id = 5,
+                ServiceCode = PricingService.SubscriptionPremium.ToString(),
+                ServiceName = "Subscription Premium",
+                Description = "Premium subscription service price.",
+                Price = 1000m,
+                Currency = "Credits",
+                IsActive = true,
+                CreatedAt = pricingSeedDate,
+                UpdatedAt = pricingSeedDate
+            },
+            new ServicePrice
+            {
+                Id = 6,
+                ServiceCode = PricingService.AdminManualCharge.ToString(),
+                ServiceName = "Admin Manual Charge",
+                Description = "Manual administrative charge placeholder.",
+                Price = 0m,
+                Currency = "Credits",
+                IsActive = true,
+                CreatedAt = pricingSeedDate,
+                UpdatedAt = pricingSeedDate
+            }
+        );
 
         // BusinessCategory mapping
 
@@ -2171,6 +2350,3 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
     }
 
 }
-
-
-

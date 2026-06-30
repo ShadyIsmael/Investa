@@ -2,12 +2,13 @@ using Investa.Application.DTOs.Trust;
 using Investa.Application.Interfaces;
 using Investa.Domain.Entities;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
 namespace Investa.Application.Services;
 
 /// <summary>
-/// Manages the Reputation lifecycle including rules, transactions, and point adjustments.
-/// All reputation changes are stored in ReputationTransaction for audit purposes.
+/// Manages the Reputation lifecycle including rules and transactions.
+/// All reputation changes are audited via ReputationTransaction.
 /// </summary>
 public class ReputationService : IReputationService
 {
@@ -31,7 +32,8 @@ public class ReputationService : IReputationService
             Points = points,
             Reason = reason,
             CreatedByUserId = performedByUserId,
-            OccurredAt = DateTime.UtcNow
+            OccurredAt = DateTime.UtcNow,
+            SourceModuleValue = ReputationTransaction.SourceModule.Admin
         };
 
         await _uow.Repository<ReputationTransaction>().AddAsync(transaction);
@@ -48,34 +50,87 @@ public class ReputationService : IReputationService
 
     public async Task ApplyRuleAsync(Guid userId, string ruleCode, string? referenceId = null, string? referenceType = null, Guid? performedByUserId = null)
     {
+        // Backwards-compatible wrapper (legacy). Prefer ProcessRuleAsync.
+        await ProcessRuleAsync(userId, ruleCode, ReputationTransaction.SourceModule.System, null, referenceId, referenceType, performedByUserId);
+    }
+
+    public async Task ProcessRuleAsync(
+        Guid userId,
+        string ruleCode,
+        ReputationTransaction.SourceModule sourceModule,
+        string? reason = null,
+        string? referenceId = null,
+        string? referenceType = null,
+        Guid? performedByUserId = null)
+    {
         var rule = await _uow.Repository<ReputationRule>()
-            .GetSingleAsync(r => r.RuleCode == ruleCode && r.IsEnabled)
-            ?? throw new KeyNotFoundException($"Reputation rule '{ruleCode}' not found or disabled");
+            .GetSingleAsync(r => r.RuleCode == ruleCode && r.IsEnabled);
 
-        var user = await _uow.Repository<AuthUser>().GetByIdAsync(userId)
-            ?? throw new KeyNotFoundException($"User {userId} not found");
+        if (rule == null)
+            throw new KeyNotFoundException($"Reputation rule '{ruleCode}' not found or disabled");
 
+        if (rule.CanRepeat)
+        {
+            // still respect MaximumOccurrences
+        }
+
+        // Fetch existing rewards for this rule/user to enforce CanRepeat / MaximumOccurrences.
+        var existingRewardsQuery = _uow.Repository<ReputationTransaction>()
+            .FindAsync(t => t.UserId == userId && t.ReputationRuleId == rule.Id);
+
+        // Repository returns IEnumerable; materialize to count.
+        var existingRewards = await _uow.Repository<ReputationTransaction>()
+            .FindAsync(t => t.UserId == userId && t.ReputationRuleId == rule.Id);
+
+        var existingRewardsCount = existingRewards.Count();
+
+
+
+        if (!rule.CanRepeat && existingRewardsCount > 0)
+        {
+            _logger.LogInformation("Skipping reputation rule {RuleCode} for {UserId}: duplicates not allowed", ruleCode, userId);
+            return;
+        }
+
+        if (rule.MaximumOccurrences > 0 && existingRewardsCount >= rule.MaximumOccurrences)
+        {
+            _logger.LogInformation("Skipping reputation rule {RuleCode} for {UserId}: maximum occurrences reached", ruleCode, userId);
+            return;
+        }
+
+        // Single save in one unit-of-work transaction.
         var transaction = new ReputationTransaction
         {
             UserId = userId,
             ReputationRuleId = rule.Id,
             Points = rule.Points,
+            Reason = reason,
             ReferenceId = referenceId,
             ReferenceType = referenceType,
             CreatedByUserId = performedByUserId,
+            SourceModuleValue = sourceModule,
             OccurredAt = DateTime.UtcNow
         };
 
         await _uow.Repository<ReputationTransaction>().AddAsync(transaction);
 
+        // Update AuthUser.CurrentReputation (mapped to ReputationScore in this codebase).
+        var user = await _uow.Repository<AuthUser>().GetByIdAsync(userId)
+            ?? throw new KeyNotFoundException($"User {userId} not found");
+
         user.ReputationScore = Math.Max(0, Math.Min(10000, user.ReputationScore + rule.Points));
         user.ActivityScore = Math.Max(0, Math.Min(10000, user.ActivityScore + Math.Max(rule.Points, 0) / 2));
 
         await _uow.Repository<AuthUser>().UpdateAsync(user);
+
         await _uow.SaveChangesAsync();
 
-        _logger.LogInformation("Reputation rule '{RuleCode}' applied for {UserId}: points={Points} newScore={Score}",
-            ruleCode, userId, rule.Points, user.ReputationScore);
+        _logger.LogInformation(
+            "Processed reputation rule {RuleCode} for {UserId}: points={Points} sourceModule={SourceModule}",
+            ruleCode,
+            userId,
+            rule.Points,
+            sourceModule);
     }
 
     public async Task<List<ReputationRuleDto>> GetRulesAsync(bool includeDisabled = false)
@@ -249,7 +304,9 @@ public class ReputationService : IReputationService
             Reason = t.Reason,
             ReferenceId = t.ReferenceId,
             ReferenceType = t.ReferenceType,
+            SourceModuleValue = (int)t.SourceModuleValue,
             OccurredAt = t.OccurredAt
         }).ToList();
     }
 }
+
