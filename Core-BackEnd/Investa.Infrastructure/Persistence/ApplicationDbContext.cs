@@ -391,6 +391,24 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
         modelBuilder.Entity<Investment>()
 
+            .HasOne(i => i.Opportunity)
+
+            .WithMany()
+
+            .HasForeignKey(i => i.OpportunityId)
+
+            .OnDelete(DeleteBehavior.SetNull);
+
+
+
+        modelBuilder.Entity<Investment>()
+
+            .HasIndex(i => i.OpportunityId);
+
+
+
+        modelBuilder.Entity<Investment>()
+
             .HasMany(i => i.Participants)
 
             .WithOne(p => p.Investment)
@@ -1150,8 +1168,15 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
         modelBuilder.Entity<OpportunityJoinRequest>(j =>
         {
             j.HasKey(x => x.Id);
+            j.Property(x => x.RequestType)
+             .HasConversion<string>()
+             .HasMaxLength(40)
+             .HasDefaultValue(OpportunityJoinRequestType.GeneralParticipation)
+             .IsRequired();
             j.Property(x => x.RequestedAmount).HasPrecision(18, 2);
+            j.Property(x => x.CalculatedTotalAmount).HasPrecision(18, 2);
             j.Property(x => x.Message).HasMaxLength(1000);
+            j.Property(x => x.TermsSnapshotJson).HasColumnType("nvarchar(max)");
             j.Property(x => x.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
             j.Property(x => x.RejectionReason).HasMaxLength(1000);
             j.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
@@ -1235,6 +1260,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
             m.Property(x => x.ThumbnailUrl).HasMaxLength(1000);
             m.Property(x => x.MediaType).HasMaxLength(50).IsRequired();
             m.Property(x => x.IsCover).HasDefaultValue(false);
+            m.Property(x => x.IsPublic).HasDefaultValue(false);
+            m.Property(x => x.Purpose).HasConversion<string>().HasMaxLength(40).HasDefaultValue(OpportunityFilePurpose.General).IsRequired();
             m.Property(x => x.SortOrder).HasDefaultValue(0);
             m.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             m.HasIndex(x => x.OpportunityId);
@@ -1256,6 +1283,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
             d.Property(x => x.ThumbnailUrl).HasMaxLength(1000);
             d.Property(x => x.DocumentType).HasMaxLength(100).IsRequired();
             d.Property(x => x.Visibility).HasConversion<string>().HasMaxLength(20).IsRequired();
+            d.Property(x => x.Purpose).HasConversion<string>().HasMaxLength(40).HasDefaultValue(OpportunityFilePurpose.General).IsRequired();
             d.Property(x => x.Category).HasMaxLength(100);
             d.Property(x => x.SearchTags).HasMaxLength(1000);
             d.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");

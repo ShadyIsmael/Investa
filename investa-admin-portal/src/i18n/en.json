@@ -26,6 +26,10 @@
     "reputationRules": "Reputation Rules",
     "pricing": "Pricing",
     "notifications": "Notifications",
+    "referenceData": "Reference Data",
+    "opportunityCategories": "Categories",
+    "opportunityTags": "Tags",
+    "fundingGoals": "Funding Goals",
     "configurations": "Configurations",
     "creditSetup": "Credit Setup",
     "offerManagement": "Offer Management",
@@ -170,7 +174,10 @@
     "user-onboarding": "User Onboarding",
     "permissions": "Permissions",
     "pricing": "Pricing",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "opportunityCategories": "Opportunity Categories",
+    "opportunityTags": "Opportunity Tags",
+    "fundingGoals": "Funding Goals"
   },
   "header": {
     "searchPlaceholder": "Search or ask AI…",

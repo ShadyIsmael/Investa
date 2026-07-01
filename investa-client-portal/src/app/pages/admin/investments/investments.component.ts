@@ -122,6 +122,10 @@ export class InvestmentsComponent {
   // Infinite scroll
   itemsLoaded = signal(ITEMS_PER_PAGE);
   displayedInvestments = computed(() => this.filteredInvestments().slice(0, this.itemsLoaded()));
+  isMyProjectsView = computed(() => this.router.url.startsWith('/admin/my-projects'));
+  pageTitle = computed(() => this.isMyProjectsView() ? this.t('investments.myProjectsTitle', 'My Projects') : this.t('investments.title', 'Discover Opportunities'));
+  emptyTitle = computed(() => this.isMyProjectsView() ? this.t('investments.noParticipationsTitle', 'No participated projects yet') : this.t('investments.noResultsTitle', 'No results found'));
+  emptySubtitle = computed(() => this.isMyProjectsView() ? this.t('investments.noParticipationsSubtitle', 'Projects you participate in will appear here.') : this.t('investments.noResultsSubtitle', 'Try adjusting your search or filters.'));
 
   private onScroll = () => {
     try {
@@ -170,6 +174,10 @@ export class InvestmentsComponent {
       .map(([key]) => key === 'founding' ? InvestmentType.Founding : InvestmentType.Equity);
 
     return this.investments().filter(inv => {
+      if (this.isMyProjectsView() && !((inv.investedAmount ?? 0) > 0)) {
+        return false;
+      }
+
       // Category filter
       let categoryMatch = true;
       if (category !== 'All') {

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Investa.Domain.Entities.Enums;
 
 namespace Investa.Domain.Entities;
 
@@ -43,7 +44,13 @@ public class OpportunityMedia
 
     public bool IsCover { get; set; }
 
+    public bool IsPublic { get; set; }
+
+    public OpportunityFilePurpose Purpose { get; set; } = OpportunityFilePurpose.General;
+
     public int SortOrder { get; set; }
+
+    public Guid CreatedByUserId { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

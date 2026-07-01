@@ -84,6 +84,40 @@ export const NAV_ITEMS: NavItem[] = [
       }
     ]
   },
+  {
+    id: 'reference-data',
+    label: 'Reference Data',
+    labelKey: 'nav.referenceData',
+    iconName: 'grid',
+    path: '/reference-data',
+    permissions: ['User.Manage'],
+    children: [
+      {
+        id: 'opportunity-categories',
+        label: 'Categories',
+        labelKey: 'nav.opportunityCategories',
+        iconName: 'tag',
+        path: '/reference-data/opportunity-categories',
+        permissions: ['User.Manage'],
+      },
+      {
+        id: 'opportunity-tags',
+        label: 'Tags',
+        labelKey: 'nav.opportunityTags',
+        iconName: 'tag',
+        path: '/reference-data/opportunity-tags',
+        permissions: ['User.Manage'],
+      },
+      {
+        id: 'funding-goals',
+        label: 'Funding Goals',
+        labelKey: 'nav.fundingGoals',
+        iconName: 'cash',
+        path: '/reference-data/funding-goals',
+        permissions: ['User.Manage'],
+      },
+    ],
+  },
   { 
     id: 'config', 
     label: 'Configurations', 

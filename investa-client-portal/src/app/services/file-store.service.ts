@@ -31,6 +31,12 @@ export interface FileStoreFile {
   uploadedAt: string;
 }
 
+export interface FileStoreUploadMetadata {
+  purpose?: string;
+  visibility?: 'Public' | 'Private' | string;
+  isPublic?: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class FileStoreService {
   private get base(): string {
@@ -207,10 +213,15 @@ export class FileStoreService {
     await firstValueFrom(this.http.delete(url, { headers: this.authHeaders }));
   }
 
-  async uploadFile(category: string, file: File): Promise<FileStoreFile> {
+  async uploadFile(category: string, file: File, metadata: FileStoreUploadMetadata = {}): Promise<FileStoreFile> {
     const url = `${this.base}/files/${encodeURIComponent(category)}`;
     const form = new FormData();
     form.append('file', file, file.name);
+    Object.entries(metadata).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        form.append(key, String(value));
+      }
+    });
     const resp = await firstValueFrom(
       this.http.post<FileStoreFile>(url, form, { headers: this.authHeaders })
     );

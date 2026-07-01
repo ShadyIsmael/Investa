@@ -195,6 +195,39 @@ export class ApiService {
     return this.unwrap(response, 'Failed to fetch business categories') ?? [];
   }
 
+  async getOpportunityCategories(): Promise<BusinessCategory[]> {
+    const url = `${this.apiBase}/api/v1/lookups/opportunity-categories`;
+
+    const response = await firstValueFrom(
+      this.http.get<ApiResponse<BusinessCategory[]>>(url, {
+        headers: this.getHeaders()
+      })
+    );
+    return this.unwrap(response, 'Failed to fetch opportunity categories') ?? [];
+  }
+
+  async getOpportunityTags(): Promise<any[]> {
+    const url = `${this.apiBase}/api/v1/lookups/opportunity-tags`;
+
+    const response = await firstValueFrom(
+      this.http.get<ApiResponse<any[]>>(url, {
+        headers: this.getHeaders()
+      })
+    );
+    return this.unwrap(response, 'Failed to fetch opportunity tags') ?? [];
+  }
+
+  async getFundingGoals(): Promise<any[]> {
+    const url = `${this.apiBase}/api/v1/lookups/funding-goals`;
+
+    const response = await firstValueFrom(
+      this.http.get<ApiResponse<any[]>>(url, {
+        headers: this.getHeaders()
+      })
+    );
+    return this.unwrap(response, 'Failed to fetch funding goals') ?? [];
+  }
+
   /**
    * Get business stages lookup
    */

@@ -154,7 +154,7 @@ public class OpportunityService : IOpportunityService
         var tagLookup = await GetActiveTagLookupAsync();
         return opportunities
             .OrderByDescending(o => o.UpdatedAt)
-            .Select(o => ToDto(o, tagLookup))
+            .Select(o => ToDto(o, tagLookup: tagLookup))
             .ToList();
     }
 
@@ -162,7 +162,29 @@ public class OpportunityService : IOpportunityService
     {
         ValidateFounder(founderId);
         var opportunity = await GetOwnedOpportunityAsync(founderId, id, includeChildren: true);
-        return ToDetailDto(opportunity, tagLookup: await GetActiveTagLookupAsync());
+        var founder = await _uow.Repository<AuthUser>().GetByIdAsync(opportunity.FounderId);
+        return ToDetailDto(opportunity, founder: founder, tagLookup: await GetActiveTagLookupAsync());
+    }
+
+    public async Task<OpportunityDetailDto> GetProjectRoomAsync(Guid userId, int id, CancellationToken cancellationToken = default)
+    {
+        await ValidateClientAsync(userId, "Only authenticated clients can access an investor project room.");
+        var opportunity = await GetOpportunityAsync(id, includeChildren: true);
+        var hasAccess = opportunity.FounderId == userId;
+
+        if (!hasAccess)
+        {
+            hasAccess = await _uow.Repository<OpportunityJoinRequest>().ExistsAsync(r =>
+                r.OpportunityId == id
+                && r.InvestorId == userId
+                && r.Status == OpportunityJoinRequestStatus.Approved);
+        }
+
+        if (!hasAccess)
+            throw new BusinessValidationException("PROJECT_ROOM_FORBIDDEN", "Project room access requires founder ownership or an approved join request.");
+
+        var founder = await _uow.Repository<AuthUser>().GetByIdAsync(opportunity.FounderId);
+        return ToDetailDto(opportunity, founder: founder, tagLookup: await GetActiveTagLookupAsync());
     }
 
     public async Task<OpportunityMediaDto> AddMediaAsync(Guid founderId, int id, CreateOpportunityMediaRequest request, CancellationToken cancellationToken = default)
@@ -172,9 +194,13 @@ public class OpportunityService : IOpportunityService
         ValidateRequired(request.FileName, "FILE_NAME_REQUIRED", "FileName is required.");
         ValidateRequired(request.FileType, "FILE_TYPE_REQUIRED", "FileType is required.");
         ValidateRequired(request.MediaType, "MEDIA_TYPE_REQUIRED", "MediaType is required.");
+        if (!request.IsPublic.HasValue)
+            throw new BusinessValidationException("MEDIA_VISIBILITY_REQUIRED", "Media visibility must be explicitly Public or Private.");
 
         var opportunity = await GetOwnedOpportunityAsync(founderId, id, includeChildren: true);
         var now = DateTime.UtcNow;
+        var purpose = ResolveMediaPurpose(request);
+        ValidateMediaPurposeVisibility(purpose, request.IsPublic.Value);
 
         if (request.IsCover)
         {
@@ -198,7 +224,10 @@ public class OpportunityService : IOpportunityService
             ThumbnailUrl = Normalize(request.ThumbnailUrl),
             MediaType = request.MediaType.Trim(),
             IsCover = request.IsCover,
+            IsPublic = request.IsPublic.Value,
+            Purpose = purpose,
             SortOrder = request.SortOrder,
+            CreatedByUserId = founderId,
             CreatedAt = now
         };
 
@@ -210,7 +239,7 @@ public class OpportunityService : IOpportunityService
             Description = media.FileName,
             CreatedByUserId = founderId,
             CreatedAt = now,
-            IsPublic = false
+            IsPublic = media.IsPublic
         });
         opportunity.UpdatedAt = now;
 
@@ -233,6 +262,8 @@ public class OpportunityService : IOpportunityService
 
         var opportunity = await GetOwnedOpportunityAsync(founderId, id, includeChildren: true);
         var now = DateTime.UtcNow;
+        var purpose = ResolveDocumentPurpose(request);
+        ValidateDocumentPurposeVisibility(purpose, request.Visibility.Value);
 
         var document = new OpportunityDocument
         {
@@ -248,8 +279,10 @@ public class OpportunityService : IOpportunityService
             ThumbnailUrl = Normalize(request.ThumbnailUrl),
             DocumentType = request.DocumentType.Trim(),
             Visibility = request.Visibility.Value,
+            Purpose = purpose,
             Category = Normalize(request.Category),
             SearchTags = Normalize(request.SearchTags),
+            CreatedByUserId = founderId,
             CreatedAt = now
         };
 
@@ -344,10 +377,11 @@ public class OpportunityService : IOpportunityService
         var tagLookup = await GetActiveTagLookupAsync();
 
         var filtered = ApplyDiscoveryFilters(opportunities.ToList(), query);
+        var founders = await GetFounderLookupAsync(filtered.Select(o => o.FounderId));
 
         return filtered
             .OrderByDescending(o => o.UpdatedAt)
-            .Select(o => ToDto(o, tagLookup))
+            .Select(o => ToDto(o, founders.TryGetValue(o.FounderId, out var founder) ? founder : null, tagLookup))
             .ToList();
     }
 
@@ -365,7 +399,8 @@ public class OpportunityService : IOpportunityService
         if (opportunity == null)
             throw new BusinessValidationException("OPPORTUNITY_NOT_FOUND", "Opportunity was not found.");
 
-        return ToDetailDto(opportunity, publicOnly: true, tagLookup: await GetActiveTagLookupAsync());
+        var founder = await _uow.Repository<AuthUser>().GetByIdAsync(opportunity.FounderId);
+        return ToDetailDto(opportunity, publicOnly: true, founder: founder, tagLookup: await GetActiveTagLookupAsync());
     }
 
     public async Task<OpportunityDetailDto> SubmitForReviewAsync(Guid founderId, int id, CancellationToken cancellationToken = default)
@@ -418,8 +453,6 @@ public class OpportunityService : IOpportunityService
     public async Task<OpportunityJoinRequestDto> CreateJoinRequestAsync(Guid investorId, int opportunityId, CreateOpportunityJoinRequest request, CancellationToken cancellationToken = default)
     {
         await ValidateClientAsync(investorId, "Only authenticated clients can request to join an opportunity.");
-        ValidateRequestedAmount(request.RequestedAmount);
-
         var opportunity = await GetOpportunityAsync(opportunityId, includeChildren: true);
         if (opportunity.FounderId == investorId)
             throw new BusinessValidationException("FOUNDER_CANNOT_JOIN_OWN_OPPORTUNITY", "Founder cannot request to join their own opportunity.");
@@ -435,13 +468,17 @@ public class OpportunityService : IOpportunityService
         if (hasActiveRequest)
             throw new BusinessValidationException("DUPLICATE_JOIN_REQUEST", "An active join request already exists for this opportunity.");
 
+        var requestDetails = BuildJoinRequestDetails(opportunity, request);
         var now = DateTime.UtcNow;
         var joinRequest = new OpportunityJoinRequest
         {
             OpportunityId = opportunityId,
             InvestorId = investorId,
-            RequestedAmount = request.RequestedAmount,
+            RequestType = requestDetails.RequestType,
+            RequestedAmount = requestDetails.RequestedAmount,
+            CalculatedTotalAmount = requestDetails.CalculatedTotalAmount,
             Message = Normalize(request.Message),
+            TermsSnapshotJson = requestDetails.TermsSnapshotJson,
             Status = OpportunityJoinRequestStatus.Pending,
             CreatedAt = now,
             UpdatedAt = now
@@ -449,9 +486,9 @@ public class OpportunityService : IOpportunityService
 
         opportunity.Events.Add(new OpportunityEvent
         {
-            EventType = "JoinRequested",
-            Title = "Join requested",
-            Description = "An investor requested to join the opportunity.",
+            EventType = requestDetails.EventType,
+            Title = requestDetails.EventTitle,
+            Description = requestDetails.EventDescription,
             CreatedByUserId = investorId,
             CreatedAt = now,
             IsPublic = false
@@ -842,6 +879,79 @@ public class OpportunityService : IOpportunityService
             throw new BusinessValidationException("FUNDING_GOAL_REQUIRED", "FundingGoalId is required before review.");
     }
 
+    private static OpportunityFilePurpose ResolveMediaPurpose(CreateOpportunityMediaRequest request)
+    {
+        var purpose = request.Purpose ?? InferMediaPurpose(request);
+        if (!Enum.IsDefined(purpose))
+            throw new BusinessValidationException("INVALID_FILE_PURPOSE", "Unknown media purpose.");
+
+        return purpose;
+    }
+
+    private static OpportunityFilePurpose InferMediaPurpose(CreateOpportunityMediaRequest request)
+    {
+        if (request.IsCover)
+            return OpportunityFilePurpose.Cover;
+
+        var mediaType = request.MediaType.Trim();
+        return mediaType switch
+        {
+            var value when value.Equals("Cover", StringComparison.OrdinalIgnoreCase) => OpportunityFilePurpose.Cover,
+            var value when value.Equals("Gallery", StringComparison.OrdinalIgnoreCase) => OpportunityFilePurpose.Gallery,
+            var value when value.Equals("Video", StringComparison.OrdinalIgnoreCase) => OpportunityFilePurpose.PitchVideo,
+            var value when value.Equals("PitchVideo", StringComparison.OrdinalIgnoreCase) => OpportunityFilePurpose.PitchVideo,
+            var value when value.Equals("ProjectUpdateMedia", StringComparison.OrdinalIgnoreCase) => OpportunityFilePurpose.ProjectUpdateMedia,
+            _ => OpportunityFilePurpose.General
+        };
+    }
+
+    private static OpportunityFilePurpose ResolveDocumentPurpose(CreateOpportunityDocumentRequest request)
+    {
+        var purpose = request.Purpose ?? InferDocumentPurpose(request);
+        if (!Enum.IsDefined(purpose))
+            throw new BusinessValidationException("INVALID_FILE_PURPOSE", "Unknown document purpose.");
+
+        return purpose;
+    }
+
+    private static OpportunityFilePurpose InferDocumentPurpose(CreateOpportunityDocumentRequest request)
+    {
+        var text = $"{request.DocumentType} {request.Category}".Trim();
+        if (text.Contains("FinancialReport", StringComparison.OrdinalIgnoreCase) || text.Contains("Financial Report", StringComparison.OrdinalIgnoreCase))
+            return OpportunityFilePurpose.FinancialReport;
+        if (text.Contains("Contract", StringComparison.OrdinalIgnoreCase))
+            return OpportunityFilePurpose.Contract;
+        if (text.Contains("Legal", StringComparison.OrdinalIgnoreCase))
+            return OpportunityFilePurpose.Legal;
+        if (text.Contains("Internal", StringComparison.OrdinalIgnoreCase))
+            return OpportunityFilePurpose.InternalFile;
+        if (request.Visibility == OpportunityDocumentVisibility.Public)
+            return OpportunityFilePurpose.PublicDocument;
+        if (request.Visibility == OpportunityDocumentVisibility.Private)
+            return OpportunityFilePurpose.PrivateDocument;
+
+        return OpportunityFilePurpose.General;
+    }
+
+    private static void ValidateMediaPurposeVisibility(OpportunityFilePurpose purpose, bool isPublic)
+    {
+        if ((purpose is OpportunityFilePurpose.Cover or OpportunityFilePurpose.Gallery or OpportunityFilePurpose.PitchVideo) && !isPublic)
+            throw new BusinessValidationException("INVALID_MEDIA_VISIBILITY", $"{purpose} media must be Public.");
+
+        if ((purpose is OpportunityFilePurpose.FinancialReport or OpportunityFilePurpose.Contract or OpportunityFilePurpose.Legal or OpportunityFilePurpose.InternalFile) && isPublic)
+            throw new BusinessValidationException("INVALID_MEDIA_VISIBILITY", $"{purpose} media must be Private.");
+    }
+
+    private static void ValidateDocumentPurposeVisibility(OpportunityFilePurpose purpose, OpportunityDocumentVisibility visibility)
+    {
+        if (purpose == OpportunityFilePurpose.PublicDocument && visibility != OpportunityDocumentVisibility.Public)
+            throw new BusinessValidationException("INVALID_DOCUMENT_VISIBILITY", "PublicDocument must be Public.");
+
+        if (purpose is OpportunityFilePurpose.PrivateDocument or OpportunityFilePurpose.FinancialReport or OpportunityFilePurpose.Contract or OpportunityFilePurpose.Legal or OpportunityFilePurpose.InternalFile
+            && visibility != OpportunityDocumentVisibility.Private)
+            throw new BusinessValidationException("INVALID_DOCUMENT_VISIBILITY", $"{purpose} must be Private.");
+    }
+
     private async Task<IReadOnlyList<OpportunityTag>> ValidateClassificationAsync(int? categoryId, int? fundingGoalId, IReadOnlyList<int>? tagIds)
     {
         if (categoryId.HasValue)
@@ -986,6 +1096,159 @@ public class OpportunityService : IOpportunityService
             throw new BusinessValidationException(code, message);
     }
 
+    private static JoinRequestDetails BuildJoinRequestDetails(Opportunity opportunity, CreateOpportunityJoinRequest request)
+    {
+        var requestType = request.RequestType ?? OpportunityJoinRequestType.GeneralParticipation;
+        if (!Enum.IsDefined(requestType))
+            throw new BusinessValidationException("INVALID_JOIN_REQUEST_TYPE", "Unknown join request type.");
+
+        return requestType switch
+        {
+            OpportunityJoinRequestType.GeneralParticipation => BuildGeneralParticipationDetails(opportunity, request),
+            OpportunityJoinRequestType.InvestmentParticipation => BuildInvestmentParticipationDetails(opportunity, request),
+            _ => throw new BusinessValidationException("INVALID_JOIN_REQUEST_TYPE", "Unknown join request type.")
+        };
+    }
+
+    private static JoinRequestDetails BuildGeneralParticipationDetails(Opportunity opportunity, CreateOpportunityJoinRequest request)
+    {
+        ValidateRequestedAmount(request.RequestedAmount);
+        if (string.IsNullOrWhiteSpace(request.Message) && !request.RequestedAmount.HasValue)
+            throw new BusinessValidationException("JOIN_REQUEST_DETAILS_REQUIRED", "GeneralParticipation requires a message or RequestedAmount.");
+
+        var snapshot = SerializeTermsSnapshot(new
+        {
+            RequestType = OpportunityJoinRequestType.GeneralParticipation.ToString(),
+            InvestmentModel = opportunity.InvestmentModel.ToString(),
+            request.RequestedAmount,
+            HasMessage = !string.IsNullOrWhiteSpace(request.Message),
+            MetadataJson = Normalize(request.MetadataJson),
+            SnapshotAt = DateTime.UtcNow
+        });
+
+        return new JoinRequestDetails(
+            OpportunityJoinRequestType.GeneralParticipation,
+            request.RequestedAmount,
+            request.RequestedAmount,
+            snapshot,
+            "GeneralParticipationRequested",
+            "General participation requested",
+            "An investor requested general participation details.");
+    }
+
+    private static JoinRequestDetails BuildInvestmentParticipationDetails(Opportunity opportunity, CreateOpportunityJoinRequest request)
+    {
+        return opportunity.InvestmentModel switch
+        {
+            InvestmentModel.Equity => BuildEquityParticipationDetails(opportunity, request),
+            InvestmentModel.LoanInvestment => BuildLoanParticipationDetails(opportunity, request),
+            InvestmentModel.CapitalContributionProfitSharing => BuildProfitSharingParticipationDetails(opportunity, request),
+            _ => throw new BusinessValidationException("INVALID_INVESTMENT_MODEL", "Unsupported investment model.")
+        };
+    }
+
+    private static JoinRequestDetails BuildEquityParticipationDetails(Opportunity opportunity, CreateOpportunityJoinRequest request)
+    {
+        if (!request.NumberOfShares.HasValue || request.NumberOfShares.Value <= 0)
+            throw new BusinessValidationException("INVALID_NUMBER_OF_SHARES", "NumberOfShares must be greater than zero for equity participation.");
+
+        if (!request.SharePriceSnapshot.HasValue || request.SharePriceSnapshot.Value <= 0)
+            throw new BusinessValidationException("INVALID_SHARE_PRICE_SNAPSHOT", "SharePriceSnapshot must be greater than zero for equity participation.");
+
+        var calculatedTotal = request.NumberOfShares.Value * request.SharePriceSnapshot.Value;
+        if (request.TotalAmount.HasValue && request.TotalAmount.Value != calculatedTotal)
+            throw new BusinessValidationException("INVALID_TOTAL_AMOUNT", "TotalAmount must equal NumberOfShares multiplied by SharePriceSnapshot.");
+
+        var snapshot = SerializeTermsSnapshot(new
+        {
+            RequestType = OpportunityJoinRequestType.InvestmentParticipation.ToString(),
+            InvestmentModel = opportunity.InvestmentModel.ToString(),
+            request.NumberOfShares,
+            request.SharePriceSnapshot,
+            TotalAmount = calculatedTotal,
+            OpportunityFundingTarget = opportunity.FundingTarget,
+            MetadataJson = Normalize(request.MetadataJson),
+            SnapshotAt = DateTime.UtcNow
+        });
+
+        return NewInvestmentParticipationDetails(calculatedTotal, calculatedTotal, snapshot);
+    }
+
+    private static JoinRequestDetails BuildLoanParticipationDetails(Opportunity opportunity, CreateOpportunityJoinRequest request)
+    {
+        ValidateRequestedAmount(request.RequestedAmount);
+        if (!request.RequestedAmount.HasValue)
+            throw new BusinessValidationException("INVALID_REQUESTED_AMOUNT", "RequestedAmount is required for loan participation.");
+
+        var durationMonths = request.ExpectedDurationMonthsSnapshot ?? opportunity.ExpectedDurationMonths;
+        if (request.ExpectedReturnRateSnapshot.HasValue && request.ExpectedReturnRateSnapshot.Value <= 0)
+            throw new BusinessValidationException("INVALID_EXPECTED_RETURN_RATE", "ExpectedReturnRateSnapshot must be greater than zero when provided.");
+
+        if (durationMonths.HasValue && durationMonths.Value <= 0)
+            throw new BusinessValidationException("INVALID_EXPECTED_DURATION", "ExpectedDurationMonthsSnapshot must be greater than zero when provided.");
+
+        decimal? calculatedExpectedReturn = null;
+        if (request.ExpectedReturnRateSnapshot.HasValue && durationMonths.HasValue)
+            calculatedExpectedReturn = decimal.Round(request.RequestedAmount.Value * (request.ExpectedReturnRateSnapshot.Value / 100m) * durationMonths.Value / 12m, 2);
+
+        if (request.ExpectedReturnAmount.HasValue && calculatedExpectedReturn.HasValue && request.ExpectedReturnAmount.Value != calculatedExpectedReturn.Value)
+            throw new BusinessValidationException("INVALID_EXPECTED_RETURN_AMOUNT", "ExpectedReturnAmount does not match the backend calculated loan return.");
+
+        var expectedReturn = calculatedExpectedReturn ?? request.ExpectedReturnAmount;
+        var calculatedTotal = expectedReturn.HasValue
+            ? request.RequestedAmount.Value + expectedReturn.Value
+            : request.RequestedAmount.Value;
+
+        var snapshot = SerializeTermsSnapshot(new
+        {
+            RequestType = OpportunityJoinRequestType.InvestmentParticipation.ToString(),
+            InvestmentModel = opportunity.InvestmentModel.ToString(),
+            request.RequestedAmount,
+            request.ExpectedReturnRateSnapshot,
+            ExpectedDurationMonthsSnapshot = durationMonths,
+            ExpectedReturnAmount = expectedReturn,
+            CalculatedTotalAmount = calculatedTotal,
+            MissingOpportunityTerms = request.ExpectedReturnRateSnapshot.HasValue ? Array.Empty<string>() : new[] { "ExpectedReturnRate" },
+            MetadataJson = Normalize(request.MetadataJson),
+            SnapshotAt = DateTime.UtcNow
+        });
+
+        return NewInvestmentParticipationDetails(request.RequestedAmount.Value, calculatedTotal, snapshot);
+    }
+
+    private static JoinRequestDetails BuildProfitSharingParticipationDetails(Opportunity opportunity, CreateOpportunityJoinRequest request)
+    {
+        ValidateRequestedAmount(request.RequestedAmount);
+        if (!request.RequestedAmount.HasValue)
+            throw new BusinessValidationException("INVALID_REQUESTED_AMOUNT", "RequestedAmount is required for profit sharing participation.");
+
+        var snapshot = SerializeTermsSnapshot(new
+        {
+            RequestType = OpportunityJoinRequestType.InvestmentParticipation.ToString(),
+            InvestmentModel = opportunity.InvestmentModel.ToString(),
+            request.RequestedAmount,
+            request.ProposedSharePercentage,
+            HasMessage = !string.IsNullOrWhiteSpace(request.Message),
+            MetadataJson = Normalize(request.MetadataJson),
+            SnapshotAt = DateTime.UtcNow
+        });
+
+        return NewInvestmentParticipationDetails(request.RequestedAmount.Value, request.RequestedAmount.Value, snapshot);
+    }
+
+    private static JoinRequestDetails NewInvestmentParticipationDetails(decimal requestedAmount, decimal calculatedTotalAmount, string termsSnapshotJson) =>
+        new(
+            OpportunityJoinRequestType.InvestmentParticipation,
+            requestedAmount,
+            calculatedTotalAmount,
+            termsSnapshotJson,
+            "InvestmentParticipationRequested",
+            "Investment participation requested",
+            "An investor submitted investment participation details.");
+
+    private static string SerializeTermsSnapshot(object snapshot) =>
+        JsonSerializer.Serialize(snapshot, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
     private static void ValidateRequestedAmount(decimal? requestedAmount)
     {
         if (requestedAmount.HasValue && requestedAmount.Value <= 0)
@@ -1025,20 +1288,30 @@ public class OpportunityService : IOpportunityService
         return JsonSerializer.Serialize(snapshot);
     }
 
-    private static OpportunityDetailDto ToDetailDto(Opportunity opportunity, bool publicOnly = false, IReadOnlyDictionary<int, OpportunityTag>? tagLookup = null)
+    private static OpportunityDetailDto ToDetailDto(
+        Opportunity opportunity,
+        bool publicOnly = false,
+        AuthUser? founder = null,
+        IReadOnlyDictionary<int, OpportunityTag>? tagLookup = null)
     {
         var dto = new OpportunityDetailDto
         {
             Id = opportunity.Id,
             FounderId = opportunity.FounderId,
+            Founder = ToFounderSummary(founder, opportunity.FounderId),
             Title = opportunity.Title,
             Description = opportunity.Description,
+            ShortDescription = ToShortDescription(opportunity.Description),
             FundingTarget = opportunity.FundingTarget,
             Category = ToLookupDto(opportunity.Category),
             FundingGoal = ToLookupDto(opportunity.FundingGoal),
+            FundingPurpose = opportunity.FundingGoal?.Name,
             MinimumInvestmentAmount = opportunity.MinimumInvestmentAmount,
             MaximumInvestmentAmount = opportunity.MaximumInvestmentAmount,
             ExpectedDurationMonths = opportunity.ExpectedDurationMonths,
+            PublicInvestmentTermsSummary = BuildPublicInvestmentTermsSummary(opportunity),
+            ExpectedReturnSummary = BuildExpectedReturnSummary(opportunity),
+            FundingProgressPercent = 0m,
             Tags = ToTagDtos(opportunity, tagLookup),
             InvestmentModel = opportunity.InvestmentModel,
             ProjectStage = opportunity.ProjectStage,
@@ -1049,12 +1322,13 @@ public class OpportunityService : IOpportunityService
             CreatedAt = opportunity.CreatedAt,
             UpdatedAt = opportunity.UpdatedAt,
             Media = opportunity.Media
+                .Where(m => !publicOnly || m.IsPublic)
                 .OrderBy(m => m.SortOrder)
                 .ThenByDescending(m => m.CreatedAt)
                 .Select(ToMediaDto)
                 .ToList(),
             Documents = opportunity.Documents
-                .Where(d => !publicOnly || d.Visibility == OpportunityDocumentVisibility.Public)
+                .Where(d => !publicOnly || IsPublicSafeDocument(d))
                 .OrderByDescending(d => d.CreatedAt)
                 .Select(ToDocumentDto)
                 .ToList(),
@@ -1068,18 +1342,24 @@ public class OpportunityService : IOpportunityService
         return dto;
     }
 
-    private static OpportunityDto ToDto(Opportunity opportunity, IReadOnlyDictionary<int, OpportunityTag>? tagLookup = null) => new()
+    private static OpportunityDto ToDto(Opportunity opportunity, AuthUser? founder = null, IReadOnlyDictionary<int, OpportunityTag>? tagLookup = null) => new()
     {
         Id = opportunity.Id,
         FounderId = opportunity.FounderId,
+        Founder = ToFounderSummary(founder, opportunity.FounderId),
         Title = opportunity.Title,
         Description = opportunity.Description,
+        ShortDescription = ToShortDescription(opportunity.Description),
         FundingTarget = opportunity.FundingTarget,
         Category = ToLookupDto(opportunity.Category),
         FundingGoal = ToLookupDto(opportunity.FundingGoal),
+        FundingPurpose = opportunity.FundingGoal?.Name,
         MinimumInvestmentAmount = opportunity.MinimumInvestmentAmount,
         MaximumInvestmentAmount = opportunity.MaximumInvestmentAmount,
         ExpectedDurationMonths = opportunity.ExpectedDurationMonths,
+        PublicInvestmentTermsSummary = BuildPublicInvestmentTermsSummary(opportunity),
+        ExpectedReturnSummary = BuildExpectedReturnSummary(opportunity),
+        FundingProgressPercent = 0m,
         Tags = ToTagDtos(opportunity, tagLookup),
         InvestmentModel = opportunity.InvestmentModel,
         ProjectStage = opportunity.ProjectStage,
@@ -1145,6 +1425,69 @@ public class OpportunityService : IOpportunityService
         Email = founder?.Email
     };
 
+    private async Task<IReadOnlyDictionary<Guid, AuthUser>> GetFounderLookupAsync(IEnumerable<Guid> founderIds)
+    {
+        var ids = founderIds.Where(id => id != Guid.Empty).Distinct().ToHashSet();
+        if (ids.Count == 0)
+            return new Dictionary<Guid, AuthUser>();
+
+        return (await _uow.Repository<AuthUser>().GetAllAsync())
+            .Where(u => ids.Contains(u.Id))
+            .ToDictionary(u => u.Id);
+    }
+
+    private static string? ToShortDescription(string? description)
+    {
+        var normalized = Normalize(description);
+        if (normalized == null)
+            return null;
+
+        return normalized.Length <= 220 ? normalized : normalized[..217] + "...";
+    }
+
+    private static string BuildPublicInvestmentTermsSummary(Opportunity opportunity)
+    {
+        var parts = new List<string> { opportunity.InvestmentModel.ToString() };
+
+        if (opportunity.MinimumInvestmentAmount.HasValue)
+            parts.Add($"Minimum investment {opportunity.MinimumInvestmentAmount.Value:0.##}");
+
+        if (opportunity.MaximumInvestmentAmount.HasValue)
+            parts.Add($"Maximum investment {opportunity.MaximumInvestmentAmount.Value:0.##}");
+
+        if (opportunity.ExpectedDurationMonths.HasValue)
+            parts.Add($"{opportunity.ExpectedDurationMonths.Value} months expected duration");
+
+        return string.Join(" | ", parts);
+    }
+
+    private static string BuildExpectedReturnSummary(Opportunity opportunity)
+    {
+        return opportunity.InvestmentModel switch
+        {
+            InvestmentModel.Equity => "Equity upside based on future company value.",
+            InvestmentModel.LoanInvestment => opportunity.ExpectedDurationMonths.HasValue
+                ? $"Loan return terms over {opportunity.ExpectedDurationMonths.Value} months."
+                : "Loan return terms available on request.",
+            InvestmentModel.CapitalContributionProfitSharing => "Profit sharing terms available on request.",
+            _ => "Expected return summary available on request."
+        };
+    }
+
+    private static bool IsPublicSafeDocument(OpportunityDocument document)
+    {
+        if (document.Visibility != OpportunityDocumentVisibility.Public)
+            return false;
+
+        var type = (document.DocumentType ?? string.Empty).Replace(" ", string.Empty);
+        var category = (document.Category ?? string.Empty).Replace(" ", string.Empty);
+        var sensitiveTokens = new[] { "Private", "FinancialReport", "Finance", "Contract", "Legal", "Internal" };
+
+        return !sensitiveTokens.Any(token =>
+            type.Contains(token, StringComparison.OrdinalIgnoreCase)
+            || category.Contains(token, StringComparison.OrdinalIgnoreCase));
+    }
+
     private static OpportunityLookupDto? ToLookupDto(OpportunityCategory? category)
     {
         return category == null
@@ -1190,13 +1533,25 @@ public class OpportunityService : IOpportunityService
         OpportunityTitle = joinRequest.Opportunity?.Title ?? string.Empty,
         InvestorId = joinRequest.InvestorId,
         InvestorName = joinRequest.Investor?.Name ?? string.Empty,
+        RequestType = joinRequest.RequestType,
         RequestedAmount = joinRequest.RequestedAmount,
+        CalculatedTotalAmount = joinRequest.CalculatedTotalAmount,
         Message = joinRequest.Message,
+        TermsSnapshotJson = joinRequest.TermsSnapshotJson,
         Status = joinRequest.Status,
         CreatedAt = joinRequest.CreatedAt,
         ReviewedAt = joinRequest.ReviewedAt,
         RejectionReason = includeRejectionReason ? joinRequest.RejectionReason : null
     };
+
+    private sealed record JoinRequestDetails(
+        OpportunityJoinRequestType RequestType,
+        decimal? RequestedAmount,
+        decimal? CalculatedTotalAmount,
+        string TermsSnapshotJson,
+        string EventType,
+        string EventTitle,
+        string EventDescription);
 
     private static List<Opportunity> SortAdminList(
         List<Opportunity> opportunities,
@@ -1237,8 +1592,11 @@ public class OpportunityService : IOpportunityService
         PreviewUrl = media.PreviewUrl,
         ThumbnailUrl = media.ThumbnailUrl,
         MediaType = media.MediaType,
+        Purpose = media.Purpose,
         IsCover = media.IsCover,
+        IsPublic = media.IsPublic,
         SortOrder = media.SortOrder,
+        CreatedByUserId = media.CreatedByUserId,
         CreatedAt = media.CreatedAt
     };
 
@@ -1257,8 +1615,10 @@ public class OpportunityService : IOpportunityService
         ThumbnailUrl = document.ThumbnailUrl,
         DocumentType = document.DocumentType,
         Visibility = document.Visibility,
+        Purpose = document.Purpose,
         Category = document.Category,
         SearchTags = document.SearchTags,
+        CreatedByUserId = document.CreatedByUserId,
         CreatedAt = document.CreatedAt
     };
 

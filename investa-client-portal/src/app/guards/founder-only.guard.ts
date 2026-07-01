@@ -15,6 +15,6 @@ export const founderOnlyGuard: CanActivateFn = async () => {
   return roleContext.canCreateOpportunity()
     ? true
     : router.createUrlTree(['/admin/not-allowed'], {
-        queryParams: { returnUrl: router.url || '/admin/opportunities' }
+        queryParams: { returnUrl: router.url || '/admin/investments' }
       });
 };

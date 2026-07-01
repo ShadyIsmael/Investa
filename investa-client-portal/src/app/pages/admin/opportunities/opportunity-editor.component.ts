@@ -183,7 +183,7 @@ export class OpportunityEditorComponent {
 
       const attached: FileStoreFile[] = [];
       for (const item of this.pendingUploads()) {
-        const uploaded = await this.fileStore.uploadFile(item.category, item.file);
+        const uploaded = await this.fileStore.uploadFile(item.category, item.file, this.uploadMetadataFor(item.kind));
         attached.push(uploaded);
         if (item.kind === 'cover') {
           this.form.coverImageUrl = uploaded.url;
@@ -235,40 +235,74 @@ export class OpportunityEditorComponent {
   }
 
   private toMediaPayload(item: PendingUpload, file: FileStoreFile) {
+    const purpose = this.purposeFor(item.kind);
+    const isPublic = this.isPublicFor(item.kind);
     return {
       fileId: file.fileId,
       fileKey: file.fileKey,
+      fileUrl: file.url,
       fileName: file.fileName,
-      originalFileName: file.originalFileName,
-      extension: file.extension,
       mimeType: file.mimeType,
       fileSize: file.fileSize,
-      category: file.category,
-      url: file.url,
       previewUrl: file.previewUrl,
       thumbnailUrl: file.thumbnailUrl,
+      purpose,
+      isPublic,
       caption: file.originalFileName,
       mediaType: item.kind === 'video' ? 'Video' : item.kind === 'cover' ? 'Cover' : 'Gallery',
       isCover: item.kind === 'cover',
-      isPrimary: item.kind === 'cover'
+      sortOrder: 0
     };
   }
 
   private toDocumentPayload(item: PendingUpload, file: FileStoreFile) {
+    const purpose = this.purposeFor(item.kind);
+    const visibility = this.visibilityFor(item.kind);
     return {
       fileId: file.fileId,
       fileKey: file.fileKey,
+      fileUrl: file.url,
       title: file.originalFileName,
       fileName: file.fileName,
-      originalFileName: file.originalFileName,
-      extension: file.extension,
+      fileExtension: file.extension,
       mimeType: file.mimeType,
       fileSize: file.fileSize,
       category: file.category,
-      url: file.url,
       previewUrl: file.previewUrl,
       thumbnailUrl: file.thumbnailUrl,
-      isPublic: item.kind === 'publicDocument'
+      purpose,
+      visibility,
+      searchTags: '',
+      isPublic: visibility === 'Public'
     };
+  }
+
+  private uploadMetadataFor(kind: PendingUploadKind) {
+    const visibility = this.visibilityFor(kind);
+    return {
+      purpose: this.purposeFor(kind),
+      visibility,
+      isPublic: visibility === 'Public'
+    };
+  }
+
+  private purposeFor(kind: PendingUploadKind): string {
+    switch (kind) {
+      case 'cover': return 'Cover';
+      case 'gallery': return 'Gallery';
+      case 'video': return 'PitchVideo';
+      case 'publicDocument': return 'PublicDocument';
+      case 'privateDocument': return 'PrivateDocument';
+    }
+  }
+
+  private visibilityFor(kind: PendingUploadKind): 'Public' | 'Private' {
+    return kind === 'publicDocument' || kind === 'cover' || kind === 'gallery' || kind === 'video'
+      ? 'Public'
+      : 'Private';
+  }
+
+  private isPublicFor(kind: PendingUploadKind): boolean {
+    return this.visibilityFor(kind) === 'Public';
   }
 }

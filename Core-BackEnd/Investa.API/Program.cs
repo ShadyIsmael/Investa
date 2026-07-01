@@ -356,6 +356,30 @@ try
     // === BUILD APPLICATION ===
     var app = builder.Build();
 
+    // === COMPATIBILITY BACKFILLS ===
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        var backfillContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        if (!app.Environment.IsEnvironment("Testing"))
+        {
+            await backfillContext.Database.MigrateAsync();
+        }
+
+        var backfill = scope.ServiceProvider.GetRequiredService<InvestmentOpportunityBackfillService>();
+        var result = await backfill.BackfillAsync();
+        logger.LogInformation(
+            "Investment Opportunity compatibility backfill result: scanned={Scanned}, migrated={Migrated}, skipped={Skipped}",
+            result.Scanned,
+            result.Migrated,
+            result.Skipped);
+    }
+    catch (Exception ex)
+    {
+        logger.LogWarning(ex, "Investment Opportunity compatibility backfill did not complete.");
+    }
+
     // === MIDDLEWARE PIPELINE ===
     // Error handling
     app.UseMiddleware<GlobalExceptionMiddleware>();
@@ -574,6 +598,7 @@ static void RegisterApplicationServices(IServiceCollection services)
     services.AddScoped<IWalletService, WalletService>();
     services.AddScoped<IPriceService, PriceService>();
     services.AddScoped<IOpportunityService, OpportunityService>();
+    services.AddScoped<InvestmentOpportunityBackfillService>();
     services.AddScoped<IChatService, ChatService>();
     services.AddScoped<IGroupService, GroupService>();
 

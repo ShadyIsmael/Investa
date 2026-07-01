@@ -44,11 +44,15 @@ public class OpportunityDocument
 
     public OpportunityDocumentVisibility Visibility { get; set; } = OpportunityDocumentVisibility.Private;
 
+    public OpportunityFilePurpose Purpose { get; set; } = OpportunityFilePurpose.General;
+
     [StringLength(100)]
     public string? Category { get; set; }
 
     [StringLength(1000)]
     public string? SearchTags { get; set; }
+
+    public Guid CreatedByUserId { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

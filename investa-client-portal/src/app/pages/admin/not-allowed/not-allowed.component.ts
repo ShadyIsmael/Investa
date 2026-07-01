@@ -20,8 +20,8 @@ import { RoleContextService } from '../../../services/role-context.service';
           This action is available for founder accounts. You can still discover opportunities, manage your wallet, notifications, and profile.
         </p>
         <div class="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
-          <a routerLink="/admin/opportunities" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">Discover Opportunities</a>
-          <a *ngIf="roleContext.isFounderUser()" routerLink="/admin/my-opportunities" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-slate-700">My Opportunities</a>
+          <a routerLink="/admin/investments" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">Discover Opportunities</a>
+          <a *ngIf="roleContext.isActiveFounderContext()" routerLink="/admin/my-opportunities" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-slate-700">My Projects</a>
         </div>
       </div>
     </div>

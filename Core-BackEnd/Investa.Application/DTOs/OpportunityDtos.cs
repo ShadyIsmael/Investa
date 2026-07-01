@@ -112,7 +112,11 @@ public class CreateOpportunityMediaRequest
     [StringLength(50)]
     public string MediaType { get; set; } = string.Empty;
 
+    public OpportunityFilePurpose? Purpose { get; set; }
+
     public bool IsCover { get; set; }
+
+    public bool? IsPublic { get; set; }
 
     public int SortOrder { get; set; }
 }
@@ -155,6 +159,8 @@ public class CreateOpportunityDocumentRequest
     [Required]
     public OpportunityDocumentVisibility? Visibility { get; set; }
 
+    public OpportunityFilePurpose? Purpose { get; set; }
+
     [StringLength(100)]
     public string? Category { get; set; }
 
@@ -188,14 +194,20 @@ public class OpportunityDto
 {
     public int Id { get; set; }
     public Guid FounderId { get; set; }
+    public FounderSummaryDto Founder { get; set; } = new();
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
+    public string? ShortDescription { get; set; }
     public decimal FundingTarget { get; set; }
     public OpportunityLookupDto? Category { get; set; }
     public OpportunityLookupDto? FundingGoal { get; set; }
+    public string? FundingPurpose { get; set; }
     public decimal? MinimumInvestmentAmount { get; set; }
     public decimal? MaximumInvestmentAmount { get; set; }
     public int? ExpectedDurationMonths { get; set; }
+    public string? PublicInvestmentTermsSummary { get; set; }
+    public string? ExpectedReturnSummary { get; set; }
+    public decimal FundingProgressPercent { get; set; }
     public IReadOnlyList<OpportunityLookupDto> Tags { get; set; } = Array.Empty<OpportunityLookupDto>();
     public InvestmentModel InvestmentModel { get; set; }
     public ProjectStage ProjectStage { get; set; }
@@ -266,7 +278,6 @@ public class AdminOpportunityListItemDto
 
 public class AdminOpportunityDetailDto : OpportunityDetailDto
 {
-    public FounderSummaryDto Founder { get; set; } = new();
     public IReadOnlyList<OpportunityEventDto> ReviewHistory { get; set; } = Array.Empty<OpportunityEventDto>();
 }
 
@@ -279,11 +290,36 @@ public class RejectOpportunityRequest
 
 public class CreateOpportunityJoinRequest
 {
+    public OpportunityJoinRequestType? RequestType { get; set; }
+
     [Range(0.01, double.MaxValue, ErrorMessage = "RequestedAmount must be greater than zero.")]
     public decimal? RequestedAmount { get; set; }
 
     [StringLength(1000)]
     public string? Message { get; set; }
+
+    [Range(1, int.MaxValue, ErrorMessage = "NumberOfShares must be greater than zero.")]
+    public int? NumberOfShares { get; set; }
+
+    [Range(0.01, double.MaxValue, ErrorMessage = "SharePriceSnapshot must be greater than zero.")]
+    public decimal? SharePriceSnapshot { get; set; }
+
+    [Range(0.01, double.MaxValue, ErrorMessage = "TotalAmount must be greater than zero.")]
+    public decimal? TotalAmount { get; set; }
+
+    [Range(0.01, double.MaxValue, ErrorMessage = "ExpectedReturnRateSnapshot must be greater than zero.")]
+    public decimal? ExpectedReturnRateSnapshot { get; set; }
+
+    [Range(1, int.MaxValue, ErrorMessage = "ExpectedDurationMonthsSnapshot must be greater than zero.")]
+    public int? ExpectedDurationMonthsSnapshot { get; set; }
+
+    [Range(0.01, double.MaxValue, ErrorMessage = "ExpectedReturnAmount must be greater than zero.")]
+    public decimal? ExpectedReturnAmount { get; set; }
+
+    [Range(0.01, 100, ErrorMessage = "ProposedSharePercentage must be between 0.01 and 100.")]
+    public decimal? ProposedSharePercentage { get; set; }
+
+    public string? MetadataJson { get; set; }
 }
 
 public class OpportunityJoinRequestQuery
@@ -306,8 +342,11 @@ public class OpportunityJoinRequestDto
     public string OpportunityTitle { get; set; } = string.Empty;
     public Guid InvestorId { get; set; }
     public string InvestorName { get; set; } = string.Empty;
+    public OpportunityJoinRequestType RequestType { get; set; }
     public decimal? RequestedAmount { get; set; }
+    public decimal? CalculatedTotalAmount { get; set; }
     public string? Message { get; set; }
+    public string? TermsSnapshotJson { get; set; }
     public OpportunityJoinRequestStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? ReviewedAt { get; set; }
@@ -328,8 +367,11 @@ public class OpportunityMediaDto
     public string? PreviewUrl { get; set; }
     public string? ThumbnailUrl { get; set; }
     public string MediaType { get; set; } = string.Empty;
+    public OpportunityFilePurpose Purpose { get; set; }
     public bool IsCover { get; set; }
+    public bool IsPublic { get; set; }
     public int SortOrder { get; set; }
+    public Guid CreatedByUserId { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 
@@ -348,8 +390,10 @@ public class OpportunityDocumentDto
     public string? ThumbnailUrl { get; set; }
     public string DocumentType { get; set; } = string.Empty;
     public OpportunityDocumentVisibility Visibility { get; set; }
+    public OpportunityFilePurpose Purpose { get; set; }
     public string? Category { get; set; }
     public string? SearchTags { get; set; }
+    public Guid CreatedByUserId { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 

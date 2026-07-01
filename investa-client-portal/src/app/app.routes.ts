@@ -59,24 +59,21 @@ export const routes: Routes = [
       { 
         path: 'investments', 
         loadComponent: () => import('./pages/admin/investments/investments.component').then(m => m.InvestmentsComponent),
-        title: 'Investments - Investa' 
+        title: 'Discover Opportunities - Investa'
       },
       {
         path: 'opportunities',
-        loadComponent: () => import('./pages/admin/opportunities/opportunity-discovery.component').then(m => m.OpportunityDiscoveryComponent),
-        title: 'Opportunities - Investa'
+        redirectTo: 'investments',
+        pathMatch: 'full'
       },
       {
         path: 'opportunities/new',
-        loadComponent: () => import('./pages/admin/opportunities/opportunity-editor.component').then(m => m.OpportunityEditorComponent),
-        canActivate: [founderOnlyGuard],
-        title: 'Create Opportunity - Investa'
+        redirectTo: 'investments/new',
+        pathMatch: 'full'
       },
       {
         path: 'opportunities/:id/edit',
-        loadComponent: () => import('./pages/admin/opportunities/opportunity-editor.component').then(m => m.OpportunityEditorComponent),
-        canActivate: [founderOnlyGuard],
-        title: 'Edit Opportunity - Investa'
+        redirectTo: 'investments/:id/edit'
       },
       {
         path: 'opportunities/:id',
@@ -85,9 +82,13 @@ export const routes: Routes = [
       },
       {
         path: 'my-opportunities',
-        loadComponent: () => import('./pages/admin/opportunities/my-opportunities.component').then(m => m.MyOpportunitiesComponent),
-        canActivate: [founderOnlyGuard],
-        title: 'My Opportunities - Investa'
+        redirectTo: 'dashboard',
+        pathMatch: 'full'
+      },
+      {
+        path: 'my-projects',
+        loadComponent: () => import('./pages/admin/investments/investments.component').then(m => m.InvestmentsComponent),
+        title: 'My Projects - Investa'
       },
       { 
         path: 'investments/new', 

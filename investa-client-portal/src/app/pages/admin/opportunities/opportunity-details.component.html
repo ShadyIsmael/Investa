@@ -42,7 +42,7 @@
         <div *ngIf="documents().length === 0" class="mt-4 text-sm text-gray-400">No public documents returned.</div>
         <div *ngFor="let doc of documents()" class="mt-3 rounded-lg bg-slate-800/50 p-3">
           <div class="flex items-start gap-3">
-            <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-slate-900 text-xs font-bold text-gray-300">{{ doc.extension || 'FILE' }}</div>
+            <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-slate-900 text-xs font-bold text-gray-300">{{ doc.fileExtension || 'FILE' }}</div>
             <div class="min-w-0 flex-1">
               <p class="truncate text-sm font-semibold text-white">{{ fileTitle(doc) }}</p>
               <p class="mt-1 text-xs text-gray-400">{{ doc.mimeType || '-' }} · {{ fileSize(doc.fileSize) }} · {{ doc.category || '-' }}</p>
@@ -61,7 +61,7 @@
       <div *ngIf="media().length === 0" class="mt-4 text-sm text-gray-400">No public media returned.</div>
       <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
         <div *ngFor="let item of media()" class="rounded-lg bg-slate-800/50 p-3">
-          <img *ngIf="(item.mimeType || '').startsWith('image') || item.thumbnailUrl || item.url" [src]="mediaUrl(item)" [alt]="item.caption || item.originalFileName || 'Opportunity media'" class="h-44 w-full rounded-lg object-cover">
+          <img *ngIf="(item.mimeType || '').startsWith('image') || item.thumbnailUrl || item.fileUrl" [src]="mediaUrl(item)" [alt]="item.caption || item.originalFileName || 'Opportunity media'" class="h-44 w-full rounded-lg object-cover">
           <div *ngIf="(item.mimeType || '').startsWith('video')" class="mt-3">
             <a [href]="previewUrl(item)" target="_blank" class="text-sm font-semibold text-blue-300 hover:text-blue-200">Open video preview</a>
           </div>

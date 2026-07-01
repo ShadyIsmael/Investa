@@ -18,14 +18,16 @@ export interface OpportunityMedia {
   fileKey?: string | null;
   fileName?: string | null;
   originalFileName?: string | null;
-  extension?: string | null;
+  fileExtension?: string | null;
   mimeType?: string | null;
   fileSize?: number | null;
   category?: string | null;
-  url?: string | null;
   previewUrl?: string | null;
   fileUrl?: string | null;
   thumbnailUrl?: string | null;
+  purpose?: string | null;
+  isPublic?: boolean | null;
+  sortOrder?: number | null;
   caption?: string | null;
   mediaType?: string | number | null;
   isCover?: boolean | null;
@@ -40,14 +42,16 @@ export interface OpportunityDocument {
   name?: string | null;
   fileName?: string | null;
   originalFileName?: string | null;
-  extension?: string | null;
+  fileExtension?: string | null;
   mimeType?: string | null;
   fileSize?: number | null;
   category?: string | null;
-  url?: string | null;
   previewUrl?: string | null;
   thumbnailUrl?: string | null;
   fileUrl?: string | null;
+  purpose?: string | null;
+  visibility?: 'Public' | 'Private' | string | null;
+  searchTags?: string | null;
   description?: string | null;
   isPublic?: boolean | null;
 }

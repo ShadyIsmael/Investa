@@ -4,6 +4,7 @@ using Investa.Domain.Entities;
 using Investa.Domain.Entities.Enums;
 using Investa.Application.DTOs;
 using Investa.Application.DTOs.Investments;
+using Microsoft.Extensions.Logging;
 
 namespace Investa.Application.Services;
 
@@ -12,15 +13,21 @@ public class InvestmentService : IInvestmentService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IInvestmentEventService _eventService;
     private readonly IInvestmentRepository _investmentRepository;
+    private readonly IOpportunityService _opportunityService;
+    private readonly ILogger<InvestmentService> _logger;
 
     public InvestmentService(
         IUnitOfWork unitOfWork, 
         IInvestmentEventService eventService,
-        IInvestmentRepository investmentRepository)
+        IInvestmentRepository investmentRepository,
+        IOpportunityService opportunityService,
+        ILogger<InvestmentService> logger)
     {
         _unitOfWork = unitOfWork;
         _eventService = eventService;
         _investmentRepository = investmentRepository;
+        _opportunityService = opportunityService;
+        _logger = logger;
     }
 
     public async Task<bool> PurchaseSharesAsync(Guid investorId, int investmentId, int sharesPurchased)
@@ -197,6 +204,13 @@ public class InvestmentService : IInvestmentService
 
         await _unitOfWork.Repository<Investment>().AddAsync(entity);
         await _unitOfWork.SaveChangesAsync();
+        var mirroredOpportunityId = await MirrorLegacyCreateToOpportunityAsync(dto, entity);
+        if (mirroredOpportunityId.HasValue)
+        {
+            entity.OpportunityId = mirroredOpportunityId.Value;
+            await _unitOfWork.Repository<Investment>().UpdateAsync(entity);
+            await _unitOfWork.SaveChangesAsync();
+        }
 
         // Best-effort: append Created event (do not fail creation if event append fails)
         try
@@ -224,6 +238,7 @@ public class InvestmentService : IInvestmentService
         if (entity == null) return false;
 
         var oldStatus = entity.Status;
+        var oldBusinessName = entity.BusinessName;
 
         if (dto.InitialCapital.HasValue) entity.InitialCapital = dto.InitialCapital.Value;
         if (dto.BusinessName != null) entity.BusinessName = dto.BusinessName;
@@ -283,6 +298,7 @@ public class InvestmentService : IInvestmentService
 
         await repo.UpdateAsync(entity);
         await _unitOfWork.SaveChangesAsync();
+        await MirrorLegacyUpdateToOpportunityAsync(entity, oldBusinessName);
 
         // Emit status change event if status changed
         if (oldStatus != entity.Status)
@@ -422,5 +438,85 @@ public class InvestmentService : IInvestmentService
         var repo = _unitOfWork.Repository<InvestmentParticipant>();
         var participants = await repo.GetAllAsync();
         return participants.Where(p => p.InvestmentId == investmentId);
+    }
+
+    private async Task<int?> MirrorLegacyCreateToOpportunityAsync(CreateInvestmentDto dto, Investment investment)
+    {
+        if (!InvestmentOpportunityCompatibilityMapper.TryCreateRequest(dto, investment.Id, out var request, out var skipReason))
+        {
+            _logger.LogWarning(
+                "Legacy investment {InvestmentId} Opportunity mirror create skipped: {Reason}",
+                investment.Id,
+                skipReason);
+            return null;
+        }
+
+        try
+        {
+            var opportunity = await _opportunityService.CreateAsync(dto.FounderId, request);
+            _logger.LogInformation(
+                "Legacy investment {InvestmentId} mirrored to Opportunity {OpportunityId} during create.",
+                investment.Id,
+                opportunity.Id);
+            return opportunity.Id;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Legacy investment {InvestmentId} was created, but Opportunity mirror create was skipped.",
+                investment.Id);
+            return null;
+        }
+    }
+
+    private async Task MirrorLegacyUpdateToOpportunityAsync(Investment investment, string? oldBusinessName)
+    {
+        try
+        {
+            var existing = await FindMirroredOpportunityAsync(investment, oldBusinessName);
+            if (existing is null)
+                return;
+
+            if (!InvestmentOpportunityCompatibilityMapper.TryUpdateRequest(investment, out var request, out var skipReason))
+            {
+                _logger.LogWarning(
+                    "Legacy investment {InvestmentId} Opportunity mirror update skipped: {Reason}",
+                    investment.Id,
+                    skipReason);
+                return;
+            }
+
+            await _opportunityService.UpdateAsync(investment.FounderId, existing.Id, request);
+            _logger.LogInformation(
+                "Legacy investment {InvestmentId} mirrored to Opportunity {OpportunityId} during update.",
+                investment.Id,
+                existing.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Legacy investment {InvestmentId} was updated, but Opportunity mirror update was skipped.",
+                investment.Id);
+        }
+    }
+
+    private async Task<OpportunityDto?> FindMirroredOpportunityAsync(Investment investment, string? oldBusinessName)
+    {
+        var opportunities = await _opportunityService.GetMyAsync(investment.FounderId);
+        if (investment.OpportunityId.HasValue)
+        {
+            var linked = opportunities.FirstOrDefault(o => o.Id == investment.OpportunityId.Value);
+            if (linked is not null)
+                return linked;
+        }
+
+        var currentTitle = InvestmentOpportunityCompatibilityMapper.ToOpportunityTitle(investment.BusinessName, investment.Id);
+        var previousTitle = InvestmentOpportunityCompatibilityMapper.ToOpportunityTitle(oldBusinessName, investment.Id);
+
+        return opportunities.FirstOrDefault(o =>
+            string.Equals(o.Title, currentTitle, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(o.Title, previousTitle, StringComparison.OrdinalIgnoreCase));
     }
 }

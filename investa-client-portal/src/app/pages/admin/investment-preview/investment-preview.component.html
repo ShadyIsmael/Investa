@@ -643,10 +643,10 @@
 
         <!-- Body -->
         <div class="p-6 space-y-4">
-          <!-- Investment Details -->
+          <!-- Opportunity Details -->
           <div class="bg-slate-800/50 border border-slate-700 rounded-lg p-4 space-y-3">
             <div class="flex items-center justify-between">
-              <span class="text-gray-400">Investment:</span>
+              <span class="text-gray-400">Opportunity:</span>
               <span class="text-white font-semibold">{{ investment.name }}</span>
             </div>
             <div class="flex items-center justify-between">
@@ -729,7 +729,7 @@
   }
 }
 
-<!-- Invest Now Dialog (Shares Selection for Equity) -->
+<!-- Participate / Invest Dialog (Shares Selection for Equity) -->
 @if (investmentToInvest(); as investment) {
   <div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in" (click)="closeInvestDialog()">
     <div class="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md m-4 animate-fade-in" (click)="$event.stopPropagation()">
@@ -802,7 +802,7 @@
           </p>
         </div>
 
-        <!-- Investment Summary -->
+        <!-- Participation Summary -->
         <div class="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-lg p-4">
           <div class="flex items-center justify-between mb-2">
             <span class="text-gray-300">{{ 'investments.investDialog.totalInvestment' | translate }}</span>
@@ -912,7 +912,7 @@
   </div>
 }
 
-<!-- Invest Now Equity Investment Dialog -->
+<!-- Participate / Invest Equity Dialog -->
 @if (investNowDialogOpen() && investmentToInvest(); as investment) {
   <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
     <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full shadow-2xl animate-scale-in">
@@ -924,7 +924,7 @@
             </svg>
           </div>
           <div>
-            <h3 class="text-xl font-bold text-white">Invest Now</h3>
+            <h3 class="text-xl font-bold text-white">Participate / Invest</h3>
             <p class="text-sm text-gray-400">{{ investment.name }}</p>
           </div>
         </div>
@@ -991,7 +991,7 @@
   </div>
 }
 
-<!-- Invest Now Credit Confirmation Dialog -->
+<!-- Participate / Invest Credit Confirmation Dialog -->
 @if (investNowConfirmationOpen() && investmentToInvest(); as investment) {
   <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
     <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full shadow-2xl animate-scale-in">
@@ -1003,7 +1003,7 @@
             </svg>
           </div>
           <div>
-            <h3 class="text-xl font-bold text-white">Confirm Investment</h3>
+            <h3 class="text-xl font-bold text-white">Confirm Participation</h3>
             <p class="text-sm text-gray-400">{{ investment.name }}</p>
           </div>
         </div>
@@ -1025,7 +1025,7 @@
         </div>
 
         <div class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-6">
-          <p class="text-sm text-blue-300 mb-2">Investment Summary</p>
+          <p class="text-sm text-blue-300 mb-2">Participation Summary</p>
           <div class="flex items-center justify-between text-sm">
             <span class="text-gray-400">Shares Requested</span>
             <span class="text-white font-semibold">{{ equitySharesRequested() }}</span>
@@ -1041,7 +1041,7 @@
         </div>
 
         <p class="text-sm text-gray-400 mb-6">
-          Your investment request will be sent to the founder for approval. Credits will be deducted immediately and refunded if the request is declined.
+          Your participation request will be sent to the founder for approval. Credits will be deducted immediately and refunded if the request is declined.
         </p>
 
         <div class="flex gap-3">

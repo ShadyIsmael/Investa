@@ -11,7 +11,7 @@
         <svg class="w-5 h-5 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
         </svg>
-        <span>Back to Investments</span>
+        <span>Back to Opportunities</span>
       </button>
       
       <h1 class="text-3xl font-bold text-white mb-2">{{ pageTitle() }}</h1>
@@ -131,7 +131,22 @@
                 <!-- Description -->
                 <div>
                   <label class="block text-sm font-medium text-slate-300 mb-2">
-                    {{ t('submitInvestment.labels.description') }} <span class="text-red-400">*</span>
+                    Short Description
+                  </label>
+                  <textarea
+                    formControlName="shortDescription"
+                    rows="2"
+                    class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
+                    placeholder="A concise summary investors can scan quickly"
+                  ></textarea>
+                  <p class="mt-1 text-xs text-slate-500">
+                    {{ investmentForm.get('shortDescription')?.value?.length || 0 }} / 240 characters
+                  </p>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-slate-300 mb-2">
+                    Full Description <span class="text-red-400">*</span>
                   </label>
                   <textarea 
                     formControlName="description"
@@ -221,6 +236,48 @@
                   </div>
                 </div>
 
+                <details class="rounded-xl border border-slate-700/70 bg-slate-900/30 p-4">
+                  <summary class="cursor-pointer text-sm font-semibold text-slate-200">Optional classification</summary>
+                  <div class="mt-4 space-y-5">
+                    <div>
+                      <label class="block text-sm font-medium text-slate-300 mb-2">Funding Goal</label>
+                      <select
+                        formControlName="fundingGoalId"
+                        class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                      >
+                        <option [ngValue]="null">Select funding goal (optional)</option>
+                        @for (goal of fundingGoals(); track goal.id) {
+                          <option [ngValue]="goal.id">{{ displayLookup(goal) }}</option>
+                        }
+                      </select>
+                    </div>
+
+                    <div>
+                      <label class="block text-sm font-medium text-slate-300 mb-3">Tags</label>
+                      <div class="flex flex-wrap gap-2">
+                        @for (tag of tags(); track tag.id) {
+                          <label class="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/70 px-3 py-2 text-sm text-slate-200">
+                            <input
+                              type="checkbox"
+                              class="rounded border-slate-600 bg-slate-900 text-purple-500"
+                              [checked]="(investmentForm.get('tagIds')?.value || []).includes(tag.id)"
+                              (change)="toggleTag(tag.id, $any($event.target).checked)"
+                            />
+                            <span>{{ displayLookup(tag) }}</span>
+                          </label>
+                        }
+                        @if (tags().length === 0) {
+                          <p class="text-sm text-slate-500">No tags available.</p>
+                        }
+                      </div>
+                    </div>
+
+                    <p class="text-xs text-amber-300">
+                      These lookup values load from backend Opportunity APIs. The legacy Investment create endpoint does not currently persist funding goals or tags.
+                    </p>
+                  </div>
+                </details>
+
                 <!-- Milestone -->
                 <div>
                   <label class="block text-sm font-medium text-slate-300 mb-2">
@@ -303,6 +360,7 @@
                   </label>
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     @for (type of investmentTypes; track type.id) {
+                      @if (type.id !== InvestmentType.Founding) {
                       <label class="relative cursor-pointer">
                         <input 
                           type="radio" 
@@ -313,10 +371,11 @@
                         <div class="p-4 rounded-xl border-2 transition-all
                           peer-checked:border-purple-500 peer-checked:bg-purple-500/10
                           border-slate-600 hover:border-slate-500">
-                          <div class="font-semibold text-white mb-1">{{ displayLookup(type) }}</div>
-                          <div class="text-sm text-slate-400">{{ isRtl() ? (type.descriptionAr || type.description) : type.description }}</div>
+                          <div class="font-semibold text-white mb-1">{{ getInvestmentModelName(type.id) }}</div>
+                          <div class="text-sm text-slate-400">{{ getInvestmentModelDescription(type.id) }}</div>
                         </div>
                       </label>
+                      }
                     }
                   </div>
                 </div>
@@ -324,7 +383,7 @@
                 <!-- ===== FOUNDING INVESTMENT FIELDS ===== -->
                 @if (selectedType === InvestmentType.Founding) {
                   <div class="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
-                    <p class="text-sm text-purple-300">Founding Investment: Fixed duration with profit-based returns to investors.</p>
+                    <p class="text-sm text-purple-300">Founding Opportunity: Fixed duration with profit-based returns to participants.</p>
                   </div>
                   
                   <!-- Duration & Profit Row -->
@@ -386,7 +445,7 @@
                 <!-- ===== EQUITY INVESTMENT FIELDS ===== -->
                 @if (selectedType === InvestmentType.Equity) {
                   <div class="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
-                    <p class="text-sm text-blue-300">Equity Investment: Raise capital by selling shares in your company.</p>
+                    <p class="text-sm text-blue-300">Equity Opportunity: Raise capital by selling shares in your company.</p>
                   </div>
 
                   <!-- Share Price & Total Shares -->
@@ -425,6 +484,31 @@
                     </div>
                   </div>
 
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label class="block text-sm font-medium text-slate-300 mb-2">Available Shares</label>
+                      <input
+                        type="number"
+                        formControlName="availableShares"
+                        class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                        placeholder="Defaults to total shares"
+                      />
+                    </div>
+
+                    <div>
+                      <label class="block text-sm font-medium text-slate-300 mb-2">Equity Offered Percentage</label>
+                      <div class="relative">
+                        <input
+                          type="number"
+                          formControlName="equityOfferedPercentage"
+                          class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                          placeholder="e.g. 12.5"
+                        />
+                        <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">%</span>
+                      </div>
+                    </div>
+                  </div>
+
                   <!-- Calculated Target Fund -->
                   <div class="p-4 rounded-xl bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20">
                     <div class="flex items-center justify-between">
@@ -438,6 +522,10 @@
                         {{ investmentForm.get('totalShares')?.value || 0 }} shares × {{ formatCurrency(investmentForm.get('sharePrice')?.value) }}
                       </div>
                     </div>
+                  </div>
+
+                  <div class="text-sm text-slate-300 -mt-3">
+                    Available shares preview: {{ formatCurrency(equityFundingPreview()) }}
                   </div>
 
                   <!-- Valuation Cap (Equity Only) -->
@@ -615,6 +703,29 @@
                   </div>
 
                   <!-- Distribution Frequency -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label class="block text-sm font-medium text-slate-300 mb-2">
+                        Minimum Contribution
+                      </label>
+                      <div class="relative">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{{ getCurrencySymbol() }}</span>
+                        <input
+                          type="number"
+                          formControlName="minimumContribution"
+                          class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                          placeholder="Minimum contribution"
+                        />
+                      </div>
+                    </div>
+
+                    <div class="rounded-xl bg-green-500/10 border border-green-500/20 p-4">
+                      <p class="text-sm text-green-300">Profit share preview</p>
+                      <p class="mt-1 text-2xl font-bold text-white">{{ formatCurrency(profitSharePreview()) }}</p>
+                    </div>
+                  </div>
+
+                  <!-- Distribution Frequency -->
                   <div>
                     <label class="block text-sm font-medium text-slate-300 mb-2">
                       Distribution Frequency <span class="text-red-400">*</span>
@@ -735,6 +846,12 @@
                   </div>
 
                   <!-- Grace Period -->
+                  <div class="rounded-xl bg-orange-500/10 border border-orange-500/20 p-4">
+                    <p class="text-sm text-orange-300">Return calculation preview</p>
+                    <p class="mt-1 text-2xl font-bold text-white">{{ formatCurrency(loanReturnPreview()) }}</p>
+                  </div>
+
+                  <!-- Grace Period -->
                   <div>
                     <label class="block text-sm font-medium text-slate-300 mb-2">
                       Grace Period (Months)
@@ -784,6 +901,21 @@
                           <option [value]="curr.code">{{ displayLookup(curr) }} ({{ curr.symbol }})</option>
                         }
                       </select>
+                    </div>
+                  </div>
+
+                  <div class="mt-4">
+                    <label class="block text-sm font-medium text-slate-300 mb-2">
+                      Funding Target
+                    </label>
+                    <div class="relative">
+                      <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{{ getCurrencySymbol() }}</span>
+                      <input
+                        type="number"
+                        formControlName="targetFund"
+                        class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                        placeholder="Total amount you want to raise"
+                      />
                     </div>
                   </div>
 
@@ -872,6 +1004,9 @@
                 <!-- Cover Image -->
                 <div class="mb-6 mt-6 pt-6 border-t border-slate-700/50">
                   <label class="block text-sm font-medium text-slate-300 mb-2">Cover Image</label>
+                  <p class="mb-3 text-xs text-slate-400">
+                    <span class="font-semibold text-green-300">Public:</span> Visible before investor joins. Cover is always public.
+                  </p>
                   <div class="w-full h-64 bg-slate-800 rounded overflow-hidden flex items-center justify-center">
                     @if (coverPreview()) {
                       <img [src]="coverPreview()" class="object-cover w-full h-full" />
@@ -904,6 +1039,9 @@
                 <!-- Image Gallery -->
                 <div class="mt-6">
                   <label class="block text-sm font-medium text-slate-300 mb-2">Image Gallery <span class="text-slate-400 text-xs">(up to {{ maxGalleryImages }})</span></label>
+                  <p class="mb-3 text-xs text-slate-400">
+                    <span class="font-semibold text-green-300">Public:</span> Visible before investor joins.
+                  </p>
                   <div class="grid grid-cols-5 gap-2">
                     @for (p of galleryPreviews(); track p; let i = $index) {
                       <div class="relative w-full h-20 bg-slate-800 rounded overflow-hidden">
@@ -925,7 +1063,10 @@
                   <label class="block text-sm font-medium text-slate-300 mb-2">
                     Pitch Video
                   </label>
-                  <p class="text-xs text-slate-400 mb-3">Upload a video file or paste a YouTube/Vimeo URL</p>
+                  <p class="text-xs text-slate-400 mb-3">
+                    Upload a video file or paste a YouTube/Vimeo URL.
+                    <span class="font-semibold text-green-300">Public:</span> Visible before investor joins.
+                  </p>
                   
                   <div class="flex items-center gap-3 mb-3">
                     <input id="videoFile" type="file" accept="video/*" (change)="onVideoSelected($event)" class="hidden" />

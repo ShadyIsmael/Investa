@@ -1258,6 +1258,9 @@ namespace Investa.Infrastructure.Migrations
                     b.Property<DateTime?>("NextInstallmentDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("OpportunityId")
+                        .HasColumnType("int");
+
                     b.Property<int>("ParticipantOnlyActivityCount")
                         .HasColumnType("int");
 
@@ -1339,6 +1342,8 @@ namespace Investa.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("FounderId");
+
+                    b.HasIndex("OpportunityId");
 
                     b.ToTable("Investments");
 
@@ -2504,6 +2509,9 @@ namespace Investa.Infrastructure.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("SYSUTCDATETIME()");
 
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("DocumentType")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -2545,6 +2553,13 @@ namespace Investa.Infrastructure.Migrations
                     b.Property<string>("PreviewUrl")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasDefaultValue("General");
 
                     b.Property<string>("SearchTags")
                         .HasMaxLength(1000)
@@ -2641,6 +2656,10 @@ namespace Investa.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal?>("CalculatedTotalAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
@@ -2660,6 +2679,13 @@ namespace Investa.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<string>("RequestType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasDefaultValue("GeneralParticipation");
+
                     b.Property<decimal?>("RequestedAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -2674,6 +2700,9 @@ namespace Investa.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("TermsSnapshotJson")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
@@ -2706,6 +2735,9 @@ namespace Investa.Infrastructure.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("SYSUTCDATETIME()");
 
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("FileId")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -2737,6 +2769,11 @@ namespace Investa.Infrastructure.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<bool>("IsPublic")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("MediaType")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -2752,6 +2789,13 @@ namespace Investa.Infrastructure.Migrations
                     b.Property<string>("PreviewUrl")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasDefaultValue("General");
 
                     b.Property<int>("SortOrder")
                         .ValueGeneratedOnAdd()
@@ -4747,7 +4791,14 @@ namespace Investa.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Investa.Domain.Entities.Opportunity", "Opportunity")
+                        .WithMany()
+                        .HasForeignKey("OpportunityId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Founder");
+
+                    b.Navigation("Opportunity");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.InvestmentEvent", b =>

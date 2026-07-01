@@ -1,5 +1,5 @@
 <div class="container mx-auto p-6 lg:p-8" [dir]="direction()">
-  @if (roleContext.isInvestorUser()) {
+  @if (roleContext.isActiveInvestorContext()) {
     <div class="premium-dashboard">
       <div class="dashboard-header">
         <h1 class="dashboard-title">{{ 'dashboard.investorTitle' | translate }}</h1>
@@ -348,7 +348,7 @@
       </div>
     </div>
   }
-  @if (roleContext.isFounderUser()) {
+  @if (roleContext.isActiveFounderContext()) {
     <div class="animate-fade-in">
       @if (selectedFounderProject(); as project) {
         <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
@@ -485,7 +485,7 @@
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             @for(p of founderProjects(); track p.id) {
-              <div (click)="selectProject(p)"
+              <div (click)="openProjectWorkspace(p)"
                    class="relative bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-2xl p-6 cursor-pointer transition-colors hover:border-blue-500/40 hover:shadow-lg hover:shadow-blue-500/10 group overflow-hidden">
                 <div class="absolute top-0 inset-x-0 h-0.5 rounded-t-2xl bg-gradient-to-r from-blue-500 to-violet-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 <div class="flex items-center gap-4 mb-5">

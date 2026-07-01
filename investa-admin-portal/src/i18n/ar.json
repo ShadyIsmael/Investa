@@ -26,6 +26,10 @@
     "reputationRules": "Reputation Rules",
     "pricing": "Pricing",
     "notifications": "Notifications",
+    "referenceData": "Reference Data",
+    "opportunityCategories": "Categories",
+    "opportunityTags": "Tags",
+    "fundingGoals": "Funding Goals",
     "configurations": "الإعدادات",
     "creditSetup": "إعداد الائتمان",
     "offerManagement": "إدارة العروض",
@@ -170,7 +174,10 @@
     "user-onboarding": "تسجيل المستخدم",
     "permissions": "الصلاحيات",
     "pricing": "Pricing",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "opportunityCategories": "Opportunity Categories",
+    "opportunityTags": "Opportunity Tags",
+    "fundingGoals": "Funding Goals"
   },
   "header": {
     "searchPlaceholder": "ابحث أو اسأل الذكاء الاصطناعي…",

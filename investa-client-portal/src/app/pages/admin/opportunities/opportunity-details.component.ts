@@ -78,20 +78,20 @@ export class OpportunityDetailsComponent {
 
   mediaUrl(item: OpportunityMedia | undefined): string {
     if (!item) return '';
-    return item.url || item.fileUrl || item.previewUrl || item.thumbnailUrl || '';
+    return item.fileUrl || item.previewUrl || item.thumbnailUrl || '';
   }
 
   previewUrl(item: OpportunityMedia | OpportunityDocument): string {
     if (item.previewUrl) return item.previewUrl;
     const category = item.category;
     const fileName = item.fileName;
-    return category && fileName ? this.fileStore.getPreviewUrl(category, fileName) : (item.url || item.fileUrl || '#');
+    return category && fileName ? this.fileStore.getPreviewUrl(category, fileName) : (item.fileUrl || '#');
   }
 
   downloadUrl(item: OpportunityMedia | OpportunityDocument): string {
     const category = item.category;
     const fileName = item.fileName;
-    return category && fileName ? this.fileStore.getDownloadUrl(category, fileName) : (item.url || item.fileUrl || '#');
+    return category && fileName ? this.fileStore.getDownloadUrl(category, fileName) : (item.fileUrl || '#');
   }
 
   fileTitle(item: OpportunityDocument): string {

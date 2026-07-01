@@ -82,6 +82,8 @@ export class SubmitInvestmentComponent implements OnInit {
   
   // Lookup data
   categories = signal<BusinessCategory[]>([]);
+  tags = signal<any[]>([]);
+  fundingGoals = signal<any[]>([]);
   stages = signal<BusinessStage[]>([]);
   phases = signal<ProjectPhase[]>([]);
   isLoading = signal(true);
@@ -147,6 +149,16 @@ export class SubmitInvestmentComponent implements OnInit {
     return this.displayLookup(this.categories().find(c => c.id === categoryId)) || '-';
   });
 
+  selectedFundingGoalName = computed(() => {
+    const fundingGoalId = this.investmentForm?.get('fundingGoalId')?.value;
+    return this.displayLookup(this.fundingGoals().find(g => g.id === fundingGoalId)) || '-';
+  });
+
+  selectedTagNames = computed(() => {
+    const selectedIds = new Set<number>(this.investmentForm?.get('tagIds')?.value || []);
+    return this.tags().filter(tag => selectedIds.has(tag.id)).map(tag => this.displayLookup(tag));
+  });
+
   selectedStageName = computed(() => {
     const stageId = this.investmentForm?.get('businessStageId')?.value;
     return this.displayLookup(this.stages().find(s => s.id === stageId)) || '-';
@@ -159,8 +171,40 @@ export class SubmitInvestmentComponent implements OnInit {
 
   selectedInvestmentTypeName = computed(() => {
     const typeId = this.investmentForm?.get('investmentTypeId')?.value;
-    return this.displayLookup(this.investmentTypes.find(t => t.id === typeId)) || '-';
+    return this.getInvestmentModelName(typeId) || '-';
   });
+
+  equityFundingPreview = computed(() => {
+    const sharePrice = Number(this.investmentForm?.get('sharePrice')?.value || 0);
+    const availableShares = Number(this.investmentForm?.get('availableShares')?.value || this.investmentForm?.get('totalShares')?.value || 0);
+    return sharePrice * availableShares;
+  });
+
+  loanReturnPreview = computed(() => {
+    const principal = Number(this.investmentForm?.get('targetFund')?.value || this.investmentForm?.get('totalRepaymentAmount')?.value || 0);
+    const rate = Number(this.investmentForm?.get('interestRate')?.value || 0);
+    return principal + (principal * rate / 100);
+  });
+
+  profitSharePreview = computed(() => {
+    const payout = Number(this.investmentForm?.get('totalExpectedPayout')?.value || 0);
+    const share = Number(this.investmentForm?.get('revenueSharePercentage')?.value || 0);
+    return payout * share / 100;
+  });
+
+  getInvestmentModelName(typeId: InvestmentType | number): string {
+    if (typeId === InvestmentType.Equity) return 'Equity';
+    if (typeId === InvestmentType.Loan) return 'LoanInvestment';
+    if (typeId === InvestmentType.RevenueSharing) return 'CapitalContributionProfitSharing';
+    return this.displayLookup(this.investmentTypes.find(t => t.id === typeId));
+  }
+
+  getInvestmentModelDescription(typeId: InvestmentType | number): string {
+    if (typeId === InvestmentType.Equity) return 'Offer shares in return for capital.';
+    if (typeId === InvestmentType.Loan) return 'Raise debt funding with a return rate and repayment term.';
+    if (typeId === InvestmentType.RevenueSharing) return 'Accept contributions and share a defined percentage of profits.';
+    return this.investmentTypes.find(t => t.id === typeId)?.description || '';
+  }
 
   ngOnInit(): void {
     this.initForm();
@@ -280,8 +324,11 @@ export class SubmitInvestmentComponent implements OnInit {
     this.investmentForm = this.fb.group({
       // Step 1: Business Details
       businessName: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(200)]],
+      shortDescription: ['', [Validators.maxLength(240)]],
       description: ['', [Validators.required, Validators.minLength(50), Validators.maxLength(5000)]],
       businessCategoryId: [null, [Validators.required]],
+      tagIds: [[]],
+      fundingGoalId: [null],
       businessStageId: [null, [Validators.required]],
       projectPhaseId: [null],
       milestone: ['', [Validators.maxLength(200)]],
@@ -298,6 +345,8 @@ export class SubmitInvestmentComponent implements OnInit {
       // Equity-specific fields
       sharePrice: [null],
       totalShares: [null],
+      availableShares: [null],
+      equityOfferedPercentage: [null, [Validators.min(0.1), Validators.max(100)]],
       valuationCap: [null, [Validators.min(1)]],
 
       // Equity Exit Strategy
@@ -319,6 +368,7 @@ export class SubmitInvestmentComponent implements OnInit {
       totalExpectedPayout: [null, [Validators.min(1)]],
       revenueDistributionFrequency: ['Monthly'],
       revenueSharePercentage: [null, [Validators.min(0.1), Validators.max(100)]],
+      minimumContribution: [null, [Validators.min(1)]],
 
       // Loan-specific fields
       interestRate: [null, [Validators.min(0.1), Validators.max(100)]],
@@ -354,10 +404,10 @@ export class SubmitInvestmentComponent implements OnInit {
   private updateValidatorsByType(typeId: InvestmentType): void {
     // Clear all dynamic validators first
     const allDynamicFields = [
-      'sharePrice', 'totalShares', 'valuationCap',
+      'sharePrice', 'totalShares', 'availableShares', 'equityOfferedPercentage', 'valuationCap',
       'currentValuation', 'estimatedFutureValuation', 'equityExitType', 'exitTargetDate', 'expectedExitStrategy',
       'durationMonths', 'profitPercentage', 'payoutFrequency',
-      'contractStartDate', 'contractEndDate', 'totalExpectedPayout', 'revenueDistributionFrequency', 'revenueSharePercentage',
+      'contractStartDate', 'contractEndDate', 'totalExpectedPayout', 'revenueDistributionFrequency', 'revenueSharePercentage', 'minimumContribution',
       'interestRate', 'loanDurationMonths', 'repaymentFrequency', 'gracePeriodMonths', 'estimatedInstallment', 'totalRepaymentAmount'
     ];
     
@@ -370,6 +420,8 @@ export class SubmitInvestmentComponent implements OnInit {
         // Equity: require share fields
         this.investmentForm.get('sharePrice')?.setValidators([Validators.required, Validators.min(1)]);
         this.investmentForm.get('totalShares')?.setValidators([Validators.required, Validators.min(100)]);
+        this.investmentForm.get('availableShares')?.setValidators([Validators.min(1)]);
+        this.investmentForm.get('equityOfferedPercentage')?.setValidators([Validators.min(0.1), Validators.max(100)]);
         this.investmentForm.get('valuationCap')?.setValidators([Validators.min(1)]);
         break;
 
@@ -386,6 +438,7 @@ export class SubmitInvestmentComponent implements OnInit {
         this.investmentForm.get('contractEndDate')?.setValidators([Validators.required]);
         this.investmentForm.get('totalExpectedPayout')?.setValidators([Validators.required, Validators.min(1)]);
         this.investmentForm.get('revenueSharePercentage')?.setValidators([Validators.required, Validators.min(0.1), Validators.max(100)]);
+        this.investmentForm.get('minimumContribution')?.setValidators([Validators.min(1)]);
         this.investmentForm.get('revenueDistributionFrequency')?.setValidators([Validators.required]);
         this.investmentForm.get('expectedROI')?.setValidators([Validators.min(0), Validators.max(1000)]);
         break;
@@ -616,6 +669,17 @@ export class SubmitInvestmentComponent implements OnInit {
     this.teamMembers.update(arr => arr.filter((_, i) => i !== index));
   }
 
+  toggleTag(tagId: number, checked: boolean): void {
+    const current = new Set<number>(this.investmentForm.get('tagIds')?.value || []);
+    if (checked) {
+      current.add(tagId);
+    } else {
+      current.delete(tagId);
+    }
+    this.investmentForm.get('tagIds')?.setValue(Array.from(current));
+    this.investmentForm.get('tagIds')?.markAsDirty();
+  }
+
   /**
    * Load lookup data from API (categories, stages, phases)
    */
@@ -624,15 +688,19 @@ export class SubmitInvestmentComponent implements OnInit {
     this.loadError.set(null);
 
     try {
-      const [categories, stages, phases] = await Promise.all([
-        this.apiService.getBusinessCategories(),
+      const [categories, stages, phases, tags, fundingGoals] = await Promise.all([
+        this.apiService.getOpportunityCategories(),
         this.apiService.getBusinessStages(),
-        this.apiService.getProjectPhases()
+        this.apiService.getProjectPhases(),
+        this.apiService.getOpportunityTags(),
+        this.apiService.getFundingGoals()
       ]);
 
       this.categories.set(categories);
       this.stages.set(stages);
       this.phases.set(phases);
+      this.tags.set(tags);
+      this.fundingGoals.set(fundingGoals);
 
       const selectedStageId = this.investmentForm.get('businessStageId')?.value;
       if (selectedStageId) {
@@ -888,11 +956,14 @@ export class SubmitInvestmentComponent implements OnInit {
       if (this.coverFile) {
         this.isUploadingCover.set(true);
         try {
-          // Upload as CoverImage type (mediaType=0)
-          const uploadResult = await this.investmentService.uploadInvestmentImage(investmentId, this.coverFile, undefined, 0);
-          // The URL is returned in the response, update the investment to set it
-          if (uploadResult?.url) {
-            await this.apiService.updateInvestment(investmentId, { ...dto, imageUrl: uploadResult.url });
+          const uploadResult = await this.fileStoreService.uploadFile('OpportunityCover', this.coverFile, {
+            purpose: 'Cover',
+            visibility: 'Public',
+            isPublic: true
+          });
+          const imageUrl = uploadResult.previewUrl || uploadResult.url || uploadResult.fileKey;
+          if (imageUrl) {
+            await this.apiService.updateInvestment(investmentId, { ...dto, imageUrl });
           }
         } catch (err) {
           console.error('Cover upload failed', err);
@@ -909,11 +980,18 @@ export class SubmitInvestmentComponent implements OnInit {
       if (this.galleryFiles.length > 0) {
         this.isUploadingCover.set(true);
         try {
-          const uploadPromises = this.galleryFiles.map(f => this.investmentService.uploadInvestmentImage(investmentId, f));
+          const uploadPromises = this.galleryFiles.map(f => this.fileStoreService.uploadFile('OpportunityGallery', f, {
+            purpose: 'Gallery',
+            visibility: 'Public',
+            isPublic: true
+          }));
           const settled = await Promise.allSettled(uploadPromises);
           const failed = settled.filter(s => s.status === 'rejected');
           if (failed.length) {
             this.notificationService.showToast({ title: 'Warning', message: `${failed.length} gallery image(s) failed to upload.`, type: 'warning' });
+          }
+          if (settled.some(s => s.status === 'fulfilled')) {
+            this.notificationService.showToast({ title: 'Gallery uploaded', message: 'Gallery files were uploaded to FileStore, but the legacy Investment API has no metadata attach endpoint for gallery references.', type: 'warning' });
           }
         } catch (e) {
           console.error('Gallery upload error', e);
@@ -926,9 +1004,14 @@ export class SubmitInvestmentComponent implements OnInit {
       if (this.videoFile) {
         this.isUploadingVideo.set(true);
         try {
-          const videoResult = await this.investmentService.uploadInvestmentVideo(investmentId, this.videoFile);
-          if (videoResult?.url) {
-            await this.apiService.updateInvestment(investmentId, { ...dto, videoUrl: videoResult.url });
+          const videoResult = await this.fileStoreService.uploadFile('Video', this.videoFile, {
+            purpose: 'PitchVideo',
+            visibility: 'Public',
+            isPublic: true
+          });
+          const videoUrl = videoResult.previewUrl || videoResult.url || videoResult.fileKey;
+          if (videoUrl) {
+            await this.apiService.updateInvestment(investmentId, { ...dto, videoUrl });
           }
         } catch (err) {
           console.error('Video upload failed', err);

@@ -12,11 +12,18 @@ public class OpportunityJoinRequest
 
     public Guid InvestorId { get; set; }
 
+    public OpportunityJoinRequestType RequestType { get; set; } = OpportunityJoinRequestType.GeneralParticipation;
+
     [Column(TypeName = "decimal(18,2)")]
     public decimal? RequestedAmount { get; set; }
 
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal? CalculatedTotalAmount { get; set; }
+
     [StringLength(1000)]
     public string? Message { get; set; }
+
+    public string? TermsSnapshotJson { get; set; }
 
     public OpportunityJoinRequestStatus Status { get; set; } = OpportunityJoinRequestStatus.Pending;
 

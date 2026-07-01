@@ -7,6 +7,7 @@ import { ReactiveFormsModule, FormControl, FormGroup, Validators } from '@angula
 import { AuthService, UserRole } from '../../services/auth.service';
 import { ProfileService } from '../../services/profile.service';
 import { TranslatePipe } from '../../pipes/translate.pipe';
+import { RoleContextService } from '../../services/role-context.service';
 
 @Component({
   standalone: true,
@@ -23,6 +24,7 @@ export class LoginComponent {
   private route: ActivatedRoute = inject(ActivatedRoute);
   private profileService: ProfileService = inject(ProfileService);
   private languageService: LanguageService = inject(LanguageService);
+  private roleContext: RoleContextService = inject(RoleContextService);
 
   role = signal<UserRole>('investor');
   errorMessage = signal<string | null>(null);
@@ -114,8 +116,8 @@ export class LoginComponent {
         // Non-fatal: continue navigation even if profile load fails
       }
 
-      const redirectPath = role === 'investor' ? '/admin/investments' : '/admin/dashboard';
-      this.router.navigate([redirectPath]);
+      const activeContext = this.roleContext.setActiveContext(role);
+      this.router.navigate([activeContext === 'investor' ? '/admin/investments' : '/admin/dashboard']);
     } catch (err: any) {
       let key = 'login.errorGeneric';
       if (err instanceof HttpErrorResponse) {

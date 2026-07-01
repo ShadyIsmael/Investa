@@ -1,6 +1,6 @@
 import { Component, ChangeDetectionStrategy, inject, ElementRef, viewChild, computed, effect, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { InvestmentService } from '../../../services/investment.service';
 import { LanguageService } from '../../../services/language.service';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
@@ -81,7 +81,9 @@ export class DashboardComponent {
   private notificationService = inject(NotificationService);
   private fileStoreService = inject(FileStoreService);
   roleContext = inject(RoleContextService);
+  private router = inject(Router);
   private creditsRefreshed = signal(false);
+  private routedFounderProjectId = signal<number | null>(null);
 
   private t(path: string, fallback: string): string {
     return get(this.languageService.dictionary(), path, fallback);
@@ -94,6 +96,8 @@ export class DashboardComponent {
   userRole = this.authService.userRole;
   allInvestments = this.investmentService.investments;
   direction = computed(() => this.languageService.direction());
+  isInvestorDashboardContext = computed(() => this.roleContext.isActiveInvestorContext());
+  isFounderDashboardContext = computed(() => this.roleContext.isActiveFounderContext());
 
   // --- Premium status (temporary - connect to subscription service when available) ---
   // TODO: Replace with actual subscription check from subscription service
@@ -248,9 +252,12 @@ export class DashboardComponent {
   constructor() {
     effect(() => {
       const projects = this.founderProjects();
-      // If there's only one project and none is selected, auto-select it.
-      if (projects.length === 1 && !this.selectedFounderProject()) {
-        this.selectProject(projects[0]);
+      if (this.roleContext.isActiveFounderContext() && projects.length === 1) {
+        const project = projects[0];
+        if (this.routedFounderProjectId() !== project.id) {
+          this.routedFounderProjectId.set(project.id);
+          void this.openProjectWorkspace(project);
+        }
       }
     });
 
@@ -265,12 +272,12 @@ export class DashboardComponent {
     effect(() => {
       // This effect runs when view children are ready, role or language changes
       setTimeout(() => { // Allow view to render before drawing charts
-        if (this.userRole() === 'investor') {
+        if (this.roleContext.isActiveInvestorContext()) {
           if (this.pieChart() && this.lineChart()) {
             this.createPieChart();
             this.createLineChart();
           }
-        } else if (this.userRole() === 'founder') {
+        } else if (this.roleContext.isActiveFounderContext()) {
            if (this.barChart() && this.selectedFounderProject()) {
             this.createBarChart();
           }
@@ -286,7 +293,7 @@ export class DashboardComponent {
     });
 
     effect(() => {
-      if (this.userRole() === 'investor' && this.lineChart()) {
+      if (this.roleContext.isActiveInvestorContext() && this.lineChart()) {
         this.createLineChart();
       }
     });
@@ -297,6 +304,11 @@ export class DashboardComponent {
 
   selectProject(project: Investment) {
     this.selectedFounderProject.set(project);
+  }
+
+  openProjectWorkspace(project: Investment) {
+    this.selectedFounderProject.set(project);
+    return this.router.navigate(['/admin/investments', project.id]);
   }
 
 getProjectAvatar(project: Investment): string {
@@ -418,8 +430,8 @@ getProjectAvatar(project: Investment): string {
 
   // Fix: Correctly type `valueField` to ensure proper type inference for chart data.
   private getPieChartData(): ChartData[] {
-    const investments = this.userRole() === 'investor' ? this.myInvestments() : this.allInvestments();
-    const valueField: 'investedAmount' | 'currentFunding' = this.userRole() === 'investor' ? 'investedAmount' : 'currentFunding';
+    const investments = this.roleContext.isActiveInvestorContext() ? this.myInvestments() : this.allInvestments();
+    const valueField: 'investedAmount' | 'currentFunding' = this.roleContext.isActiveInvestorContext() ? 'investedAmount' : 'currentFunding';
 
     const categoryTotals: Record<string, number> = {};
     const lang = this.languageService.language();
@@ -446,7 +458,7 @@ getProjectAvatar(project: Investment): string {
   }
 
   private getLineChartData(): LineChartData[] {
-    if (this.userRole() !== 'investor') {
+    if (!this.roleContext.isActiveInvestorContext()) {
       return [
         { month: this.t('common.months.jan', 'Jan'), value: 78000 },
         { month: this.t('common.months.feb', 'Feb'), value: 81000 },
@@ -605,7 +617,7 @@ getProjectAvatar(project: Investment): string {
 
     const data_ready = pie(data as any);
     const totalValue = data.reduce((sum, d) => sum + d.value, 0);
-    const centerLabel = this.userRole() === 'investor' ? this.t('dashboard.allocationTotal', 'Total Invested') : this.t('dashboard.allocationTotal', 'Total');
+    const centerLabel = this.roleContext.isActiveInvestorContext() ? this.t('dashboard.allocationTotal', 'Total Invested') : this.t('dashboard.allocationTotal', 'Total');
     const formattedTotal = `$${totalValue.toLocaleString()}`;
 
     const arc = d3.arc()
@@ -634,8 +646,7 @@ getProjectAvatar(project: Investment): string {
       .style('opacity', 0);
 
     // Role-aware label for tooltip (investor sees 'You invested')
-    const userRole = this.userRole();
-    const valueLabel = userRole === 'investor' ? 'You invested' : 'Amount';
+    const valueLabel = this.roleContext.isActiveInvestorContext() ? 'You invested' : 'Amount';
 
     const sanitize = (name: string) => name.replace(/\s+/g, '-');
 

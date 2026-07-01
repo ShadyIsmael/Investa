@@ -95,7 +95,11 @@
   "adminNav": {
     "panel": "Investa Panel",
     "dashboard": "Dashboard",
-    "investments": "Investments",
+    "investments": "Discover Opportunities",
+    "myParticipations": "My Participations",
+    "myProjects": "My Projects",
+    "createProject": "Create Project",
+    "searchPlaceholder": "Search opportunities...",
     "submitInvestment": "Submit Investment",
     "communication": "Communication",
     "requests": "Requests",
@@ -244,9 +248,12 @@
   },
 
   "investments": {
-    "title": "Explore Opportunities",
+    "title": "Discover Opportunities",
+    "myProjectsTitle": "My Projects",
+    "noParticipationsTitle": "No participated projects yet",
+    "noParticipationsSubtitle": "Projects you participate in will appear here.",
     "startInvestingButton": "Submit Your Project",
-    "filterPlaceholder": "Filter investments...",
+    "filterPlaceholder": "Filter opportunities...",
     "advancedSearch": "Advanced Search",
     "refresh": "Refresh",
     "exportCsv": "Export CSV",
@@ -261,7 +268,7 @@
       "medium": "Medium",
       "high": "High"
     },
-    "typeFilter": "Investment Type",
+    "typeFilter": "Opportunity Type",
     "type": {
       "founding": "Founding",
       "equity": "Equity"
@@ -278,7 +285,7 @@
     "share": "Share",
     "addToFavorites": "Add to Favorites",
     "engage": "Engage",
-    "noResultsTitle": "No investments found",
+    "noResultsTitle": "No opportunities found",
     "noResultsSubtitle": "No assets match the current filter. Try a different category or search term.",
     "previous": "Previous",
     "page": "Page",
@@ -299,23 +306,23 @@
       "maxError": "Maximum available is {available} shares"
     },
     "investDialog": {
-      "title": "Invest in {investmentName}",
+      "title": "Participate in {investmentName}",
       "sharePrice": "Share Price",
       "available": "Available",
       "minLabel": "Minimum",
       "maxLabel": "Maximum",
       "sharesLabel": "Number of Shares",
       "availableLine": "Available: {available} shares",
-      "totalInvestment": "Total Investment:",
+      "totalInvestment": "Total Participation:",
       "expectedROI": "Expected ROI:",
       "cancel": "Cancel",
-      "confirm": "Confirm Investment",
+      "confirm": "Confirm Participation",
       "processing": "Processing..."
     },
     "confirmDialog": {
-      "title": "Confirm Investment",
-      "subtitle": "Please review and confirm your investment request",
-      "investmentLabel": "Investment:",
+      "title": "Confirm Participation",
+      "subtitle": "Please review and confirm your participation request",
+      "investmentLabel": "Opportunity:",
       "sharesLabel": "Shares:",
       "totalCostLabel": "Total Cost:",
       "warning": "Important Notice",
@@ -385,8 +392,8 @@
     }
   },
   "submitInvestment": {
-    "title": "Create Investment Opportunity",
-    "editTitle": "Edit Investment Opportunity",
+    "title": "Create Opportunity",
+    "editTitle": "Edit Opportunity",
     "subtitle": "Launch your fundraising campaign and connect with investors",
     "step": {
       "businessDetails": "Business Details",
@@ -412,10 +419,10 @@
       "addTeamMember": "Add Team Member",
       "addImage": "Add",
       "continue": "Continue",
-      "submit": "Submit Investment",
+      "submit": "Submit Opportunity",
       "save": "Save Changes",
       "cancel": "Cancel",
-      "back": "Back to Investments"
+      "back": "Back to Opportunities"
     }
     ,
     "placeholders": {
@@ -425,7 +432,7 @@
       "teamUserId": "Mobile number (required)",
       "teamName": "Display name (optional)",
       "teamRole": "Role",
-      "duration": "Investment duration",
+      "duration": "Opportunity duration",
       "expectedProfit": "Expected profit %",
       "pricePerShare": "Price per share",
       "numberOfShares": "Number of shares for this round",
@@ -733,8 +740,8 @@
     }
   },
   "investmentPreview": {
-    "backButton": "Back to Investments",
-    "investmentType": "Investment Type",
+    "backButton": "Back to Opportunities",
+    "investmentType": "Opportunity Type",
     "industry": "Industry",
     "founderRating": "Founder Rating",
     "earlyStage": "Early-stage funding round",
@@ -744,7 +751,7 @@
     "moderateExposure": "Moderate exposure",
     "highVolatility": "High volatility",
     "campaignStatus": "Campaign Status",
-    "currentlyAccepting": "Currently accepting investments",
+    "currentlyAccepting": "Currently accepting participation",
     "targetReached": "Target reached",
     "campaignEnded": "Campaign ended",
     "projectRoadmap": "Project Roadmap",
@@ -752,7 +759,7 @@
     "complete": "Complete",
     "currentMilestone": "Current Milestone",
     "sharePrice": "Share Price",
-    "minInvestment": "Min Investment",
+    "minInvestment": "Min Participation",
     "expectedROI": "Expected ROI",
     "totalShares": "Total Shares",
     "available": "Available",
@@ -761,7 +768,7 @@
     "amountRaised": "Amount Raised",
     "target": "Target",
     "funded": "Funded",
-    "yourInvestment": "Your Investment",
+    "yourInvestment": "Your Participation",
     "projectTeam": "Project Team",
     "noTeamMembers": "No team members available",
     "timeline": "Timeline",
@@ -775,7 +782,7 @@
     "founder": "Founder",
     "contactFounder": "Contact Founder",
     "viewProfile": "View Profile",
-    "investNow": "Invest Now",
+    "investNow": "Participate / Invest",
     "fullyFunded": "Fully Funded",
     "closed": "Closed",
     "daysLeft": "days left",
@@ -805,7 +812,7 @@
       "noMarket": "Industry not specified",
       "noValueProp": "No value proposition details",
       "investmentInfo": {
-        "title": "Investment Information",
+        "title": "Participation Information",
         "equity": {
           "sharePrice": "Share Price",
           "totalShares": "Total Shares",
@@ -847,9 +854,9 @@
           "button": "Send Request"
         },
         "investCard": {
-          "title": "Invest Now",
+          "title": "Participate / Invest",
           "description": "Already understand the opportunity? Ready to move forward?",
-          "button": "Invest Now"
+          "button": "Participate / Invest"
         }
       },
       "months": "months",

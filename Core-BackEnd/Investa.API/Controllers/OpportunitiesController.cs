@@ -93,6 +93,25 @@ public class OpportunitiesController : BaseApiController
         }
     }
 
+    [HttpGet("{id:int}/room")]
+    [ProducesResponseType(typeof(ApiResponse<OpportunityDetailDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetProjectRoom(int id, CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null)
+            return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            var opportunity = await _opportunityService.GetProjectRoomAsync(userId.Value, id, cancellationToken);
+            return SuccessResponse(opportunity);
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
     [HttpPost("{id:int}/submit-review")]
     [ProducesResponseType(typeof(ApiResponse<OpportunityDetailDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> SubmitForReview(int id, CancellationToken cancellationToken)
@@ -306,7 +325,12 @@ public class OpportunitiesController : BaseApiController
 
     private IActionResult ToBusinessError(BusinessValidationException ex)
     {
-        var statusCode = ex.Code == "OPPORTUNITY_NOT_FOUND" ? 404 : 400;
+        var statusCode = ex.Code switch
+        {
+            "OPPORTUNITY_NOT_FOUND" => 404,
+            "PROJECT_ROOM_FORBIDDEN" => 403,
+            _ => 400
+        };
         return ErrorResponse(ex.Message, statusCode);
     }
 }

@@ -30,8 +30,11 @@ var fileCategories = new[]
     new FileCategoryContract("FinancialReport", "Financial reports and statements", "document"),
     new FileCategoryContract("Contract", "Contracts and agreements", "document"),
     new FileCategoryContract("Legal", "Legal and compliance documents", "document"),
+    new FileCategoryContract("InternalFile", "Internal business files", "document"),
+    new FileCategoryContract("ProjectUpdateMedia", "Project update media", "media"),
     new FileCategoryContract("Image", "General image", "image"),
     new FileCategoryContract("Video", "General video", "video"),
+    new FileCategoryContract("PitchVideo", "Public pitch video", "video"),
     new FileCategoryContract("Presentation", "Presentation files", "document"),
     new FileCategoryContract("Spreadsheet", "Spreadsheet files", "document"),
     new FileCategoryContract("Archive", "Archive files", "archive"),
@@ -129,6 +132,8 @@ app.MapPost("/files/{category}", async (string category, HttpRequest request) =>
             Url: url,
             PreviewUrl: SupportsPreview(mimeType, ext) ? url : null,
             ThumbnailUrl: mimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ? url : null,
+            Purpose: request.Form["purpose"].FirstOrDefault(),
+            Visibility: request.Form["visibility"].FirstOrDefault(),
             UploadedBy: request.Form["uploadedBy"].FirstOrDefault() ?? request.Headers["X-User-Id"].FirstOrDefault(),
             UploadedAt: DateTime.UtcNow);
 
@@ -586,6 +591,8 @@ static FileMetadataContract ReadMetadataOrFallback(
         Url: url,
         PreviewUrl: SupportsPreview(mimeType, ext) ? url : null,
         ThumbnailUrl: mimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ? url : null,
+        Purpose: null,
+        Visibility: null,
         UploadedBy: null,
         UploadedAt: info.CreationTimeUtc);
 }
@@ -606,6 +613,8 @@ static object ToUploadResponse(FileMetadataContract metadata) => new
     metadata.Url,
     metadata.PreviewUrl,
     metadata.ThumbnailUrl,
+    metadata.Purpose,
+    metadata.Visibility,
     metadata.UploadedBy,
     metadata.UploadedAt,
     createdAt = metadata.UploadedAt
@@ -643,6 +652,8 @@ public sealed record FileMetadataContract(
     string Url,
     string? PreviewUrl,
     string? ThumbnailUrl,
+    string? Purpose,
+    string? Visibility,
     string? UploadedBy,
     DateTime UploadedAt);
 
