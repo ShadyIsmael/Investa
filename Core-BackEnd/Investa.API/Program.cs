@@ -22,6 +22,8 @@ using Investa.Application.Services;
 using Investa.Infrastructure.Persistence;
 using Investa.Infrastructure.Services;
 using Investa.Infrastructure.Repositories;
+using Investa.Infrastructure.Seed;
+
 
 try
 {
@@ -331,6 +333,10 @@ try
     // === AUTOMATION MAPPER ===
     builder.Services.AddAutoMapper(typeof(Investa.Application.Mappings.MappingProfile).Assembly);
 
+    // === DEVELOPMENT IDENTITY RESEED (repair-only) ===
+    builder.Services.AddDevIdentityReseed();
+
+
     // === APPLICATION SERVICES REGISTRATION ===
     RegisterApplicationServices(builder.Services);
 
@@ -374,10 +380,21 @@ try
             result.Scanned,
             result.Migrated,
             result.Skipped);
+
+        var categoryBackfill = scope.ServiceProvider.GetRequiredService<OpportunityCategoryBackfillService>();
+        var categoryResult = await categoryBackfill.BackfillAsync();
+        logger.LogInformation(
+            "Opportunity category backfill result: scanned={Scanned}, validBefore={ValidBefore}, updated={Updated}, skipped={Skipped}, categoriesUsed={CategoriesUsed}, errors={Errors}",
+            categoryResult.Scanned,
+            categoryResult.ValidBeforeFix,
+            categoryResult.Updated,
+            categoryResult.Skipped,
+            string.Join(", ", categoryResult.CategoriesUsed),
+            string.Join(" | ", categoryResult.Errors));
     }
     catch (Exception ex)
     {
-        logger.LogWarning(ex, "Investment Opportunity compatibility backfill did not complete.");
+        logger.LogWarning(ex, "Startup compatibility/data backfill did not complete.");
     }
 
     // === MIDDLEWARE PIPELINE ===
@@ -441,109 +458,16 @@ try
     Console.WriteLine($"[STARTUP] 🏥 Health: http://{hostName}:{backendPort}/api/health");
     Console.WriteLine($"[STARTUP] Press Ctrl+C to shut down.");
 
-    // === DEVELOPMENT-ONLY: Ensure a seeded admin user exists for local testing ===
+    // === DEVELOPMENT-ONLY: Safe dev reseed (repair-only) for identity roles & admin mapping ===
     if (app.Environment.IsDevelopment())
     {
-        try
-        {
-            using var scope = app.Services.CreateScope();
-            var svcProv = scope.ServiceProvider;
-            var userManager = svcProv.GetRequiredService<UserManager<Investa.Infrastructure.Identity.ApplicationIdentityUser>>();
-            var roleManager = svcProv.GetRequiredService<RoleManager<Investa.Infrastructure.Identity.ApplicationIdentityRole>>();
-            var uow = svcProv.GetRequiredService<IUnitOfWork>();
-
-            var adminEmail = builder.Configuration["Admin:Email"] ?? "admin@investa.com";
-            var adminPassword = builder.Configuration["Admin:Password"] ?? "P@ssw0rd";
-            var adminDisplayName = builder.Configuration["Admin:Name"] ?? "Platform Admin";
-            var adminRoleName = "Admin";
-
-            // Ensure role exists
-            if (!await roleManager.RoleExistsAsync(adminRoleName))
-            {
-                var role = new Investa.Infrastructure.Identity.ApplicationIdentityRole
-                {
-                    Name = adminRoleName,
-                    NormalizedName = adminRoleName.ToUpperInvariant()
-                };
-                await roleManager.CreateAsync(role);
-                Console.WriteLine($"[SEED] Created role: {adminRoleName}");
-            }
-
-            // Ensure identity user
-            var normalizedEmail = adminEmail.Trim().ToLowerInvariant();
-            var existing = await userManager.FindByEmailAsync(normalizedEmail);
-            if (existing == null)
-            {
-                var username = normalizedEmail.Replace("@", "_").Replace(".", "_");
-                var newUser = new Investa.Infrastructure.Identity.ApplicationIdentityUser
-                {
-                    Id = Guid.NewGuid(),
-                    UserName = username,
-                    Email = normalizedEmail,
-                    EmailConfirmed = true,
-                    SecurityStamp = Guid.NewGuid().ToString(),
-                    ConcurrencyStamp = Guid.NewGuid().ToString()
-                };
-                var res = await userManager.CreateAsync(newUser, adminPassword);
-                if (!res.Succeeded)
-                {
-                    Console.WriteLine($"[SEED] Failed to create admin Identity user: {string.Join(';', res.Errors.Select(e => e.Description))}");
-                }
-                else
-                {
-                    await userManager.AddToRoleAsync(newUser, adminRoleName);
-                    Console.WriteLine($"[SEED] Created admin Identity user: {normalizedEmail}");
-
-                    // Create domain and auth records
-                    var guid = newUser.Id;
-                    if (guid != Guid.Empty)
-                    {
-                        try
-                        {
-                            var passwordHasher = new Microsoft.AspNetCore.Identity.PasswordHasher<Investa.Infrastructure.Identity.ApplicationIdentityUser>();
-                            var authUser = new Investa.Domain.Entities.AuthUser
-                            {
-                                Id = guid,
-                                Name = adminDisplayName,
-                                Email = normalizedEmail,
-                                PasswordHash = passwordHasher.HashPassword(newUser, adminPassword),
-                                UserType = Investa.Domain.Entities.Enums.UserType.OrgUser,
-                                Status = true,
-                                CreatedAt = DateTime.UtcNow
-                            };
-                            await uow.Repository<Investa.Domain.Entities.AuthUser>().AddAsync(authUser);
-
-                            await uow.SaveChangesAsync();
-                            Console.WriteLine($"[SEED] Created auth record for admin: {normalizedEmail}");
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"[SEED] Warning: failed to create domain/auth records: {ex.Message}");
-                        }
-                    }
-                }
-            }
-            else
-            {
-                // Ensure role assignment
-                if (!await userManager.IsInRoleAsync(existing, adminRoleName))
-                {
-                    await userManager.AddToRoleAsync(existing, adminRoleName);
-                    Console.WriteLine($"[SEED] Added existing user to role '{adminRoleName}': {normalizedEmail}");
-                }
-                else
-                {
-                    Console.WriteLine($"[SEED] Admin user already present and assigned: {normalizedEmail}");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[SEED] Error while seeding admin user: {ex.Message}");
-        }
+        using var scope = app.Services.CreateScope();
+        var reseed = scope.ServiceProvider.GetRequiredService<Investa.Infrastructure.Seed.DevIdentityReseedService>();
+        await reseed.RepairDevelopmentIdentityDataAsync(builder.Configuration);
     }
 
     await app.RunAsync();
+
     
     Console.WriteLine("[SHUTDOWN] Application stopped gracefully.");
 }
@@ -599,6 +523,7 @@ static void RegisterApplicationServices(IServiceCollection services)
     services.AddScoped<IPriceService, PriceService>();
     services.AddScoped<IOpportunityService, OpportunityService>();
     services.AddScoped<InvestmentOpportunityBackfillService>();
+    services.AddScoped<OpportunityCategoryBackfillService>();
     services.AddScoped<IChatService, ChatService>();
     services.AddScoped<IGroupService, GroupService>();
 

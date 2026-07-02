@@ -123,9 +123,9 @@ export class InvestmentsComponent {
   itemsLoaded = signal(ITEMS_PER_PAGE);
   displayedInvestments = computed(() => this.filteredInvestments().slice(0, this.itemsLoaded()));
   isMyProjectsView = computed(() => this.router.url.startsWith('/admin/my-projects'));
-  pageTitle = computed(() => this.isMyProjectsView() ? this.t('investments.myProjectsTitle', 'My Projects') : this.t('investments.title', 'Discover Opportunities'));
+  pageTitle = computed(() => this.isMyProjectsView() ? this.t('investments.myProjectsTitle', 'My Participations') : this.t('investments.title', 'Discover Opportunities'));
   emptyTitle = computed(() => this.isMyProjectsView() ? this.t('investments.noParticipationsTitle', 'No participated projects yet') : this.t('investments.noResultsTitle', 'No results found'));
-  emptySubtitle = computed(() => this.isMyProjectsView() ? this.t('investments.noParticipationsSubtitle', 'Projects you participate in will appear here.') : this.t('investments.noResultsSubtitle', 'Try adjusting your search or filters.'));
+  emptySubtitle = computed(() => this.isMyProjectsView() ? this.t('investments.noParticipationsSubtitle', 'Approved participations will appear here.') : this.t('investments.noResultsSubtitle', 'Try adjusting your search or filters.'));
 
   private onScroll = () => {
     try {
@@ -206,8 +206,17 @@ export class InvestmentsComponent {
       const typeMatch = selectedTypes.length === 0 || selectedTypes.some(type => inv.investmentType === type);
 
       return categoryMatch && termMatch && riskMatch && fundingMatch && favoriteMatch && typeMatch;
-    });
+    }).sort((a, b) => this.getNewestTimestamp(b) - this.getNewestTimestamp(a));
   });
+
+  private getNewestTimestamp(investment: Investment): number {
+    const candidates = [investment.lastActivityAt, investment.date].filter(Boolean) as Date[];
+    for (const candidate of candidates) {
+      const timestamp = candidate instanceof Date ? candidate.getTime() : new Date(candidate).getTime();
+      if (Number.isFinite(timestamp)) return timestamp;
+    }
+    return 0;
+  }
 
   /**
    * Total pages for pagination
@@ -302,6 +311,7 @@ export class InvestmentsComponent {
   async selectCategory(category: string): Promise<void> {
     this.activeCategory.set(category);
     this.currentPage.set(1);
+    this.itemsLoaded.set(ITEMS_PER_PAGE);
 
     // Load investments for selected category from API when possible
     try {
@@ -320,6 +330,10 @@ export class InvestmentsComponent {
     } catch (err) {
       console.error('Failed to load investments for category', category, err);
     }
+  }
+
+  clearCategoryFilter(): void {
+    void this.selectCategory('All');
   }
 
   /**
@@ -412,6 +426,11 @@ export class InvestmentsComponent {
    * Show engagement prompt
    */
   promptEngage(investment: Investment): void {
+    if (!this.canUseLegacyRequestFlow(investment)) {
+      this.showOpportunityRequestComingSoon();
+      return;
+    }
+
     this.investmentToEngage.set(investment);
   }
 
@@ -428,6 +447,11 @@ export class InvestmentsComponent {
   async confirmEngage(): Promise<void> {
     const investment = this.investmentToEngage();
     if (!investment) return;
+    if (!this.canUseLegacyRequestFlow(investment)) {
+      this.showOpportunityRequestComingSoon();
+      this.investmentToEngage.set(null);
+      return;
+    }
 
     if (this.engagementProcessing()) {
       return;
@@ -493,9 +517,15 @@ export class InvestmentsComponent {
   /**
    * Navigate to investment details page
    */
-  navigateToDetails(investmentId: number): void {
+  navigateToDetails(investment: Investment | number): void {
     try {
-      this.router.navigate(['/admin/investments', investmentId]);
+      const investmentId = typeof investment === 'number' ? investment : investment.id;
+      const source = typeof investment === 'number'
+        ? 'legacy'
+        : investment.readSource === 'public-opportunity'
+          ? 'opportunity'
+          : 'legacy';
+      this.router.navigate(['/admin/investments', investmentId], { queryParams: { source } });
     } catch (err) {
       this.notificationService.showToast({ title: 'Navigation error', message: 'Unable to navigate to investment details', type: 'error' });
       console.error('Navigation error:', err);
@@ -525,6 +555,11 @@ export class InvestmentsComponent {
    * Open investment dialog
    */
   openInvestDialog(investment: Investment): void {
+    if (!this.canUseLegacyRequestFlow(investment)) {
+      this.showOpportunityRequestComingSoon();
+      return;
+    }
+
     this.investmentToInvest.set(investment);
     this.sharesToPurchaseValue = 1;
     this.investmentError.set(null);
@@ -645,6 +680,11 @@ export class InvestmentsComponent {
     if (this.investmentError() || this.investmentProcessing()) {
       return;
     }
+    if (!this.canUseLegacyRequestFlow(investment)) {
+      this.showOpportunityRequestComingSoon();
+      this.closeInvestDialog();
+      return;
+    }
 
     this.investmentProcessing.set(true);
     this.investmentError.set(null);
@@ -695,5 +735,17 @@ export class InvestmentsComponent {
    */
   getInvestmentTypeBadgeClass(type: InvestmentType | number | undefined): string {
     return getInvestmentTypeBadgeClass(type);
+  }
+
+  canUseLegacyRequestFlow(investment: Investment | null | undefined): boolean {
+    return !!investment && (investment.readSource !== 'public-opportunity' || !!investment.legacyInvestmentId);
+  }
+
+  private showOpportunityRequestComingSoon(): void {
+    this.notificationService.showToast({
+      title: 'Coming soon',
+      message: 'Participation requests for Opportunity records need a backend request mapping before they can be submitted.',
+      type: 'info'
+    });
   }
 }

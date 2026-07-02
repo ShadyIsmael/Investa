@@ -27,7 +27,7 @@
             <option [ngValue]="null">Category</option>
             <option *ngFor="let category of categories()" [ngValue]="category.id">{{ label(category) }}</option>
           </select>
-          <input [(ngModel)]="form.projectStage" placeholder="Project stage" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+          <input [(ngModel)]="form.projectStage" placeholder="Opportunity stage" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
         </div>
         <div>
           <p class="mb-2 text-sm font-semibold text-gray-300">Tags</p>
@@ -40,7 +40,7 @@
       </section>
 
       <section *ngIf="step() === 2" class="space-y-5">
-        <h2 class="text-xl font-bold text-white">Investment Basics</h2>
+        <h2 class="text-xl font-bold text-white">Funding Basics</h2>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <input [(ngModel)]="form.investmentModel" placeholder="Investment model" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
           <select [(ngModel)]="form.fundingGoalId" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">

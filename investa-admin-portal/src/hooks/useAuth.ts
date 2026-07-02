@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { setAuthToken } from '../services/api';
+import { setAuthToken, ADMIN_AUTHENTICATED_KEY } from '../services/api';
 import { storage } from '../utils/environment';
 
 export interface UseAuthReturn {
@@ -15,11 +15,11 @@ export interface UseAuthReturn {
 
 export function useAuth(onRedirect?: (path: string) => void): UseAuthReturn {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return storage.get('is-authenticated') === 'true';
+    return storage.get(ADMIN_AUTHENTICATED_KEY) === 'true';
   });
 
   useEffect(() => {
-    storage.set('is-authenticated', String(isAuthenticated));
+    storage.set(ADMIN_AUTHENTICATED_KEY, String(isAuthenticated));
   }, [isAuthenticated]);
 
   const login = useCallback((redirect?: string) => {
@@ -39,7 +39,7 @@ export function useAuth(onRedirect?: (path: string) => void): UseAuthReturn {
   const logout = useCallback(() => {
     setIsAuthenticated(false);
     setAuthToken(null);
-    storage.remove('is-authenticated');
+    storage.remove(ADMIN_AUTHENTICATED_KEY);
     
     // Emit logout event for SignalR and other listeners
     try {

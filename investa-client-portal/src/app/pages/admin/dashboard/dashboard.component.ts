@@ -163,7 +163,7 @@ export class DashboardComponent {
       activities.push({
         id: id++,
         type: 'investment',
-        title: 'Investment completed',
+        title: 'Participation completed',
         description: `Invested $${inv.investedAmount?.toLocaleString() || '0'} in ${inv.name}`,
         time: inv.date ? this.getTimeAgo(inv.date) : 'Recently',
         link: ['/admin/investments', inv.id]
@@ -308,7 +308,17 @@ export class DashboardComponent {
 
   openProjectWorkspace(project: Investment) {
     this.selectedFounderProject.set(project);
-    return this.router.navigate(['/admin/investments', project.id]);
+    return this.router.navigate(['/admin/investments', project.id], {
+      queryParams: { source: this.getInvestmentRouteSource(project) }
+    });
+  }
+
+  getInvestmentRouteQuery(project: Investment): { source: 'legacy' | 'opportunity' } {
+    return { source: this.getInvestmentRouteSource(project) };
+  }
+
+  private getInvestmentRouteSource(project: Investment): 'legacy' | 'opportunity' {
+    return project.readSource === 'public-opportunity' ? 'opportunity' : 'legacy';
   }
 
 getProjectAvatar(project: Investment): string {

@@ -70,6 +70,9 @@ export interface OpportunityEvent {
 
 export interface Opportunity {
   id: number | string;
+  founderId?: string | null;
+  legacyInvestmentId?: number | null;
+  investmentId?: number | null;
   title?: string | null;
   shortDescription?: string | null;
   fullDescription?: string | null;
@@ -80,11 +83,30 @@ export interface Opportunity {
   projectStage?: string | null;
   fundingGoalId?: number | string | null;
   fundingGoalName?: string | null;
+  fundingPurpose?: string | null;
   fundingTarget?: number | null;
   minimumInvestment?: number | null;
+  minimumInvestmentAmount?: number | null;
   maximumInvestment?: number | null;
+  maximumInvestmentAmount?: number | null;
   expectedDuration?: string | number | null;
+  expectedDurationMonths?: string | number | null;
   coverImageUrl?: string | null;
+  founder?: {
+    id?: string | null;
+    userId?: string | null;
+    displayName?: string | null;
+    name?: string | null;
+    fullName?: string | null;
+    businessRole?: string | null;
+    summary?: string | null;
+    avatarUrl?: string | null;
+  } | null;
+  category?: OpportunityLookup | null;
+  fundingGoal?: OpportunityLookup | null;
+  publicInvestmentTermsSummary?: string | null;
+  expectedReturnSummary?: string | null;
+  fundingProgressPercent?: number | null;
   mediaCount?: number | null;
   documentCount?: number | null;
   hasCover?: boolean | null;

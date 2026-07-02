@@ -18,14 +18,20 @@ public class DatabaseSeeder
     private readonly ApplicationDbContext _context;
     private readonly IPasswordHasher<AuthUser> _passwordHasher;
     private readonly UserManager<ApplicationIdentityUser> _userManager;
+    private readonly RoleManager<ApplicationIdentityRole> _roleManager;
     private readonly Dictionary<string, Guid> _userIds = new();
     private readonly Dictionary<string, int> _investmentIds = new();
 
-    public DatabaseSeeder(ApplicationDbContext context, IPasswordHasher<AuthUser> passwordHasher, UserManager<ApplicationIdentityUser> userManager)
+    public DatabaseSeeder(
+        ApplicationDbContext context,
+        IPasswordHasher<AuthUser> passwordHasher,
+        UserManager<ApplicationIdentityUser> userManager,
+        RoleManager<ApplicationIdentityRole> roleManager)
     {
         _context = context;
         _passwordHasher = passwordHasher;
         _userManager = userManager;
+        _roleManager = roleManager;
     }
 
     /// <summary>
@@ -204,6 +210,7 @@ public class DatabaseSeeder
             activityScore: 10000,
             verificationTrustScore: 100
         );
+        await EnsureAdminAuthorizationRoleAsync(adminUser, "admin@investa.com", "P@ssw0rd");
         _userIds["admin"] = adminUser.Id;
 
         // Demo client users with phone numbers 01022322291 to 01022322310.
@@ -732,6 +739,54 @@ string? normalizedPhone = null;
 
         await _context.SaveChangesAsync();
         Console.WriteLine($"Reset password for demo user: {email}");
+    }
+
+    private async Task EnsureAdminAuthorizationRoleAsync(AuthUser adminUser, string email, string password)
+    {
+        const string adminRoleName = "Admin";
+
+        if (!await _roleManager.RoleExistsAsync(adminRoleName))
+        {
+            var role = new ApplicationIdentityRole
+            {
+                Name = adminRoleName,
+                NormalizedName = adminRoleName.ToUpperInvariant()
+            };
+
+            var roleResult = await _roleManager.CreateAsync(role);
+            if (!roleResult.Succeeded)
+            {
+                var roleErrors = string.Join("; ", roleResult.Errors.Select(e => e.Description));
+                throw new InvalidOperationException($"Failed to create admin role: {roleErrors}");
+            }
+        }
+
+        var identityUser = await _userManager.FindByIdAsync(adminUser.Id.ToString())
+            ?? await _userManager.FindByEmailAsync(email);
+
+        if (identityUser == null)
+        {
+            throw new InvalidOperationException($"Could not resolve identity user for seeded admin {email}");
+        }
+
+        if (!await _userManager.IsInRoleAsync(identityUser, adminRoleName))
+        {
+            var addRoleResult = await _userManager.AddToRoleAsync(identityUser, adminRoleName);
+            if (!addRoleResult.Succeeded)
+            {
+                var roleErrors = string.Join("; ", addRoleResult.Errors.Select(e => e.Description));
+                throw new InvalidOperationException($"Failed to assign admin role to {email}: {roleErrors}");
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(password))
+        {
+            var passwordHasher = new PasswordHasher<ApplicationIdentityUser>();
+            identityUser.PasswordHash = passwordHasher.HashPassword(identityUser, password);
+            await _userManager.UpdateAsync(identityUser);
+        }
+
+        Console.WriteLine($"Assigned role '{adminRoleName}' to seeded admin user: {email}");
     }
 
     private static bool IsSeededDemoPhone(string? normalizedPhone)

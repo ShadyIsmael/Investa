@@ -97,9 +97,9 @@
     "dashboard": "لوحة التحكم",
     "investments": "تصفح الفرص",
     "myParticipations": "مشاركاتي",
-    "myProjects": "مشاريعي",
-    "createProject": "إنشاء مشروع",
-    "submitInvestment": "إنشاء فرصة",
+    "myProjects": "????",
+    "createProject": "????? ????",
+    "submitInvestment": "????? ????",
     "communication": "التواصل",
     "requests": "الطلبات",
     "returnHome": "الرئيسية",
@@ -280,10 +280,10 @@
   },
   "investments": {
     "title": "تصفح الفرص",
-    "myProjectsTitle": "مشاريعي",
-    "noParticipationsTitle": "لا توجد مشاريع مشارك بها بعد",
-    "noParticipationsSubtitle": "ستظهر هنا المشاريع التي تشارك فيها.",
-    "startInvestingButton": "قدم مشروعك",
+    "myProjectsTitle": "????????",
+    "noParticipationsTitle": "?? ???? ??????? ???",
+    "noParticipationsSubtitle": "????? ??? ????????? ????????.",
+    "startInvestingButton": "????? ????",
     "filterPlaceholder": "ابحث في الفرص...",
     "advancedSearch": "بحث متقدم",
     "refresh": "تحديث",
@@ -300,9 +300,9 @@
       "high": "مرتفع",
       "risk": "مخاطر"
     },
-    "typeFilter": "نوع الفرصة",
+    "typeFilter": "????? ?????????",
     "type": {
-      "founding": "تأسيس",
+      "founding": "?????? ???????",
       "equity": "أسهم"
     },
     "funding": "التمويل",
@@ -324,17 +324,17 @@
     "of": "من",
     "next": "التالي",
     "engageModal": {
-      "title": "تأكيد التواصل",
-      "message": "التواصل بخصوص {investmentName} سيكلفك {creditCost} رصيداً. هل تريد المتابعة؟",
+      "title": "????? ??? ????????",
+      "message": "??? ???????? ?? {investmentName} ?????? {creditCost} ??????. ?? ???? ?????????",
       "cancelButton": "إلغاء",
-      "proceedButton": "متابعة التواصل"
+      "proceedButton": "??????"
     },
     "engageSuccessTitle": "تم إرسال الطلب",
     "engageSuccessMessage": "تم إرسال طلب التفاعل الخاص بك بخصوص {investmentName}. سيتم إعلامك عند القبول.",
     "requestSubmittedTitle": "تم إرسال الطلب",
     "requestSubmittedMessage": "تم إرسال طلبك بخصوص {investmentName}. سنقوم بإعلامك عند القبول.",
     "shareValidation": {
-      "minError": "يجب ألا يقل عدد الأسهم عن 1",
+      "minError": "???? ????? ?????? ??? ?????",
       "maxError": "الحد الأقصى {available} من الأسهم المتاحة"
     },
     "investDialog": {
@@ -356,7 +356,7 @@
       "subtitle": "راجع طلب المشاركة قبل إرساله",
       "investmentLabel": "الفرصة:",
       "sharesLabel": "الأسهم:",
-      "totalCostLabel": "الإجمالي:",
+      "totalCostLabel": "?????? ????????:",
       "warning": "تنبيه مهم",
       "warningMessage": "سيتم خصم الرصيد من حسابك وإرسال الطلب إلى المؤسس. لا يمكن التراجع عن هذا الإجراء.",
       "confirmButton": "تأكيد ومتابعة"
@@ -365,19 +365,19 @@
   "submitInvestment": {
     "title": "إنشاء فرصة",
     "editTitle": "تعديل فرصة",
-    "subtitle": "اعرض مشروعك وتواصل مع المستثمرين المناسبين",
+    "subtitle": "???? ????? ?????? ?? ?????????? ?????????",
     "step": {
-      "businessDetails": "تفاصيل المشروع",
+      "businessDetails": "?????? ??????",
       "financialStructure": "الهيكل المالي",
       "reviewSubmit": "مراجعة وإرسال"
     },
-    "tellInvestors": "عرف المستثمرين بمشروعك",
+    "tellInvestors": "???? ?????????? ??????",
     "labels": {
-      "businessName": "اسم المشروع",
+      "businessName": "????? ??????",
       "description": "الوصف",
-      "businessCategory": "فئة المشروع",
+      "businessCategory": "?????",
       "businessStage": "المرحلة",
-      "projectPhase": "مرحلة المشروع",
+      "projectPhase": "????? ??????",
       "milestone": "المعلم الحالي",
       "teamMembers": "أعضاء الفريق",
       "coverImage": "صورة الغلاف",
@@ -396,8 +396,8 @@
       "back": "العودة إلى الفرص"
     },
     "placeholders": {
-      "businessName": "أدخل اسم المشروع أو النشاط",
-      "description": "وصف مشروعك، المشكلة التي تحلها، والقيمة الفريدة التي تقدمها...",
+      "businessName": "???? ????? ??????",
+      "description": "?? ??????? ???????? ???? ?????? ??????? ??????? ???? ??????...",
       "milestoneExample": "مثال: إطلاق MVP، سلسلة A، توافق المنتج مع السوق",
       "teamUserId": "رقم الجوال (مطلوب)",
       "teamName": "الاسم المعروض (اختياري)",
@@ -417,7 +417,7 @@
   },
   "investmentPreview": {
     "backButton": "العودة إلى الفرص",
-    "investmentType": "نوع الفرصة",
+    "investmentType": "????? ?????????",
     "industry": "المجال",
     "founderRating": "تقييم المؤسس",
     "earlyStage": "جولة تمويل مبكرة",
@@ -430,7 +430,7 @@
     "currentlyAccepting": "تقبل المشاركة حالياً",
     "targetReached": "تم الوصول إلى الهدف",
     "campaignEnded": "انتهت الحملة",
-    "projectRoadmap": "خريطة طريق المشروع",
+    "projectRoadmap": "????? ???? ??????",
     "current": "الحالي",
     "complete": "مكتمل",
     "currentMilestone": "المرحلة الحالية",
@@ -445,7 +445,7 @@
     "target": "الهدف",
     "funded": "ممول",
     "yourInvestment": "مشاركتك",
-    "projectTeam": "فريق المشروع",
+    "projectTeam": "??????",
     "noTeamMembers": "لا يوجد أعضاء فريق متاحون",
     "timeline": "الجدول الزمني",
     "started": "بدأ",
@@ -458,14 +458,14 @@
     "founder": "المؤسس",
     "contactFounder": "تواصل مع المؤسس",
     "viewProfile": "عرض الملف",
-    "investNow": "شارك / استثمر",
+    "investNow": "????",
     "fullyFunded": "ممول بالكامل",
     "closed": "مغلق",
     "daysLeft": "أيام متبقية",
     "learnMore": "اعرف المزيد",
     "valuation": "التقييم",
     "author": "المؤلف",
-    "viewAllMedia": "عرض وسائط المشروع",
+    "viewAllMedia": "??? ????? ??????",
     "images": "صور",
     "video": "فيديو",
     "noMediaYet": "لم يتم رفع أي وسائط بعد",
@@ -516,8 +516,8 @@
         "viewFounderProfile": "عرض ملف المؤسس"
       },
       "media": {
-        "title": "وسائط المشروع",
-        "viewProjectMedia": "عرض وسائط المشروع",
+        "title": "????? ??????",
+        "viewProjectMedia": "??? ????? ??????",
         "photos": "صور",
         "videos": "فيديوهات",
         "documents": "مستندات"
@@ -548,8 +548,8 @@
   },
   "founderProfile": {
     "title": "الملف الشخصي للمؤسس",
-    "projects": "المشاريع",
-    "noProjects": "لا توجد مشاريع نشطة.",
+    "projects": "???",
+    "noProjects": "?? ???? ??? ????.",
     "kycVerified": "تم التحقق من الهوية",
     "notFound": "المؤسس غير موجود",
     "notFoundSubtitle": "هذا الملف الشخصي غير موجود أو غير متاح."
@@ -557,11 +557,11 @@
   "dashboard": {
     "investorTitle": "لوحة تحكم المستثمر",
     "portfolioValue": "قيمة المحفظة",
-    "myInvestments": "استثماراتي",
+    "myInvestments": "????????",
     "watchlist": "قائمة المراقبة",
-    "investmentUpdates": "تحديثات استثماراتي",
+    "investmentUpdates": "??????? ?????????",
     "updatesLabel": "تحديثات",
-    "noInvestmentUpdates": "لا توجد تحديثات على الاستثمارات حتى الآن.",
+    "noInvestmentUpdates": "?? ???? ??????? ??? ????????? ??? ????.",
     "incomingRequests": "الطلبات الواردة",
     "investorScore": "درجتي",
     "currentCredits": "الرصيد الحالي",
@@ -583,26 +583,26 @@
     },
     "withdraw": "سحب",
     "noSentRequests": "لا توجد نتائج طلبات بعد.",
-    "switchProject": "تبديل المشروع",
-    "myProjectOverview": "نظرة عامة على مشروعي",
+    "switchProject": "????? ??????",
+    "myProjectOverview": "???? ???? ??? ??????",
     "totalInvestors": "إجمالي المستثمرين",
     "profileViews": "مشاهدات الملف الشخصي",
     "engagementScore": "درجة التفاعل",
     "investorInterest": "اهتمام المستثمرين",
     "quickActions": "إجراءات سريعة",
-    "createInvestment": "إنشاء استثمار",
-    "editProject": "تعديل المشروع",
+    "createInvestment": "????? ????",
+    "editProject": "????? ??????",
     "viewPublicPage": "عرض الصفحة العامة",
     "postUpdate": "نشر تحديث",
     "recentActivity": "النشاط الأخير",
-    "selectProjectTitle": "اختر مشروعًا",
-    "selectProjectSubtitle": "اختر المشروع الذي تريد عرض لوحة التحكم الخاصة به.",
+    "selectProjectTitle": "???? ????",
+    "selectProjectSubtitle": "???? ?????? ???? ???? ?????.",
     "uncategorized": "غير مصنف",
     "emptyWatchlist": "لا توجد عناصر في قائمة المراقبة.",
     "noProject": {
-      "title": "لا توجد مشاريع بعد",
-      "subtitle": "لم تقم بإنشاء أي مشاريع استثمارية. ابدأ بتقديم مشروعك الأول!",
-      "button": "أنشئ مشروعك الأول"
+      "title": "?? ???? ??? ???",
+      "subtitle": "?? ???? ?? ??? ???. ???? ?????? ????? ??????.",
+      "button": "????? ??? ????"
     },
     "withdrawModal": {
       "title": "سحب الطلب؟",
@@ -884,10 +884,10 @@
         }
       },
       "defaultInvestmentType": {
-        "label": "نوع الاستثمار الافتراضي",
+        "label": "????? ????????? ?????????",
         "options": {
           "any": "أي",
-          "founding": "تأسيس",
+          "founding": "?????? ???????",
           "equity": "أسهم"
         }
       },

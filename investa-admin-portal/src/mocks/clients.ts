@@ -1,6 +1,7 @@
 
 import { Client } from '../types';
-import { getDynamicBaseUrl, storage } from '../utils/environment';
+import { getAuthToken } from '../services/api';
+import { getDynamicBaseUrl } from '../utils/environment';
 
 /** Default avatar placeholder - uses UI Avatars service for initials-based avatars */
 const getDefaultAvatar = (name: string, seed: number) => 
@@ -36,7 +37,7 @@ async function refreshTopClientsFromApi() {
     // Normalize base and strip any trailing `/api` segment to avoid duplicated `/api/api` when
     // VITE_API_BASE_URL may include a trailing `/api`; strip it before appending endpoint paths.
     const baseClean = base.replace(/\/api\/?$/, '').replace(/\/+$|\s+$/g, '');
-    const token = storage.get('token');
+    const token = getAuthToken();
     if (!token) {
       // No authenticated session yet, skip the live refresh to avoid 401 spam.
       return;

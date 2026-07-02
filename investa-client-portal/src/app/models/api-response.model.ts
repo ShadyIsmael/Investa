@@ -182,6 +182,8 @@ export interface CreateInvestmentDto {
   
   // Classification - Optional
   projectPhaseId?: number;
+  fundingGoalId?: number;
+  fundingPurposeDetails?: string;
   milestone?: string;
   riskLevel?: string;
   currency?: string;

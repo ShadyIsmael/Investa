@@ -1,5 +1,7 @@
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { getAuthToken, setAuthToken } from '@/api/api';
 import { Icon } from './Icons';
 
 interface ApiResponse {
@@ -85,8 +87,8 @@ export const ApiTester: React.FC = () => {
                 type="button"
                 onClick={() => {
                   try {
-                    const stored = localStorage.getItem('token');
-                    if (!stored) return alert('No token in localStorage');
+                    const stored = getAuthToken();
+                    if (!stored) return alert('No admin token in storage');
                     const parsed = JSON.parse(headers || '{}');
                     parsed['Authorization'] = `Bearer ${stored}`;
                     setHeaders(JSON.stringify(parsed, null, 2));
@@ -102,7 +104,7 @@ export const ApiTester: React.FC = () => {
                 onClick={() => {
                   const tok = prompt('Paste token here:');
                   if (!tok) return;
-                  try { localStorage.setItem('token', tok); alert('Token saved to localStorage'); }
+                  try { setAuthToken(tok, true); alert('Admin token saved'); }
                   catch (e) { alert('Failed to save token'); }
                 }}
                 className="px-3 py-1.5 rounded-xl text-[12px] font-black uppercase tracking-widest bg-slate-800 text-white shadow-md hover:bg-slate-900"

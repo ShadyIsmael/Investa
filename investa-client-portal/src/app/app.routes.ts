@@ -88,29 +88,29 @@ export const routes: Routes = [
       {
         path: 'my-projects',
         loadComponent: () => import('./pages/admin/investments/investments.component').then(m => m.InvestmentsComponent),
-        title: 'My Projects - Investa'
+        title: 'My Participations - Investa'
       },
       { 
         path: 'investments/new', 
         loadComponent: () => import('./pages/admin/submit-investment/submit-investment.component').then(m => m.SubmitInvestmentComponent),
         canActivate: [founderOnlyGuard],
-        title: 'Create Investment - Investa' 
+        title: 'Create Opportunity - Investa'
       },
       { 
         path: 'investments/:id/edit', 
         loadComponent: () => import('./pages/admin/submit-investment/submit-investment.component').then(m => m.SubmitInvestmentComponent),
         canActivate: [founderOnlyGuard],
-        title: 'Edit Investment - Investa' 
+        title: 'Edit Opportunity - Investa'
       },
       {
         path: 'investments/:id/media',
         loadComponent: () => import('./pages/admin/investment-media/investment-media.component').then(m => m.InvestmentMediaComponent),
-        title: 'Project Media - Investa'
+        title: 'Opportunity Media - Investa'
       },
       { 
         path: 'investments/:id', 
         loadComponent: () => import('./pages/admin/investment-preview/investment-preview.component').then(m => m.InvestmentPreviewComponent),
-        title: 'Investment Preview - Investa' 
+        title: 'Opportunity Details - Investa'
       },
       {
         path: 'founders/:id',

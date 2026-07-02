@@ -21,7 +21,7 @@ import { RoleContextService } from '../../../services/role-context.service';
         </p>
         <div class="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
           <a routerLink="/admin/investments" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">Discover Opportunities</a>
-          <a *ngIf="roleContext.isActiveFounderContext()" routerLink="/admin/my-opportunities" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-slate-700">My Projects</a>
+          <a *ngIf="roleContext.isActiveFounderContext()" routerLink="/admin/my-opportunities" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-slate-700">My Opportunities</a>
         </div>
       </div>
     </div>

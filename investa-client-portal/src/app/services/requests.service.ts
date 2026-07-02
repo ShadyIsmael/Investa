@@ -84,7 +84,7 @@ export class RequestsService {
       id: data.id ?? Date.now(),
       type: data.type || 'investment',
       direction: direction,
-      projectName: data.investmentTitle || data.investmentName || 'Investment',
+      projectName: data.investmentTitle || data.investmentName || 'Opportunity',
       projectImageUrl: '',
       counterpartName: direction === 'incoming'
         ? (data.investorDisplayName || data.senderName || 'Investor')
@@ -141,9 +141,13 @@ export class RequestsService {
       throw new Error('Insufficient credits. Please add more credits to your account.');
     }
 
+    if (investment.readSource === 'public-opportunity' && !investment.legacyInvestmentId) {
+      throw new Error('This opportunity is not available for requests yet.');
+    }
+
     try {
       const payload: any = {
-        investmentId: investment.id,
+        investmentId: investment.legacyInvestmentId ?? investment.id,
         amount,
         shares: shares > 0 ? shares : undefined
       };

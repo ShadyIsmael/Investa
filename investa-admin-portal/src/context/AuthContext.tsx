@@ -4,7 +4,15 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { setAuthToken, getAuthToken } from '../services/api';
+import {
+  setAuthToken,
+  getAuthToken,
+  ADMIN_AUTHENTICATED_KEY,
+  ADMIN_REFRESH_TOKEN_KEY,
+  ADMIN_TOKEN_EXPIRES_AT_KEY,
+  ADMIN_REFRESH_EXPIRES_AT_KEY,
+  ADMIN_ACCESS_TOKEN_KEY,
+} from '../services/api';
 import { storage } from '../utils/environment';
 
 // Permission types - extend as needed
@@ -35,7 +43,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
  * Parse JWT token and extract permissions claim
  * Expects JWT with a "permissions" claim as array of strings
  */
-export function parseJWT(token: string): { permissions: Permission[]; user: Partial<AuthUser> } | null {
+export function parseJWT(token: string): { permissions: Permission[]; roles: string[]; user: Partial<AuthUser> } | null {
   try {
     const base64Url = token.split('.')[1];
     if (!base64Url) return null;
@@ -135,7 +143,7 @@ export function parseJWT(token: string): { permissions: Permission[]; user: Part
       avatar: payload.avatar || payload.picture || undefined,
     };
 
-    return { permissions, user };
+    return { permissions, roles: roleList, user };
   } catch (error) {
     console.error('Failed to parse JWT:', error);
     return null;
@@ -147,7 +155,17 @@ export const AuthProvider: React.FC<{ children: ReactNode; onRedirect?: (path: s
   onRedirect 
 }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return storage.get('is-authenticated') === 'true';
+    const scoped = storage.get(ADMIN_AUTHENTICATED_KEY);
+    if (scoped !== null) return scoped === 'true';
+
+    const legacy = storage.get('is-authenticated');
+    if (legacy !== null) {
+      storage.set(ADMIN_AUTHENTICATED_KEY, legacy);
+      storage.remove('is-authenticated');
+      return legacy === 'true';
+    }
+
+    return false;
   });
 
   const [user, setUser] = useState<AuthUser | null>(() => {
@@ -186,7 +204,7 @@ export const AuthProvider: React.FC<{ children: ReactNode; onRedirect?: (path: s
 
   // Sync with localStorage
   useEffect(() => {
-    storage.set('is-authenticated', String(isAuthenticated));
+    storage.set(ADMIN_AUTHENTICATED_KEY, String(isAuthenticated));
   }, [isAuthenticated]);
 
   // Dev helper: if developer wants to force all perms and no token exists,
@@ -213,7 +231,7 @@ export const AuthProvider: React.FC<{ children: ReactNode; onRedirect?: (path: s
         try {
           setAuthToken(token, true);
         } catch (e) {}
-        try { storage.set('token', token); } catch (e) {}
+        try { storage.set(ADMIN_ACCESS_TOKEN_KEY, token); } catch (e) {}
 
         // Also initialize in-memory state for immediate UX
         setUser({ id: 'dev-user', name: 'Dev Admin', email: 'dev@local', permissions: ['*'] });
@@ -236,7 +254,7 @@ export const AuthProvider: React.FC<{ children: ReactNode; onRedirect?: (path: s
 
     // Store token (persist) and also explicitly mirror into storage for robustness
     setAuthToken(token, true);
-    try { storage.set('token', token); } catch (e) { /* ignore */ }
+    try { storage.set(ADMIN_ACCESS_TOKEN_KEY, token); } catch (e) { /* ignore */ }
 
     // Set user with permissions
     const authUser: AuthUser = {
@@ -287,11 +305,17 @@ export const AuthProvider: React.FC<{ children: ReactNode; onRedirect?: (path: s
     setPermissions([]);
     setAuthToken(null);
     // Clean all auth storage to avoid stale tokens
-    try { storage.remove('is-authenticated'); } catch (e) {}
+    try { storage.remove(ADMIN_AUTHENTICATED_KEY); } catch (e) {}
+    try { storage.remove(ADMIN_ACCESS_TOKEN_KEY); } catch (e) {}
+    try { storage.remove(ADMIN_REFRESH_TOKEN_KEY); } catch (e) {}
+    try { storage.remove(ADMIN_TOKEN_EXPIRES_AT_KEY); } catch (e) {}
+    try { storage.remove(ADMIN_REFRESH_EXPIRES_AT_KEY); } catch (e) {}
+    // Remove legacy shared keys to prevent cross-portal contamination.
     try { storage.remove('token'); } catch (e) {}
     try { storage.remove('refreshToken'); } catch (e) {}
     try { storage.remove('tokenExpiresAt'); } catch (e) {}
     try { storage.remove('refreshExpiresAt'); } catch (e) {}
+    try { storage.remove('is-authenticated'); } catch (e) {}
 
     // Emit logout event
     try {

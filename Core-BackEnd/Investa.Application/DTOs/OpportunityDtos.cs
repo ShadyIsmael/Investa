@@ -194,6 +194,7 @@ public class OpportunityDto
 {
     public int Id { get; set; }
     public Guid FounderId { get; set; }
+    public int? LegacyInvestmentId { get; set; }
     public FounderSummaryDto Founder { get; set; } = new();
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }

@@ -79,11 +79,21 @@ export class InvestmentPreviewComponent {
 
   /** Founder actions */
   openContactFounder(investment: Investment): void {
+    if (!this.canUseLegacyRequestFlow(investment)) {
+      this.showOpportunityRequestComingSoon();
+      return;
+    }
+
     // Open credit confirmation dialog for Contact Founder
     void this.promptContactFounder(investment);
   }
 
   openInvestNow(investment: Investment): void {
+    if (!this.canUseLegacyRequestFlow(investment)) {
+      this.showOpportunityRequestComingSoon();
+      return;
+    }
+
     // Open equity investment dialog for Invest Now
     void this.promptInvestNow(investment);
   }
@@ -154,7 +164,8 @@ export class InvestmentPreviewComponent {
 
     this.loading.set(true);
     try {
-      const inv = await this.investmentService.getInvestmentById(id);
+      const source = this.getRouteReadSource();
+      const inv = await this.investmentService.getInvestmentById(id, source);
       this.investment.set(inv);
       
       // Record view for analytics
@@ -179,6 +190,11 @@ export class InvestmentPreviewComponent {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  private getRouteReadSource(): Investment['readSource'] {
+    const source = this.route.snapshot.queryParamMap.get('source');
+    return source === 'opportunity' ? 'public-opportunity' : 'legacy-investment';
   }
 
   private async loadFounderAvatar(userId: string): Promise<void> {
@@ -260,6 +276,11 @@ export class InvestmentPreviewComponent {
    * Opens credit confirmation dialog, then creates request with ContactFounder type
    */
   async promptContactFounder(investment: Investment): Promise<void> {
+    if (!this.canUseLegacyRequestFlow(investment)) {
+      this.showOpportunityRequestComingSoon();
+      return;
+    }
+
     // Ensure profile is fresh so dialog shows correct credits
     try {
       await this.userService.refreshUser();
@@ -276,6 +297,11 @@ export class InvestmentPreviewComponent {
    * Opens equity investment dialog for share selection
    */
   async promptInvestNow(investment: Investment): Promise<void> {
+    if (!this.canUseLegacyRequestFlow(investment)) {
+      this.showOpportunityRequestComingSoon();
+      return;
+    }
+
     // Ensure profile is fresh so dialog shows correct credits
     try {
       await this.userService.refreshUser();
@@ -434,6 +460,11 @@ calculateInvestmentAmount(investment: Investment): number {
    */
   async confirmInvestment(investment: Investment): Promise < void> {
   if(this.investmentProcessing() || this.investmentError()) return;
+  if (!this.canUseLegacyRequestFlow(investment)) {
+    this.showOpportunityRequestComingSoon();
+    this.closeInvestDialog();
+    return;
+  }
 
   this.investmentProcessing.set(true);
   this.investmentError.set(null);
@@ -512,6 +543,11 @@ cancelContactFounder(): void {
 async confirmContactFounder(): Promise<void> {
   const investment = this.investmentToEngage();
   if (!investment || this.contactFounderProcessing()) return;
+  if (!this.canUseLegacyRequestFlow(investment)) {
+    this.showOpportunityRequestComingSoon();
+    this.cancelContactFounder();
+    return;
+  }
 
   // Refresh user profile to ensure latest credits
   try {
@@ -610,6 +646,11 @@ cancelInvestConfirmation(): void {
  */
 async confirmInvestNow(investment: Investment): Promise<void> {
   if (this.investNowProcessing() || this.investmentError()) return;
+  if (!this.canUseLegacyRequestFlow(investment)) {
+    this.showOpportunityRequestComingSoon();
+    this.closeInvestNowDialog();
+    return;
+  }
 
   this.investNowProcessing.set(true);
   this.investmentError.set(null);
@@ -696,6 +737,11 @@ calculateEquityTotalValue(investment: Investment): number {
   async confirmEngage(): Promise < void> {
   const investment = this.investmentToEngage();
   if(!investment || this.engagementProcessing()) return;
+  if (!this.canUseLegacyRequestFlow(investment)) {
+    this.showOpportunityRequestComingSoon();
+    this.cancelEngage();
+    return;
+  }
 
 // Refresh user profile to ensure latest credits
 try {
@@ -861,5 +907,17 @@ getCurrentStageIndex(): number {
    */
   isFounding(inv: Investment | null): boolean {
     return inv?.investmentType === InvestmentType.Founding;
+  }
+
+  canUseLegacyRequestFlow(investment: Investment | null | undefined): boolean {
+    return !!investment && (investment.readSource !== 'public-opportunity' || !!investment.legacyInvestmentId);
+  }
+
+  private showOpportunityRequestComingSoon(): void {
+    this.notificationService.showToast({
+      title: 'Coming soon',
+      message: 'Participation requests for Opportunity records need a backend request mapping before they can be submitted.',
+      type: 'info'
+    });
   }
 }

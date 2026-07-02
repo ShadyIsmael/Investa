@@ -378,10 +378,15 @@ public class OpportunityService : IOpportunityService
 
         var filtered = ApplyDiscoveryFilters(opportunities.ToList(), query);
         var founders = await GetFounderLookupAsync(filtered.Select(o => o.FounderId));
+        var legacyInvestmentIds = await GetLegacyInvestmentLookupAsync(filtered.Select(o => o.Id));
 
         return filtered
             .OrderByDescending(o => o.UpdatedAt)
-            .Select(o => ToDto(o, founders.TryGetValue(o.FounderId, out var founder) ? founder : null, tagLookup))
+            .Select(o => ToDto(
+                o,
+                founders.TryGetValue(o.FounderId, out var founder) ? founder : null,
+                tagLookup,
+                legacyInvestmentIds.TryGetValue(o.Id, out var legacyInvestmentId) ? legacyInvestmentId : null))
             .ToList();
     }
 
@@ -400,7 +405,13 @@ public class OpportunityService : IOpportunityService
             throw new BusinessValidationException("OPPORTUNITY_NOT_FOUND", "Opportunity was not found.");
 
         var founder = await _uow.Repository<AuthUser>().GetByIdAsync(opportunity.FounderId);
-        return ToDetailDto(opportunity, publicOnly: true, founder: founder, tagLookup: await GetActiveTagLookupAsync());
+        var legacyInvestmentId = await GetLegacyInvestmentIdAsync(opportunity.Id);
+        return ToDetailDto(
+            opportunity,
+            publicOnly: true,
+            founder: founder,
+            tagLookup: await GetActiveTagLookupAsync(),
+            legacyInvestmentId: legacyInvestmentId);
     }
 
     public async Task<OpportunityDetailDto> SubmitForReviewAsync(Guid founderId, int id, CancellationToken cancellationToken = default)
@@ -1045,6 +1056,29 @@ public class OpportunityService : IOpportunityService
         return tags.ToDictionary(t => t.Id);
     }
 
+    private async Task<IReadOnlyDictionary<int, int>> GetLegacyInvestmentLookupAsync(IEnumerable<int> opportunityIds)
+    {
+        var ids = opportunityIds.Distinct().ToHashSet();
+        if (ids.Count == 0)
+            return new Dictionary<int, int>();
+
+        var investments = (await _uow.Repository<Investment>().FindAsync(i => i.OpportunityId.HasValue))
+            .Where(i => i.OpportunityId.HasValue && ids.Contains(i.OpportunityId.Value));
+
+        return investments
+            .GroupBy(i => i.OpportunityId!.Value)
+            .ToDictionary(g => g.Key, g => g.OrderBy(i => i.Id).First().Id);
+    }
+
+    private async Task<int?> GetLegacyInvestmentIdAsync(int opportunityId)
+    {
+        var investment = (await _uow.Repository<Investment>().FindAsync(i => i.OpportunityId == opportunityId))
+            .OrderBy(i => i.Id)
+            .FirstOrDefault();
+
+        return investment?.Id;
+    }
+
     private static void ChangeStatusWithEvent(
         Opportunity opportunity,
         OpportunityStatus nextStatus,
@@ -1292,12 +1326,14 @@ public class OpportunityService : IOpportunityService
         Opportunity opportunity,
         bool publicOnly = false,
         AuthUser? founder = null,
-        IReadOnlyDictionary<int, OpportunityTag>? tagLookup = null)
+        IReadOnlyDictionary<int, OpportunityTag>? tagLookup = null,
+        int? legacyInvestmentId = null)
     {
         var dto = new OpportunityDetailDto
         {
             Id = opportunity.Id,
             FounderId = opportunity.FounderId,
+            LegacyInvestmentId = legacyInvestmentId,
             Founder = ToFounderSummary(founder, opportunity.FounderId),
             Title = opportunity.Title,
             Description = opportunity.Description,
@@ -1342,10 +1378,15 @@ public class OpportunityService : IOpportunityService
         return dto;
     }
 
-    private static OpportunityDto ToDto(Opportunity opportunity, AuthUser? founder = null, IReadOnlyDictionary<int, OpportunityTag>? tagLookup = null) => new()
+    private static OpportunityDto ToDto(
+        Opportunity opportunity,
+        AuthUser? founder = null,
+        IReadOnlyDictionary<int, OpportunityTag>? tagLookup = null,
+        int? legacyInvestmentId = null) => new()
     {
         Id = opportunity.Id,
         FounderId = opportunity.FounderId,
+        LegacyInvestmentId = legacyInvestmentId,
         Founder = ToFounderSummary(founder, opportunity.FounderId),
         Title = opportunity.Title,
         Description = opportunity.Description,

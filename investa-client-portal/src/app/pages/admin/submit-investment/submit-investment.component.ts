@@ -71,7 +71,7 @@ export class SubmitInvestmentComponent implements OnInit {
   investmentForm!: FormGroup;
   formValid = signal(false);
   currentStep = signal(1);
-  totalSteps = 3;
+  totalSteps = 5;
   isSubmitting = signal(false);
 
   // Edit mode
@@ -97,12 +97,11 @@ export class SubmitInvestmentComponent implements OnInit {
   readonly payoutFrequencies = PAYOUT_FREQUENCIES;
   readonly revenueFrequencies = REVENUE_FREQUENCIES;
   readonly repaymentFrequencies = REPAYMENT_FREQUENCIES;
-
   readonly investmentTypes = [
-    { id: InvestmentType.Founding, name: 'Founding Investment', nameAr: 'استثمار تأسيسي', description: 'Fixed duration with profit-based returns', descriptionAr: 'مدة محددة مع عوائد قائمة على الأرباح' },
-    { id: InvestmentType.Equity, name: 'Equity Crowdfunding', nameAr: 'تمويل جماعي مقابل أسهم', description: 'Share-based investment from multiple investors', descriptionAr: 'استثمار قائم على الأسهم من عدة مستثمرين' },
-    { id: InvestmentType.RevenueSharing, name: 'Revenue Sharing', nameAr: 'تقاسم الإيرادات', description: 'Share a percentage of revenue with investors', descriptionAr: 'مشاركة نسبة من الإيرادات مع المستثمرين' },
-    { id: InvestmentType.Loan, name: 'Loan / Debt Funding', nameAr: 'قرض / تمويل دين', description: 'Debt-based funding with interest payments', descriptionAr: 'تمويل قائم على الدين مع دفعات فائدة' }
+    { id: InvestmentType.Founding, name: 'Profit Sharing', nameAr: 'مشاركة الأرباح', description: 'Fixed duration with profit-based returns', descriptionAr: 'مدة محددة مع عوائد قائمة على الأرباح' },
+    { id: InvestmentType.Equity, name: 'Equity', nameAr: 'أسهم', description: 'Share-based participation from multiple investors', descriptionAr: 'مشاركة قائمة على الأسهم من عدة مستثمرين' },
+    { id: InvestmentType.RevenueSharing, name: 'Profit Sharing', nameAr: 'مشاركة الأرباح', description: 'Share a percentage of profit with investors', descriptionAr: 'مشاركة نسبة من الأرباح مع المستثمرين' },
+    { id: InvestmentType.Loan, name: 'Loan', nameAr: 'قرض', description: 'Loan-based funding with return payments', descriptionAr: 'تمويل قائم على القرض مع دفعات عائد' }
   ];
 
   readonly equityExitTypes = [
@@ -125,7 +124,7 @@ export class SubmitInvestmentComponent implements OnInit {
   isRtl = computed(() => this.languageService.direction() === 'rtl');
 
   // Form step labels
-  stepLabels = ['submitInvestment.step.businessDetails', 'submitInvestment.step.financialStructure', 'submitInvestment.step.reviewSubmit'];
+  stepLabels = ['Identity', 'Funding', 'Investors', 'Advanced', 'Review'];
 
   // helper to translate keys in templates and TS
   t(path: string) { return this.languageService.translate(path); }
@@ -149,7 +148,7 @@ export class SubmitInvestmentComponent implements OnInit {
     return this.displayLookup(this.categories().find(c => c.id === categoryId)) || '-';
   });
 
-  selectedFundingGoalName = computed(() => {
+  selectedFundingPurposeName = computed(() => {
     const fundingGoalId = this.investmentForm?.get('fundingGoalId')?.value;
     return this.displayLookup(this.fundingGoals().find(g => g.id === fundingGoalId)) || '-';
   });
@@ -206,6 +205,9 @@ export class SubmitInvestmentComponent implements OnInit {
     return this.investmentTypes.find(t => t.id === typeId)?.description || '';
   }
 
+  selectedInvestmentType = computed(() => this.investmentForm?.get('investmentTypeId')?.value as InvestmentType);
+  selectedFundingPurposeDetails = computed(() => this.investmentForm?.get('fundingPurposeDetails')?.value as string);
+
   ngOnInit(): void {
     this.initForm();
 
@@ -227,7 +229,7 @@ export class SubmitInvestmentComponent implements OnInit {
       }
     });
 
-    // Auto-update risk level when business stage changes
+    // Keep risk internal. It is not shown to founders, but legacy create still accepts it.
     const stageControl = this.investmentForm.get('businessStageId');
     stageControl?.valueChanges.subscribe(id => {
       const stage = this.stages().find(s => s.id === id);
@@ -242,7 +244,7 @@ export class SubmitInvestmentComponent implements OnInit {
     try {
       const investment = await this.investmentService.getInvestmentById(id);
       if (!investment) {
-        this.loadError.set('Investment not found.');
+        this.loadError.set('Opportunity not found.');
         return;
       }
       this.editingInvestmentId.set(id);
@@ -324,23 +326,24 @@ export class SubmitInvestmentComponent implements OnInit {
     this.investmentForm = this.fb.group({
       // Step 1: Business Details
       businessName: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(200)]],
-      shortDescription: ['', [Validators.maxLength(240)]],
+      shortDescription: ['', [Validators.required, Validators.maxLength(240)]],
       description: ['', [Validators.required, Validators.minLength(50), Validators.maxLength(5000)]],
       businessCategoryId: [null, [Validators.required]],
       tagIds: [[]],
-      fundingGoalId: [null],
-      businessStageId: [null, [Validators.required]],
+      fundingGoalId: [null, [Validators.required]],
+      businessStageId: [null],
       projectPhaseId: [null],
       milestone: ['', [Validators.maxLength(200)]],
-      riskLevel: ['Medium', [Validators.required]],
+      riskLevel: ['Medium'],
       investmentTypeId: [InvestmentType.Equity, [Validators.required]],
       
       // Step 2: Financial Structure - Common
-      initialCapital: [null, [Validators.required, Validators.min(1000)]],
+      initialCapital: [null, [Validators.min(1)]],
       minInvestment: [null, [Validators.min(1)]],
       maxInvestment: [null, [Validators.min(1)]],
       currency: ['USD', [Validators.required]],
-      targetFund: [null],
+      targetFund: [null, [Validators.required, Validators.min(1)]],
+      fundingPurposeDetails: ['', [Validators.maxLength(500)]],
 
       // Equity-specific fields
       sharePrice: [null],
@@ -433,24 +436,17 @@ export class SubmitInvestmentComponent implements OnInit {
         break;
 
       case InvestmentType.RevenueSharing:
-        // Revenue Sharing: require revenue share contract fields
-        this.investmentForm.get('contractStartDate')?.setValidators([Validators.required]);
-        this.investmentForm.get('contractEndDate')?.setValidators([Validators.required]);
-        this.investmentForm.get('totalExpectedPayout')?.setValidators([Validators.required, Validators.min(1)]);
+        // Profit sharing: keep only the simple product fields required.
         this.investmentForm.get('revenueSharePercentage')?.setValidators([Validators.required, Validators.min(0.1), Validators.max(100)]);
-        this.investmentForm.get('minimumContribution')?.setValidators([Validators.min(1)]);
+        this.investmentForm.get('minimumContribution')?.setValidators([Validators.required, Validators.min(1)]);
         this.investmentForm.get('revenueDistributionFrequency')?.setValidators([Validators.required]);
-        this.investmentForm.get('expectedROI')?.setValidators([Validators.min(0), Validators.max(1000)]);
         break;
 
       case InvestmentType.Loan:
-        // Loan: require loan fields
+        // Loan: require only the simple terms shown in Step 2.
         this.investmentForm.get('interestRate')?.setValidators([Validators.required, Validators.min(0.1), Validators.max(100)]);
         this.investmentForm.get('loanDurationMonths')?.setValidators([Validators.required, Validators.min(1)]);
         this.investmentForm.get('repaymentFrequency')?.setValidators([Validators.required]);
-        this.investmentForm.get('estimatedInstallment')?.setValidators([Validators.required, Validators.min(1)]);
-        this.investmentForm.get('totalRepaymentAmount')?.setValidators([Validators.required, Validators.min(1)]);
-        this.investmentForm.get('contractStartDate')?.setValidators([Validators.required]);
         break;
     }
 
@@ -757,13 +753,30 @@ export class SubmitInvestmentComponent implements OnInit {
 
     switch (step) {
       case 1:
-        fieldsToValidate = ['businessName', 'description', 'businessCategoryId', 'businessStageId', 'riskLevel'];
+        fieldsToValidate = ['businessName', 'shortDescription', 'businessCategoryId', 'investmentTypeId', 'imageUrl'];
         break;
       case 2:
-        fieldsToValidate = ['initialCapital', 'currency', 'investmentTypeId', 'startDate'];
+        fieldsToValidate = ['targetFund', 'fundingGoalId'];
+        switch (this.investmentForm.get('investmentTypeId')?.value as InvestmentType) {
+          case InvestmentType.Equity:
+            fieldsToValidate.push('sharePrice', 'totalShares', 'equityOfferedPercentage');
+            break;
+          case InvestmentType.Loan:
+            fieldsToValidate.push('interestRate', 'loanDurationMonths', 'repaymentFrequency');
+            break;
+          case InvestmentType.RevenueSharing:
+            fieldsToValidate.push('minimumContribution', 'revenueSharePercentage', 'revenueDistributionFrequency');
+            break;
+        }
         break;
       case 3:
-        return this.investmentForm.valid;
+        fieldsToValidate = ['description'];
+        break;
+      case 4:
+        fieldsToValidate = ['startDate'];
+        break;
+      case 5:
+        return this.investmentForm.valid && this.hasCoverImage();
     }
 
     let isValid = true;
@@ -784,6 +797,15 @@ export class SubmitInvestmentComponent implements OnInit {
         message: 'Please fill in all required fields correctly.',
         type: 'warning'
       });
+    }
+
+    if (step === 1 && !this.hasCoverImage()) {
+      this.notificationService.showToast({
+        title: 'Cover Image Required',
+        message: 'Please upload a cover image or provide an image URL before continuing.',
+        type: 'warning'
+      });
+      isValid = false;
     }
 
     // Additional check: ensure team members (if any) provide a mobile number
@@ -850,11 +872,24 @@ export class SubmitInvestmentComponent implements OnInit {
     return null;
   }
 
+  hasCoverImage(): boolean {
+    return !!this.coverFile || !!this.investmentForm.get('imageUrl')?.value;
+  }
+
   /**
    * Submit the investment opportunity
    */
   async onSubmit(): Promise<void> {
     if (!this.investmentForm.valid) {
+      if (this.investmentForm.get('startDate')?.invalid) {
+        this.notificationService.showToast({
+          title: 'Validation Error',
+          message: 'Start date is required.',
+          type: 'error'
+        });
+        return;
+      }
+
       this.notificationService.showToast({
         title: 'Validation Error',
         message: 'Please correct all errors before submitting.',
@@ -886,28 +921,40 @@ export class SubmitInvestmentComponent implements OnInit {
     try {
       const formValue = this.investmentForm.value;
       const typeId = formValue.investmentTypeId as InvestmentType;
+      const startDate = this.toIsoDateString(formValue.startDate);
+
+      if (!startDate) {
+        this.notificationService.showToast({
+          title: 'Validation Error',
+          message: 'Start date is required.',
+          type: 'error'
+        });
+        return;
+      }
 
       // Build the DTO
       const dto: CreateInvestmentDto = {
         businessName: formValue.businessName.trim(),
         description: formValue.description.trim(),
         businessCategoryId: formValue.businessCategoryId,
-        businessStageId: formValue.businessStageId,
+        businessStageId: formValue.businessStageId || this.defaultBusinessStageId(),
         projectPhaseId: formValue.projectPhaseId || undefined,
-        milestone: formValue.milestone?.trim() || undefined,
-        riskLevel: formValue.riskLevel,
+        milestone: formValue.milestone?.trim() || 'Initial opportunity launch',
+        riskLevel: formValue.riskLevel || 'Medium',
         
-        initialCapital: formValue.initialCapital,
-        targetFund: formValue.targetFund || undefined,
+        initialCapital: formValue.initialCapital || formValue.targetFund || formValue.minimumContribution || 1,
+        targetFund: formValue.targetFund || (typeId === InvestmentType.Equity ? this.targetFundCalculated() : undefined),
         minInvestment: formValue.minInvestment || undefined,
         maxInvestment: formValue.maxInvestment || undefined,
         expectedROI: formValue.expectedROI || undefined,
         currency: formValue.currency,
         investmentTypeId: typeId,
+        fundingGoalId: formValue.fundingGoalId || undefined,
+        fundingPurposeDetails: formValue.fundingPurposeDetails?.trim() || undefined,
 
         // Common to all types
-        startDate: formValue.startDate,
-        endDate: formValue.endDate || undefined,
+        startDate,
+        endDate: this.toIsoDateString(formValue.endDate),
         imageUrl: formValue.imageUrl?.trim() || undefined,
         videoUrl: formValue.videoUrl?.trim() || undefined,
         
@@ -927,12 +974,12 @@ export class SubmitInvestmentComponent implements OnInit {
         currentValuation: typeId === InvestmentType.Equity ? formValue.currentValuation || undefined : undefined,
         estimatedFutureValuation: typeId === InvestmentType.Equity ? formValue.estimatedFutureValuation || undefined : undefined,
         equityExitType: typeId === InvestmentType.Equity ? formValue.equityExitType || undefined : undefined,
-        exitTargetDate: typeId === InvestmentType.Equity && formValue.exitTargetDate ? formValue.exitTargetDate : undefined,
+        exitTargetDate: typeId === InvestmentType.Equity ? this.toIsoDateString(formValue.exitTargetDate) : undefined,
         expectedExitStrategy: typeId === InvestmentType.Equity ? formValue.expectedExitStrategy?.trim() || undefined : undefined,
 
         // Revenue Sharing fields
-        contractStartDate: typeId === InvestmentType.RevenueSharing && formValue.contractStartDate ? formValue.contractStartDate : undefined,
-        contractEndDate: typeId === InvestmentType.RevenueSharing && formValue.contractEndDate ? formValue.contractEndDate : undefined,
+        contractStartDate: typeId === InvestmentType.RevenueSharing ? this.toIsoDateString(formValue.contractStartDate) : undefined,
+        contractEndDate: typeId === InvestmentType.RevenueSharing ? this.toIsoDateString(formValue.contractEndDate) : undefined,
         totalExpectedPayout: typeId === InvestmentType.RevenueSharing ? formValue.totalExpectedPayout || undefined : undefined,
         revenueDistributionFrequency: typeId === InvestmentType.RevenueSharing ? formValue.revenueDistributionFrequency || undefined : undefined,
 
@@ -969,7 +1016,7 @@ export class SubmitInvestmentComponent implements OnInit {
           console.error('Cover upload failed', err);
           this.notificationService.showToast({
             title: 'Warning',
-            message: 'Cover image upload failed. Investment saved without cover.',
+            message: 'Cover image upload failed. Opportunity saved without cover.',
             type: 'warning'
           });
         } finally {
@@ -991,7 +1038,7 @@ export class SubmitInvestmentComponent implements OnInit {
             this.notificationService.showToast({ title: 'Warning', message: `${failed.length} gallery image(s) failed to upload.`, type: 'warning' });
           }
           if (settled.some(s => s.status === 'fulfilled')) {
-            this.notificationService.showToast({ title: 'Gallery uploaded', message: 'Gallery files were uploaded to FileStore, but the legacy Investment API has no metadata attach endpoint for gallery references.', type: 'warning' });
+            this.notificationService.showToast({ title: 'Gallery uploaded', message: 'Gallery files were uploaded to FileStore, but the current opportunity save flow has no metadata attach endpoint for gallery references.', type: 'warning' });
           }
         } catch (e) {
           console.error('Gallery upload error', e);
@@ -1017,7 +1064,7 @@ export class SubmitInvestmentComponent implements OnInit {
           console.error('Video upload failed', err);
           this.notificationService.showToast({
             title: 'Warning',
-            message: 'Video upload failed. Investment saved without video.',
+            message: 'Video upload failed. Opportunity saved without video.',
             type: 'warning'
           });
         } finally {
@@ -1027,12 +1074,12 @@ export class SubmitInvestmentComponent implements OnInit {
 
       this.notificationService.showToast({
         title: 'Success!',
-        message: editId ? 'Investment updated successfully.' : 'Your investment opportunity has been created successfully.',
+        message: editId ? 'Opportunity updated successfully.' : 'Your opportunity has been created successfully.',
         type: 'success'
       });
 
       this.notificationService.addNotification({
-        title: editId ? 'Investment Updated' : 'Investment Created',
+        title: editId ? 'Opportunity Updated' : 'Opportunity Created',
         message: editId
           ? `"${dto.businessName}" has been updated.`
           : `"${dto.businessName}" is now live and visible to investors.`,
@@ -1043,7 +1090,7 @@ export class SubmitInvestmentComponent implements OnInit {
 
     } catch (error) {
       console.error('Error saving investment:', error);
-      const errorMsg = error instanceof Error ? error.message : 'Failed to create investment. Please try again.';
+      const errorMsg = error instanceof Error ? error.message : 'Failed to create opportunity. Please try again.';
       
       this.notificationService.showToast({
         title: 'Error',
@@ -1053,6 +1100,20 @@ export class SubmitInvestmentComponent implements OnInit {
     } finally {
       this.isSubmitting.set(false);
     }
+  }
+
+  private toIsoDateString(value: unknown): string | undefined {
+    if (value === null || value === undefined || value === '') return undefined;
+
+    const date = value instanceof Date ? value : new Date(String(value));
+    if (Number.isNaN(date.getTime())) return undefined;
+
+    return date.toISOString();
+  }
+
+  private defaultBusinessStageId(): number {
+    const firstStage = this.stages().find(stage => Number(stage.id) > 0);
+    return Number(firstStage?.id || 1);
   }
 
   /**
