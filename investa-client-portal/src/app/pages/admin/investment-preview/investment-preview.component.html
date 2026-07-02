@@ -72,7 +72,7 @@
               <p class="text-gray-400 text-lg max-w-2xl">{{ languageService.language() === 'ar' ? (inv.businessCategoryNameAr || inv.businessCategoryName) : (inv.businessCategoryName || '') }}</p>
             </div>
             <div class="flex items-center gap-3">
-              <button type="button" class="p-3 rounded-full hover:bg-white/10 transition-colors text-gray-400 hover:text-white" (click)="openManageImages(inv)">
+              <button *ngIf="inv.readSource !== 'public-opportunity'" type="button" class="p-3 rounded-full hover:bg-white/10 transition-colors text-gray-400 hover:text-white" (click)="openManageImages(inv)">
                 <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M4 6h16v12H4z" /></svg>
               </button>
               <button type="button" class="p-3 rounded-full hover:bg-white/10 transition-colors text-gray-400 hover:text-white">
@@ -520,7 +520,7 @@
               </div>
 
               <!-- View Media Link -->
-              <a [routerLink]="['/admin/investments', inv.id, 'media']"
+              <a *ngIf="inv.readSource !== 'public-opportunity' || inv.legacyInvestmentId" [routerLink]="['/admin/investments', inv.legacyInvestmentId || inv.id, 'media']"
                  class="flex items-center gap-3 px-4 py-3 rounded-xl bg-purple-500/10 border border-purple-500/25 hover:border-purple-500/50 hover:bg-purple-500/15 transition-all group">
                 <div class="w-9 h-9 rounded-lg bg-purple-500/20 border border-purple-500/30 flex items-center justify-center flex-shrink-0">
                   <svg class="w-4 h-4 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
@@ -553,16 +553,16 @@
                 <!-- Contact Founder -->
                 <button type="button"
                         (click)="openContactFounder(inv)"
-                        [disabled]="inv.status === 'Funded' || inv.status === 'Closed'"
+                        [disabled]="inv.status === 'Funded' || inv.status === 'Closed' || !canUseLegacyRequestFlow(inv)"
                         class="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a10.77 10.77 0 01-4.67-1.03L3 20l1.03-3.33A7.96 7.96 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-                  {{ 'investmentPreview.contactFounder' | translate }}
+                  {{ canUseLegacyRequestFlow(inv) ? ('investmentPreview.contactFounder' | translate) : 'Coming soon' }}
                 </button>
 
                 <!-- Invest Now -->
                 <button type="button"
                         (click)="openInvestNow(inv)"
-                        [disabled]="inv.status === 'Funded' || inv.status === 'Closed'"
+                        [disabled]="inv.status === 'Funded' || inv.status === 'Closed' || !canUseLegacyRequestFlow(inv)"
                         class="w-full font-bold py-3 px-6 rounded-lg transition-all flex items-center justify-center gap-2 text-base focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
                         [ngClass]="{
                           'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-lg hover:shadow-purple-500/30 active:scale-[0.98] focus:ring-purple-500': inv.status === 'Active' || inv.status === 'Draft',
@@ -574,6 +574,8 @@
                   } @else if (inv.status === 'Closed') {
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
                     {{ 'investmentPreview.closed' | translate }}
+                  } @else if (!canUseLegacyRequestFlow(inv)) {
+                    Coming soon
                   } @else {
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     {{ 'investmentPreview.investNow' | translate }}
@@ -643,10 +645,10 @@
 
         <!-- Body -->
         <div class="p-6 space-y-4">
-          <!-- Investment Details -->
+          <!-- Opportunity Details -->
           <div class="bg-slate-800/50 border border-slate-700 rounded-lg p-4 space-y-3">
             <div class="flex items-center justify-between">
-              <span class="text-gray-400">Investment:</span>
+              <span class="text-gray-400">Opportunity:</span>
               <span class="text-white font-semibold">{{ investment.name }}</span>
             </div>
             <div class="flex items-center justify-between">
@@ -729,7 +731,7 @@
   }
 }
 
-<!-- Invest Now Dialog (Shares Selection for Equity) -->
+<!-- Participate / Invest Dialog (Shares Selection for Equity) -->
 @if (investmentToInvest(); as investment) {
   <div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in" (click)="closeInvestDialog()">
     <div class="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md m-4 animate-fade-in" (click)="$event.stopPropagation()">
@@ -802,7 +804,7 @@
           </p>
         </div>
 
-        <!-- Investment Summary -->
+        <!-- Participation Summary -->
         <div class="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-lg p-4">
           <div class="flex items-center justify-between mb-2">
             <span class="text-gray-300">{{ 'investments.investDialog.totalInvestment' | translate }}</span>
@@ -912,7 +914,7 @@
   </div>
 }
 
-<!-- Invest Now Equity Investment Dialog -->
+<!-- Participate / Invest Equity Dialog -->
 @if (investNowDialogOpen() && investmentToInvest(); as investment) {
   <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
     <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full shadow-2xl animate-scale-in">
@@ -924,7 +926,7 @@
             </svg>
           </div>
           <div>
-            <h3 class="text-xl font-bold text-white">Invest Now</h3>
+            <h3 class="text-xl font-bold text-white">Participate / Invest</h3>
             <p class="text-sm text-gray-400">{{ investment.name }}</p>
           </div>
         </div>
@@ -991,7 +993,7 @@
   </div>
 }
 
-<!-- Invest Now Credit Confirmation Dialog -->
+<!-- Participate / Invest Credit Confirmation Dialog -->
 @if (investNowConfirmationOpen() && investmentToInvest(); as investment) {
   <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
     <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full shadow-2xl animate-scale-in">
@@ -1003,7 +1005,7 @@
             </svg>
           </div>
           <div>
-            <h3 class="text-xl font-bold text-white">Confirm Investment</h3>
+            <h3 class="text-xl font-bold text-white">Confirm Participation</h3>
             <p class="text-sm text-gray-400">{{ investment.name }}</p>
           </div>
         </div>
@@ -1025,7 +1027,7 @@
         </div>
 
         <div class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-6">
-          <p class="text-sm text-blue-300 mb-2">Investment Summary</p>
+          <p class="text-sm text-blue-300 mb-2">Participation Summary</p>
           <div class="flex items-center justify-between text-sm">
             <span class="text-gray-400">Shares Requested</span>
             <span class="text-white font-semibold">{{ equitySharesRequested() }}</span>
@@ -1041,7 +1043,7 @@
         </div>
 
         <p class="text-sm text-gray-400 mb-6">
-          Your investment request will be sent to the founder for approval. Credits will be deducted immediately and refunded if the request is declined.
+          Your participation request will be sent to the founder for approval. Credits will be deducted immediately and refunded if the request is declined.
         </p>
 
         <div class="flex gap-3">

@@ -22,6 +22,14 @@
     "agingReport": "تقرير الشيخوخة",
     "auditTrail": "سجل التدقيق",
     "advancedAnalytics": "التحليلات المتقدمة",
+    "operations": "Operations",
+    "reputationRules": "Reputation Rules",
+    "pricing": "Pricing",
+    "notifications": "Notifications",
+    "referenceData": "Reference Data",
+    "opportunityCategories": "Categories",
+    "opportunityTags": "Tags",
+    "fundingGoals": "Funding Goals",
     "configurations": "الإعدادات",
     "creditSetup": "إعداد الائتمان",
     "offerManagement": "إدارة العروض",
@@ -164,7 +172,12 @@
     "notification-templates": "نماذج الإشعارات",
     "profile": "ملفي",
     "user-onboarding": "تسجيل المستخدم",
-    "permissions": "الصلاحيات"
+    "permissions": "الصلاحيات",
+    "pricing": "Pricing",
+    "notifications": "Notifications",
+    "opportunityCategories": "Opportunity Categories",
+    "opportunityTags": "Opportunity Tags",
+    "fundingGoals": "Funding Goals"
   },
   "header": {
     "searchPlaceholder": "ابحث أو اسأل الذكاء الاصطناعي…",

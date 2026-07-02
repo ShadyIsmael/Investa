@@ -22,6 +22,14 @@
     "agingReport": "Aging Report",
     "auditTrail": "Audit Trail",
     "advancedAnalytics": "Advanced Analytics",
+    "operations": "Operations",
+    "reputationRules": "Reputation Rules",
+    "pricing": "Pricing",
+    "notifications": "Notifications",
+    "referenceData": "Reference Data",
+    "opportunityCategories": "Categories",
+    "opportunityTags": "Tags",
+    "fundingGoals": "Funding Goals",
     "configurations": "Configurations",
     "creditSetup": "Credit Setup",
     "offerManagement": "Offer Management",
@@ -164,7 +172,12 @@
     "notification-templates": "Notification Templates",
     "profile": "My Profile",
     "user-onboarding": "User Onboarding",
-    "permissions": "Permissions"
+    "permissions": "Permissions",
+    "pricing": "Pricing",
+    "notifications": "Notifications",
+    "opportunityCategories": "Opportunity Categories",
+    "opportunityTags": "Opportunity Tags",
+    "fundingGoals": "Funding Goals"
   },
   "header": {
     "searchPlaceholder": "Search or ask AI…",

@@ -1,4 +1,6 @@
 using Investa.Application.DTOs.Trust;
+using Investa.Domain.Entities;
+
 
 namespace Investa.Application.Interfaces;
 
@@ -8,10 +10,25 @@ namespace Investa.Application.Interfaces;
 /// </summary>
 public interface IReputationService
 {
+    // SourceModule is declared on ReputationTransaction entity.
+
     /// <summary>
     /// Adjusts a user's reputation points by a specific amount.
     /// </summary>
     Task AdjustReputationAsync(Guid userId, int points, string reason, Guid? performedByUserId = null);
+
+    /// <summary>
+    /// Engine entry point to process a reputation rule by its RuleCode.
+    /// </summary>
+    Task ProcessRuleAsync(
+        Guid userId,
+        string ruleCode,
+        ReputationTransaction.SourceModule sourceModule,
+        string? reason = null,
+        string? referenceId = null,
+        string? referenceType = null,
+        Guid? performedByUserId = null);
+
 
     /// <summary>
     /// Applies a reputation rule by code.

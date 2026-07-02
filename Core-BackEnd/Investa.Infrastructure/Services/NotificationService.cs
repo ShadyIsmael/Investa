@@ -150,7 +150,7 @@ namespace Investa.Infrastructure.Services
                 // Build the message
                 var message = new FirebaseAdmin.Messaging.Message
                 {
-                    Notification = new Notification
+                    Notification = new FirebaseAdmin.Messaging.Notification
                     {
                         Title = title,
                         Body = body
@@ -193,7 +193,7 @@ namespace Investa.Infrastructure.Services
                     var multicastMessage = new MulticastMessage
                     {
                         Tokens = tokensToSend,
-                        Notification = new Notification
+                        Notification = new FirebaseAdmin.Messaging.Notification
                         {
                             Title = title,
                             Body = body

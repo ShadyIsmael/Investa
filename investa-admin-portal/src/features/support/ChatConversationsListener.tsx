@@ -60,7 +60,7 @@ export const ChatConversationsListener: React.FC = () => {
       }
     };
 
-    onMessageListener(handleFcmMessage);
+    const unsubscribeFcm = onMessageListener(handleFcmMessage);
 
     // Listen for UI-driven open-conversation events from toasts
     const onOpenConversation = async (e: any) => {
@@ -79,7 +79,7 @@ export const ChatConversationsListener: React.FC = () => {
     window.addEventListener('investa:ui:open-conversation', onOpenConversation as EventListener);
 
     return () => {
-      // onMessageListener doesn't currently return unsubscribe, but it should ideally.
+      unsubscribeFcm();
       window.removeEventListener('investa:ui:open-conversation', onOpenConversation as EventListener);
     };
   }, [addConversation, receiveMessage, setActiveConversation]);

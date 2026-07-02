@@ -2,8 +2,16 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/common/Icons';
-import { api, getBaseUrl, setBaseUrl, setUseMocks } from '@/api/api';
-import { usePermissions } from '@/context/AuthContext';
+import {
+  api,
+  getBaseUrl,
+  setBaseUrl,
+  setUseMocks,
+  ADMIN_REFRESH_TOKEN_KEY,
+  ADMIN_TOKEN_EXPIRES_AT_KEY,
+  ADMIN_REFRESH_EXPIRES_AT_KEY,
+} from '@/api/api';
+import { parseJWT, usePermissions } from '@/context/AuthContext';
 
 interface LoginProps {
   onLogin?: (redirect?: string) => void; // Deprecated - kept for backward compatibility
@@ -39,13 +47,24 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onForgotPassword }) => {
       // Try common token fields (support nested data)
       const token = resp?.token || resp?.access_token || resp?.data?.token || resp?.authToken || resp?.tokenId || resp?.data?.accessToken;
       if (token) {
+        const parsed = parseJWT(token);
+        const hasAdminRole = Boolean(parsed?.roles?.some((r) => /(^|\W)admin(\W|$)/i.test(r)));
+        if (!hasAdminRole) {
+          setError('Login succeeded but the token does not include Admin role access. Please use an Admin account.');
+          return;
+        }
+
         // Use new permission-based login (this persists token via AuthContext)
         login(token, 'dashboard');
         
         // Store additional metadata if available
-        if (resp?.data?.refreshToken) localStorage.setItem('refreshToken', resp.data.refreshToken);
-        if (resp?.data?.expiresAt) localStorage.setItem('tokenExpiresAt', resp.data.expiresAt);
-        if (resp?.data?.refreshExpiresAt) localStorage.setItem('refreshExpiresAt', resp.data.refreshExpiresAt);
+        if (resp?.data?.refreshToken) localStorage.setItem(ADMIN_REFRESH_TOKEN_KEY, resp.data.refreshToken);
+        if (resp?.data?.expiresAt) localStorage.setItem(ADMIN_TOKEN_EXPIRES_AT_KEY, resp.data.expiresAt);
+        if (resp?.data?.refreshExpiresAt) localStorage.setItem(ADMIN_REFRESH_EXPIRES_AT_KEY, resp.data.refreshExpiresAt);
+        // Clean legacy shared keys to avoid collisions with Client Portal auth state.
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('tokenExpiresAt');
+        localStorage.removeItem('refreshExpiresAt');
         
         // Backward compatibility - call legacy handler if provided
         if (onLogin) onLogin('dashboard');
@@ -73,9 +92,9 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onForgotPassword }) => {
   };
 
   const quickConnectAndLogin = async () => {
-    const ip = 'http://desktop-dih7cqh:5235';
-    setApiUrlInput(ip);
-    setBaseUrl(ip);
+    const configuredBaseUrl = getBaseUrl();
+    setApiUrlInput(configuredBaseUrl);
+    setBaseUrl(configuredBaseUrl);
     setUseMocks(false);
     setUseMocksLocal(false);
     // small timeout to ensure state propagation

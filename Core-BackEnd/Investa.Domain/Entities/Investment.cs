@@ -21,6 +21,12 @@ public class Investment
     public Guid FounderId { get; set; }
 
     /// <summary>
+    /// Compatibility link to the Opportunity aggregate that owns the core project data.
+    /// Legacy Investment remains as the API projection used by existing clients.
+    /// </summary>
+    public int? OpportunityId { get; set; }
+
+    /// <summary>
     /// Founder's initial capital contribution to the business
     /// </summary>
     [Required]
@@ -346,6 +352,9 @@ public class Investment
     /// </summary>
     [ForeignKey(nameof(FounderId))]
     public AuthUser Founder { get; set; } = null!;
+
+    [ForeignKey(nameof(OpportunityId))]
+    public Opportunity? Opportunity { get; set; }
 
     /// <summary>
     /// List of investors who have invested in this opportunity

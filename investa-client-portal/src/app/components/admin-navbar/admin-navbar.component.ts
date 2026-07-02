@@ -7,6 +7,7 @@ import { LanguageService } from '../../services/language.service';
 import { NotificationService } from '../../services/notification.service';
 import { ClickOutsideDirective } from '../../directives/click-outside.directive';
 import { ProfileService } from '../../services/profile.service';
+import { RoleContextService } from '../../services/role-context.service';
 import { get } from 'lodash-es';
 
 /**
@@ -39,6 +40,7 @@ export class AdminNavbarComponent {
   languageService = inject(LanguageService);
   notificationService = inject(NotificationService);
   private profileService = inject(ProfileService);
+  roleContext = inject(RoleContextService);
 
   /** Current user's role (investor, founder, admin) */
   userRole = this.authService.userRole;

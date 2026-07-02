@@ -62,33 +62,24 @@ public class JwtTokenService : IJwtTokenService
         string? groupName = null;
         int? groupId = null;
 
-        // Use explicit Identity roles when available
-        var explicitRoles = identityRoles?.Where(r => !string.IsNullOrWhiteSpace(r))
+        // Identity roles are authoritative for JWT role claims.
+        var explicitRoles = identityRoles?
+            .Where(r => !string.IsNullOrWhiteSpace(r))
             .Select(r => r.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList() ?? new List<string>();
 
         if (explicitRoles.Any())
         {
-            if (explicitRoles.Contains("Admin", StringComparer.OrdinalIgnoreCase))
-            {
-                roleClaimValue = "Admin";
-            }
-            else if (explicitRoles.Contains(nameof(UserRoles.OrgUser), StringComparer.OrdinalIgnoreCase))
-            {
-                roleClaimValue = UserRoles.OrgUser.ToString();
-            }
-            else if (explicitRoles.Contains(nameof(UserRoles.Client), StringComparer.OrdinalIgnoreCase))
-            {
-                roleClaimValue = UserRoles.Client.ToString();
-            }
-            else
-            {
-                roleClaimValue = explicitRoles.First();
-            }
+            // Set the primary roleClaimValue based on Identity roles.
+            // Still add ALL identity roles below as ClaimTypes.Role and "role".
+            roleClaimValue = explicitRoles.Contains("Admin", StringComparer.OrdinalIgnoreCase)
+                ? "Admin"
+                : explicitRoles.First();
 
             userTypeValue = roleClaimValue;
         }
+
 
         var roleNames = new List<string>(explicitRoles);
 
@@ -103,13 +94,19 @@ public class JwtTokenService : IJwtTokenService
                 // Simplified two-type mapping: OrgUser or Client
                 if (authUser.UserType == UserType.OrgUser)
                 {
-                    roleClaimValue = UserRoles.OrgUser.ToString();
-                    userTypeValue = UserRoles.OrgUser.ToString();
+                        userTypeValue = UserRoles.OrgUser.ToString();
+                        if (!explicitRoles.Any())
+                        {
+                            roleClaimValue = UserRoles.OrgUser.ToString();
+                        }
                 }
                 else // UserType.Client
                 {
-                    roleClaimValue = UserRoles.Client.ToString();
-                    userTypeValue = UserRoles.Client.ToString();
+                        userTypeValue = UserRoles.Client.ToString();
+                        if (!explicitRoles.Any())
+                        {
+                            roleClaimValue = UserRoles.Client.ToString();
+                        }
                 }
             }
             

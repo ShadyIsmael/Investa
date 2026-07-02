@@ -1,0 +1,62 @@
+<div class="container mx-auto p-6 lg:p-8">
+  <div class="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-white">My Opportunities</h1>
+      <p class="mt-2 text-gray-400">Create drafts and track founder opportunity status.</p>
+    </div>
+    <a *ngIf="roleContext.canCreateOpportunity()" routerLink="/admin/opportunities/new" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">Create Opportunity</a>
+  </div>
+
+  <div *ngIf="isLoading()" class="space-y-4">
+    <div *ngFor="let item of [1,2,3]" class="h-28 animate-pulse rounded-xl border border-slate-800 bg-slate-900/80"></div>
+  </div>
+  <div *ngIf="errorMessage() && !isLoading()" class="rounded-lg border border-red-500/50 bg-red-500/20 p-4 text-red-200">{{ errorMessage() }}</div>
+  <div *ngIf="!isLoading() && !errorMessage() && opportunities().length === 0" class="rounded-xl border border-slate-800 bg-slate-900/80 p-12 text-center">
+    <p class="text-gray-400">You have not created any opportunities yet.</p>
+    <a *ngIf="roleContext.canCreateOpportunity()" routerLink="/admin/opportunities/new" class="mt-4 inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">Create your first opportunity</a>
+  </div>
+
+  <div *ngIf="!isLoading() && opportunities().length > 0" class="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/80">
+    <table class="min-w-full divide-y divide-slate-800">
+      <thead class="bg-slate-950/50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Opportunity</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Status</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Category</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Investment Model</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Funding</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Minimum</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Created</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Files</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-800">
+        <tr *ngFor="let opportunity of opportunities()" class="hover:bg-slate-800/30">
+          <td class="px-4 py-4"><p class="font-semibold text-white">{{ title(opportunity) }}</p><p class="mt-1 line-clamp-1 text-sm text-gray-400">{{ description(opportunity) }}</p></td>
+          <td class="px-4 py-4"><app-opportunity-status-badge [status]="opportunity.status"></app-opportunity-status-badge></td>
+          <td class="px-4 py-4 text-sm text-gray-300">{{ opportunity.categoryName || opportunity.categoryId || '-' }}</td>
+          <td class="px-4 py-4 text-sm text-gray-300">{{ opportunity.investmentModel || '-' }}</td>
+          <td class="px-4 py-4 text-right text-sm text-gray-300">{{ money(opportunity.fundingTarget) }}</td>
+          <td class="px-4 py-4 text-right text-sm text-gray-300">{{ money(opportunity.minimumInvestment) }}</td>
+          <td class="px-4 py-4 text-sm text-gray-400">{{ formatDate(opportunity.createdAt) }}</td>
+          <td class="px-4 py-4">
+            <div class="flex flex-wrap gap-1">
+              <span *ngIf="opportunity.hasCover || opportunity.coverImageUrl" class="rounded-full bg-slate-800 px-2 py-1 text-[11px] text-gray-300">Cover</span>
+              <span *ngIf="opportunity.hasMedia || opportunity.mediaCount" class="rounded-full bg-slate-800 px-2 py-1 text-[11px] text-gray-300">Media</span>
+              <span *ngIf="opportunity.hasDocuments || opportunity.documentCount" class="rounded-full bg-slate-800 px-2 py-1 text-[11px] text-gray-300">Docs</span>
+              <span *ngIf="!(opportunity.hasCover || opportunity.coverImageUrl || opportunity.hasMedia || opportunity.mediaCount || opportunity.hasDocuments || opportunity.documentCount)" class="text-xs text-gray-500">None</span>
+            </div>
+          </td>
+          <td class="px-4 py-4">
+            <div class="flex justify-end gap-2">
+              <a [routerLink]="['/admin/opportunities', opportunity.id]" class="rounded-md bg-slate-800 px-3 py-2 text-xs font-semibold text-gray-200 hover:bg-slate-700">View</a>
+              <a [routerLink]="['/admin/opportunities', opportunity.id, 'edit']" class="rounded-md bg-slate-800 px-3 py-2 text-xs font-semibold text-gray-200 hover:bg-slate-700">Edit</a>
+              <button (click)="submitForReview(opportunity)" [disabled]="submittingId() === opportunity.id" class="rounded-md bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-500 disabled:opacity-50">Submit</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

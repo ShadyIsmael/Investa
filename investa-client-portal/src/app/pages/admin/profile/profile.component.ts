@@ -537,6 +537,14 @@ export class ProfileComponent {
     this.router.navigate(['/admin/transactions']);
   }
 
+  navigateToWallet() {
+    this.router.navigate(['/admin/profile/wallet']);
+  }
+
+  navigateToNotificationCenter() {
+    this.router.navigate(['/admin/profile/notifications']);
+  }
+
   navigateToChargeCredits() {
     this.router.navigate(['/admin/credit-charge']);
   }

@@ -1,5 +1,5 @@
 <div class="container mx-auto p-6 lg:p-8" [dir]="direction()">
-  @if (userRole() === 'investor') {
+  @if (roleContext.isActiveInvestorContext()) {
     <div class="premium-dashboard">
       <div class="dashboard-header">
         <h1 class="dashboard-title">{{ 'dashboard.investorTitle' | translate }}</h1>
@@ -24,7 +24,7 @@
             <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5"/></svg>
           </div>
           <div class="kpi-card-content">
-            <p class="kpi-card-label">Active Investments</p>
+            <p class="kpi-card-label">Active Participations</p>
             <p class="kpi-card-value">{{ myInvestments().length }}</p>
             <p class="kpi-card-status">Portfolio positions</p>
           </div>
@@ -84,7 +84,7 @@
           <table class="requests-table">
             <thead>
               <tr>
-                <th>Project</th>
+                <th>Opportunity</th>
                 <th>Founder</th>
                 <th>Status</th>
                 <th>Last Update</th>
@@ -219,11 +219,11 @@
         </div>
       </div>
 
-      <!-- AI Investment Advisor -->
+      <!-- AI Opportunity Advisor -->
       <div class="ai-advisor-card">
         <div class="ai-advisor-header">
           <div>
-            <h3 class="ai-advisor-title">AI Investment Advisor</h3>
+            <h3 class="ai-advisor-title">AI Opportunity Advisor</h3>
             @if (!isPremium()) {
               <span class="ai-advisor-badge">Premium</span>
             }
@@ -264,7 +264,7 @@
                   <p class="ai-recommendation-reason">Strong alignment with your previous investments in {{ recommendation.type }} and your medium-risk profile.</p>
                 </div>
                 <div class="ai-recommendation-actions">
-                  <a [routerLink]="['/admin/investments', recommendation.id]" class="ai-recommendation-btn ai-recommendation-btn-primary">
+                  <a [routerLink]="['/admin/investments', recommendation.id]" [queryParams]="getInvestmentRouteQuery(recommendation)" class="ai-recommendation-btn ai-recommendation-btn-primary">
                     View Details
                   </a>
                   <button (click)="toggleFavorite(recommendation)" class="ai-recommendation-btn ai-recommendation-btn-secondary">
@@ -316,7 +316,7 @@
         @if (favoriteInvestments().length > 0) {
           <div class="watchlist-grid">
             @for(investment of favoriteInvestments(); track investment.id) {
-              <a [routerLink]="['/admin/investments', investment.id]" class="watchlist-item">
+              <a [routerLink]="['/admin/investments', investment.id]" [queryParams]="getInvestmentRouteQuery(investment)" class="watchlist-item">
                 <div class="watchlist-item-image">
                   @let investmentAvatar = getImageSrc(investment);
                   @if (investmentAvatar) {
@@ -347,7 +347,8 @@
         }
       </div>
     </div>
-  } @else {
+  }
+  @if (roleContext.isActiveFounderContext()) {
     <div class="animate-fade-in">
       @if (selectedFounderProject(); as project) {
         <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
@@ -441,7 +442,7 @@
                   <svg class="w-4 h-4 flex-shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
                   {{ 'dashboard.editProject' | translate }}
                 </a>
-                <a [routerLink]="['/admin/investments', project.id]" class="w-full flex items-center gap-3 text-start px-4 py-3 rounded-xl text-sm font-medium transition-colors bg-slate-800/40 hover:bg-slate-700/60 border border-slate-700/50 hover:border-slate-600 text-gray-300 hover:text-white">
+                <a [routerLink]="['/admin/investments', project.id]" [queryParams]="getInvestmentRouteQuery(project)" class="w-full flex items-center gap-3 text-start px-4 py-3 rounded-xl text-sm font-medium transition-colors bg-slate-800/40 hover:bg-slate-700/60 border border-slate-700/50 hover:border-slate-600 text-gray-300 hover:text-white">
                   <svg class="w-4 h-4 flex-shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                   {{ 'dashboard.viewPublicPage' | translate }}
                 </a>
@@ -484,7 +485,7 @@
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             @for(p of founderProjects(); track p.id) {
-              <div (click)="selectProject(p)"
+              <div (click)="openProjectWorkspace(p)"
                    class="relative bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-2xl p-6 cursor-pointer transition-colors hover:border-blue-500/40 hover:shadow-lg hover:shadow-blue-500/10 group overflow-hidden">
                 <div class="absolute top-0 inset-x-0 h-0.5 rounded-t-2xl bg-gradient-to-r from-blue-500 to-violet-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 <div class="flex items-center gap-4 mb-5">

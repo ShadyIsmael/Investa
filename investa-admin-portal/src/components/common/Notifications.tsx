@@ -13,7 +13,7 @@ const Notifications: React.FC = () => {
     }
 
     // Listen for foreground messages with strict payload parsing
-    onMessageListener((payload) => {
+    const unsubscribe = onMessageListener((payload) => {
       try {
         // Strict parsing: handle both notification and data payloads
         let title = 'Notification';
@@ -44,6 +44,8 @@ const Notifications: React.FC = () => {
         console.error('[Notifications] Failed to show foreground message:', e);
       }
     });
+
+    return unsubscribe;
   }, []);
 
   const enable = async () => {

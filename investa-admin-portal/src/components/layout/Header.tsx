@@ -103,6 +103,11 @@ export const Header: React.FC<HeaderProps> = React.memo(
       profile: 'breadcrumb.profile',
       'user-onboarding': 'breadcrumb.user-onboarding',
       permissions: 'breadcrumb.permissions',
+      pricing: 'breadcrumb.pricing',
+      notifications: 'breadcrumb.notifications',
+      'opportunity-categories': 'breadcrumb.opportunityCategories',
+      'opportunity-tags': 'breadcrumb.opportunityTags',
+      'funding-goals': 'breadcrumb.fundingGoals',
     }[breadcrumb];
 
     const crumbLabel = routeTranslationKey

@@ -1,0 +1,168 @@
+<div class="container mx-auto p-6 lg:p-8 max-w-5xl">
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-white">{{ isEdit() ? 'Edit Opportunity' : 'Create Opportunity' }}</h1>
+    <p class="mt-2 text-gray-400">A simple founder wizard for draft creation. Richer details stay optional.</p>
+  </div>
+
+  <div *ngIf="isLoading()" class="h-96 animate-pulse rounded-xl border border-slate-800 bg-slate-900/80"></div>
+  <div *ngIf="errorMessage() && !isLoading()" class="mb-6 rounded-lg border border-red-500/50 bg-red-500/20 p-4 text-red-200">{{ errorMessage() }}</div>
+
+  <div *ngIf="!isLoading()" class="rounded-xl border border-slate-800 bg-slate-900/80">
+    <div class="border-b border-slate-800 p-5">
+      <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <button *ngFor="let s of [1,2,3,4]" type="button" (click)="step.set(s)" class="rounded-lg px-3 py-2 text-sm font-semibold" [class.bg-blue-600]="step() === s" [class.text-white]="step() === s" [class.bg-slate-800]="step() !== s" [class.text-gray-300]="step() !== s">
+          Step {{ s }}
+        </button>
+      </div>
+    </div>
+
+    <div class="p-6 lg:p-8">
+      <section *ngIf="step() === 1" class="space-y-5">
+        <h2 class="text-xl font-bold text-white">Tell us about your opportunity</h2>
+        <input [(ngModel)]="form.title" placeholder="Title" class="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+        <textarea [(ngModel)]="form.shortDescription" rows="3" placeholder="Short description" class="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"></textarea>
+        <textarea [(ngModel)]="form.fullDescription" rows="6" placeholder="Full description" class="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"></textarea>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <select [(ngModel)]="form.categoryId" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+            <option [ngValue]="null">Category</option>
+            <option *ngFor="let category of categories()" [ngValue]="category.id">{{ label(category) }}</option>
+          </select>
+          <input [(ngModel)]="form.projectStage" placeholder="Opportunity stage" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+        </div>
+        <div>
+          <p class="mb-2 text-sm font-semibold text-gray-300">Tags</p>
+          <div class="flex flex-wrap gap-2">
+            <button *ngFor="let tag of tags()" type="button" (click)="toggleTag(tag.id)" class="rounded-full border px-3 py-1 text-xs font-semibold" [class.bg-blue-500/20]="isTagSelected(tag.id)" [class.text-blue-200]="isTagSelected(tag.id)" [class.border-blue-500/40]="isTagSelected(tag.id)" [class.bg-slate-800]="!isTagSelected(tag.id)" [class.text-gray-300]="!isTagSelected(tag.id)" [class.border-slate-700]="!isTagSelected(tag.id)">
+              {{ label(tag) }}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section *ngIf="step() === 2" class="space-y-5">
+        <h2 class="text-xl font-bold text-white">Funding Basics</h2>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <input [(ngModel)]="form.investmentModel" placeholder="Investment model" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+          <select [(ngModel)]="form.fundingGoalId" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+            <option [ngValue]="null">Funding goal</option>
+            <option *ngFor="let goal of fundingGoals()" [ngValue]="goal.id">{{ label(goal) }}</option>
+          </select>
+          <input [(ngModel)]="form.fundingTarget" type="number" placeholder="Funding target" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+          <input [(ngModel)]="form.minimumInvestment" type="number" placeholder="Minimum investment" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+          <input [(ngModel)]="form.maximumInvestment" type="number" placeholder="Maximum investment optional" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+          <input [(ngModel)]="form.expectedDuration" placeholder="Expected duration optional" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+        </div>
+        <details class="rounded-lg border border-slate-800 bg-slate-800/40 p-4">
+          <summary class="cursor-pointer text-sm font-semibold text-gray-200">Advanced optional details</summary>
+          <div class="mt-4 grid grid-cols-1 gap-4">
+            <textarea [(ngModel)]="form.fundingUsage" rows="3" placeholder="Funding usage" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"></textarea>
+            <textarea [(ngModel)]="form.risks" rows="3" placeholder="Risks" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"></textarea>
+            <textarea [(ngModel)]="form.exitStrategy" rows="3" placeholder="Exit strategy" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"></textarea>
+          </div>
+        </details>
+      </section>
+
+      <section *ngIf="step() === 3" class="space-y-5">
+        <h2 class="text-xl font-bold text-white">Media & Documents</h2>
+        <input [(ngModel)]="form.coverImageUrl" placeholder="Cover image URL" class="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div class="rounded-lg border border-slate-700 bg-slate-800/40 p-4" (dragover)="$event.preventDefault()" (drop)="onDrop($event, 'cover')">
+            <p class="font-semibold text-white">Cover image</p>
+            <p class="mt-1 text-xs text-gray-400">Public: Visible before investor joins. Cover is always public.</p>
+            <label class="mt-4 inline-flex cursor-pointer rounded-md bg-slate-700 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-600">
+              Choose file
+              <input type="file" accept="image/*" class="hidden" (change)="onFilesSelected($event, 'cover')">
+            </label>
+          </div>
+          <div class="rounded-lg border border-slate-700 bg-slate-800/40 p-4" (dragover)="$event.preventDefault()" (drop)="onDrop($event, 'gallery')">
+            <p class="font-semibold text-white">Gallery images</p>
+            <p class="mt-1 text-xs text-gray-400">Public: Visible before investor joins.</p>
+            <label class="mt-4 inline-flex cursor-pointer rounded-md bg-slate-700 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-600">
+              Choose files
+              <input type="file" accept="image/*" multiple class="hidden" (change)="onFilesSelected($event, 'gallery')">
+            </label>
+          </div>
+          <div class="rounded-lg border border-slate-700 bg-slate-800/40 p-4" (dragover)="$event.preventDefault()" (drop)="onDrop($event, 'video')">
+            <p class="font-semibold text-white">Videos</p>
+            <p class="mt-1 text-xs text-gray-400">Public: Visible before investor joins.</p>
+            <label class="mt-4 inline-flex cursor-pointer rounded-md bg-slate-700 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-600">
+              Choose files
+              <input type="file" accept="video/*" multiple class="hidden" (change)="onFilesSelected($event, 'video')">
+            </label>
+          </div>
+          <div class="rounded-lg border border-slate-700 bg-slate-800/40 p-4" (dragover)="$event.preventDefault()" (drop)="onDrop($event, 'publicDocument')">
+            <p class="font-semibold text-white">Public documents</p>
+            <p class="mt-1 text-xs text-gray-400">Public: Visible before investor joins.</p>
+            <label class="mt-4 inline-flex cursor-pointer rounded-md bg-slate-700 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-600">
+              Choose files
+              <input type="file" multiple class="hidden" (change)="onFilesSelected($event, 'publicDocument')">
+            </label>
+          </div>
+          <div class="rounded-lg border border-slate-700 bg-slate-800/40 p-4 md:col-span-2" (dragover)="$event.preventDefault()" (drop)="onDrop($event, 'privateDocument')">
+            <p class="font-semibold text-white">Private documents</p>
+            <p class="mt-1 text-xs text-gray-400">Private: Visible only after approved participation.</p>
+            <label class="mt-4 inline-flex cursor-pointer rounded-md bg-slate-700 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-600">
+              Choose files
+              <input type="file" multiple class="hidden" (change)="onFilesSelected($event, 'privateDocument')">
+            </label>
+          </div>
+        </div>
+
+        <div *ngIf="pendingUploads().length > 0" class="rounded-lg border border-slate-800 bg-slate-800/40 p-4">
+          <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p class="font-semibold text-white">Pending files</p>
+              <p class="text-xs text-gray-400">Saving uploads will save the draft first, then attach FileStore metadata.</p>
+            </div>
+            <button type="button" (click)="uploadAndAttach()" [disabled]="isUploading()" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50">
+              {{ isUploading() ? 'Uploading...' : 'Save Draft & Upload' }}
+            </button>
+          </div>
+          <ul class="mt-4 divide-y divide-slate-700">
+            <li *ngFor="let item of pendingUploads()" class="flex items-center justify-between gap-4 py-3">
+              <div>
+                <p class="text-sm font-semibold text-white">{{ item.file.name }}</p>
+                <p class="text-xs text-gray-400">{{ item.category }} · {{ item.file.type || 'unknown type' }}</p>
+              </div>
+              <button type="button" (click)="removePendingUpload(item.id)" class="rounded-md bg-slate-700 px-3 py-1 text-xs font-semibold text-gray-200 hover:bg-slate-600">Remove</button>
+            </li>
+          </ul>
+        </div>
+
+        <div *ngIf="uploadedFiles().length > 0" class="rounded-lg border border-emerald-500/25 bg-emerald-500/10 p-4">
+          <p class="font-semibold text-emerald-100">Uploaded files</p>
+          <ul class="mt-3 space-y-2">
+            <li *ngFor="let file of uploadedFiles()" class="text-sm text-emerald-50">{{ file.originalFileName || file.fileName }} · {{ file.category }}</li>
+          </ul>
+        </div>
+
+        <div *ngIf="uploadMessage()" class="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">
+          {{ uploadMessage() }}
+        </div>
+      </section>
+
+      <section *ngIf="step() === 4" class="space-y-5">
+        <h2 class="text-xl font-bold text-white">Review</h2>
+        <div class="rounded-xl border border-slate-800 bg-slate-800/40 p-5">
+          <p class="text-2xl font-bold text-white">{{ form.title || 'Untitled opportunity' }}</p>
+          <p class="mt-2 text-gray-400">{{ form.shortDescription || '-' }}</p>
+          <dl class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div><dt class="text-xs text-gray-500">Model</dt><dd class="text-gray-200">{{ form.investmentModel || '-' }}</dd></div>
+            <div><dt class="text-xs text-gray-500">Funding</dt><dd class="text-gray-200">{{ form.fundingTarget || 0 }}</dd></div>
+            <div><dt class="text-xs text-gray-500">Minimum</dt><dd class="text-gray-200">{{ form.minimumInvestment || 0 }}</dd></div>
+          </dl>
+        </div>
+      </section>
+    </div>
+
+    <div class="flex flex-col gap-3 border-t border-slate-800 p-5 md:flex-row md:justify-between">
+      <button type="button" (click)="back()" [disabled]="step() === 1" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-slate-700 disabled:opacity-50">Back</button>
+      <div class="flex gap-3">
+        <button type="button" *ngIf="step() < 4" (click)="next()" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">Next</button>
+        <button type="button" *ngIf="step() === 4" (click)="save(false)" [disabled]="isSaving()" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-slate-700 disabled:opacity-50">Save Draft</button>
+        <button type="button" *ngIf="step() === 4" (click)="save(true)" [disabled]="isSaving()" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50">Submit for Review</button>
+      </div>
+    </div>
+  </div>
+</div>

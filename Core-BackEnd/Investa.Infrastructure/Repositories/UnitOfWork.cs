@@ -33,6 +33,12 @@ public class UnitOfWork : IUnitOfWork
 
     public async Task BeginTransactionAsync()
     {
+        if (_context.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
+        {
+            _transaction = null;
+            return;
+        }
+
         _transaction = await _context.Database.BeginTransactionAsync();
     }
 

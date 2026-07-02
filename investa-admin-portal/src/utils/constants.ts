@@ -65,8 +65,58 @@ export const NAV_ITEMS: NavItem[] = [
         iconName: 'shield-check',
         path: '/operations/reputation-rules',
         permissions: ['User.Manage'],
+      },
+      {
+        id: 'pricing',
+        label: 'Pricing',
+        labelKey: 'nav.pricing',
+        iconName: 'cash',
+        path: '/operations/pricing',
+        permissions: ['User.Manage'],
+      },
+      {
+        id: 'notifications',
+        label: 'Notifications',
+        labelKey: 'nav.notifications',
+        iconName: 'bell',
+        path: '/operations/notifications',
+        permissions: ['User.Manage'],
       }
     ]
+  },
+  {
+    id: 'reference-data',
+    label: 'Reference Data',
+    labelKey: 'nav.referenceData',
+    iconName: 'grid',
+    path: '/reference-data',
+    permissions: ['User.Manage'],
+    children: [
+      {
+        id: 'opportunity-categories',
+        label: 'Categories',
+        labelKey: 'nav.opportunityCategories',
+        iconName: 'tag',
+        path: '/reference-data/opportunity-categories',
+        permissions: ['User.Manage'],
+      },
+      {
+        id: 'opportunity-tags',
+        label: 'Tags',
+        labelKey: 'nav.opportunityTags',
+        iconName: 'tag',
+        path: '/reference-data/opportunity-tags',
+        permissions: ['User.Manage'],
+      },
+      {
+        id: 'funding-goals',
+        label: 'Funding Goals',
+        labelKey: 'nav.fundingGoals',
+        iconName: 'cash',
+        path: '/reference-data/funding-goals',
+        permissions: ['User.Manage'],
+      },
+    ],
   },
   { 
     id: 'config', 

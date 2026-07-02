@@ -18,14 +18,20 @@ public class DatabaseSeeder
     private readonly ApplicationDbContext _context;
     private readonly IPasswordHasher<AuthUser> _passwordHasher;
     private readonly UserManager<ApplicationIdentityUser> _userManager;
+    private readonly RoleManager<ApplicationIdentityRole> _roleManager;
     private readonly Dictionary<string, Guid> _userIds = new();
     private readonly Dictionary<string, int> _investmentIds = new();
 
-    public DatabaseSeeder(ApplicationDbContext context, IPasswordHasher<AuthUser> passwordHasher, UserManager<ApplicationIdentityUser> userManager)
+    public DatabaseSeeder(
+        ApplicationDbContext context,
+        IPasswordHasher<AuthUser> passwordHasher,
+        UserManager<ApplicationIdentityUser> userManager,
+        RoleManager<ApplicationIdentityRole> roleManager)
     {
         _context = context;
         _passwordHasher = passwordHasher;
         _userManager = userManager;
+        _roleManager = roleManager;
     }
 
     /// <summary>
@@ -54,17 +60,9 @@ public class DatabaseSeeder
         Console.WriteLine("🗑️  Deleting demo users...");
 
         // Demo user emails
-        var demoEmails = new[]
-        {
-            "user92@investa.test",
-            "user93@investa.test",
-            "user94@investa.test",
-            "user95@investa.test",
-            "user96@investa.test",
-            "user97@investa.test",
-            "user98@investa.test",
-            "user99@investa.test"
-        };
+        var demoEmails = Enumerable.Range(92, 20)
+            .Select(i => $"user{i}@investa.test")
+            .ToArray();
 
         var deletedCount = 0;
 
@@ -191,9 +189,9 @@ public class DatabaseSeeder
     }
 
     /// <summary>
-    /// Seeds users: 8 test users + 1 admin
-    /// Phone numbers: +201022322292 to +201022322299
-    /// Password: P@ssw0rd for all
+    /// Seeds users: 20 demo clients + 1 admin.
+    /// Demo client phone numbers: 01022322291 to 01022322310.
+    /// Demo client password: P@ss0rd.
     /// </summary>
     private async Task SeedUsersAsync()
     {
@@ -203,7 +201,7 @@ public class DatabaseSeeder
         var adminUser = await GetOrCreateUserAsync(
             email: "admin@investa.com",
             name: "System Administrator",
-            phone: "+201022322291",
+            phone: "+201000000000",
             password: "P@ssw0rd",
             userType: UserType.OrgUser,
             clientType: ClientType.Investor,
@@ -212,19 +210,32 @@ public class DatabaseSeeder
             activityScore: 10000,
             verificationTrustScore: 100
         );
+        await EnsureAdminAuthorizationRoleAsync(adminUser, "admin@investa.com", "P@ssw0rd");
         _userIds["admin"] = adminUser.Id;
 
-        // Test users with phone numbers +201022322292 to +201022322299
+        // Demo client users with phone numbers 01022322291 to 01022322310.
         var testUserData = new[]
         {
-            new { Phone = "+201022322292", Name = "Ahmed Mohamed", Email = "user92@investa.test", Type = ClientType.Founder, Role = "Trusted Founder", RepScore = 8500, ActScore = 7200, Trust = TrustLevel.TrustedActive },
-            new { Phone = "+201022322293", Name = "Sara Ali", Email = "user93@investa.test", Type = ClientType.Founder, Role = "Active Founder", RepScore = 6200, ActScore = 5800, Trust = TrustLevel.Interactive },
-            new { Phone = "+201022322294", Name = "Omar Hassan", Email = "user94@investa.test", Type = ClientType.Founder, Role = "Rising Founder", RepScore = 3800, ActScore = 3200, Trust = TrustLevel.Interactive },
-            new { Phone = "+201022322295", Name = "Fatima Ahmed", Email = "user95@investa.test", Type = ClientType.Founder, Role = "Emerging Founder", RepScore = 2100, ActScore = 1800, Trust = TrustLevel.Registered },
-            new { Phone = "+201022322296", Name = "Khalid Ibrahim", Email = "user96@investa.test", Type = ClientType.Investor, Role = "Active Partner", RepScore = 7800, ActScore = 6900, Trust = TrustLevel.TrustedActive },
-            new { Phone = "+201022322297", Name = "Layla Mahmoud", Email = "user97@investa.test", Type = ClientType.Investor, Role = "Top Contributor", RepScore = 9200, ActScore = 8500, Trust = TrustLevel.TrustedActive },
-            new { Phone = "+201022322298", Name = "Youssef Ali", Email = "user98@investa.test", Type = ClientType.Investor, Role = "Rising Partner", RepScore = 4500, ActScore = 4100, Trust = TrustLevel.Interactive },
-            new { Phone = "+201022322299", Name = "Nour Hassan", Email = "user99@investa.test", Type = ClientType.Investor, Role = "New Partner", RepScore = 1200, ActScore = 900, Trust = TrustLevel.Registered }
+            new { Phone = "01022322291", Name = "Ahmed Elmasry", Email = "user92@investa.test", Type = ClientType.Founder, Role = "Trusted Founder", RepScore = 8500, ActScore = 7200, Trust = TrustLevel.TrustedActive, Gender = "Male", City = "Cairo", BirthDate = new DateTime(1988, 3, 14) },
+            new { Phone = "01022322292", Name = "Mariam Hassan", Email = "user93@investa.test", Type = ClientType.Founder, Role = "Active Founder", RepScore = 6200, ActScore = 5800, Trust = TrustLevel.Interactive, Gender = "Female", City = "Alexandria", BirthDate = new DateTime(1991, 7, 22) },
+            new { Phone = "01022322293", Name = "Omar Abdelrahman", Email = "user94@investa.test", Type = ClientType.Founder, Role = "Rising Founder", RepScore = 3800, ActScore = 3200, Trust = TrustLevel.Interactive, Gender = "Male", City = "Giza", BirthDate = new DateTime(1990, 11, 5) },
+            new { Phone = "01022322294", Name = "Nourhan Ali", Email = "user95@investa.test", Type = ClientType.Founder, Role = "Emerging Founder", RepScore = 2100, ActScore = 1800, Trust = TrustLevel.Registered, Gender = "Female", City = "Mansoura", BirthDate = new DateTime(1994, 2, 18) },
+            new { Phone = "01022322295", Name = "Khaled Ibrahim", Email = "user96@investa.test", Type = ClientType.Investor, Role = "Active Partner", RepScore = 7800, ActScore = 6900, Trust = TrustLevel.TrustedActive, Gender = "Male", City = "Cairo", BirthDate = new DateTime(1985, 9, 9) },
+            new { Phone = "01022322296", Name = "Layla Mahmoud", Email = "user97@investa.test", Type = ClientType.Investor, Role = "Top Contributor", RepScore = 9200, ActScore = 8500, Trust = TrustLevel.TrustedActive, Gender = "Female", City = "Tanta", BirthDate = new DateTime(1989, 4, 27) },
+            new { Phone = "01022322297", Name = "Youssef Ali", Email = "user98@investa.test", Type = ClientType.Investor, Role = "Rising Partner", RepScore = 4500, ActScore = 4100, Trust = TrustLevel.Interactive, Gender = "Male", City = "Zagazig", BirthDate = new DateTime(1993, 6, 12) },
+            new { Phone = "01022322298", Name = "Farida Hassan", Email = "user99@investa.test", Type = ClientType.Investor, Role = "New Partner", RepScore = 1200, ActScore = 900, Trust = TrustLevel.Registered, Gender = "Female", City = "Cairo", BirthDate = new DateTime(1996, 1, 30) },
+            new { Phone = "01022322299", Name = "Mahmoud Fathy", Email = "user100@investa.test", Type = ClientType.Founder, Role = "FoodTech Founder", RepScore = 5600, ActScore = 4700, Trust = TrustLevel.Interactive, Gender = "Male", City = "Port Said", BirthDate = new DateTime(1987, 12, 3) },
+            new { Phone = "01022322300", Name = "Salma Mostafa", Email = "user101@investa.test", Type = ClientType.Investor, Role = "Angel Partner", RepScore = 7100, ActScore = 6400, Trust = TrustLevel.TrustedActive, Gender = "Female", City = "Cairo", BirthDate = new DateTime(1992, 8, 16) },
+            new { Phone = "01022322301", Name = "Hossam Nabil", Email = "user102@investa.test", Type = ClientType.Founder, Role = "Logistics Founder", RepScore = 4900, ActScore = 4300, Trust = TrustLevel.Interactive, Gender = "Male", City = "Ismailia", BirthDate = new DateTime(1986, 5, 7) },
+            new { Phone = "01022322302", Name = "Rana Tarek", Email = "user103@investa.test", Type = ClientType.Investor, Role = "Growth Partner", RepScore = 6600, ActScore = 6100, Trust = TrustLevel.Interactive, Gender = "Female", City = "Alexandria", BirthDate = new DateTime(1995, 10, 21) },
+            new { Phone = "01022322303", Name = "Mostafa Salem", Email = "user104@investa.test", Type = ClientType.Founder, Role = "HealthTech Founder", RepScore = 7300, ActScore = 6500, Trust = TrustLevel.TrustedActive, Gender = "Male", City = "Assiut", BirthDate = new DateTime(1984, 2, 2) },
+            new { Phone = "01022322304", Name = "Yasmin Adel", Email = "user105@investa.test", Type = ClientType.Investor, Role = "Strategic Partner", RepScore = 5800, ActScore = 5200, Trust = TrustLevel.Interactive, Gender = "Female", City = "Cairo", BirthDate = new DateTime(1990, 3, 28) },
+            new { Phone = "01022322305", Name = "Karim Fouad", Email = "user106@investa.test", Type = ClientType.Founder, Role = "SaaS Founder", RepScore = 8100, ActScore = 7600, Trust = TrustLevel.TrustedActive, Gender = "Male", City = "Giza", BirthDate = new DateTime(1983, 7, 11) },
+            new { Phone = "01022322306", Name = "Dina Samy", Email = "user107@investa.test", Type = ClientType.Investor, Role = "Portfolio Partner", RepScore = 3400, ActScore = 3000, Trust = TrustLevel.Registered, Gender = "Female", City = "Mansoura", BirthDate = new DateTime(1997, 9, 19) },
+            new { Phone = "01022322307", Name = "Hany Rashad", Email = "user108@investa.test", Type = ClientType.Founder, Role = "AgriTech Founder", RepScore = 5300, ActScore = 4800, Trust = TrustLevel.Interactive, Gender = "Male", City = "Fayoum", BirthDate = new DateTime(1989, 6, 4) },
+            new { Phone = "01022322308", Name = "Mai Gaber", Email = "user109@investa.test", Type = ClientType.Investor, Role = "Fintech Partner", RepScore = 6900, ActScore = 6200, Trust = TrustLevel.TrustedActive, Gender = "Female", City = "Cairo", BirthDate = new DateTime(1991, 12, 25) },
+            new { Phone = "01022322309", Name = "Amr Elshazly", Email = "user110@investa.test", Type = ClientType.Founder, Role = "Manufacturing Founder", RepScore = 4700, ActScore = 3900, Trust = TrustLevel.Interactive, Gender = "Male", City = "Suez", BirthDate = new DateTime(1982, 1, 13) },
+            new { Phone = "01022322310", Name = "Menna Ashraf", Email = "user111@investa.test", Type = ClientType.Investor, Role = "Retail Partner", RepScore = 2500, ActScore = 2100, Trust = TrustLevel.Registered, Gender = "Female", City = "Alexandria", BirthDate = new DateTime(1998, 5, 8) }
         };
 
         for (int i = 0; i < testUserData.Length; i++)
@@ -236,7 +247,7 @@ public class DatabaseSeeder
                 email: userData.Email,
                 name: userData.Name,
                 phone: userData.Phone,
-                password: "P@ssw0rd",
+                password: "P@ss0rd",
                 userType: UserType.Client,
                 clientType: userData.Type,
                 trustLevel: userData.Trust,
@@ -246,12 +257,20 @@ public class DatabaseSeeder
             );
 
             // Create user profile
-            await GetOrCreateUserProfileAsync(user.Id, userData.Name, userData.Phone, userData.Role);
+            await GetOrCreateUserProfileAsync(
+                user.Id,
+                userData.Name,
+                userData.Email,
+                userData.Phone,
+                userData.Role,
+                userData.Gender,
+                userData.City,
+                userData.BirthDate);
 
             _userIds[userKey] = user.Id;
         }
 
-        Console.WriteLine($"✅ Seeded {testUserData.Length + 1} users");
+        Console.WriteLine($"Seeded {testUserData.Length} demo clients and 1 admin user");
     }
 
     /// <summary>
@@ -609,7 +628,7 @@ private async Task<AuthUser> GetOrCreateUserAsync(
         int activityScore,
         int verificationTrustScore)
     {
-        string? normalizedPhone = null;
+string? normalizedPhone = null;
         if (!string.IsNullOrWhiteSpace(phone))
         {
             normalizedPhone = PhoneNumberNormalizer.NormalizePhoneNumber(phone) ?? phone.Trim();
@@ -620,18 +639,31 @@ private async Task<AuthUser> GetOrCreateUserAsync(
 
         if (existingUser != null)
         {
+            if (IsSeededDemoPhone(normalizedPhone))
+            {
+                await ResetDemoUserPasswordAsync(existingUser, normalizedPhone!, email, password);
+            }
+
             return existingUser;
         }
+
+        var identityUserName = userType == UserType.Client && normalizedPhone != null ? normalizedPhone : email;
 
 // Create user in AspNetUsers (Identity) table for login
         var identityUser = new ApplicationIdentityUser
         {
             Id = Guid.NewGuid(),
             Email = email,
-            UserName = email,
+            NormalizedEmail = email.ToUpperInvariant(),
+            UserName = identityUserName,
+            NormalizedUserName = identityUserName.ToUpperInvariant(),
+            PhoneNumber = normalizedPhone,
+            PhoneNumberConfirmed = normalizedPhone != null,
             EmailConfirmed = true,
-            PasswordHash = new PasswordHasher<ApplicationIdentityUser>().HashPassword(null, password)
+            SecurityStamp = Guid.NewGuid().ToString(),
+            ConcurrencyStamp = Guid.NewGuid().ToString()
         };
+        identityUser.PasswordHash = new PasswordHasher<ApplicationIdentityUser>().HashPassword(identityUser, password);
 
         _context.Users.Add(identityUser);
         await _context.SaveChangesAsync();
@@ -652,6 +684,7 @@ private async Task<AuthUser> GetOrCreateUserAsync(
             VerificationTrustScore = verificationTrustScore,
             TrustLevel = trustLevel,
             ReputationScore = reputationScore,
+            ReputationLevel = GetReputationLevel(reputationScore),
             ActivityScore = activityScore,
             ProfileCompletionPercentage = userType == UserType.Client ? 85 : 0,
             IsPhoneVerified = normalizedPhone != null,
@@ -664,7 +697,121 @@ private async Task<AuthUser> GetOrCreateUserAsync(
         return authUser;
     }
 
-    private async Task<UserProfile> GetOrCreateUserProfileAsync(Guid userId, string name, string? phone, string role)
+    private async Task ResetDemoUserPasswordAsync(AuthUser existingUser, string normalizedPhone, string email, string password)
+    {
+        var identityUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == existingUser.Id);
+        if (identityUser == null)
+        {
+            identityUser = new ApplicationIdentityUser
+            {
+                Id = existingUser.Id,
+                Email = email,
+                NormalizedEmail = email.ToUpperInvariant(),
+                UserName = normalizedPhone,
+                NormalizedUserName = normalizedPhone.ToUpperInvariant(),
+                PhoneNumber = normalizedPhone,
+                PhoneNumberConfirmed = true,
+                EmailConfirmed = true
+            };
+
+            _context.Users.Add(identityUser);
+        }
+        else
+        {
+            identityUser.Email = email;
+            identityUser.NormalizedEmail = email.ToUpperInvariant();
+            identityUser.UserName = normalizedPhone;
+            identityUser.NormalizedUserName = normalizedPhone.ToUpperInvariant();
+            identityUser.PhoneNumber = normalizedPhone;
+            identityUser.PhoneNumberConfirmed = true;
+            identityUser.EmailConfirmed = true;
+        }
+
+        identityUser.SecurityStamp = Guid.NewGuid().ToString();
+        identityUser.ConcurrencyStamp = Guid.NewGuid().ToString();
+        identityUser.PasswordHash = new PasswordHasher<ApplicationIdentityUser>().HashPassword(identityUser, password);
+
+        existingUser.Email = email;
+        existingUser.FirebaseUid = normalizedPhone;
+        existingUser.PasswordHash = identityUser.PasswordHash;
+        existingUser.IsPhoneVerified = true;
+        existingUser.IsEmailVerified = true;
+
+        await _context.SaveChangesAsync();
+        Console.WriteLine($"Reset password for demo user: {email}");
+    }
+
+    private async Task EnsureAdminAuthorizationRoleAsync(AuthUser adminUser, string email, string password)
+    {
+        const string adminRoleName = "Admin";
+
+        if (!await _roleManager.RoleExistsAsync(adminRoleName))
+        {
+            var role = new ApplicationIdentityRole
+            {
+                Name = adminRoleName,
+                NormalizedName = adminRoleName.ToUpperInvariant()
+            };
+
+            var roleResult = await _roleManager.CreateAsync(role);
+            if (!roleResult.Succeeded)
+            {
+                var roleErrors = string.Join("; ", roleResult.Errors.Select(e => e.Description));
+                throw new InvalidOperationException($"Failed to create admin role: {roleErrors}");
+            }
+        }
+
+        var identityUser = await _userManager.FindByIdAsync(adminUser.Id.ToString())
+            ?? await _userManager.FindByEmailAsync(email);
+
+        if (identityUser == null)
+        {
+            throw new InvalidOperationException($"Could not resolve identity user for seeded admin {email}");
+        }
+
+        if (!await _userManager.IsInRoleAsync(identityUser, adminRoleName))
+        {
+            var addRoleResult = await _userManager.AddToRoleAsync(identityUser, adminRoleName);
+            if (!addRoleResult.Succeeded)
+            {
+                var roleErrors = string.Join("; ", addRoleResult.Errors.Select(e => e.Description));
+                throw new InvalidOperationException($"Failed to assign admin role to {email}: {roleErrors}");
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(password))
+        {
+            var passwordHasher = new PasswordHasher<ApplicationIdentityUser>();
+            identityUser.PasswordHash = passwordHasher.HashPassword(identityUser, password);
+            await _userManager.UpdateAsync(identityUser);
+        }
+
+        Console.WriteLine($"Assigned role '{adminRoleName}' to seeded admin user: {email}");
+    }
+
+    private static bool IsSeededDemoPhone(string? normalizedPhone)
+    {
+        if (string.IsNullOrWhiteSpace(normalizedPhone))
+            return false;
+
+        for (var i = 291; i <= 310; i++)
+        {
+            if (normalizedPhone == $"+201022322{i}")
+                return true;
+        }
+
+        return false;
+    }
+
+    private async Task<UserProfile> GetOrCreateUserProfileAsync(
+        Guid userId,
+        string name,
+        string email,
+        string? phone,
+        string role,
+        string gender,
+        string city,
+        DateTime birthDate)
     {
         var existingProfile = await _context.UserProfiles
             .FirstOrDefaultAsync(p => p.UserId == userId);
@@ -686,8 +833,12 @@ private async Task<AuthUser> GetOrCreateUserAsync(
             FullName = name,
             FirstName = name.Split(' ')[0],
             LastName = name.Split(' ').Length > 1 ? string.Join(" ", name.Split(' ').Skip(1)) : "",
+            Email = email,
             Phone1 = normalizedPhone,
+            Gender = gender,
+            DateOfBirth = birthDate,
             Country = "Egypt",
+            City = city,
             Bio = $"Experienced {role} with a proven track record in the investment ecosystem.",
             BusinessRole = role,
             LinkedInUrl = $"https://linkedin.com/in/{name.Replace(" ", "").ToLower()}",
@@ -701,6 +852,17 @@ private async Task<AuthUser> GetOrCreateUserAsync(
         await _context.SaveChangesAsync();
 
         return profile;
+    }
+
+    private static string GetReputationLevel(int reputationScore)
+    {
+        return reputationScore switch
+        {
+            >= 8500 => "Elite Member",
+            >= 6500 => "Trusted Member",
+            >= 3500 => "Rising Member",
+            _ => "New Member"
+        };
     }
 
     private async Task<Investment> CreateInvestmentAsync(
@@ -851,6 +1013,20 @@ private async Task<AuthUser> GetOrCreateUserAsync(
         var investmentId = _investmentIds[evt.Investment];
         var createdById = _userIds.ContainsKey(evt.CreatedBy) ? _userIds[evt.CreatedBy] : (Guid?)null;
 
+        var version = Random.Shared.Next(1000, 9999);
+        var retryCount = 0;
+        while (retryCount < 10)
+        {
+            var existingWithVersion = await _context.InvestmentEvents
+                .AnyAsync(e => e.InvestmentId == investmentId && e.Version == version);
+
+            if (!existingWithVersion)
+                break;
+
+            version = Random.Shared.Next(1000, 9999);
+            retryCount++;
+        }
+
         var investmentEvent = new InvestmentEvent
         {
             InvestmentId = investmentId,
@@ -859,7 +1035,7 @@ private async Task<AuthUser> GetOrCreateUserAsync(
             Payload = evt.Payload,
             OccurredAt = DateTime.UtcNow.AddDays(-Random.Shared.Next(1, 30)),
             CreatedBy = createdById,
-            Version = Random.Shared.Next(1, 100)
+            Version = version
         };
 
         _context.InvestmentEvents.Add(investmentEvent);

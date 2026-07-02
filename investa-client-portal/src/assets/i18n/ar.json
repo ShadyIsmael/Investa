@@ -93,34 +93,38 @@
     }
   },
   "adminNav": {
-    "panel": "لوحة تحكم إنفستا",
+    "panel": "لوحة إنفستا",
     "dashboard": "لوحة التحكم",
-    "investments": "الاستثمارات",
-    "submitInvestment": "تقديم استثمار",
+    "investments": "تصفح الفرص",
+    "myParticipations": "مشاركاتي",
+    "myProjects": "????",
+    "createProject": "????? ????",
+    "submitInvestment": "????? ????",
     "communication": "التواصل",
     "requests": "الطلبات",
-    "returnHome": "العودة للصفحة الرئيسية",
+    "returnHome": "الرئيسية",
     "userMenu": {
-      "profile": "ملفك الشخصي",
+      "profile": "الملف الشخصي",
       "settings": "الإعدادات",
       "srOpen": "فتح قائمة المستخدم"
     },
     "notifications": {
       "srView": "عرض الإشعارات"
     },
-    "logout": "تسجيل الخروج"
+    "logout": "تسجيل الخروج",
+    "searchPlaceholder": "ابحث في الفرص..."
   },
   "notifications": {
     "title": "الإشعارات",
     "all": "الكل",
-    "unread": "غير مقروءة",
+    "unread": "غير المقروءة",
     "delete": "حذف الإشعار",
     "markAllRead": "تحديد الكل كمقروء",
-    "seeAll": "عرض جميع الإشعارات",
+    "seeAll": "عرض كل الإشعارات",
     "noNotifications": {
       "title": "لا توجد إشعارات",
-      "subtitle": "ليس لديك إشعارات في الوقت الحالي.",
-      "allCaughtUp": "لقد اطّلعت على كل شيء!"
+      "subtitle": "لا توجد إشعارات حالياً.",
+      "allCaughtUp": "أنت مطلع على كل جديد."
     }
   },
   "problemPlaceholder": "صف المشكلة أو الحاجة التي يعالجها مشروعك.",
@@ -128,7 +132,6 @@
   "solutionPlaceholder": "اشرح كيف يحل مشروعك هذه المشكلة.",
   "usp": "عرض البيع الفريد (USP)",
   "uspPlaceholder": "ما الذي يجعل مشروعك فريدًا وأفضل من المنافسين؟",
-
   "about": {
     "title": "نبني مستقبل الاستثمار، معًا.",
     "description": "إنفستا أكثر من مجرد منصة؛ إنها نظام بيئي منسق يجمع الابتكار برأس المال. نُوَفِّر فرصًا للمؤسسين الطموحين والمستثمرين الماهرين للعمل معًا في بيئة موثوقة لتسهيل اكتشاف وتمويل وبناء الجيل القادم من المشاريع الرائدة.",
@@ -147,13 +150,11 @@
       }
     }
   },
-
   "cta": {
     "title": "هل أنت مستعد للارتقاء بتداولاتك؟",
     "subtitle": "انضم إلى آلاف المستثمرين الذين يستفيدون من الذكاء الاصطناعي لبناء ثرواتهم. ابدأ الآن.",
     "button": "أنشئ حسابك"
   },
-
   "hero": {
     "title_part1": "استثمار ذكي،",
     "title_part2": "مدعوم بالذكاء الاصطناعي",
@@ -190,21 +191,60 @@
     "jessicaName": "جيسيكا ل.",
     "jessicaTitle": "رائدة أعمال تقنية"
   },
-
   "blog": {
     "title": "أحدث الرؤى",
     "subtitle": "ابقَ على اطلاع بأحدث مقالاتنا وأخبار السوق.",
     "readMore": "اقرأ المزيد",
-    "post1": { "title": "فهم تأثير الذكاء الاصطناعي على تداول الفوركس", "excerpt": "اكتشف كيف تتنبأ خوارزميات التعلم الآلي بتقلبات العملات بدقة غير مسبوقة.", "category": "تحليل السوق" },
-    "post2": { "title": "بنية التكنولوجيا الخاصة بنا 2024: بناء منصة مرنة", "excerpt": "نظرة معمقة على البنية التحتية التي تدعم معالجة البيانات في الوقت الحقيقي ومحركات الذكاء الاصطناعي.", "category": "التكنولوجيا" },
-    "post3": { "title": "استراتيجيات إدارة المخاطر للتداول الآلي", "excerpt": "تعلم كيفية إعداد أوامر وقف خسارة فعّالة ومعايير المخاطر لروبوتات التداول الخاصة بك.", "category": "استراتيجية الأعمال" },
-    "post4": { "title": "سيكولوجية الاستثمار: تجنب القرارات العاطفية", "excerpt": "استكشف التحيزات المعرفية الشائعة التي تؤثر على المستثمرين وتعلّم استراتيجيات للحفاظ على نهج عقلاني.", "category": "تحليل السوق" },
-    "post5": { "title": "دليل المبتدئين لتخزين العملات المشفرة", "excerpt": "افهم أساسيات التخزين، وكيف يعمل، وكيف يمكنك كسب دخل سلبي من أصولك المشفرة.", "category": "التكنولوجيا" },
-    "post6": { "title": "التنويع هو المفتاح: بناء محفظة متوازنة", "excerpt": "نظرة على أهمية تخصيص الأصول وكيفية توزيع المخاطر عبر أنواع الاستثمار المختلفة.", "category": "استراتيجية الأعمال" },
-    "post7": { "title": "الذكاء الاصطناعي في الاستثمار العقاري", "excerpt": "استكشف كيف يُحدث الذكاء الاصطناعي تحولاً في قرارات الاستثمار العقاري.", "category": "العقارات" },
-    "post8": { "title": "صناديق الاستثمار المتداولة مقابل صناديق الاستثمار المشتركة: أيهما مناسب لك؟", "excerpt": "قارن الاختلافات الرئيسية بين صناديق الاستثمار المتداولة والصناديق المشتركة لاتخاذ خيارات استثمارية مستنيرة.", "category": "الصناديق" },
-    "post9": { "title": "صعود الاستثمار ESG", "excerpt": "افهم الأهمية المتزايدة للعوامل البيئية والاجتماعية والحوكمة في قرارات الاستثمار.", "category": "الاتجاهات" },
-    "post10": { "title": "التخطيط الاستثماري الاستراتيجي لعام 2026", "excerpt": "استكشف الاستراتيجيات الرئيسية واتجاهات السوق لوضع محفظتك في موضع النجاح للعام القادم.", "category": "استراتيجية الأعمال" }
+    "post1": {
+      "title": "فهم تأثير الذكاء الاصطناعي على تداول الفوركس",
+      "excerpt": "اكتشف كيف تتنبأ خوارزميات التعلم الآلي بتقلبات العملات بدقة غير مسبوقة.",
+      "category": "تحليل السوق"
+    },
+    "post2": {
+      "title": "بنية التكنولوجيا الخاصة بنا 2024: بناء منصة مرنة",
+      "excerpt": "نظرة معمقة على البنية التحتية التي تدعم معالجة البيانات في الوقت الحقيقي ومحركات الذكاء الاصطناعي.",
+      "category": "التكنولوجيا"
+    },
+    "post3": {
+      "title": "استراتيجيات إدارة المخاطر للتداول الآلي",
+      "excerpt": "تعلم كيفية إعداد أوامر وقف خسارة فعّالة ومعايير المخاطر لروبوتات التداول الخاصة بك.",
+      "category": "استراتيجية الأعمال"
+    },
+    "post4": {
+      "title": "سيكولوجية الاستثمار: تجنب القرارات العاطفية",
+      "excerpt": "استكشف التحيزات المعرفية الشائعة التي تؤثر على المستثمرين وتعلّم استراتيجيات للحفاظ على نهج عقلاني.",
+      "category": "تحليل السوق"
+    },
+    "post5": {
+      "title": "دليل المبتدئين لتخزين العملات المشفرة",
+      "excerpt": "افهم أساسيات التخزين، وكيف يعمل، وكيف يمكنك كسب دخل سلبي من أصولك المشفرة.",
+      "category": "التكنولوجيا"
+    },
+    "post6": {
+      "title": "التنويع هو المفتاح: بناء محفظة متوازنة",
+      "excerpt": "نظرة على أهمية تخصيص الأصول وكيفية توزيع المخاطر عبر أنواع الاستثمار المختلفة.",
+      "category": "استراتيجية الأعمال"
+    },
+    "post7": {
+      "title": "الذكاء الاصطناعي في الاستثمار العقاري",
+      "excerpt": "استكشف كيف يُحدث الذكاء الاصطناعي تحولاً في قرارات الاستثمار العقاري.",
+      "category": "العقارات"
+    },
+    "post8": {
+      "title": "صناديق الاستثمار المتداولة مقابل صناديق الاستثمار المشتركة: أيهما مناسب لك؟",
+      "excerpt": "قارن الاختلافات الرئيسية بين صناديق الاستثمار المتداولة والصناديق المشتركة لاتخاذ خيارات استثمارية مستنيرة.",
+      "category": "الصناديق"
+    },
+    "post9": {
+      "title": "صعود الاستثمار ESG",
+      "excerpt": "افهم الأهمية المتزايدة للعوامل البيئية والاجتماعية والحوكمة في قرارات الاستثمار.",
+      "category": "الاتجاهات"
+    },
+    "post10": {
+      "title": "التخطيط الاستثماري الاستراتيجي لعام 2026",
+      "excerpt": "استكشف الاستراتيجيات الرئيسية واتجاهات السوق لوضع محفظتك في موضع النجاح للعام القادم.",
+      "category": "استراتيجية الأعمال"
+    }
   },
   "footer": {
     "tagline": "تمكين المستثمرين برؤى مدعومة بالذكاء الاصطناعي.",
@@ -238,11 +278,13 @@
     },
     "copyright": "إنفستا. جميع الحقوق محفوظة."
   },
-
   "investments": {
-    "title": "استكشف الفرص",
-    "startInvestingButton": "قدم مشروعك",
-    "filterPlaceholder": "تصفية الاستثمارات...",
+    "title": "تصفح الفرص",
+    "myProjectsTitle": "????????",
+    "noParticipationsTitle": "?? ???? ??????? ???",
+    "noParticipationsSubtitle": "????? ??? ????????? ????????.",
+    "startInvestingButton": "????? ????",
+    "filterPlaceholder": "ابحث في الفرص...",
     "advancedSearch": "بحث متقدم",
     "refresh": "تحديث",
     "exportCsv": "تصدير CSV",
@@ -251,16 +293,16 @@
     "moreTeamMembers": "{count} أعضاء فريق إضافيين",
     "investor": "مستثمر",
     "investors": "مستثمرون",
-    "riskLevel": "مستوى المخاطرة",
+    "riskLevel": "مستوى المخاطر",
     "risk": {
       "low": "منخفض",
       "medium": "متوسط",
       "high": "مرتفع",
-      "risk": "مخاطرة"
+      "risk": "مخاطر"
     },
-    "typeFilter": "نوع الاستثمار",
+    "typeFilter": "????? ?????????",
     "type": {
-      "founding": "رأسمالي تأسيسي",
+      "founding": "?????? ???????",
       "equity": "أسهم"
     },
     "funding": "التمويل",
@@ -270,72 +312,72 @@
     "max": "الحد الأقصى",
     "showOnly": "عرض فقط",
     "favorites": "المفضلة",
-    "reset": "إعادة تعيين",
+    "reset": "إعادة ضبط",
     "score": "التقييم",
-    "share": "مشاركة الاستثمار",
+    "share": "مشاركة",
     "addToFavorites": "إضافة إلى المفضلة",
-    "engage": "تفاعل",
-    "noResultsTitle": "لم يتم العثور على استثمارات",
-    "noResultsSubtitle": "لا توجد أصول تطابق الفلتر الحالي. جرب فئة مختلفة أو مصطلح بحث آخر.",
+    "engage": "تواصل",
+    "noResultsTitle": "لا توجد فرص مطابقة",
+    "noResultsSubtitle": "لا توجد فرص تطابق الفلاتر الحالية. جرب فئة أو كلمة بحث مختلفة.",
     "previous": "السابق",
     "page": "صفحة",
     "of": "من",
     "next": "التالي",
     "engageModal": {
-      "title": "تأكيد التفاعل",
-      "message": "التفاعل مع {investmentName} سيكلفك {creditCost} رصيدًا. هل أنت متأكد أنك تريد المتابعة؟",
+      "title": "????? ??? ????????",
+      "message": "??? ???????? ?? {investmentName} ?????? {creditCost} ??????. ?? ???? ?????????",
       "cancelButton": "إلغاء",
-      "proceedButton": "متابعة والتفاعل"
+      "proceedButton": "??????"
     },
     "engageSuccessTitle": "تم إرسال الطلب",
     "engageSuccessMessage": "تم إرسال طلب التفاعل الخاص بك بخصوص {investmentName}. سيتم إعلامك عند القبول.",
     "requestSubmittedTitle": "تم إرسال الطلب",
     "requestSubmittedMessage": "تم إرسال طلبك بخصوص {investmentName}. سنقوم بإعلامك عند القبول.",
     "shareValidation": {
-      "minError": "يجب ألا يقل عدد الأسهم عن 1",
+      "minError": "???? ????? ?????? ??? ?????",
       "maxError": "الحد الأقصى {available} من الأسهم المتاحة"
     },
     "investDialog": {
-      "title": "استثمر في {investmentName}",
+      "title": "شارك في {investmentName}",
       "sharePrice": "سعر السهم",
       "available": "المتاح",
       "minLabel": "الحد الأدنى",
       "maxLabel": "الحد الأقصى",
       "sharesLabel": "عدد الأسهم",
       "availableLine": "المتاح: {available} سهم",
-      "totalInvestment": "إجمالي الاستثمار:",
+      "totalInvestment": "إجمالي المشاركة:",
       "expectedROI": "العائد المتوقع:",
       "cancel": "إلغاء",
-      "confirm": "تأكيد الاستثمار",
+      "confirm": "تأكيد المشاركة",
       "processing": "جاري المعالجة..."
     },
     "confirmDialog": {
-      "title": "تأكيد الاستثمار",
-      "subtitle": "يرجى مراجعة وتأكيد طلب الاستثمار الخاص بك",
-      "investmentLabel": "الاستثمار:",
+      "title": "تأكيد المشاركة",
+      "subtitle": "راجع طلب المشاركة قبل إرساله",
+      "investmentLabel": "الفرصة:",
       "sharesLabel": "الأسهم:",
-      "totalCostLabel": "التكلفة الإجمالية:",
-      "warning": "إشعار مهم",
-      "warningMessage": "سيؤدي هذا الإجراء إلى خصم الأرصدة من حسابك وتقديم طلب إلى المؤسس. لا يمكن التراجع عن هذا الإجراء.",
-      "confirmButton": "تأكيد والمتابعة"
+      "totalCostLabel": "?????? ????????:",
+      "warning": "تنبيه مهم",
+      "warningMessage": "سيتم خصم الرصيد من حسابك وإرسال الطلب إلى المؤسس. لا يمكن التراجع عن هذا الإجراء.",
+      "confirmButton": "تأكيد ومتابعة"
     }
   },
   "submitInvestment": {
-    "title": "إنشاء فرصة استثمار",
-    "editTitle": "تحرير فرصة الاستثمار",
-    "subtitle": "أطلق حملة جمع التبرعات وتواصل مع المستثمرين",
+    "title": "إنشاء فرصة",
+    "editTitle": "تعديل فرصة",
+    "subtitle": "???? ????? ?????? ?? ?????????? ?????????",
     "step": {
-      "businessDetails": "تفاصيل المشروع",
+      "businessDetails": "?????? ??????",
       "financialStructure": "الهيكل المالي",
       "reviewSubmit": "مراجعة وإرسال"
     },
-    "tellInvestors": "أخبر المستثمرين عن مشروعك",
+    "tellInvestors": "???? ?????????? ??????",
     "labels": {
-      "businessName": "اسم المشروع",
+      "businessName": "????? ??????",
       "description": "الوصف",
-      "businessCategory": "فئة المشروع",
+      "businessCategory": "?????",
       "businessStage": "المرحلة",
-      "projectPhase": "مرحلة المشروع",
+      "projectPhase": "????? ??????",
       "milestone": "المعلم الحالي",
       "teamMembers": "أعضاء الفريق",
       "coverImage": "صورة الغلاف",
@@ -345,90 +387,89 @@
     "actions": {
       "uploadCover": "رفع الغلاف",
       "remove": "إزالة",
-      "addTeamMember": "أضف عضو فريق",
+      "addTeamMember": "إضافة عضو فريق",
       "addImage": "إضافة",
-      "continue": "المتابعة",
-      "submit": "إرسال الاستثمار",
+      "continue": "متابعة",
+      "submit": "إرسال الفرصة",
       "save": "حفظ التغييرات",
       "cancel": "إلغاء",
-      "back": "العودة إلى الاستثمارات"
-    }
-    ,
+      "back": "العودة إلى الفرص"
+    },
     "placeholders": {
-      "businessName": "أدخل اسم المشروع أو النشاط",
-      "description": "وصف مشروعك، المشكلة التي تحلها، والقيمة الفريدة التي تقدمها...",
+      "businessName": "???? ????? ??????",
+      "description": "?? ??????? ???????? ???? ?????? ??????? ??????? ???? ??????...",
       "milestoneExample": "مثال: إطلاق MVP، سلسلة A، توافق المنتج مع السوق",
       "teamUserId": "رقم الجوال (مطلوب)",
       "teamName": "الاسم المعروض (اختياري)",
       "teamRole": "الدور",
-      "duration": "مدة الاستثمار",
+      "duration": "مدة الفرصة",
       "expectedProfit": "نسبة الربح المتوقعة %",
       "pricePerShare": "سعر السهم",
       "numberOfShares": "عدد الأسهم لهذه الجولة",
       "valuationCap": "حد تقييم الشركة",
-      "amountInvesting": "المبلغ الذي تستثمره",
-      "minPerInvestor": "الحد الأدنى لكل مستثمر (اختياري)",
-      "maxPerInvestor": "الحد الأقصى لكل مستثمر (اختياري)",
+      "amountInvesting": "المبلغ المطلوب",
+      "minPerInvestor": "الحد الأدنى لكل مشارك (اختياري)",
+      "maxPerInvestor": "الحد الأقصى لكل مشارك (اختياري)",
       "expectedReturn": "نسبة العائد المتوقعة",
       "coverImageUrlExample": "https://example.com/image.jpg",
       "pitchVideoUrl": "https://youtube.com/watch?v=..."
     }
   },
   "investmentPreview": {
-    "backButton": "العودة إلى الاستثمارات",
-    "investmentType": "نوع الاستثمار",
-    "industry": "الصناعة",
+    "backButton": "العودة إلى الفرص",
+    "investmentType": "????? ?????????",
+    "industry": "المجال",
     "founderRating": "تقييم المؤسس",
     "earlyStage": "جولة تمويل مبكرة",
-    "equityOpportunity": "فرصة ملكية الأسهم",
-    "riskLevel": "مستوى المخاطرة",
+    "equityOpportunity": "فرصة تملك أسهم",
+    "riskLevel": "مستوى المخاطر",
     "conservativeProfile": "ملف تعريف متحفظ",
     "moderateExposure": "تعرض معتدل",
     "highVolatility": "تقلب عالي",
     "campaignStatus": "حالة الحملة",
-    "currentlyAccepting": "يقبل الاستثمارات حاليًا",
+    "currentlyAccepting": "تقبل المشاركة حالياً",
     "targetReached": "تم الوصول إلى الهدف",
     "campaignEnded": "انتهت الحملة",
-    "projectRoadmap": "خارطة طريق المشروع",
+    "projectRoadmap": "????? ???? ??????",
     "current": "الحالي",
     "complete": "مكتمل",
-    "currentMilestone": "المعلم الحالي",
+    "currentMilestone": "المرحلة الحالية",
     "sharePrice": "سعر السهم",
-    "minInvestment": "الحد الأدنى للاستثمار",
+    "minInvestment": "الحد الأدنى للمشاركة",
     "expectedROI": "العائد المتوقع",
     "totalShares": "إجمالي الأسهم",
-    "available": "متاح",
+    "available": "المتاح",
     "valuationCap": "سقف التقييم",
     "fundingProgress": "تقدم التمويل",
     "amountRaised": "المبلغ المجمع",
     "target": "الهدف",
     "funded": "ممول",
-    "yourInvestment": "استثمارك",
-    "projectTeam": "فريق المشروع",
-    "noTeamMembers": "لا يوجد أعضاء فريق متاحين",
+    "yourInvestment": "مشاركتك",
+    "projectTeam": "??????",
+    "noTeamMembers": "لا يوجد أعضاء فريق متاحون",
     "timeline": "الجدول الزمني",
     "started": "بدأ",
     "targetEnd": "نهاية الهدف",
     "posted": "تم النشر",
-    "quickStats": "إحصائيات سريعة",
+    "quickStats": "إحصاءات سريعة",
     "credibilityScore": "درجة المصداقية",
     "activeInvestors": "المستثمرون النشطون",
     "currency": "العملة",
     "founder": "المؤسس",
-    "contactFounder": "اتصل بالمؤسس",
-    "viewProfile": "عرض الملف الشخصي",
-    "investNow": "استثمر الآن",
+    "contactFounder": "تواصل مع المؤسس",
+    "viewProfile": "عرض الملف",
+    "investNow": "????",
     "fullyFunded": "ممول بالكامل",
     "closed": "مغلق",
     "daysLeft": "أيام متبقية",
     "learnMore": "اعرف المزيد",
     "valuation": "التقييم",
     "author": "المؤلف",
-    "viewAllMedia": "عرض وسائط المشروع",
+    "viewAllMedia": "??? ????? ??????",
     "images": "صور",
     "video": "فيديو",
     "noMediaYet": "لم يتم رفع أي وسائط بعد",
-    "recentInvestors": "المستثمرون الأخيرون",
+    "recentInvestors": "أحدث المستثمرين",
     "noInvestors": "لا يوجد مستثمرون بعد",
     "published": "منشور",
     "sections": {
@@ -447,7 +488,7 @@
       "noMarket": "الصناعة غير محددة",
       "noValueProp": "لا توجد تفاصيل للعرض الفريد",
       "investmentInfo": {
-        "title": "معلومات الاستثمار",
+        "title": "معلومات المشاركة",
         "equity": {
           "sharePrice": "سعر السهم",
           "totalShares": "إجمالي الأسهم",
@@ -475,8 +516,8 @@
         "viewFounderProfile": "عرض ملف المؤسس"
       },
       "media": {
-        "title": "وسائط المشروع",
-        "viewProjectMedia": "عرض وسائط المشروع",
+        "title": "????? ??????",
+        "viewProjectMedia": "??? ????? ??????",
         "photos": "صور",
         "videos": "فيديوهات",
         "documents": "مستندات"
@@ -507,8 +548,8 @@
   },
   "founderProfile": {
     "title": "الملف الشخصي للمؤسس",
-    "projects": "المشاريع",
-    "noProjects": "لا توجد مشاريع نشطة.",
+    "projects": "???",
+    "noProjects": "?? ???? ??? ????.",
     "kycVerified": "تم التحقق من الهوية",
     "notFound": "المؤسس غير موجود",
     "notFoundSubtitle": "هذا الملف الشخصي غير موجود أو غير متاح."
@@ -516,11 +557,11 @@
   "dashboard": {
     "investorTitle": "لوحة تحكم المستثمر",
     "portfolioValue": "قيمة المحفظة",
-    "myInvestments": "استثماراتي",
+    "myInvestments": "????????",
     "watchlist": "قائمة المراقبة",
-    "investmentUpdates": "تحديثات استثماراتي",
+    "investmentUpdates": "??????? ?????????",
     "updatesLabel": "تحديثات",
-    "noInvestmentUpdates": "لا توجد تحديثات على الاستثمارات حتى الآن.",
+    "noInvestmentUpdates": "?? ???? ??????? ??? ????????? ??? ????.",
     "incomingRequests": "الطلبات الواردة",
     "investorScore": "درجتي",
     "currentCredits": "الرصيد الحالي",
@@ -542,26 +583,26 @@
     },
     "withdraw": "سحب",
     "noSentRequests": "لا توجد نتائج طلبات بعد.",
-    "switchProject": "تبديل المشروع",
-    "myProjectOverview": "نظرة عامة على مشروعي",
+    "switchProject": "????? ??????",
+    "myProjectOverview": "???? ???? ??? ??????",
     "totalInvestors": "إجمالي المستثمرين",
     "profileViews": "مشاهدات الملف الشخصي",
     "engagementScore": "درجة التفاعل",
     "investorInterest": "اهتمام المستثمرين",
     "quickActions": "إجراءات سريعة",
-    "createInvestment": "إنشاء استثمار",
-    "editProject": "تعديل المشروع",
+    "createInvestment": "????? ????",
+    "editProject": "????? ??????",
     "viewPublicPage": "عرض الصفحة العامة",
     "postUpdate": "نشر تحديث",
     "recentActivity": "النشاط الأخير",
-    "selectProjectTitle": "اختر مشروعًا",
-    "selectProjectSubtitle": "اختر المشروع الذي تريد عرض لوحة التحكم الخاصة به.",
+    "selectProjectTitle": "???? ????",
+    "selectProjectSubtitle": "???? ?????? ???? ???? ?????.",
     "uncategorized": "غير مصنف",
     "emptyWatchlist": "لا توجد عناصر في قائمة المراقبة.",
     "noProject": {
-      "title": "لا توجد مشاريع بعد",
-      "subtitle": "لم تقم بإنشاء أي مشاريع استثمارية. ابدأ بتقديم مشروعك الأول!",
-      "button": "أنشئ مشروعك الأول"
+      "title": "?? ???? ??? ???",
+      "subtitle": "?? ???? ?? ??? ???. ???? ?????? ????? ??????.",
+      "button": "????? ??? ????"
     },
     "withdrawModal": {
       "title": "سحب الطلب؟",
@@ -582,13 +623,13 @@
     "removeAttachment": "إزالة المرفق"
   },
   "profile": {
-        "company": {
-          "title": "الشركة",
-          "name": "اسم الشركة",
-          "email": "بريد الشركة",
-          "address": "عنوان الشركة",
-          "hrLetter": "خطاب الموارد البشرية"
-        },
+    "company": {
+      "title": "الشركة",
+      "name": "اسم الشركة",
+      "email": "بريد الشركة",
+      "address": "عنوان الشركة",
+      "hrLetter": "خطاب الموارد البشرية"
+    },
     "kyc": "التحقق من الهوية",
     "kycCompletion": "اكتمال التحقق من الهوية",
     "kycComplete": "تم التحقق من هويتك بنجاح",
@@ -747,7 +788,6 @@
         "description": "حركات السوق، التقارير، والرؤى المختارة."
       }
     },
-
     "placeholders": {
       "linkedin": "https://linkedin.com/in/...",
       "facebook": "https://facebook.com/..."
@@ -806,29 +846,72 @@
       "title": "المظهر",
       "theme": {
         "label": "السمة",
-        "options": { "system": "النظام", "light": "فاتح", "dark": "داكن" }
+        "options": {
+          "system": "النظام",
+          "light": "فاتح",
+          "dark": "داكن"
+        }
       }
     },
     "localization": {
       "title": "اللغة والعملة",
-      "language": { "label": "اللغة", "options": { "en": "الإنجليزية", "ar": "العربية" } },
-      "currency": { "label": "العملة", "options": { "USD": "دولار", "EUR": "يورو", "SAR": "ريال" } }
+      "language": {
+        "label": "اللغة",
+        "options": {
+          "en": "الإنجليزية",
+          "ar": "العربية"
+        }
+      },
+      "currency": {
+        "label": "العملة",
+        "options": {
+          "USD": "دولار",
+          "EUR": "يورو",
+          "SAR": "ريال"
+        }
+      }
     },
-    "privacy": { "title": "الخصوصية" },
+    "privacy": {
+      "title": "الخصوصية"
+    },
     "personalization": {
       "title": "التخصيص",
-      "dashboardDensity": { "label": "كثافة اللوحة", "options": { "comfortable": "مريحة", "compact": "مضغوطة" } },
-      "defaultInvestmentType": { "label": "نوع الاستثمار الافتراضي", "options": { "any": "أي", "founding": "تأسيس", "equity": "أسهم" } },
+      "dashboardDensity": {
+        "label": "كثافة اللوحة",
+        "options": {
+          "comfortable": "مريحة",
+          "compact": "مضغوطة"
+        }
+      },
+      "defaultInvestmentType": {
+        "label": "????? ????????? ?????????",
+        "options": {
+          "any": "أي",
+          "founding": "?????? ???????",
+          "equity": "أسهم"
+        }
+      },
       "showRiskIndicators": "عرض مؤشرات المخاطر"
     },
-    "support": { "title": "الدعم", "available": "الدعم متاح", "hours": "ساعات الدعم" },
-    "wallet": { "title": "المحفظة", "balance": "الرصيد", "amount": "المبلغ", "addButton": "إضافة رصيد" },
-    "notifications": { "title": "إعدادات الإشعارات" }
+    "support": {
+      "title": "الدعم",
+      "available": "الدعم متاح",
+      "hours": "ساعات الدعم"
+    },
+    "wallet": {
+      "title": "المحفظة",
+      "balance": "الرصيد",
+      "amount": "المبلغ",
+      "addButton": "إضافة رصيد"
+    },
+    "notifications": {
+      "title": "إعدادات الإشعارات"
+    }
   },
   "requests": {
     "title": "الطلبات",
-    "incoming": "واردة",
-    "outgoing": "مرسلة",
+    "incoming": "الواردة",
+    "outgoing": "المرسلة",
     "from": "من",
     "to": "إلى",
     "accept": "قبول",
@@ -836,12 +919,12 @@
     "withdraw": "سحب",
     "noIncoming": "لا توجد طلبات واردة.",
     "noOutgoing": "لا توجد طلبات مرسلة.",
-    "pendingRequestExists": "لديك بالفعل طلب قيد المراجعة لهذه الفرصة الاستثمارية. برجاء انتظار رد المؤسس قبل إرسال طلب جديد.",
+    "pendingRequestExists": "لديك بالفعل طلب قيد المراجعة لهذه الفرصة. يرجى انتظار رد المؤسس قبل إرسال طلب جديد.",
     "notifications": {
       "accepted": "تم قبول الطلب",
-      "acceptedMessage": "تم قبول دعوة {projectName}.",
+      "acceptedMessage": "تم قبول طلب {projectName}.",
       "declined": "تم رفض الطلب",
-      "declinedMessage": "تم رفض دعوة {projectName}.",
+      "declinedMessage": "تم رفض طلب {projectName}.",
       "withdrawn": "تم سحب الطلب",
       "withdrawnMessage": "تم سحب طلب {projectName}."
     }
@@ -862,8 +945,8 @@
       "jun": "يونيو",
       "jul": "يوليو",
       "aug": "أغسطس",
-      "sep": "سبتمبر"
-      ,"oct": "أكتوبر",
+      "sep": "سبتمبر",
+      "oct": "أكتوبر",
       "nov": "نوفمبر",
       "dec": "ديسمبر"
     },

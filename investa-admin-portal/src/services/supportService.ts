@@ -1,7 +1,6 @@
-import { api } from '@/api/api';
+import { api, getAuthToken } from '@/api/api';
 import { MOCK_SUPPORT_REQUESTS } from '@/mocks';
 import { SupportRequest } from '@/types';
-import { storage } from '@/utils/environment';
 
 export const supportService = {
   async getTickets(): Promise<SupportRequest[]> {
@@ -20,7 +19,7 @@ export const supportService = {
 
   async getConversation(conversationId: string) {
     try {
-      const adminToken = storage.get('token') || '';
+      const adminToken = getAuthToken() || '';
       const response = await api.get<any>(`/api/support/conversations/${conversationId}`, {
         headers: { Authorization: `Bearer ${adminToken}` },
       });

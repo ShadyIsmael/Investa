@@ -24,11 +24,7 @@ export function getDynamicBaseUrl(): string {
     return envUrl.replace(/\/+$/, '');
   }
 
-  // Dynamically construct based on current hostname
-  const hostname = window.location.hostname;
-  const port = import.meta.env.VITE_API_PORT || '5000'; // Match Vite proxy target
-  
-  return `http://${hostname}:${port}`;
+  return '';
 }
 
 /**
@@ -42,11 +38,7 @@ export function getDynamicHubUrl(hubPath: string = '/chathub'): string {
     return envUrl.replace(/\/+$/, '') + hubPath;
   }
 
-  // Dynamically construct based on current hostname
-  const hostname = window.location.hostname;
-  const port = import.meta.env.VITE_HUB_PORT || '5000';
-  
-  return `http://${hostname}:${port}${hubPath}`;
+  return hubPath;
 }
 
 /**

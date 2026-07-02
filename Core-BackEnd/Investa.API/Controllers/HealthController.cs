@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using System;
 using System.Net;
 
@@ -10,6 +11,7 @@ namespace Investa.API.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
+    [AllowAnonymous]
     public class HealthController : ControllerBase
     {
         private readonly ILogger<HealthController> _logger;
@@ -32,7 +34,7 @@ namespace Investa.API.Controllers
             try
             {
                 var serverName = Environment.MachineName;
-                var binding = "0.0.0.0:5000"; // Configured in Kestrel
+                var binding = "0.0.0.0:5235"; // Configured in Kestrel
                 
                 // Get local IP addresses
                 var hostName = Dns.GetHostName();
@@ -53,8 +55,8 @@ namespace Investa.API.Controllers
                     version = "1.0.0",
                     endpoints = new
                     {
-                        api = $"http://{serverName}:5000/api",
-                        swagger = $"http://{serverName}:5000/swagger",
+                        api = $"http://{serverName}:5235/api",
+                        swagger = $"http://{serverName}:5235/swagger",
                         notifications = "Firebase Cloud Messaging (FCM)"
                     }
                 };

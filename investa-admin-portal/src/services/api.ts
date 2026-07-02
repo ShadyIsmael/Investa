@@ -6,6 +6,14 @@
 import { logger } from '../utils/logger';
 import { getDynamicBaseUrl, storage } from '../utils/environment';
 
+export const ADMIN_ACCESS_TOKEN_KEY = 'admin_access_token';
+export const ADMIN_AUTHENTICATED_KEY = 'admin_is_authenticated';
+export const ADMIN_REFRESH_TOKEN_KEY = 'admin_refresh_token';
+export const ADMIN_TOKEN_EXPIRES_AT_KEY = 'admin_token_expires_at';
+export const ADMIN_REFRESH_EXPIRES_AT_KEY = 'admin_refresh_expires_at';
+
+const LEGACY_ACCESS_TOKEN_KEY = 'token';
+
 const DEFAULT_BASE_URL = getDynamicBaseUrl();
 
 // Initialize BASE_URL with dynamic resolution
@@ -48,14 +56,29 @@ export function setUseMocks(val: boolean): void {
 }
 
 // Auth token management
-let authToken: string | null = storage.get('token');
+function getInitialAuthToken(): string | null {
+  const scopedToken = storage.get(ADMIN_ACCESS_TOKEN_KEY);
+  if (scopedToken) return scopedToken;
+
+  const legacyToken = storage.get(LEGACY_ACCESS_TOKEN_KEY);
+  if (!legacyToken) return null;
+
+  // One-time migration from legacy shared key to admin-scoped key.
+  storage.set(ADMIN_ACCESS_TOKEN_KEY, legacyToken);
+  storage.remove(LEGACY_ACCESS_TOKEN_KEY);
+  return legacyToken;
+}
+
+let authToken: string | null = getInitialAuthToken();
 
 export function setAuthToken(token: string | null, persist = true): void {
   authToken = token;
   if (persist && token) {
-    storage.set('token', token);
+    storage.set(ADMIN_ACCESS_TOKEN_KEY, token);
+    storage.remove(LEGACY_ACCESS_TOKEN_KEY);
   } else {
-    storage.remove('token');
+    storage.remove(ADMIN_ACCESS_TOKEN_KEY);
+    storage.remove(LEGACY_ACCESS_TOKEN_KEY);
   }
 }
 

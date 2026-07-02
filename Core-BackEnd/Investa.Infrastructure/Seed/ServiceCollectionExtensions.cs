@@ -23,8 +23,18 @@ public static class ServiceCollectionExtensions
         services.AddScoped<DatabaseSeeder>(sp => new DatabaseSeeder(
             sp.GetRequiredService<ApplicationDbContext>(),
             sp.GetRequiredService<IPasswordHasher<AuthUser>>(),
-            sp.GetRequiredService<UserManager<ApplicationIdentityUser>>()
+            sp.GetRequiredService<UserManager<ApplicationIdentityUser>>(),
+            sp.GetRequiredService<RoleManager<ApplicationIdentityRole>>()
         ));
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the development reseed service (repair-only) for identity roles and seeded users.
+    /// </summary>
+    public static IServiceCollection AddDevIdentityReseed(this IServiceCollection services)
+    {
+        services.AddScoped<DevIdentityReseedService>();
         return services;
     }
 
@@ -46,3 +56,4 @@ public static class ServiceCollectionExtensions
         await seeder.SeedAsync();
     }
 }
+

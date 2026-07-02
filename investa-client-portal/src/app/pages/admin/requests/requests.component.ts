@@ -334,7 +334,7 @@ export class RequestsComponent {
 
   getRequestTypeDisplay(request: InvestmentRequest): string {
 
-    if (!request.requestType) return 'Investment Request';
+    if (!request.requestType) return 'Participation Request';
 
 
 
@@ -346,11 +346,11 @@ export class RequestsComponent {
 
       case InvestmentRequestType.InvestmentInterest:
 
-        return 'Investment Interest';
+        return 'Participation Interest';
 
       default:
 
-        return 'Investment Request';
+        return 'Participation Request';
 
     }
 

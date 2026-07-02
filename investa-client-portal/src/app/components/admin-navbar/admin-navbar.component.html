@@ -42,7 +42,7 @@
           <span>{{ 'adminNav.dashboard' | translate }}</span>
         </a>
 
-        @if (userRole() === 'investor') {
+          @if (roleContext.isActiveInvestorContext()) {
           <a routerLink="/admin/investments" routerLinkActive="nav-link-active" class="nav-link">
             <svg class="nav-link-icon" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
               <path
@@ -53,14 +53,23 @@
             </svg>
             <span>{{ 'adminNav.investments' | translate }}</span>
           </a>
-        } @else if (userRole() === 'founder') {
+
+          <a routerLink="/admin/my-projects" routerLinkActive="nav-link-active" class="nav-link">
+            <svg class="nav-link-icon" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0l.879-.659M7.5 14.25l-2.489-1.867a.75.75 0 010-1.266l2.489-1.867M16.5 14.25l2.489-1.867a.75.75 0 000-1.266l-2.489-1.867" />
+            </svg>
+            <span>{{ 'adminNav.myParticipations' | translate }}</span>
+          </a>
+          }
+
+          @if (roleContext.isActiveFounderContext()) {
           <a routerLink="/admin/investments/new" routerLinkActive="nav-link-active" class="nav-link">
             <svg class="nav-link-icon" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
-            <span>{{ 'adminNav.submitInvestment' | translate }}</span>
+            <span>{{ 'adminNav.createProject' | translate }}</span>
           </a>
-        }
+          }
 
         <a routerLink="/admin/chat" routerLinkActive="nav-link-active" class="nav-link">
           <svg class="nav-link-icon" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -105,7 +114,7 @@
         <svg class="search-icon" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
         </svg>
-        <input type="text" placeholder="Search investments, opportunities..." class="search-input" />
+        <input type="text" [placeholder]="'adminNav.searchPlaceholder' | translate" class="search-input" />
         <kbd class="search-shortcut">⌘K</kbd>
       </div>
     </div>

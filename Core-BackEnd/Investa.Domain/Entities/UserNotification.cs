@@ -14,6 +14,11 @@ namespace Investa.Domain.Entities
         [Key]
         public long Id { get; set; }
 
+        public long? NotificationId { get; set; }
+
+        [ForeignKey(nameof(NotificationId))]
+        public Notification? Notification { get; set; }
+
         /// <summary>Recipient user ID (references AspNetUsers.Id)</summary>
         [Required]
         [MaxLength(450)]

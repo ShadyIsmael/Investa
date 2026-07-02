@@ -1,0 +1,78 @@
+<div class="container mx-auto p-6 lg:p-8">
+  <div class="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-white">Discover Opportunities</h1>
+      <p class="mt-2 text-gray-400">Browse public founder opportunities from the unified client portal.</p>
+    </div>
+    <a *ngIf="roleContext.isActiveFounderContext()" routerLink="/admin/my-opportunities" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-slate-700">My Opportunities</a>
+  </div>
+
+  <section class="mb-8 rounded-xl border border-slate-800 bg-slate-900/80 p-5">
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-3 xl:grid-cols-4">
+      <input [(ngModel)]="filters.search" placeholder="Search" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+      <select [(ngModel)]="filters.investmentModel" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+        <option value="">Investment Model</option>
+        <option *ngFor="let model of investmentModels()" [value]="model">{{ model }}</option>
+      </select>
+      <select [(ngModel)]="filters.categoryId" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+        <option value="">Category</option>
+        <option *ngFor="let category of categories()" [value]="category.id">{{ service.label(category) }}</option>
+      </select>
+      <select [(ngModel)]="filters.fundingGoalId" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+        <option value="">Funding goal</option>
+        <option *ngFor="let goal of fundingGoals()" [value]="goal.id">{{ service.label(goal) }}</option>
+      </select>
+      <select [(ngModel)]="filters.projectStage" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+        <option value="">Opportunity stage</option>
+        <option *ngFor="let stage of projectStages()" [value]="stage">{{ stage }}</option>
+      </select>
+      <input [(ngModel)]="filters.minFunding" type="number" placeholder="Min funding" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+      <input [(ngModel)]="filters.maxFunding" type="number" placeholder="Max funding" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+      <input [(ngModel)]="filters.minimumInvestment" type="number" placeholder="Minimum participation" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+    </div>
+    <div class="mt-4 flex flex-wrap gap-2">
+      <button *ngFor="let tag of tags()" type="button" (click)="toggleTag(tag.id)" class="rounded-full border px-3 py-1 text-xs font-semibold" [class.bg-blue-500/20]="isTagSelected(tag.id)" [class.text-blue-200]="isTagSelected(tag.id)" [class.border-blue-500/40]="isTagSelected(tag.id)" [class.bg-slate-800]="!isTagSelected(tag.id)" [class.text-gray-300]="!isTagSelected(tag.id)" [class.border-slate-700]="!isTagSelected(tag.id)">
+        {{ service.label(tag) }}
+      </button>
+    </div>
+    <div class="mt-5 flex gap-3">
+      <button (click)="applyFilters()" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">Apply Filters</button>
+      <button (click)="clearFilters()" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-slate-700">Clear</button>
+    </div>
+  </section>
+
+  <div *ngIf="isLoading()" class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+    <div *ngFor="let item of [1,2,3,4,5,6]" class="h-80 animate-pulse rounded-xl border border-slate-800 bg-slate-900/80"></div>
+  </div>
+
+  <div *ngIf="errorMessage() && !isLoading()" class="rounded-lg border border-red-500/50 bg-red-500/20 p-4 text-red-200">{{ errorMessage() }}</div>
+
+  <div *ngIf="!isLoading() && !errorMessage() && opportunities().length === 0" class="rounded-xl border border-slate-800 bg-slate-900/80 p-12 text-center text-gray-400">
+    No opportunities match your filters.
+  </div>
+
+  <div *ngIf="!isLoading() && !errorMessage() && opportunities().length > 0" class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+    <article *ngFor="let opportunity of opportunities()" class="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/80">
+      <img [src]="cover(opportunity)" [alt]="title(opportunity)" class="h-44 w-full object-cover">
+      <div class="p-5">
+        <div class="mb-3 flex flex-wrap gap-2">
+          <span class="rounded-full bg-slate-800 px-2.5 py-1 text-xs text-gray-300">{{ label(categories(), opportunity.categoryId, opportunity.categoryName) }}</span>
+          <span class="rounded-full bg-slate-800 px-2.5 py-1 text-xs text-gray-300">{{ opportunity.investmentModel || '-' }}</span>
+        </div>
+        <h2 class="text-lg font-bold text-white">{{ title(opportunity) }}</h2>
+        <p class="mt-2 line-clamp-3 text-sm text-gray-400">{{ description(opportunity) }}</p>
+        <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
+          <div><dt class="text-gray-500">Stage</dt><dd class="text-gray-200">{{ opportunity.projectStage || '-' }}</dd></div>
+          <div><dt class="text-gray-500">Funding</dt><dd class="text-gray-200">{{ money(opportunity.fundingTarget) }}</dd></div>
+          <div><dt class="text-gray-500">Min</dt><dd class="text-gray-200">{{ money(opportunity.minimumInvestment) }}</dd></div>
+          <div><dt class="text-gray-500">Goal</dt><dd class="text-gray-200">{{ label(fundingGoals(), opportunity.fundingGoalId, opportunity.fundingGoalName) }}</dd></div>
+        </dl>
+        <p *ngIf="opportunity.latestPublicUpdate" class="mt-4 rounded-lg bg-slate-800/60 p-3 text-xs text-gray-300">{{ opportunity.latestPublicUpdate }}</p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <span *ngFor="let tag of opportunity.tags || []" class="rounded-full bg-blue-500/10 px-2.5 py-1 text-xs text-blue-200">{{ tagLabel(tag) }}</span>
+        </div>
+        <a [routerLink]="['/admin/opportunities', opportunity.id]" class="mt-5 inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">View details</a>
+      </div>
+    </article>
+  </div>
+</div>

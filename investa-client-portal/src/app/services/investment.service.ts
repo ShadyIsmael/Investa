@@ -4,6 +4,7 @@ import { ApiService } from './api.service';
 import { InvestmentDto } from '../models/api-response.model';
 import { AuthService } from './auth.service';
 import { FileStoreService } from './file-store.service';
+import { Opportunity, OpportunityLookup, OpportunityService } from './opportunity.service';
 import { toObservable, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { skip } from 'rxjs';
 
@@ -23,6 +24,7 @@ export class InvestmentService {
   private apiService = inject(ApiService);
   private authService = inject(AuthService);
   private fileStoreService = inject(FileStoreService);
+  private opportunityService = inject(OpportunityService);
   private destroyRef = inject(DestroyRef);
   
   // Sequence counter — any loadInvestments call that starts before the latest one is discarded
@@ -56,12 +58,16 @@ export class InvestmentService {
    */
   async loadCategories(): Promise<void> {
     try {
-      const cats = await this.apiService.getBusinessCategories();
-      // Map API BusinessCategory to InvestmentCategory
-      const mapped = cats.map(c => ({ id: c.id, key: c.key, value: c.value, valueAr: c.valueAr }));
+      const cats = await this.opportunityService.getCategories();
+      const mapped = cats.map(c => ({
+        id: Number(c.id),
+        key: c.key || String(c.id),
+        value: this.opportunityService.label(c),
+        valueAr: this.opportunityService.label(c)
+      }));
       this._categories.set(mapped);
     } catch (error) {
-      console.warn('Failed to load categories from API, falling back to extract from investments', error);
+      console.warn('Failed to load opportunity categories from API, falling back to extract from investments', error);
       // Fallback: extract from currently loaded investments
       this.extractCategories(this._investments());
     }
@@ -71,23 +77,30 @@ export class InvestmentService {
    * Load all investments from API
    */
   async loadInvestments(categoryId?: number): Promise<void> {
-    // Stamp this call; any response from an older call will be ignored
     const seq = ++this._loadSeq;
 
     this._loading.set(true);
     this._error.set(null);
-    
+
     try {
-      const dtos = await this.apiService.getInvestmentsByCategory(categoryId);
-      if (seq !== this._loadSeq) return; // Stale response — a newer call is in flight
-      const investments = dtos.map(dto => this.mapDtoToInvestment(dto));
+      const opportunities = await this.opportunityService.getPublicOpportunities(categoryId ? { categoryId } : {});
+      if (seq !== this._loadSeq) return;
+      const investments = opportunities.map(opportunity => this.mapOpportunityToInvestment(opportunity));
       this._investments.set(investments);
     } catch (error) {
-      if (seq !== this._loadSeq) return;
-      const errorMsg = error instanceof Error ? error.message : 'Failed to load investments';
-      this._error.set(errorMsg);
-      console.error('Error loading investments:', error);
-      this._investments.set([]);
+      try {
+        const dtos = await this.apiService.getInvestmentsByCategory(categoryId);
+        if (seq !== this._loadSeq) return;
+        const investments = dtos.map(dto => this.mapDtoToInvestment(dto));
+        this._investments.set(investments);
+      } catch (legacyError) {
+        if (seq !== this._loadSeq) return;
+        const errorMsg = error instanceof Error ? error.message : 'Failed to load opportunities';
+        this._error.set(errorMsg);
+        console.error('Error loading public opportunities:', error);
+        console.warn('Legacy investment fallback also failed:', legacyError);
+        this._investments.set([]);
+      }
     } finally {
       if (seq === this._loadSeq) this._loading.set(false);
     }
@@ -96,17 +109,54 @@ export class InvestmentService {
   /**
    * Get investment by ID
    */
-  async getInvestmentById(id: number): Promise<Investment | null> {
+  async getInvestmentById(id: number, source: Investment['readSource'] = 'legacy-investment'): Promise<Investment | null> {
+    return source === 'public-opportunity'
+      ? this.getOpportunityThenLegacyInvestment(id)
+      : this.getLegacyThenOpportunityInvestment(id);
+  }
+
+  private async getOpportunityThenLegacyInvestment(id: number): Promise<Investment | null> {
+    try {
+      const opportunity = await this.opportunityService.getPublicOpportunity(id);
+      return this.mapOpportunityToInvestment(opportunity);
+    } catch (error) {
+      try {
+        const dto = await this.apiService.getInvestmentById(id);
+        return this.mapDtoToInvestment(dto);
+      } catch (legacyError) {
+        console.error(`Error fetching public opportunity ${id}:`, error);
+        console.warn(`Legacy investment fallback also failed for ${id}:`, legacyError);
+        return null;
+      }
+    }
+  }
+
+  private async getLegacyThenOpportunityInvestment(id: number): Promise<Investment | null> {
     try {
       const dto = await this.apiService.getInvestmentById(id);
       return this.mapDtoToInvestment(dto);
-    } catch (error) {
-      console.error(`Error fetching investment ${id}:`, error);
-      return null;
+    } catch (legacyError) {
+      try {
+        const opportunity = await this.opportunityService.getPublicOpportunity(id);
+        return this.mapOpportunityToInvestment(opportunity);
+      } catch (error) {
+        console.error(`Error fetching legacy investment ${id}:`, legacyError);
+        console.warn(`Public opportunity fallback also failed for ${id}:`, error);
+        return null;
+      }
     }
   }
 
   async toggleFavorite(investmentToToggle: Investment): Promise<void> {
+    if (investmentToToggle.readSource === 'public-opportunity' && !investmentToToggle.legacyInvestmentId) {
+      this._investments.update(investments =>
+        investments.map(inv =>
+          inv.id === investmentToToggle.id ? { ...inv, favorited: !investmentToToggle.favorited } : inv
+        )
+      );
+      return;
+    }
+
     const updatedFavorited = !investmentToToggle.favorited;
 
     // Optimistic update — reflect change immediately for snappy UX
@@ -117,7 +167,7 @@ export class InvestmentService {
     );
 
     try {
-      const confirmedFavorited = await this.apiService.toggleFavorite(investmentToToggle.id, updatedFavorited);
+      const confirmedFavorited = await this.apiService.toggleFavorite(investmentToToggle.legacyInvestmentId ?? investmentToToggle.id, updatedFavorited);
       // Reconcile with server-confirmed value (handles concurrent edits)
       this._investments.update(investments =>
         investments.map(inv =>
@@ -233,8 +283,10 @@ async uploadInvestmentImage(investmentId: number, file: File, caption?: string, 
     
     return {
       id: dto.id,
+      legacyInvestmentId: dto.id,
+      readSource: 'legacy-investment',
       founderId: dto.founderId,
-      name: dto.businessName || 'Unnamed Investment',
+      name: dto.businessName || 'Unnamed Opportunity',
       description: dto.description || '',
       initialCapital: dto.initialCapital ?? 0,
       date: new Date(dto.date),
@@ -342,6 +394,153 @@ imageUrl: dto.imageUrl,
       defaultRiskLevel: dto.defaultRiskLevel,
       loanCompletionStatus: dto.loanCompletionStatus
     } as Investment;
+  }
+
+  private mapOpportunityToInvestment(opportunity: Opportunity): Investment {
+    const category = opportunity.category ?? (opportunity.categoryId ? { id: opportunity.categoryId, name: opportunity.categoryName } : null);
+    const fundingTarget = Number(opportunity.fundingTarget ?? 0);
+    const progress = Number(opportunity.fundingProgressPercent ?? 0);
+    const founder = opportunity.founder;
+    const categoryName = category ? this.lookupLabel(category) : (opportunity.categoryName || undefined);
+    const created = opportunity.createdAt ? new Date(opportunity.createdAt) : new Date();
+    const legacyInvestmentId = this.getLegacyInvestmentId(opportunity);
+
+    return {
+      id: Number(opportunity.id),
+      opportunityId: opportunity.id,
+      legacyInvestmentId,
+      readSource: 'public-opportunity',
+      founderId: String(founder?.id || founder?.userId || opportunity.founderId || ''),
+      founderDisplay: founder?.displayName || founder?.fullName || founder?.name || 'Founder',
+      businessRole: founder?.businessRole || founder?.summary || categoryName || '',
+      name: opportunity.title || 'Untitled Opportunity',
+      description: opportunity.shortDescription || opportunity.description || opportunity.fullDescription || '',
+      initialCapital: 0,
+      date: created,
+      startDate: created,
+      businessCategoryId: category ? Number(category.id) : this.toNumber(opportunity.categoryId),
+      businessCategoryName: categoryName,
+      businessCategoryNameAr: categoryName,
+      minInvestment: this.toNumber(opportunity.minimumInvestmentAmount ?? opportunity.minimumInvestment),
+      maxInvestment: this.toNumber(opportunity.maximumInvestmentAmount ?? opportunity.maximumInvestment),
+      expectedROI: this.extractPercent(opportunity.expectedReturnSummary),
+      investmentType: this.mapInvestmentModel(opportunity.investmentModel),
+      status: this.mapOpportunityStatus(opportunity.status),
+      targetFund: fundingTarget,
+      currentFunding: fundingTarget > 0 ? fundingTarget * (progress / 100) : 0,
+      fundingPercentage: progress,
+      investorCount: 0,
+      investedAmount: 0,
+      riskLevel: RiskLevel.Medium,
+      currency: 'USD',
+      momentumScore: 0,
+      momentumLabel: opportunity.latestPublicUpdate || 'Public Opportunity',
+      publicActivityCount: opportunity.latestPublicUpdate ? 1 : 0,
+      participantOnlyActivityCount: 0,
+      visibilityLabel: 'Public Overview',
+      credibilityScore: 0,
+      imageUrl: opportunity.coverImageUrl || undefined,
+      videoUrl: this.findPitchVideo(opportunity),
+      milestone: opportunity.latestPublicUpdate || undefined,
+      projectStage: opportunity.projectStage || undefined,
+      expectedReturnSummary: opportunity.expectedReturnSummary || undefined,
+      publicInvestmentTermsSummary: opportunity.publicInvestmentTermsSummary || undefined,
+      fundingPurpose: opportunity.fundingPurpose || opportunity.fundingUsage || undefined,
+      tags: opportunity.tags?.map(tag => this.lookupLabel(tag)).filter(Boolean),
+      images: this.mapOpportunityMedia(opportunity),
+      investors: [],
+      teamMembers: [],
+      favorited: false
+    } as Investment;
+  }
+
+  private mapOpportunityMedia(opportunity: Opportunity): Investment['images'] {
+    const media = (opportunity as any).media;
+    const images = Array.isArray(media) ? media : [];
+    return images
+      .filter((item: any) => this.isImageMedia(item))
+      .map((item: any, index: number) => ({
+        id: Number(item.id ?? index),
+        mediaType: item.isCover || item.purpose === 'Cover' ? 0 : 1,
+        url: item.fileUrl || item.url || item.previewUrl || item.thumbnailUrl || '',
+        thumbnailUrl: item.thumbnailUrl || item.previewUrl,
+        fileName: item.fileName || item.originalFileName,
+        caption: item.caption,
+        sortOrder: item.sortOrder ?? index,
+        isPrimary: item.isCover,
+        uploadedBy: item.createdByUserId
+      }));
+  }
+
+  private findPitchVideo(opportunity: Opportunity): string | undefined {
+    const media = (opportunity as any).media;
+    if (!Array.isArray(media)) return undefined;
+    const video = media.find((item: any) => item.purpose === 'PitchVideo' || String(item.mimeType || '').startsWith('video'));
+    return video?.fileUrl || video?.url || video?.previewUrl || undefined;
+  }
+
+  private isImageMedia(item: any): boolean {
+    return item?.isCover || item?.purpose === 'Cover' || item?.purpose === 'Gallery' || String(item?.mimeType || '').startsWith('image');
+  }
+
+  private getLegacyInvestmentId(opportunity: Opportunity): number | undefined {
+    const raw = opportunity.legacyInvestmentId ?? opportunity.investmentId ?? (opportunity as any).linkedInvestmentId;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+  }
+
+  private mapInvestmentModel(model?: string | null): InvestmentType {
+    switch ((model || '').toLowerCase()) {
+      case 'equity':
+        return InvestmentType.Equity;
+      case 'loaninvestment':
+      case 'loan':
+      case 'debt':
+        return InvestmentType.Loan;
+      case 'capitalcontributionprofitsharing':
+      case 'revenuesharing':
+      case 'profitsharing':
+        return InvestmentType.RevenueSharing;
+      default:
+        return InvestmentType.Equity;
+    }
+  }
+
+  private mapOpportunityStatus(status?: string | null): InvestmentStatus {
+    switch ((status || '').toLowerCase()) {
+      case 'published':
+      case 'active':
+      case 'approved':
+        return InvestmentStatus.Active;
+      case 'funded':
+      case 'fullyfunded':
+        return InvestmentStatus.FullyFunded;
+      case 'inprogress':
+        return InvestmentStatus.InProgress;
+      case 'paused':
+        return InvestmentStatus.Paused;
+      case 'completed':
+        return InvestmentStatus.Completed;
+      case 'archived':
+        return InvestmentStatus.Archived;
+      default:
+        return InvestmentStatus.Draft;
+    }
+  }
+
+  private lookupLabel(value: OpportunityLookup | string | number | null | undefined): string {
+    return this.opportunityService.label(value);
+  }
+
+  private toNumber(value: unknown): number | undefined {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+
+  private extractPercent(value?: string | null): number | undefined {
+    if (!value) return undefined;
+    const match = value.match(/(\d+(?:\.\d+)?)/);
+    return match ? Number(match[1]) : undefined;
   }
   
   /**

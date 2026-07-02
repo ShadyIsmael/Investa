@@ -81,13 +81,13 @@ export function getInvestmentTypeDisplay(type: InvestmentType | number | undefin
   
   switch (type) {
     case InvestmentType.Founding:
-      return 'Founding Investment';
+      return 'Profit Sharing';
     case InvestmentType.Equity:
-      return 'Equity Investment';
+      return 'Equity';
     case InvestmentType.RevenueSharing:
-      return 'Revenue Sharing';
+      return 'Profit Sharing';
     case InvestmentType.Loan:
-      return 'Loan / Debt';
+      return 'Loan';
     default:
       return 'Unknown';
   }
@@ -201,6 +201,9 @@ export interface InvestorParticipation {
  */
 export interface Investment {
   id: number;
+  opportunityId?: number | string;
+  legacyInvestmentId?: number;
+  readSource?: 'legacy-investment' | 'public-opportunity';
   founderId: string;
   founderDisplay?: string;
   businessRole?: string;
@@ -242,6 +245,11 @@ export interface Investment {
   businessStageId?: number;
   projectPhaseId?: number;
   milestone?: string;
+  projectStage?: string;
+  expectedReturnSummary?: string;
+  publicInvestmentTermsSummary?: string;
+  fundingPurpose?: string;
+  tags?: string[];
   riskLevel: RiskLevel;
   currency?: string;
   momentumScore?: number;
