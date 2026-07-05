@@ -38,6 +38,12 @@ public class OpportunityJoinRequest
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
+    public Guid? SourceConversationId { get; set; }
+
+    public bool IsVisibleToFounder { get; set; } = true;
+
+    public bool IsVisibleToInvestor { get; set; } = true;
+
     public Opportunity? Opportunity { get; set; }
 
     public AuthUser? Investor { get; set; }

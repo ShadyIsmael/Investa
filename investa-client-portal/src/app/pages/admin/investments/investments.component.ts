@@ -426,7 +426,7 @@ export class InvestmentsComponent {
    * Show engagement prompt
    */
   promptEngage(investment: Investment): void {
-    if (!this.canUseLegacyRequestFlow(investment)) {
+    if (!this.canUseDeprecatedRequestFlow(investment)) {
       this.showOpportunityRequestComingSoon();
       return;
     }
@@ -447,7 +447,7 @@ export class InvestmentsComponent {
   async confirmEngage(): Promise<void> {
     const investment = this.investmentToEngage();
     if (!investment) return;
-    if (!this.canUseLegacyRequestFlow(investment)) {
+    if (!this.canUseDeprecatedRequestFlow(investment)) {
       this.showOpportunityRequestComingSoon();
       this.investmentToEngage.set(null);
       return;
@@ -476,7 +476,7 @@ export class InvestmentsComponent {
 
     this.engagementProcessing.set(true);
     this.requestsService
-      .createInvestmentRequest(investment, this.engagementCreditCost, 0)
+      .createOpportunityRequest(investment, this.engagementCreditCost, 0)
       .then(() => {
         const { title, message } = this.getRequestSubmittedCopy(investment);
         this.notificationService.showToast({
@@ -520,12 +520,7 @@ export class InvestmentsComponent {
   navigateToDetails(investment: Investment | number): void {
     try {
       const investmentId = typeof investment === 'number' ? investment : investment.id;
-      const source = typeof investment === 'number'
-        ? 'legacy'
-        : investment.readSource === 'public-opportunity'
-          ? 'opportunity'
-          : 'legacy';
-      this.router.navigate(['/admin/investments', investmentId], { queryParams: { source } });
+      this.router.navigate(['/admin/investments', investmentId]);
     } catch (err) {
       this.notificationService.showToast({ title: 'Navigation error', message: 'Unable to navigate to investment details', type: 'error' });
       console.error('Navigation error:', err);
@@ -555,7 +550,7 @@ export class InvestmentsComponent {
    * Open investment dialog
    */
   openInvestDialog(investment: Investment): void {
-    if (!this.canUseLegacyRequestFlow(investment)) {
+    if (!this.canUseDeprecatedRequestFlow(investment)) {
       this.showOpportunityRequestComingSoon();
       return;
     }
@@ -602,7 +597,7 @@ export class InvestmentsComponent {
   /**
    * Calculate total investment amount
    */
-  calculateInvestmentAmount(investment: Investment): number {
+  calculateRequestedAmount(investment: Investment): number {
     return this.sharesToPurchaseValue * (investment.sharePrice || 0);
   }
 
@@ -611,7 +606,7 @@ export class InvestmentsComponent {
    */
   validateShares(investment: Investment): void {
     const shares = this.sharesToPurchaseValue;
-    const amount = this.calculateInvestmentAmount(investment);
+    const amount = this.calculateRequestedAmount(investment);
 
     // Reset error
     this.investmentError.set(null);
@@ -648,11 +643,11 @@ export class InvestmentsComponent {
       return;
     }
 
-    const investmentAmount = (investment.sharePrice || 0) * this.sharesToPurchaseValue;
+    const requestedAmount = (investment.sharePrice || 0) * this.sharesToPurchaseValue;
     const currentCredits = this.userCredits();
 
     // Pre-check credits
-    if (currentCredits < investmentAmount) {
+    if (currentCredits < requestedAmount) {
       this.investmentError.set('Insufficient credits. Please add more credits to your account.');
       this.notificationService.showToast({
         title: 'Insufficient Credits',
@@ -680,7 +675,7 @@ export class InvestmentsComponent {
     if (this.investmentError() || this.investmentProcessing()) {
       return;
     }
-    if (!this.canUseLegacyRequestFlow(investment)) {
+    if (!this.canUseDeprecatedRequestFlow(investment)) {
       this.showOpportunityRequestComingSoon();
       this.closeInvestDialog();
       return;
@@ -690,12 +685,12 @@ export class InvestmentsComponent {
     this.investmentError.set(null);
 
     try {
-      const investmentAmount = (investment.sharePrice || 0) * this.sharesToPurchaseValue;
+      const requestedAmount = (investment.sharePrice || 0) * this.sharesToPurchaseValue;
 
       // Call API to create investment request (deducts credits, creates request in database)
-      await this.requestsService.createInvestmentRequest(
+      await this.requestsService.createOpportunityRequest(
         investment,
-        investmentAmount,
+        requestedAmount,
         this.sharesToPurchaseValue
       );
 
@@ -737,8 +732,8 @@ export class InvestmentsComponent {
     return getInvestmentTypeBadgeClass(type);
   }
 
-  canUseLegacyRequestFlow(investment: Investment | null | undefined): boolean {
-    return !!investment && (investment.readSource !== 'public-opportunity' || !!investment.legacyInvestmentId);
+  canUseDeprecatedRequestFlow(investment: Investment | null | undefined): boolean {
+    return !!investment && investment.readSource !== 'public-opportunity';
   }
 
   private showOpportunityRequestComingSoon(): void {

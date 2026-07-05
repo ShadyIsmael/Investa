@@ -7,7 +7,8 @@ import { NotificationService } from '../../../services/notification.service';
 import { LanguageService } from '../../../services/language.service';
 import { InvestmentService } from '../../../services/investment.service';
 import { FileStoreService } from '../../../services/file-store.service';
-import { CreateInvestmentDto, BusinessCategory, BusinessStage, ProjectPhase } from '../../../models/api-response.model';
+import { OpportunityService } from '../../../services/opportunity.service';
+import { BusinessCategory, BusinessStage, ProjectPhase } from '../../../models/api-response.model';
 import { InvestmentType, EquityExitType } from '../../../models/investment.model';
 
 /**
@@ -66,6 +67,7 @@ export class SubmitInvestmentComponent implements OnInit {
   private languageService = inject(LanguageService);
   private cdr = inject(ChangeDetectorRef);
   private fileStoreService = inject(FileStoreService);
+  private opportunityService = inject(OpportunityService);
 
   // Form state
   investmentForm!: FormGroup;
@@ -932,11 +934,23 @@ export class SubmitInvestmentComponent implements OnInit {
         return;
       }
 
-      // Build the DTO
-      const dto: CreateInvestmentDto = {
-        businessName: formValue.businessName.trim(),
+      const payload: any = {
+        title: formValue.businessName.trim(),
+        shortDescription: formValue.shortDescription?.trim() || formValue.description.trim(),
+        fullDescription: formValue.fullDescription?.trim() || formValue.description.trim(),
         description: formValue.description.trim(),
-        businessCategoryId: formValue.businessCategoryId,
+        categoryId: formValue.businessCategoryId,
+        projectStage: formValue.businessStageId ? String(formValue.businessStageId) : undefined,
+        tagIds: formValue.tagIds || [],
+        investmentModel: this.getInvestmentModelName(typeId),
+        fundingGoalId: formValue.fundingGoalId || undefined,
+        fundingTarget: formValue.targetFund || (typeId === InvestmentType.Equity ? this.targetFundCalculated() : undefined),
+        minimumInvestment: formValue.minInvestment || undefined,
+        maximumInvestment: formValue.maxInvestment || undefined,
+        expectedDuration: typeId === InvestmentType.Founding ? formValue.durationMonths || undefined : (typeId === InvestmentType.Loan ? formValue.loanDurationMonths || undefined : undefined),
+        coverImageUrl: formValue.imageUrl?.trim() || undefined,
+        fundingUsage: formValue.fundingPurposeDetails?.trim() || undefined,
+        exitStrategy: typeId === InvestmentType.Equity ? formValue.expectedExitStrategy?.trim() || undefined : undefined,
         businessStageId: formValue.businessStageId || this.defaultBusinessStageId(),
         projectPhaseId: formValue.projectPhaseId || undefined,
         milestone: formValue.milestone?.trim() || 'Initial opportunity launch',
@@ -949,7 +963,6 @@ export class SubmitInvestmentComponent implements OnInit {
         expectedROI: formValue.expectedROI || undefined,
         currency: formValue.currency,
         investmentTypeId: typeId,
-        fundingGoalId: formValue.fundingGoalId || undefined,
         fundingPurposeDetails: formValue.fundingPurposeDetails?.trim() || undefined,
 
         // Common to all types
@@ -991,13 +1004,12 @@ export class SubmitInvestmentComponent implements OnInit {
         totalRepaymentAmount: typeId === InvestmentType.Loan ? formValue.totalRepaymentAmount || undefined : undefined
       };
 
-      // Submit to API (create or update)
       const editId = this.editingInvestmentId();
       const result = editId
-        ? await this.apiService.updateInvestment(editId, dto)
-        : await this.apiService.createInvestment(dto);
+        ? await this.opportunityService.updateOpportunity(editId, payload)
+        : await this.opportunityService.createOpportunity(payload);
 
-      const investmentId: number = result?.id ?? editId!;
+      const investmentId = Number(result?.id ?? editId!);
 
       // Handle file uploads...
       if (this.coverFile) {
@@ -1010,7 +1022,7 @@ export class SubmitInvestmentComponent implements OnInit {
           });
           const imageUrl = uploadResult.previewUrl || uploadResult.url || uploadResult.fileKey;
           if (imageUrl) {
-            await this.apiService.updateInvestment(investmentId, { ...dto, imageUrl });
+            await this.opportunityService.updateOpportunity(investmentId, { ...payload, coverImageUrl: imageUrl });
           }
         } catch (err) {
           console.error('Cover upload failed', err);
@@ -1058,7 +1070,7 @@ export class SubmitInvestmentComponent implements OnInit {
           });
           const videoUrl = videoResult.previewUrl || videoResult.url || videoResult.fileKey;
           if (videoUrl) {
-            await this.apiService.updateInvestment(investmentId, { ...dto, videoUrl });
+            await this.opportunityService.updateOpportunity(investmentId, { ...payload, videoUrl });
           }
         } catch (err) {
           console.error('Video upload failed', err);
@@ -1081,8 +1093,8 @@ export class SubmitInvestmentComponent implements OnInit {
       this.notificationService.addNotification({
         title: editId ? 'Opportunity Updated' : 'Opportunity Created',
         message: editId
-          ? `"${dto.businessName}" has been updated.`
-          : `"${dto.businessName}" is now live and visible to investors.`,
+          ? `"${payload.title}" has been updated.`
+          : `"${payload.title}" is now live and visible to investors.`,
         type: 'success'
       });
 

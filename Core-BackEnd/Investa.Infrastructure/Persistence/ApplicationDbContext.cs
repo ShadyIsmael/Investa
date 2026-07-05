@@ -180,6 +180,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
     public DbSet<Investa.Domain.Entities.Chat.Conversation> Conversations { get; set; }
 
+    public DbSet<Investa.Domain.Entities.Chat.ConversationRequest> ConversationRequests { get; set; }
+
     public DbSet<Investa.Domain.Entities.Chat.ChatMessage> ChatMessages { get; set; }
 
     public DbSet<Investa.Domain.Entities.Chat.ConversationParticipant> ConversationParticipants { get; set; }
@@ -1117,9 +1119,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
             o.Property(x => x.FounderId).IsRequired();
             o.Property(x => x.Title).HasMaxLength(200).IsRequired();
             o.Property(x => x.Description).HasMaxLength(4000);
+            o.Property(x => x.ShortDescription).HasMaxLength(300).IsRequired().HasDefaultValue("");
+            o.Property(x => x.UseOfFunds).HasMaxLength(2000).IsRequired().HasDefaultValue("");
             o.Property(x => x.FundingTarget).HasPrecision(18, 2).IsRequired();
             o.Property(x => x.MinimumInvestmentAmount).HasPrecision(18, 2);
             o.Property(x => x.MaximumInvestmentAmount).HasPrecision(18, 2);
+            o.Property(x => x.EquityOfferedPercentage).HasPrecision(5, 2);
             o.Property(x => x.InvestmentModel).HasConversion<string>().HasMaxLength(60).IsRequired();
             o.Property(x => x.ProjectStage).HasConversion<string>().HasMaxLength(40).IsRequired();
             o.Property(x => x.Status).HasConversion<string>().HasMaxLength(40).IsRequired();
@@ -1181,8 +1186,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
             j.Property(x => x.RejectionReason).HasMaxLength(1000);
             j.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             j.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            j.Property(x => x.IsVisibleToFounder).HasDefaultValue(true);
+            j.Property(x => x.IsVisibleToInvestor).HasDefaultValue(true);
             j.HasIndex(x => x.OpportunityId);
             j.HasIndex(x => x.InvestorId);
+            j.HasIndex(x => x.SourceConversationId);
             j.HasIndex(x => new { x.OpportunityId, x.InvestorId, x.Status });
             j.HasOne(x => x.Investor)
              .WithMany()
@@ -1324,6 +1332,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
             c.Property(x => x.UserMobile).HasMaxLength(50).IsRequired();
 
             c.Property(x => x.AdminEmail).HasMaxLength(256).IsRequired(false);
+
+            c.Property(x => x.Category).HasMaxLength(200).IsRequired(false);
 
             c.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
 
@@ -2164,7 +2174,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             c.HasKey(x => x.Id);
 
-            c.Property(x => x.UserMobile).HasMaxLength(20).IsRequired();
+            c.Property(x => x.UserMobile).HasMaxLength(100).IsRequired();
 
             c.Property(x => x.AdminEmail).HasMaxLength(256).IsRequired(false);
 
@@ -2172,11 +2182,139 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             c.Property(x => x.IsActive).HasDefaultValue(true);
 
+            c.Property(x => x.FounderReady).HasDefaultValue(false);
+
+            c.Property(x => x.InvestorReady).HasDefaultValue(false);
+
+            c.Property(x => x.IsVisibleToFounder).HasDefaultValue(true);
+
+            c.Property(x => x.IsVisibleToInvestor).HasDefaultValue(true);
+
+            c.HasIndex(x => x.OpportunityId);
+
+            c.HasIndex(x => x.ConversationRequestId).IsUnique().HasFilter("[ConversationRequestId] IS NOT NULL");
+
+            c.HasIndex(x => x.FounderId);
+
+            c.HasIndex(x => x.InvestorId);
+
+            c.HasIndex(x => new { x.OpportunityId, x.FounderId, x.InvestorId, x.IsActive });
+
+            c.HasOne(x => x.Opportunity)
+
+                .WithMany()
+
+                .HasForeignKey(x => x.OpportunityId)
+
+                .OnDelete(DeleteBehavior.Restrict)
+
+                .IsRequired(false);
+
+            c.HasOne(x => x.ConversationRequest)
+
+                .WithOne()
+
+                .HasForeignKey<Investa.Domain.Entities.Chat.Conversation>(x => x.ConversationRequestId)
+
+                .OnDelete(DeleteBehavior.SetNull)
+
+                .IsRequired(false);
+
+            c.HasOne(x => x.Founder)
+
+                .WithMany()
+
+                .HasForeignKey(x => x.FounderId)
+
+                .OnDelete(DeleteBehavior.Restrict)
+
+                .IsRequired(false);
+
+            c.HasOne(x => x.Investor)
+
+                .WithMany()
+
+                .HasForeignKey(x => x.InvestorId)
+
+                .OnDelete(DeleteBehavior.Restrict)
+
+                .IsRequired(false);
+
+            c.HasOne(x => x.ParticipationRequest)
+
+                .WithMany()
+
+                .HasForeignKey(x => x.ParticipationRequestId)
+
+                .OnDelete(DeleteBehavior.SetNull)
+
+                .IsRequired(false);
+
+            c.HasMany(x => x.Messages).WithOne(m => m.Conversation).HasForeignKey(m => m.ConversationId).OnDelete(DeleteBehavior.Cascade);
+
 
 
             // Conversation -> Messages relationship removed: messages are now linked to SupportSessions
 
             // c.HasMany(x => x.Messages).WithOne(m => m.Conversation).HasForeignKey(m => m.ConversationId).OnDelete(DeleteBehavior.Cascade);
+
+        });
+
+        modelBuilder.Entity<Investa.Domain.Entities.Chat.ConversationRequest>(cr =>
+
+        {
+
+            cr.HasKey(x => x.Id);
+
+            cr.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+
+            cr.Property(x => x.Message).HasMaxLength(1000).IsRequired(false);
+
+            cr.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+
+            cr.HasIndex(x => x.OpportunityId);
+
+            cr.HasIndex(x => x.RequesterUserId);
+
+            cr.HasIndex(x => x.RecipientUserId);
+
+            cr.HasIndex(x => x.AcceptedConversationId).IsUnique().HasFilter("[AcceptedConversationId] IS NOT NULL");
+
+            cr.HasIndex(x => new { x.OpportunityId, x.RequesterUserId, x.RecipientUserId, x.Status });
+
+            cr.HasOne(x => x.Opportunity)
+
+                .WithMany()
+
+                .HasForeignKey(x => x.OpportunityId)
+
+                .OnDelete(DeleteBehavior.Restrict);
+
+            cr.HasOne(x => x.Requester)
+
+                .WithMany()
+
+                .HasForeignKey(x => x.RequesterUserId)
+
+                .OnDelete(DeleteBehavior.Restrict);
+
+            cr.HasOne(x => x.Recipient)
+
+                .WithMany()
+
+                .HasForeignKey(x => x.RecipientUserId)
+
+                .OnDelete(DeleteBehavior.Restrict);
+
+            cr.HasOne(x => x.AcceptedConversation)
+
+                .WithOne()
+
+                .HasForeignKey<Investa.Domain.Entities.Chat.ConversationRequest>(x => x.AcceptedConversationId)
+
+                .OnDelete(DeleteBehavior.Restrict)
+
+                .IsRequired(false);
 
         });
 
@@ -2196,6 +2334,22 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             m.Property(x => x.IsRead).HasDefaultValue(false);
 
+            m.Property(x => x.IsEdited).HasDefaultValue(false);
+
+            m.Property(x => x.IsDeleted).HasDefaultValue(false);
+
+            m.Property(x => x.AttachmentsJson).HasColumnType("nvarchar(max)").IsRequired(false);
+
+            m.HasOne(x => x.Sender)
+
+                .WithMany()
+
+                .HasForeignKey(x => x.SenderUserId)
+
+                .OnDelete(DeleteBehavior.Restrict)
+
+                .IsRequired(false);
+
 
 
             // FK to SupportSession (nullable to allow gradual migration)
@@ -2214,7 +2368,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             // Removed ConversationId index - using SupportSessionId instead
 
-            // m.HasIndex(x => new { x.ConversationId, x.Timestamp });
+            m.HasIndex(x => new { x.ConversationId, x.Timestamp });
 
             m.HasIndex(x => new { x.SupportSessionId, x.Timestamp });
 

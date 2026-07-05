@@ -18,6 +18,14 @@ public class Opportunity
     [StringLength(4000)]
     public string? Description { get; set; }
 
+    [Required]
+    [StringLength(300)]
+    public string ShortDescription { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(2000)]
+    public string UseOfFunds { get; set; } = string.Empty;
+
     [Column(TypeName = "decimal(18,2)")]
     [Range(0.01, double.MaxValue)]
     public decimal FundingTarget { get; set; }
@@ -33,6 +41,9 @@ public class Opportunity
     public decimal? MaximumInvestmentAmount { get; set; }
 
     public int? ExpectedDurationMonths { get; set; }
+
+    [Column(TypeName = "decimal(5,2)")]
+    public decimal? EquityOfferedPercentage { get; set; }
 
     [Required]
     public InvestmentModel InvestmentModel { get; set; }

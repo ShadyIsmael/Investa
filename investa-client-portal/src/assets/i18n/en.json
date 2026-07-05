@@ -249,6 +249,7 @@
 
   "investments": {
     "title": "Discover Opportunities",
+    "target": "Funding Target",
     "myProjectsTitle": "My Participations",
     "noParticipationsTitle": "No participations yet",
     "noParticipationsSubtitle": "Approved participations will appear here.",

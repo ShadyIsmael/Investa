@@ -68,10 +68,53 @@ export interface OpportunityEvent {
   isPublic?: boolean | null;
 }
 
+export interface OpportunityRoomParticipantContext {
+  role?: 'Founder' | 'ApprovedInvestor' | string | null;
+  userRole?: 'Founder' | 'ApprovedInvestor' | string | null;
+  roomRole?: 'Founder' | 'ApprovedInvestor' | string | null;
+  canViewPrivateFiles?: boolean | null;
+  canDownloadFiles?: boolean | null;
+  canUpload?: boolean | null;
+  canPostUpdate?: boolean | null;
+}
+
+export interface OpportunityViewerState {
+  opportunityId?: number | string | null;
+  isFounder?: boolean | null;
+  hasConversationRequest?: boolean | null;
+  conversationRequestId?: string | number | null;
+  conversationRequestStatus?: string | number | null;
+  conversationRequestStatusText?: string | null;
+  hasConversation?: boolean | null;
+  canRequestChat?: boolean | null;
+  conversationId?: string | number | null;
+  conversationStatus?: string | number | null;
+  conversationStatusText?: string | null;
+  founderReady?: boolean | null;
+  investorReady?: boolean | null;
+  canContinueConversation?: boolean | null;
+  canMarkReadyToProceed?: boolean | null;
+  participationRequestId?: string | number | null;
+  participationStatus?: string | number | null;
+  hasPendingParticipationRequest?: boolean | null;
+  projectRoomUnlocked?: boolean | null;
+  canOpenProjectRoom?: boolean | null;
+}
+
+export interface OpportunityRoom {
+  overview?: Opportunity | Record<string, any> | null;
+  mediaLibrary?: OpportunityMedia[] | Record<string, OpportunityMedia[]> | null;
+  media?: OpportunityMedia[] | Record<string, OpportunityMedia[]> | null;
+  documentsLibrary?: OpportunityDocument[] | Record<string, OpportunityDocument[]> | null;
+  documents?: OpportunityDocument[] | Record<string, OpportunityDocument[]> | null;
+  timeline?: OpportunityEvent[] | Record<string, OpportunityEvent[]> | null;
+  events?: OpportunityEvent[] | Record<string, OpportunityEvent[]> | null;
+  participantContext?: OpportunityRoomParticipantContext | null;
+}
+
 export interface Opportunity {
   id: number | string;
   founderId?: string | null;
-  legacyInvestmentId?: number | null;
   investmentId?: number | null;
   title?: string | null;
   shortDescription?: string | null;
@@ -165,12 +208,24 @@ export class OpportunityService {
     return this.getOne(`/api/v1/public/opportunities/${encodeURIComponent(String(id))}`);
   }
 
+  getViewerState(id: string | number): Promise<OpportunityViewerState> {
+    return this.getOne(`/api/v1/opportunities/${encodeURIComponent(String(id))}/viewer-state`);
+  }
+
+  requestConversation(id: string | number): Promise<any> {
+    return this.send<any>('post', `/api/v1/opportunities/${encodeURIComponent(String(id))}/conversations`, {});
+  }
+
   getMyOpportunities(): Promise<Opportunity[]> {
     return this.getList('/api/v1/opportunities/my');
   }
 
   getFounderOpportunity(id: string | number): Promise<Opportunity> {
     return this.getOne(`/api/v1/opportunities/${encodeURIComponent(String(id))}`);
+  }
+
+  getOpportunityRoom(id: string | number): Promise<OpportunityRoom> {
+    return this.getOne(`/api/v1/opportunities/${encodeURIComponent(String(id))}/room`);
   }
 
   createOpportunity(payload: OpportunityUpsert): Promise<Opportunity> {

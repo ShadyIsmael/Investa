@@ -152,7 +152,7 @@
 
           <option value="all">All</option>
 
-          <option value="contact">Contact Founder</option>
+          <option value="contact">Chat Request</option>
 
           <option value="investment">Participation Interest</option>
 
@@ -218,7 +218,7 @@
 
           <div class="absolute top-0 inset-x-0 h-1 rounded-t-2xl"
 
-               [class.bg-amber-500]="request.status === 'Pending'"
+               [class.bg-amber-500]="isPendingRequest(request)"
 
                [class.bg-green-500]="request.status === 'Accepted' || request.status === 'Partner'"
 
@@ -298,11 +298,11 @@
 
                   <span class="flex-shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border"
 
-                        [class.bg-amber-500/15]="request.status === 'Pending'"
+                        [class.bg-amber-500/15]="isPendingRequest(request)"
 
-                        [class.text-amber-300]="request.status === 'Pending'"
+                        [class.text-amber-300]="isPendingRequest(request)"
 
-                        [class.border-amber-500/30]="request.status === 'Pending'"
+                        [class.border-amber-500/30]="isPendingRequest(request)"
 
                         [class.bg-green-500/15]="request.status === 'Accepted' || request.status === 'Partner'"
 
@@ -318,7 +318,7 @@
 
                     <span class="w-1.5 h-1.5 rounded-full"
 
-                          [class.bg-amber-400]="request.status === 'Pending'"
+                          [class.bg-amber-400]="isPendingRequest(request)"
 
                           [class.bg-green-400]="request.status === 'Accepted' || request.status === 'Partner'"
 
@@ -353,6 +353,8 @@
               </div>
 
               <h4 class="text-white font-semibold text-sm mb-1">{{ request.projectName }}</h4>
+
+              <p class="text-xs leading-5 text-slate-400 mt-2">{{ getDirectionCopy(request) }}</p>
 
               @if (request.businessName) {
 
@@ -402,7 +404,7 @@
 
             <!-- Investment Interest Metadata -->
 
-            @if (hasInvestmentMetadata(request)) {
+            @if (hasParticipationMetadata(request)) {
 
               <div class="bg-purple-500/10 border border-purple-500/30 rounded-xl p-3 mb-3">
 
@@ -452,9 +454,9 @@
 
 
 
-            <!-- Action buttons (only for Pending) -->
+            <!-- Action buttons -->
 
-            @if (request.status === 'Pending') {
+            @if (canShowAcceptReject(request)) {
 
               <div class="flex gap-3 pt-3 border-t border-slate-800">
 
@@ -464,7 +466,7 @@
 
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
 
-                  Approve
+                  {{ request.requestType === OpportunityRequestKind.Conversation ? 'Accept Chat' : 'Approve Participation' }}
 
                 </button>
 
@@ -474,12 +476,22 @@
 
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
 
-                  Reject
+                  Reject Chat
 
                 </button>
 
               </div>
 
+            }
+
+            @if (canShowWithdraw(request)) {
+              <div class="flex gap-3 pt-3 border-t border-slate-800">
+                <button (click)="withdraw(request)"
+                        class="flex-1 flex items-center justify-center gap-2 bg-slate-800 hover:bg-red-500/20 border border-slate-700 hover:border-red-500/40 text-gray-400 hover:text-red-400 text-sm font-semibold px-4 py-2.5 rounded-xl transition-all">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                  Withdraw
+                </button>
+              </div>
             }
 
           </div>
@@ -616,7 +628,7 @@
 
           <div class="absolute top-0 inset-x-0 h-1 rounded-t-2xl"
 
-               [class.bg-amber-500]="request.status === 'Pending'"
+               [class.bg-amber-500]="isPendingRequest(request)"
 
                [class.bg-green-500]="request.status === 'Accepted' || request.status === 'Partner'"
 
@@ -696,11 +708,11 @@
 
                   <span class="flex-shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border"
 
-                        [class.bg-amber-500/15]="request.status === 'Pending'"
+                        [class.bg-amber-500/15]="isPendingRequest(request)"
 
-                        [class.text-amber-300]="request.status === 'Pending'"
+                        [class.text-amber-300]="isPendingRequest(request)"
 
-                        [class.border-amber-500/30]="request.status === 'Pending'"
+                        [class.border-amber-500/30]="isPendingRequest(request)"
 
                         [class.bg-green-500/15]="request.status === 'Accepted' || request.status === 'Partner'"
 
@@ -716,7 +728,7 @@
 
                     <span class="w-1.5 h-1.5 rounded-full"
 
-                          [class.bg-amber-400]="request.status === 'Pending'"
+                          [class.bg-amber-400]="isPendingRequest(request)"
 
                           [class.bg-green-400]="request.status === 'Accepted' || request.status === 'Partner'"
 
@@ -812,7 +824,7 @@
 
             <!-- Investment Interest Metadata -->
 
-            @if (hasInvestmentMetadata(request)) {
+            @if (hasParticipationMetadata(request)) {
 
               <div class="bg-purple-500/10 border border-purple-500/30 rounded-xl p-3 mb-3">
 
@@ -870,7 +882,7 @@
 
                 <div class="h-full rounded-full transition-all duration-500"
 
-                     [class.bg-amber-500]="request.status === 'Pending'"
+                     [class.bg-amber-500]="isPendingRequest(request)"
 
                      [class.bg-green-500]="request.status === 'Accepted' || request.status === 'Partner'"
 
@@ -886,9 +898,9 @@
 
 
 
-            <!-- Withdraw button (only for Pending) -->
+            <!-- Withdraw button -->
 
-            @if (request.status === 'Pending') {
+            @if (canShowWithdraw(request)) {
 
               <div class="flex gap-3 pt-3 border-t border-slate-800">
 

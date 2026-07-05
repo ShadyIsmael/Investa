@@ -197,13 +197,11 @@ export interface InvestorParticipation {
 
 /**
  * Investment model for UI - Enhanced with exit strategy support
- * Maps from backend InvestmentDto
  */
 export interface Investment {
   id: number;
   opportunityId?: number | string;
-  legacyInvestmentId?: number;
-  readSource?: 'legacy-investment' | 'public-opportunity';
+  readSource?: 'public-opportunity';
   founderId: string;
   founderDisplay?: string;
   businessRole?: string;
@@ -246,10 +244,31 @@ export interface Investment {
   projectPhaseId?: number;
   milestone?: string;
   projectStage?: string;
+  shortDescription?: string;
+  fullDescription?: string;
+  fundingGoalName?: string;
   expectedReturnSummary?: string;
   publicInvestmentTermsSummary?: string;
   fundingPurpose?: string;
   tags?: string[];
+  publicEvents?: Array<{
+    id?: number | string;
+    title?: string | null;
+    description?: string | null;
+    date?: Date | string | null;
+    type?: string | null;
+    isPublic?: boolean | null;
+  }>;
+  publicDocuments?: Array<{
+    id?: number | string;
+    fileName?: string | null;
+    fileExtension?: string | null;
+    fileSize?: number | null;
+    fileUrl?: string | null;
+    previewUrl?: string | null;
+    purpose?: string | null;
+    visibility?: string | null;
+  }>;
   riskLevel: RiskLevel;
   currency?: string;
   momentumScore?: number;

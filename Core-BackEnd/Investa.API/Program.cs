@@ -391,6 +391,32 @@ try
             categoryResult.Skipped,
             string.Join(", ", categoryResult.CategoriesUsed),
             string.Join(" | ", categoryResult.Errors));
+
+        var productFieldsBackfill = scope.ServiceProvider.GetRequiredService<OpportunityProductFieldsBackfillService>();
+        var productFieldsResult = await productFieldsBackfill.BackfillAsync();
+        logger.LogInformation(
+            "Opportunity product fields backfill result: scanned={Scanned}, shortDescriptionPopulated={ShortDescriptionPopulated}, useOfFundsPopulated={UseOfFundsPopulated}, equityOfferedPercentageCalculated={EquityOfferedPercentageCalculated}, skipped={Skipped}, errors={Errors}",
+            productFieldsResult.Scanned,
+            productFieldsResult.ShortDescriptionPopulated,
+            productFieldsResult.UseOfFundsPopulated,
+            productFieldsResult.EquityOfferedPercentageCalculated,
+            productFieldsResult.Skipped,
+            string.Join(" | ", productFieldsResult.Errors));
+
+        if (app.Environment.IsDevelopment())
+        {
+            var roomDemoDataBackfill = scope.ServiceProvider.GetRequiredService<OpportunityRoomDemoDataBackfillService>();
+            var roomDemoDataResult = await roomDemoDataBackfill.BackfillAsync();
+            logger.LogInformation(
+                "Opportunity room demo data backfill result: scanned={Scanned}, populated={Populated}, timelineEventsCreated={TimelineEventsCreated}, documentsCreated={DocumentsCreated}, mediaCreated={MediaCreated}, joinRequestsCreated={JoinRequestsCreated}, skipped={Skipped}",
+                roomDemoDataResult.Scanned,
+                roomDemoDataResult.OpportunitiesPopulated,
+                roomDemoDataResult.TimelineEventsCreated,
+                roomDemoDataResult.DocumentsCreated,
+                roomDemoDataResult.MediaCreated,
+                roomDemoDataResult.JoinRequestsCreated,
+                roomDemoDataResult.Skipped);
+        }
     }
     catch (Exception ex)
     {
@@ -522,8 +548,11 @@ static void RegisterApplicationServices(IServiceCollection services)
     services.AddScoped<IWalletService, WalletService>();
     services.AddScoped<IPriceService, PriceService>();
     services.AddScoped<IOpportunityService, OpportunityService>();
+    services.AddScoped<INegotiationService, NegotiationService>();
     services.AddScoped<InvestmentOpportunityBackfillService>();
     services.AddScoped<OpportunityCategoryBackfillService>();
+    services.AddScoped<OpportunityProductFieldsBackfillService>();
+    services.AddScoped<OpportunityRoomDemoDataBackfillService>();
     services.AddScoped<IChatService, ChatService>();
     services.AddScoped<IGroupService, GroupService>();
 

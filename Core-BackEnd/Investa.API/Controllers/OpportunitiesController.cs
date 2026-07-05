@@ -94,7 +94,8 @@ public class OpportunitiesController : BaseApiController
     }
 
     [HttpGet("{id:int}/room")]
-    [ProducesResponseType(typeof(ApiResponse<OpportunityDetailDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<OpportunityRoomDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetProjectRoom(int id, CancellationToken cancellationToken)
     {
         var userId = ResolveUserIdFromClaims();

@@ -76,6 +76,11 @@ export const routes: Routes = [
         redirectTo: 'investments/:id/edit'
       },
       {
+        path: 'opportunities/:id/room',
+        loadComponent: () => import('./pages/admin/opportunity-room/opportunity-room.component').then(m => m.OpportunityRoomComponent),
+        title: 'Project Room - Investa'
+      },
+      {
         path: 'opportunities/:id',
         loadComponent: () => import('./pages/admin/opportunities/opportunity-details.component').then(m => m.OpportunityDetailsComponent),
         title: 'Opportunity Details - Investa'

@@ -13,6 +13,14 @@ public class CreateOpportunityRequest
     public string? Description { get; set; }
 
     [Required]
+    [StringLength(300, MinimumLength = 20)]
+    public string ShortDescription { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(2000, MinimumLength = 30)]
+    public string UseOfFunds { get; set; } = string.Empty;
+
+    [Required]
     [Range(0.01, double.MaxValue, ErrorMessage = "FundingTarget must be greater than zero.")]
     public decimal FundingTarget { get; set; }
 
@@ -26,6 +34,8 @@ public class CreateOpportunityRequest
     public decimal? MaximumInvestmentAmount { get; set; }
 
     public int? ExpectedDurationMonths { get; set; }
+
+    public decimal? EquityOfferedPercentage { get; set; }
 
     public IReadOnlyList<int> TagIds { get; set; } = Array.Empty<int>();
 
@@ -49,6 +59,14 @@ public class UpdateOpportunityRequest
     public string? Description { get; set; }
 
     [Required]
+    [StringLength(300, MinimumLength = 20)]
+    public string ShortDescription { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(2000, MinimumLength = 30)]
+    public string UseOfFunds { get; set; } = string.Empty;
+
+    [Required]
     [Range(0.01, double.MaxValue, ErrorMessage = "FundingTarget must be greater than zero.")]
     public decimal FundingTarget { get; set; }
 
@@ -62,6 +80,8 @@ public class UpdateOpportunityRequest
     public decimal? MaximumInvestmentAmount { get; set; }
 
     public int? ExpectedDurationMonths { get; set; }
+
+    public decimal? EquityOfferedPercentage { get; set; }
 
     public IReadOnlyList<int> TagIds { get; set; } = Array.Empty<int>();
 
@@ -199,6 +219,7 @@ public class OpportunityDto
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? ShortDescription { get; set; }
+    public string? UseOfFunds { get; set; }
     public decimal FundingTarget { get; set; }
     public OpportunityLookupDto? Category { get; set; }
     public OpportunityLookupDto? FundingGoal { get; set; }
@@ -206,6 +227,7 @@ public class OpportunityDto
     public decimal? MinimumInvestmentAmount { get; set; }
     public decimal? MaximumInvestmentAmount { get; set; }
     public int? ExpectedDurationMonths { get; set; }
+    public decimal? EquityOfferedPercentage { get; set; }
     public string? PublicInvestmentTermsSummary { get; set; }
     public string? ExpectedReturnSummary { get; set; }
     public decimal FundingProgressPercent { get; set; }
@@ -225,6 +247,53 @@ public class OpportunityDetailDto : OpportunityDto
     public IReadOnlyList<OpportunityMediaDto> Media { get; set; } = Array.Empty<OpportunityMediaDto>();
     public IReadOnlyList<OpportunityDocumentDto> Documents { get; set; } = Array.Empty<OpportunityDocumentDto>();
     public IReadOnlyList<OpportunityEventDto> Events { get; set; } = Array.Empty<OpportunityEventDto>();
+}
+
+public class OpportunityRoomDto
+{
+    public OpportunityRoomOverviewDto Overview { get; set; } = new();
+    public IReadOnlyList<OpportunityRoomMediaGroupDto> MediaLibrary { get; set; } = Array.Empty<OpportunityRoomMediaGroupDto>();
+    public IReadOnlyList<OpportunityRoomDocumentGroupDto> DocumentsLibrary { get; set; } = Array.Empty<OpportunityRoomDocumentGroupDto>();
+    public IReadOnlyList<OpportunityEventDto> Timeline { get; set; } = Array.Empty<OpportunityEventDto>();
+    public OpportunityRoomParticipantContextDto ParticipantContext { get; set; } = new();
+}
+
+public class OpportunityRoomOverviewDto
+{
+    public int Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public OpportunityStatus Status { get; set; }
+    public ProjectStage ProjectStage { get; set; }
+    public FounderSummaryDto Founder { get; set; } = new();
+    public decimal FundingTarget { get; set; }
+    public decimal FundingProgress { get; set; }
+    public InvestmentModel InvestmentModel { get; set; }
+    public decimal? MinimumInvestment { get; set; }
+    public string? ExpectedReturnSummary { get; set; }
+    public string? UseOfFunds { get; set; }
+    public string? PublicInvestmentTermsSummary { get; set; }
+}
+
+public class OpportunityRoomMediaGroupDto
+{
+    public OpportunityFilePurpose Purpose { get; set; }
+    public IReadOnlyList<OpportunityMediaDto> Items { get; set; } = Array.Empty<OpportunityMediaDto>();
+}
+
+public class OpportunityRoomDocumentGroupDto
+{
+    public OpportunityFilePurpose Purpose { get; set; }
+    public IReadOnlyList<OpportunityDocumentDto> Items { get; set; } = Array.Empty<OpportunityDocumentDto>();
+}
+
+public class OpportunityRoomParticipantContextDto
+{
+    public bool IsFounder { get; set; }
+    public bool IsApprovedParticipant { get; set; }
+    public bool CanUpload { get; set; }
+    public bool CanPostUpdate { get; set; }
+    public bool CanViewPrivateFiles { get; set; }
+    public bool CanDownloadFiles { get; set; }
 }
 
 public class FounderSummaryDto

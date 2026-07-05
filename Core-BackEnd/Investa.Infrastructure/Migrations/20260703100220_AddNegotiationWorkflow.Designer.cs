@@ -4,6 +4,7 @@ using Investa.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Investa.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260703100220_AddNegotiationWorkflow")]
+    partial class AddNegotiationWorkflow
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -336,9 +339,6 @@ namespace Investa.Infrastructure.Migrations
                     b.Property<DateTime?>("ClosedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid?>("ConversationRequestId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
@@ -400,10 +400,6 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ConversationRequestId")
-                        .IsUnique()
-                        .HasFilter("[ConversationRequestId] IS NOT NULL");
-
                     b.HasIndex("FounderId");
 
                     b.HasIndex("InvestorId");
@@ -449,61 +445,6 @@ namespace Investa.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("ConversationParticipants");
-                });
-
-            modelBuilder.Entity("Investa.Domain.Entities.Chat.ConversationRequest", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("AcceptedConversationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<string>("Message")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<int>("OpportunityId")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("RecipientUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("RequesterUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("RespondedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AcceptedConversationId")
-                        .IsUnique()
-                        .HasFilter("[AcceptedConversationId] IS NOT NULL");
-
-                    b.HasIndex("OpportunityId");
-
-                    b.HasIndex("RecipientUserId");
-
-                    b.HasIndex("RequesterUserId");
-
-                    b.HasIndex("OpportunityId", "RequesterUserId", "RecipientUserId", "Status");
-
-                    b.ToTable("ConversationRequests");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Chat.MessageAttachment", b =>
@@ -4819,11 +4760,6 @@ namespace Investa.Infrastructure.Migrations
 
             modelBuilder.Entity("Investa.Domain.Entities.Chat.Conversation", b =>
                 {
-                    b.HasOne("Investa.Domain.Entities.Chat.ConversationRequest", "ConversationRequest")
-                        .WithOne()
-                        .HasForeignKey("Investa.Domain.Entities.Chat.Conversation", "ConversationRequestId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("Investa.Domain.Entities.AuthUser", "Founder")
                         .WithMany()
                         .HasForeignKey("FounderId")
@@ -4844,8 +4780,6 @@ namespace Investa.Infrastructure.Migrations
                         .HasForeignKey("ParticipationRequestId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.Navigation("ConversationRequest");
-
                     b.Navigation("Founder");
 
                     b.Navigation("Investor");
@@ -4864,40 +4798,6 @@ namespace Investa.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Conversation");
-                });
-
-            modelBuilder.Entity("Investa.Domain.Entities.Chat.ConversationRequest", b =>
-                {
-                    b.HasOne("Investa.Domain.Entities.Chat.Conversation", "AcceptedConversation")
-                        .WithOne()
-                        .HasForeignKey("Investa.Domain.Entities.Chat.ConversationRequest", "AcceptedConversationId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Investa.Domain.Entities.Opportunity", "Opportunity")
-                        .WithMany()
-                        .HasForeignKey("OpportunityId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Investa.Domain.Entities.AuthUser", "Recipient")
-                        .WithMany()
-                        .HasForeignKey("RecipientUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Investa.Domain.Entities.AuthUser", "Requester")
-                        .WithMany()
-                        .HasForeignKey("RequesterUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("AcceptedConversation");
-
-                    b.Navigation("Opportunity");
-
-                    b.Navigation("Recipient");
-
-                    b.Navigation("Requester");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Chat.MessageAttachment", b =>

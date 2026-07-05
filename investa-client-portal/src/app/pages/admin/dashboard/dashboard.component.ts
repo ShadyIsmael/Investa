@@ -125,7 +125,7 @@ export class DashboardComponent {
   featuredInvestments = computed(() => this.allInvestments().sort((a, b) => b.credibilityScore - a.credibilityScore).slice(0, 3));
   investorScore = signal(85);
   currentCredits = computed(() => this.userService.credits()); // Live user credit balance
-  availableCredits = this.userService.credits; // Legacy alias for available credits
+  availableCredits = this.userService.credits;
 
   recentActivityFeed = computed<RecentActivity[]>(() => {
     const activities: RecentActivity[] = [];
@@ -315,6 +315,10 @@ export class DashboardComponent {
 
   getInvestmentRouteQuery(project: Investment): { source: 'legacy' | 'opportunity' } {
     return { source: this.getInvestmentRouteSource(project) };
+  }
+
+  getRoomOpportunityId(project: Investment): string | number | null {
+    return project.opportunityId ?? (project.readSource === 'public-opportunity' ? project.id : null);
   }
 
   private getInvestmentRouteSource(project: Investment): 'legacy' | 'opportunity' {

@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy, inject, signal, computed, effect } from '@angular/core';
 
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 
 import { TranslatePipe } from '../../../pipes/translate.pipe';
 
@@ -8,7 +9,7 @@ import { RequestsService } from '../../../services/requests.service';
 
 import { FileStoreService } from '../../../services/file-store.service';
 
-import { InvestmentRequest, InvestmentRequestType } from '../../../models/request.model';
+import { OpportunityRequest, OpportunityRequestKind } from '../../../models/request.model';
 
 
 
@@ -31,6 +32,7 @@ import { InvestmentRequest, InvestmentRequestType } from '../../../models/reques
 export class RequestsComponent {
 
   private requestsService = inject(RequestsService);
+  private router = inject(Router);
 
   private fileStoreService = inject(FileStoreService);
 
@@ -48,7 +50,7 @@ export class RequestsComponent {
 
   // Filter state
 
-  statusFilter = signal<string>('all');
+  statusFilter = signal<string>('pending');
 
   typeFilter = signal<string>('all');
 
@@ -84,7 +86,7 @@ export class RequestsComponent {
 
       if (this.statusFilter() !== 'all') {
 
-        if (this.statusFilter() === 'pending' && request.status !== 'Pending') return false;
+        if (this.statusFilter() === 'pending' && !this.isPendingRequest(request)) return false;
 
         if (this.statusFilter() === 'accepted' && request.status !== 'Accepted' && request.status !== 'Partner') return false;
 
@@ -98,9 +100,9 @@ export class RequestsComponent {
 
       if (this.typeFilter() !== 'all') {
 
-        if (this.typeFilter() === 'contact' && request.requestType !== InvestmentRequestType.ContactFounder) return false;
+        if (this.typeFilter() === 'contact' && request.requestType !== OpportunityRequestKind.Conversation) return false;
 
-        if (this.typeFilter() === 'investment' && request.requestType !== InvestmentRequestType.InvestmentInterest) return false;
+        if (this.typeFilter() === 'investment' && request.requestType !== OpportunityRequestKind.Participation) return false;
 
       }
 
@@ -260,15 +262,17 @@ export class RequestsComponent {
 
 
 
-  accept(request: InvestmentRequest) {
-
-    this.requestsService.acceptRequest(request);
+  async accept(request: OpportunityRequest) {
+    const acceptedConversationId = await this.requestsService.acceptRequest(request);
+    if (request.requestType === OpportunityRequestKind.Conversation && acceptedConversationId) {
+      await this.router.navigate(['/admin/chat'], { queryParams: { conversationId: acceptedConversationId } });
+    }
 
   }
 
 
 
-  decline(request: InvestmentRequest) {
+  decline(request: OpportunityRequest) {
 
     this.requestsService.declineRequest(request);
 
@@ -276,7 +280,7 @@ export class RequestsComponent {
 
 
 
-  withdraw(request: InvestmentRequest) {
+  withdraw(request: OpportunityRequest) {
 
     this.requestsService.withdrawRequest(request);
 
@@ -332,7 +336,7 @@ export class RequestsComponent {
 
    */
 
-  getRequestTypeDisplay(request: InvestmentRequest): string {
+  getRequestTypeDisplay(request: OpportunityRequest): string {
 
     if (!request.requestType) return 'Participation Request';
 
@@ -340,11 +344,11 @@ export class RequestsComponent {
 
     switch (request.requestType) {
 
-      case InvestmentRequestType.ContactFounder:
+      case OpportunityRequestKind.Conversation:
 
-        return 'Contact Founder';
+        return 'Chat Request';
 
-      case InvestmentRequestType.InvestmentInterest:
+      case OpportunityRequestKind.Participation:
 
         return 'Participation Interest';
 
@@ -364,7 +368,7 @@ export class RequestsComponent {
 
    */
 
-  getRequestTypeBadgeClass(request: InvestmentRequest): string {
+  getRequestTypeBadgeClass(request: OpportunityRequest): string {
 
     if (!request.requestType) return 'bg-slate-500/15 text-slate-300 border-slate-500/30';
 
@@ -372,11 +376,11 @@ export class RequestsComponent {
 
     switch (request.requestType) {
 
-      case InvestmentRequestType.ContactFounder:
+      case OpportunityRequestKind.Conversation:
 
         return 'bg-blue-500/15 text-blue-300 border-blue-500/30';
 
-      case InvestmentRequestType.InvestmentInterest:
+      case OpportunityRequestKind.Participation:
 
         return 'bg-purple-500/15 text-purple-300 border-purple-500/30';
 
@@ -396,9 +400,9 @@ export class RequestsComponent {
 
    */
 
-  hasInvestmentMetadata(request: InvestmentRequest): boolean {
+  hasParticipationMetadata(request: OpportunityRequest): boolean {
 
-    return request.requestType === InvestmentRequestType.InvestmentInterest && request.requestMetadata;
+    return request.requestType === OpportunityRequestKind.Participation && request.requestMetadata;
 
   }
 
@@ -410,7 +414,7 @@ export class RequestsComponent {
 
    */
 
-  getSharesRequested(request: InvestmentRequest): number {
+  getSharesRequested(request: OpportunityRequest): number {
 
     return request.requestMetadata?.sharesRequested || 0;
 
@@ -424,7 +428,7 @@ export class RequestsComponent {
 
    */
 
-  getSharePrice(request: InvestmentRequest): number {
+  getSharePrice(request: OpportunityRequest): number {
 
     return request.requestMetadata?.sharePrice || 0;
 
@@ -438,7 +442,7 @@ export class RequestsComponent {
 
    */
 
-  getTotalValue(request: InvestmentRequest): number {
+  getTotalValue(request: OpportunityRequest): number {
 
     return request.requestMetadata?.totalValue || 0;
 
@@ -452,7 +456,7 @@ export class RequestsComponent {
 
    */
 
-  getCredibilityScore(request: InvestmentRequest): string {
+  getCredibilityScore(request: OpportunityRequest): string {
 
     const score = request.investorCredibilityScore ?? 0;
 
@@ -468,7 +472,7 @@ export class RequestsComponent {
 
    */
 
-  getFounderScore(request: InvestmentRequest): string {
+  getFounderScore(request: OpportunityRequest): string {
 
     const score = request.founderCredibilityScore ?? 0;
 
@@ -484,7 +488,7 @@ export class RequestsComponent {
 
    */
 
-  getTrustLevel(request: InvestmentRequest): string {
+  getTrustLevel(request: OpportunityRequest): string {
 
     // Use appropriate trust level based on request direction
 
@@ -508,27 +512,28 @@ export class RequestsComponent {
 
    */
 
-  getStatusDisplay(request: InvestmentRequest): string {
+  getStatusDisplay(request: OpportunityRequest): string {
 
     const status = request.status;
 
     switch (status) {
 
       case 'Pending':
+      case 'Requested':
 
-        return 'Pending Review';
+        return 'Waiting for founder approval';
 
       case 'Negotiating':
 
-        return 'Negotiating';
+        return 'Negotiation in progress';
 
       case 'Partner':
 
-        return 'Partner';
+        return 'Project Participant';
 
       case 'Accepted':
 
-        return 'Accepted';
+        return 'Founder accepted';
 
       case 'Declined':
 
@@ -536,12 +541,59 @@ export class RequestsComponent {
 
         return 'Declined';
 
+      case 'Cancelled':
+
+      case 'Withdrawn':
+
+        return 'Withdrawn';
+
       default:
 
         return status;
 
     }
 
+  }
+
+  getDirectionCopy(request: OpportunityRequest): string {
+    if (request.type === 'conversation') {
+      if (request.direction === 'incoming') {
+        return 'This Investor wants to start a conversation about your Opportunity.';
+      }
+      return 'Conversation request sent. Waiting for the Founder to respond.';
+    }
+
+    if (request.direction === 'incoming') {
+      return 'Participation request received. Review whether this investor can join.';
+    }
+    return 'Participation request sent. Waiting for founder review.';
+  }
+
+  getPrimaryActionLabel(request: OpportunityRequest): string {
+    if (request.type === 'conversation') {
+      return request.direction === 'incoming' ? 'Accept Chat' : 'Withdraw';
+    }
+    return request.direction === 'incoming' ? 'Approve Participation' : 'Withdraw';
+  }
+
+  canShowWithdraw(request: OpportunityRequest): boolean {
+    if (request.type === 'conversation') {
+      return request.direction === 'outgoing' && request.status === 'Pending' && request.canWithdraw !== false;
+    }
+    return request.direction === 'outgoing' && request.status === 'Pending';
+  }
+
+  canShowAcceptReject(request: OpportunityRequest): boolean {
+    if (request.type === 'conversation') {
+      return request.direction === 'incoming' && request.status === 'Pending' && request.canAccept !== false && request.canReject !== false;
+    }
+    return request.direction === 'incoming' && request.status === 'Pending';
+  }
+
+  isPendingRequest(request: OpportunityRequest): boolean {
+    return request.type === 'conversation'
+      ? request.status === 'Pending'
+      : request.status === 'Pending';
   }
 
 
@@ -582,7 +634,7 @@ export class RequestsComponent {
 
    */
 
-  getProjectType(request: InvestmentRequest): string {
+  getProjectType(request: OpportunityRequest): string {
 
     // For now, return a default value - this can be extended when backend provides project type
 
@@ -598,7 +650,7 @@ export class RequestsComponent {
 
    */
 
-  getProgressPercentage(request: InvestmentRequest): number {
+  getProgressPercentage(request: OpportunityRequest): number {
 
     const status = request.status;
 
@@ -640,7 +692,7 @@ export class RequestsComponent {
 
    */
 
-  getProgressLabel(request: InvestmentRequest): string {
+  getProgressLabel(request: OpportunityRequest): string {
 
     const status = request.status;
 

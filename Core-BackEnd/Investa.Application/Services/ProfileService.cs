@@ -16,12 +16,15 @@ public class ProfileService : IProfileService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
+    private readonly IWalletService _walletService;
 
-    public ProfileService(IUnitOfWork unitOfWork, IMapper mapper)
+    public ProfileService(IUnitOfWork unitOfWork, IMapper mapper, IWalletService walletService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
+        _walletService = walletService;
     }
+
 
     /// <inheritdoc/>
     public async Task<UserProfileDto?> GetUserProfileAsync(Guid userId)
@@ -227,18 +230,31 @@ public class ProfileService : IProfileService
         if (dto == null)
             throw new InvalidOperationException("Failed to map user profile DTO.");
 
-        // attempt to include client metrics (Score, Credit) from Client entity
+        // attempt to include client metrics (Score) from Client entity
         var client = await _unitOfWork.Repository<Client>().GetSingleAsync(c => c.UserId == user.Id);
+
         if (dto.BasicInfo == null)
             dto.BasicInfo = new BasicInfoDto();
+
+        // Ledger-backed balance for all visible balance/credit fields
+        // NOTE: `basicInfo.credit` is legacy-named but must remain in sync with the wallet ledger.
+        // TODO: remove/rename this field once the API contract is modernized.
+        if (dto.BasicInfo != null)
+        {
+            // Use wallet ledger as the single source of truth for visible credits/balances.
+            dto.BasicInfo.Credit = await _walletService.GetBalanceAsync(user.Id);
+        }
+
 
         if (client != null)
         {
             dto.BasicInfo.Score = client.Score;
-            dto.BasicInfo.Credit = client.Credit;
+            // TODO: `client.Credit` is legacy and should not be used for visible balance.
+            // Keep it for backward compatibility elsewhere.
         }
 
         return dto;
     }
 }
     #pragma warning restore CS8603
+

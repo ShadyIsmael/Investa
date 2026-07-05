@@ -1,131 +1,245 @@
-<div class="h-[calc(100vh-61px)] flex">
-  <!-- Sidebar with contacts -->
-  <aside class="w-1/3 xl:w-1/4 bg-slate-900 border-e border-slate-800 flex flex-col">
+<div class="h-[calc(100vh-61px)] bg-slate-950 text-white grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)_360px]">
+  <!-- Conversation List -->
+  <aside class="border-e border-slate-800 bg-slate-900 flex flex-col min-h-0">
     <div class="p-4 border-b border-slate-800">
-      <h2 class="text-xl font-bold text-white">{{ 'chat.title' | translate }}</h2>
-      <div class="relative mt-4">
-        <input type="text" [placeholder]="'chat.searchPlaceholder' | translate" class="w-full bg-slate-800 border border-slate-700 rounded-full py-2 ps-10 pe-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
-        <div class="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none">
-          <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <h1 class="text-xl font-bold text-white">Conversations</h1>
+          <p class="mt-1 text-xs text-slate-500">Negotiate one Opportunity at a time.</p>
         </div>
+        <button type="button" (click)="loadConversations()" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-700">Refresh</button>
+      </div>
+
+      <div class="mt-4 grid grid-cols-3 rounded-xl border border-slate-800 bg-slate-950 p-1 text-xs font-semibold">
+        <button type="button" (click)="setConversationTab('active')" class="rounded-lg px-2 py-2" [class.bg-blue-600]="conversationTab() === 'active'" [class.text-white]="conversationTab() === 'active'" [class.text-slate-400]="conversationTab() !== 'active'">Active</button>
+        <button type="button" (click)="setConversationTab('archived')" class="rounded-lg px-2 py-2" [class.bg-blue-600]="conversationTab() === 'archived'" [class.text-white]="conversationTab() === 'archived'" [class.text-slate-400]="conversationTab() !== 'archived'">Archived</button>
+        <button type="button" (click)="setConversationTab('all')" class="rounded-lg px-2 py-2" [class.bg-blue-600]="conversationTab() === 'all'" [class.text-white]="conversationTab() === 'all'" [class.text-slate-400]="conversationTab() !== 'all'">All</button>
       </div>
     </div>
+
     <div class="flex-1 overflow-y-auto">
-      @for (contact of contacts(); track contact.id) {
-        <div (click)="selectContact(contact)" class="flex items-center p-4 cursor-pointer hover:bg-slate-800/50 transition-colors" [class.bg-blue-600/20]="selectedContact()?.id === contact.id">
-          <div class="relative flex-shrink-0">
-            <img class="w-12 h-12 rounded-full object-cover" [src]="contact.avatarUrl" [alt]="contact.name">
-            @if(contact.online) {
-              <span class="absolute bottom-0 end-0 block h-3 w-3 rounded-full bg-green-500 ring-2 ring-slate-900"></span>
-            }
-          </div>
-          <div class="ms-4 flex-1 truncate">
-            <p class="font-semibold text-white truncate">{{ contact.name }}</p>
-            <p class="text-sm text-gray-400 truncate">{{ contact.lastMessage }}</p>
-          </div>
-          <span class="text-xs text-gray-500 ms-2">{{ contact.timestamp }}</span>
-        </div>
+      @if (loading()) {
+        <div class="p-6 text-sm text-slate-400">Loading conversations...</div>
+      } @else if (error()) {
+        <div class="m-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">{{ error() }}</div>
+      } @else {
+        @for (conversation of visibleConversations(); track conversation.id) {
+          <button type="button"
+                  (click)="selectConversation(conversation)"
+                  class="w-full border-b border-slate-800 p-4 text-start hover:bg-slate-800/60 transition-colors"
+                  [class.bg-blue-600/15]="activeConversation()?.id === conversation.id">
+            <div class="flex items-start gap-3">
+              <img [src]="conversation.avatarUrl" [alt]="conversation.counterpartyName" class="h-11 w-11 rounded-xl object-cover">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="min-w-0">
+                    <p class="truncate text-sm font-bold text-white">{{ conversation.opportunityTitle }}</p>
+                    <p class="mt-0.5 truncate text-xs text-slate-400">{{ conversation.counterpartyName }}</p>
+                  </div>
+                  <span class="shrink-0 text-[10px] text-slate-500">{{ formatDate(conversation.lastMessageAt || conversation.createdAt) }}</span>
+                </div>
+                <p class="mt-2 line-clamp-1 text-xs text-slate-500">{{ conversation.lastMessage }}</p>
+                <span class="mt-3 inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold" [class]="statusBadgeClass(conversation.status)">
+                  {{ conversation.status }}
+                </span>
+              </div>
+            </div>
+          </button>
+        } @empty {
+          <div class="p-8 text-center text-sm text-slate-500">No conversations found.</div>
+        }
       }
     </div>
   </aside>
 
-  <!-- Main chat area -->
-  <main class="flex-1 flex flex-col bg-slate-950/80">
-    @if (selectedContact(); as contact) {
-      <!-- Chat Header -->
-      <header class="flex items-center justify-between p-4 bg-slate-900 border-b border-slate-800">
-        <div class="flex items-center">
-          <img class="w-10 h-10 rounded-full object-cover me-4" [src]="contact.avatarUrl" [alt]="contact.name">
-          <div>
-            <p class="font-semibold text-white">{{ contact.name }}</p>
-            <p class="text-sm text-gray-400">{{ contact.online ? ('chat.online' | translate) : ('chat.offline' | translate) }}</p>
-          </div>
-        </div>
-        <div class="flex items-center gap-2">
-          <button (click)="startAudioCall()" [title]="'chat.startAudioCall' | translate" class="text-gray-400 hover:text-white p-2 rounded-full hover:bg-slate-700 transition-colors">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
-          </button>
-          <button (click)="startVideoCall()" [title]="'chat.startVideoCall' | translate" class="text-gray-400 hover:text-white p-2 rounded-full hover:bg-slate-700 transition-colors">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-          </button>
-        </div>
+  <!-- Center Chat -->
+  <main class="flex min-h-0 flex-col bg-slate-950">
+    @if (activeConversation(); as conversation) {
+      <header class="border-b border-slate-800 bg-slate-900/90 px-5 py-3">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Chat</p>
       </header>
-      
-      <!-- Messages -->
-      <div class="flex-1 p-6 overflow-y-auto space-y-4">
-        @for(message of conversation(); track message.id) {
-          <div class="flex items-end gap-2 animate-fade-in" [class.justify-end]="message.isSender">
-            @if(!message.isSender) {
-               <img class="w-8 h-8 rounded-full object-cover self-end" [src]="contact.avatarUrl" [alt]="contact.name">
-            }
-            <div class="max-w-xs md:max-w-md lg:max-w-lg p-1 rounded-2xl" [class]="message.isSender ? 'bg-blue-600 text-white rounded-ee-none' : 'bg-slate-800 text-gray-200 rounded-es-none'">
-              <div class="p-2">
-                @if(message.file; as file) {
-                  <div class="flex items-center gap-3 bg-black/20 p-2 rounded-lg mb-2">
-                    <div class="flex-shrink-0 h-10 w-10 bg-slate-600 rounded-lg flex items-center justify-center">
-                      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                    </div>
-                    <div class="truncate">
-                      <p class="font-semibold text-sm truncate">{{ file.name }}</p>
-                      <p class="text-xs opacity-70">{{ formatFileSize(file.size) }}</p>
-                    </div>
-                  </div>
-                }
-                @if(message.text) {
-                  <p class="whitespace-pre-wrap break-words">{{ message.text }}</p>
-                }
-              </div>
-              <span class="text-xs mt-1 px-2 pb-1 block opacity-60" [class.text-end]="message.isSender">{{ message.timestamp }}</span>
-            </div>
-             @if(message.isSender) {
-               <img class="w-8 h-8 rounded-full object-cover self-end" src="https://picsum.photos/seed/admin/100/100" alt="You">
-            }
-          </div>
-        } @empty {
-          <div class="flex justify-center items-center h-full text-gray-500">
-            <p>{{ 'chat.noMessages' | translate }}</p>
-          </div>
-        }
-      </div>
 
-      <!-- Message Input -->
-      <footer class="p-4 bg-slate-900 border-t border-slate-800">
-        @if(attachedFile(); as file) {
-            <div class="px-1 pb-3">
-                <div class="bg-slate-800 p-2 rounded-lg flex items-center justify-between animate-fade-in">
-                    <div class="flex items-center gap-3 truncate">
-                         <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                        <span class="text-sm text-gray-300 truncate">{{ file.name }}</span>
-                    </div>
-                    <button (click)="removeAttachment()" [title]="'chat.removeAttachment' | translate" class="p-1 text-gray-400 hover:text-white hover:bg-slate-700 rounded-full">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
+      <section class="flex-1 overflow-y-auto p-6">
+        @if (messagesLoading()) {
+          <div class="rounded-xl border border-slate-800 bg-slate-900 p-6 text-center text-sm text-slate-400">Loading messages...</div>
+        } @else if (messagesError()) {
+          <div class="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">{{ messagesError() }}</div>
+        } @else {
+          <div class="space-y-4">
+            @for (message of messages(); track message.id) {
+              <article class="flex w-full" [class.justify-end]="message.isSender" [class.justify-start]="!message.isSender">
+                <div class="max-w-[min(78%,42rem)] rounded-2xl border px-4 py-3 shadow-sm"
+                     [class.rounded-br-md]="message.isSender"
+                     [class.rounded-bl-md]="!message.isSender"
+                     [class.bg-blue-600]="message.isSender"
+                     [class.border-blue-500]="message.isSender"
+                     [class.text-white]="message.isSender"
+                     [class.bg-slate-900]="!message.isSender"
+                     [class.border-slate-800]="!message.isSender"
+                     [class.text-slate-100]="!message.isSender">
+                  <div class="mb-2 flex items-center gap-2 text-xs" [class.justify-end]="message.isSender" [class.text-blue-100]="message.isSender" [class.text-slate-400]="!message.isSender">
+                    <span class="font-semibold">{{ message.senderName }}</span>
+                    @if (message.senderRole) {
+                      <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                            [class.bg-white/15]="message.isSender"
+                            [class.text-blue-50]="message.isSender"
+                            [class.bg-slate-800]="!message.isSender"
+                            [class.text-slate-300]="!message.isSender">
+                        {{ message.senderRole }}
+                      </span>
+                    }
+                    <span class="opacity-75">{{ formatTime(message.sentAt) }}</span>
+                  </div>
+                  <p class="whitespace-pre-wrap break-words text-sm leading-6" dir="auto">{{ message.text }}</p>
                 </div>
-            </div>
+              </article>
+            } @empty {
+              <div class="rounded-xl border border-slate-800 bg-slate-900 p-8 text-center text-sm text-slate-500">
+                No messages yet. Start the negotiation with a clear question or proposal.
+              </div>
+            }
+          </div>
         }
-        <form (ngSubmit)="sendMessage()" class="flex items-center gap-4">
-          <input #fileInput type="file" class="hidden" (change)="onFileSelected($event)">
-          <button type="button" (click)="fileInput.click()" [title]="'chat.attachFile' | translate" class="text-gray-400 hover:text-white p-2 rounded-full hover:bg-slate-700 transition-colors">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-          </button>
-          <input 
-            [formControl]="messageControl"
-            type="text" 
-            [placeholder]="'chat.messagePlaceholder' | translate" 
-            class="flex-1 bg-slate-800 border border-slate-700 rounded-full py-3 px-5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <button type="submit" class="bg-blue-600 text-white rounded-full p-3 hover:bg-blue-700 transition-colors disabled:opacity-50" [disabled]="!messageControl.value?.trim() && !attachedFile()">
-            <svg class="w-6 h-6 transform rotate-90 rtl:-rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+      </section>
+
+      <footer class="border-t border-slate-800 bg-slate-900 p-4">
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+          @if (canMarkReady()) {
+            <button type="button"
+                    (click)="markReadyToProceed()"
+                    [disabled]="actionProcessing()"
+                    class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50">
+              Ready to Proceed
+            </button>
+          }
+          @if (canCloseDiscussion()) {
+            <button type="button"
+                    (click)="closeDiscussion()"
+                    [disabled]="actionProcessing()"
+                    class="rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">
+              Close Discussion
+            </button>
+          }
+        </div>
+
+        <div *ngIf="!canSendMessage()" class="mb-3 text-sm text-slate-500">
+          {{ composerHint() }}
+        </div>
+
+        <form (submit)="onMessageSubmit($event)" class="flex items-center gap-3">
+          <input [formControl]="messageControl"
+                 type="text"
+                 [disabled]="isClosed()"
+                 [placeholder]="composerHint()"
+                 class="flex-1 rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50">
+          <button type="submit"
+                  [disabled]="!canSendMessage()"
+                  [attr.aria-label]="'Send message'"
+                  title="Send message"
+                  class="inline-flex items-center justify-center rounded-xl bg-blue-600 p-3 text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 2L11 13"></path>
+              <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+            </svg>
           </button>
         </form>
       </footer>
     } @else {
-       <div class="flex-1 flex items-center justify-center text-gray-500">
-        <div class="text-center">
-            <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 5.523-4.477 10-10 10S1 17.523 1 12 5.477 2 12 2s10 4.477 10 10z"></path></svg>
-            <h3 class="mt-2 text-sm font-semibold text-white">{{ 'chat.noConversationSelected.title' | translate }}</h3>
-            <p class="mt-1 text-sm text-gray-500">{{ 'chat.noConversationSelected.subtitle' | translate }}</p>
+      <div class="flex flex-1 items-center justify-center p-8 text-center">
+        <div>
+          <h2 class="text-xl font-bold text-white">No conversation selected</h2>
+          <p class="mt-2 text-sm text-slate-500">Choose a conversation to review the discussion and next steps.</p>
         </div>
-    </div>
+      </div>
     }
   </main>
+
+  <!-- Right Context -->
+  <aside class="min-h-0 border-s border-slate-800 bg-slate-900 flex flex-col">
+    @if (activeConversation(); as conversation) {
+      <div class="border-b border-slate-800 p-5">
+        <h2 class="text-lg font-bold text-white">Conversation Context</h2>
+        <p class="mt-1 text-sm text-slate-500">Who you are talking to, which Opportunity this is about, and what happens next.</p>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-5 space-y-4">
+        <section class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Counterparty</p>
+          <p class="mt-2 text-sm font-semibold text-white">{{ conversation.counterpartyName }}</p>
+          <p class="mt-1 text-sm text-slate-400">{{ conversation.counterpartyRole || (conversation.founderName ? 'Founder' : 'Investor') }}</p>
+        </section>
+
+        <section class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Opportunity</p>
+          <p class="mt-2 text-sm font-semibold text-white">{{ conversation.opportunityTitle }}</p>
+          <p class="mt-2 text-sm leading-6 text-slate-400">{{ conversation.shortDescription || 'Conversation context for this Opportunity.' }}</p>
+          <a *ngIf="conversation.opportunityId"
+             [routerLink]="['/admin/investments', conversation.opportunityId]"
+             class="mt-3 inline-flex rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-700">
+            View Opportunity
+          </a>
+        </section>
+
+        <section class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Current Relationship Stage</p>
+          <p class="mt-2 text-sm leading-6 text-slate-200">{{ stageSummary() }}</p>
+        </section>
+
+        <section class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Readiness</p>
+          <div class="mt-3 space-y-2 text-sm">
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-slate-400">Founder</span>
+              <span class="font-semibold" [class.text-emerald-300]="conversation.founderReady" [class.text-slate-300]="!conversation.founderReady">{{ conversation.founderReady ? 'Ready' : 'Not Ready' }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-slate-400">Investor</span>
+              <span class="font-semibold" [class.text-emerald-300]="conversation.investorReady" [class.text-slate-300]="!conversation.investorReady">{{ conversation.investorReady ? 'Ready' : 'Not Ready' }}</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Participation Status</p>
+          <p class="mt-2 text-sm leading-6 text-slate-200">{{ participationSummary() }}</p>
+        </section>
+
+        <section class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Next Step</p>
+          <p class="mt-2 text-sm leading-6 text-slate-200">{{ nextStep() }}</p>
+        </section>
+
+        <section class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Project Room</p>
+          @if (projectRoomUnlocked() && conversation.opportunityId) {
+            <a [routerLink]="['/admin/opportunities', conversation.opportunityId, 'room']"
+               class="mt-3 inline-flex rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-emerald-200 hover:bg-emerald-500/15">
+              Open Project Room
+            </a>
+          } @else {
+            <p class="mt-2 text-sm text-slate-500">Project Room is available after founder approval.</p>
+          }
+        </section>
+
+        <section class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+          <h3 class="text-sm font-bold text-white">Negotiation Timeline</h3>
+          <ol class="mt-4 space-y-4">
+            @for (event of timeline(); track event.label) {
+              <li class="flex gap-3">
+                <span class="mt-1 h-3 w-3 shrink-0 rounded-full" [class.bg-emerald-400]="event.active" [class.bg-slate-700]="!event.active"></span>
+                <div>
+                  <p class="text-sm font-semibold" [class.text-white]="event.active" [class.text-slate-500]="!event.active">{{ event.label }}</p>
+                  @if (event.date) {
+                    <p class="mt-1 text-xs text-slate-500">{{ formatDate(event.date) }}</p>
+                  }
+                </div>
+              </li>
+            }
+          </ol>
+        </section>
+      </div>
+    } @else {
+      <div class="p-5 text-sm text-slate-500">Select a conversation to see its context.</div>
+    }
+  </aside>
 </div>

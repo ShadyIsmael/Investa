@@ -364,7 +364,7 @@ class ProfileService {
     var profileBase = baseUrl;
     if (!profileBase.startsWith('http')) profileBase = 'http://$profileBase';
     final uri = Uri.parse('$profileBase/api/Profile/me');
-    try {0
+    try {
       AppLogger.logInfo(
           'ProfileService.fetchProfileRaw', 'GET ${uri.toString()}');
       final resp = await _client

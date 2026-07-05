@@ -446,6 +446,12 @@
                   <svg class="w-4 h-4 flex-shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                   {{ 'dashboard.viewPublicPage' | translate }}
                 </a>
+                @if (getRoomOpportunityId(project); as roomOpportunityId) {
+                  <a [routerLink]="['/admin/opportunities', roomOpportunityId, 'room']" class="w-full flex items-center gap-3 text-start px-4 py-3 rounded-xl text-sm font-medium transition-colors bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/25 hover:border-emerald-500/45 text-emerald-200">
+                    <svg class="w-4 h-4 flex-shrink-0 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15l-.75 18H5.25L4.5 3zm4.5 4.5h6m-6 4.5h6m-6 4.5h3"/></svg>
+                    Open Project Room
+                  </a>
+                }
                 <button class="w-full flex items-center gap-3 text-start px-4 py-3 rounded-xl text-sm font-medium transition-colors bg-slate-800/40 hover:bg-slate-700/60 border border-slate-700/50 hover:border-slate-600 text-gray-300 hover:text-white">
                   <svg class="w-4 h-4 flex-shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12"/></svg>
                   {{ 'dashboard.postUpdate' | translate }}
@@ -511,6 +517,13 @@
                   <span>{{ 'dashboard.totalInvestors' | translate }}: <span class="font-semibold text-gray-300">{{ p.investors.length }}</span></span>
                   <span>{{ 'investments.score' | translate }}: <span class="font-semibold text-amber-400">{{ p.score }}</span></span>
                 </div>
+                @if (getRoomOpportunityId(p); as roomOpportunityId) {
+                  <a [routerLink]="['/admin/opportunities', roomOpportunityId, 'room']"
+                     (click)="$event.stopPropagation()"
+                     class="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-200 hover:border-emerald-500/45 hover:bg-emerald-500/15">
+                    Open Project Room
+                  </a>
+                }
               </div>
             }
           </div>
