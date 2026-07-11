@@ -22,6 +22,83 @@ public class RejectNegotiationRequest
     public string? Reason { get; set; }
 }
 
+public class CloseNegotiationConversationRequest
+{
+    [StringLength(1000)]
+    public string? Reason { get; set; }
+}
+
+public class CreateNegotiationOfferRequest
+{
+    [StringLength(1000)]
+    public string? Note { get; set; }
+
+    [StringLength(10)]
+    public string? Currency { get; set; }
+
+    [Required]
+    public IReadOnlyList<CreateNegotiationOfferLegRequest> Legs { get; set; } = Array.Empty<CreateNegotiationOfferLegRequest>();
+}
+
+public class CreateNegotiationOfferLegRequest
+{
+    [Required]
+    public NegotiationOfferLegType? LegType { get; set; }
+
+    [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than zero.")]
+    public decimal Amount { get; set; }
+
+    [Range(0.01, 100, ErrorMessage = "EquityPercentage must be between 0.01 and 100.")]
+    public decimal? EquityPercentage { get; set; }
+
+    [StringLength(500)]
+    public string? SharesTerms { get; set; }
+
+    [Range(0.01, 100, ErrorMessage = "ReturnRate must be between 0.01 and 100.")]
+    public decimal? ReturnRate { get; set; }
+
+    [Range(1, int.MaxValue, ErrorMessage = "TermMonths must be greater than zero.")]
+    public int? TermMonths { get; set; }
+
+    [StringLength(100)]
+    public string? RepaymentModel { get; set; }
+
+    [Range(0.01, 100, ErrorMessage = "ProfitSharePercentage must be between 0.01 and 100.")]
+    public decimal? ProfitSharePercentage { get; set; }
+
+    [StringLength(1000)]
+    public string? ExitTerms { get; set; }
+}
+
+public class NegotiationOfferDto
+{
+    public int Id { get; set; }
+    public Guid ConversationId { get; set; }
+    public Guid CreatedByUserId { get; set; }
+    public string CreatedByName { get; set; } = string.Empty;
+    public int Version { get; set; }
+    public int? ParentOfferId { get; set; }
+    public NegotiationOfferStatus Status { get; set; }
+    public string? Note { get; set; }
+    public string Currency { get; set; } = "Credits";
+    public DateTime CreatedAt { get; set; }
+    public IReadOnlyList<NegotiationOfferLegDto> Legs { get; set; } = Array.Empty<NegotiationOfferLegDto>();
+}
+
+public class NegotiationOfferLegDto
+{
+    public int Id { get; set; }
+    public NegotiationOfferLegType LegType { get; set; }
+    public decimal Amount { get; set; }
+    public decimal? EquityPercentage { get; set; }
+    public string? SharesTerms { get; set; }
+    public decimal? ReturnRate { get; set; }
+    public int? TermMonths { get; set; }
+    public string? RepaymentModel { get; set; }
+    public decimal? ProfitSharePercentage { get; set; }
+    public string? ExitTerms { get; set; }
+}
+
 public class NegotiationConversationDto
 {
     public Guid Id { get; set; }
@@ -47,6 +124,10 @@ public class NegotiationConversationDto
     public bool ProjectRoomUnlocked { get; set; }
     public OpportunityJoinRequestStatus? ParticipationStatus { get; set; }
     public int? ParticipationRequestId { get; set; }
+    public bool IsVisibleToCurrentUser { get; set; }
+    public Guid? ClosedByUserId { get; set; }
+    public string? CloseReason { get; set; }
+    public DateTime? ClosedAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 }

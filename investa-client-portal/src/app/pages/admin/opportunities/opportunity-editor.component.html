@@ -6,6 +6,7 @@
 
   <div *ngIf="isLoading()" class="h-96 animate-pulse rounded-xl border border-slate-800 bg-slate-900/80"></div>
   <div *ngIf="errorMessage() && !isLoading()" class="mb-6 rounded-lg border border-red-500/50 bg-red-500/20 p-4 text-red-200">{{ errorMessage() }}</div>
+  <div *ngIf="stepErrorMessage() && !isLoading()" class="mb-6 rounded-lg border border-amber-500/50 bg-amber-500/20 p-4 text-amber-200">{{ stepErrorMessage() }}</div>
 
   <div *ngIf="!isLoading()" class="rounded-xl border border-slate-800 bg-slate-900/80">
     <div class="border-b border-slate-800 p-5">
@@ -19,15 +20,15 @@
     <div class="p-6 lg:p-8">
       <section *ngIf="step() === 1" class="space-y-5">
         <h2 class="text-xl font-bold text-white">Tell us about your opportunity</h2>
-        <input [(ngModel)]="form.title" placeholder="Title" class="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
-        <textarea [(ngModel)]="form.shortDescription" rows="3" placeholder="Short description" class="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"></textarea>
-        <textarea [(ngModel)]="form.fullDescription" rows="6" placeholder="Full description" class="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"></textarea>
+        <input formControlName="title" placeholder="Title" class="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+        <textarea formControlName="shortDescription" rows="3" placeholder="Short description" class="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"></textarea>
+        <textarea formControlName="fullDescription" rows="6" placeholder="Full description" class="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"></textarea>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <select [(ngModel)]="form.categoryId" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+          <select formControlName="categoryId" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
             <option [ngValue]="null">Category</option>
             <option *ngFor="let category of categories()" [ngValue]="category.id">{{ label(category) }}</option>
           </select>
-          <input [(ngModel)]="form.projectStage" placeholder="Opportunity stage" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+          <input formControlName="projectStage" placeholder="Opportunity stage" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
         </div>
         <div>
           <p class="mb-2 text-sm font-semibold text-gray-300">Tags</p>
@@ -42,29 +43,62 @@
       <section *ngIf="step() === 2" class="space-y-5">
         <h2 class="text-xl font-bold text-white">Funding Basics</h2>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <input [(ngModel)]="form.investmentModel" placeholder="Investment model" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
-          <select [(ngModel)]="form.fundingGoalId" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+          <select formControlName="investmentModel" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+            <option [ngValue]="null">Investment model</option>
+            <option [ngValue]="InvestmentModel.Equity">Equity</option>
+            <option [ngValue]="InvestmentModel.LoanInvestment">Loan</option>
+            <option [ngValue]="InvestmentModel.CapitalContributionProfitSharing">Profit Sharing</option>
+          </select>
+          <select formControlName="fundingGoalId" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
             <option [ngValue]="null">Funding goal</option>
             <option *ngFor="let goal of fundingGoals()" [ngValue]="goal.id">{{ label(goal) }}</option>
           </select>
-          <input [(ngModel)]="form.fundingTarget" type="number" placeholder="Funding target" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
-          <input [(ngModel)]="form.minimumInvestment" type="number" placeholder="Minimum investment" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
-          <input [(ngModel)]="form.maximumInvestment" type="number" placeholder="Maximum investment optional" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
-          <input [(ngModel)]="form.expectedDuration" placeholder="Expected duration optional" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+          <input formControlName="fundingTarget" type="number" placeholder="Funding target" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+          <input formControlName="minimumInvestment" type="number" placeholder="Minimum investment" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+          <input formControlName="maximumInvestment" type="number" placeholder="Maximum investment optional" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+          <input formControlName="expectedDuration" placeholder="Expected duration optional" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
         </div>
+        
+        <!-- Equity-specific fields -->
+        <div *ngIf="isEquityModel()" class="rounded-lg border border-blue-500/30 bg-blue-500/10 p-4">
+          <h3 class="mb-3 text-sm font-semibold text-blue-200">Equity Details</h3>
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <input formControlName="equityOfferedPercentage" type="number" placeholder="Equity offered %" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+          </div>
+        </div>
+        
+        <!-- Loan-specific fields -->
+        <div *ngIf="isLoanModel()" class="rounded-lg border border-green-500/30 bg-green-500/10 p-4">
+          <h3 class="mb-3 text-sm font-semibold text-green-200">Loan Details</h3>
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <input formControlName="returnRate" type="number" placeholder="Return rate %" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+            <input formControlName="loanTerm" type="number" placeholder="Loan term (months)" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+            <input formControlName="repaymentModel" placeholder="Repayment model" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+          </div>
+        </div>
+        
+        <!-- Profit Sharing-specific fields -->
+        <div *ngIf="isProfitSharingModel()" class="rounded-lg border border-purple-500/30 bg-purple-500/10 p-4">
+          <h3 class="mb-3 text-sm font-semibold text-purple-200">Profit Sharing Details</h3>
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <input formControlName="profitSharePercentage" type="number" placeholder="Profit share %" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+            <input formControlName="exitTerms" placeholder="Exit terms" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+          </div>
+        </div>
+        
         <details class="rounded-lg border border-slate-800 bg-slate-800/40 p-4">
           <summary class="cursor-pointer text-sm font-semibold text-gray-200">Advanced optional details</summary>
           <div class="mt-4 grid grid-cols-1 gap-4">
-            <textarea [(ngModel)]="form.fundingUsage" rows="3" placeholder="Funding usage" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"></textarea>
-            <textarea [(ngModel)]="form.risks" rows="3" placeholder="Risks" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"></textarea>
-            <textarea [(ngModel)]="form.exitStrategy" rows="3" placeholder="Exit strategy" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"></textarea>
+            <textarea formControlName="fundingUsage" rows="3" placeholder="Funding usage" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"></textarea>
+            <textarea formControlName="risks" rows="3" placeholder="Risks" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"></textarea>
+            <textarea formControlName="exitStrategy" rows="3" placeholder="Exit strategy" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"></textarea>
           </div>
         </details>
       </section>
 
       <section *ngIf="step() === 3" class="space-y-5">
         <h2 class="text-xl font-bold text-white">Media & Documents</h2>
-        <input [(ngModel)]="form.coverImageUrl" placeholder="Cover image URL" class="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+        <input formControlName="coverImageUrl" placeholder="Cover image URL" class="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
 
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div class="rounded-lg border border-slate-700 bg-slate-800/40 p-4" (dragover)="$event.preventDefault()" (drop)="onDrop($event, 'cover')">
@@ -145,12 +179,12 @@
       <section *ngIf="step() === 4" class="space-y-5">
         <h2 class="text-xl font-bold text-white">Review</h2>
         <div class="rounded-xl border border-slate-800 bg-slate-800/40 p-5">
-          <p class="text-2xl font-bold text-white">{{ form.title || 'Untitled opportunity' }}</p>
-          <p class="mt-2 text-gray-400">{{ form.shortDescription || '-' }}</p>
+          <p class="text-2xl font-bold text-white">{{ form.get('title')?.value || 'Untitled opportunity' }}</p>
+          <p class="mt-2 text-gray-400">{{ form.get('shortDescription')?.value || '-' }}</p>
           <dl class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div><dt class="text-xs text-gray-500">Model</dt><dd class="text-gray-200">{{ form.investmentModel || '-' }}</dd></div>
-            <div><dt class="text-xs text-gray-500">Funding</dt><dd class="text-gray-200">{{ form.fundingTarget || 0 }}</dd></div>
-            <div><dt class="text-xs text-gray-500">Minimum</dt><dd class="text-gray-200">{{ form.minimumInvestment || 0 }}</dd></div>
+            <div><dt class="text-xs text-gray-500">Model</dt><dd class="text-gray-200">{{ getInvestmentModelLabel(form.get('investmentModel')?.value) || '-' }}</dd></div>
+            <div><dt class="text-xs text-gray-500">Funding</dt><dd class="text-gray-200">{{ form.get('fundingTarget')?.value || 0 }}</dd></div>
+            <div><dt class="text-xs text-gray-500">Minimum</dt><dd class="text-gray-200">{{ form.get('minimumInvestment')?.value || 0 }}</dd></div>
           </dl>
         </div>
       </section>
@@ -161,7 +195,7 @@
       <div class="flex gap-3">
         <button type="button" *ngIf="step() < 4" (click)="next()" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">Next</button>
         <button type="button" *ngIf="step() === 4" (click)="save(false)" [disabled]="isSaving()" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-slate-700 disabled:opacity-50">Save Draft</button>
-        <button type="button" *ngIf="step() === 4" (click)="save(true)" [disabled]="isSaving()" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50">Submit for Review</button>
+        <button type="button" *ngIf="step() === 4" (click)="save(true)" [disabled]="isSaving()" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50">Publish</button>
       </div>
     </div>
   </div>

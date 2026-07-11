@@ -25,6 +25,89 @@
   -webkit-box-orient: vertical;
 }
 
+:host-context(body.investa-theme-light) {
+  .project-stages {
+    .stages-line {
+      background: linear-gradient(90deg, #dbe3ef, #cbd5e1, #dbe3ef);
+    }
+
+    .stage-item {
+      .stage-circle.upcoming {
+        background: var(--investa-surface-2);
+        color: var(--investa-text-muted);
+        border: 1px solid var(--investa-border);
+      }
+
+      .stage-label.active,
+      .stage-label.completed,
+      .milestone-box .milestone-value {
+        color: var(--investa-text-primary);
+      }
+
+      .stage-label.upcoming {
+        color: var(--investa-text-muted);
+      }
+
+      .current-badge {
+        background: rgba(37, 99, 235, 0.1);
+        color: #1d4ed8;
+        border-color: rgba(37, 99, 235, 0.22);
+      }
+    }
+
+    .milestone-box {
+      background: rgba(37, 99, 235, 0.06);
+      border-color: rgba(37, 99, 235, 0.18);
+
+      .milestone-label {
+        color: #1d4ed8;
+      }
+    }
+  }
+
+  .investment-preview {
+    .metric-card,
+    .section-card,
+    .team-member,
+    .document-card,
+    .timeline-item,
+    .funding-progress-card,
+    .modal-content {
+      background: var(--investa-surface);
+      border-color: var(--investa-border);
+      color: var(--investa-text-primary);
+      box-shadow: var(--investa-shadow-sm);
+    }
+
+    .metric-card:hover,
+    .section-card:hover,
+    .team-member:hover,
+    .document-card:hover {
+      background: var(--investa-surface-2);
+      border-color: rgba(16, 185, 129, 0.22);
+    }
+
+    .metric-card .label,
+    .timeline-date,
+    .document-meta,
+    .member-role {
+      color: var(--investa-text-muted);
+    }
+
+    .tab-button {
+      background: var(--investa-surface);
+      color: var(--investa-text-secondary);
+      border-color: var(--investa-border);
+
+      &.active {
+        background: rgba(16, 185, 129, 0.1);
+        color: #047857;
+        border-color: rgba(16, 185, 129, 0.24);
+      }
+    }
+  }
+}
+
 // Glassmorphism effect for cards
 .backdrop-blur-md {
   backdrop-filter: blur(12px);

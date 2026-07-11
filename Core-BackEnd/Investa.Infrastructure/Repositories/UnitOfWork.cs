@@ -1,5 +1,6 @@
 using Investa.Application.Interfaces;
 using Investa.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Investa.Infrastructure.Repositories;
 
@@ -7,7 +8,7 @@ public class UnitOfWork : IUnitOfWork
 {
     private readonly ApplicationDbContext _context;
     private readonly Dictionary<Type, object> _repositories;
-    private Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? _transaction;
+    private IDbContextTransaction? _transaction;
 
     public UnitOfWork(ApplicationDbContext context)
     {
@@ -60,6 +61,20 @@ public class UnitOfWork : IUnitOfWork
             await _transaction.DisposeAsync();
             _transaction = null;
         }
+    }
+
+    public async Task ExecuteWithStrategyAsync(Func<Task> operation, CancellationToken cancellationToken = default)
+    {
+        var strategy = _context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync<object, object>(
+            null!,
+            async (_, _, _) =>
+            {
+                await operation();
+                return null!;
+            },
+            null!,
+            cancellationToken);
     }
 
     public void Dispose()

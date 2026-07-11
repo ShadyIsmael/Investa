@@ -113,9 +113,10 @@ public class OpportunitiesController : BaseApiController
         }
     }
 
+    [HttpPost("{id:int}/publish")]
     [HttpPost("{id:int}/submit-review")]
     [ProducesResponseType(typeof(ApiResponse<OpportunityDetailDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> SubmitForReview(int id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Publish(int id, CancellationToken cancellationToken)
     {
         var userId = ResolveUserIdFromClaims();
         if (userId == null)
@@ -123,8 +124,8 @@ public class OpportunitiesController : BaseApiController
 
         try
         {
-            var opportunity = await _opportunityService.SubmitForReviewAsync(userId.Value, id, cancellationToken);
-            return SuccessResponse(opportunity, "Opportunity submitted for review successfully");
+            var opportunity = await _opportunityService.PublishAsync(userId.Value, id, cancellationToken);
+            return SuccessResponse(opportunity, "Opportunity published successfully");
         }
         catch (BusinessValidationException ex)
         {
@@ -147,6 +148,25 @@ public class OpportunitiesController : BaseApiController
         {
             var joinRequest = await _opportunityService.CreateJoinRequestAsync(userId.Value, id, request, cancellationToken);
             return SuccessResponse(joinRequest, "Join request created successfully", 201);
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
+    [HttpGet("{id:int}/participation-form")]
+    [ProducesResponseType(typeof(ApiResponse<OpportunityParticipationFormDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetParticipationForm(int id, CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null)
+            return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            var form = await _opportunityService.GetParticipationFormAsync(userId.Value, id, cancellationToken);
+            return SuccessResponse(form);
         }
         catch (BusinessValidationException ex)
         {
@@ -317,9 +337,7 @@ public class OpportunitiesController : BaseApiController
 
     private Guid? ResolveUserIdFromClaims()
     {
-        var claimValue = User.FindFirst("sub")?.Value
-                         ?? User.FindFirst("id")?.Value
-                         ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var claimValue = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
 
         return Guid.TryParse(claimValue, out var userId) ? userId : null;
     }

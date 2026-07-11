@@ -2,11 +2,13 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Wallet, WalletService, WalletTransaction } from '../../../services/wallet.service';
+import { LanguageService } from '../../../services/language.service';
+import { TranslatePipe } from '../../../pipes/translate.pipe';
 
 @Component({
   standalone: true,
   selector: 'app-wallet',
-  imports: [CommonModule],
+  imports: [CommonModule, TranslatePipe],
   templateUrl: './wallet.component.html',
   styleUrls: ['./wallet.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -14,6 +16,7 @@ import { Wallet, WalletService, WalletTransaction } from '../../../services/wall
 export class WalletComponent {
   private walletService = inject(WalletService);
   private router = inject(Router);
+  private languageService = inject(LanguageService);
 
   wallet = signal<Wallet | null>(null);
   balance = signal<number>(0);
@@ -24,10 +27,10 @@ export class WalletComponent {
   summaryItems = computed(() => {
     const wallet = this.wallet();
     return [
-      { label: 'Current Balance', value: this.balance(), tone: 'text-blue-300' },
-      { label: 'Total Purchased Credits', value: wallet?.totalPurchasedCredits ?? 0, tone: 'text-emerald-300' },
-      { label: 'Total Bonus Credits', value: wallet?.totalBonusCredits ?? 0, tone: 'text-violet-300' },
-      { label: 'Total Refund Credits', value: wallet?.totalRefundCredits ?? 0, tone: 'text-amber-300' }
+      { labelKey: 'wallet.summary.currentBalance', value: this.balance(), tone: 'text-blue-300' },
+      { labelKey: 'wallet.summary.purchased', value: wallet?.totalPurchasedCredits ?? 0, tone: 'text-emerald-300' },
+      { labelKey: 'wallet.summary.bonus', value: wallet?.totalBonusCredits ?? 0, tone: 'text-violet-300' },
+      { labelKey: 'wallet.summary.refunds', value: wallet?.totalRefundCredits ?? 0, tone: 'text-amber-300' }
     ];
   });
 
@@ -45,7 +48,7 @@ export class WalletComponent {
       this.balance.set(view.balance ?? view.wallet.currentBalance ?? 0);
       this.transactions.set(view.transactions);
     } catch (error: any) {
-      this.errorMessage.set(error?.message || 'Failed to load wallet.');
+      this.errorMessage.set(error?.message || this.t('wallet.errors.loadFailed'));
       this.wallet.set(null);
       this.transactions.set([]);
     } finally {
@@ -54,14 +57,14 @@ export class WalletComponent {
   }
 
   formatNumber(value: number | null | undefined): string {
-    return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value ?? 0);
+    return new Intl.NumberFormat(this.languageService.language() === 'ar' ? 'ar-EG' : 'en-US', { maximumFractionDigits: 2 }).format(value ?? 0);
   }
 
   formatDate(value: string | null | undefined): string {
     if (!value) return '-';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
-    return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+    return new Intl.DateTimeFormat(this.languageService.language() === 'ar' ? 'ar-EG' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
   }
 
   displayValue(value: string | number | null | undefined): string {
@@ -78,5 +81,9 @@ export class WalletComponent {
 
   goBack(): void {
     this.router.navigate(['/admin/profile']);
+  }
+
+  t(path: string): string {
+    return this.languageService.translate(path);
   }
 }

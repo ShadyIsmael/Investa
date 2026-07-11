@@ -21,10 +21,14 @@ public class OpportunityService : IOpportunityService
     ];
 
     private readonly IUnitOfWork _uow;
+    private readonly IPaidActionService _paidActionService;
+    private readonly IReputationService _reputationService;
 
-    public OpportunityService(IUnitOfWork uow)
+    public OpportunityService(IUnitOfWork uow, IPaidActionService paidActionService, IReputationService reputationService)
     {
         _uow = uow;
+        _paidActionService = paidActionService;
+        _reputationService = reputationService;
     }
 
     public async Task<OpportunityDetailDto> CreateAsync(Guid founderId, CreateOpportunityRequest request, CancellationToken cancellationToken = default)
@@ -180,6 +184,7 @@ public class OpportunityService : IOpportunityService
         await ValidateClientAsync(userId, "Only authenticated clients can access an investor project room.");
         var opportunity = await GetOpportunityAsync(id, includeChildren: true);
         var isFounder = opportunity.FounderId == userId;
+        var approvedParticipantCount = await GetApprovedParticipantCountAsync(id);
         var isApprovedParticipant = false;
 
         if (!isFounder)
@@ -194,7 +199,7 @@ public class OpportunityService : IOpportunityService
             throw new BusinessValidationException("PROJECT_ROOM_FORBIDDEN", "Project room access requires founder ownership or an approved join request.");
 
         var founder = await _uow.Repository<AuthUser>().GetByIdAsync(opportunity.FounderId);
-        return ToRoomDto(opportunity, founder, isFounder, isApprovedParticipant);
+        return ToRoomDto(opportunity, founder, isFounder, isApprovedParticipant, approvedParticipantCount);
     }
 
     public async Task<OpportunityMediaDto> AddMediaAsync(Guid founderId, int id, CreateOpportunityMediaRequest request, CancellationToken cancellationToken = default)
@@ -310,6 +315,11 @@ public class OpportunityService : IOpportunityService
 
         await _uow.Repository<Opportunity>().UpdateAsync(opportunity);
         await _uow.SaveChangesAsync();
+        await ApplyReputationActivitySafeAsync(
+            founderId,
+            "UploadProjectDocument",
+            "OpportunityDocument",
+            document.Id.ToString());
 
         return ToDocumentDto(document);
     }
@@ -341,6 +351,11 @@ public class OpportunityService : IOpportunityService
 
         await _uow.Repository<Opportunity>().UpdateAsync(opportunity);
         await _uow.SaveChangesAsync();
+        await ApplyReputationActivitySafeAsync(
+            founderId,
+            IsMilestoneEvent(opportunityEvent.EventType) ? "AddProjectMilestone" : "AddProjectUpdate",
+            "OpportunityEvent",
+            opportunityEvent.Id.ToString());
 
         return ToEventDto(opportunityEvent);
     }
@@ -420,21 +435,119 @@ public class OpportunityService : IOpportunityService
             tagLookup: await GetActiveTagLookupAsync());
     }
 
-    public async Task<OpportunityDetailDto> SubmitForReviewAsync(Guid founderId, int id, CancellationToken cancellationToken = default)
+    public async Task<OpportunityDetailDto> PublishAsync(Guid founderId, int id, CancellationToken cancellationToken = default)
     {
         ValidateFounder(founderId);
         var opportunity = await GetOwnedOpportunityAsync(founderId, id, includeChildren: true);
 
         if (opportunity.Status is not (OpportunityStatus.Draft or OpportunityStatus.Rejected))
-            throw new BusinessValidationException("INVALID_STATUS_TRANSITION", "Only Draft or Rejected opportunities can be submitted for review.");
+            throw new BusinessValidationException("INVALID_STATUS_TRANSITION", "Only Draft or Rejected opportunities can be published.");
 
         ValidateCompleteForReview(opportunity);
-        ChangeStatusWithEvent(opportunity, OpportunityStatus.UnderReview, "SubmittedForReview", "Submitted for review", "Founder submitted opportunity for admin review.", founderId, isPublic: false);
+        ChangeStatusWithEvent(opportunity, OpportunityStatus.Published, "Published", "Opportunity published", "Founder published opportunity to public.", founderId, isPublic: false);
 
-        await _uow.Repository<Opportunity>().UpdateAsync(opportunity);
-        await _uow.SaveChangesAsync();
+        await _uow.ExecuteWithStrategyAsync(async () =>
+        {
+            await _uow.BeginTransactionAsync();
+            try
+            {
+                await _paidActionService.ChargeAsync(
+                    founderId,
+                    PricingAction.PublishOpportunity,
+                    ReferenceType.Opportunity,
+                    id.ToString(),
+                    cancellationToken);
+
+                await _uow.Repository<Opportunity>().UpdateAsync(opportunity);
+                await _uow.SaveChangesAsync();
+                await ApplyReputationActivitySafeAsync(
+                    founderId,
+                    "PublishOpportunity",
+                    "Opportunity",
+                    opportunity.Id.ToString());
+                await _uow.CommitTransactionAsync();
+            }
+            catch
+            {
+                await _uow.RollbackTransactionAsync();
+                throw;
+            }
+        }, cancellationToken);
 
         return ToDetailDto(opportunity, tagLookup: await GetActiveTagLookupAsync());
+    }
+
+    public async Task<OpportunityParticipationFormDto> GetParticipationFormAsync(Guid userId, int opportunityId, CancellationToken cancellationToken = default)
+    {
+        await ValidateClientAsync(userId, "Only authenticated clients can view participation form data.");
+        var opportunity = await GetOpportunityAsync(opportunityId, includeChildren: false);
+
+        if (opportunity.FounderId == userId)
+            throw new BusinessValidationException("FOUNDER_CANNOT_PARTICIPATE", "Founder cannot participate in their own opportunity.");
+
+        if (!IsEligibleForJoin(opportunity))
+            throw new BusinessValidationException("OPPORTUNITY_NOT_ELIGIBLE", "Opportunity is not currently eligible for participation.");
+
+        var linkedInvestment = await GetLinkedInvestmentAsync(opportunity.Id);
+        var alreadyFundedAmount = await GetApprovedFundedAmountAsync(opportunity.Id);
+        var remainingFundingAmount = CalculateRemainingFunding(opportunity.FundingTarget, alreadyFundedAmount);
+        var sharePrice = linkedInvestment?.SharePrice;
+        var totalShares = linkedInvestment?.TotalShares;
+        var approvedShares = await GetApprovedEquitySharesAsync(opportunity.Id);
+        var availableShares = totalShares.HasValue
+            ? Math.Max(totalShares.Value - approvedShares, 0)
+            : linkedInvestment?.AvailableShares;
+        var currency = linkedInvestment?.Currency ?? "Credits";
+        var minimumInvestment = opportunity.MinimumInvestmentAmount ?? linkedInvestment?.MinInvestment;
+        var maximumInvestment = opportunity.MaximumInvestmentAmount ?? linkedInvestment?.MaxInvestment;
+        var loanTermMonths = ResolveLoanTermMonths(opportunity, linkedInvestment);
+        var profitSharingTermMonths = ResolveProfitSharingTermMonths(opportunity, linkedInvestment);
+        var profitSharePercentage = ResolveProfitSharePercentage(linkedInvestment);
+
+        return new OpportunityParticipationFormDto
+        {
+            OpportunityId = opportunity.Id,
+            OpportunityTitle = opportunity.Title,
+            InvestmentModel = opportunity.InvestmentModel,
+            FundingTarget = opportunity.FundingTarget,
+            AlreadyFundedAmount = alreadyFundedAmount,
+            RemainingFundingAmount = remainingFundingAmount,
+            Currency = currency,
+            MinimumContribution = minimumInvestment,
+            MaximumContribution = maximumInvestment,
+            ReturnRate = opportunity.InvestmentModel == InvestmentModel.LoanInvestment ? linkedInvestment?.InterestRate : null,
+            ReturnRateType = opportunity.InvestmentModel == InvestmentModel.LoanInvestment && linkedInvestment?.InterestRate.HasValue == true
+                ? "AnnualSimple"
+                : null,
+            TermValue = opportunity.InvestmentModel switch
+            {
+                InvestmentModel.LoanInvestment => loanTermMonths,
+                InvestmentModel.CapitalContributionProfitSharing => profitSharingTermMonths,
+                _ => null
+            },
+            TermUnit = opportunity.InvestmentModel switch
+            {
+                InvestmentModel.LoanInvestment when loanTermMonths.HasValue => "Months",
+                InvestmentModel.CapitalContributionProfitSharing when profitSharingTermMonths.HasValue => "Months",
+                _ => null
+            },
+            RepaymentModel = opportunity.InvestmentModel == InvestmentModel.LoanInvestment ? linkedInvestment?.RepaymentFrequency : null,
+            ExpectedMaturityDate = opportunity.InvestmentModel == InvestmentModel.LoanInvestment ? linkedInvestment?.FinalRepaymentDate : null,
+            ProfitSharePercentage = opportunity.InvestmentModel == InvestmentModel.CapitalContributionProfitSharing ? profitSharePercentage : null,
+            ExpectedProfitAmount = null,
+            ExpectedTotalPayoutAmount = null,
+            OpportunityTotalExpectedPayout = opportunity.InvestmentModel == InvestmentModel.CapitalContributionProfitSharing ? linkedInvestment?.TotalExpectedPayout : null,
+            ExitTerms = opportunity.InvestmentModel == InvestmentModel.CapitalContributionProfitSharing ? BuildProfitSharingExitTerms(linkedInvestment) : null,
+            ContractStartDate = opportunity.InvestmentModel == InvestmentModel.CapitalContributionProfitSharing ? linkedInvestment?.ContractStartDate : null,
+            ContractEndDate = opportunity.InvestmentModel == InvestmentModel.CapitalContributionProfitSharing ? linkedInvestment?.ContractEndDate : null,
+            TotalShares = totalShares,
+            AvailableShares = availableShares,
+            SharePrice = sharePrice,
+            MinimumInvestmentAmount = minimumInvestment,
+            MaximumInvestmentAmount = maximumInvestment,
+            MinimumShares = CalculateMinimumShares(minimumInvestment, sharePrice),
+            MaximumShares = CalculateMaximumShares(maximumInvestment, sharePrice)
+        };
     }
 
     public async Task<IReadOnlyList<OpportunityLookupDto>> GetOpportunityCategoriesAsync(CancellationToken cancellationToken = default)
@@ -485,7 +598,7 @@ public class OpportunityService : IOpportunityService
         if (hasActiveRequest)
             throw new BusinessValidationException("DUPLICATE_JOIN_REQUEST", "An active join request already exists for this opportunity.");
 
-        var requestDetails = BuildJoinRequestDetails(opportunity, request);
+        var requestDetails = await BuildJoinRequestDetailsAsync(opportunity, request);
         var now = DateTime.UtcNow;
         var joinRequest = new OpportunityJoinRequest
         {
@@ -512,9 +625,34 @@ public class OpportunityService : IOpportunityService
         });
         opportunity.UpdatedAt = now;
 
-        await _uow.Repository<OpportunityJoinRequest>().AddAsync(joinRequest);
-        await _uow.Repository<Opportunity>().UpdateAsync(opportunity);
-        await _uow.SaveChangesAsync();
+        await _uow.ExecuteWithStrategyAsync(async () =>
+        {
+            await _uow.BeginTransactionAsync();
+            try
+            {
+                await _paidActionService.ChargeAsync(
+                    investorId,
+                    PricingAction.SubmitParticipationRequest,
+                    ReferenceType.OpportunityJoinRequest,
+                    $"{opportunityId}:{investorId}",
+                    cancellationToken);
+
+                await _uow.Repository<OpportunityJoinRequest>().AddAsync(joinRequest);
+                await _uow.Repository<Opportunity>().UpdateAsync(opportunity);
+                await _uow.SaveChangesAsync();
+                await ApplyReputationActivitySafeAsync(
+                    investorId,
+                    "SubmitParticipationRequest",
+                    "OpportunityJoinRequest",
+                    joinRequest.Id.ToString());
+                await _uow.CommitTransactionAsync();
+            }
+            catch
+            {
+                await _uow.RollbackTransactionAsync();
+                throw;
+            }
+        }, cancellationToken);
 
         return await GetJoinRequestDtoAsync(joinRequest.Id, includeRejectionReason: true);
     }
@@ -588,16 +726,20 @@ public class OpportunityService : IOpportunityService
         if (joinRequest.Status != OpportunityJoinRequestStatus.Pending)
             throw new BusinessValidationException("INVALID_JOIN_REQUEST_STATUS_TRANSITION", "Only pending join requests can be approved.");
 
+        if (opportunity.InvestmentModel == InvestmentModel.Equity && joinRequest.RequestType == OpportunityJoinRequestType.InvestmentParticipation)
+            await ValidateEquityAvailabilityForApprovalAsync(opportunity.Id, joinRequest);
+
+        if (opportunity.InvestmentModel == InvestmentModel.LoanInvestment && joinRequest.RequestType == OpportunityJoinRequestType.InvestmentParticipation)
+            await ValidateLoanFundingAvailabilityForApprovalAsync(opportunity, joinRequest);
+
+        if (opportunity.InvestmentModel == InvestmentModel.CapitalContributionProfitSharing && joinRequest.RequestType == OpportunityJoinRequestType.InvestmentParticipation)
+            await ValidateProfitSharingFundingAvailabilityForApprovalAsync(opportunity, joinRequest);
+
         var now = DateTime.UtcNow;
         joinRequest.Status = OpportunityJoinRequestStatus.Approved;
         joinRequest.ReviewedByFounderId = founderId;
         joinRequest.ReviewedAt = now;
         joinRequest.UpdatedAt = now;
-        if (joinRequest.SourceConversationId.HasValue)
-        {
-            joinRequest.IsVisibleToFounder = false;
-            joinRequest.IsVisibleToInvestor = false;
-        }
 
         opportunity.Events.Add(new OpportunityEvent
         {
@@ -631,10 +773,33 @@ public class OpportunityService : IOpportunityService
 
         opportunity.UpdatedAt = now;
 
-        await UpdateSourceConversationAfterParticipationReviewAsync(joinRequest, ConversationStatus.ParticipationApproved, now);
-        await _uow.Repository<OpportunityJoinRequest>().UpdateAsync(joinRequest);
-        await _uow.Repository<Opportunity>().UpdateAsync(opportunity);
-        await _uow.SaveChangesAsync();
+        await _uow.ExecuteWithStrategyAsync(async () =>
+        {
+            await _uow.BeginTransactionAsync();
+            try
+            {
+                await UpdateSourceConversationAfterParticipationReviewAsync(joinRequest, ConversationStatus.ParticipationApproved, now);
+                await _uow.Repository<OpportunityJoinRequest>().UpdateAsync(joinRequest);
+                await _uow.Repository<Opportunity>().UpdateAsync(opportunity);
+                await _uow.SaveChangesAsync();
+                await ApplyReputationActivitySafeAsync(
+                    founderId,
+                    "ApproveParticipation",
+                    "OpportunityJoinRequest",
+                    joinRequest.Id.ToString());
+                await ApplyReputationActivitySafeAsync(
+                    joinRequest.InvestorId,
+                    "BecomeParticipant",
+                    "OpportunityJoinRequest",
+                    joinRequest.Id.ToString());
+                await _uow.CommitTransactionAsync();
+            }
+            catch
+            {
+                await _uow.RollbackTransactionAsync();
+                throw;
+            }
+        }, cancellationToken);
 
         return await GetJoinRequestDtoAsync(requestId, includeRejectionReason: true);
     }
@@ -655,11 +820,6 @@ public class OpportunityService : IOpportunityService
         joinRequest.ReviewedByFounderId = founderId;
         joinRequest.ReviewedAt = now;
         joinRequest.UpdatedAt = now;
-        if (joinRequest.SourceConversationId.HasValue)
-        {
-            joinRequest.IsVisibleToFounder = false;
-            joinRequest.IsVisibleToInvestor = false;
-        }
 
         opportunity.Events.Add(new OpportunityEvent
         {
@@ -887,14 +1047,12 @@ public class OpportunityService : IOpportunityService
         var allowed = from switch
         {
             OpportunityStatus.Draft => to is OpportunityStatus.Archived,
-            OpportunityStatus.UnderReview => to is OpportunityStatus.Draft or OpportunityStatus.Archived,
             OpportunityStatus.Rejected => to is OpportunityStatus.Draft or OpportunityStatus.Archived,
-            OpportunityStatus.Approved => false,
-            OpportunityStatus.Published => false,
-            OpportunityStatus.Funding => false,
-            OpportunityStatus.FullyFunded => false,
-            OpportunityStatus.InProgress => false,
-            OpportunityStatus.Completed => false,
+            OpportunityStatus.Published => to is OpportunityStatus.Archived,
+            OpportunityStatus.Funding => to is OpportunityStatus.Archived,
+            OpportunityStatus.FullyFunded => to is OpportunityStatus.Archived,
+            OpportunityStatus.InProgress => to is OpportunityStatus.Archived,
+            OpportunityStatus.Completed => to is OpportunityStatus.Archived,
             OpportunityStatus.Archived => false,
             _ => false
         };
@@ -1189,7 +1347,7 @@ public class OpportunityService : IOpportunityService
             throw new BusinessValidationException(code, message);
     }
 
-    private static JoinRequestDetails BuildJoinRequestDetails(Opportunity opportunity, CreateOpportunityJoinRequest request)
+    private async Task<JoinRequestDetails> BuildJoinRequestDetailsAsync(Opportunity opportunity, CreateOpportunityJoinRequest request)
     {
         var requestType = request.RequestType ?? OpportunityJoinRequestType.GeneralParticipation;
         if (!Enum.IsDefined(requestType))
@@ -1198,7 +1356,7 @@ public class OpportunityService : IOpportunityService
         return requestType switch
         {
             OpportunityJoinRequestType.GeneralParticipation => BuildGeneralParticipationDetails(opportunity, request),
-            OpportunityJoinRequestType.InvestmentParticipation => BuildInvestmentParticipationDetails(opportunity, request),
+            OpportunityJoinRequestType.InvestmentParticipation => await BuildInvestmentParticipationDetailsAsync(opportunity, request),
             _ => throw new BusinessValidationException("INVALID_JOIN_REQUEST_TYPE", "Unknown join request type.")
         };
     }
@@ -1229,36 +1387,48 @@ public class OpportunityService : IOpportunityService
             "An investor requested general participation details.");
     }
 
-    private static JoinRequestDetails BuildInvestmentParticipationDetails(Opportunity opportunity, CreateOpportunityJoinRequest request)
+    private async Task<JoinRequestDetails> BuildInvestmentParticipationDetailsAsync(Opportunity opportunity, CreateOpportunityJoinRequest request)
     {
         return opportunity.InvestmentModel switch
         {
-            InvestmentModel.Equity => BuildEquityParticipationDetails(opportunity, request),
-            InvestmentModel.LoanInvestment => BuildLoanParticipationDetails(opportunity, request),
-            InvestmentModel.CapitalContributionProfitSharing => BuildProfitSharingParticipationDetails(opportunity, request),
+            InvestmentModel.Equity => await BuildEquityParticipationDetailsAsync(opportunity, request),
+            InvestmentModel.LoanInvestment => await BuildLoanParticipationDetailsAsync(opportunity, request),
+            InvestmentModel.CapitalContributionProfitSharing => await BuildProfitSharingParticipationDetailsAsync(opportunity, request),
             _ => throw new BusinessValidationException("INVALID_INVESTMENT_MODEL", "Unsupported investment model.")
         };
     }
 
-    private static JoinRequestDetails BuildEquityParticipationDetails(Opportunity opportunity, CreateOpportunityJoinRequest request)
+    private async Task<JoinRequestDetails> BuildEquityParticipationDetailsAsync(Opportunity opportunity, CreateOpportunityJoinRequest request)
     {
         if (!request.NumberOfShares.HasValue || request.NumberOfShares.Value <= 0)
             throw new BusinessValidationException("INVALID_NUMBER_OF_SHARES", "NumberOfShares must be greater than zero for equity participation.");
 
-        if (!request.SharePriceSnapshot.HasValue || request.SharePriceSnapshot.Value <= 0)
-            throw new BusinessValidationException("INVALID_SHARE_PRICE_SNAPSHOT", "SharePriceSnapshot must be greater than zero for equity participation.");
+        var linkedInvestment = await GetLinkedInvestmentAsync(opportunity.Id);
+        if (linkedInvestment?.SharePrice is null or <= 0)
+            throw new BusinessValidationException("EQUITY_SHARE_PRICE_REQUIRED", "Equity participation requires configured SharePrice.");
 
-        var calculatedTotal = request.NumberOfShares.Value * request.SharePriceSnapshot.Value;
+        if (!linkedInvestment.TotalShares.HasValue || linkedInvestment.TotalShares.Value <= 0)
+            throw new BusinessValidationException("EQUITY_TOTAL_SHARES_REQUIRED", "Equity participation requires configured TotalShares.");
+
+        var approvedShares = await GetApprovedEquitySharesAsync(opportunity.Id);
+        var availableShares = Math.Max(linkedInvestment.TotalShares.Value - approvedShares, 0);
+        if (request.NumberOfShares.Value > availableShares)
+            throw new BusinessValidationException("INSUFFICIENT_AVAILABLE_SHARES", $"Only {availableShares} shares are available.");
+
+        var calculatedTotal = request.NumberOfShares.Value * linkedInvestment.SharePrice.Value;
         if (request.TotalAmount.HasValue && request.TotalAmount.Value != calculatedTotal)
-            throw new BusinessValidationException("INVALID_TOTAL_AMOUNT", "TotalAmount must equal NumberOfShares multiplied by SharePriceSnapshot.");
+            throw new BusinessValidationException("INVALID_TOTAL_AMOUNT", "TotalAmount must equal NumberOfShares multiplied by backend SharePrice.");
 
         var snapshot = SerializeTermsSnapshot(new
         {
             RequestType = OpportunityJoinRequestType.InvestmentParticipation.ToString(),
             InvestmentModel = opportunity.InvestmentModel.ToString(),
-            request.NumberOfShares,
-            request.SharePriceSnapshot,
-            TotalAmount = calculatedTotal,
+            SelectedShares = request.NumberOfShares,
+            SharePriceSnapshot = linkedInvestment.SharePrice.Value,
+            CurrencySnapshot = linkedInvestment.Currency ?? "Credits",
+            TotalInvestmentAmount = calculatedTotal,
+            CalculatedTotalAmount = calculatedTotal,
+            AvailableSharesAtSubmission = availableShares,
             OpportunityFundingTarget = opportunity.FundingTarget,
             MetadataJson = Normalize(request.MetadataJson),
             SnapshotAt = DateTime.UtcNow
@@ -1267,66 +1437,122 @@ public class OpportunityService : IOpportunityService
         return NewInvestmentParticipationDetails(calculatedTotal, calculatedTotal, snapshot);
     }
 
-    private static JoinRequestDetails BuildLoanParticipationDetails(Opportunity opportunity, CreateOpportunityJoinRequest request)
+    private async Task<JoinRequestDetails> BuildLoanParticipationDetailsAsync(Opportunity opportunity, CreateOpportunityJoinRequest request)
     {
         ValidateRequestedAmount(request.RequestedAmount);
         if (!request.RequestedAmount.HasValue)
             throw new BusinessValidationException("INVALID_REQUESTED_AMOUNT", "RequestedAmount is required for loan participation.");
 
-        var durationMonths = request.ExpectedDurationMonthsSnapshot ?? opportunity.ExpectedDurationMonths;
-        if (request.ExpectedReturnRateSnapshot.HasValue && request.ExpectedReturnRateSnapshot.Value <= 0)
-            throw new BusinessValidationException("INVALID_EXPECTED_RETURN_RATE", "ExpectedReturnRateSnapshot must be greater than zero when provided.");
+        var linkedInvestment = await GetLinkedInvestmentAsync(opportunity.Id);
+        var currency = linkedInvestment?.Currency ?? "Credits";
+        var minimumContribution = opportunity.MinimumInvestmentAmount ?? linkedInvestment?.MinInvestment;
+        var maximumContribution = opportunity.MaximumInvestmentAmount ?? linkedInvestment?.MaxInvestment;
+        var alreadyFundedAmount = await GetApprovedFundedAmountAsync(opportunity.Id);
+        var remainingFundingAmount = CalculateRemainingFunding(opportunity.FundingTarget, alreadyFundedAmount);
 
-        if (durationMonths.HasValue && durationMonths.Value <= 0)
-            throw new BusinessValidationException("INVALID_EXPECTED_DURATION", "ExpectedDurationMonthsSnapshot must be greater than zero when provided.");
+        ValidateContributionAmount(request.RequestedAmount.Value, minimumContribution, maximumContribution, remainingFundingAmount);
 
-        decimal? calculatedExpectedReturn = null;
-        if (request.ExpectedReturnRateSnapshot.HasValue && durationMonths.HasValue)
-            calculatedExpectedReturn = decimal.Round(request.RequestedAmount.Value * (request.ExpectedReturnRateSnapshot.Value / 100m) * durationMonths.Value / 12m, 2);
+        if (linkedInvestment?.InterestRate is null or <= 0)
+            throw new BusinessValidationException("LOAN_RETURN_RATE_REQUIRED", "Loan participation requires configured InterestRate.");
 
-        if (request.ExpectedReturnAmount.HasValue && calculatedExpectedReturn.HasValue && request.ExpectedReturnAmount.Value != calculatedExpectedReturn.Value)
+        var durationMonths = ResolveLoanTermMonths(opportunity, linkedInvestment);
+        if (!durationMonths.HasValue || durationMonths.Value <= 0)
+            throw new BusinessValidationException("LOAN_TERM_REQUIRED", "Loan participation requires configured loan term.");
+
+        var expectedReturn = CalculateLoanExpectedReturn(request.RequestedAmount.Value, linkedInvestment.InterestRate.Value, durationMonths.Value);
+        var expectedTotalRepayment = request.RequestedAmount.Value + expectedReturn;
+
+        if (request.ExpectedReturnAmount.HasValue && request.ExpectedReturnAmount.Value != expectedReturn)
             throw new BusinessValidationException("INVALID_EXPECTED_RETURN_AMOUNT", "ExpectedReturnAmount does not match the backend calculated loan return.");
 
-        var expectedReturn = calculatedExpectedReturn ?? request.ExpectedReturnAmount;
-        var calculatedTotal = expectedReturn.HasValue
-            ? request.RequestedAmount.Value + expectedReturn.Value
-            : request.RequestedAmount.Value;
+        if (request.ExpectedReturnRateSnapshot.HasValue && request.ExpectedReturnRateSnapshot.Value != linkedInvestment.InterestRate.Value)
+            throw new BusinessValidationException("INVALID_EXPECTED_RETURN_RATE", "ExpectedReturnRateSnapshot does not match the backend loan return rate.");
+
+        if (request.ExpectedDurationMonthsSnapshot.HasValue && request.ExpectedDurationMonthsSnapshot.Value != durationMonths.Value)
+            throw new BusinessValidationException("INVALID_EXPECTED_DURATION", "ExpectedDurationMonthsSnapshot does not match the backend loan term.");
 
         var snapshot = SerializeTermsSnapshot(new
         {
             RequestType = OpportunityJoinRequestType.InvestmentParticipation.ToString(),
             InvestmentModel = opportunity.InvestmentModel.ToString(),
-            request.RequestedAmount,
-            request.ExpectedReturnRateSnapshot,
-            ExpectedDurationMonthsSnapshot = durationMonths,
+            ContributionAmount = request.RequestedAmount.Value,
+            RequestedAmount = request.RequestedAmount.Value,
+            CurrencySnapshot = currency,
+            ReturnRateSnapshot = linkedInvestment.InterestRate.Value,
+            ReturnRateTypeSnapshot = "AnnualSimple",
+            TermValueSnapshot = durationMonths.Value,
+            TermUnitSnapshot = "Months",
+            RepaymentModelSnapshot = linkedInvestment.RepaymentFrequency,
             ExpectedReturnAmount = expectedReturn,
-            CalculatedTotalAmount = calculatedTotal,
-            MissingOpportunityTerms = request.ExpectedReturnRateSnapshot.HasValue ? Array.Empty<string>() : new[] { "ExpectedReturnRate" },
+            ExpectedTotalRepaymentAmount = expectedTotalRepayment,
+            CalculatedTotalAmount = expectedTotalRepayment,
+            FundingTargetSnapshot = opportunity.FundingTarget,
+            AlreadyFundedAmountAtSubmission = alreadyFundedAmount,
+            RemainingFundingAtSubmission = remainingFundingAmount,
+            MinimumContributionSnapshot = minimumContribution,
+            MaximumContributionSnapshot = maximumContribution,
+            SubmittedAt = DateTime.UtcNow,
             MetadataJson = Normalize(request.MetadataJson),
             SnapshotAt = DateTime.UtcNow
         });
 
-        return NewInvestmentParticipationDetails(request.RequestedAmount.Value, calculatedTotal, snapshot);
+        return NewInvestmentParticipationDetails(request.RequestedAmount.Value, expectedTotalRepayment, snapshot);
     }
 
-    private static JoinRequestDetails BuildProfitSharingParticipationDetails(Opportunity opportunity, CreateOpportunityJoinRequest request)
+    private async Task<JoinRequestDetails> BuildProfitSharingParticipationDetailsAsync(Opportunity opportunity, CreateOpportunityJoinRequest request)
     {
         ValidateRequestedAmount(request.RequestedAmount);
         if (!request.RequestedAmount.HasValue)
             throw new BusinessValidationException("INVALID_REQUESTED_AMOUNT", "RequestedAmount is required for profit sharing participation.");
 
+        var linkedInvestment = await GetLinkedInvestmentAsync(opportunity.Id);
+        var currency = linkedInvestment?.Currency ?? "Credits";
+        var minimumContribution = opportunity.MinimumInvestmentAmount ?? linkedInvestment?.MinInvestment;
+        var maximumContribution = opportunity.MaximumInvestmentAmount ?? linkedInvestment?.MaxInvestment;
+        var alreadyFundedAmount = await GetApprovedFundedAmountAsync(opportunity.Id);
+        var remainingFundingAmount = CalculateRemainingFunding(opportunity.FundingTarget, alreadyFundedAmount);
+
+        ValidateContributionAmount(request.RequestedAmount.Value, minimumContribution, maximumContribution, remainingFundingAmount);
+
+        var profitSharePercentage = ResolveProfitSharePercentage(linkedInvestment);
+        if (!profitSharePercentage.HasValue || profitSharePercentage.Value <= 0)
+            throw new BusinessValidationException("PROFIT_SHARE_PERCENTAGE_REQUIRED", "Profit sharing participation requires configured ProfitPercentage or RevenueSharePercentage.");
+
+        var termMonths = ResolveProfitSharingTermMonths(opportunity, linkedInvestment);
+        var expectedProfitAmount = CalculateProfitSharingExpectedProfit(request.RequestedAmount.Value, profitSharePercentage.Value);
+        var expectedTotalPayout = request.RequestedAmount.Value + expectedProfitAmount;
+
         var snapshot = SerializeTermsSnapshot(new
         {
             RequestType = OpportunityJoinRequestType.InvestmentParticipation.ToString(),
             InvestmentModel = opportunity.InvestmentModel.ToString(),
-            request.RequestedAmount,
-            request.ProposedSharePercentage,
+            ContributionAmount = request.RequestedAmount.Value,
+            RequestedAmount = request.RequestedAmount.Value,
+            CurrencySnapshot = currency,
+            ProfitSharePercentageSnapshot = profitSharePercentage.Value,
+            ProposedSharePercentage = request.ProposedSharePercentage,
+            TermValueSnapshot = termMonths,
+            TermUnitSnapshot = termMonths.HasValue ? "Months" : null,
+            PayoutFrequencySnapshot = linkedInvestment?.PayoutFrequency,
+            RevenueDistributionFrequencySnapshot = linkedInvestment?.RevenueDistributionFrequency,
+            ContractStartDateSnapshot = linkedInvestment?.ContractStartDate,
+            ContractEndDateSnapshot = linkedInvestment?.ContractEndDate,
+            OpportunityTotalExpectedPayoutSnapshot = linkedInvestment?.TotalExpectedPayout,
+            ExpectedProfitAmount = expectedProfitAmount,
+            ExpectedTotalPayoutAmount = expectedTotalPayout,
+            CalculatedTotalAmount = expectedTotalPayout,
+            FundingTargetSnapshot = opportunity.FundingTarget,
+            AlreadyFundedAmountAtSubmission = alreadyFundedAmount,
+            RemainingFundingAtSubmission = remainingFundingAmount,
+            MinimumContributionSnapshot = minimumContribution,
+            MaximumContributionSnapshot = maximumContribution,
             HasMessage = !string.IsNullOrWhiteSpace(request.Message),
+            SubmittedAt = DateTime.UtcNow,
             MetadataJson = Normalize(request.MetadataJson),
             SnapshotAt = DateTime.UtcNow
         });
 
-        return NewInvestmentParticipationDetails(request.RequestedAmount.Value, request.RequestedAmount.Value, snapshot);
+        return NewInvestmentParticipationDetails(request.RequestedAmount.Value, expectedTotalPayout, snapshot);
     }
 
     private static JoinRequestDetails NewInvestmentParticipationDetails(decimal requestedAmount, decimal calculatedTotalAmount, string termsSnapshotJson) =>
@@ -1338,6 +1564,217 @@ public class OpportunityService : IOpportunityService
             "InvestmentParticipationRequested",
             "Investment participation requested",
             "An investor submitted investment participation details.");
+
+    private async Task<Investment?> GetLinkedInvestmentAsync(int opportunityId)
+    {
+        return (await _uow.Repository<Investment>().FindAsync(i => i.OpportunityId == opportunityId))
+            .FirstOrDefault();
+    }
+
+    private async Task<decimal> GetApprovedFundedAmountAsync(int opportunityId, int? excludingJoinRequestId = null)
+    {
+        var approvedRequests = await _uow.Repository<OpportunityJoinRequest>().FindAsync(r =>
+            r.OpportunityId == opportunityId
+            && r.Status == OpportunityJoinRequestStatus.Approved
+            && r.RequestType == OpportunityJoinRequestType.InvestmentParticipation
+            && (!excludingJoinRequestId.HasValue || r.Id != excludingJoinRequestId.Value));
+
+        return approvedRequests.Sum(r => r.RequestedAmount ?? 0m);
+    }
+
+    private static decimal CalculateRemainingFunding(decimal fundingTarget, decimal alreadyFundedAmount) =>
+        Math.Max(fundingTarget - alreadyFundedAmount, 0m);
+
+    private static void ValidateContributionAmount(decimal amount, decimal? minimumContribution, decimal? maximumContribution, decimal remainingFundingAmount)
+    {
+        if (amount <= 0)
+            throw new BusinessValidationException("INVALID_REQUESTED_AMOUNT", "RequestedAmount must be greater than zero.");
+
+        if (minimumContribution.HasValue && amount < minimumContribution.Value)
+            throw new BusinessValidationException("CONTRIBUTION_BELOW_MINIMUM", $"RequestedAmount must be at least {minimumContribution.Value:0.##}.");
+
+        if (maximumContribution.HasValue && amount > maximumContribution.Value)
+            throw new BusinessValidationException("CONTRIBUTION_ABOVE_MAXIMUM", $"RequestedAmount must not exceed {maximumContribution.Value:0.##}.");
+
+        if (amount > remainingFundingAmount)
+            throw new BusinessValidationException("CONTRIBUTION_EXCEEDS_REMAINING_FUNDING", $"RequestedAmount must not exceed remaining funding amount {remainingFundingAmount:0.##}.");
+    }
+
+    private static int? ResolveLoanTermMonths(Opportunity opportunity, Investment? linkedInvestment) =>
+        opportunity.ExpectedDurationMonths ?? linkedInvestment?.DurationMonths;
+
+    private static decimal CalculateLoanExpectedReturn(decimal contributionAmount, decimal annualReturnRate, int termMonths) =>
+        decimal.Round(contributionAmount * (annualReturnRate / 100m) * termMonths / 12m, 2);
+
+    private static decimal? ResolveProfitSharePercentage(Investment? linkedInvestment) =>
+        linkedInvestment?.ProfitPercentage ?? linkedInvestment?.RevenueSharePercentage;
+
+    private static int? ResolveProfitSharingTermMonths(Opportunity opportunity, Investment? linkedInvestment) =>
+        opportunity.ExpectedDurationMonths ?? linkedInvestment?.DurationMonths;
+
+    private static decimal CalculateProfitSharingExpectedProfit(decimal contributionAmount, decimal profitSharePercentage) =>
+        decimal.Round(contributionAmount * (profitSharePercentage / 100m), 2);
+
+    private static string? BuildProfitSharingExitTerms(Investment? linkedInvestment)
+    {
+        if (linkedInvestment == null)
+            return null;
+
+        var parts = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(linkedInvestment.PayoutFrequency))
+            parts.Add($"Payout frequency: {linkedInvestment.PayoutFrequency}");
+
+        if (!string.IsNullOrWhiteSpace(linkedInvestment.RevenueDistributionFrequency))
+            parts.Add($"Revenue distribution: {linkedInvestment.RevenueDistributionFrequency}");
+
+        if (linkedInvestment.ContractStartDate.HasValue)
+            parts.Add($"Contract start: {linkedInvestment.ContractStartDate.Value:yyyy-MM-dd}");
+
+        if (linkedInvestment.ContractEndDate.HasValue)
+            parts.Add($"Contract end: {linkedInvestment.ContractEndDate.Value:yyyy-MM-dd}");
+
+        if (linkedInvestment.TotalExpectedPayout.HasValue)
+            parts.Add($"Total expected payout: {linkedInvestment.TotalExpectedPayout.Value:0.##}");
+
+        return parts.Count == 0 ? null : string.Join(" | ", parts);
+    }
+
+    private async Task<int> GetApprovedEquitySharesAsync(int opportunityId, int? excludingJoinRequestId = null)
+    {
+        var approvedRequests = await _uow.Repository<OpportunityJoinRequest>().FindAsync(r =>
+            r.OpportunityId == opportunityId
+            && r.Status == OpportunityJoinRequestStatus.Approved
+            && r.RequestType == OpportunityJoinRequestType.InvestmentParticipation
+            && (!excludingJoinRequestId.HasValue || r.Id != excludingJoinRequestId.Value));
+
+        return approvedRequests.Sum(r => TryReadSelectedShares(r.TermsSnapshotJson));
+    }
+
+    private async Task<int> GetApprovedParticipantCountAsync(int opportunityId)
+    {
+        var approvedInvestorIds = (await _uow.Repository<OpportunityJoinRequest>().FindAsync(r =>
+                r.OpportunityId == opportunityId
+                && r.Status == OpportunityJoinRequestStatus.Approved))
+            .Select(r => r.InvestorId)
+            .Distinct()
+            .ToList();
+
+        return approvedInvestorIds.Count;
+    }
+
+    private async Task ValidateEquityAvailabilityForApprovalAsync(int opportunityId, OpportunityJoinRequest joinRequest)
+    {
+        var linkedInvestment = await GetLinkedInvestmentAsync(opportunityId);
+        if (linkedInvestment?.TotalShares is null or <= 0)
+            throw new BusinessValidationException("EQUITY_TOTAL_SHARES_REQUIRED", "Equity participation requires configured TotalShares.");
+
+        var selectedShares = TryReadSelectedShares(joinRequest.TermsSnapshotJson);
+        if (selectedShares <= 0)
+            throw new BusinessValidationException("INVALID_EQUITY_TERMS_SNAPSHOT", "Equity participation request is missing selected shares.");
+
+        var approvedShares = await GetApprovedEquitySharesAsync(opportunityId, joinRequest.Id);
+        var availableShares = Math.Max(linkedInvestment.TotalShares.Value - approvedShares, 0);
+        if (selectedShares > availableShares)
+            throw new BusinessValidationException("INSUFFICIENT_AVAILABLE_SHARES", $"Only {availableShares} shares are available.");
+    }
+
+    private async Task ValidateLoanFundingAvailabilityForApprovalAsync(Opportunity opportunity, OpportunityJoinRequest joinRequest)
+    {
+        if (!joinRequest.RequestedAmount.HasValue || joinRequest.RequestedAmount.Value <= 0)
+            throw new BusinessValidationException("INVALID_REQUESTED_AMOUNT", "Loan participation request is missing a valid RequestedAmount.");
+
+        var linkedInvestment = await GetLinkedInvestmentAsync(opportunity.Id);
+        if (linkedInvestment?.InterestRate is null or <= 0)
+            throw new BusinessValidationException("LOAN_RETURN_RATE_REQUIRED", "Loan participation requires configured InterestRate.");
+
+        var durationMonths = ResolveLoanTermMonths(opportunity, linkedInvestment);
+        if (!durationMonths.HasValue || durationMonths.Value <= 0)
+            throw new BusinessValidationException("LOAN_TERM_REQUIRED", "Loan participation requires configured loan term.");
+
+        var minimumContribution = opportunity.MinimumInvestmentAmount ?? linkedInvestment?.MinInvestment;
+        var maximumContribution = opportunity.MaximumInvestmentAmount ?? linkedInvestment?.MaxInvestment;
+        var alreadyFundedAmount = await GetApprovedFundedAmountAsync(opportunity.Id, joinRequest.Id);
+        var remainingFundingAmount = CalculateRemainingFunding(opportunity.FundingTarget, alreadyFundedAmount);
+
+        ValidateContributionAmount(joinRequest.RequestedAmount.Value, minimumContribution, maximumContribution, remainingFundingAmount);
+    }
+
+    private async Task ValidateProfitSharingFundingAvailabilityForApprovalAsync(Opportunity opportunity, OpportunityJoinRequest joinRequest)
+    {
+        if (!joinRequest.RequestedAmount.HasValue || joinRequest.RequestedAmount.Value <= 0)
+            throw new BusinessValidationException("INVALID_REQUESTED_AMOUNT", "Profit sharing participation request is missing a valid RequestedAmount.");
+
+        var linkedInvestment = await GetLinkedInvestmentAsync(opportunity.Id);
+        var profitSharePercentage = ResolveProfitSharePercentage(linkedInvestment);
+        if (!profitSharePercentage.HasValue || profitSharePercentage.Value <= 0)
+            throw new BusinessValidationException("PROFIT_SHARE_PERCENTAGE_REQUIRED", "Profit sharing participation requires configured ProfitPercentage or RevenueSharePercentage.");
+
+        var minimumContribution = opportunity.MinimumInvestmentAmount ?? linkedInvestment?.MinInvestment;
+        var maximumContribution = opportunity.MaximumInvestmentAmount ?? linkedInvestment?.MaxInvestment;
+        var alreadyFundedAmount = await GetApprovedFundedAmountAsync(opportunity.Id, joinRequest.Id);
+        var remainingFundingAmount = CalculateRemainingFunding(opportunity.FundingTarget, alreadyFundedAmount);
+
+        ValidateContributionAmount(joinRequest.RequestedAmount.Value, minimumContribution, maximumContribution, remainingFundingAmount);
+    }
+
+    private static int TryReadSelectedShares(string? termsSnapshotJson)
+    {
+        if (string.IsNullOrWhiteSpace(termsSnapshotJson))
+            return 0;
+
+        try
+        {
+            using var document = JsonDocument.Parse(termsSnapshotJson);
+            var root = document.RootElement;
+
+            if (root.TryGetProperty("selectedShares", out var selectedShares) && selectedShares.TryGetInt32(out var selected))
+                return selected;
+
+            if (root.TryGetProperty("numberOfShares", out var numberOfShares) && numberOfShares.TryGetInt32(out var legacy))
+                return legacy;
+        }
+        catch (JsonException)
+        {
+            return 0;
+        }
+
+        return 0;
+    }
+
+    private static int? CalculateMinimumShares(decimal? minimumInvestmentAmount, decimal? sharePrice)
+    {
+        if (!minimumInvestmentAmount.HasValue || !sharePrice.HasValue || sharePrice.Value <= 0)
+            return null;
+
+        return (int)Math.Ceiling(minimumInvestmentAmount.Value / sharePrice.Value);
+    }
+
+    private static int? CalculateMaximumShares(decimal? maximumInvestmentAmount, decimal? sharePrice)
+    {
+        if (!maximumInvestmentAmount.HasValue || !sharePrice.HasValue || sharePrice.Value <= 0)
+            return null;
+
+        return (int)Math.Floor(maximumInvestmentAmount.Value / sharePrice.Value);
+    }
+
+    private async Task ApplyReputationActivitySafeAsync(Guid userId, string activityCode, string referenceType, string referenceId)
+    {
+        try
+        {
+            await _reputationService.ApplyActivityAsync(userId, activityCode, referenceType, referenceId, userId);
+        }
+        catch
+        {
+            // Reputation is non-authoritative for the product action; leave the main action intact.
+        }
+    }
+
+    private static bool IsMilestoneEvent(string? eventType)
+    {
+        return !string.IsNullOrWhiteSpace(eventType)
+            && eventType.Contains("milestone", StringComparison.OrdinalIgnoreCase);
+    }
 
     private static string SerializeTermsSnapshot(object snapshot) =>
         JsonSerializer.Serialize(snapshot, new JsonSerializerOptions(JsonSerializerDefaults.Web));
@@ -1529,7 +1966,7 @@ public class OpportunityService : IOpportunityService
         };
     }
 
-    private static OpportunityRoomDto ToRoomDto(Opportunity opportunity, AuthUser? founder, bool isFounder, bool isApprovedParticipant)
+    private static OpportunityRoomDto ToRoomDto(Opportunity opportunity, AuthUser? founder, bool isFounder, bool isApprovedParticipant, int approvedParticipantCount)
     {
         var canAccessRoom = isFounder || isApprovedParticipant;
         var canViewPrivateFiles = canAccessRoom;
@@ -1561,8 +1998,14 @@ public class OpportunityService : IOpportunityService
             {
                 IsFounder = isFounder,
                 IsApprovedParticipant = isApprovedParticipant,
-                CanUpload = canAccessRoom,
-                CanPostUpdate = canAccessRoom,
+                ApprovedParticipantCount = approvedParticipantCount,
+                CanAccessProjectRoom = canAccessRoom,
+                CanEditCoreProject = isFounder && approvedParticipantCount == 0,
+                CanAddUpdate = isFounder,
+                CanAddDocument = isFounder,
+                CanAddMilestone = isFounder,
+                CanUpload = isFounder,
+                CanPostUpdate = isFounder,
                 CanViewPrivateFiles = canViewPrivateFiles,
                 CanDownloadFiles = canAccessRoom
             }

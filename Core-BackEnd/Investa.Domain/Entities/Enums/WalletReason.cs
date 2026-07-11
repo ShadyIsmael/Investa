@@ -27,5 +27,7 @@ public enum WalletReason
     /// <summary>Recurring or one-time platform subscription fee.</summary>
     Subscription = 13,
     /// <summary>Manual adjustment performed by an administrator (negative).</summary>
-    AdminAdjustmentDebit = 14
+    AdminAdjustmentDebit = 14,
+    /// <summary>Fixed CREDIT fee charged for a configured platform service action.</summary>
+    PlatformServiceFee = 15
 }

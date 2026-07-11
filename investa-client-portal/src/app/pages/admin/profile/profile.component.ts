@@ -94,6 +94,18 @@ export class ProfileComponent {
   // Template references currentScorePts() and credit history; keep minimal score placeholder.
   currentScorePts = computed(() => 0);
 
+  reputationScore = computed<number | null>(() => {
+    const profile = this.profileService.profile();
+    if (!profile?.coreMetrics) return null;
+    if (profile.coreMetrics.credibilityScore !== undefined && profile.coreMetrics.credibilityScore !== null) {
+      return profile.coreMetrics.credibilityScore;
+    }
+    if (profile.coreMetrics.currentCredibilityScore !== undefined && profile.coreMetrics.currentCredibilityScore !== null) {
+      return profile.coreMetrics.currentCredibilityScore;
+    }
+    return null;
+  });
+
   creditHistory = signal<CreditTransaction[]>([]);
   limitedCreditHistory = computed(() => this.creditHistory().slice(0, 5));
 

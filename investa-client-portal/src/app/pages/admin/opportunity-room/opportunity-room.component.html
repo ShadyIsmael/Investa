@@ -1,88 +1,175 @@
-<div class="container mx-auto p-6 lg:p-8">
+<div class="container mx-auto space-y-6 p-6 lg:p-8">
   @if (isLoading()) {
-    <div class="space-y-6">
-      <div class="h-56 animate-pulse rounded-2xl border border-slate-800 bg-slate-900/80"></div>
-      <div class="grid gap-4 md:grid-cols-4">
-        <div class="h-28 animate-pulse rounded-xl border border-slate-800 bg-slate-900/80"></div>
-        <div class="h-28 animate-pulse rounded-xl border border-slate-800 bg-slate-900/80"></div>
-        <div class="h-28 animate-pulse rounded-xl border border-slate-800 bg-slate-900/80"></div>
-        <div class="h-28 animate-pulse rounded-xl border border-slate-800 bg-slate-900/80"></div>
+    <section class="space-y-6">
+      <div class="h-52 animate-pulse rounded-3xl border border-slate-800 bg-slate-900/80"></div>
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div class="h-36 animate-pulse rounded-2xl border border-slate-800 bg-slate-900/80"></div>
+        <div class="h-36 animate-pulse rounded-2xl border border-slate-800 bg-slate-900/80"></div>
+        <div class="h-36 animate-pulse rounded-2xl border border-slate-800 bg-slate-900/80"></div>
+        <div class="h-36 animate-pulse rounded-2xl border border-slate-800 bg-slate-900/80"></div>
       </div>
-    </div>
+    </section>
   } @else if (error(); as roomError) {
     <section class="mx-auto max-w-2xl rounded-2xl border border-slate-800 bg-slate-900/90 p-8 text-center">
-      <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border"
-           [class.border-amber-500/30]="roomError.status === 403"
-           [class.bg-amber-500/10]="roomError.status === 403"
-           [class.border-red-500/30]="roomError.status !== 403"
-           [class.bg-red-500/10]="roomError.status !== 403">
-        <svg class="h-7 w-7" [class.text-amber-300]="roomError.status === 403" [class.text-red-300]="roomError.status !== 403" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008v.008H12V16.5zm9-4.5a9 9 0 11-18 0 9 9 0 0118 0z"/>
-        </svg>
-      </div>
-      <h1 class="mt-5 text-2xl font-bold text-white">{{ roomError.title }}</h1>
-      <p class="mt-2 text-gray-400">{{ roomError.message }}</p>
+      <h1 class="text-2xl font-bold text-white">{{ roomError.title }}</h1>
+      <p class="mt-3 text-sm text-slate-300">{{ roomError.message }}</p>
       <div class="mt-6 flex flex-wrap justify-center gap-3">
         <button type="button" (click)="load()" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">Retry</button>
         <a routerLink="/admin/investments" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-slate-700">Back to Opportunities</a>
       </div>
     </section>
   } @else if (room()) {
-    <section class="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/90">
-      <div class="border-b border-slate-800 p-6 lg:p-8">
-        <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div class="max-w-3xl">
-            <div class="mb-3 flex flex-wrap items-center gap-2">
-              <span class="rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-200">Project Room</span>
-              <span class="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-xs font-semibold text-gray-300">{{ roomRole() }}</span>
-              <span class="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-xs font-semibold text-gray-300">{{ status() }}</span>
+    <section class="overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950">
+      <div class="border-b border-slate-800/80 p-6 lg:p-8">
+        <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <div class="max-w-4xl">
+            <div class="mb-3 flex flex-wrap gap-2 text-xs font-semibold">
+              <span class="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-cyan-200">Investor Project Room</span>
+              <span class="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-slate-200">{{ roomRole() }}</span>
+              <span class="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-slate-200">{{ status() }}</span>
+              <span class="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-slate-200">{{ stage() }}</span>
             </div>
-            <h1 class="text-3xl font-bold text-white">{{ title() }}</h1>
-            <p class="mt-3 text-gray-400">{{ description() }}</p>
-            <p class="mt-4 rounded-xl border border-slate-800 bg-slate-950/50 p-4 text-sm text-gray-300">
+            <h1 class="text-3xl font-bold tracking-tight text-white lg:text-4xl">{{ title() }}</h1>
+            <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-300 lg:text-base">{{ description() }}</p>
+            <p class="mt-4 rounded-xl border border-slate-800 bg-slate-950/70 p-4 text-sm text-slate-300">
               <span class="font-semibold text-white">Founder summary:</span>
               {{ founderSummary() }}
             </p>
           </div>
-          <a routerLink="/admin/investments" class="inline-flex items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-slate-700">
-            Back to Opportunities
-          </a>
+          <a routerLink="/admin/investments" class="inline-flex items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-slate-700">Back to Opportunities</a>
         </div>
+
+        @if (isFounder()) {
+          <div class="mt-6 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-5">
+            <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-200">Founder Workspace</p>
+                <p class="mt-2 text-sm text-cyan-100">Approved Participants: <strong>{{ approvedParticipantCount() }}</strong></p>
+                <p class="mt-1 text-sm text-cyan-100/90">{{ coreEditMessage() }}</p>
+              </div>
+              <div class="flex flex-wrap gap-3">
+                <a [routerLink]="['/admin/opportunities', opportunityId(), 'edit']"
+                   class="rounded-lg px-4 py-2 text-sm font-bold"
+                   [class.bg-cyan-600]="canEditCoreProject()"
+                   [class.text-white]="canEditCoreProject()"
+                   [class.pointer-events-none]="!canEditCoreProject()"
+                   [class.bg-slate-800]="!canEditCoreProject()"
+                   [class.text-slate-500]="!canEditCoreProject()"
+                   [attr.aria-disabled]="!canEditCoreProject()">
+                  Edit Project
+                </a>
+                <button type="button" (click)="openUpdateModal()" [disabled]="!canAddUpdate()" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">Add Update</button>
+                <button type="button" (click)="openDocumentModal()" [disabled]="!canAddDocument()" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">Add Document</button>
+                <button type="button" (click)="openMilestoneModal()" [disabled]="!canAddMilestone()" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">Add Milestone</button>
+              </div>
+            </div>
+            @if (!canEditCoreProject()) {
+              <p class="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-100">Core project details are locked after the first participant joins. Continue updates through milestone, update, and document actions.</p>
+            }
+          </div>
+        }
+
+        @if (actionSuccess()) {
+          <div class="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">{{ actionSuccess() }}</div>
+        }
       </div>
 
-      <div class="grid gap-4 p-6 md:grid-cols-2 xl:grid-cols-5 lg:p-8">
-        <div class="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
-          <p class="text-xs uppercase tracking-[0.18em] text-gray-500">Stage</p>
-          <p class="mt-2 text-lg font-bold text-white">{{ stage() }}</p>
-        </div>
-        <div class="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
-          <p class="text-xs uppercase tracking-[0.18em] text-gray-500">Investment Model</p>
-          <p class="mt-2 text-lg font-bold text-white">{{ investmentModel() }}</p>
-        </div>
-        <div class="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
-          <p class="text-xs uppercase tracking-[0.18em] text-gray-500">Funding Target</p>
-          <p class="mt-2 text-lg font-bold text-white">{{ money(fundingTarget()) }}</p>
-        </div>
-        <div class="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
-          <p class="text-xs uppercase tracking-[0.18em] text-gray-500">Minimum Participation</p>
-          <p class="mt-2 text-lg font-bold text-white">{{ money(minimumParticipation()) }}</p>
-        </div>
-        <div class="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
-          <p class="text-xs uppercase tracking-[0.18em] text-gray-500">Funding Progress</p>
+      <div class="grid gap-4 p-6 md:grid-cols-2 xl:grid-cols-4 lg:p-8">
+        <article class="rounded-2xl border border-slate-800 bg-slate-950/60 p-5">
+          <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Participation</p>
+          <p class="mt-2 text-lg font-bold text-white">{{ participationAccessText() }}</p>
+          <p class="mt-1 text-sm text-slate-300">{{ roomRole() }}</p>
+          <p class="mt-3 text-xs text-slate-400">Private files: {{ permissionLabel(participantContext().canViewPrivateFiles) }} · Downloads: {{ permissionLabel(participantContext().canDownloadFiles) }}</p>
+        </article>
+
+        <article class="rounded-2xl border border-slate-800 bg-slate-950/60 p-5">
+          <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Your Terms Snapshot</p>
+          <p class="mt-2 text-sm font-semibold text-white">{{ investmentModel() }} model</p>
+          <p class="mt-2 text-sm text-slate-300">Minimum participation: {{ money(minimumParticipation()) }}</p>
+          <p class="mt-2 line-clamp-3 text-xs text-slate-400">{{ investmentTermsSummary() }}</p>
+        </article>
+
+        <article class="rounded-2xl border border-slate-800 bg-slate-950/60 p-5">
+          <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Funding Progress</p>
           <p class="mt-2 text-lg font-bold text-white">{{ fundingProgress() | number:'1.0-0' }}%</p>
+          <p class="mt-1 text-sm text-slate-300">Target: {{ money(fundingTarget()) }}</p>
           <div class="mt-3 h-2 rounded-full bg-slate-800">
-            <div class="h-2 rounded-full bg-gradient-to-r from-blue-500 to-emerald-400" [style.width.%]="fundingProgress()"></div>
+            <div class="h-2 rounded-full bg-gradient-to-r from-cyan-500 to-emerald-400" [style.width.%]="fundingProgress()"></div>
           </div>
-        </div>
+        </article>
+
+        <article class="rounded-2xl border border-slate-800 bg-slate-950/60 p-5">
+          <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Latest Change</p>
+          @if (latestActivity(); as latest) {
+            <div class="mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold" [ngClass]="activityKindClass(latest.kind)">{{ activityKindLabel(latest.kind) }}</div>
+            <p class="mt-2 line-clamp-2 text-sm font-semibold text-white">{{ latest.title }}</p>
+            <p class="mt-1 text-xs text-slate-400">{{ latest.detail }}</p>
+            <p class="mt-2 text-xs text-slate-500">{{ latest.dateText }}</p>
+          } @else {
+            <p class="mt-2 text-sm text-slate-400">No project activity has been posted yet.</p>
+          }
+        </article>
       </div>
     </section>
 
-    <nav class="mt-6 flex gap-2 overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/80 p-2">
+    <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <article class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-bold text-white">What Changed Recently</h2>
+          <div class="flex items-center gap-3">
+            <span class="text-xs text-slate-500">Latest room activity</span>
+            @if (hasMoreRecentActivity() && !showAllRecentActivity()) {
+              <button type="button" (click)="showAllRecent()" class="text-xs font-semibold text-cyan-300 hover:text-cyan-200">View All</button>
+            } @else if (hasMoreRecentActivity() && showAllRecentActivity()) {
+              <button type="button" (click)="showRecentSummary()" class="text-xs font-semibold text-cyan-300 hover:text-cyan-200">Show Less</button>
+            }
+          </div>
+        </div>
+        @if (displayedRecentActivity().length === 0) {
+          <p class="mt-4 rounded-xl bg-slate-950/50 p-4 text-sm text-slate-400">No recent changes yet.</p>
+        } @else {
+          <div class="mt-4 space-y-3">
+            @for (item of displayedRecentActivity(); track item.trackKey) {
+              <div class="flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-950/50 p-3">
+                <span class="mt-0.5 inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold" [ngClass]="activityKindClass(item.kind)">{{ activityKindLabel(item.kind) }}</span>
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-semibold text-white">{{ item.title }}</p>
+                  <p class="line-clamp-2 text-xs text-slate-400">{{ item.detail }}</p>
+                  <p class="mt-1 text-xs text-slate-500">{{ item.dateText }}</p>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </article>
+
+      <aside class="space-y-6">
+        <article class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
+          <h2 class="text-lg font-bold text-white">What To Do Next</h2>
+          @if (recommendedNextSteps().length === 0) {
+            <p class="mt-4 text-sm text-slate-400">No pending guidance right now.</p>
+          } @else {
+            <ol class="mt-4 space-y-3">
+              @for (step of recommendedNextSteps(); track step) {
+                <li class="rounded-xl border border-slate-800 bg-slate-950/50 px-3 py-2 text-sm text-slate-300">{{ step }}</li>
+              }
+            </ol>
+          }
+        </article>
+
+        <article class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
+          <h2 class="text-lg font-bold text-white">Latest Public Note</h2>
+          <p class="mt-3 whitespace-pre-line text-sm text-slate-300">{{ latestPublicUpdateSummary() }}</p>
+        </article>
+      </aside>
+    </section>
+
+    <nav class="flex gap-2 overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/80 p-2">
       @for (tab of tabs; track tab.id) {
         <button type="button"
                 (click)="setTab(tab.id)"
                 class="whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
-                [class.bg-blue-600]="activeTab() === tab.id"
+                [class.bg-cyan-600]="activeTab() === tab.id"
                 [class.text-white]="activeTab() === tab.id"
                 [class.text-gray-300]="activeTab() !== tab.id"
                 [class.hover:bg-slate-800]="activeTab() !== tab.id">
@@ -92,83 +179,63 @@
     </nav>
 
     @if (activeTab() === 'overview') {
-      <section class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div class="space-y-6">
-          <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
-            <h2 class="text-xl font-bold text-white">Room Overview</h2>
-            <dl class="mt-5 grid gap-4 md:grid-cols-2">
-              <div class="rounded-xl bg-slate-950/50 p-4">
-                <dt class="text-xs uppercase tracking-[0.16em] text-gray-500">Use of Funds</dt>
-                <dd class="mt-2 whitespace-pre-line text-sm text-gray-300">{{ overview().fundingUsage || overview().fundingPurpose || '-' }}</dd>
-              </div>
-              <div class="rounded-xl bg-slate-950/50 p-4">
-                <dt class="text-xs uppercase tracking-[0.16em] text-gray-500">Expected Return Summary</dt>
-                <dd class="mt-2 whitespace-pre-line text-sm text-gray-300">{{ overview().expectedReturnSummary || '-' }}</dd>
-              </div>
-              <div class="rounded-xl bg-slate-950/50 p-4 md:col-span-2">
-                <dt class="text-xs uppercase tracking-[0.16em] text-gray-500">Public Investment Terms Summary</dt>
-                <dd class="mt-2 whitespace-pre-line text-sm text-gray-300">{{ overview().publicInvestmentTermsSummary || '-' }}</dd>
-              </div>
-            </dl>
-          </div>
+      <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <article class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
+          <h2 class="text-xl font-bold text-white">Project Overview</h2>
+          <dl class="mt-5 grid gap-4 md:grid-cols-2">
+            <div class="rounded-xl bg-slate-950/50 p-4">
+              <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">Use of Funds</dt>
+              <dd class="mt-2 whitespace-pre-line text-sm text-slate-300">{{ overview().fundingUsage || overview().fundingPurpose || overview().useOfFunds || '-' }}</dd>
+            </div>
+            <div class="rounded-xl bg-slate-950/50 p-4">
+              <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">Expected Return</dt>
+              <dd class="mt-2 whitespace-pre-line text-sm text-slate-300">{{ overview().expectedReturnSummary || '-' }}</dd>
+            </div>
+            <div class="rounded-xl bg-slate-950/50 p-4 md:col-span-2">
+              <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">Public Investment Terms</dt>
+              <dd class="mt-2 whitespace-pre-line text-sm text-slate-300">{{ overview().publicInvestmentTermsSummary || '-' }}</dd>
+            </div>
+          </dl>
+        </article>
 
-          <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
-            <h2 class="text-xl font-bold text-white">Funding Summary</h2>
-            <div class="mt-5 grid gap-4 sm:grid-cols-3">
-              <div class="rounded-xl bg-slate-950/50 p-4">
-                <p class="text-xs uppercase tracking-[0.16em] text-gray-500">Target</p>
-                <p class="mt-2 text-lg font-bold text-white">{{ money(fundingTarget()) }}</p>
-              </div>
-              <div class="rounded-xl bg-slate-950/50 p-4">
-                <p class="text-xs uppercase tracking-[0.16em] text-gray-500">Minimum</p>
-                <p class="mt-2 text-lg font-bold text-white">{{ money(minimumParticipation()) }}</p>
-              </div>
-              <div class="rounded-xl bg-slate-950/50 p-4">
-                <p class="text-xs uppercase tracking-[0.16em] text-gray-500">Progress</p>
-                <p class="mt-2 text-lg font-bold text-white">{{ fundingProgress() | number:'1.0-0' }}%</p>
-              </div>
+        <article class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
+          <h2 class="text-xl font-bold text-white">Participation Summary</h2>
+          <div class="mt-5 space-y-3 text-sm">
+            <div class="flex items-center justify-between rounded-xl bg-slate-950/50 p-3">
+              <span class="text-slate-300">Room role</span>
+              <span class="font-semibold text-white">{{ roomRole() }}</span>
+            </div>
+            <div class="flex items-center justify-between rounded-xl bg-slate-950/50 p-3">
+              <span class="text-slate-300">Room access</span>
+              <span class="font-semibold text-white">{{ participationAccessText() }}</span>
+            </div>
+            <div class="flex items-center justify-between rounded-xl bg-slate-950/50 p-3">
+              <span class="text-slate-300">View private files</span>
+              <span class="font-semibold text-white">{{ permissionLabel(participantContext().canViewPrivateFiles) }}</span>
+            </div>
+            <div class="flex items-center justify-between rounded-xl bg-slate-950/50 p-3">
+              <span class="text-slate-300">Download files</span>
+              <span class="font-semibold text-white">{{ permissionLabel(participantContext().canDownloadFiles) }}</span>
             </div>
           </div>
-        </div>
-
-        <aside class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
-          <h2 class="text-xl font-bold text-white">Participant Permissions</h2>
-          <div class="mt-5 space-y-3">
-            <div class="flex items-center justify-between rounded-xl bg-slate-950/50 p-3 text-sm">
-              <span class="text-gray-300">Can view private files</span>
-              <span class="font-semibold" [class.text-emerald-300]="participantContext().canViewPrivateFiles" [class.text-gray-500]="!participantContext().canViewPrivateFiles">{{ permissionLabel(participantContext().canViewPrivateFiles) }}</span>
-            </div>
-            <div class="flex items-center justify-between rounded-xl bg-slate-950/50 p-3 text-sm">
-              <span class="text-gray-300">Can download files</span>
-              <span class="font-semibold" [class.text-emerald-300]="participantContext().canDownloadFiles" [class.text-gray-500]="!participantContext().canDownloadFiles">{{ permissionLabel(participantContext().canDownloadFiles) }}</span>
-            </div>
-            <div class="flex items-center justify-between rounded-xl bg-slate-950/50 p-3 text-sm">
-              <span class="text-gray-300">Can upload</span>
-              <span class="font-semibold" [class.text-emerald-300]="participantContext().canUpload" [class.text-gray-500]="!participantContext().canUpload">{{ permissionLabel(participantContext().canUpload) }}</span>
-            </div>
-            <div class="flex items-center justify-between rounded-xl bg-slate-950/50 p-3 text-sm">
-              <span class="text-gray-300">Can post update</span>
-              <span class="font-semibold" [class.text-emerald-300]="participantContext().canPostUpdate" [class.text-gray-500]="!participantContext().canPostUpdate">{{ permissionLabel(participantContext().canPostUpdate) }}</span>
-            </div>
-          </div>
-        </aside>
+        </article>
       </section>
     }
 
     @if (activeTab() === 'timeline') {
-      <section class="mt-6 rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
-        <h2 class="text-xl font-bold text-white">Timeline</h2>
-        <p class="mt-2 text-sm text-gray-400">Strategic milestones across the opportunity lifecycle, not day-to-day announcements.</p>
-        @if (timeline().length === 0) {
-          <p class="mt-5 rounded-xl bg-slate-950/50 p-6 text-center text-sm text-gray-400">No strategic milestones have been added yet.</p>
+      <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
+        <h2 class="text-xl font-bold text-white">Milestones Timeline</h2>
+        <p class="mt-2 text-sm text-slate-400">Strategic milestones only. Operational updates are listed in the Updates tab.</p>
+        @if (timelineSorted().length === 0) {
+          <p class="mt-5 rounded-xl bg-slate-950/50 p-6 text-center text-sm text-slate-400">No milestones have been posted yet.</p>
         } @else {
           <ol class="mt-6 space-y-4">
-            @for (event of timeline(); track event.id || $index) {
+            @for (event of timelineSorted(); track event.id || $index) {
               <li class="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p class="text-sm font-semibold text-white">{{ eventTitle(event) }}</p>
-                    <p class="mt-1 text-xs text-gray-500">{{ eventType(event) }} · {{ eventDate(event) }}</p>
+                    <p class="mt-1 text-xs text-slate-500">{{ eventType(event) }} · {{ eventDate(event) }}</p>
                   </div>
                   <span class="rounded-full px-2.5 py-1 text-xs font-semibold"
                         [class.bg-emerald-500\/10]="event.isPublic === true"
@@ -180,7 +247,7 @@
                     {{ event.isPublic === true ? 'Public' : event.isPublic === false ? 'Private' : 'Room' }}
                   </span>
                 </div>
-                <p class="mt-3 whitespace-pre-line text-sm text-gray-300">{{ event.description || '-' }}</p>
+                <p class="mt-3 whitespace-pre-line text-sm text-slate-300">{{ event.description || '-' }}</p>
               </li>
             }
           </ol>
@@ -188,28 +255,48 @@
       </section>
     }
 
+    @if (activeTab() === 'updates') {
+      <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
+        <h2 class="text-xl font-bold text-white">Founder Updates</h2>
+        <p class="mt-2 text-sm text-slate-400">Progress notes, announcements, and operational updates.</p>
+        @if (updatesSorted().length === 0) {
+          <p class="mt-5 rounded-xl bg-slate-950/50 p-6 text-center text-sm text-slate-400">No updates yet.</p>
+        } @else {
+          <div class="mt-6 space-y-4">
+            @for (update of updatesSorted(); track update.id || $index) {
+              <article class="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
+                <p class="text-sm font-semibold text-white">{{ eventTitle(update) }}</p>
+                <p class="mt-1 text-xs text-slate-500">{{ eventDate(update) }}</p>
+                <p class="mt-3 whitespace-pre-line text-sm text-slate-300">{{ update.description || '-' }}</p>
+              </article>
+            }
+          </div>
+        }
+      </section>
+    }
+
     @if (activeTab() === 'documents') {
-      <section class="mt-6 rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
+      <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
         <h2 class="text-xl font-bold text-white">Documents</h2>
         @if (documents().length === 0) {
-          <p class="mt-5 rounded-xl bg-slate-950/50 p-6 text-center text-sm text-gray-400">No documents have been added yet.</p>
+          <p class="mt-5 rounded-xl bg-slate-950/50 p-6 text-center text-sm text-slate-400">No documents uploaded yet.</p>
         } @else {
           <div class="mt-6 space-y-6">
             @for (group of documentGroups(); track group.label) {
               <div>
-                <h3 class="text-sm font-semibold uppercase tracking-[0.16em] text-gray-500">{{ group.label }}</h3>
+                <h3 class="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">{{ group.label }}</h3>
                 <div class="mt-3 grid gap-3 lg:grid-cols-2">
                   @for (doc of group.items; track doc.id || doc.fileId || doc.fileName) {
                     <article class="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
                       <div class="flex gap-4">
-                        <div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-slate-800 text-xs font-bold text-gray-300">{{ extension(doc) }}</div>
+                        <div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-slate-800 text-xs font-bold text-slate-200">{{ extension(doc) }}</div>
                         <div class="min-w-0 flex-1">
                           <h4 class="truncate text-sm font-semibold text-white">{{ fileTitle(doc) }}</h4>
-                          <p class="mt-1 text-xs text-gray-500">{{ fileSize(doc.fileSize) }} · {{ visibility(doc) }} · {{ uploadedDate(doc) }}</p>
-                          <p class="mt-1 text-xs text-gray-500">{{ doc.category || doc.purpose || 'General' }}</p>
+                          <p class="mt-1 text-xs text-slate-500">{{ fileSize(doc.fileSize) }} · {{ visibility(doc) }} · {{ uploadedDate(doc) }}</p>
+                          <p class="mt-1 text-xs text-slate-500">{{ doc.category || doc.purpose || 'General' }}</p>
                           <div class="mt-3 flex gap-3">
-                            <a *ngIf="previewUrl(doc)" [href]="previewUrl(doc)" target="_blank" rel="noopener" class="text-xs font-semibold text-blue-300 hover:text-blue-200">Preview</a>
-                            <a *ngIf="downloadUrl(doc)" [href]="downloadUrl(doc)" target="_blank" rel="noopener" class="text-xs font-semibold text-blue-300 hover:text-blue-200">Download</a>
+                            <a *ngIf="previewUrl(doc)" [href]="previewUrl(doc)" target="_blank" rel="noopener" class="text-xs font-semibold text-cyan-300 hover:text-cyan-200">Preview</a>
+                            <a *ngIf="downloadUrl(doc)" [href]="downloadUrl(doc)" target="_blank" rel="noopener" class="text-xs font-semibold text-cyan-300 hover:text-cyan-200">Download</a>
                           </div>
                         </div>
                       </div>
@@ -224,31 +311,31 @@
     }
 
     @if (activeTab() === 'media') {
-      <section class="mt-6 rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
+      <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
         <h2 class="text-xl font-bold text-white">Media</h2>
         @if (media().length === 0) {
-          <p class="mt-5 rounded-xl bg-slate-950/50 p-6 text-center text-sm text-gray-400">No media has been added yet.</p>
+          <p class="mt-5 rounded-xl bg-slate-950/50 p-6 text-center text-sm text-slate-400">No media available yet.</p>
         } @else {
           <div class="mt-6 space-y-6">
             @for (group of mediaGroups(); track group.label) {
               <div>
-                <h3 class="text-sm font-semibold uppercase tracking-[0.16em] text-gray-500">{{ group.label }}</h3>
+                <h3 class="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">{{ group.label }}</h3>
                 <div class="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   @for (item of group.items; track item.id || item.fileId || item.fileName) {
                     <article class="overflow-hidden rounded-xl border border-slate-800 bg-slate-950/50">
                       @if (isImage(item) && mediaUrl(item)) {
                         <img [src]="mediaUrl(item)" [alt]="fileTitle(item)" class="h-44 w-full object-cover">
                       } @else {
-                        <div class="flex h-44 items-center justify-center bg-slate-800 text-sm font-semibold text-gray-400">
+                        <div class="flex h-44 items-center justify-center bg-slate-800 text-sm font-semibold text-slate-400">
                           {{ isVideo(item) ? 'Video' : extension(item) }}
                         </div>
                       }
                       <div class="p-4">
                         <h4 class="truncate text-sm font-semibold text-white">{{ fileTitle(item) }}</h4>
-                        <p class="mt-1 text-xs text-gray-500">{{ visibility(item) }} · {{ uploadedDate(item) }}</p>
+                        <p class="mt-1 text-xs text-slate-500">{{ visibility(item) }} · {{ uploadedDate(item) }}</p>
                         <div class="mt-3 flex gap-3">
-                          <a *ngIf="previewUrl(item)" [href]="previewUrl(item)" target="_blank" rel="noopener" class="text-xs font-semibold text-blue-300 hover:text-blue-200">Preview</a>
-                          <a *ngIf="downloadUrl(item)" [href]="downloadUrl(item)" target="_blank" rel="noopener" class="text-xs font-semibold text-blue-300 hover:text-blue-200">Download</a>
+                          <a *ngIf="previewUrl(item)" [href]="previewUrl(item)" target="_blank" rel="noopener" class="text-xs font-semibold text-cyan-300 hover:text-cyan-200">Preview</a>
+                          <a *ngIf="downloadUrl(item)" [href]="downloadUrl(item)" target="_blank" rel="noopener" class="text-xs font-semibold text-cyan-300 hover:text-cyan-200">Download</a>
                         </div>
                       </div>
                     </article>
@@ -260,25 +347,80 @@
         }
       </section>
     }
-
-    @if (activeTab() === 'updates') {
-      <section class="mt-6 rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
-        <h2 class="text-xl font-bold text-white">Updates</h2>
-        <p class="mt-2 text-sm text-gray-400">Operational founder communications such as progress notes, purchases, hires, contracts, and monthly updates.</p>
-        @if (updates().length === 0) {
-          <p class="mt-5 rounded-xl bg-slate-950/50 p-6 text-center text-sm text-gray-400">No founder updates yet.</p>
-        } @else {
-          <div class="mt-6 space-y-4">
-            @for (update of updates(); track update.id || $index) {
-              <article class="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
-                <p class="text-sm font-semibold text-white">{{ eventTitle(update) }}</p>
-                <p class="mt-1 text-xs text-gray-500">{{ eventDate(update) }}</p>
-                <p class="mt-3 whitespace-pre-line text-sm text-gray-300">{{ update.description || '-' }}</p>
-              </article>
-            }
-          </div>
-        }
-      </section>
-    }
   }
 </div>
+
+@if (updateModalOpen()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+    <section class="w-full max-w-xl rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+      <h2 class="text-xl font-bold text-white">Add Update</h2>
+      <p class="mt-2 text-sm text-slate-400">Operational communication for participants.</p>
+      <div class="mt-5 space-y-4">
+        <input [ngModel]="updateForm().title" (ngModelChange)="setUpdateTitle($event)" placeholder="Update title" class="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white">
+        <textarea [ngModel]="updateForm().content" (ngModelChange)="setUpdateContent($event)" rows="5" placeholder="Update content" class="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white"></textarea>
+        <label class="flex items-center gap-3 text-sm text-slate-300">
+          <input type="checkbox" [ngModel]="updateForm().isPublic" (ngModelChange)="setUpdateIsPublic($event)" class="rounded border-slate-700 bg-slate-800">
+          Public update
+        </label>
+      </div>
+      @if (actionError()) { <p class="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{{ actionError() }}</p> }
+      <div class="mt-6 flex justify-end gap-3">
+        <button type="button" (click)="closeActionModals()" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200">Cancel</button>
+        <button type="button" (click)="submitUpdate()" [disabled]="isSubmittingAction()" class="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{{ isSubmittingAction() ? 'Saving...' : 'Add Update' }}</button>
+      </div>
+    </section>
+  </div>
+}
+
+@if (milestoneModalOpen()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+    <section class="w-full max-w-xl rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+      <h2 class="text-xl font-bold text-white">Add Milestone</h2>
+      <p class="mt-2 text-sm text-slate-400">Strategic project evolution. This creates a real Timeline event.</p>
+      <div class="mt-5 space-y-4">
+        <input [ngModel]="milestoneForm().title" (ngModelChange)="setMilestoneTitle($event)" placeholder="Milestone title" class="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white">
+        <textarea [ngModel]="milestoneForm().description" (ngModelChange)="setMilestoneDescription($event)" rows="5" placeholder="Milestone description" class="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white"></textarea>
+        <label class="flex items-center gap-3 text-sm text-slate-300">
+          <input type="checkbox" [ngModel]="milestoneForm().isPublic" (ngModelChange)="setMilestoneIsPublic($event)" class="rounded border-slate-700 bg-slate-800">
+          Public milestone
+        </label>
+      </div>
+      @if (actionError()) { <p class="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{{ actionError() }}</p> }
+      <div class="mt-6 flex justify-end gap-3">
+        <button type="button" (click)="closeActionModals()" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200">Cancel</button>
+        <button type="button" (click)="submitMilestone()" [disabled]="isSubmittingAction()" class="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{{ isSubmittingAction() ? 'Saving...' : 'Add Milestone' }}</button>
+      </div>
+    </section>
+  </div>
+}
+
+@if (documentModalOpen()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+    <section class="w-full max-w-xl rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+      <h2 class="text-xl font-bold text-white">Add Document</h2>
+      <p class="mt-2 text-sm text-slate-400">Uploads use Investa FileStore, then the document reference is attached to the Opportunity.</p>
+      <div class="mt-5 space-y-4">
+        <input [ngModel]="documentForm().title" (ngModelChange)="setDocumentTitle($event)" placeholder="Document title optional" class="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white">
+        <input type="file" (change)="onDocumentFileSelected($event)" class="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-slate-200">
+        <select [ngModel]="documentForm().visibility" (ngModelChange)="setDocumentVisibility($event)" class="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white">
+          <option value="Private">Private</option>
+          <option value="Public">Public</option>
+        </select>
+        <select [ngModel]="documentForm().purpose" (ngModelChange)="setDocumentPurpose($event)" class="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white">
+          <option value="PrivateDocument">Private Document</option>
+          <option value="PublicDocument">Public Document</option>
+          <option value="FinancialReport">Financial Report</option>
+          <option value="Contract">Contract</option>
+          <option value="Legal">Legal</option>
+          <option value="InternalFile">Internal File</option>
+          <option value="General">General</option>
+        </select>
+      </div>
+      @if (actionError()) { <p class="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{{ actionError() }}</p> }
+      <div class="mt-6 flex justify-end gap-3">
+        <button type="button" (click)="closeActionModals()" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200">Cancel</button>
+        <button type="button" (click)="submitDocument()" [disabled]="isSubmittingAction()" class="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{{ isSubmittingAction() ? 'Uploading...' : 'Add Document' }}</button>
+      </div>
+    </section>
+  </div>
+}

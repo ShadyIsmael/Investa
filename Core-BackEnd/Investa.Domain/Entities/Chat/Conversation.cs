@@ -58,6 +58,10 @@ namespace Investa.Domain.Entities.Chat
 
         public DateTime? ClosedAt { get; set; }
 
+        public Guid? ClosedByUserId { get; set; }
+
+        public string? CloseReason { get; set; }
+
 
 
         // New status field tracking lifecycle of the conversation (Pending, InProgress, Closed)
@@ -67,6 +71,8 @@ namespace Investa.Domain.Entities.Chat
 
 
         public ICollection<ChatMessage>? Messages { get; set; }
+
+        public ICollection<NegotiationOffer> Offers { get; set; } = new List<NegotiationOffer>();
 
     }
 

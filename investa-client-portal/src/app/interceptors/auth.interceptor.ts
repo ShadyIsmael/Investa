@@ -13,14 +13,14 @@ export class AuthInterceptor implements HttpInterceptor {
   constructor(private authService: AuthService, private router: Router) {}
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    const token = this.authService.getAccessToken();
+    const authorization = this.authService.getAuthorizationHeaderValue();
 
     // Proactively refresh if token is expiring soon
-    if (token && this.authService.isTokenExpiringSoon()) {
+    if (authorization && this.authService.isTokenExpiringSoon()) {
       return from(this.authService.refresh()).pipe(
         switchMap(() => {
-          const newToken = this.authService.getAccessToken();
-          const authReq = newToken ? req.clone({ setHeaders: { Authorization: `Bearer ${newToken}` } }) : req;
+          const refreshedAuthorization = this.authService.getAuthorizationHeaderValue();
+          const authReq = refreshedAuthorization ? req.clone({ setHeaders: { Authorization: refreshedAuthorization } }) : req;
           return next.handle(authReq);
         }),
         catchError(err => {
@@ -31,8 +31,8 @@ export class AuthInterceptor implements HttpInterceptor {
     }
 
     let authReq = req;
-    if (token) {
-      authReq = req.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
+    if (authorization) {
+      authReq = req.clone({ setHeaders: { Authorization: authorization } });
     }
 
     return next.handle(authReq).pipe(
@@ -59,9 +59,9 @@ export class AuthInterceptor implements HttpInterceptor {
       return from(this.authService.refresh()).pipe(
         switchMap(() => {
           this.isRefreshing = false;
-          const newToken = this.authService.getAccessToken();
-          this.refreshSubject.next(newToken);
-          const cloned = newToken ? request.clone({ setHeaders: { Authorization: `Bearer ${newToken}` } }) : request;
+          const refreshedAuthorization = this.authService.getAuthorizationHeaderValue();
+          this.refreshSubject.next(refreshedAuthorization);
+          const cloned = refreshedAuthorization ? request.clone({ setHeaders: { Authorization: refreshedAuthorization } }) : request;
           return next.handle(cloned);
         }),
         catchError((err) => {
@@ -75,8 +75,8 @@ export class AuthInterceptor implements HttpInterceptor {
       return this.refreshSubject.pipe(
         filter(t => t != null),
         take(1),
-        switchMap((token) => {
-          const cloned = token ? request.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : request;
+        switchMap((authorization) => {
+          const cloned = authorization ? request.clone({ setHeaders: { Authorization: authorization } }) : request;
           return next.handle(cloned as HttpRequest<any>);
         })
       );

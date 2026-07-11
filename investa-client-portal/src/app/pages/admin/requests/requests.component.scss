@@ -130,3 +130,64 @@
 /* .animate-fade-in {
   animation: fade-in 0.3s ease-out;
 } */
+
+:host-context(body.investa-theme-light) {
+  .status-badge {
+    &.pending {
+      background: rgba(245, 158, 11, 0.12);
+      color: #92400e;
+      border-color: rgba(245, 158, 11, 0.28);
+    }
+
+    &.accepted {
+      background: rgba(16, 185, 129, 0.12);
+      color: #047857;
+      border-color: rgba(16, 185, 129, 0.28);
+    }
+
+    &.declined {
+      background: rgba(239, 68, 68, 0.1);
+      color: #b91c1c;
+      border-color: rgba(239, 68, 68, 0.24);
+    }
+  }
+
+  .request-type-badge.contact-founder {
+    background: rgba(37, 99, 235, 0.1);
+    color: #1d4ed8;
+    border-color: rgba(37, 99, 235, 0.24);
+  }
+
+  .request-type-badge.investment-interest {
+    background: rgba(126, 34, 206, 0.1);
+    color: #6b21a8;
+    border-color: rgba(126, 34, 206, 0.22);
+  }
+
+  .score-badge {
+    background: rgba(16, 185, 129, 0.12);
+    color: #047857;
+    border-color: rgba(16, 185, 129, 0.24);
+  }
+
+  .trust-badge {
+    background: rgba(8, 145, 178, 0.1);
+    color: #0e7490;
+    border-color: rgba(8, 145, 178, 0.24);
+  }
+
+  .investment-details,
+  .investment-details .detail-box,
+  .project-info,
+  .empty-state .empty-icon {
+    background: var(--investa-surface-2);
+    border-color: var(--investa-border);
+  }
+
+  .action-button.reject,
+  .action-button.withdraw {
+    background: #ffffff;
+    color: var(--investa-text-primary);
+    border-color: var(--investa-border);
+  }
+}

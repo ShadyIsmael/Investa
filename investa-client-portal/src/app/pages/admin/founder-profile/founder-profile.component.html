@@ -219,7 +219,7 @@
                       <div class="flex gap-4">
                         <div class="flex-shrink-0 w-24 h-24 rounded-2xl overflow-hidden bg-slate-800 border border-slate-700">
                           @if (getInvestmentImage(inv)) {
-                            <img [src]="getInvestmentImage(inv)" [alt]="inv.name" class="w-full h-full object-cover">
+                            <img [src]="getInvestmentImage(inv)" [alt]="inv.title || 'Opportunity'" class="w-full h-full object-cover">
                           } @else {
                             <div class="w-full h-full bg-gradient-to-br from-blue-500/20 to-violet-500/20 flex items-center justify-center">
                               <svg class="w-8 h-8 text-blue-400/60" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/></svg>
@@ -229,7 +229,7 @@
 
                         <div class="min-w-0 flex-1">
                           <div class="flex items-start justify-between gap-2">
-                            <h3 class="text-base font-semibold text-white group-hover:text-blue-300 transition-colors truncate">{{ inv.name }}</h3>
+                            <h3 class="text-base font-semibold text-white group-hover:text-blue-300 transition-colors truncate">{{ inv.title || 'Untitled Opportunity' }}</h3>
                             <span class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
                                   [class.bg-emerald-500/15]="inv.status === 'Active'"
                                   [class.text-emerald-300]="inv.status === 'Active'"
@@ -253,7 +253,7 @@
                             </span>
                           </div>
 
-                          <p class="mt-1 text-xs text-gray-500 line-clamp-2">{{ inv.description }}</p>
+                          <p class="mt-1 text-xs text-gray-500 line-clamp-2">{{ inv.shortDescription || inv.description || '-' }}</p>
 
                           @let fp = fundingPercent(inv);
                           <div class="mt-3 space-y-2">
@@ -267,7 +267,7 @@
                                    [style.width.%]="fp"></div>
                             </div>
                             <div class="flex items-center justify-between text-[11px] text-gray-500">
-                              <span>${{ inv.currentFunding | number:'1.0-0' }} raised</span>
+                              <span>${{ ((inv.fundingTarget || 0) * ((inv.fundingProgressPercent || 0) / 100)) | number:'1.0-0' }} raised</span>
                               <span class="font-semibold" [class.text-emerald-400]="fp >= 75" [class.text-blue-400]="fp < 75">{{ fp | number:'1.0-0' }}%</span>
                             </div>
                           </div>

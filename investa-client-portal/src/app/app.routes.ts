@@ -73,7 +73,9 @@ export const routes: Routes = [
       },
       {
         path: 'opportunities/:id/edit',
-        redirectTo: 'investments/:id/edit'
+        loadComponent: () => import('./pages/admin/opportunities/opportunity-editor.component').then(m => m.OpportunityEditorComponent),
+        canActivate: [founderOnlyGuard],
+        title: 'Edit Opportunity - Investa'
       },
       {
         path: 'opportunities/:id/room',

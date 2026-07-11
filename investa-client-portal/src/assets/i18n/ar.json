@@ -1,4 +1,42 @@
 {
+  "paidActions": {
+    "conversationRequest": "طلب محادثة",
+    "sendConversationRequest": "إرسال طلب محادثة",
+    "submitParticipationRequest": "إرسال طلب مشاركة",
+    "currentBalance": "رصيد CREDIT الحالي",
+    "fixedCost": "تكلفة CREDIT الثابتة",
+    "balanceAfter": "الرصيد بعد الإجراء",
+    "investmentValue": "قيمة الاستثمار",
+    "addCredits": "إضافة CREDIT",
+    "cancel": "إلغاء",
+    "processing": "جاري التنفيذ...",
+    "insufficientTitle": "رصيد CREDIT غير كافٍ",
+    "insufficientInline": "رصيد CREDIT غير كافٍ لهذا الإجراء.",
+    "insufficientMessage": "CREDIT المطلوب: {required}. الرصيد الحالي: {balance}.",
+    "confirmationText": "الإجراء: {action}\nتكلفة CREDIT الثابتة: {cost}\nرصيد CREDIT الحالي: {balance}\nالرصيد بعد الإجراء: {after}",
+    "conversationHelper": "هذه رسوم خدمة ثابتة لفتح النقاش فقط. لا تنشئ مشاركة ولا تفتح غرفة المشروع.",
+    "participationHelper": "سيتم إرسال طلب المشاركة للمؤسس للموافقة. يخصم CREDIT فقط كرسوم خدمة ثابتة منفصلة عن قيمة الاستثمار.",
+    "pricingUnavailableTitle": "التسعير غير متاح",
+    "pricingUnavailableMessage": "تعذر تحميل سعر خدمة المنصة لهذا الإجراء.",
+    "requestFailed": "فشل الطلب",
+    "publishFailed": "فشر النشر",
+    "success": {
+      "chatTitle": "تم طلب المحادثة",
+      "chatMessage": "تم إرسال طلب المحادثة إلى المؤسس.",
+      "publishTitle": "تم إرسال الفرصة",
+      "publishMessage": "تم إرسال الفرصة للمراجعة.",
+      "participationTitle": "تم إرسال طلب المشاركة",
+      "participationMessage": "تم إرسال طلبك إلى المؤسس للموافقة."
+    },
+    "errors": {
+      "chatRequestFailed": "تعذر طلب المحادثة لهذه الفرصة.",
+      "publishFailed": "تعذر نشر الفرصة.",
+      "invalidShareSelection": "اختيار الأسهم غير صحيح."
+    },
+    "platformFeeNoticeTitle": "تنبيه رسوم استخدام المنصة",
+    "platformFeeNotice": "هذه الرسوم لاستخدام خدمة المنصة فقط. وهي منفصلة عن قيمة الاستثمار والأسهم والقروض والمساهمات.",
+    "confirmAndProceed": "تأكيد والمتابعة"
+  },
   "stocks": "أسهم",
   "crypto": "عملات رقمية",
   "fund": "صندوق",
@@ -97,9 +135,9 @@
     "dashboard": "لوحة التحكم",
     "investments": "تصفح الفرص",
     "myParticipations": "مشاركاتي",
-    "myProjects": "????",
-    "createProject": "????? ????",
-    "submitInvestment": "????? ????",
+    "myProjects": "مشاريعي",
+    "createProject": "إنشاء مشروع",
+    "submitInvestment": "إنشاء فرصة",
     "communication": "التواصل",
     "requests": "الطلبات",
     "returnHome": "الرئيسية",
@@ -281,10 +319,10 @@
   "investments": {
     "title": "تصفح الفرص",
     "target": "الهدف التمويلي",
-    "myProjectsTitle": "????????",
-    "noParticipationsTitle": "?? ???? ??????? ???",
-    "noParticipationsSubtitle": "????? ??? ????????? ????????.",
-    "startInvestingButton": "????? ????",
+    "myProjectsTitle": "مشاريعي",
+    "noParticipationsTitle": "لا توجد مشاركات بعد",
+    "noParticipationsSubtitle": "ابدأ باستكشاف الفرص الاستثمارية.",
+    "startInvestingButton": "ابدأ الآن",
     "filterPlaceholder": "ابحث في الفرص...",
     "advancedSearch": "بحث متقدم",
     "refresh": "تحديث",
@@ -301,9 +339,9 @@
       "high": "مرتفع",
       "risk": "مخاطر"
     },
-    "typeFilter": "????? ?????????",
+    "typeFilter": "نوع الاستثمار",
     "type": {
-      "founding": "?????? ???????",
+      "founding": "شريك مؤسس",
       "equity": "أسهم"
     },
     "funding": "التمويل",
@@ -325,17 +363,17 @@
     "of": "من",
     "next": "التالي",
     "engageModal": {
-      "title": "????? ??? ????????",
-      "message": "??? ???????? ?? {investmentName} ?????? {creditCost} ??????. ?? ???? ?????????",
+      "title": "طلب تواصل",
+      "message": "التواصل بخصوص {investmentName} يتطلب {creditCost} CREDIT. هل تريد المتابعة؟",
       "cancelButton": "إلغاء",
-      "proceedButton": "??????"
+      "proceedButton": "متابعة"
     },
     "engageSuccessTitle": "تم إرسال الطلب",
     "engageSuccessMessage": "تم إرسال طلب التفاعل الخاص بك بخصوص {investmentName}. سيتم إعلامك عند القبول.",
     "requestSubmittedTitle": "تم إرسال الطلب",
     "requestSubmittedMessage": "تم إرسال طلبك بخصوص {investmentName}. سنقوم بإعلامك عند القبول.",
     "shareValidation": {
-      "minError": "???? ????? ?????? ??? ?????",
+      "minError": "يجب اختيار سهم واحد على الأقل",
       "maxError": "الحد الأقصى {available} من الأسهم المتاحة"
     },
     "investDialog": {
@@ -357,7 +395,7 @@
       "subtitle": "راجع طلب المشاركة قبل إرساله",
       "investmentLabel": "الفرصة:",
       "sharesLabel": "الأسهم:",
-      "totalCostLabel": "?????? ????????:",
+      "totalCostLabel": "التكلفة الإجمالية:",
       "warning": "تنبيه مهم",
       "warningMessage": "سيتم خصم الرصيد من حسابك وإرسال الطلب إلى المؤسس. لا يمكن التراجع عن هذا الإجراء.",
       "confirmButton": "تأكيد ومتابعة"
@@ -366,19 +404,19 @@
   "submitInvestment": {
     "title": "إنشاء فرصة",
     "editTitle": "تعديل فرصة",
-    "subtitle": "???? ????? ?????? ?? ?????????? ?????????",
+    "subtitle": "أدخل تفاصيل الفرصة الاستثمارية",
     "step": {
-      "businessDetails": "?????? ??????",
+      "businessDetails": "تفاصيل المشروع",
       "financialStructure": "الهيكل المالي",
       "reviewSubmit": "مراجعة وإرسال"
     },
-    "tellInvestors": "???? ?????????? ??????",
+    "tellInvestors": "عرّف المستثمرين بمشروعك",
     "labels": {
-      "businessName": "????? ??????",
+      "businessName": "اسم المشروع",
       "description": "الوصف",
-      "businessCategory": "?????",
+      "businessCategory": "الفئة",
       "businessStage": "المرحلة",
-      "projectPhase": "????? ??????",
+      "projectPhase": "مرحلة المشروع",
       "milestone": "المعلم الحالي",
       "teamMembers": "أعضاء الفريق",
       "coverImage": "صورة الغلاف",
@@ -397,8 +435,8 @@
       "back": "العودة إلى الفرص"
     },
     "placeholders": {
-      "businessName": "???? ????? ??????",
-      "description": "?? ??????? ???????? ???? ?????? ??????? ??????? ???? ??????...",
+      "businessName": "اكتب اسم المشروع",
+      "description": "صف المشروع والقيمة التي يقدمها والفرصة المتاحة للمستثمرين...",
       "milestoneExample": "مثال: إطلاق MVP، سلسلة A، توافق المنتج مع السوق",
       "teamUserId": "رقم الجوال (مطلوب)",
       "teamName": "الاسم المعروض (اختياري)",
@@ -418,7 +456,7 @@
   },
   "investmentPreview": {
     "backButton": "العودة إلى الفرص",
-    "investmentType": "????? ?????????",
+    "investmentType": "نوع الاستثمار",
     "industry": "المجال",
     "founderRating": "تقييم المؤسس",
     "earlyStage": "جولة تمويل مبكرة",
@@ -431,7 +469,7 @@
     "currentlyAccepting": "تقبل المشاركة حالياً",
     "targetReached": "تم الوصول إلى الهدف",
     "campaignEnded": "انتهت الحملة",
-    "projectRoadmap": "????? ???? ??????",
+    "projectRoadmap": "خطة تطور المشروع",
     "current": "الحالي",
     "complete": "مكتمل",
     "currentMilestone": "المرحلة الحالية",
@@ -446,7 +484,7 @@
     "target": "الهدف",
     "funded": "ممول",
     "yourInvestment": "مشاركتك",
-    "projectTeam": "??????",
+    "projectTeam": "فريق المشروع",
     "noTeamMembers": "لا يوجد أعضاء فريق متاحون",
     "timeline": "الجدول الزمني",
     "started": "بدأ",
@@ -459,14 +497,14 @@
     "founder": "المؤسس",
     "contactFounder": "تواصل مع المؤسس",
     "viewProfile": "عرض الملف",
-    "investNow": "????",
+    "investNow": "شارك الآن",
     "fullyFunded": "ممول بالكامل",
     "closed": "مغلق",
     "daysLeft": "أيام متبقية",
     "learnMore": "اعرف المزيد",
     "valuation": "التقييم",
     "author": "المؤلف",
-    "viewAllMedia": "??? ????? ??????",
+    "viewAllMedia": "عرض كل الوسائط",
     "images": "صور",
     "video": "فيديو",
     "noMediaYet": "لم يتم رفع أي وسائط بعد",
@@ -517,8 +555,8 @@
         "viewFounderProfile": "عرض ملف المؤسس"
       },
       "media": {
-        "title": "????? ??????",
-        "viewProjectMedia": "??? ????? ??????",
+        "title": "وسائط المشروع",
+        "viewProjectMedia": "عرض وسائط المشروع",
         "photos": "صور",
         "videos": "فيديوهات",
         "documents": "مستندات"
@@ -549,8 +587,8 @@
   },
   "founderProfile": {
     "title": "الملف الشخصي للمؤسس",
-    "projects": "???",
-    "noProjects": "?? ???? ??? ????.",
+    "projects": "مشاريع",
+    "noProjects": "لا توجد مشاريع بعد.",
     "kycVerified": "تم التحقق من الهوية",
     "notFound": "المؤسس غير موجود",
     "notFoundSubtitle": "هذا الملف الشخصي غير موجود أو غير متاح."
@@ -558,11 +596,11 @@
   "dashboard": {
     "investorTitle": "لوحة تحكم المستثمر",
     "portfolioValue": "قيمة المحفظة",
-    "myInvestments": "????????",
+    "myInvestments": "استثماراتي",
     "watchlist": "قائمة المراقبة",
-    "investmentUpdates": "??????? ?????????",
+    "investmentUpdates": "تحديثات الاستثمار",
     "updatesLabel": "تحديثات",
-    "noInvestmentUpdates": "?? ???? ??????? ??? ????????? ??? ????.",
+    "noInvestmentUpdates": "لا توجد تحديثات على استثماراتك حتى الآن.",
     "incomingRequests": "الطلبات الواردة",
     "investorScore": "درجتي",
     "currentCredits": "الرصيد الحالي",
@@ -584,26 +622,26 @@
     },
     "withdraw": "سحب",
     "noSentRequests": "لا توجد نتائج طلبات بعد.",
-    "switchProject": "????? ??????",
-    "myProjectOverview": "???? ???? ??? ??????",
+    "switchProject": "تغيير المشروع",
+    "myProjectOverview": "نظرة عامة على مشروعي",
     "totalInvestors": "إجمالي المستثمرين",
     "profileViews": "مشاهدات الملف الشخصي",
     "engagementScore": "درجة التفاعل",
     "investorInterest": "اهتمام المستثمرين",
     "quickActions": "إجراءات سريعة",
-    "createInvestment": "????? ????",
-    "editProject": "????? ??????",
+    "createInvestment": "إنشاء فرصة",
+    "editProject": "تعديل المشروع",
     "viewPublicPage": "عرض الصفحة العامة",
     "postUpdate": "نشر تحديث",
     "recentActivity": "النشاط الأخير",
-    "selectProjectTitle": "???? ????",
-    "selectProjectSubtitle": "???? ?????? ???? ???? ?????.",
+    "selectProjectTitle": "اختر مشروعًا",
+    "selectProjectSubtitle": "اختر مشروعًا لعرض لوحة التحكم الخاصة به.",
     "uncategorized": "غير مصنف",
     "emptyWatchlist": "لا توجد عناصر في قائمة المراقبة.",
     "noProject": {
-      "title": "?? ???? ??? ???",
-      "subtitle": "?? ???? ?? ??? ???. ???? ?????? ????? ??????.",
-      "button": "????? ??? ????"
+      "title": "لا يوجد مشروع بعد",
+      "subtitle": "لم تنشئ أي مشروع حتى الآن. ابدأ بإنشاء فرصتك الأولى.",
+      "button": "إنشاء مشروع جديد"
     },
     "withdrawModal": {
       "title": "سحب الطلب؟",
@@ -614,6 +652,90 @@
     "withdrawSuccess": {
       "title": "تم سحب الطلب",
       "message": "تم سحب طلبك الخاص بـ {projectName} بنجاح."
+    },
+    "welcomeSubtitle": "تابع مشاركاتك المعتمدة ورصيد CREDIT على المنصة وتحديثات المشاريع.",
+    "viewDetails": "عرض التفاصيل",
+    "unavailable": "غير متاح",
+    "creditUnit": "CREDIT",
+    "opportunityFallback": "فرصة",
+    "performance": {
+      "eyebrow": "المشاركات المعتمدة فقط",
+      "title": "أداء الاستثمار",
+      "totalInvested": "إجمالي المستثمر",
+      "currentValue": "القيمة الحالية",
+      "realizedEarnings": "الأرباح المحققة",
+      "expectedEarnings": "الأرباح المتوقعة",
+      "totalReturn": "إجمالي العائد",
+      "returnRate": "معدل العائد",
+      "helper": "تعتمد الإجماليات على طلبات المشاركة المعتمدة فقط. تظهر القيمة الحالية والأرباح المحققة عند توفر بيانات التقييم أو المدفوعات من الخادم."
+    },
+    "wallet": {
+      "eyebrow": "محفظة المنصة",
+      "title": "رصيد المحفظة",
+      "helper": "الرصيد هو CREDIT داخل المنصة وليس أموالا حقيقية."
+    },
+    "reputation": {
+      "eyebrow": "ملف الثقة",
+      "title": "درجة السمعة",
+      "helper": "يتغير مستوى السمعة حسب نشاطك على المنصة ويعكس السمعتك مع مرور الوقت.",
+      "levels": {
+        "excellent": "مستوى ممتاز",
+        "strong": "مستوى قوي",
+        "building": "مستوى قيد البناء",
+        "starter": "مستوى مبتدئ",
+        "unavailable": "غير متوفر"
+      }
+    },
+    "actionNeeded": {
+      "title": "يتطلب إجراء",
+      "emptyTitle": "لا توجد إجراءات مطلوبة",
+      "emptyHelper": "ستظهر هنا الطلبات التي تحتاج إلى ردك."
+    },
+    "negotiations": {
+      "title": "المفاوضات النشطة",
+      "emptyTitle": "لا توجد مفاوضات نشطة",
+      "emptyHelper": "ستظهر هنا طلبات المشاركة قيد التفاوض."
+    },
+    "summary": {
+      "title": "ملخص استثماراتي",
+      "activeInvestments": "الاستثمارات النشطة",
+      "approvedParticipations": "المشاركات المعتمدة",
+      "pendingParticipations": "المشاركات المعلقة",
+      "totalInvested": "إجمالي المستثمر",
+      "composition": {
+        "title": "تكوين المحفظة",
+        "equity": "حقوق ملكية",
+        "loan": "قرض",
+        "profitSharing": "مشاركة الأرباح"
+      }
+    },
+    "updates": {
+      "title": "آخر تحديثات المشاريع",
+      "emptyTitle": "لا توجد تحديثات مشاريع بعد",
+      "emptyHelper": "ستظهر هنا تحديثات المشاركات المعتمدة."
+    },
+    "premium": {
+      "eyebrow": "مميز",
+      "title": "رؤى الاستثمار المميزة",
+      "locked": "مقفل",
+      "teaser": "افتح تحليلات أعمق للمحفظة ولمحات من الرؤى. تبقى التوصيات مخفية حتى يصبح اشتراكك فعالا.",
+      "cta": "إدارة الاشتراك",
+      "subscribedHelper": "رؤى الاستثمار المميزة متاحة للمستثمرين المشتركين."
+    },
+    "activity": {
+      "participationCompleted": "تمت المشاركة",
+      "investedIn": "استثمرت {amount} في {projectName}",
+      "reputationTitle": "درجة السمعة",
+      "reputationDescription": "درجة سمعتك الآن {score}"
+    },
+    "favorites": {
+      "eyebrow": "الفرص المحفوظة",
+      "title": "مفضلاتي",
+      "viewAll": "عرض كل المفضلات",
+      "openDetails": "التفاصيل",
+      "emptyTitle": "لا توجد مفضلات بعد",
+      "emptyHelper": "احفظ الفرص التي تريد العودة إليها لتظهر هنا.",
+      "emptyCta": "استكشاف الفرص"
     }
   },
   "chat": {
@@ -621,7 +743,34 @@
     "startAudioCall": "بدء مكالمة صوتية",
     "startVideoCall": "بدء مكالمة فيديو",
     "attachFile": "إرفاق ملف",
-    "removeAttachment": "إزالة المرفق"
+    "removeAttachment": "إزالة المرفق",
+    "offerBuilder": {
+      "counterOffer": "Counter Offer",
+      "makeOffer": "إنشاء عرض تفاوضي",
+      "currency": "العملة",
+      "offerNote": "ملاحظة على العرض",
+      "amount": "المبلغ",
+      "equityPercentage": "نسبة الملكية %",
+      "shareTerms": "شروط الأسهم",
+      "returnPercentage": "نسبة العائد %",
+      "sendCounter": "إرسال عرض مقابل",
+      "sendOffer": "إرسال عرض تفاوضي"
+    },
+    "empty": {
+      "noConversationTitle": "لا توجد محادثة محددة",
+      "noConversationSubtitle": "اختر محادثة لعرض الرسائل والتفاصيل هنا."
+    },
+    "confirm": {
+      "readyToProceed": "أنت على وشك تأكيد جاهزيتك للمتابعة. لن يتم إنشاء طلب مشاركة تلقائيًا. متابعة؟",
+      "closeDiscussion": "سيتم إغلاق هذه المحادثة للتفاوض فقط. سيبقى السجل متاحًا للعرض.",
+      "removeClosed": "سيتم إخفاء هذه المحادثة المغلقة من قائمتك فقط."
+    },
+    "errors": {
+      "messageFailed": "فشل إرسال الرسالة.",
+      "readyFailed": "فشل تحديث حالة الجاهزية.",
+      "closeFailed": "فشل إغلاق المحادثة.",
+      "removeFailed": "فشل إخفاء المحادثة من القائمة."
+    }
   },
   "profile": {
     "company": {
@@ -647,6 +796,12 @@
     "titleDefault": "الملف الشخصي",
     "trustScore": "نقاط الثقة",
     "saveButton": "حفظ",
+    "score": {
+      "title": "درجة السمعة",
+      "description": "تعتمد درجة السمعة على نشاطك في المنصة وتتحدّث تلقائياً.",
+      "activityHelper": "سجل نشاط السمعة التفصيلي غير متوفر.",
+      "unavailable": "غير متوفر"
+    },
     "communication": {
       "title": "معلومات الاتصال",
       "personalContact": "بيانات التواصل الشخصية",
@@ -700,7 +855,8 @@
       "editProfile": "تعديل الملف الشخصي",
       "communicationInfo": "معلومات الاتصال",
       "security": "الأمان",
-      "notifications": "الإشعارات"
+      "notifications": "الإشعارات",
+      "score": "السمعة"
     },
     "password": {
       "title": "تغيير كلمة المرور",
@@ -885,10 +1041,10 @@
         }
       },
       "defaultInvestmentType": {
-        "label": "????? ????????? ?????????",
+        "label": "نوع الاستثمار الافتراضي",
         "options": {
           "any": "أي",
-          "founding": "?????? ???????",
+          "founding": "شريك مؤسس",
           "equity": "أسهم"
         }
       },
@@ -911,6 +1067,8 @@
   },
   "requests": {
     "title": "الطلبات",
+    "opportunityLabel": "تفاصيل الفرصة",
+    "opportunityLabelShort": "الفرصة",
     "incoming": "الواردة",
     "outgoing": "المرسلة",
     "from": "من",
@@ -921,6 +1079,65 @@
     "noIncoming": "لا توجد طلبات واردة.",
     "noOutgoing": "لا توجد طلبات مرسلة.",
     "pendingRequestExists": "لديك بالفعل طلب قيد المراجعة لهذه الفرصة. يرجى انتظار رد المؤسس قبل إرسال طلب جديد.",
+    "noIncomingSubtitle": "إذا لم يرد المؤسس، يمكنك سحب الطلب أو تقديم طلب جديد لاحقًا.",
+    "noOutgoingSubtitle": "إذا لم تظهر أي طلبات، حدّث أو وسّع الفلاتر لعرض المزيد من الفرص.",
+    "actions": {
+      "acceptChat": "قبول الدردشة",
+      "approveParticipation": "الموافقة على المشاركة {model}",
+      "rejectChat": "رفض الدردشة",
+      "rejectParticipation": "رفض المشاركة",
+      "withdraw": "سحب",
+      "withdrawRequest": "سحب الطلب"
+    },
+    "types": {
+      "participationRequest": "طلب مشاركة",
+      "conversationRequest": "طلب محادثة",
+      "participation": "مشاركة"
+    },
+    "status": {
+      "waitingFounderResponse": "بانتظار رد المؤسس",
+      "participationPending": "المشاركة قيد الانتظار",
+      "negotiationInProgress": "التفاوض جارٍ",
+      "projectParticipant": "مشترك في المشروع",
+      "chatAccepted": "تم قبول الدردشة",
+      "participationApproved": "تمت الموافقة على المشاركة",
+      "declined": "مرفوض",
+      "withdrawn": "تم سحب الطلب"
+    },
+    "direction": {
+      "incomingConversation": "يرغب هذا المستثمر في بدء محادثة حول فرصتك.",
+      "outgoingConversation": "تم إرسال طلب المحادثة. في انتظار رد المؤسس.",
+      "incomingParticipation": "تم استلام طلب مشاركة {model}. راجع الشروط النهائية المرسلة.",
+      "outgoingParticipation": "تم إرسال طلب مشاركة {model}. في انتظار مراجعة المؤسس."
+    },
+    "progress": {
+      "inReview": "قيد المراجعة",
+      "negotiating": "جارٍ التفاوض",
+      "completed": "مكتمل",
+      "ended": "منتهي"
+    },
+    "empty": {
+      "noMatch": "لا توجد طلبات تطابق الفلاتر المحددة.",
+      "tryAdjustFilters": "جرّب تعديل معايير الفلاتر."
+    },
+    "filters": {
+      "status": "الحالة",
+      "all": "الكل",
+      "pending": "قيد الانتظار",
+      "accepted": "مقبول",
+      "rejected": "مرفوض",
+      "type": "النوع",
+      "conversation": "طلبات المحادثة",
+      "participation": "طلبات المشاركة",
+      "date": "التاريخ",
+      "allTime": "كل الوقت",
+      "today": "اليوم",
+      "last7Days": "آخر 7 أيام",
+      "last30Days": "آخر 30 يومًا",
+      "showing": "يعرض",
+      "of": "من",
+      "requests": "طلبات"
+    },
     "notifications": {
       "accepted": "تم قبول الطلب",
       "acceptedMessage": "تم قبول طلب {projectName}.",
@@ -964,10 +1181,117 @@
       "minutes": "قبل {count} دقائق",
       "second": "قبل {count} ثانية",
       "seconds": "قبل {count} ثوانٍ"
-    }
+    },
+    "close": "إغلاق",
+    "unavailable": "غير متاح"
   },
   "countryPlaceholder": "مثال: الولايات المتحدة",
   "businessPlan": "ورقة عمل أو خطة عمل",
   "businessPlanHint": "قم بتحميل وثائق مشروعك التفصيلية (PDF).",
-  "upload": "تحميل PDF"
+  "upload": "تحميل PDF",
+  "wallet": {
+    "title": "محفظة Platform CREDIT",
+    "subtitle": "رصيد استخدام خدمات المنصة.",
+    "backToProfile": "العودة إلى الملف الشخصي",
+    "refresh": "تحديث",
+    "retry": "إعادة المحاولة",
+    "loading": "جاري تحميل المحفظة...",
+    "platformCreditHelper": "Platform CREDIT هو رصيد خدمات المنصة فقط. لا يُستخدم لشراء أسهم أو دفع قيمة قرض أو مساهمة استثمارية.",
+    "summary": {
+      "currentBalance": "رصيد Platform CREDIT الحالي",
+      "purchased": "Platform CREDIT المشترى",
+      "bonus": "Platform CREDIT الإضافي",
+      "refunds": "Platform CREDIT المسترد"
+    },
+    "transactions": {
+      "title": "المعاملات",
+      "recordCount": "عدد السجلات",
+      "empty": "لا توجد معاملات Platform CREDIT حتى الآن.",
+      "createdAt": "تاريخ العملية",
+      "direction": "الاتجاه",
+      "reason": "السبب",
+      "creditAmount": "قيمة CREDIT",
+      "balanceBefore": "الرصيد قبل",
+      "balanceAfter": "الرصيد بعد",
+      "referenceType": "نوع المرجع",
+      "referenceId": "رقم المرجع",
+      "description": "الوصف"
+    },
+    "errors": {
+      "loadFailed": "فشل تحميل المحفظة."
+    }
+  },
+  "participationBuilder": {
+    "title": "إنشاء طلب مشاركة",
+    "subtitle": "راجع تفاصيل المشاركة قبل إرسال الطلب. رسوم المنصة منفصلة عن قيمة الاستثمار.",
+    "loading": "جاري تحميل نموذج المشاركة...",
+    "opportunityFallback": "Opportunity",
+    "currencyFallback": "العملة",
+    "months": "شهر",
+    "startsAt": "يبدأ {date}",
+    "endsAt": "ينتهي {date}",
+    "previewHelper": "هذا عرض مبدئي فقط. سيتم إرسال طلب المشاركة للمؤسس للمراجعة.",
+    "backendTermsHelper": "تم تحميل شروط الفرصة من الخادم. راجع التفاصيل قبل الإرسال.",
+    "models": {
+      "equity": "حقوق ملكية",
+      "loan": "قرض",
+      "profitSharing": "مشاركة أرباح",
+      "unsupported": "غير مدعوم"
+    },
+    "labels": {
+      "investmentModel": "نموذج الاستثمار",
+      "totalShares": "إجمالي الأسهم",
+      "availableShares": "الأسهم المتاحة",
+      "pricePerShare": "سعر السهم",
+      "minimumShares": "الحد الأدنى للأسهم",
+      "maximumShares": "الحد الأقصى للأسهم",
+      "numberOfShares": "عدد الأسهم",
+      "calculatedTotal": "إجمالي الاستثمار المحسوب",
+      "selectedShares": "الأسهم المختارة",
+      "estimatedInvestment": "قيمة الاستثمار المتوقعة",
+      "opportunityContext": "سياق الفرصة الاستثمارية",
+      "fundingTarget": "هدف التمويل",
+      "alreadyFunded": "تم تمويله",
+      "remainingFunding": "التمويل المتبقي",
+      "remaining": "المتبقي",
+      "yourContribution": "مساهمتك",
+      "contributionAmount": "قيمة المساهمة",
+      "minimum": "الحد الأدنى",
+      "maximum": "الحد الأقصى",
+      "remainingFundingLimit": "حد التمويل المتبقي",
+      "loanTerms": "شروط القرض",
+      "returnRate": "معدل العائد",
+      "term": "المدة",
+      "repaymentModel": "نموذج السداد",
+      "maturityDate": "تاريخ الاستحقاق",
+      "expectedOutcome": "النتيجة المتوقعة",
+      "expectedReturn": "العائد المتوقع",
+      "expectedRepayment": "إجمالي السداد المتوقع",
+      "profitSharingTerms": "شروط مشاركة الأرباح",
+      "profitShare": "نسبة الربح",
+      "durationTerm": "المدة / الفترة",
+      "expectedProfit": "الأرباح المتوقعة",
+      "expectedPayout": "إجمالي العائد المتوقع",
+      "opportunityPayout": "إجمالي عائد الفرصة",
+      "contractPeriod": "فترة العقد",
+      "exitTerms": "شروط الخروج",
+      "participationSummary": "ملخص المشاركة"
+    },
+    "validation": {
+      "unsupportedModel": "هذا النموذج غير مدعوم للمشاركة من هذه الشاشة.",
+      "sharesGreaterThanZero": "عدد الأسهم يجب أن يكون أكبر من صفر.",
+      "minimumShares": "الحد الأدنى للمشاركة {count} سهم.",
+      "maximumShares": "الحد الأقصى {count} سهم.",
+      "availableShares": "المتاح فقط {count} سهم.",
+      "incompleteLoanTerms": "شروط القرض غير مكتملة. راجع بيانات الفرصة أولًا.",
+      "contributionGreaterThanZero": "قيمة المساهمة يجب أن تكون أكبر من صفر.",
+      "minimumContribution": "الحد الأدنى للمساهمة {amount}.",
+      "maximumContribution": "الحد الأقصى للمساهمة {amount}.",
+      "remainingFunding": "المساهمة أكبر من التمويل المتبقي المتاح {amount}."
+    },
+    "errors": {
+      "loadFailed": "فشل تحميل نموذج المشاركة.",
+      "submitFailed": "فشل إرسال طلب المشاركة."
+    }
+  }
 }

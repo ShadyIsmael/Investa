@@ -36,6 +36,22 @@ export interface WalletView {
   transactions: WalletTransaction[];
 }
 
+export type PaidActionCode =
+  | 'SendConversationRequest'
+  | 'SendFirstOffer'
+  | 'SendCounterOffer'
+  | 'SubmitParticipationRequest'
+  | 'PublishOpportunity';
+
+export interface PaidActionQuote {
+  actionCode: PaidActionCode | string;
+  displayName: string;
+  creditCost: number;
+  currentBalance: number;
+  balanceAfter: number;
+  hasSufficientCredit: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class WalletService {
   constructor(
@@ -51,6 +67,21 @@ export class WalletService {
     ]);
 
     return { wallet, balance, transactions };
+  }
+
+  async getPaidActionQuote(actionCode: PaidActionCode): Promise<PaidActionQuote> {
+    try {
+      const raw = await firstValueFrom(
+        this.http.get<ApiResponse<PaidActionQuote> | PaidActionQuote>(
+          `${this.apiBase}/api/v1/wallet/me/paid-actions/${encodeURIComponent(actionCode)}/quote`,
+          { headers: this.authHeaders() }
+        )
+      );
+
+      return this.extractData<PaidActionQuote>(raw, 'Failed to load paid action pricing.');
+    } catch (error) {
+      throw this.toWalletError(error, 'Failed to load paid action pricing.');
+    }
   }
 
   private async getWallet(): Promise<Wallet> {

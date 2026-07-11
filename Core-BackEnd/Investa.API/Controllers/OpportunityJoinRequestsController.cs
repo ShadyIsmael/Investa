@@ -80,9 +80,7 @@ public class OpportunityJoinRequestsController : BaseApiController
 
     private Guid? ResolveUserIdFromClaims()
     {
-        var claimValue = User.FindFirst("sub")?.Value
-                         ?? User.FindFirst("id")?.Value
-                         ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var claimValue = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
 
         return Guid.TryParse(claimValue, out var userId) ? userId : null;
     }

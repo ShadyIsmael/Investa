@@ -100,7 +100,10 @@ try
             options.UseSqlServer(connectionString, sqlOptions =>
             {
                 sqlOptions.CommandTimeout(30);
-                sqlOptions.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorNumbersToAdd: null);
+                sqlOptions.EnableRetryOnFailure(
+                    maxRetryCount: 3,
+                    maxRetryDelay: TimeSpan.FromSeconds(10),
+                    errorNumbersToAdd: null);
             }));
         Console.WriteLine("[STARTUP] Database configured successfully");
     }
@@ -547,6 +550,7 @@ static void RegisterApplicationServices(IServiceCollection services)
     services.AddScoped<ICreditService, CreditService>();
     services.AddScoped<IWalletService, WalletService>();
     services.AddScoped<IPriceService, PriceService>();
+    services.AddScoped<IPaidActionService, PaidActionService>();
     services.AddScoped<IOpportunityService, OpportunityService>();
     services.AddScoped<INegotiationService, NegotiationService>();
     services.AddScoped<InvestmentOpportunityBackfillService>();

@@ -1,7 +1,7 @@
 import { Component, ChangeDetectionStrategy, signal, computed, inject, DestroyRef, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
-import { InvestmentService } from '../../../services/investment.service';
+import { Opportunity, OpportunityLookup, OpportunityService } from '../../../services/opportunity.service';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
@@ -10,7 +10,37 @@ import { LanguageService } from '../../../services/language.service';
 import { RequestsService } from '../../../services/requests.service';
 import { UserService } from '../../../services/user.service';
 import { FileStoreService } from '../../../services/file-store.service';
-import { Investment, RiskLevel, InvestmentType, getInvestmentTypeDisplay, getInvestmentTypeBadgeClass } from '../../../models/investment.model';
+
+type ProjectCard = Opportunity & Record<string, any>;
+
+enum RiskLevel {
+  Low = 'Low',
+  Medium = 'Medium',
+  High = 'High'
+}
+
+enum InvestmentType {
+  Founding = 1,
+  Equity = 2,
+  RevenueSharing = 3,
+  Loan = 4
+}
+
+function getInvestmentTypeDisplay(type: InvestmentType | number | undefined): string {
+  if (type === InvestmentType.Founding) return 'Founding';
+  if (type === InvestmentType.Equity) return 'Equity';
+  if (type === InvestmentType.RevenueSharing) return 'Revenue Sharing';
+  if (type === InvestmentType.Loan) return 'Loan';
+  return 'Opportunity';
+}
+
+function getInvestmentTypeBadgeClass(type: InvestmentType | number | undefined): string {
+  if (type === InvestmentType.Founding) return 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/25';
+  if (type === InvestmentType.Equity) return 'bg-blue-500/15 text-blue-300 border border-blue-500/25';
+  if (type === InvestmentType.RevenueSharing) return 'bg-purple-500/15 text-purple-300 border border-purple-500/25';
+  if (type === InvestmentType.Loan) return 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/25';
+  return 'bg-slate-700/70 text-slate-300 border border-slate-600/40';
+}
 
 const DEFAULT_PLACEHOLDER = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0tpZHM9ImV4dGxhbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjY2NjYyIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPgogIDxwYXRoIGQ9Ik0wMCAwMmgNDBwLTAgMEwwIDQwIiBmaWxsPSIjMzUwOSIgLz4KICA8cGF0aCBkPSJNMCA0MHY0MCIgZmlsbD0iIzM1MTEiIC8+CiAgPHBhdGggZD0iTTEwMCAxMEw1MCAxMCIgZmlsbD0iIzY2NyIgc3Ryb2tlLXdpZHRoPSIzLjUiIC8+CiAgPHBhdGggZD0iTTEwMCAxNUw1MCAxNSIgcmlnaHQ9NTAiIGZpbGw9IiNmZmYiIHN0cm9rZS13aWR0aD0iMy41IiAvPgogIDxwYXRoIGQ9Ik0xMDAgMjBMNTAgMjAiIHJpZ2h0PSI1MCIgZmlsbD0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIzLjUiIC8+CiAgPC9nPgogIDx0ZXh0IGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY2NyIgdGV4dC0tLW0tbW0gbWF0Y2hlcmUgdGV4dCIgZmlsbD0iIzY2NyIvPgo8L3N2Zz4=';
 
@@ -45,7 +75,7 @@ type InvestmentFilters = {
   imports: [CommonModule, ReactiveFormsModule, FormsModule, TranslatePipe]
 })
 export class InvestmentsComponent {
-  protected investmentService = inject(InvestmentService);
+  protected opportunityService = inject(OpportunityService);
   private fb: FormBuilder = inject(FormBuilder);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
@@ -60,9 +90,10 @@ export class InvestmentsComponent {
   protected readonly InvestmentType = InvestmentType;
 
   // Service state
-  investments = this.investmentService.investments;
-  loading = this.investmentService.loading;
-  error = this.investmentService.error;
+  investments = signal<ProjectCard[]>([]);
+  loading = signal(false);
+  error = signal<string | null>(null);
+  categoryLookups = signal<OpportunityLookup[]>([]);
 
   /**
    * Navigate to investor/partner profile if available. Stops click propagation so card link won't trigger.
@@ -84,7 +115,7 @@ export class InvestmentsComponent {
 
   // Categories: 'All' + API categories
   categories = computed(() => {
-    const apiCategories = this.investmentService.categories();
+    const apiCategories = this.categoryLookups();
     return ['All', ...apiCategories.map(cat => cat.value)];
   });
 
@@ -92,12 +123,12 @@ export class InvestmentsComponent {
   activeCategory = signal<string>('All');
   currentPage = signal(1);
   isAdvancedSearchOpen = signal(false);
-  investmentToEngage = signal<Investment | null>(null);
+  investmentToEngage = signal<ProjectCard | null>(null);
   engagementCreditCost = ENGAGEMENT_CREDIT_COST;
   engagementProcessing = signal(false);
   
   // Investment dialog state
-  investmentToInvest = signal<Investment | null>(null);
+  investmentToInvest = signal<ProjectCard | null>(null);
   sharesToPurchaseValue = 1;
   sharesToPurchase = computed(() => this.sharesToPurchaseValue);
   investmentError = signal<string | null>(null);
@@ -209,7 +240,7 @@ export class InvestmentsComponent {
     }).sort((a, b) => this.getNewestTimestamp(b) - this.getNewestTimestamp(a));
   });
 
-  private getNewestTimestamp(investment: Investment): number {
+  private getNewestTimestamp(investment: ProjectCard): number {
     const candidates = [investment.lastActivityAt, investment.date].filter(Boolean) as Date[];
     for (const candidate of candidates) {
       const timestamp = candidate instanceof Date ? candidate.getTime() : new Date(candidate).getTime();
@@ -260,6 +291,9 @@ export class InvestmentsComponent {
       });
     });
 
+    void this.loadCategories();
+    void this.loadOpportunities();
+
     // attach scroll listener for load-more
     window.addEventListener('scroll', this.onScroll, { passive: true });
     this.destroyRef.onDestroy(() => window.removeEventListener('scroll', this.onScroll));
@@ -281,7 +315,7 @@ export class InvestmentsComponent {
   exportCsv(): void {
     const rows = this.filteredInvestments().map(inv => ({
       id: inv.id,
-      name: inv.name,
+      name: inv.name || inv.title,
       founderId: inv.founderId,
       founderDisplay: inv.founderDisplay ?? '',
       targetFund: inv.targetFund ?? 0,
@@ -313,23 +347,7 @@ export class InvestmentsComponent {
     this.currentPage.set(1);
     this.itemsLoaded.set(ITEMS_PER_PAGE);
 
-    // Load investments for selected category from API when possible
-    try {
-      const cats = this.investmentService.categories();
-      if (category === 'All') {
-        await this.investmentService.loadInvestments();
-      } else {
-        const found = cats.find(c => c.value === category);
-        if (found) {
-          await this.investmentService.loadInvestments(found.id);
-        } else {
-          // Fallback: reload all if category not found
-          await this.investmentService.loadInvestments();
-        }
-      }
-    } catch (err) {
-      console.error('Failed to load investments for category', category, err);
-    }
+    await this.loadOpportunities();
   }
 
   clearCategoryFilter(): void {
@@ -343,8 +361,8 @@ export class InvestmentsComponent {
   getCategoryLabel(cat: string): string {
     const lang = this.languageService.language();
     if (lang === 'ar') {
-      const found = this.investmentService.categories().find(c => c.value === cat);
-      return found?.valueAr || cat;
+      const found = this.categoryLookups().find(c => c.value === cat);
+      return found?.label || found?.value || cat;
     }
     return cat;
   }
@@ -358,25 +376,29 @@ export class InvestmentsComponent {
 
   private async loadFounderAvatar(userId: string): Promise<void> {
     if (!userId) return;
-    if (this.founderAvatarCache()[userId]) return;
+    if (Object.prototype.hasOwnProperty.call(this.founderAvatarCache(), userId)) return;
 
     try {
       const url = await this.fileStoreService.getProfilePictureUrl(userId);
-      if (url) {
-        this.founderAvatarCache.update(cache => ({ ...cache, [userId]: url }));
-      }
+      this.founderAvatarCache.update(cache => ({ ...cache, [userId]: url || '' }));
     } catch (err) {
+      this.founderAvatarCache.update(cache => ({ ...cache, [userId]: '' }));
       console.warn('Failed to load founder avatar for', userId, err);
     }
   }
 
-  getFounderAvatarUrl(investment: Investment): string {
+  onFounderAvatarError(userId?: string): void {
+    if (!userId) return;
+    this.founderAvatarCache.update(cache => ({ ...cache, [userId]: '' }));
+  }
+
+  getFounderAvatarUrl(investment: ProjectCard): string {
     const url = investment?.founderId ? this.founderAvatarCache()[investment.founderId] : undefined;
     return url || '';
   }
 
-  getCoverImageUrl(investment: Investment): string {
-    const url = this.investmentService.getCoverImageUrl(investment);
+  getCoverImageUrl(investment: ProjectCard): string {
+    const url = this.fileStoreService.getPublicUrl(investment.coverImageUrl || investment.imageUrl || '');
     return url || DEFAULT_PLACEHOLDER;
   }
 
@@ -400,9 +422,10 @@ export class InvestmentsComponent {
   /**
    * Toggle favorite status
    */
-  async toggleFavorite(investmentToToggle: Investment): Promise<void> {
+  async toggleFavorite(investmentToToggle: ProjectCard): Promise<void> {
     try {
-      await this.investmentService.toggleFavorite(investmentToToggle);
+      const id = investmentToToggle.id;
+      this.investments.update(items => items.map(item => item.id === id ? ({ ...item, favorited: !item.favorited }) : item));
     } catch (error) {
       console.error('Failed to update favorite status', error);
     }
@@ -425,12 +448,7 @@ export class InvestmentsComponent {
   /**
    * Show engagement prompt
    */
-  promptEngage(investment: Investment): void {
-    if (!this.canUseDeprecatedRequestFlow(investment)) {
-      this.showOpportunityRequestComingSoon();
-      return;
-    }
-
+  promptEngage(investment: ProjectCard): void {
     this.investmentToEngage.set(investment);
   }
 
@@ -447,11 +465,6 @@ export class InvestmentsComponent {
   async confirmEngage(): Promise<void> {
     const investment = this.investmentToEngage();
     if (!investment) return;
-    if (!this.canUseDeprecatedRequestFlow(investment)) {
-      this.showOpportunityRequestComingSoon();
-      this.investmentToEngage.set(null);
-      return;
-    }
 
     if (this.engagementProcessing()) {
       return;
@@ -499,7 +512,7 @@ export class InvestmentsComponent {
       });
   }
 
-  private getRequestSubmittedCopy(investment: Investment): { title: string; message: string } {
+  private getRequestSubmittedCopy(investment: ProjectCard): { title: string; message: string } {
     const dictionary = this.languageService.dictionary();
     const title = this.lookupPath(dictionary, 'investments.requestSubmittedTitle', 'Request Sent');
     const messageTemplate = this.lookupPath(
@@ -510,14 +523,14 @@ export class InvestmentsComponent {
 
     return {
       title,
-      message: messageTemplate.replace('{investmentName}', investment.name)
+      message: messageTemplate.replace('{investmentName}', investment.name || investment.title || 'Opportunity')
     };
   }
 
   /**
    * Navigate to investment details page
    */
-  navigateToDetails(investment: Investment | number): void {
+  navigateToDetails(investment: ProjectCard | number): void {
     try {
       const investmentId = typeof investment === 'number' ? investment : investment.id;
       this.router.navigate(['/admin/investments', investmentId]);
@@ -531,7 +544,7 @@ export class InvestmentsComponent {
    * Refresh investments from API
    */
   async refresh(): Promise<void> {
-    await this.investmentService.refresh();
+    await this.loadOpportunities();
   }
 
   /**
@@ -549,12 +562,7 @@ export class InvestmentsComponent {
   /**
    * Open investment dialog
    */
-  openInvestDialog(investment: Investment): void {
-    if (!this.canUseDeprecatedRequestFlow(investment)) {
-      this.showOpportunityRequestComingSoon();
-      return;
-    }
-
+  openInvestDialog(investment: ProjectCard): void {
     this.investmentToInvest.set(investment);
     this.sharesToPurchaseValue = 1;
     this.investmentError.set(null);
@@ -574,7 +582,7 @@ export class InvestmentsComponent {
   /**
    * Increase shares to purchase
    */
-  increaseShares(investment: Investment): void {
+  increaseShares(investment: ProjectCard): void {
     if (this.sharesToPurchaseValue < (investment.availableShares || 0)) {
       this.sharesToPurchaseValue++;
       this.validateShares(investment);
@@ -597,14 +605,14 @@ export class InvestmentsComponent {
   /**
    * Calculate total investment amount
    */
-  calculateRequestedAmount(investment: Investment): number {
+  calculateRequestedAmount(investment: ProjectCard): number {
     return this.sharesToPurchaseValue * (investment.sharePrice || 0);
   }
 
   /**
    * Validate shares input
    */
-  validateShares(investment: Investment): void {
+  validateShares(investment: ProjectCard): void {
     const shares = this.sharesToPurchaseValue;
     const amount = this.calculateRequestedAmount(investment);
 
@@ -638,7 +646,7 @@ export class InvestmentsComponent {
   /**
    * Show final confirmation dialog before submitting investment request
    */
-  showConfirmationDialog(investment: Investment): void {
+  showConfirmationDialog(investment: ProjectCard): void {
     if (this.investmentError() || this.investmentProcessing()) {
       return;
     }
@@ -671,13 +679,8 @@ export class InvestmentsComponent {
   /**
    * Proceed with investment request after user confirms in dialog
    */
-  async proceedWithInvestment(investment: Investment): Promise<void> {
+  async proceedWithInvestment(investment: ProjectCard): Promise<void> {
     if (this.investmentError() || this.investmentProcessing()) {
-      return;
-    }
-    if (!this.canUseDeprecatedRequestFlow(investment)) {
-      this.showOpportunityRequestComingSoon();
-      this.closeInvestDialog();
       return;
     }
 
@@ -732,15 +735,112 @@ export class InvestmentsComponent {
     return getInvestmentTypeBadgeClass(type);
   }
 
-  canUseDeprecatedRequestFlow(investment: Investment | null | undefined): boolean {
-    return !!investment && investment.readSource !== 'public-opportunity';
+  private async loadCategories(): Promise<void> {
+    try {
+      this.categoryLookups.set(await this.opportunityService.getCategories());
+    } catch {
+      this.categoryLookups.set([]);
+    }
   }
 
-  private showOpportunityRequestComingSoon(): void {
-    this.notificationService.showToast({
-      title: 'Coming soon',
-      message: 'Participation requests for Opportunity records need a backend request mapping before they can be submitted.',
-      type: 'info'
-    });
+  private async loadOpportunities(): Promise<void> {
+    this.loading.set(true);
+    this.error.set(null);
+    try {
+      const category = this.activeCategory();
+      const found = this.categoryLookups().find(c => c.value === category);
+      const [publicRecords, myRecords] = await Promise.all([
+        this.opportunityService.getPublicOpportunities({ categoryId: category !== 'All' ? found?.id : undefined }),
+        this.opportunityService.getMyOpportunities().catch(() => [])
+      ]);
+
+      const founderDrafts = myRecords.filter(item => this.isDraftStatus(item.status));
+      const mergedById = new Map<string, Opportunity>();
+
+      [...publicRecords, ...founderDrafts].forEach(item => {
+        const key = String(item.id);
+        if (!mergedById.has(key)) {
+          mergedById.set(key, item);
+        }
+      });
+
+      this.investments.set(Array.from(mergedById.values()).map(item => this.toProjectCard(item)));
+    } catch (error: any) {
+      this.error.set(error?.message || 'Failed to load opportunities.');
+      this.investments.set([]);
+    } finally {
+      this.loading.set(false);
+    }
   }
+
+  private toProjectCard(item: Opportunity): ProjectCard {
+    const source = item as Opportunity & Record<string, any>;
+    const targetFund = Number(source.fundingTarget ?? source.targetFund ?? 0);
+    const fundingPercentage = Number(source.fundingProgressPercent ?? source.fundingPercentage ?? 0);
+    const currentFunding = targetFund > 0 ? targetFund * (fundingPercentage / 100) : Number(source.currentFunding ?? 0);
+
+    return {
+      ...source,
+      name: source.title || source.name || 'Untitled Opportunity',
+      description: source.shortDescription || source.description || source.fullDescription || '',
+      founderDisplay: source.founder?.displayName || source.founder?.fullName || source.founder?.name || 'Founder',
+      founderId: source.founderId || source.founder?.id || source.founder?.userId || '',
+      businessRole: source.founder?.businessRole || source.businessRole || '',
+      businessCategoryName: source.categoryName || source.category?.label || source.businessCategoryName || '',
+      businessCategoryNameAr: source.businessCategoryNameAr || source.category?.value || '',
+      targetFund,
+      currentFunding,
+      fundingPercentage,
+      currency: source.currency || 'USD',
+      investedAmount: Number(source.investedAmount ?? 0),
+      investorCount: Number(source.investorCount ?? 0),
+      investmentType: this.toInvestmentType(source.investmentModel),
+      riskLevel: (source.riskLevel || RiskLevel.Medium) as RiskLevel,
+      favorited: !!source.favorited,
+      minInvestment: Number(source.minimumInvestmentAmount ?? source.minimumInvestment ?? 0),
+      maxInvestment: Number(source.maximumInvestmentAmount ?? source.maximumInvestment ?? 0),
+      sharePrice: Number(source.sharePrice ?? 0),
+      availableShares: Number(source.availableShares ?? 0),
+      credibilityScore: Number(source.credibilityScore ?? 0),
+      date: source.createdAt ? new Date(source.createdAt) : new Date(),
+      lastActivityAt: source.updatedAt ? new Date(source.updatedAt) : undefined,
+      status: this.normalizeStatusLabel(source.status),
+      imageUrl: source.coverImageUrl || source.imageUrl || '',
+      investors: Array.isArray(source.investors) ? source.investors : []
+    } as ProjectCard;
+  }
+
+  private normalizeStatusLabel(value: unknown): string {
+    const raw = String(value || 'Active').toLowerCase().replace(/[\s_-]+/g, '');
+    if (raw === '1' || raw === 'draft') return 'Draft';
+    if (raw === '5' || raw === 'published' || raw === 'active' || raw === 'approved') return 'Active';
+    if (raw === '6' || raw === 'funding') return 'Funding';
+    if (raw === '7' || raw === 'fullyfunded') return 'Fully Funded';
+    if (raw === '8' || raw === 'inprogress') return 'In Progress';
+    if (raw === '9' || raw === 'completed') return 'Completed';
+    if (raw === '10' || raw === 'archived') return 'Archived';
+    if (raw.includes('funded')) return 'Fully Funded';
+    if (raw.includes('progress')) return 'In Progress';
+    if (raw.includes('paused')) return 'Paused';
+    if (raw.includes('completed')) return 'Completed';
+    if (raw.includes('archived')) return 'Archived';
+    if (raw.includes('closed')) return 'Closed';
+    if (raw.includes('review')) return 'Reviewing Participants';
+    if (raw.includes('draft')) return 'Draft';
+    return 'Active';
+  }
+
+  private isDraftStatus(value: unknown): boolean {
+    const raw = String(value || '').toLowerCase().replace(/[\s_-]+/g, '');
+    return raw === '1' || raw === 'draft';
+  }
+
+  private toInvestmentType(model: unknown): InvestmentType {
+    const key = String(model || '').toLowerCase();
+    if (key.includes('founding')) return InvestmentType.Founding;
+    if (key.includes('loan') || key.includes('debt')) return InvestmentType.Loan;
+    if (key.includes('profit') || key.includes('revenue')) return InvestmentType.RevenueSharing;
+    return InvestmentType.Equity;
+  }
+
 }

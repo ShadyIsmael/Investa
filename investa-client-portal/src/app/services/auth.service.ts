@@ -1,5 +1,5 @@
 import { Injectable, signal, Inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE } from '../config/api.token';
 import { UserRoles } from '../config/constants';
@@ -112,6 +112,23 @@ export class AuthService {
 
   getAccessToken(): string | null {
     return localStorage.getItem('accessToken');
+  }
+
+  getAuthorizationHeaderValue(): string | null {
+    const token = this.getAccessToken();
+    if (!token) return null;
+
+    const normalized = token.replace(/^Bearer\s+/i, '').trim();
+    return normalized ? `Bearer ${normalized}` : null;
+  }
+
+  getAuthorizedJsonOptions(): { headers: HttpHeaders } {
+    let headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+    const authorization = this.getAuthorizationHeaderValue();
+    if (authorization) {
+      headers = headers.set('Authorization', authorization);
+    }
+    return { headers };
   }
 
   getRefreshToken(): string | null {

@@ -62,9 +62,7 @@ export class FileStoreService {
       this.http.post<ProfilePictureResponse>(url, form, { headers: this.authHeaders })
     );
 
-    // Build absolute URL from relative URL returned by file store
-    const relativeUrl = resp.url; // e.g. "/storage/profiles/{userId}/avatar.jpg"
-    return `${this.base}${relativeUrl}`;
+    return this.getPublicUrl(resp.url);
   }
 
   /**
@@ -76,7 +74,7 @@ export class FileStoreService {
       const resp = await firstValueFrom(
         this.http.get<ProfilePictureResponse>(url, { headers: this.authHeaders })
       );
-      return `${this.base}${resp.url}`;
+      return this.getPublicUrl(resp.url);
     } catch {
       return null;
     }
@@ -92,10 +90,24 @@ export class FileStoreService {
 
     const trimmed = fileUrl.trim();
     if (/^https?:\/\//i.test(trimmed)) {
+      try {
+        const parsed = new URL(trimmed);
+        const host = parsed.hostname.toLowerCase();
+        if (host === 'filestore.local' || host === 'cdn.investa.demo') {
+          const baseUrl = new URL(this.base);
+          return `${baseUrl.origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
+        }
+      } catch {
+        return trimmed;
+      }
       return trimmed;
     }
 
-    return `${this.base}${trimmed}`;
+    if (trimmed.startsWith('/')) {
+      return `${this.base}${trimmed}`;
+    }
+
+    return `${this.base}/${trimmed}`;
   }
 
   /**
@@ -119,8 +131,7 @@ export class FileStoreService {
       this.http.post<ProfilePictureResponse>(url, form, { headers: this.authHeaders })
     );
 
-    const relativeUrl = resp.url;
-    return `${this.base}${relativeUrl}`;
+    return this.getPublicUrl(resp.url);
   }
 
   /**
@@ -136,7 +147,7 @@ export class FileStoreService {
       this.http.post<FileStoreFile>(url, form, { headers: this.authHeaders })
     );
 
-    return `${this.base}${resp.url}`;
+    return this.getPublicUrl(resp.url);
   }
 
   /**
@@ -153,7 +164,7 @@ export class FileStoreService {
       this.http.post<FileStoreFile>(url, form, { headers: this.authHeaders })
     );
 
-    return `${this.base}${resp.url}`;
+    return this.getPublicUrl(resp.url);
   }
 
   /**
@@ -170,7 +181,7 @@ export class FileStoreService {
       this.http.post<FileStoreFile>(url, form, { headers: this.authHeaders })
     );
 
-    return `${this.base}${resp.url}`;
+    return this.getPublicUrl(resp.url);
   }
 
   /**
@@ -187,7 +198,7 @@ export class FileStoreService {
       this.http.post<FileStoreFile>(url, form, { headers: this.authHeaders })
     );
 
-    return `${this.base}${resp.url}`;
+    return this.getPublicUrl(resp.url);
   }
 
   /**
@@ -199,7 +210,7 @@ export class FileStoreService {
     const arr = resp || [];
     return arr.map(a => ({
       fileName: a.fileName,
-      url: `${this.base}${a.url}`,
+      url: this.getPublicUrl(a.url),
       sizeBytes: a.sizeBytes,
       createdAt: a.createdAt
     }));

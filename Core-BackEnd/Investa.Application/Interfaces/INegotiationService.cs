@@ -14,6 +14,13 @@ public interface INegotiationService
     Task<NegotiationConversationRequestDto> AcceptConversationRequestAsync(Guid founderId, Guid requestId, CancellationToken cancellationToken = default);
     Task<NegotiationConversationRequestDto> RejectConversationRequestAsync(Guid founderId, Guid requestId, RejectNegotiationRequest request, CancellationToken cancellationToken = default);
     Task<NegotiationConversationRequestDto> WithdrawConversationRequestAsync(Guid investorId, Guid requestId, CancellationToken cancellationToken = default);
-    Task<NegotiationConversationDto> CloseConversationAsync(Guid userId, Guid conversationId, CancellationToken cancellationToken = default);
+    Task<NegotiationConversationDto> CloseConversationAsync(Guid userId, Guid conversationId, CloseNegotiationConversationRequest request, CancellationToken cancellationToken = default);
+    Task HideConversationAsync(Guid userId, Guid conversationId, CancellationToken cancellationToken = default);
     Task<NegotiationConversationDto> MarkReadyToProceedAsync(Guid userId, Guid conversationId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<NegotiationOfferDto>> GetOffersAsync(Guid userId, Guid conversationId, CancellationToken cancellationToken = default);
+    Task<NegotiationOfferDto> SendOfferAsync(Guid userId, Guid conversationId, CreateNegotiationOfferRequest request, CancellationToken cancellationToken = default);
+    Task<NegotiationOfferDto> CounterOfferAsync(Guid userId, Guid conversationId, int offerId, CreateNegotiationOfferRequest request, CancellationToken cancellationToken = default);
+    Task<NegotiationOfferDto> AcceptOfferAsync(Guid userId, Guid conversationId, int offerId, CancellationToken cancellationToken = default);
+    Task<NegotiationOfferDto> RejectOfferAsync(Guid userId, Guid conversationId, int offerId, CancellationToken cancellationToken = default);
+    Task<NegotiationOfferDto> WithdrawOfferAsync(Guid userId, Guid conversationId, int offerId, CancellationToken cancellationToken = default);
 }

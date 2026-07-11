@@ -72,6 +72,14 @@ export interface OpportunityRoomParticipantContext {
   role?: 'Founder' | 'ApprovedInvestor' | string | null;
   userRole?: 'Founder' | 'ApprovedInvestor' | string | null;
   roomRole?: 'Founder' | 'ApprovedInvestor' | string | null;
+  isFounder?: boolean | null;
+  isApprovedParticipant?: boolean | null;
+  approvedParticipantCount?: number | null;
+  canAccessProjectRoom?: boolean | null;
+  canEditCoreProject?: boolean | null;
+  canAddUpdate?: boolean | null;
+  canAddDocument?: boolean | null;
+  canAddMilestone?: boolean | null;
   canViewPrivateFiles?: boolean | null;
   canDownloadFiles?: boolean | null;
   canUpload?: boolean | null;
@@ -101,6 +109,52 @@ export interface OpportunityViewerState {
   canOpenProjectRoom?: boolean | null;
 }
 
+export interface OpportunityParticipationForm {
+  opportunityId: number | string;
+  opportunityTitle?: string | null;
+  investmentModel?: string | number | null;
+  fundingTarget?: number | null;
+  alreadyFundedAmount?: number | null;
+  remainingFundingAmount?: number | null;
+  currency?: string | null;
+  minimumContribution?: number | null;
+  maximumContribution?: number | null;
+  returnRate?: number | null;
+  returnRateType?: string | null;
+  termValue?: number | null;
+  termUnit?: string | null;
+  repaymentModel?: string | null;
+  expectedMaturityDate?: string | null;
+  profitSharePercentage?: number | null;
+  profitSharingPercentage?: number | null;
+  proposedSharePercentage?: number | null;
+  expectedProfitAmount?: number | null;
+  expectedTotalPayoutAmount?: number | null;
+  opportunityTotalExpectedPayout?: number | null;
+  expectedDurationMonths?: number | null;
+  durationMonths?: number | null;
+  exitTerms?: string | null;
+  exitStrategy?: string | null;
+  contractStartDate?: string | null;
+  contractEndDate?: string | null;
+  totalShares?: number | null;
+  availableShares?: number | null;
+  sharePrice?: number | null;
+  minimumShares?: number | null;
+  maximumShares?: number | null;
+  minimumInvestmentAmount?: number | null;
+  maximumInvestmentAmount?: number | null;
+}
+
+export interface CreateOpportunityJoinRequest {
+  requestType: number;
+  numberOfShares?: number | null;
+  requestedAmount?: number | null;
+  proposedSharePercentage?: number | null;
+  message?: string | null;
+  metadataJson?: string | null;
+}
+
 export interface OpportunityRoom {
   overview?: Opportunity | Record<string, any> | null;
   mediaLibrary?: OpportunityMedia[] | Record<string, OpportunityMedia[]> | null;
@@ -122,11 +176,12 @@ export interface Opportunity {
   description?: string | null;
   categoryId?: number | string | null;
   categoryName?: string | null;
-  investmentModel?: string | null;
-  projectStage?: string | null;
+  investmentModel?: string | number | null;
+  projectStage?: string | number | null;
   fundingGoalId?: number | string | null;
   fundingGoalName?: string | null;
   fundingPurpose?: string | null;
+  useOfFunds?: string | null;
   fundingTarget?: number | null;
   minimumInvestment?: number | null;
   minimumInvestmentAmount?: number | null;
@@ -134,6 +189,7 @@ export interface Opportunity {
   maximumInvestmentAmount?: number | null;
   expectedDuration?: string | number | null;
   expectedDurationMonths?: string | number | null;
+  equityOfferedPercentage?: number | null;
   coverImageUrl?: string | null;
   founder?: {
     id?: string | null;
@@ -182,15 +238,20 @@ export interface OpportunityUpsert {
   shortDescription: string;
   fullDescription?: string | null;
   categoryId?: string | number | null;
-  projectStage?: string | null;
+  projectStage?: string | number | null;
   tagIds?: Array<string | number>;
-  investmentModel?: string | null;
+  investmentModel?: string | number | null;
   fundingGoalId?: string | number | null;
   fundingTarget?: number | null;
   minimumInvestment?: number | null;
+  minimumInvestmentAmount?: number | null;
   maximumInvestment?: number | null;
+  maximumInvestmentAmount?: number | null;
   expectedDuration?: string | number | null;
+  expectedDurationMonths?: string | number | null;
+  equityOfferedPercentage?: number | null;
   coverImageUrl?: string | null;
+  useOfFunds?: string | null;
   fundingUsage?: string | null;
   risks?: string | null;
   exitStrategy?: string | null;
@@ -216,6 +277,14 @@ export class OpportunityService {
     return this.send<any>('post', `/api/v1/opportunities/${encodeURIComponent(String(id))}/conversations`, {});
   }
 
+  getParticipationForm(id: string | number): Promise<OpportunityParticipationForm> {
+    return this.getOne(`/api/v1/opportunities/${encodeURIComponent(String(id))}/participation-form`);
+  }
+
+  createJoinRequest(id: string | number, payload: CreateOpportunityJoinRequest): Promise<any> {
+    return this.send<any>('post', `/api/v1/opportunities/${encodeURIComponent(String(id))}/join-requests`, payload);
+  }
+
   getMyOpportunities(): Promise<Opportunity[]> {
     return this.getList('/api/v1/opportunities/my');
   }
@@ -229,11 +298,11 @@ export class OpportunityService {
   }
 
   createOpportunity(payload: OpportunityUpsert): Promise<Opportunity> {
-    return this.send<Opportunity>('post', '/api/v1/opportunities', payload);
+    return this.send<Opportunity>('post', '/api/v1/opportunities', this.toOpportunityRequest(payload));
   }
 
   updateOpportunity(id: string | number, payload: OpportunityUpsert): Promise<Opportunity> {
-    return this.send<Opportunity>('put', `/api/v1/opportunities/${encodeURIComponent(String(id))}`, payload);
+    return this.send<Opportunity>('put', `/api/v1/opportunities/${encodeURIComponent(String(id))}`, this.toOpportunityRequest(payload));
   }
 
   submitForReview(id: string | number): Promise<void> {
@@ -329,6 +398,31 @@ export class OpportunityService {
       }
     });
     return params;
+  }
+
+  private toOpportunityRequest(payload: OpportunityUpsert): Record<string, unknown> {
+    return {
+      title: payload.title,
+      description: payload.fullDescription ?? null,
+      shortDescription: payload.shortDescription,
+      useOfFunds: payload.useOfFunds ?? payload.fundingUsage ?? null,
+      fundingTarget: payload.fundingTarget,
+      categoryId: payload.categoryId ?? null,
+      fundingGoalId: payload.fundingGoalId ?? null,
+      minimumInvestmentAmount: payload.minimumInvestmentAmount ?? payload.minimumInvestment ?? null,
+      maximumInvestmentAmount: payload.maximumInvestmentAmount ?? payload.maximumInvestment ?? null,
+      expectedDurationMonths: payload.expectedDurationMonths ?? payload.expectedDuration ?? null,
+      equityOfferedPercentage: payload.equityOfferedPercentage ?? null,
+      tagIds: (payload.tagIds ?? []).map(value => Number(value)).filter(value => Number.isFinite(value)),
+      investmentModel: this.toNumberOrNull(payload.investmentModel),
+      projectStage: this.toNumberOrNull(payload.projectStage),
+      coverImageUrl: payload.coverImageUrl ?? null
+    };
+  }
+
+  private toNumberOrNull(value: string | number | null | undefined): number | null {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
   }
 
   private authHeaders(): HttpHeaders {

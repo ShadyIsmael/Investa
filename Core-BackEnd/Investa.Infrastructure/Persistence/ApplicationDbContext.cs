@@ -186,6 +186,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
     public DbSet<Investa.Domain.Entities.Chat.ConversationParticipant> ConversationParticipants { get; set; }
 
+    public DbSet<Investa.Domain.Entities.Chat.NegotiationOffer> NegotiationOffers { get; set; }
+
+    public DbSet<Investa.Domain.Entities.Chat.NegotiationOfferLeg> NegotiationOfferLegs { get; set; }
+
     public DbSet<Investa.Domain.Entities.Chat.MessageAttachment> MessageAttachments { get; set; }
 
     public DbSet<Investa.Domain.Entities.Chat.MessageReaction> MessageReactions { get; set; }
@@ -236,6 +240,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
     // Pricing engine source of truth for platform service prices
     public DbSet<ServicePrice> ServicePrices { get; set; }
+    public DbSet<PricingRule> PricingRules { get; set; }
 
     // Investment Opportunity Lifecycle foundation
     public DbSet<Opportunity> Opportunities { get; set; }
@@ -464,6 +469,26 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
             .HasForeignKey(p => p.InvestorId)
 
             .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<PricingRule>(entity =>
+        {
+            entity.Property(p => p.Action).HasConversion<string>().HasMaxLength(100);
+            entity.Property(p => p.ActionCode).HasMaxLength(100).IsRequired();
+            entity.Property(p => p.DisplayName).HasMaxLength(200).IsRequired();
+            entity.Property(p => p.Description).HasMaxLength(500);
+            entity.Property(p => p.CreditCost).HasPrecision(18, 2);
+            entity.Property(p => p.CreatedAt).HasDefaultValueSql("GETDATE()");
+            entity.Property(p => p.UpdatedAt).HasDefaultValueSql("GETDATE()");
+            entity.HasIndex(p => p.ActionCode).IsUnique();
+
+            var seedDate = new DateTime(2026, 7, 9, 0, 0, 0, DateTimeKind.Utc);
+            entity.HasData(
+                new PricingRule { Id = 1, Action = PricingAction.SendConversationRequest, ActionCode = nameof(PricingAction.SendConversationRequest), DisplayName = "Send Conversation Request", Description = "Fixed CREDIT fee to send a negotiation conversation request.", CreditCost = 5m, IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+                new PricingRule { Id = 2, Action = PricingAction.SendFirstOffer, ActionCode = nameof(PricingAction.SendFirstOffer), DisplayName = "Send First Offer", Description = "Fixed CREDIT fee to send the first negotiation offer.", CreditCost = 5m, IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+                new PricingRule { Id = 3, Action = PricingAction.SendCounterOffer, ActionCode = nameof(PricingAction.SendCounterOffer), DisplayName = "Send Counter Offer", Description = "Fixed CREDIT fee to send a counter offer.", CreditCost = 2m, IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+                new PricingRule { Id = 4, Action = PricingAction.SubmitParticipationRequest, ActionCode = nameof(PricingAction.SubmitParticipationRequest), DisplayName = "Submit Participation Request", Description = "Fixed CREDIT fee to submit an opportunity participation request.", CreditCost = 10m, IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+                new PricingRule { Id = 5, Action = PricingAction.PublishOpportunity, ActionCode = nameof(PricingAction.PublishOpportunity), DisplayName = "Publish Opportunity", Description = "Fixed CREDIT fee to publish an opportunity.", CreditCost = 15m, IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate });
+        });
 
 
 
@@ -910,15 +935,20 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
             {
                 rr.HasKey(r => r.Id);
                 rr.Property(r => r.RuleCode).HasMaxLength(50).IsRequired();
+                rr.Property(r => r.ActivityCode).HasMaxLength(100).IsRequired();
                 rr.Property(r => r.Description).HasMaxLength(200).IsRequired();
                 rr.Property(r => r.Points).IsRequired();
+                rr.Property(r => r.RoleScope).HasMaxLength(50).HasDefaultValue("Any").IsRequired();
+                rr.Property(r => r.IsActive).HasDefaultValue(true);
                 rr.Property(r => r.IsEnabled).HasDefaultValue(true);
                 rr.Property(r => r.IsSystem).HasDefaultValue(true);
                 rr.Property(r => r.IsAutomatic).HasDefaultValue(true);
                 rr.Property(r => r.CanRepeat).HasDefaultValue(false);
                 rr.Property(r => r.MaximumOccurrences).HasDefaultValue(1);
                 rr.Property(r => r.CreatedAt).HasDefaultValueSql("GETDATE()");
+                rr.Property(r => r.UpdatedAt).HasDefaultValueSql("GETDATE()");
                 rr.HasIndex(r => r.RuleCode).IsUnique();
+                rr.HasIndex(r => r.ActivityCode).IsUnique();
                 rr.HasOne(r => r.CreatedBy)
                     .WithMany()
                     .HasForeignKey(r => r.CreatedByUserId)
@@ -929,10 +959,15 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
             modelBuilder.Entity<ReputationTransaction>(rt =>
             {
                 rt.HasKey(t => t.Id);
+                rt.Property(t => t.ActivityCode).HasMaxLength(100).IsRequired();
                 rt.Property(t => t.Points).IsRequired();
                 rt.Property(t => t.ReferenceId).HasMaxLength(100);
                 rt.Property(t => t.ReferenceType).HasMaxLength(100);
                 rt.Property(t => t.OccurredAt).HasDefaultValueSql("GETDATE()");
+                rt.Property(t => t.CreatedAt).HasDefaultValueSql("GETDATE()");
+                rt.HasIndex(t => new { t.UserId, t.ActivityCode, t.ReferenceType, t.ReferenceId })
+                    .IsUnique()
+                    .HasFilter("[ReferenceType] IS NOT NULL AND [ReferenceId] IS NOT NULL");
                 rt.HasOne(t => t.User)
                     .WithMany()
                     .HasForeignKey(t => t.UserId)
@@ -1089,13 +1124,17 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
             t.Property(x => x.BalanceAfter).HasPrecision(18, 2).IsRequired();
             t.Property(x => x.Direction).HasConversion<string>().HasMaxLength(10).IsRequired();
             t.Property(x => x.Reason).HasConversion<string>().HasMaxLength(40).IsRequired();
-            t.Property(x => x.ReferenceType).HasConversion<string>().HasMaxLength(20).HasDefaultValue(ReferenceType.None);
+            t.Property(x => x.ActionCode).HasMaxLength(100);
+            t.Property(x => x.ReferenceType).HasConversion<string>().HasMaxLength(40).HasDefaultValue(ReferenceType.None);
             t.Property(x => x.ReferenceId).HasMaxLength(100);
             t.Property(x => x.Description).HasMaxLength(500);
             t.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
             t.HasIndex(x => x.WalletId);
             t.HasIndex(x => new { x.WalletId, x.CreatedAt });
             t.HasIndex(x => x.ReferenceId);
+            t.HasIndex(x => new { x.WalletId, x.ActionCode, x.ReferenceType, x.ReferenceId })
+                .IsUnique()
+                .HasFilter("[ActionCode] IS NOT NULL AND [ReferenceId] IS NOT NULL");
         });
         // Pricing Engine mapping (Sprint 2)
         modelBuilder.Entity<ServicePrice>(sp =>
@@ -2190,6 +2229,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             c.Property(x => x.IsVisibleToInvestor).HasDefaultValue(true);
 
+            c.Property(x => x.CloseReason).HasMaxLength(1000).IsRequired(false);
+
             c.HasIndex(x => x.OpportunityId);
 
             c.HasIndex(x => x.ConversationRequestId).IsUnique().HasFilter("[ConversationRequestId] IS NOT NULL");
@@ -2258,6 +2299,49 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
             // c.HasMany(x => x.Messages).WithOne(m => m.Conversation).HasForeignKey(m => m.ConversationId).OnDelete(DeleteBehavior.Cascade);
 
+        });
+
+        modelBuilder.Entity<Investa.Domain.Entities.Chat.NegotiationOffer>(o =>
+        {
+            o.HasKey(x => x.Id);
+            o.Property(x => x.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
+            o.Property(x => x.Note).HasMaxLength(1000).IsRequired(false);
+            o.Property(x => x.Currency).HasMaxLength(10).IsRequired();
+            o.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            o.HasIndex(x => x.ConversationId);
+            o.HasIndex(x => new { x.ConversationId, x.Status });
+            o.HasIndex(x => new { x.ConversationId, x.Version }).IsUnique();
+            o.HasOne(x => x.Conversation)
+                .WithMany(x => x.Offers)
+                .HasForeignKey(x => x.ConversationId)
+                .OnDelete(DeleteBehavior.Cascade);
+            o.HasOne(x => x.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(x => x.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            o.HasOne(x => x.ParentOffer)
+                .WithMany()
+                .HasForeignKey(x => x.ParentOfferId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+        });
+
+        modelBuilder.Entity<Investa.Domain.Entities.Chat.NegotiationOfferLeg>(l =>
+        {
+            l.HasKey(x => x.Id);
+            l.Property(x => x.LegType).HasConversion<string>().HasMaxLength(30).IsRequired();
+            l.Property(x => x.Amount).HasPrecision(18, 2);
+            l.Property(x => x.EquityPercentage).HasPrecision(5, 2);
+            l.Property(x => x.SharesTerms).HasMaxLength(500).IsRequired(false);
+            l.Property(x => x.ReturnRate).HasPrecision(5, 2);
+            l.Property(x => x.RepaymentModel).HasMaxLength(100).IsRequired(false);
+            l.Property(x => x.ProfitSharePercentage).HasPrecision(5, 2);
+            l.Property(x => x.ExitTerms).HasMaxLength(1000).IsRequired(false);
+            l.HasIndex(x => x.OfferId);
+            l.HasOne(x => x.Offer)
+                .WithMany(x => x.Legs)
+                .HasForeignKey(x => x.OfferId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Investa.Domain.Entities.Chat.ConversationRequest>(cr =>

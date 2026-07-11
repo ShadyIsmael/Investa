@@ -499,8 +499,14 @@
         @case ('score') {
           <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl animate-fade-in p-8 space-y-6">
             <h2 class="text-2xl font-bold text-white">{{ 'profile.score.title' | translate }}</h2>
-            <div class="text-center">
-              <div class="text-4xl font-bold text-blue-400">{{ currentScorePts() }}</div>
+            <div class="text-center space-y-4">
+              @if (reputationScore() !== null) {
+                <div class="text-5xl font-bold text-blue-400">{{ reputationScore() }}</div>
+              } @else {
+                <div class="text-5xl font-bold text-gray-400">{{ 'profile.score.unavailable' | translate }}</div>
+              }
+              <p class="text-sm text-gray-400">{{ 'profile.score.description' | translate }}</p>
+              <p class="text-sm text-gray-500">{{ 'profile.score.activityHelper' | translate }}</p>
             </div>
           </div>
         }

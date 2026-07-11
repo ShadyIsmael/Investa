@@ -1,4 +1,42 @@
 {
+  "paidActions": {
+    "conversationRequest": "Conversation Request",
+    "sendConversationRequest": "Send Conversation Request",
+    "submitParticipationRequest": "Submit Participation Request",
+    "currentBalance": "Current CREDIT Balance",
+    "fixedCost": "Fixed CREDIT Cost",
+    "balanceAfter": "Balance After Action",
+    "investmentValue": "Investment Value",
+    "addCredits": "Add Credits",
+    "cancel": "Cancel",
+    "processing": "Processing...",
+    "insufficientTitle": "Insufficient CREDIT",
+    "insufficientInline": "Your CREDIT balance is not enough for this platform action.",
+    "insufficientMessage": "Required CREDIT: {required}. Current balance: {balance}.",
+    "confirmationText": "Action: {action}\nFixed CREDIT cost: {cost}\nCurrent CREDIT balance: {balance}\nBalance after action: {after}",
+    "conversationHelper": "This fixed platform service fee opens the discussion only. It does not create participation or unlock the Project Room.",
+    "participationHelper": "Your participation request will be sent to the founder for approval. CREDIT is charged only as the fixed platform service fee, separate from the investment value.",
+    "pricingUnavailableTitle": "Pricing unavailable",
+    "pricingUnavailableMessage": "Unable to load the platform service price for this action.",
+    "requestFailed": "Request failed",
+    "publishFailed": "Publish failed",
+    "success": {
+      "chatTitle": "Chat requested",
+      "chatMessage": "Your chat request was sent to the founder.",
+      "publishTitle": "Opportunity submitted",
+      "publishMessage": "Your opportunity was submitted for review.",
+      "participationTitle": "Participation request sent",
+      "participationMessage": "Your request was sent to the founder for approval."
+    },
+    "errors": {
+      "chatRequestFailed": "Unable to request chat for this opportunity.",
+      "publishFailed": "Unable to publish opportunity.",
+      "invalidShareSelection": "Invalid share selection."
+    },
+    "platformFeeNoticeTitle": "Platform Fee Notice",
+    "platformFeeNotice": "This fee is for using the platform service only. It is separate from investment value, shares, loans, and contributions.",
+    "confirmAndProceed": "Confirm and Proceed"
+  },
   "stocks": "Stocks",
   "crypto": "Crypto",
   "fund": "Fund",
@@ -22,8 +60,8 @@
   "login": {
     "title": "Welcome Back",
     "subtitle": "Sign in to continue to your account.",
-      "subtitleFounder": "Founders: sign in to manage your projects and funding.",
-      "subtitleInvestor": "Investors/Partners: sign in to explore and fund opportunities.",
+    "subtitleFounder": "Founders: sign in to manage your projects and funding.",
+    "subtitleInvestor": "Investors/Partners: sign in to explore and fund opportunities.",
     "mobileLabel": "Mobile Number",
     "mobilePlaceholder": "Enter your mobile number",
     "passwordLabel": "Password",
@@ -53,8 +91,8 @@
       "facebook": "Sign in with Facebook"
     },
     "signingIn": "Signing in...",
-    "errorGeneric": "Login failed"
-    ,"invalidCredentials": "Invalid phone number or password"
+    "errorGeneric": "Login failed",
+    "invalidCredentials": "Invalid phone number or password"
   },
   "signup": {
     "title": "Create your account",
@@ -136,7 +174,6 @@
   "solutionPlaceholder": "اشرح كيف يحل مشروعك هذه المشكلة.",
   "usp": "عرض البيع الفريد (USP)",
   "uspPlaceholder": "ما الذي يجعل مشروعك فريدًا وأفضل من المنافسين؟",
-
   "about": {
     "title": "Building the Future of Investment, Together.",
     "description": "Investa is more than a platform; it’s a curated ecosystem where innovation meets capital. We unite ambitious founders, savvy investors, and skilled co-founders in a trusted environment, making it easier than ever to discover, fund, and build the next generation of groundbreaking ventures.",
@@ -155,13 +192,11 @@
       }
     }
   },
-
   "cta": {
     "title": "Ready to Elevate Your Trading?",
     "subtitle": "Join thousands of investors who are leveraging AI to build their wealth. Get started in minutes.",
     "button": "Create Your Account"
   },
-
   "hero": {
     "title_part1": "Smart Investing,",
     "title_part2": "Powered by AI",
@@ -198,21 +233,60 @@
     "jessicaName": "Jessica L.",
     "jessicaTitle": "Tech Entrepreneur"
   },
-
   "blog": {
     "title": "Latest Insights",
     "subtitle": "Stay informed with our latest articles and market news.",
     "readMore": "Read More",
-    "post1": { "title": "Understanding the Impact of AI on Forex Trading", "excerpt": "Discover how machine learning algorithms are predicting currency fluctuations with unprecedented accuracy.", "category": "Market Analysis" },
-    "post2": { "title": "Our 2024 Tech Stack: Building a Resilient Platform", "excerpt": "A deep dive into the infrastructure that powers Investa's real-time data processing and AI engines.", "category": "Technology" },
-    "post3": { "title": "Risk Management Strategies for Automated Trading", "excerpt": "Learn how to set up effective stop-losses and risk parameters for your trading bots.", "category": "Business Strategy" },
-    "post4": { "title": "The Psychology of Investing: Avoiding Emotional Decisions", "excerpt": "Explore common cognitive biases that affect investors and learn strategies to maintain a rational approach.", "category": "Market Analysis" },
-    "post5": { "title": "Beginner's Guide to Cryptocurrency Staking", "excerpt": "Understand the basics of staking, how it works, and how you can earn passive income from your crypto assets.", "category": "Technology" },
-    "post6": { "title": "Diversification is Key: Building a Balanced Portfolio", "excerpt": "A look into the importance of asset allocation and how to spread risk across different investment types.", "category": "Business Strategy" },
-    "post7": { "title": "AI in Real Estate Investment", "excerpt": "Explore how artificial intelligence is transforming property investment decisions.", "category": "Real Estate" },
-    "post8": { "title": "ETFs vs. Mutual Funds: Which is Right for You?", "excerpt": "Compare the key differences between ETFs and mutual funds to make informed investment choices.", "category": "Funds" },
-    "post9": { "title": "The Rise of ESG Investing", "excerpt": "Understand the growing importance of environmental, social, and governance factors in investment decisions.", "category": "Trends" },
-    "post10": { "title": "Strategic Investment Planning for 2026", "excerpt": "Explore key strategies and market trends to position your portfolio for success in the coming year.", "category": "Business Strategy" }
+    "post1": {
+      "title": "Understanding the Impact of AI on Forex Trading",
+      "excerpt": "Discover how machine learning algorithms are predicting currency fluctuations with unprecedented accuracy.",
+      "category": "Market Analysis"
+    },
+    "post2": {
+      "title": "Our 2024 Tech Stack: Building a Resilient Platform",
+      "excerpt": "A deep dive into the infrastructure that powers Investa's real-time data processing and AI engines.",
+      "category": "Technology"
+    },
+    "post3": {
+      "title": "Risk Management Strategies for Automated Trading",
+      "excerpt": "Learn how to set up effective stop-losses and risk parameters for your trading bots.",
+      "category": "Business Strategy"
+    },
+    "post4": {
+      "title": "The Psychology of Investing: Avoiding Emotional Decisions",
+      "excerpt": "Explore common cognitive biases that affect investors and learn strategies to maintain a rational approach.",
+      "category": "Market Analysis"
+    },
+    "post5": {
+      "title": "Beginner's Guide to Cryptocurrency Staking",
+      "excerpt": "Understand the basics of staking, how it works, and how you can earn passive income from your crypto assets.",
+      "category": "Technology"
+    },
+    "post6": {
+      "title": "Diversification is Key: Building a Balanced Portfolio",
+      "excerpt": "A look into the importance of asset allocation and how to spread risk across different investment types.",
+      "category": "Business Strategy"
+    },
+    "post7": {
+      "title": "AI in Real Estate Investment",
+      "excerpt": "Explore how artificial intelligence is transforming property investment decisions.",
+      "category": "Real Estate"
+    },
+    "post8": {
+      "title": "ETFs vs. Mutual Funds: Which is Right for You?",
+      "excerpt": "Compare the key differences between ETFs and mutual funds to make informed investment choices.",
+      "category": "Funds"
+    },
+    "post9": {
+      "title": "The Rise of ESG Investing",
+      "excerpt": "Understand the growing importance of environmental, social, and governance factors in investment decisions.",
+      "category": "Trends"
+    },
+    "post10": {
+      "title": "Strategic Investment Planning for 2026",
+      "excerpt": "Explore key strategies and market trends to position your portfolio for success in the coming year.",
+      "category": "Business Strategy"
+    }
   },
   "footer": {
     "tagline": "Empowering investors with AI-driven insights.",
@@ -246,7 +320,6 @@
     },
     "copyright": "Investa. All rights reserved."
   },
-
   "investments": {
     "title": "Discover Opportunities",
     "target": "Funding Target",
@@ -390,6 +463,90 @@
     "withdrawSuccess": {
       "title": "Request Withdrawn",
       "message": "Your request for {projectName} has been successfully withdrawn."
+    },
+    "welcomeSubtitle": "Track your approved participations, platform CREDIT balance, and project updates.",
+    "viewDetails": "View details",
+    "unavailable": "Unavailable",
+    "creditUnit": "CREDIT",
+    "opportunityFallback": "Opportunity",
+    "performance": {
+      "eyebrow": "Approved participations only",
+      "title": "Investment Performance",
+      "totalInvested": "Total Invested",
+      "currentValue": "Current Value",
+      "realizedEarnings": "Realized Earnings",
+      "expectedEarnings": "Expected Earnings",
+      "totalReturn": "Total Return",
+      "returnRate": "Return Rate",
+      "helper": "Totals use approved participation requests only. Current value and realized earnings appear when backend valuation or payout data is available."
+    },
+    "wallet": {
+      "eyebrow": "Platform wallet",
+      "title": "Wallet Balance",
+      "helper": "Balance is platform CREDIT, not real money."
+    },
+    "reputation": {
+      "eyebrow": "Reputation",
+      "title": "Reputation Score",
+      "helper": "Your score updates with platform activity and reflects your reputation over time.",
+      "levels": {
+        "excellent": "Excellent level",
+        "strong": "Strong level",
+        "building": "Building level",
+        "starter": "Starter level",
+        "unavailable": "Unavailable"
+      }
+    },
+    "actionNeeded": {
+      "title": "Action Needed",
+      "emptyTitle": "No action needed",
+      "emptyHelper": "Requests that need your response will appear here."
+    },
+    "negotiations": {
+      "title": "Active Negotiations",
+      "emptyTitle": "No active negotiations",
+      "emptyHelper": "Negotiating participation requests will appear here."
+    },
+    "summary": {
+      "title": "My Investment Summary",
+      "activeInvestments": "Active investments",
+      "approvedParticipations": "Approved participations",
+      "pendingParticipations": "Pending participations",
+      "totalInvested": "Total invested",
+      "composition": {
+        "title": "Portfolio composition",
+        "equity": "Equity",
+        "loan": "Loan",
+        "profitSharing": "Profit Sharing"
+      }
+    },
+    "updates": {
+      "title": "Latest Project Updates",
+      "emptyTitle": "No project updates yet",
+      "emptyHelper": "Updates from approved participations will appear here."
+    },
+    "premium": {
+      "eyebrow": "Premium",
+      "title": "Premium Investment Insights",
+      "locked": "Locked",
+      "teaser": "Unlock richer portfolio analytics and insight previews. Recommendations stay hidden until your subscription is active.",
+      "cta": "Manage subscription",
+      "subscribedHelper": "Premium insights are available for subscribed investors."
+    },
+    "activity": {
+      "participationCompleted": "Participation completed",
+      "investedIn": "Invested {amount} in {projectName}",
+      "reputationTitle": "Reputation score",
+      "reputationDescription": "Your reputation score is {score}"
+    },
+    "favorites": {
+      "eyebrow": "Saved opportunities",
+      "title": "My Favorites",
+      "viewAll": "View All Favorites",
+      "openDetails": "Details",
+      "emptyTitle": "No favorites yet",
+      "emptyHelper": "Save opportunities you want to revisit and they will appear here.",
+      "emptyCta": "Explore Opportunities"
     }
   },
   "submitInvestment": {
@@ -424,8 +581,7 @@
       "save": "Save Changes",
       "cancel": "Cancel",
       "back": "Back to Opportunities"
-    }
-    ,
+    },
     "placeholders": {
       "businessName": "Enter your opportunity title",
       "description": "Describe the opportunity, the problem you're solving, and your unique value proposition...",
@@ -451,16 +607,43 @@
     "startAudioCall": "Start audio call",
     "startVideoCall": "Start video call",
     "attachFile": "Attach file",
-    "removeAttachment": "Remove attachment"
+    "removeAttachment": "Remove attachment",
+    "offerBuilder": {
+      "counterOffer": "Counter Offer",
+      "makeOffer": "Make Structured Offer",
+      "currency": "Currency",
+      "offerNote": "Offer note",
+      "amount": "Amount",
+      "equityPercentage": "Equity %",
+      "shareTerms": "Share terms",
+      "returnPercentage": "Return %",
+      "sendCounter": "Send Counter Offer",
+      "sendOffer": "Send Structured Offer"
+    },
+    "empty": {
+      "noConversationTitle": "No conversation selected",
+      "noConversationSubtitle": "Choose a conversation to review the discussion and next steps."
+    },
+    "confirm": {
+      "readyToProceed": "You are confirming that you are ready to move beyond negotiation. This is not final participation approval yet. Continue?",
+      "closeDiscussion": "Close this discussion? Messaging will stop for this conversation. You can optionally add a reason.",
+      "removeClosed": "Remove this closed conversation from your list? This only affects your account."
+    },
+    "errors": {
+      "messageFailed": "Message could not be sent.",
+      "readyFailed": "Could not mark ready to proceed.",
+      "closeFailed": "Could not close discussion.",
+      "removeFailed": "Could not remove this conversation from your list."
+    }
   },
   "profile": {
-        "company": {
-          "title": "Company",
-          "name": "Company Name",
-          "email": "Company Email",
-          "address": "Company Address",
-          "hrLetter": "HR Letter"
-        },
+    "company": {
+      "title": "Company",
+      "name": "Company Name",
+      "email": "Company Email",
+      "address": "Company Address",
+      "hrLetter": "HR Letter"
+    },
     "kyc": "KYC",
     "kycCompletion": "KYC Completion",
     "kycComplete": "Your KYC is complete and verified",
@@ -477,6 +660,12 @@
     "titleDefault": "User Profile",
     "trustScore": "Trust Score",
     "saveButton": "Save",
+    "score": {
+      "title": "Reputation Score",
+      "description": "Your reputation score is based on platform activity and updates automatically.",
+      "activityHelper": "Detailed reputation activity history is unavailable.",
+      "unavailable": "Unavailable"
+    },
     "communication": {
       "title": "Communication Information",
       "personalContact": "Personal Contact",
@@ -530,7 +719,8 @@
       "editProfile": "Edit Profile",
       "communicationInfo": "Communication Info",
       "security": "Security",
-      "notifications": "Notifications"
+      "notifications": "Notifications",
+      "score": "Reputation"
     },
     "password": {
       "title": "Change Password",
@@ -702,25 +892,55 @@
         }
       }
     },
-    "privacy": { "title": "Privacy" },
+    "privacy": {
+      "title": "Privacy"
+    },
     "personalization": {
       "title": "Personalization",
       "dashboardDensity": {
         "label": "Dashboard Density",
-        "options": { "comfortable": "Comfortable", "compact": "Compact" }
+        "options": {
+          "comfortable": "Comfortable",
+          "compact": "Compact"
+        }
       },
-      "defaultInvestmentType": { "label": "Default Investment Model", "options": { "any": "Any", "founding": "Profit Sharing", "equity": "Equity" } },
+      "defaultInvestmentType": {
+        "label": "Default Investment Model",
+        "options": {
+          "any": "Any",
+          "founding": "Profit Sharing",
+          "equity": "Equity"
+        }
+      },
       "showRiskIndicators": "Show risk indicators"
     },
-    "support": { "title": "Support", "available": "Support Available", "hours": "Support Hours" },
-    "security": { "title": "Security", "sessionTimeout": { "label": "Session timeout", "minutes": "minutes", "help": "Automatically logs out inactive users after the configured number of minutes." } },
-    "wallet": { "title": "Wallet", "balance": "Balance", "amount": "Amount", "addButton": "Add Funds" },
+    "support": {
+      "title": "Support",
+      "available": "Support Available",
+      "hours": "Support Hours"
+    },
+    "security": {
+      "title": "Security",
+      "sessionTimeout": {
+        "label": "Session timeout",
+        "minutes": "minutes",
+        "help": "Automatically logs out inactive users after the configured number of minutes."
+      }
+    },
+    "wallet": {
+      "title": "Wallet",
+      "balance": "Balance",
+      "amount": "Amount",
+      "addButton": "Add Funds"
+    },
     "notifications": {
       "title": "Notification Settings"
     }
   },
   "requests": {
     "title": "Requests",
+    "opportunityLabel": "Opportunity Details",
+    "opportunityLabelShort": "Opportunity",
     "incoming": "Incoming",
     "outgoing": "Outgoing",
     "from": "From",
@@ -731,6 +951,65 @@
     "noIncoming": "No incoming requests.",
     "noOutgoing": "No outgoing requests.",
     "pendingRequestExists": "You already have a pending request for this opportunity. Please wait for the founder's response before submitting another request.",
+    "noIncomingSubtitle": "If the founder does not respond, you may withdraw or submit a new request later.",
+    "noOutgoingSubtitle": "If no requests appear, update or broaden your filters to see more opportunities.",
+    "actions": {
+      "acceptChat": "Accept Chat",
+      "approveParticipation": "Approve {model}",
+      "rejectChat": "Reject Chat",
+      "rejectParticipation": "Reject Participation",
+      "withdraw": "Withdraw",
+      "withdrawRequest": "Withdraw Request"
+    },
+    "types": {
+      "participationRequest": "Participation Request",
+      "conversationRequest": "Conversation Request",
+      "participation": "Participation"
+    },
+    "status": {
+      "waitingFounderResponse": "Waiting for founder response",
+      "participationPending": "Participation pending",
+      "negotiationInProgress": "Negotiation in progress",
+      "projectParticipant": "Project Participant",
+      "chatAccepted": "Chat accepted",
+      "participationApproved": "Participation approved",
+      "declined": "Declined",
+      "withdrawn": "Withdrawn"
+    },
+    "direction": {
+      "incomingConversation": "This Investor wants to start a conversation about your Opportunity.",
+      "outgoingConversation": "Conversation request sent. Waiting for the Founder to respond.",
+      "incomingParticipation": "{model} participation request received. Review the final submitted terms.",
+      "outgoingParticipation": "{model} participation request sent. Waiting for Founder review."
+    },
+    "progress": {
+      "inReview": "In Review",
+      "negotiating": "Negotiating",
+      "completed": "Completed",
+      "ended": "Ended"
+    },
+    "empty": {
+      "noMatch": "No requests match the selected filters.",
+      "tryAdjustFilters": "Try adjusting your filter criteria."
+    },
+    "filters": {
+      "status": "Status",
+      "all": "All",
+      "pending": "Pending",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "type": "Type",
+      "conversation": "Conversation Requests",
+      "participation": "Participation Requests",
+      "date": "Date",
+      "allTime": "All Time",
+      "today": "Today",
+      "last7Days": "Last 7 Days",
+      "last30Days": "Last 30 Days",
+      "showing": "Showing",
+      "of": "of",
+      "requests": "requests"
+    },
     "notifications": {
       "accepted": "Request Accepted",
       "acceptedMessage": "{projectName} invitation accepted.",
@@ -879,8 +1158,115 @@
     "notFound": "Founder Not Found",
     "notFoundSubtitle": "This profile may not exist or is not available."
   },
+  "wallet": {
+    "title": "Platform CREDIT Wallet",
+    "subtitle": "Platform service balance and transaction history.",
+    "backToProfile": "Back to profile",
+    "refresh": "Refresh",
+    "retry": "Retry",
+    "loading": "Loading wallet...",
+    "platformCreditHelper": "Platform CREDIT is used only for platform service fees. It is never investment money, share value, loan amount, or contribution amount.",
+    "summary": {
+      "currentBalance": "Current Platform CREDIT",
+      "purchased": "Purchased Platform CREDIT",
+      "bonus": "Bonus Platform CREDIT",
+      "refunds": "Refunded Platform CREDIT"
+    },
+    "transactions": {
+      "title": "Transactions",
+      "recordCount": "Records",
+      "empty": "No Platform CREDIT transactions yet.",
+      "createdAt": "Created At",
+      "direction": "Direction",
+      "reason": "Reason",
+      "creditAmount": "CREDIT Amount",
+      "balanceBefore": "Balance Before",
+      "balanceAfter": "Balance After",
+      "referenceType": "Reference Type",
+      "referenceId": "Reference ID",
+      "description": "Description"
+    },
+    "errors": {
+      "loadFailed": "Failed to load wallet."
+    }
+  },
+  "participationBuilder": {
+    "title": "Participation Builder",
+    "subtitle": "Choose the exact participation terms you want to request. Founder approval is still required.",
+    "loading": "Loading participation form...",
+    "opportunityFallback": "Opportunity",
+    "currencyFallback": "Currency",
+    "months": "Months",
+    "startsAt": "Starts {date}",
+    "endsAt": "Ends {date}",
+    "previewHelper": "This is a preview only. The backend calculates the authoritative investment total when you submit.",
+    "backendTermsHelper": "This summary uses the terms returned by the backend. Backend validation remains authoritative.",
+    "models": {
+      "equity": "Equity",
+      "loan": "Loan",
+      "profitSharing": "Profit Sharing",
+      "unsupported": "Unsupported"
+    },
+    "labels": {
+      "investmentModel": "Investment Model",
+      "totalShares": "Total Shares",
+      "availableShares": "Available Shares",
+      "pricePerShare": "Price per Share",
+      "minimumShares": "Minimum shares",
+      "maximumShares": "Maximum shares",
+      "numberOfShares": "Number of Shares",
+      "calculatedTotal": "Calculated participation total",
+      "selectedShares": "Selected Shares",
+      "estimatedInvestment": "Estimated Investment Value",
+      "opportunityContext": "Opportunity Context",
+      "fundingTarget": "Funding Target",
+      "alreadyFunded": "Already Funded",
+      "remainingFunding": "Remaining Funding",
+      "remaining": "Remaining",
+      "yourContribution": "Your Contribution",
+      "contributionAmount": "Contribution Amount",
+      "minimum": "Minimum",
+      "maximum": "Maximum",
+      "remainingFundingLimit": "Remaining funding limit",
+      "loanTerms": "Loan Terms",
+      "returnRate": "Return Rate",
+      "term": "Term",
+      "repaymentModel": "Repayment Model",
+      "maturityDate": "Maturity Date",
+      "expectedOutcome": "Expected outcome",
+      "expectedReturn": "Expected Return",
+      "expectedRepayment": "Expected Total Repayment",
+      "profitSharingTerms": "Profit Sharing Terms",
+      "profitShare": "Profit Share %",
+      "durationTerm": "Duration / Term",
+      "expectedProfit": "Expected Profit",
+      "expectedPayout": "Expected Total Payout",
+      "opportunityPayout": "Opportunity Expected Payout",
+      "contractPeriod": "Contract Period",
+      "exitTerms": "Exit Terms",
+      "participationSummary": "Participation summary"
+    },
+    "validation": {
+      "unsupportedModel": "Participation is not available for this investment model yet.",
+      "sharesGreaterThanZero": "Number of shares must be greater than zero.",
+      "minimumShares": "Minimum participation is {count} shares.",
+      "maximumShares": "You can select up to {count} shares.",
+      "availableShares": "Only {count} shares are available.",
+      "incompleteLoanTerms": "Loan terms are incomplete. Participation is unavailable for this opportunity.",
+      "contributionGreaterThanZero": "Contribution amount must be greater than zero.",
+      "minimumContribution": "Minimum contribution is {amount}.",
+      "maximumContribution": "Maximum contribution is {amount}.",
+      "remainingFunding": "Contribution must not exceed remaining funding of {amount}."
+    },
+    "errors": {
+      "loadFailed": "Unable to load participation form.",
+      "submitFailed": "Unable to submit participation request."
+    }
+  },
   "common": {
     "loading": "Loading...",
+    "close": "Close",
+    "unavailable": "Unavailable",
     "cancel": "Cancel",
     "back": "Back",
     "processing": "Processing...",
@@ -895,8 +1281,8 @@
       "jun": "Jun",
       "jul": "Jul",
       "aug": "Aug",
-      "sep": "Sep"
-      ,"oct": "Oct",
+      "sep": "Sep",
+      "oct": "Oct",
       "nov": "Nov",
       "dec": "Dec"
     },

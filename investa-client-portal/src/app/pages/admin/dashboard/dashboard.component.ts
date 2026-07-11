@@ -1,7 +1,6 @@
 import { Component, ChangeDetectionStrategy, inject, ElementRef, viewChild, computed, effect, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
-import { InvestmentService } from '../../../services/investment.service';
 import { LanguageService } from '../../../services/language.service';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
 import { AuthService } from '../../../services/auth.service';
@@ -11,7 +10,8 @@ import { UserService } from '../../../services/user.service';
 import { NotificationService } from '../../../services/notification.service';
 import { FileStoreService } from '../../../services/file-store.service';
 import { RoleContextService } from '../../../services/role-context.service';
-import { Investment } from '../../../models/investment.model';
+import { Opportunity, OpportunityService } from '../../../services/opportunity.service';
+import { OpportunityRequest, OpportunityRequestKind } from '../../../models/request.model';
 import { TIME_INTERVALS } from '../../../config/constants';
 import { get } from 'lodash-es';
 
@@ -44,6 +44,19 @@ interface RecentActivity {
   link?: (string | number)[];
 }
 
+interface SummaryStat {
+  key: string;
+  labelKey: string;
+  value: string | number;
+  route: (string | number)[];
+}
+
+interface CompositionItem {
+  key: string;
+  labelKey: string;
+  value: number;
+}
+
 
 interface LineChartData {
   month: string;
@@ -54,14 +67,35 @@ interface D3PieArcDatum {
   data: ChartData;
 }
 
+interface ParticipantOverview {
+  id: string;
+  name: string;
+  status: string;
+  requestedAmount: number;
+  updatedAt: Date;
+  openConversation: boolean;
+  conversationId?: string | number | null;
+  hasReport?: boolean;
+}
+
 interface SentRequest {
-  id: number;
+  id: number | string;
   projectName: string;
   projectImageUrl: string;
   author: string;
   status: 'Pending' | 'Negotiating' | 'Partner' | 'Rejected';
   date: Date;
 }
+
+interface ProjectRoomActivityItem {
+  id: string;
+  title: string;
+  description: string;
+  time: string;
+  link?: (string | number)[];
+}
+
+type DashboardProject = Opportunity & Record<string, any>;
 
 @Component({
   standalone: true,
@@ -72,7 +106,7 @@ interface SentRequest {
   imports: [CommonModule, TranslatePipe, RouterLink]
 })
 export class DashboardComponent {
-  private investmentService = inject(InvestmentService);
+  private opportunityService = inject(OpportunityService);
   private languageService = inject(LanguageService);
   private authService = inject(AuthService);
   private profileService = inject(ProfileService);
@@ -85,7 +119,7 @@ export class DashboardComponent {
   private creditsRefreshed = signal(false);
   private routedFounderProjectId = signal<number | null>(null);
 
-  private t(path: string, fallback: string): string {
+  t(path: string, fallback: string): string {
     return get(this.languageService.dictionary(), path, fallback);
   }
   
@@ -94,7 +128,7 @@ export class DashboardComponent {
   barChart = viewChild<ElementRef>('barChart');
   
   userRole = this.authService.userRole;
-  allInvestments = this.investmentService.investments;
+  allInvestments = signal<DashboardProject[]>([]);
   direction = computed(() => this.languageService.direction());
   isInvestorDashboardContext = computed(() => this.roleContext.isActiveInvestorContext());
   isFounderDashboardContext = computed(() => this.roleContext.isActiveFounderContext());
@@ -104,16 +138,20 @@ export class DashboardComponent {
   isPremium = computed(() => false);
 
   // --- Investor-specific computed signals ---
-  myInvestments = computed(() => this.allInvestments().filter(inv => (inv.investedAmount ?? 0) > 0));
-  portfolioValue = computed(() => this.myInvestments().reduce((sum, inv) => sum + (inv.investedAmount ?? 0), 0));
+  investorParticipationRequests = computed(() => this.requestsService.outgoing().filter(request => request.requestType === OpportunityRequestKind.Participation || request.type === 'participation'));
+  approvedParticipations = computed(() => this.investorParticipationRequests().filter(request => this.isApprovedParticipation(request)));
+  pendingParticipations = computed(() => this.investorParticipationRequests().filter(request => request.status === 'Pending' || request.status === 'Requested' || request.status === 'Negotiating'));
+  myInvestments = computed(() => this.approvedParticipations());
+  portfolioValue = computed(() => this.totalInvested());
   favoriteInvestments = computed(() => this.allInvestments().filter(inv => inv.favorited));
-  investmentUpdates = computed(() => this.myInvestments().slice(0, 3));
+  favoritePreviewInvestments = computed(() => this.favoriteInvestments().slice(0, 5));
+  investmentUpdates = computed(() => this.approvedParticipations().slice(0, 3));
   incomingRequestsCount = computed(() => this.requestsService.incoming().length);
   unreadMessageCount = computed(() => this.notificationService.unreadCount());
   newOpportunitiesCount = computed(() => {
     const allInvestments = this.allInvestments();
-    const viewedInvestmentIds = new Set(this.myInvestments().map(inv => inv.id));
-    const newInvestments = allInvestments.filter(inv => !viewedInvestmentIds.has(inv.id));
+    const viewedInvestmentIds = new Set(this.myInvestments().map(inv => inv.opportunityId).filter(Boolean).map(id => String(id)));
+    const newInvestments = allInvestments.filter(inv => !viewedInvestmentIds.has(String(inv.id)));
     return newInvestments.length;
   });
   profileCompletion = computed(() => {
@@ -123,9 +161,53 @@ export class DashboardComponent {
     return profile.basicInfo?.kycCompletionPercentage ?? 0;
   });
   featuredInvestments = computed(() => this.allInvestments().sort((a, b) => b.credibilityScore - a.credibilityScore).slice(0, 3));
-  investorScore = signal(85);
+  investorScore = computed<number | null>(() => {
+    const profile = this.profileService.profile();
+    if (!profile?.coreMetrics) return null;
+    if (profile.coreMetrics.credibilityScore !== undefined && profile.coreMetrics.credibilityScore !== null) {
+      return profile.coreMetrics.credibilityScore;
+    }
+    if (profile.coreMetrics.currentCredibilityScore !== undefined && profile.coreMetrics.currentCredibilityScore !== null) {
+      return profile.coreMetrics.currentCredibilityScore;
+    }
+    return null;
+  });
+  investorLevel = computed(() => {
+    const score = this.investorScore();
+    if (score === null) return this.t('dashboard.reputation.levels.unavailable', 'Unavailable');
+    if (score >= 80) return this.t('dashboard.reputation.levels.excellent', 'Excellent');
+    if (score >= 60) return this.t('dashboard.reputation.levels.strong', 'Strong');
+    if (score >= 40) return this.t('dashboard.reputation.levels.building', 'Building');
+    return this.t('dashboard.reputation.levels.starter', 'Starter');
+  });
   currentCredits = computed(() => this.userService.credits()); // Live user credit balance
   availableCredits = this.userService.credits;
+  totalInvested = computed(() => this.approvedParticipations().reduce((sum, request) => sum + this.getRequestAmount(request), 0));
+  expectedEarnings = computed(() => this.approvedParticipations().reduce((sum, request) => sum + this.getExpectedEarnings(request), 0));
+  returnRate = computed(() => {
+    const invested = this.totalInvested();
+    return invested > 0 ? (this.expectedEarnings() / invested) * 100 : 0;
+  });
+  activeNegotiations = computed(() => this.investorParticipationRequests().filter(request => request.status === 'Negotiating'));
+  actionNeeded = computed(() => this.requestsService.incoming().filter(request => request.canAccept || request.canReject));
+  latestProjectUpdates = computed(() => this.approvedParticipations().slice(0, 4));
+  portfolioComposition = computed<CompositionItem[]>(() => {
+    const totals = { equity: 0, loan: 0, profitSharing: 0 };
+    for (const request of this.approvedParticipations()) {
+      totals[this.getInvestmentModelKey(request)] += this.getRequestAmount(request);
+    }
+    return [
+      { key: 'equity', labelKey: 'dashboard.summary.composition.equity', value: totals.equity },
+      { key: 'loan', labelKey: 'dashboard.summary.composition.loan', value: totals.loan },
+      { key: 'profitSharing', labelKey: 'dashboard.summary.composition.profitSharing', value: totals.profitSharing },
+    ];
+  });
+  investmentSummaryStats = computed<SummaryStat[]>(() => [
+    { key: 'activeInvestments', labelKey: 'dashboard.summary.activeInvestments', value: this.approvedParticipations().length, route: ['/admin/investments'] },
+    { key: 'approvedParticipations', labelKey: 'dashboard.summary.approvedParticipations', value: this.approvedParticipations().length, route: ['/admin/requests'] },
+    { key: 'pendingParticipations', labelKey: 'dashboard.summary.pendingParticipations', value: this.pendingParticipations().length, route: ['/admin/requests'] },
+    { key: 'totalInvested', labelKey: 'dashboard.summary.totalInvested', value: this.formatCreditAmount(this.totalInvested()), route: ['/admin/requests'] },
+  ]);
 
   recentActivityFeed = computed<RecentActivity[]>(() => {
     const activities: RecentActivity[] = [];
@@ -163,21 +245,16 @@ export class DashboardComponent {
       activities.push({
         id: id++,
         type: 'investment',
-        title: 'Participation completed',
-        description: `Invested $${inv.investedAmount?.toLocaleString() || '0'} in ${inv.name}`,
-        time: inv.date ? this.getTimeAgo(inv.date) : 'Recently',
-        link: ['/admin/investments', inv.id]
+        title: this.t('dashboard.activity.participationCompleted', 'Participation completed'),
+        description: this.t('dashboard.activity.investedIn', 'Invested {amount} in {projectName}')
+          .replace('{amount}', this.formatCreditAmount(this.getRequestAmount(inv)))
+          .replace('{projectName}', inv.projectName || this.t('dashboard.opportunityFallback', 'Opportunity')),
+        time: inv.createdAt ? this.getTimeAgo(new Date(inv.createdAt)) : this.t('common.recently', 'Recently'),
+        link: inv.opportunityId ? ['/admin/investments', inv.opportunityId] : ['/admin/investments']
       });
     });
 
-    // Add score activity
-    activities.push({
-      id: id++,
-      type: 'score',
-      title: 'Profile score increased',
-      description: `Your investor score is now ${this.investorScore()}`,
-      time: '1 day ago'
-    });
+    // Do not fabricate reputation activity. Only show real platform events.
 
     // Add new opportunities activity
     const newOpps = this.newOpportunitiesCount();
@@ -198,8 +275,8 @@ export class DashboardComponent {
 
   recommendedOpportunities = computed(() => {
     const allInvestments = this.allInvestments();
-    const viewedInvestmentIds = new Set(this.myInvestments().map(inv => inv.id));
-    const newInvestments = allInvestments.filter(inv => !viewedInvestmentIds.has(inv.id));
+    const viewedInvestmentIds = new Set(this.myInvestments().map(inv => inv.opportunityId).filter(Boolean).map(id => String(id)));
+    const newInvestments = allInvestments.filter(inv => !viewedInvestmentIds.has(String(inv.id)));
     return newInvestments
       .sort((a, b) => b.credibilityScore - a.credibilityScore)
       .slice(0, 4);
@@ -208,16 +285,176 @@ export class DashboardComponent {
   // --- Founder-specific computed signals & data ---
   founderProjects = computed(() => {
     const uid = this.profileService.profile()?.userId;
-    if (!uid) return [] as Investment[];
+    if (!uid) return [] as DashboardProject[];
     return this.allInvestments().filter(inv => inv.founderId === uid);
   });
-  selectedFounderProject = signal<Investment | null>(null);
+  founderProjectCount = computed(() => this.founderProjects().length);
+  selectedFounderProject = signal<DashboardProject | null>(null);
+  selectedFounderProjectRequests = computed(() => {
+    const project = this.selectedFounderProject();
+    if (!project) return [] as OpportunityRequest[];
+    const projectId = String(project.id);
+
+    return [
+      ...this.requestsService.incoming(),
+      ...this.requestsService.outgoing()
+    ].filter(request => String(request.opportunityId) === projectId);
+  });
+
+  selectedFounderParticipationRequests = computed(() =>
+    this.selectedFounderProjectRequests().filter(request =>
+      request.requestType === OpportunityRequestKind.Participation || request.type === 'participation'
+    )
+  );
+
+  selectedFounderConversationRequests = computed(() =>
+    this.selectedFounderProjectRequests().filter(request =>
+      request.requestType === OpportunityRequestKind.Conversation || request.type === 'conversation'
+    )
+  );
+
+  founderProjectActionNeeded = computed(() =>
+    this.selectedFounderProjectRequests().filter(request =>
+      request.direction === 'incoming' &&
+      (request.canAccept || request.canReject || request.status === 'Pending' || request.status === 'Negotiating')
+    )
+  );
+
+  founderProjectNegotiations = computed(() =>
+    this.selectedFounderParticipationRequests().filter(request => request.status === 'Negotiating')
+  );
+
+  founderProjectRequestsCount = computed(() => this.selectedFounderProjectRequests().length);
+
+  founderProjectParticipationSummary = computed(() => {
+    const requests = this.selectedFounderParticipationRequests();
+    const summary = {
+      total: requests.length,
+      approved: 0,
+      pending: 0,
+      negotiating: 0,
+      rejected: 0,
+      requestedAmount: 0
+    };
+
+    for (const request of requests) {
+      const status = request.status || '';
+      if (status === 'Accepted' || status === 'Partner') {
+        summary.approved += 1;
+      } else if (status === 'Negotiating') {
+        summary.negotiating += 1;
+      } else if (status === 'Rejected' || status === 'Declined' || status === 'Cancelled') {
+        summary.rejected += 1;
+      } else {
+        summary.pending += 1;
+      }
+      summary.requestedAmount += this.getRequestAmount(request);
+    }
+
+    return summary;
+  });
+
+  founderProjectParticipants = computed<ParticipantOverview[]>(() => {
+    const participationRequests = this.selectedFounderParticipationRequests();
+    const conversationRequests = this.selectedFounderConversationRequests();
+    const map = new Map<string, ParticipantOverview>();
+
+    const addParticipant = (request: OpportunityRequest, statusOverride?: string) => {
+      const key = String(request.investorId ?? request.counterpartName ?? request.senderName ?? request.receiverName ?? request.id);
+      const name = request.counterpartName || request.senderName || request.receiverName || this.t('dashboard.opportunityFallback', 'Opportunity');
+      const status = statusOverride || request.status || 'Pending';
+      const amount = this.getRequestAmount(request);
+      const existing = map.get(key);
+
+      if (!existing) {
+        map.set(key, {
+          id: key,
+          name,
+          status,
+          requestedAmount: amount,
+          updatedAt: request.createdAt ?? new Date(),
+          openConversation: false,
+          conversationId: undefined,
+          hasReport: false
+        });
+        return;
+      }
+
+      if (this.getRequestPriority(status) > this.getRequestPriority(existing.status)) {
+        existing.status = status;
+      }
+      existing.requestedAmount += amount;
+      if (request.createdAt && request.createdAt > existing.updatedAt) {
+        existing.updatedAt = request.createdAt;
+      }
+    };
+
+    participationRequests.forEach(request => addParticipant(request));
+    conversationRequests.forEach(request => {
+      const key = String(request.investorId ?? request.counterpartName ?? request.senderName ?? request.receiverName ?? request.id);
+      const participant = map.get(key);
+      if (!participant) {
+        addParticipant(request, request.status || 'Pending');
+      }
+      if (request.acceptedConversationId) {
+        const existing = map.get(key);
+        if (existing) {
+          existing.openConversation = true;
+          existing.conversationId = request.acceptedConversationId;
+        }
+      }
+    });
+
+    return Array.from(map.values())
+      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+      .slice(0, 5);
+  });
+
+  founderProjectParticipantCount = computed(() => {
+    const ids = new Set<string>();
+    this.selectedFounderProjectRequests().forEach(request => {
+      const key = String(request.investorId ?? request.counterpartName ?? request.senderName ?? request.receiverName ?? request.id);
+      if (key) ids.add(key);
+    });
+    return ids.size;
+  });
+
+  founderProjectPublicPerformance = computed(() => {
+    const project = this.selectedFounderProject();
+    return {
+      totalRequests: this.selectedFounderProjectRequests().length,
+      participationRequests: this.selectedFounderParticipationRequests().length,
+      conversationRequests: this.selectedFounderConversationRequests().length,
+      investorCount: project?.investors?.length ?? 0,
+      fundingPercent: Number(project?.fundingProgressPercent ?? project?.fundingProgress ?? this.fundingProgress())
+    };
+  });
+
+  projectViews = computed(() => Number(this.selectedFounderProject()?.views ?? this.selectedFounderProject()?.mediaCount ?? 0));
+
+  engagementScore = computed(() => Number(this.selectedFounderProject()?.score ?? 0));
+
+  founderProjectRoomActivity = computed<ProjectRoomActivityItem[]>(() => {
+    const requests = this.selectedFounderProjectRequests()
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, 5);
+
+    return requests.map(request => ({
+      id: String(request.id),
+      title: request.projectName || this.t('dashboard.opportunityFallback', 'Opportunity'),
+      description: `${this.getStatusLabel(request.status)} · ${request.type === 'conversation' ? 'Chat' : 'Participation'}`,
+      time: this.getTimeAgo(request.createdAt),
+      link: request.acceptedConversationId ? ['/admin/chat'] : undefined
+    }));
+  });
+
   selectedYear = signal<number>(new Date().getFullYear());
   availableYears = computed(() => {
     const years = new Set<number>();
     this.myInvestments().forEach(inv => {
-      if (inv.date instanceof Date && !isNaN(inv.date.getTime())) {
-        years.add(inv.date.getFullYear());
+      const createdAt = inv.createdAt ? new Date(inv.createdAt) : null;
+      if (createdAt && !isNaN(createdAt.getTime())) {
+        years.add(createdAt.getFullYear());
       }
     });
     const sorted = Array.from(years).sort((a, b) => b - a);
@@ -226,38 +463,23 @@ export class DashboardComponent {
 
   fundingProgress = computed(() => {
     const p = this.selectedFounderProject();
-    if (!p || (p.targetFund ?? 0) === 0) return 0;
-    return ((p.currentFunding ?? 0) / (p.targetFund ?? 1)) * 100;
+    if (!p || (p.fundingTarget ?? 0) === 0) return 0;
+    return (this.getNativeFundedAmount(p) / (p.fundingTarget ?? 1)) * 100;
   });
   
   // Mock data for founder dashboard
-  projectViews = signal(12845);
-  engagementScore = signal(88);
-  recentActivity = signal<Activity[]>([
-    { type: 'investment', text: 'Sarah J. invested $5,000', time: '2h ago', imageUrl: 'https://picsum.photos/seed/person1/50/50' },
-    { type: 'watchlist', text: 'Michael B. added your project to their watchlist', time: '8h ago', imageUrl: 'https://picsum.photos/seed/person2/50/50' },
-    { type: 'milestone', text: 'Congratulations! You reached 65% of your funding goal.', time: '1d ago' },
-    { type: 'investment', text: 'Frank G. invested $1,500', time: '2d ago', imageUrl: 'https://picsum.photos/seed/p6/50/50' },
-  ]);
-
-  sentRequests = signal<SentRequest[]>([
-    { id: 1, projectName: 'GreenEarth Energy Bond', projectImageUrl: 'https://picsum.photos/seed/eco/100/100', author: 'EcoGlobal', status: 'Pending', date: new Date(Date.now() - 3600 * 1000 * 6) },
-    { id: 2, projectName: 'DeFi ChainLink', projectImageUrl: 'https://picsum.photos/seed/crypto/100/100', author: 'BlockGenius', status: 'Negotiating', date: new Date(Date.now() - 3600 * 1000 * 25) },
-    { id: 4, projectName: 'Quantum Leap AI', projectImageUrl: 'https://picsum.photos/seed/tech/100/100', author: 'TechVanguard', status: 'Partner', date: new Date(Date.now() - 3600 * 1000 * 48) },
-    { id: 3, projectName: 'MedTech Innovations', projectImageUrl: 'https://picsum.photos/seed/med/100/100', author: 'HealthCorp', status: 'Rejected', date: new Date(Date.now() - 3600 * 1000 * 72) },
-  ]);
+  sentRequests = signal<SentRequest[]>([]);
 
   requestToWithdraw = signal<SentRequest | null>(null);
 
   constructor() {
+    void this.loadProjects();
+    void this.requestsService.refreshRequests();
+
     effect(() => {
       const projects = this.founderProjects();
-      if (this.roleContext.isActiveFounderContext() && projects.length === 1) {
-        const project = projects[0];
-        if (this.routedFounderProjectId() !== project.id) {
-          this.routedFounderProjectId.set(project.id);
-          void this.openProjectWorkspace(project);
-        }
+      if (this.roleContext.isActiveFounderContext() && projects.length === 1 && !this.selectedFounderProject()) {
+        this.selectedFounderProject.set(projects[0]);
       }
     });
 
@@ -302,30 +524,149 @@ export class DashboardComponent {
     void this.userService.refreshUser().catch(() => {});
   }
 
-  selectProject(project: Investment) {
+  private async loadProjects(): Promise<void> {
+    try {
+      const [publicProjects, myProjects] = await Promise.all([
+        this.opportunityService.getPublicOpportunities(),
+        this.opportunityService.getMyOpportunities().catch(() => [])
+      ]);
+
+      const mapById = new Map<string, DashboardProject>();
+      for (const item of [...publicProjects, ...myProjects]) {
+        const id = String(item.id ?? '');
+        if (!id) continue;
+        mapById.set(id, this.normalizeDashboardProject({ ...mapById.get(id), ...item } as DashboardProject));
+      }
+
+      this.allInvestments.set(Array.from(mapById.values()));
+    } catch (error) {
+      console.error('Failed to load dashboard opportunities', error);
+      this.allInvestments.set([]);
+    }
+  }
+
+  selectProject(project: DashboardProject) {
     this.selectedFounderProject.set(project);
   }
 
-  openProjectWorkspace(project: Investment) {
+  openProjectWorkspace(project: DashboardProject, navigate = false): Promise<boolean> {
     this.selectedFounderProject.set(project);
-    return this.router.navigate(['/admin/investments', project.id], {
-      queryParams: { source: this.getInvestmentRouteSource(project) }
-    });
+    if (navigate) {
+      return this.router.navigate(['/admin/investments', project.id]);
+    }
+    return Promise.resolve(true);
   }
 
-  getInvestmentRouteQuery(project: Investment): { source: 'legacy' | 'opportunity' } {
-    return { source: this.getInvestmentRouteSource(project) };
+  openParticipantConversation(conversationId: string | number | null | undefined): void {
+    if (!conversationId) return;
+    void this.router.navigate(['/admin/chat'], { queryParams: { conversationId } });
   }
 
-  getRoomOpportunityId(project: Investment): string | number | null {
-    return project.opportunityId ?? (project.readSource === 'public-opportunity' ? project.id : null);
+  getRoomOpportunityId(project: DashboardProject): string | number | null {
+    return project.opportunityId ?? project.id ?? null;
   }
 
-  private getInvestmentRouteSource(project: Investment): 'legacy' | 'opportunity' {
-    return project.readSource === 'public-opportunity' ? 'opportunity' : 'legacy';
+  private normalizeDashboardProject(project: DashboardProject): DashboardProject {
+    const raw = project as Record<string, any>;
+    const investors = this.safeArray(raw['investors'] ?? raw['participants']);
+    const media = this.safeArray(raw['media']);
+
+    return {
+      ...project,
+      investors,
+      media,
+      teamMembers: this.safeArray(raw['teamMembers'])
+    } as DashboardProject;
   }
 
-getProjectAvatar(project: Investment): string {
+  private getRequestPriority(status: string): number {
+    const key = String(status || '').toLowerCase();
+    if (key === 'partner' || key === 'accepted') return 4;
+    if (key === 'negotiating') return 3;
+    if (key === 'pending' || key === 'requested') return 2;
+    if (key === 'rejected' || key === 'declined' || key === 'cancelled') return 1;
+    return 0;
+  }
+
+  getParticipantStatusLabel(status: string): string {
+    return this.getStatusLabel(status);
+  }
+
+  getParticipantBadgeClass(status: string): string {
+    const key = String(status || '').toLowerCase();
+    if (key === 'partner' || key === 'accepted') return 'badge-approved';
+    if (key === 'negotiating') return 'badge-negotiating';
+    if (key === 'pending' || key === 'requested') return 'badge-pending';
+    if (key === 'rejected' || key === 'declined' || key === 'cancelled') return 'badge-rejected';
+    return 'badge-default';
+  }
+
+  formatProjectAmount(value: number): string {
+    if (!value || value === 0) return this.t('dashboard.unavailable', 'Unavailable');
+    return `$${value.toLocaleString()}`;
+  }
+
+  private safeArray<T = any>(value: unknown): T[] {
+    return Array.isArray(value) ? value as T[] : [];
+  }
+
+  private toSafeNumber(value: unknown): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  private isApprovedParticipation(request: OpportunityRequest): boolean {
+    return request.status === 'Accepted' || request.status === 'Partner';
+  }
+
+  getRequestAmount(request: OpportunityRequest): number {
+    return this.toSafeNumber(
+      request.requestedAmount
+      ?? request.calculatedTotalAmount
+      ?? request.loanTermsSnapshot?.contributionAmount
+      ?? request.loanTermsSnapshot?.requestedAmount
+      ?? request.profitSharingTermsSnapshot?.contributionAmount
+      ?? request.profitSharingTermsSnapshot?.requestedAmount
+      ?? request.requestMetadata?.calculatedTotalAmount
+      ?? request.requestMetadata?.requestedAmount
+    );
+  }
+
+  getExpectedEarnings(request: OpportunityRequest): number {
+    const explicit = this.toSafeNumber(
+      request.loanTermsSnapshot?.expectedReturnAmount
+      ?? request.profitSharingTermsSnapshot?.expectedProfitAmount
+      ?? request.requestMetadata?.termsSnapshot?.ExpectedReturnAmount
+      ?? request.requestMetadata?.termsSnapshot?.ExpectedProfitAmount
+    );
+    if (explicit > 0) return explicit;
+
+    const totalPayout = this.toSafeNumber(
+      request.loanTermsSnapshot?.expectedTotalRepaymentAmount
+      ?? request.profitSharingTermsSnapshot?.expectedTotalPayoutAmount
+      ?? request.requestMetadata?.termsSnapshot?.ExpectedTotalRepaymentAmount
+      ?? request.requestMetadata?.termsSnapshot?.ExpectedTotalPayoutAmount
+    );
+    const invested = this.getRequestAmount(request);
+    return totalPayout > invested ? totalPayout - invested : 0;
+  }
+
+  getInvestmentModelKey(request: OpportunityRequest): 'equity' | 'loan' | 'profitSharing' {
+    const raw = String(request.investmentModel ?? request.requestMetadata?.investmentModel ?? request.requestMetadata?.termsSnapshot?.InvestmentModel ?? '').toLowerCase().replace(/[\s_-]+/g, '');
+    if (raw.includes('loan') || raw === '3') return 'loan';
+    if (raw.includes('profit') || raw === '2') return 'profitSharing';
+    return 'equity';
+  }
+
+  formatCreditAmount(value: number): string {
+    return `${value.toLocaleString()} ${this.t('dashboard.creditUnit', 'CREDIT')}`;
+  }
+
+  getStatusLabel(status: string): string {
+    return this.t(`dashboard.requestStatus.${status.toLowerCase()}`, status);
+  }
+
+getProjectAvatar(project: DashboardProject): string {
     // Prefer project image for project overview, fall back to profile avatar
     const projectImage = this.getImageSrc(project);
     if (projectImage) return projectImage;
@@ -333,20 +674,21 @@ getProjectAvatar(project: Investment): string {
     return profile?.basicInfo?.avatarUrl ? this.fileStoreService.getPublicUrl(profile.basicInfo.avatarUrl) : '';
   }
 
-  getImageSrc(inv: Investment): string {
+  getImageSrc(inv: DashboardProject): string {
     if (!inv) return '';
     
     // Priority 1: Find CoverImage type (mediaType === 0)
-    if (inv.images && inv.images.length > 0) {
-      const coverImage = inv.images.find(i => i.mediaType === 0);
-      if (coverImage) return this.fileStoreService.getPublicUrl(coverImage.url);
+    if (Array.isArray(inv.media) && inv.media.length > 0) {
+      const coverImage = inv.media.find((i: any) => i?.isCover === true || String(i?.purpose || '').toLowerCase() === 'cover');
+      if (coverImage) return this.fileStoreService.getPublicUrl(coverImage.fileUrl || coverImage.previewUrl || coverImage.thumbnailUrl || '');
       
       // Priority 2: Find primary image
-      const primary = inv.images.find(i => i.isPrimary === true);
-      if (primary) return this.fileStoreService.getPublicUrl(primary.url);
+      const primary = inv.media.find((i: any) => i?.isPrimary === true);
+      if (primary) return this.fileStoreService.getPublicUrl(primary.fileUrl || primary.previewUrl || primary.thumbnailUrl || '');
       
       // Priority 3: First image
-      return this.fileStoreService.getPublicUrl(inv.images[0].url);
+      const first = inv.media[0] as any;
+      return this.fileStoreService.getPublicUrl(first?.fileUrl || first?.previewUrl || first?.thumbnailUrl || '');
     }
     
     // Priority 4: Use imageUrl from investment
@@ -359,6 +701,20 @@ getProjectAvatar(project: Investment): string {
     return '';
   }
 
+  getNativeFundedAmount(project: DashboardProject): number {
+    const source = project as Record<string, any>;
+    const explicit = this.toSafeNumber(source['alreadyFundedAmount'] ?? source['fundedAmount'] ?? source['amountRaised']);
+    if (explicit > 0) return explicit;
+
+    const target = this.toSafeNumber(project.fundingTarget);
+    const progress = this.toSafeNumber(project.fundingProgressPercent);
+    if (target > 0 && progress > 0) {
+      return (target * progress) / 100;
+    }
+
+    return 0;
+  }
+
   getNameInitial(name?: string): string {
     return name?.trim().charAt(0).toUpperCase() || 'I';
   }
@@ -367,9 +723,10 @@ getProjectAvatar(project: Investment): string {
     this.selectedFounderProject.set(null);
   }
 
-  async toggleFavorite(investment: Investment) {
+  async toggleFavorite(investment: DashboardProject) {
     try {
-      await this.investmentService.toggleFavorite(investment);
+      const id = investment.id;
+      this.allInvestments.update(items => items.map(item => item.id === id ? ({ ...item, favorited: !item.favorited }) : item));
     } catch (error) {
       console.error('Failed to update favorite status', error);
     }
@@ -442,15 +799,30 @@ getProjectAvatar(project: Investment): string {
     return this.t(key, '{count} seconds ago').replace('{count}', String(secs));
   }
 
-  // Fix: Correctly type `valueField` to ensure proper type inference for chart data.
   private getPieChartData(): ChartData[] {
-    const investments = this.roleContext.isActiveInvestorContext() ? this.myInvestments() : this.allInvestments();
-    const valueField: 'investedAmount' | 'currentFunding' = this.roleContext.isActiveInvestorContext() ? 'investedAmount' : 'currentFunding';
+    if (this.roleContext.isActiveInvestorContext()) {
+      const totals: Record<string, number> = {
+        [this.t('dashboard.summary.composition.equity', 'Equity')]: 0,
+        [this.t('dashboard.summary.composition.loan', 'Loan')]: 0,
+        [this.t('dashboard.summary.composition.profitSharing', 'Profit Sharing')]: 0,
+      };
+      for (const request of this.approvedParticipations()) {
+        const label = this.t(`dashboard.summary.composition.${this.getInvestmentModelKey(request)}`, this.getInvestmentModelKey(request));
+        totals[label] = (totals[label] || 0) + this.getRequestAmount(request);
+      }
+      const total = Object.values(totals).reduce((sum, value) => sum + value, 0);
+      return Object.entries(totals)
+        .filter(([, value]) => value > 0)
+        .map(([name, value]) => ({ name, value, percentage: total > 0 ? (value / total) * 100 : 0 }))
+        .sort((a, b) => b.value - a.value);
+    }
+
+    const investments = this.allInvestments();
 
     const categoryTotals: Record<string, number> = {};
     const lang = this.languageService.language();
     for (const investment of investments) {
-      const value = investment[valueField];
+      const value = this.getNativeFundedAmount(investment);
       if (typeof value !== 'number' || value <= 0) continue;
 
       const categoryName = lang === 'ar'
@@ -503,12 +875,13 @@ getProjectAvatar(project: Investment): string {
 
     const monthlyTotals = new Array<number>(12).fill(0);
     for (const investment of this.myInvestments()) {
-      if (!investment.date || !(investment.date instanceof Date) || isNaN(investment.date.getTime())) continue;
-      if (investment.date.getFullYear() !== year) continue;
+      const createdAt = investment.createdAt ? new Date(investment.createdAt) : null;
+      if (!createdAt || isNaN(createdAt.getTime())) continue;
+      if (createdAt.getFullYear() !== year) continue;
 
-      const invested = investment.investedAmount ?? 0;
+      const invested = this.getRequestAmount(investment);
       if (invested <= 0) continue;
-      monthlyTotals[investment.date.getMonth()] += invested;
+      monthlyTotals[createdAt.getMonth()] += invested;
     }
 
     return monthlyTotals.map((value, index) => ({

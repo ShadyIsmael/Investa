@@ -2,17 +2,16 @@ import { Component, ChangeDetectionStrategy, computed, inject, signal } from '@a
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { InvestmentService } from '../../../services/investment.service';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
-import { Investment, RiskLevel, InvestmentType, getInvestmentTypeDisplay, getInvestmentTypeBadgeClass } from '../../../models/investment.model';
 import { NotificationService } from '../../../services/notification.service';
 import { LanguageService } from '../../../services/language.service';
 import { RequestsService } from '../../../services/requests.service';
 import { UserService } from '../../../services/user.service';
 import { FileStoreService } from '../../../services/file-store.service';
-import { AnalyticsService } from '../../../services/analytics.service';
 import { Opportunity, OpportunityLookup, OpportunityMedia, OpportunityDocument, OpportunityEvent, OpportunityService, OpportunityViewerState } from '../../../services/opportunity.service';
+import { PaidActionCode, PaidActionQuote, WalletService } from '../../../services/wallet.service';
 import { OpportunityRequestKind } from '../../../models/request.model';
+import { ParticipationBuilderComponent } from '../../../components/participation-builder/participation-builder.component';
 import { get } from 'lodash-es';
 
 declare const ngDevMode: boolean;
@@ -40,12 +39,21 @@ interface RelationshipPresentation {
   tone: 'neutral' | 'info' | 'warning' | 'success' | 'danger';
 }
 
+enum InvestmentType {
+  Founding = 1,
+  Equity = 2,
+  RevenueSharing = 3,
+  Loan = 4
+}
+
+type OpportunityView = Opportunity & Record<string, any>;
+
 /**
  * Investment Preview Component
  * 
  * Displays detailed investment information with engagement and investment actions
  * Integrates with:
- * - InvestmentService: Load investment data from API
+ * - OpportunityService: Load opportunity data from API
  * - UserService: Manage user credits
  * - RequestsService: Create investment requests
  * - NotificationService: User feedback
@@ -60,21 +68,19 @@ interface RelationshipPresentation {
   standalone: true,
   selector: 'app-investment-preview',
   templateUrl: './investment-preview.component.html', styleUrls: ['./investment-preview.component.scss'], changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink, TranslatePipe]
+  imports: [CommonModule, FormsModule, RouterLink, TranslatePipe, ParticipationBuilderComponent]
 })
 export class InvestmentPreviewComponent {
   private route: ActivatedRoute = inject(ActivatedRoute);
   private router: Router = inject(Router);
-  private investmentService = inject(InvestmentService);
   private notificationService = inject(NotificationService);
   private languageService = inject(LanguageService);
   private requestsService = inject(RequestsService);
   private userService = inject(UserService);
   private fileStoreService = inject(FileStoreService);
-  private analyticsService = inject(AnalyticsService);
   private opportunityService = inject(OpportunityService);
+  private walletService = inject(WalletService);
 
-  protected readonly RiskLevel = RiskLevel;
   protected readonly InvestmentType = InvestmentType;
 
   // User credits from UserService
@@ -105,22 +111,12 @@ export class InvestmentPreviewComponent {
   }
 
   /** Founder actions */
-  openContactFounder(investment: Investment): void {
-    if (!this.canUseDeprecatedRequestFlow(investment)) {
-      this.showOpportunityRequestComingSoon();
-      return;
-    }
-
+  openContactFounder(investment: OpportunityView): void {
     // Open credit confirmation dialog for Contact Founder
     void this.promptContactFounder(investment);
   }
 
-  openInvestNow(investment: Investment): void {
-    if (!this.canUseDeprecatedRequestFlow(investment)) {
-      this.showOpportunityRequestComingSoon();
-      return;
-    }
-
+  openInvestNow(investment: OpportunityView): void {
     // Open equity investment dialog for Invest Now
     void this.promptInvestNow(investment);
   }
@@ -133,28 +129,27 @@ export class InvestmentPreviewComponent {
   async requestChat(opportunity: Opportunity): Promise<void> {
     const opportunityId = this.getPublicOpportunityId(opportunity);
     if (!opportunityId || !this.showRequestChatButton()) return;
+    await this.promptContactFounder(opportunity as OpportunityView);
+  }
 
-    try {
-      this.engagementProcessing.set(true);
-      await this.opportunityService.requestConversation(opportunityId);
-      this.notificationService.showToast({
-        title: 'Chat requested',
-        message: 'Your chat request was sent to the founder.',
-        type: 'success'
-      });
+  openParticipationBuilder(): void {
+    if (!this.canOpenParticipationBuilder()) return;
+    this.participationBuilderOpen.set(true);
+  }
+
+  closeParticipationBuilder(): void {
+    this.participationBuilderOpen.set(false);
+  }
+
+  async onParticipationSubmitted(): Promise<void> {
+    this.participationBuilderOpen.set(false);
+    const opportunityId = this.getPublicOpportunityId(this.publicOpportunity());
+    if (opportunityId) {
       await this.loadViewerState(opportunityId);
-    } catch (error: any) {
-      this.notificationService.showToast({
-        title: 'Request failed',
-        message: error?.error?.message || error?.message || 'Unable to request chat for this opportunity.',
-        type: 'error'
-      });
-    } finally {
-      this.engagementProcessing.set(false);
     }
   }
 
-  openFounderProfile(investment: Investment): void {
+  openFounderProfile(investment: OpportunityView): void {
     if (!investment?.founderId) return;
     try {
       this.router.navigate(['/admin/founders', investment.founderId]);
@@ -164,28 +159,31 @@ export class InvestmentPreviewComponent {
     }
   }
 
-  investment = signal<Investment | null>(null);
+  investment = signal<OpportunityView | null>(null);
   publicOpportunity = signal<Opportunity | null>(null);
   viewerState = signal<OpportunityViewerState | null>(null);
   relationshipState = computed(() => this.getRelationshipState());
   participationStatus = this.relationshipState;
   // Cache of founder avatar URLs by userId
   founderAvatarCache = signal<Record<string, string>>({});
-  investmentToEngage = signal<Investment | null>(null);
-  investmentToInvest = signal<Investment | null>(null);
+  investmentToEngage = signal<OpportunityView | null>(null);
+  investmentToInvest = signal<OpportunityView | null>(null);
   loading = signal<boolean>(false);
-  engagementCreditCost = 5;
+  engagementCreditCost = 0;
   sharesToPurchaseValue = 1;
   sharesToPurchase = signal(1);
   investmentError = signal<string | null>(null);
   investmentProcessing = signal(false);
   engagementConfirmationOpen = signal(false);
   engagementProcessing = signal(false);
+  participationBuilderOpen = signal(false);
 
   // Contact Founder flow
   contactFounderConfirmationOpen = signal(false);
   contactFounderProcessing = signal(false);
-  contactFounderCreditCost = 5;
+  contactFounderCreditCost = 0;
+  contactFounderQuote = signal<PaidActionQuote | null>(null);
+  investNowQuote = signal<PaidActionQuote | null>(null);
 
   // Invest Now flow (Equity)
   investNowDialogOpen = signal(false);
@@ -212,6 +210,10 @@ export class InvestmentPreviewComponent {
 
   /**
    * Load investment from API
+   * Loading rules:
+   * - Founder owner + Draft → use authenticated endpoint
+   * - Published/public → use public endpoint
+   * - Non-owner must never access Draft (enforced by backend)
    */
   private async loadInvestment(): Promise<void> {
     const idParam = this.route.snapshot.paramMap.get('id');
@@ -226,18 +228,38 @@ export class InvestmentPreviewComponent {
     this.loading.set(true);
     try {
       const opportunityId = id;
-      const publicOpportunity = await this.opportunityService.getPublicOpportunity(opportunityId);
-      this.publicOpportunity.set(publicOpportunity);
-      this.investment.set(this.toRequestCompatibleInvestment(publicOpportunity, opportunityId));
-      await this.loadViewerState(opportunityId);
+      
+      // First try to load viewer state to determine if user is founder
+      let viewerState: OpportunityViewerState | null = null;
+      try {
+        viewerState = await this.opportunityService.getViewerState(opportunityId);
+        this.viewerState.set(viewerState);
+      } catch (error) {
+        // Viewer state might fail for public opportunities, continue
+        console.warn('Could not load viewer state, will try public endpoint');
+      }
+
+      // Load opportunity data
+      let opportunity: Opportunity;
+      if (viewerState?.isFounder) {
+        // Founder viewing their own opportunity - use authenticated endpoint
+        // This allows founders to view their Draft opportunities
+        opportunity = await this.opportunityService.getFounderOpportunity(opportunityId);
+      } else {
+        // Public or non-founder - use public endpoint
+        opportunity = await this.opportunityService.getPublicOpportunity(opportunityId);
+      }
+
+      this.publicOpportunity.set(opportunity);
+      this.investment.set(opportunity as OpportunityView);
 
       if (typeof ngDevMode !== 'undefined' && ngDevMode) {
-        console.log('PublicOpportunity loaded', publicOpportunity);
+        console.log('Opportunity loaded', opportunity, 'isFounder:', viewerState?.isFounder);
       }
       
       // Load founder avatar if founderId present
       try {
-        const founderId = this.getFounderId(publicOpportunity);
+        const founderId = this.getFounderId(opportunity);
         if (founderId) {
           this.loadFounderAvatar(founderId);
         }
@@ -255,6 +277,8 @@ export class InvestmentPreviewComponent {
   }
 
   private async loadViewerState(opportunityId: number): Promise<void> {
+    // Viewer state is now loaded in loadInvestment() to determine endpoint
+    // This method is kept for refresh scenarios
     try {
       const state = await this.opportunityService.getViewerState(opportunityId);
       this.viewerState.set(state);
@@ -262,49 +286,6 @@ export class InvestmentPreviewComponent {
       console.warn(`Could not load viewer state for Opportunity ${opportunityId}.`, error);
       this.viewerState.set(null);
     }
-  }
-
-  private toRequestCompatibleInvestment(opportunity: Opportunity, routeId: number): Investment {
-    const opportunityId = this.getPublicOpportunityId(opportunity) ?? routeId;
-    const fundingTarget = Number(opportunity.fundingTarget ?? 0);
-    const progress = Number(opportunity.fundingProgressPercent ?? 0);
-    const created = opportunity.createdAt ? new Date(opportunity.createdAt) : new Date();
-
-    return {
-      id: opportunityId,
-      opportunityId,
-      readSource: 'public-opportunity',
-      founderId: this.getFounderId(opportunity),
-      founderDisplay: this.getFounderName(opportunity),
-      businessRole: opportunity.founder?.businessRole || opportunity.founderSummary || '',
-      name: opportunity.title || 'Untitled Opportunity',
-      description: opportunity.shortDescription || opportunity.description || opportunity.fullDescription || '',
-      initialCapital: 0,
-      date: created,
-      startDate: created,
-      minInvestment: this.parsePositiveNumber(opportunity.minimumInvestmentAmount ?? opportunity.minimumInvestment) ?? 0,
-      maxInvestment: this.parsePositiveNumber(opportunity.maximumInvestmentAmount ?? opportunity.maximumInvestment),
-      investmentType: this.getOpportunityInvestmentType(opportunity),
-      status: this.getOpportunityStatus(opportunity),
-      targetFund: fundingTarget,
-      currentFunding: fundingTarget > 0 ? fundingTarget * (progress / 100) : 0,
-      fundingPercentage: progress,
-      investorCount: 0,
-      investedAmount: 0,
-      riskLevel: RiskLevel.Medium,
-      currency: 'USD',
-      credibilityScore: 0,
-      sharePrice: this.parsePositiveNumber((opportunity as any).sharePrice),
-      totalShares: this.parsePositiveNumber((opportunity as any).totalShares),
-      availableShares: this.parsePositiveNumber((opportunity as any).availableShares),
-      expectedROI: this.extractPercent(opportunity.expectedReturnSummary),
-      durationMonths: this.parsePositiveNumber(opportunity.expectedDurationMonths ?? opportunity.expectedDuration),
-      profitPercentage: this.parsePositiveNumber((opportunity as any).profitSharePercentage),
-      payoutFrequency: (opportunity as any).distributionFrequency || (opportunity as any).repaymentFrequency,
-      investors: [],
-      teamMembers: [],
-      favorited: false
-    } as Investment;
   }
 
   getPublicOpportunityId(opportunity: Opportunity | null): number | null {
@@ -325,25 +306,39 @@ export class InvestmentPreviewComponent {
   }
 
   getOpportunityStatus(opportunity: Opportunity | null): any {
-    const status = String(opportunity?.status || 'Active');
-    switch (status.toLowerCase()) {
+    const status = opportunity?.status;
+    const statusStr = String(status || '').toLowerCase();
+    
+    // Handle numeric enum values from backend
+    // Draft = 1, Published = 5, Funding = 6, FullyFunded = 7, InProgress = 8, Completed = 9, Archived = 10
+    // Review states (UnderReview=2, Rejected=3, Approved=4) are no longer used
+    switch (statusStr) {
+      case '1':
+      case 'draft':
+        return 'Draft';
+      case '5':
       case 'published':
       case 'active':
+      case '4':
       case 'approved':
         return 'Active';
-      case 'funded':
+      case '6':
+      case 'funding':
+        return 'Funding';
+      case '7':
       case 'fullyfunded':
         return 'Fully Funded';
+      case '8':
       case 'inprogress':
         return 'In Progress';
-      case 'paused':
-        return 'Paused';
+      case '9':
       case 'completed':
         return 'Completed';
+      case '10':
       case 'archived':
         return 'Archived';
       default:
-        return status || 'Active';
+        return statusStr || 'Active';
     }
   }
 
@@ -364,7 +359,7 @@ export class InvestmentPreviewComponent {
   }
 
   getOpportunityInvestmentModelLabel(opportunity: Opportunity | null): string {
-    return getInvestmentTypeDisplay(this.getOpportunityInvestmentType(opportunity));
+    return this.getInvestmentTypeDisplay(this.getOpportunityInvestmentType(opportunity));
   }
 
   getOpportunityCoverUrl(opportunity: Opportunity | null): string {
@@ -551,7 +546,17 @@ export class InvestmentPreviewComponent {
   }
 
   showParticipateButton(): boolean {
-    return false;
+    return this.canOpenParticipationBuilder();
+  }
+
+  canOpenParticipationBuilder(): boolean {
+    const state = this.viewerState();
+    const opportunityId = this.getPublicOpportunityId(this.publicOpportunity());
+    if (!opportunityId || state?.isFounder) return false;
+    if (state?.projectRoomUnlocked || state?.canOpenProjectRoom) return false;
+    if (state?.hasPendingParticipationRequest) return false;
+    const participationStatus = this.normalizeParticipationStatus(state?.participationStatus);
+    return !participationStatus.includes('pending') && !participationStatus.includes('approved');
   }
 
   showProjectRoomButton(): boolean {
@@ -671,47 +676,37 @@ export class InvestmentPreviewComponent {
   private async loadFounderAvatar(userId: string): Promise<void> {
     if (!userId) return;
     // Already cached
-    if (this.founderAvatarCache()[userId]) return;
+    if (Object.prototype.hasOwnProperty.call(this.founderAvatarCache(), userId)) return;
     try {
       const url = await this.fileStoreService.getProfilePictureUrl(userId);
-      if (url) {
-        this.founderAvatarCache.update(m => ({ ...(m || {}), [userId]: url }));
-      }
+      this.founderAvatarCache.update(m => ({ ...(m || {}), [userId]: url || '' }));
     } catch (err) {
+      this.founderAvatarCache.update(m => ({ ...(m || {}), [userId]: '' }));
       console.warn('Failed to load founder avatar for', userId, err);
     }
   }
 
-  founderAvatar(inv: Investment | null): string {
+  onFounderAvatarError(userId: string): void {
+    if (!userId) return;
+    this.founderAvatarCache.update(m => ({ ...(m || {}), [userId]: '' }));
+  }
+
+  founderAvatar(inv: OpportunityView | null): string {
     if (!inv) return '';
-    const uid = inv.founderId;
+    const uid = this.getFounderId(inv);
     const cached = uid ? this.founderAvatarCache()[uid] : undefined;
-    // Try cover image first
-    const coverImg = inv.images?.find(i => i.mediaType === 0);
-    if (coverImg) return this.fileStoreService.getPublicUrl(coverImg.url);
-    // Then try primary image
-    const primary = inv.images?.find(i => i.isPrimary === true);
-    if (primary) return this.fileStoreService.getPublicUrl(primary.url);
-    // Then first image
-    if (inv.images && inv.images.length > 0) return this.fileStoreService.getPublicUrl(inv.images[0].url);
-    // Finally fall back to imageUrl
-    return this.resolveImageUrl(inv.imageUrl) || '';
+    if (cached) return cached;
+    return this.getOpportunityCoverUrl(inv);
   }
 
-  getHeroImageUrl(inv: Investment | null): string {
+  getHeroImageUrl(inv: OpportunityView | null): string {
     if (!inv) return '';
-    // Priority: cover image -> primary image -> first image -> imageUrl
-    const coverImg = inv.images?.find(i => i.mediaType === 0);
-    if (coverImg) return this.fileStoreService.getPublicUrl(coverImg.url);
-    const primary = inv.images?.find(i => i.isPrimary === true);
-    if (primary) return this.fileStoreService.getPublicUrl(primary.url);
-    if (inv.images && inv.images.length > 0) return this.fileStoreService.getPublicUrl(inv.images[0].url);
-    return this.resolveImageUrl(inv.imageUrl) || '';
+    return this.getOpportunityCoverUrl(inv);
   }
 
-  getRoomOpportunityId(inv: Investment | null): string | number | null {
+  getRoomOpportunityId(inv: OpportunityView | null): string | number | null {
     if (!inv) return null;
-    return inv.opportunityId ?? null;
+    return inv.id ?? null;
   }
 
   resolveImageUrl(url?: string | null): string {
@@ -722,20 +717,80 @@ export class InvestmentPreviewComponent {
    * Get project media images (excluding cover images)
    * Cover images (mediaType === 0) are not part of the project media gallery
    */
-  getProjectMediaImages(inv: Investment | null): any[] {
-    if (!inv || !inv.images) return [];
-    return inv.images.filter(img => img.mediaType !== 0); // Filter out CoverImage type
+  getProjectMediaImages(inv: OpportunityView | null): OpportunityMedia[] {
+    return this.getOpportunityGallery(inv);
   }
 
   /**
    * Get the current active cover image (if any)
    */
-  getCoverImage(inv: Investment | null): any {
-    if (!inv || !inv.images) return null;
-    return inv.images.find(img => img.mediaType === 0); // MediaType.CoverImage = 0
+  getCoverImage(inv: OpportunityView | null): OpportunityMedia | null {
+    return this.getOpportunityPitchVideo(inv);
+  }
+
+  /**
+   * Check if the current opportunity is in Draft status
+   * Backend sends numeric enum: Draft = 1, UnderReview = 2, etc.
+   */
+  isDraft(): boolean {
+    const status = this.publicOpportunity()?.status;
+    const statusStr = String(status || '').toLowerCase();
+    // Handle both numeric enum (1 = Draft) and string values
+    return statusStr === '1' || statusStr === 'draft';
+  }
+
+  /**
+   * Check if the current user is the founder of this opportunity
+   * Compares current user ID with opportunity founderId directly
+   * Does not depend on viewer state which may fail for Draft opportunities
+   */
+  isFounder(): boolean {
+    const currentUserId = this.userService.user()?.userId;
+    const opportunityFounderId = this.getFounderId(this.publicOpportunity());
+    return currentUserId === opportunityFounderId;
+  }
+
+  /**
+   * Publish the opportunity directly
+   * Note: Backend currently only supports submit-review workflow
+   * This method uses submit-review as a workaround until direct publish API is available
+   */
+  async publishOpportunity(): Promise<void> {
+    const opportunityId = this.getPublicOpportunityId(this.publicOpportunity());
+    if (!opportunityId) return;
+
+    try {
+      this.engagementProcessing.set(true);
+      await this.opportunityService.submitForReview(opportunityId);
+      this.notificationService.showToast({
+        title: 'Opportunity Published',
+        message: 'Your opportunity has been published and is now visible to investors.',
+        type: 'success'
+      });
+      // Reload to get updated status
+      await this.loadInvestment();
+    } catch (error: any) {
+      this.notificationService.showToast({
+        title: 'Publish Failed',
+        message: error?.error?.message || error?.message || 'Unable to publish opportunity.',
+        type: 'error'
+      });
+    } finally {
+      this.engagementProcessing.set(false);
+    }
+  }
+
+  /**
+   * Navigate to edit the opportunity
+   */
+  editOpportunity(): void {
+    const opportunityId = this.getPublicOpportunityId(this.publicOpportunity());
+    if (opportunityId) {
+      this.router.navigate(['/admin/opportunities', opportunityId, 'edit']);
+    }
   }
   
-  async promptEngage(investment: Investment): Promise < void> {
+  async promptEngage(investment: OpportunityView): Promise < void> {
   // Ensure profile is fresh so dialog shows correct credits
   try {
     await this.userService.refreshUser();
@@ -751,12 +806,7 @@ export class InvestmentPreviewComponent {
    * Contact Founder Flow
    * Opens credit confirmation dialog, then creates request with ContactFounder type
    */
-  async promptContactFounder(investment: Investment): Promise<void> {
-    if (!this.canUseDeprecatedRequestFlow(investment)) {
-      this.showOpportunityRequestComingSoon();
-      return;
-    }
-
+  async promptContactFounder(investment: OpportunityView): Promise<void> {
     // Ensure profile is fresh so dialog shows correct credits
     try {
       await this.userService.refreshUser();
@@ -765,6 +815,16 @@ export class InvestmentPreviewComponent {
     }
 
     this.investmentToEngage.set(investment);
+    try {
+      this.contactFounderQuote.set(await this.loadPaidActionQuote('SendConversationRequest'));
+    } catch (error: any) {
+      this.notificationService.showToast({
+        title: this.t('paidActions.pricingUnavailableTitle'),
+        message: error?.message || this.t('paidActions.pricingUnavailableMessage'),
+        type: 'error'
+      });
+      return;
+    }
     this.contactFounderConfirmationOpen.set(true);
   }
 
@@ -772,12 +832,7 @@ export class InvestmentPreviewComponent {
    * Invest Now Flow (Equity)
    * Opens equity investment dialog for share selection
    */
-  async promptInvestNow(investment: Investment): Promise<void> {
-    if (!this.canUseDeprecatedRequestFlow(investment)) {
-      this.showOpportunityRequestComingSoon();
-      return;
-    }
-
+  async promptInvestNow(investment: OpportunityView): Promise<void> {
     // Ensure profile is fresh so dialog shows correct credits
     try {
       await this.userService.refreshUser();
@@ -791,71 +846,11 @@ export class InvestmentPreviewComponent {
     this.investNowDialogOpen.set(true);
   }
 
-  // --- Image Management ---
-  async openManageImages(investment: Investment): Promise < void> {
-  // Open a simple dialog via prompt for demo (replace with modal in future)
-  try {
-    const input = document.createElement('input') as HTMLInputElement;
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) return;
-      try {
-        await this.investmentService.uploadInvestmentImage(investment.id, file as File);
-        this.notificationService.showToast({ title: 'Success', message: 'Image uploaded', type: 'success' });
-        await this.loadInvestment();
-      } catch (err: any) {
-        this.notificationService.showToast({ title: 'Upload failed', message: err?.message || 'Failed to upload', type: 'error' });
-      }
-    };
-    input.click();
-  } catch(err) {
-    console.error('Failed to open image picker', err);
-    this.notificationService.showToast({ title: 'Error', message: 'Unable to open file picker', type: 'error' });
-  }
-}
-
-  async deleteImage(investment: Investment, imageId: number): Promise < void> {
-  try {
-    await this.investmentService.deleteInvestmentImage(investment.id, imageId);
-    this.notificationService.showToast({ title: 'Deleted', message: 'Image deleted', type: 'success' });
-    await this.loadInvestment();
-  } catch(err: any) {
-    this.notificationService.showToast({ title: 'Failed', message: err?.message || 'Delete failed', type: 'error' });
-  }
-}
-
-  async setPrimaryImage(investment: Investment, imageId: number): Promise < void> {
-  try {
-    await this.investmentService.setPrimaryInvestmentImage(investment.id, imageId);
-    this.notificationService.showToast({ title: 'Updated', message: 'Primary image set', type: 'success' });
-    await this.loadInvestment();
-  } catch(err: any) {
-    this.notificationService.showToast({ title: 'Failed', message: err?.message || 'Operation failed', type: 'error' });
-  }
-}
-
-  async reorderImage(investment: Investment, fromIndex: number, toIndex: number): Promise < void> {
-  const imgs = [...(investment.images || [])];
-  if(fromIndex < 0 || toIndex < 0 || fromIndex >= imgs.length || toIndex >= imgs.length) return;
-const [item] = imgs.splice(fromIndex, 1);
-imgs.splice(toIndex, 0, item);
-const ordering = imgs.map((img, idx) => ({ imageId: img.id, sortOrder: idx }));
-try {
-  await this.investmentService.reorderInvestmentImages(investment.id, ordering);
-  this.notificationService.showToast({ title: 'Reordered', message: 'Images reordered', type: 'success' });
-  await this.loadInvestment();
-} catch (err: any) {
-  this.notificationService.showToast({ title: 'Failed', message: err?.message || 'Reorder failed', type: 'error' });
-}
-  }
-
   /**
    * Open invest dialog for all investment types (UX validation only)
    * This is a UX flow only - no backend persistence
    */
-  async promptInvest(investment: Investment): Promise < void> {
+  async promptInvest(investment: OpportunityView): Promise < void> {
   // Refresh profile first so credits are up-to-date
   try {
     await this.userService.refreshUser();
@@ -883,7 +878,7 @@ closeInvestDialog(): void {
   this.sharesToPurchaseValue = 1;
 }
 
-submitInvestNow(investment: Investment): void {
+submitInvestNow(investment: OpportunityView): void {
   // UX validation only - no backend persistence
   this.notificationService.showToast({
     title: 'Interest Submitted',
@@ -893,7 +888,7 @@ submitInvestNow(investment: Investment): void {
   this.closeInvestDialog();
 }
 
-increaseShares(investment: Investment): void {
+increaseShares(investment: OpportunityView): void {
   if(this.sharesToPurchaseValue < (investment.availableShares || 0)) {
   this.sharesToPurchaseValue++;
 }
@@ -905,7 +900,7 @@ decreaseShares(): void {
 }
   }
 
-validateShares(investment: Investment): void {
+validateShares(investment: OpportunityView): void {
   const val = this.sharesToPurchaseValue;
   const dictionary = this.languageService.dictionary();
   const minError = get(dictionary, 'investments.shareValidation.minError', 'Shares must be at least 1');
@@ -923,7 +918,7 @@ validateShares(investment: Investment): void {
 }
   }
 
-calculateRequestedAmount(investment: Investment): number {
+calculateRequestedAmount(investment: OpportunityView): number {
   return (investment.sharePrice || 0) * this.sharesToPurchaseValue;
 }
 
@@ -934,13 +929,8 @@ calculateRequestedAmount(investment: Investment): number {
    * Credits are deducted immediately and request is sent to founder for approval
    * If founder accepts, investment is processed; if declined, credits are refunded
    */
-  async confirmInvestment(investment: Investment): Promise < void> {
+  async confirmInvestment(investment: OpportunityView): Promise < void> {
   if(this.investmentProcessing() || this.investmentError()) return;
-  if (!this.canUseDeprecatedRequestFlow(investment)) {
-    this.showOpportunityRequestComingSoon();
-    this.closeInvestDialog();
-    return;
-  }
 
   this.investmentProcessing.set(true);
   this.investmentError.set(null);
@@ -953,15 +943,15 @@ calculateRequestedAmount(investment: Investment): number {
   }
 
     const requestedAmount = this.calculateRequestedAmount(investment);
-  const currentCredits = this.userCredits();
+  const quote = await this.loadPaidActionQuote('SubmitParticipationRequest');
 
   // Validate sufficient credits
-  if(currentCredits <requestedAmount) {
-    this.investmentError.set('Insufficient credits. Please add more credits to your account.');
+  if(!quote.hasSufficientCredit) {
+    this.investmentError.set(this.insufficientCreditText(quote));
     this.investmentProcessing.set(false);
     this.notificationService.showToast({
-      title: 'Insufficient Credits',
-      message: 'You do not have enough credits to complete this investment.',
+      title: this.t('paidActions.insufficientTitle'),
+      message: this.insufficientCreditText(quote),
       type: 'error'
     });
     return;
@@ -1019,11 +1009,6 @@ cancelContactFounder(): void {
 async confirmContactFounder(): Promise<void> {
   const investment = this.investmentToEngage();
   if (!investment || this.contactFounderProcessing()) return;
-  if (!this.canUseDeprecatedRequestFlow(investment)) {
-    this.showOpportunityRequestComingSoon();
-    this.cancelContactFounder();
-    return;
-  }
 
   // Refresh user profile to ensure latest credits
   try {
@@ -1032,13 +1017,13 @@ async confirmContactFounder(): Promise<void> {
     console.warn('Failed to refresh user before contact founder confirmation:', err);
   }
 
-  const currentCredits = this.userCredits();
+  const quote = this.contactFounderQuote() || await this.loadPaidActionQuote('SendConversationRequest');
 
   // Validate sufficient credits for contact founder
-  if (currentCredits < this.contactFounderCreditCost) {
+  if (!quote.hasSufficientCredit) {
     this.notificationService.showToast({
-      title: 'Insufficient Credits',
-      message: 'You do not have enough credits to contact the founder.',
+      title: this.t('paidActions.insufficientTitle'),
+      message: this.insufficientCreditText(quote),
       type: 'error'
     });
     return;
@@ -1047,14 +1032,11 @@ async confirmContactFounder(): Promise<void> {
   this.contactFounderProcessing.set(true);
 
   try {
-    // Create request with ContactFounder type and null metadata
-    await this.requestsService.createOpportunityRequest(
-      investment,
-      this.contactFounderCreditCost,
-      0,
-      OpportunityRequestKind.Conversation,
-      null
-    );
+    const opportunityId = this.getPublicOpportunityId(investment);
+    if (opportunityId) {
+      await this.opportunityService.requestConversation(opportunityId);
+      await this.loadViewerState(opportunityId);
+    }
 
     const { title, message } = this.getRequestSubmittedCopy(investment);
     this.notificationService.showToast({ title, message, type: 'success' });
@@ -1087,18 +1069,22 @@ closeInvestNowDialog(): void {
 /**
  * Invest Now Flow - Proceed to confirmation
  */
-proceedToInvestConfirmation(investment: Investment): void {
+async proceedToInvestConfirmation(investment: OpportunityView): Promise<void> {
   const shares = this.equitySharesRequested();
   if (!investment.sharePrice || shares < 1) {
-    this.investmentError.set('Invalid share selection');
+    this.investmentError.set(this.t('paidActions.errors.invalidShareSelection'));
     return;
   }
 
-  const totalValue = investment.sharePrice * shares;
-  const currentCredits = this.userCredits();
-
-  if (currentCredits < totalValue) {
-    this.investmentError.set('Insufficient credits for this investment');
+  try {
+    const quote = await this.loadPaidActionQuote('SubmitParticipationRequest');
+    this.investNowQuote.set(quote);
+    if (!quote.hasSufficientCredit) {
+      this.investmentError.set(this.insufficientCreditText(quote));
+      return;
+    }
+  } catch (error: any) {
+    this.investmentError.set(error?.message || this.t('paidActions.pricingUnavailableMessage'));
     return;
   }
 
@@ -1120,14 +1106,8 @@ cancelInvestConfirmation(): void {
  * Invest Now Flow - Confirm investment
  * Creates request with InvestmentInterest type and equity metadata
  */
-async confirmInvestNow(investment: Investment): Promise<void> {
+async confirmInvestNow(investment: OpportunityView): Promise<void> {
   if (this.investNowProcessing() || this.investmentError()) return;
-  if (!this.canUseDeprecatedRequestFlow(investment)) {
-    this.showOpportunityRequestComingSoon();
-    this.closeInvestNowDialog();
-    return;
-  }
-
   this.investNowProcessing.set(true);
   this.investmentError.set(null);
 
@@ -1140,15 +1120,15 @@ async confirmInvestNow(investment: Investment): Promise<void> {
 
   const shares = this.equitySharesRequested();
   const totalValue = (investment.sharePrice || 0) * shares;
-  const currentCredits = this.userCredits();
+  const quote = this.investNowQuote() || await this.loadPaidActionQuote('SubmitParticipationRequest');
 
   // Validate sufficient credits
-  if (currentCredits < totalValue) {
-    this.investmentError.set('Insufficient credits. Please add more credits to your account.');
+  if (!quote.hasSufficientCredit) {
+    this.investmentError.set(this.insufficientCreditText(quote));
     this.investNowProcessing.set(false);
     this.notificationService.showToast({
-      title: 'Insufficient Credits',
-      message: 'You do not have enough credits to complete this investment.',
+      title: this.t('paidActions.insufficientTitle'),
+      message: this.insufficientCreditText(quote),
       type: 'error'
     });
     return;
@@ -1187,7 +1167,7 @@ async confirmInvestNow(investment: Investment): Promise<void> {
 /**
  * Invest Now Flow - Adjust shares
  */
-adjustShares(investment: Investment, delta: number): void {
+adjustShares(investment: OpportunityView, delta: number): void {
   const newShares = this.equitySharesRequested() + delta;
   const maxShares = investment.availableShares || 0;
 
@@ -1200,8 +1180,46 @@ adjustShares(investment: Investment, delta: number): void {
 /**
  * Invest Now Flow - Calculate total value
  */
-calculateEquityTotalValue(investment: Investment): number {
+calculateEquityTotalValue(investment: OpportunityView): number {
   return (investment.sharePrice || 0) * this.equitySharesRequested();
+}
+
+paidActionCost(quote: PaidActionQuote | null): number {
+  return Number(quote?.creditCost ?? 0);
+}
+
+paidActionBalance(quote: PaidActionQuote | null): number {
+  return Number(quote?.currentBalance ?? this.userCredits());
+}
+
+paidActionAfter(quote: PaidActionQuote | null): number {
+  return Number(quote?.balanceAfter ?? this.paidActionBalance(quote) - this.paidActionCost(quote));
+}
+
+paidActionInsufficient(quote: PaidActionQuote | null): boolean {
+  return !!quote && !quote.hasSufficientCredit;
+}
+
+addCredits(): void {
+  this.router.navigate(['/admin/credit-charge']);
+}
+
+t(path: string): string {
+  return this.languageService.translate(path);
+}
+
+private async loadPaidActionQuote(actionCode: PaidActionCode): Promise<PaidActionQuote> {
+  return this.walletService.getPaidActionQuote(actionCode);
+}
+
+private insufficientCreditText(quote: PaidActionQuote): string {
+  return this.t('paidActions.insufficientMessage')
+    .replace('{required}', this.formatCredits(quote.creditCost))
+    .replace('{balance}', this.formatCredits(quote.currentBalance));
+}
+
+private formatCredits(value: number): string {
+  return new Intl.NumberFormat(this.languageService.language() === 'ar' ? 'ar-EG' : 'en-US', { maximumFractionDigits: 2 }).format(Number(value ?? 0));
 }
 
   /**
@@ -1213,11 +1231,6 @@ calculateEquityTotalValue(investment: Investment): number {
   async confirmEngage(): Promise < void> {
   const investment = this.investmentToEngage();
   if(!investment || this.engagementProcessing()) return;
-  if (!this.canUseDeprecatedRequestFlow(investment)) {
-    this.showOpportunityRequestComingSoon();
-    this.cancelEngage();
-    return;
-  }
 
 // Refresh user profile to ensure latest credits
 try {
@@ -1226,13 +1239,13 @@ try {
   console.warn('Failed to refresh user before engagement confirmation:', err);
 }
 
-const currentCredits = this.userCredits();
+const quote = await this.loadPaidActionQuote('SendConversationRequest');
 
 // Validate sufficient credits for engagement
-if (currentCredits < this.engagementCreditCost) {
+if (!quote.hasSufficientCredit) {
   this.notificationService.showToast({
-    title: 'Insufficient Credits',
-    message: 'You do not have enough credits for engagement.',
+    title: this.t('paidActions.insufficientTitle'),
+    message: this.insufficientCreditText(quote),
     type: 'error'
   });
   return;
@@ -1241,28 +1254,24 @@ if (currentCredits < this.engagementCreditCost) {
 this.engagementProcessing.set(true);
 
 try {
-  // Record learn more for analytics
-  try {
-    this.analyticsService.recordLearnMore(investment.id).subscribe();
-  } catch (err) {
-    // Don't block main functionality if analytics fails
-    console.warn('Failed to record learn more:', err);
+  const opportunityId = this.getPublicOpportunityId(investment);
+  if (opportunityId) {
+    await this.opportunityService.requestConversation(opportunityId);
+    await this.loadViewerState(opportunityId);
   }
-
-  await this.requestsService.createOpportunityRequest(investment, this.engagementCreditCost, 0);
   const { title, message } = this.getRequestSubmittedCopy(investment);
   this.notificationService.showToast({ title, message, type: 'success' });
   this.investmentToEngage.set(null);
   this.engagementConfirmationOpen.set(false);
 } catch (error: any) {
   console.error('Engagement request failed:', error);
-  this.notificationService.showToast({ title: 'Request Failed', message: error.message || 'Failed to submit engagement request. Please try again.', type: 'error' });
+  this.notificationService.showToast({ title: this.t('paidActions.requestFailed'), message: error.message || this.t('paidActions.errors.chatRequestFailed'), type: 'error' });
 } finally {
   this.engagementProcessing.set(false);
 }
   }
 
-  private getRequestSubmittedCopy(investment: Investment): { title: string; message: string } {
+  private getRequestSubmittedCopy(investment: OpportunityView): { title: string; message: string } {
   const dictionary = this.languageService.dictionary();
   const title = get(dictionary, 'investments.requestSubmittedTitle', 'Request Sent');
   const messageTemplate = get(
@@ -1273,17 +1282,25 @@ try {
 
   return {
     title,
-    message: messageTemplate.replace('{investmentName}', investment.name)
+    message: messageTemplate.replace('{investmentName}', investment.title || investment.name || 'Opportunity')
   };
 }
 
 // Helpers for template
 getInvestmentTypeDisplay(type: InvestmentType | number | undefined): string {
-  return getInvestmentTypeDisplay(type);
+  if (type === InvestmentType.Founding) return 'Founding';
+  if (type === InvestmentType.Equity) return 'Equity';
+  if (type === InvestmentType.RevenueSharing) return 'Revenue Sharing';
+  if (type === InvestmentType.Loan) return 'Loan';
+  return 'Opportunity';
 }
 
 getInvestmentTypeBadgeClass(type: InvestmentType | number | undefined): string {
-  return getInvestmentTypeBadgeClass(type);
+  if (type === InvestmentType.Founding) return 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/25';
+  if (type === InvestmentType.Equity) return 'bg-blue-500/15 text-blue-300 border border-blue-500/25';
+  if (type === InvestmentType.RevenueSharing) return 'bg-purple-500/15 text-purple-300 border border-purple-500/25';
+  if (type === InvestmentType.Loan) return 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/25';
+  return 'bg-slate-700/70 text-slate-300 border border-slate-600/40';
 }
 
 getDaysRemaining(endDate: string | Date | undefined): number {
@@ -1360,40 +1377,29 @@ getCurrentStageIndex(): number {
 /**
     * Check if investment type is Equity
     */
-  isEquity(inv: Investment | null): boolean {
+  isEquity(inv: OpportunityView | null): boolean {
     return inv?.investmentType === InvestmentType.Equity;
   }
 
    /**
     * Check if investment type is Revenue Sharing
     */
-   isRevenueSharing(inv: Investment | null): boolean {
+   isRevenueSharing(inv: OpportunityView | null): boolean {
      return inv?.investmentType === InvestmentType.RevenueSharing;
    }
 
   /**
    * Check if investment type is Loan
    */
-  isLoan(inv: Investment | null): boolean {
+  isLoan(inv: OpportunityView | null): boolean {
     return inv?.investmentType === InvestmentType.Loan;
   }
 
   /**
    * Check if investment type is Founding
    */
-  isFounding(inv: Investment | null): boolean {
+  isFounding(inv: OpportunityView | null): boolean {
     return inv?.investmentType === InvestmentType.Founding;
   }
 
-  canUseDeprecatedRequestFlow(investment: Investment | null | undefined): boolean {
-    return !!investment && investment.readSource !== 'public-opportunity';
-  }
-
-  private showOpportunityRequestComingSoon(): void {
-    this.notificationService.showToast({
-      title: 'Coming soon',
-      message: 'Participation requests for Opportunity records need a backend request mapping before they can be submitted.',
-      type: 'info'
-    });
-  }
 }

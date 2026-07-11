@@ -290,6 +290,12 @@ public class OpportunityRoomParticipantContextDto
 {
     public bool IsFounder { get; set; }
     public bool IsApprovedParticipant { get; set; }
+    public int ApprovedParticipantCount { get; set; }
+    public bool CanAccessProjectRoom { get; set; }
+    public bool CanEditCoreProject { get; set; }
+    public bool CanAddUpdate { get; set; }
+    public bool CanAddDocument { get; set; }
+    public bool CanAddMilestone { get; set; }
     public bool CanUpload { get; set; }
     public bool CanPostUpdate { get; set; }
     public bool CanViewPrivateFiles { get; set; }
@@ -390,6 +396,39 @@ public class CreateOpportunityJoinRequest
     public decimal? ProposedSharePercentage { get; set; }
 
     public string? MetadataJson { get; set; }
+}
+
+public class OpportunityParticipationFormDto
+{
+    public int OpportunityId { get; set; }
+    public string OpportunityTitle { get; set; } = string.Empty;
+    public InvestmentModel InvestmentModel { get; set; }
+    public decimal FundingTarget { get; set; }
+    public decimal AlreadyFundedAmount { get; set; }
+    public decimal RemainingFundingAmount { get; set; }
+    public string Currency { get; set; } = "Credits";
+    public decimal? MinimumContribution { get; set; }
+    public decimal? MaximumContribution { get; set; }
+    public decimal? ReturnRate { get; set; }
+    public string? ReturnRateType { get; set; }
+    public int? TermValue { get; set; }
+    public string? TermUnit { get; set; }
+    public string? RepaymentModel { get; set; }
+    public DateTime? ExpectedMaturityDate { get; set; }
+    public decimal? ProfitSharePercentage { get; set; }
+    public decimal? ExpectedProfitAmount { get; set; }
+    public decimal? ExpectedTotalPayoutAmount { get; set; }
+    public decimal? OpportunityTotalExpectedPayout { get; set; }
+    public string? ExitTerms { get; set; }
+    public DateTime? ContractStartDate { get; set; }
+    public DateTime? ContractEndDate { get; set; }
+    public int? TotalShares { get; set; }
+    public int? AvailableShares { get; set; }
+    public decimal? SharePrice { get; set; }
+    public int? MinimumShares { get; set; }
+    public int? MaximumShares { get; set; }
+    public decimal? MinimumInvestmentAmount { get; set; }
+    public decimal? MaximumInvestmentAmount { get; set; }
 }
 
 public class OpportunityJoinRequestQuery

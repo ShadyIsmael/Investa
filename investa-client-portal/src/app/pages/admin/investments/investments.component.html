@@ -217,7 +217,10 @@
               <div class="relative flex-shrink-0">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-md overflow-hidden">
                   @if (getFounderAvatarUrl(investment)) {
-                    <img [src]="getFounderAvatarUrl(investment)" [alt]="investment.founderDisplay || 'Founder'" class="w-full h-full object-cover">
+                    <img [src]="getFounderAvatarUrl(investment)"
+                         [alt]="investment.founderDisplay || 'Founder'"
+                         (error)="onFounderAvatarError(investment.founderId)"
+                         class="w-full h-full object-cover">
                   } @else {
                     {{ investment.founderDisplay?.charAt(0)?.toUpperCase() || '?' }}
                   }

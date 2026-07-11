@@ -33,6 +33,9 @@ public class WalletTransaction
     /// <summary>Business reason for the move (Purchase, Investment, ...).</summary>
     [Required]
     public WalletReason Reason { get; set; }
+    /// <summary>Paid platform action code. Used with ReferenceType/ReferenceId for idempotent service charges.</summary>
+    [StringLength(100)]
+    public string? ActionCode { get; set; }
     /// <summary>
     /// The amount moved. Always positive regardless of <see cref="Direction"/>.
     /// Sign is implied by <see cref="Direction"/>.

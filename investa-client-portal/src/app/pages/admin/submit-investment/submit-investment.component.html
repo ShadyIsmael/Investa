@@ -54,8 +54,6 @@
         </div>
 
         <div class="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden">
-          @let selectedType = selectedInvestmentType();
-
           @if (currentStep() === 1) {
             <div class="p-8 space-y-6">
               <header>
@@ -72,6 +70,7 @@
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
                   <label class="block text-sm font-medium text-slate-300 mb-2">Category <span class="text-red-400">*</span></label>
+                  <p class="mb-2 text-xs text-slate-500">Choose the sector investors will browse under.</p>
                   <select formControlName="businessCategoryId" class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all">
                     <option [ngValue]="null" disabled>Select a category</option>
                     @for (cat of categories(); track cat.id) { <option [ngValue]="cat.id">{{ displayLookup(cat) }}</option> }
@@ -80,12 +79,24 @@
                 </div>
 
                 <div>
+                  <label class="block text-sm font-medium text-slate-300 mb-2">Project Stage <span class="text-red-400">*</span></label>
+                  <p class="mb-2 text-xs text-slate-500">Required by the backend. Select the current maturity of this opportunity.</p>
+                  <select formControlName="businessStageId" class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all">
+                    <option [ngValue]="null" disabled>Select project stage</option>
+                    @for (stage of stages(); track stage.id) { <option [ngValue]="stage.id">{{ displayLookup(stage) }}</option> }
+                  </select>
+                  @if (hasError('businessStageId')) { <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('businessStageId') }}</p> }
+                </div>
+              </div>
+
+              <div>
                   <label class="block text-sm font-medium text-slate-300 mb-3">Investment Model <span class="text-red-400">*</span></label>
+                  <p class="mb-3 text-xs text-slate-500">Pick one model. The funding step will show only the required fields for that model.</p>
                   <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     @for (type of investmentTypes; track type.id) {
                       @if (type.id !== InvestmentType.Founding) {
                         <label class="relative cursor-pointer">
-                          <input type="radio" formControlName="investmentTypeId" [value]="type.id" class="peer sr-only" />
+                          <input type="radio" formControlName="investmentTypeId" [value]="type.id" [checked]="isInvestmentModelSelected(type.id)" (change)="onInvestmentModelSelected(type.id)" class="peer sr-only" />
                           <div class="h-full p-3 rounded-xl border-2 transition-all peer-checked:border-purple-500 peer-checked:bg-purple-500/10 border-slate-600 hover:border-slate-500">
                             <div class="font-semibold text-white text-sm">{{ getInvestmentModelName(type.id) }}</div>
                             <div class="text-xs text-slate-400 mt-1">{{ getInvestmentModelDescription(type.id) }}</div>
@@ -95,13 +106,13 @@
                     }
                   </div>
                 </div>
-              </div>
 
               <div>
                 <label class="block text-sm font-medium text-slate-300 mb-2">Short Description <span class="text-red-400">*</span></label>
+                <p class="mb-2 text-xs text-slate-500">Required. Minimum 20 characters, maximum 300 characters.</p>
                 <textarea formControlName="shortDescription" rows="3" class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none" placeholder="A concise pitch investors can scan quickly"></textarea>
                 @if (hasError('shortDescription')) { <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('shortDescription') }}</p> }
-                <p class="mt-1 text-xs text-slate-500">{{ investmentForm.get('shortDescription')?.value?.length || 0 }} / 240 characters</p>
+                <p class="mt-1 text-xs text-slate-500">{{ investmentForm.get('shortDescription')?.value?.length || 0 }} / 300 characters</p>
               </div>
 
               <div>
@@ -135,7 +146,7 @@
                   <label class="block text-sm font-medium text-slate-300 mb-2">Funding Target <span class="text-red-400">*</span></label>
                   <input type="number" formControlName="targetFund" class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" placeholder="Total amount you want to raise" />
                   @if (hasError('targetFund')) { <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('targetFund') }}</p> }
-                  @if (selectedType === InvestmentType.Equity && targetFundCalculated() > 0) { <p class="mt-1 text-xs text-blue-300">Calculated from shares: {{ formatCurrency(targetFundCalculated()) }}</p> }
+                  @if (isEquityModel() && targetFundCalculated() > 0) { <p class="mt-1 text-xs text-blue-300">Calculated from shares: {{ formatCurrency(targetFundCalculated()) }}</p> }
                 </div>
 
                 <div>
@@ -149,30 +160,29 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-slate-300 mb-2">How will you use the funds?</label>
+                <label class="block text-sm font-medium text-slate-300 mb-2">How will you use the funds? <span class="text-red-400">*</span></label>
                 <textarea rows="3" formControlName="fundingPurposeDetails" class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none" placeholder="Describe how you will use the funds"></textarea>
-                <p class="mt-1 text-xs text-slate-500">Explain how the requested funding will be used. Investors will use this to judge whether the opportunity is convincing.</p>
+                <p class="mt-1 text-xs text-slate-500">Required. Minimum 30 characters. Explain how the requested funding will be used.</p>
                 @if (hasError('fundingPurposeDetails')) { <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('fundingPurposeDetails') }}</p> }
               </div>
 
-              @if (selectedType === InvestmentType.Equity) {
+              @if (isEquityModel()) {
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div><label class="block text-sm font-medium text-slate-300 mb-2">Share Price <span class="text-red-400">*</span></label><input type="number" formControlName="sharePrice" class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" />@if (hasError('sharePrice')) { <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('sharePrice') }}</p> }</div>
-                  <div><label class="block text-sm font-medium text-slate-300 mb-2">Total Shares <span class="text-red-400">*</span></label><input type="number" formControlName="totalShares" class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" />@if (hasError('totalShares')) { <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('totalShares') }}</p> }</div>
-                  <div><label class="block text-sm font-medium text-slate-300 mb-2">Equity Offered % <span class="text-red-400">*</span></label><input type="number" formControlName="equityOfferedPercentage" class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" />@if (hasError('equityOfferedPercentage')) { <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('equityOfferedPercentage') }}</p> }</div>
+                  <div><label class="block text-sm font-medium text-slate-300 mb-2">Share Price <span class="text-red-400">*</span></label><p class="mb-2 text-xs text-slate-500">Required for Equity participation.</p><input type="number" formControlName="sharePrice" class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" />@if (hasError('sharePrice')) { <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('sharePrice') }}</p> }</div>
+                  <div><label class="block text-sm font-medium text-slate-300 mb-2">Total Shares <span class="text-red-400">*</span></label><p class="mb-2 text-xs text-slate-500">Required for Equity participation.</p><input type="number" formControlName="totalShares" class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" />@if (hasError('totalShares')) { <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('totalShares') }}</p> }</div>
+                  <div><label class="block text-sm font-medium text-slate-300 mb-2">Equity Offered % <span class="text-red-400">*</span></label><p class="mb-2 text-xs text-slate-500">Required for Equity. Enter the ownership percentage offered.</p><input type="number" formControlName="equityOfferedPercentage" class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" />@if (hasError('equityOfferedPercentage')) { <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('equityOfferedPercentage') }}</p> }</div>
                 </div>
               }
 
-              @if (selectedType === InvestmentType.Loan) {
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                  <div><label class="block text-sm font-medium text-slate-300 mb-2">Loan Amount <span class="text-red-400">*</span></label><input type="number" formControlName="targetFund" class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" /></div>
+              @if (isLoanModel()) {
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div><label class="block text-sm font-medium text-slate-300 mb-2">Return Rate <span class="text-red-400">*</span></label><input type="number" formControlName="interestRate" class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" />@if (hasError('interestRate')) { <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('interestRate') }}</p> }</div>
                   <div><label class="block text-sm font-medium text-slate-300 mb-2">Duration <span class="text-red-400">*</span></label><input type="number" formControlName="loanDurationMonths" class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" />@if (hasError('loanDurationMonths')) { <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('loanDurationMonths') }}</p> }</div>
                   <div><label class="block text-sm font-medium text-slate-300 mb-2">Repayment Frequency <span class="text-red-400">*</span></label><select formControlName="repaymentFrequency" class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white">@for (freq of repaymentFrequencies; track freq) { <option [value]="freq">{{ freq }}</option> }</select></div>
                 </div>
               }
 
-              @if (selectedType === InvestmentType.RevenueSharing) {
+              @if (isProfitSharingModel()) {
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div><label class="block text-sm font-medium text-slate-300 mb-2">Required Capital <span class="text-red-400">*</span></label><input type="number" formControlName="minimumContribution" class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" />@if (hasError('minimumContribution')) { <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('minimumContribution') }}</p> }</div>
                   <div><label class="block text-sm font-medium text-slate-300 mb-2">Profit Share % <span class="text-red-400">*</span></label><input type="number" formControlName="revenueSharePercentage" class="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" />@if (hasError('revenueSharePercentage')) { <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('revenueSharePercentage') }}</p> }</div>
@@ -197,11 +207,24 @@
 
           @if (currentStep() === 4) {
             <div class="p-8 space-y-4">
-              <header><h2 class="text-xl font-bold text-white">Advanced</h2><p class="text-slate-400 text-sm">Everything here is optional.</p></header>
-              <details class="rounded-xl border border-slate-700/70 bg-slate-900/30 p-4"><summary class="cursor-pointer text-sm font-semibold text-slate-200">Opportunity metadata</summary><div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6"><select formControlName="businessStageId" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white"><option [ngValue]="null">Business stage</option>@for (stage of stages(); track stage.id) { <option [ngValue]="stage.id">{{ displayLookup(stage) }}</option> }</select><select formControlName="projectPhaseId" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white"><option [ngValue]="null">Opportunity phase</option>@for (phase of phases(); track phase.id) { <option [ngValue]="phase.id">{{ displayLookup(phase) }}</option> }</select><input type="text" formControlName="milestone" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" placeholder="Current milestone" /></div><div class="mt-5 flex flex-wrap gap-2">@for (tag of tags(); track tag.id) { <label class="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/70 px-3 py-2 text-sm text-slate-200"><input type="checkbox" class="rounded border-slate-600 bg-slate-900 text-purple-500" [checked]="(investmentForm.get('tagIds')?.value || []).includes(tag.id)" (change)="toggleTag(tag.id, $any($event.target).checked)" /><span>{{ displayLookup(tag) }}</span></label> }</div></details>
-              <details class="rounded-xl border border-slate-700/70 bg-slate-900/30 p-4"><summary class="cursor-pointer text-sm font-semibold text-slate-200">Advanced financial terms</summary><div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6"><input type="number" formControlName="maxInvestment" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" placeholder="Maximum investment" /><input type="number" formControlName="initialCapital" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" placeholder="Founder initial capital" /><input type="date" formControlName="startDate" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" /><input type="date" formControlName="endDate" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" /><input type="number" formControlName="expectedROI" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" placeholder="Expected ROI %" /></div></details>
-              <details class="rounded-xl border border-slate-700/70 bg-slate-900/30 p-4"><summary class="cursor-pointer text-sm font-semibold text-slate-200">Advanced equity terms</summary><div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6"><input type="number" formControlName="availableShares" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" placeholder="Available shares" /><input type="number" formControlName="valuationCap" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" placeholder="Valuation cap" /><input type="number" formControlName="currentValuation" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" placeholder="Current valuation" /><input type="number" formControlName="estimatedFutureValuation" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" placeholder="Estimated future valuation" /><select formControlName="equityExitType" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white"><option [ngValue]="null">Exit type</option>@for (exitType of equityExitTypes; track exitType.id) { <option [ngValue]="exitType.id">{{ displayLookup(exitType) }}</option> }</select><input type="date" formControlName="exitTargetDate" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" /></div><textarea formControlName="expectedExitStrategy" rows="3" class="mt-4 w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" placeholder="Exit strategy details"></textarea></details>
-              <details class="rounded-xl border border-slate-700/70 bg-slate-900/30 p-4"><summary class="cursor-pointer text-sm font-semibold text-slate-200">Advanced loan and profit sharing terms</summary><div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6"><input type="number" formControlName="estimatedInstallment" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" placeholder="Estimated installment" /><input type="number" formControlName="totalRepaymentAmount" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" placeholder="Total repayment amount" /><input type="number" formControlName="gracePeriodMonths" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" placeholder="Grace period months" /><input type="date" formControlName="contractStartDate" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" /><input type="date" formControlName="contractEndDate" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" /><input type="number" formControlName="totalExpectedPayout" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" placeholder="Total expected payout" /></div></details>
+              <header><h2 class="text-xl font-bold text-white">Advanced</h2><p class="text-slate-400 text-sm">Optional details are collapsed. Required publishing fields stay visible.</p></header>
+              <section class="rounded-xl border border-blue-500/30 bg-blue-500/10 p-4">
+                <label class="block text-sm font-medium text-slate-200 mb-2">Campaign Start Date <span class="text-red-400">*</span></label>
+                <p class="mb-3 text-xs text-blue-100/80">Required by the current create flow. Choose when this opportunity should start accepting participation.</p>
+                <input type="date" formControlName="startDate" class="w-full md:w-1/2 px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" />
+                @if (hasError('startDate')) { <p class="mt-1 text-sm text-red-400">{{ getErrorMessage('startDate') }}</p> }
+              </section>
+              <details class="rounded-xl border border-slate-700/70 bg-slate-900/30 p-4"><summary class="cursor-pointer text-sm font-semibold text-slate-200">Opportunity metadata <span class="text-slate-500 font-normal">(optional)</span></summary><div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6"><select formControlName="projectPhaseId" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white"><option [ngValue]="null">Opportunity phase</option>@for (phase of phases(); track phase.id) { <option [ngValue]="phase.id">{{ displayLookup(phase) }}</option> }</select><input type="text" formControlName="milestone" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" placeholder="Current milestone" /></div><div class="mt-5 flex flex-wrap gap-2">@for (tag of tags(); track tag.id) { <label class="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/70 px-3 py-2 text-sm text-slate-200"><input type="checkbox" class="rounded border-slate-600 bg-slate-900 text-purple-500" [checked]="(investmentForm.get('tagIds')?.value || []).includes(tag.id)" (change)="toggleTag(tag.id, $any($event.target).checked)" /><span>{{ displayLookup(tag) }}</span></label> }</div></details>
+              <details class="rounded-xl border border-slate-700/70 bg-slate-900/30 p-4"><summary class="cursor-pointer text-sm font-semibold text-slate-200">Advanced financial terms <span class="text-slate-500 font-normal">(optional)</span></summary><div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6"><input type="number" formControlName="maxInvestment" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" placeholder="Maximum investment" /><input type="number" formControlName="initialCapital" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" placeholder="Founder initial capital" /><input type="date" formControlName="endDate" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" /><input type="number" formControlName="expectedROI" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" placeholder="Expected ROI %" /></div></details>
+              @if (isEquityModel()) {
+                <details class="rounded-xl border border-slate-700/70 bg-slate-900/30 p-4"><summary class="cursor-pointer text-sm font-semibold text-slate-200">Advanced equity terms <span class="text-slate-500 font-normal">(optional)</span></summary><div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6"><input type="number" formControlName="availableShares" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" placeholder="Available shares" /><input type="number" formControlName="valuationCap" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" placeholder="Valuation cap" /><input type="number" formControlName="currentValuation" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" placeholder="Current valuation" /><input type="number" formControlName="estimatedFutureValuation" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" placeholder="Estimated future valuation" /><select formControlName="equityExitType" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white"><option [ngValue]="null">Exit type</option>@for (exitType of equityExitTypes; track exitType.id) { <option [ngValue]="exitType.id">{{ displayLookup(exitType) }}</option> }</select><input type="date" formControlName="exitTargetDate" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" /></div><textarea formControlName="expectedExitStrategy" rows="3" class="mt-4 w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" placeholder="Exit strategy details"></textarea></details>
+              }
+              @if (isLoanModel()) {
+                <details class="rounded-xl border border-slate-700/70 bg-slate-900/30 p-4"><summary class="cursor-pointer text-sm font-semibold text-slate-200">Advanced loan terms <span class="text-slate-500 font-normal">(optional)</span></summary><div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6"><input type="number" formControlName="estimatedInstallment" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" placeholder="Estimated installment" /><input type="number" formControlName="totalRepaymentAmount" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" placeholder="Total repayment amount" /><input type="number" formControlName="gracePeriodMonths" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" placeholder="Grace period months" /></div></details>
+              }
+              @if (isProfitSharingModel()) {
+                <details class="rounded-xl border border-slate-700/70 bg-slate-900/30 p-4"><summary class="cursor-pointer text-sm font-semibold text-slate-200">Advanced profit sharing terms <span class="text-slate-500 font-normal">(optional)</span></summary><div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6"><input type="date" formControlName="contractStartDate" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" /><input type="date" formControlName="contractEndDate" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" /><input type="number" formControlName="totalExpectedPayout" class="px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white" placeholder="Total expected payout" /></div></details>
+              }
             </div>
           }
 
@@ -229,7 +252,7 @@
             @if (currentStep() < totalSteps) {
               <button type="button" (click)="nextStep()" class="px-8 py-3 bg-gradient-to-r from-purple-500 to-blue-500 text-white font-semibold rounded-xl hover:from-purple-600 hover:to-blue-600 transition-all flex items-center gap-2">{{ t('submitInvestment.actions.continue') }}<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></button>
             } @else {
-              <button type="submit" [disabled]="isSubmitting() || !formValid() || !hasCoverImage()" class="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">{{ submitButtonLabel() }}</button>
+              <button type="submit" [disabled]="isSubmitting()" class="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">{{ submitButtonLabel() }}</button>
             }
           </div>
         </div>

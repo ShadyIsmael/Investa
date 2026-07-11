@@ -1,0 +1,320 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+  <section class="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+    <header class="flex items-start justify-between gap-4 border-b border-slate-800 p-6">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">{{ t('participationBuilder.title') }}</p>
+        <h2 class="mt-2 text-2xl font-bold text-white">{{ opportunityTitle || t('participationBuilder.opportunityFallback') }}</h2>
+        <p class="mt-1 text-sm text-slate-400">{{ t('participationBuilder.subtitle') }}</p>
+      </div>
+      <button type="button"
+              (click)="close()"
+              class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-300 hover:bg-slate-700">
+        {{ t('common.close') }}
+      </button>
+    </header>
+
+    <div class="p-6">
+      @if (loading()) {
+        <div class="rounded-xl border border-slate-800 bg-slate-950 p-8 text-center text-sm text-slate-400">{{ t('participationBuilder.loading') }}</div>
+      } @else if (form(); as f) {
+        @if (isEquity()) {
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+              <p class="text-xs uppercase tracking-wide text-slate-500">{{ t('participationBuilder.labels.investmentModel') }}</p>
+              <p class="mt-2 text-lg font-bold text-white">{{ t('participationBuilder.models.equity') }}</p>
+              <p class="mt-1 text-sm text-slate-500">{{ f.currency || t('participationBuilder.currencyFallback') }}</p>
+            </div>
+            <div class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+              <p class="text-xs uppercase tracking-wide text-slate-500">{{ t('participationBuilder.labels.totalShares') }}</p>
+              <p class="mt-2 text-2xl font-bold text-white">{{ f.totalShares || 0 | number }}</p>
+            </div>
+            <div class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+              <p class="text-xs uppercase tracking-wide text-slate-500">{{ t('participationBuilder.labels.availableShares') }}</p>
+              <p class="mt-2 text-2xl font-bold text-emerald-300">{{ f.availableShares || 0 | number }}</p>
+            </div>
+          </div>
+
+          <div class="mt-5 rounded-xl border border-slate-800 bg-slate-950 p-5">
+            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p class="text-xs uppercase tracking-wide text-slate-500">{{ t('participationBuilder.labels.pricePerShare') }}</p>
+                <p class="mt-2 text-3xl font-bold text-blue-300">{{ money(f.sharePrice) }}</p>
+              </div>
+              <div class="text-sm text-slate-400">
+                @if (f.minimumShares) { <p>{{ t('participationBuilder.labels.minimumShares') }}: {{ f.minimumShares | number }}</p> }
+                @if (f.maximumShares) { <p>{{ t('participationBuilder.labels.maximumShares') }}: {{ f.maximumShares | number }}</p> }
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-5 rounded-xl border border-slate-800 bg-slate-950 p-5">
+            <label class="block text-sm font-semibold text-white">{{ t('participationBuilder.labels.numberOfShares') }}</label>
+            <div class="mt-3 flex items-center gap-3">
+              <button type="button"
+                      (click)="decrease()"
+                      [disabled]="!canDecrease()"
+                      class="h-12 w-12 rounded-xl border border-slate-700 bg-slate-800 text-2xl font-bold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">
+                -
+              </button>
+              <input type="number"
+                     class="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-center text-2xl font-bold text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                     [ngModel]="selectedShares()"
+                     (ngModelChange)="onSharesInput($event)"
+                     [min]="minShares()"
+                     [max]="maxShares()">
+              <button type="button"
+                      (click)="increase()"
+                      [disabled]="!canIncrease()"
+                      class="h-12 w-12 rounded-xl border border-slate-700 bg-slate-800 text-2xl font-bold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">
+                +
+              </button>
+            </div>
+            @if (validationMessage()) {
+              <p class="mt-3 text-sm text-red-300">{{ validationMessage() }}</p>
+            }
+          </div>
+
+          <div class="mt-5 rounded-xl border border-blue-500/30 bg-blue-500/10 p-5">
+            <p class="text-sm font-semibold text-blue-200">{{ t('participationBuilder.labels.calculatedTotal') }}</p>
+            <div class="mt-4 space-y-2 text-sm text-slate-300">
+              <div class="flex justify-between gap-4">
+                <span>{{ t('participationBuilder.labels.selectedShares') }}</span>
+                <strong class="text-white">{{ selectedShares() | number }}</strong>
+              </div>
+              <div class="flex justify-between gap-4">
+                <span>{{ t('participationBuilder.labels.pricePerShare') }}</span>
+                <strong class="text-white">{{ money(f.sharePrice) }}</strong>
+              </div>
+              <div class="border-t border-blue-500/20 pt-3 flex justify-between gap-4 text-lg">
+                <span class="text-blue-100">{{ t('participationBuilder.labels.estimatedInvestment') }}</span>
+                <strong class="text-white">{{ money(estimatedTotal()) }}</strong>
+              </div>
+            </div>
+            <p class="mt-3 text-xs leading-5 text-blue-200/80">{{ t('participationBuilder.previewHelper') }}</p>
+          </div>
+        } @else if (isLoan()) {
+        <div class="rounded-xl border border-slate-800 bg-slate-950 p-5">
+          <p class="text-xs uppercase tracking-wide text-slate-500">{{ t('participationBuilder.labels.opportunityContext') }}</p>
+          <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p class="text-lg font-bold text-white">{{ f.opportunityTitle || opportunityTitle }}</p>
+            <span class="inline-flex w-fit rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-200">{{ modelLabel() }}</span>
+          </div>
+          <p class="mt-2 text-sm text-slate-500">{{ f.currency || t('participationBuilder.currencyFallback') }}</p>
+        </div>
+
+        <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+            <p class="text-xs uppercase tracking-wide text-slate-500">{{ t('participationBuilder.labels.fundingTarget') }}</p>
+            <p class="mt-2 text-2xl font-bold text-white">{{ money(f.fundingTarget) }}</p>
+          </div>
+          <div class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+            <p class="text-xs uppercase tracking-wide text-slate-500">{{ t('participationBuilder.labels.alreadyFunded') }}</p>
+            <p class="mt-2 text-2xl font-bold text-white">{{ money(f.alreadyFundedAmount) }}</p>
+          </div>
+          <div class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+            <p class="text-xs uppercase tracking-wide text-slate-500">{{ t('participationBuilder.labels.remainingFunding') }}</p>
+            <p class="mt-2 text-2xl font-bold text-emerald-300">{{ money(f.remainingFundingAmount) }}</p>
+          </div>
+        </div>
+
+        <div class="mt-5 rounded-xl border border-slate-800 bg-slate-950 p-5">
+          <label class="block text-sm font-semibold text-white">{{ t('participationBuilder.labels.yourContribution') }}</label>
+          <div class="mt-3">
+            <input type="number"
+                   class="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-2xl font-bold text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   [ngModel]="contributionAmount()"
+                   (ngModelChange)="onContributionInput($event)"
+                   [min]="minContribution() || 0"
+                   [max]="remainingFunding() || maxContribution() || null"
+                   step="0.01">
+          </div>
+          <div class="mt-3 text-sm text-slate-400">
+            @if (minContribution() !== null) { <p>{{ t('participationBuilder.labels.minimum') }}: {{ money(minContribution()) }}</p> }
+            @if (maxContribution() !== null) { <p>{{ t('participationBuilder.labels.maximum') }}: {{ money(maxContribution()) }}</p> }
+            @if (remainingFunding() !== null) { <p>{{ t('participationBuilder.labels.remainingFundingLimit') }}: {{ money(remainingFunding()) }}</p> }
+          </div>
+          @if (validationMessage()) {
+            <p class="mt-3 text-sm text-red-300">{{ validationMessage() }}</p>
+          }
+        </div>
+
+        <div class="mt-5 rounded-xl border border-slate-800 bg-slate-950 p-5">
+          <p class="text-sm font-semibold text-white">{{ t('participationBuilder.labels.loanTerms') }}</p>
+          <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div class="flex justify-between gap-4">
+              <span class="text-slate-400">{{ t('participationBuilder.labels.returnRate') }}</span>
+              <strong class="text-white">{{ returnRateText() }}</strong>
+            </div>
+            <div class="flex justify-between gap-4">
+              <span class="text-slate-400">{{ t('participationBuilder.labels.term') }}</span>
+              <strong class="text-white">{{ termText() }}</strong>
+            </div>
+            <div class="flex justify-between gap-4">
+              <span class="text-slate-400">{{ t('participationBuilder.labels.repaymentModel') }}</span>
+              <strong class="text-white">{{ f.repaymentModel || t('common.unavailable') }}</strong>
+            </div>
+            <div class="flex justify-between gap-4">
+              <span class="text-slate-400">{{ t('participationBuilder.labels.maturityDate') }}</span>
+              <strong class="text-white">{{ maturityDateText() }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-5 rounded-xl border border-blue-500/30 bg-blue-500/10 p-5">
+          <p class="text-sm font-semibold text-blue-200">{{ t('participationBuilder.labels.expectedOutcome') }}</p>
+          <div class="mt-4 space-y-2 text-sm text-slate-300">
+            <div class="flex justify-between gap-4"><span>{{ t('participationBuilder.labels.yourContribution') }}</span><strong class="text-white">{{ money(contributionAmount()) }}</strong></div>
+            <div class="flex justify-between gap-4"><span>{{ t('participationBuilder.labels.expectedReturn') }}</span><strong class="text-white">{{ money(expectedReturn()) }}</strong></div>
+            <div class="border-t border-blue-500/20 pt-3 flex justify-between gap-4 text-lg"><span class="text-blue-100">{{ t('participationBuilder.labels.expectedRepayment') }}</span><strong class="text-white">{{ money(expectedTotalRepayment()) }}</strong></div>
+          </div>
+          <p class="mt-3 text-xs leading-5 text-blue-200/80">{{ t('participationBuilder.backendTermsHelper') }}</p>
+        </div>
+        } @else if (isProfitSharing()) {
+        <div class="rounded-xl border border-slate-800 bg-slate-950 p-5">
+          <p class="text-xs uppercase tracking-wide text-slate-500">Opportunity Context</p>
+          <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p class="text-lg font-bold text-white">{{ f.opportunityTitle || opportunityTitle }}</p>
+            <span class="inline-flex w-fit rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-200">{{ modelLabel() }}</span>
+          </div>
+          <p class="mt-2 text-sm text-slate-500">{{ f.currency || t('participationBuilder.currencyFallback') }}</p>
+        </div>
+
+        <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+            <p class="text-xs uppercase tracking-wide text-slate-500">{{ t('participationBuilder.labels.fundingTarget') }}</p>
+            <p class="mt-2 text-2xl font-bold text-white">{{ money(f.fundingTarget) }}</p>
+          </div>
+          <div class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+            <p class="text-xs uppercase tracking-wide text-slate-500">{{ t('participationBuilder.labels.alreadyFunded') }}</p>
+            <p class="mt-2 text-2xl font-bold text-white">{{ money(f.alreadyFundedAmount) }}</p>
+          </div>
+          <div class="rounded-xl border border-slate-800 bg-slate-950 p-4">
+            <p class="text-xs uppercase tracking-wide text-slate-500">{{ t('participationBuilder.labels.remaining') }}</p>
+            <p class="mt-2 text-2xl font-bold text-emerald-300">{{ money(f.remainingFundingAmount) }}</p>
+          </div>
+        </div>
+
+        <div class="mt-5 rounded-xl border border-slate-800 bg-slate-950 p-5">
+          <label class="block text-sm font-semibold text-white">{{ t('participationBuilder.labels.contributionAmount') }}</label>
+          <div class="mt-3">
+            <input type="number"
+                   class="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-2xl font-bold text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                   [ngModel]="contributionAmount()"
+                   (ngModelChange)="onContributionInput($event)"
+                   [min]="minContribution() || 0"
+                   [max]="remainingFunding() || maxContribution() || null"
+                   step="0.01">
+          </div>
+          <div class="mt-3 text-sm text-slate-400">
+            @if (minContribution() !== null) { <p>{{ t('participationBuilder.labels.minimum') }}: {{ money(minContribution()) }}</p> }
+            @if (maxContribution() !== null) { <p>{{ t('participationBuilder.labels.maximum') }}: {{ money(maxContribution()) }}</p> }
+            @if (remainingFunding() !== null) { <p>{{ t('participationBuilder.labels.remainingFundingLimit') }}: {{ money(remainingFunding()) }}</p> }
+          </div>
+          @if (validationMessage()) {
+            <p class="mt-3 text-sm text-red-300">{{ validationMessage() }}</p>
+          }
+        </div>
+
+        <div class="mt-5 rounded-xl border border-slate-800 bg-slate-950 p-5">
+          <p class="text-sm font-semibold text-white">{{ t('participationBuilder.labels.profitSharingTerms') }}</p>
+          <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div class="flex justify-between gap-4">
+              <span class="text-slate-400">{{ t('participationBuilder.labels.profitShare') }}</span>
+              <strong class="text-white">{{ profitShareText() }}</strong>
+            </div>
+            <div class="flex justify-between gap-4">
+              <span class="text-slate-400">{{ t('participationBuilder.labels.durationTerm') }}</span>
+              <strong class="text-white">{{ profitSharingTermText() }}</strong>
+            </div>
+            <div class="flex justify-between gap-4">
+              <span class="text-slate-400">{{ t('participationBuilder.labels.expectedProfit') }}</span>
+              <strong class="text-white">{{ expectedProfitAmount() !== null ? money(expectedProfitAmount()) : t('common.unavailable') }}</strong>
+            </div>
+            <div class="flex justify-between gap-4">
+              <span class="text-slate-400">{{ t('participationBuilder.labels.expectedPayout') }}</span>
+              <strong class="text-white">{{ expectedTotalPayoutAmount() !== null ? money(expectedTotalPayoutAmount()) : t('common.unavailable') }}</strong>
+            </div>
+            <div class="flex justify-between gap-4">
+              <span class="text-slate-400">{{ t('participationBuilder.labels.opportunityPayout') }}</span>
+              <strong class="text-white">{{ opportunityTotalExpectedPayout() !== null ? money(opportunityTotalExpectedPayout()) : t('common.unavailable') }}</strong>
+            </div>
+            <div class="flex justify-between gap-4">
+              <span class="text-slate-400">{{ t('participationBuilder.labels.contractPeriod') }}</span>
+              <strong class="text-white">{{ contractPeriodText() }}</strong>
+            </div>
+            <div class="sm:col-span-2">
+              <p class="text-slate-400">{{ t('participationBuilder.labels.exitTerms') }}</p>
+              <p class="mt-1 text-sm leading-6 text-white">{{ exitTermsText() }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-5">
+          <p class="text-sm font-semibold text-emerald-200">{{ t('participationBuilder.labels.participationSummary') }}</p>
+          <div class="mt-4 space-y-2 text-sm text-slate-300">
+            <div class="flex justify-between gap-4"><span>{{ t('participationBuilder.labels.yourContribution') }}</span><strong class="text-white">{{ money(contributionAmount()) }}</strong></div>
+            <div class="flex justify-between gap-4"><span>{{ t('participationBuilder.labels.profitShare') }}</span><strong class="text-white">{{ profitShareText() }}</strong></div>
+            <div class="flex justify-between gap-4"><span>{{ t('participationBuilder.labels.durationTerm') }}</span><strong class="text-white">{{ profitSharingTermText() }}</strong></div>
+            <div class="flex justify-between gap-4"><span>{{ t('participationBuilder.labels.expectedProfit') }}</span><strong class="text-white">{{ expectedProfitAmount() !== null ? money(expectedProfitAmount()) : t('common.unavailable') }}</strong></div>
+            <div class="flex justify-between gap-4"><span>{{ t('participationBuilder.labels.expectedPayout') }}</span><strong class="text-white">{{ expectedTotalPayoutAmount() !== null ? money(expectedTotalPayoutAmount()) : t('common.unavailable') }}</strong></div>
+            <div class="flex justify-between gap-4"><span>{{ t('participationBuilder.labels.opportunityPayout') }}</span><strong class="text-white">{{ opportunityTotalExpectedPayout() !== null ? money(opportunityTotalExpectedPayout()) : t('common.unavailable') }}</strong></div>
+            <div class="flex justify-between gap-4"><span>{{ t('participationBuilder.labels.contractPeriod') }}</span><strong class="text-white">{{ contractPeriodText() }}</strong></div>
+            <div class="border-t border-emerald-500/20 pt-3">
+              <p class="text-emerald-100">{{ t('participationBuilder.labels.exitTerms') }}</p>
+              <p class="mt-1 text-white">{{ exitTermsText() }}</p>
+            </div>
+          </div>
+          <p class="mt-3 text-xs leading-5 text-emerald-200/80">{{ t('participationBuilder.backendTermsHelper') }}</p>
+        </div>
+        } @else {
+          <div class="rounded-xl border border-amber-500/30 bg-amber-500/10 p-5 text-sm text-amber-100">
+            {{ t('participationBuilder.validation.unsupportedModel') }}
+          </div>
+        }
+      }
+
+      @if (error()) {
+        <div class="mt-5 rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-200">{{ error() }}</div>
+      }
+
+      <div class="mt-5 rounded-xl border border-slate-700 bg-slate-950 p-4 text-sm">
+        <div class="flex justify-between gap-4">
+          <span class="text-slate-400">{{ t('paidActions.investmentValue') }}</span>
+          <strong class="text-white">{{ money(estimatedTotal()) }}</strong>
+        </div>
+        <div class="mt-2 flex justify-between gap-4">
+          <span class="text-slate-400">{{ t('paidActions.fixedCost') }}</span>
+          <strong class="text-white">{{ paidActionCost() | number:'1.2-2' }} CREDIT</strong>
+        </div>
+        <div class="mt-2 flex justify-between gap-4">
+          <span class="text-slate-400">{{ t('paidActions.currentBalance') }}</span>
+          <strong class="text-white">{{ paidActionBalance() | number:'1.2-2' }} CREDIT</strong>
+        </div>
+        <div class="mt-3 border-t border-slate-800 pt-3 flex justify-between gap-4">
+          <span class="font-semibold text-slate-200">{{ t('paidActions.balanceAfter') }}</span>
+          <strong [class]="paidActionInsufficient() ? 'text-red-300' : 'text-emerald-300'">{{ paidActionAfter() | number:'1.2-2' }} CREDIT</strong>
+        </div>
+        @if (paidActionInsufficient()) {
+          <p class="mt-3 text-red-200">
+            {{ t('paidActions.insufficientInline') }}
+            <button type="button" (click)="addCredits()" class="ms-2 font-bold text-white underline">{{ t('paidActions.addCredits') }}</button>
+          </p>
+        }
+      </div>
+
+      <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <button type="button"
+                (click)="close()"
+                class="rounded-xl border border-slate-700 bg-slate-800 px-5 py-3 text-sm font-semibold text-slate-200 hover:bg-slate-700">
+          {{ t('paidActions.cancel') }}
+        </button>
+        <button type="button"
+                (click)="submit()"
+                [disabled]="loading() || submitting() || !!validationMessage() || !form() || paidActionInsufficient()"
+                class="rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50">
+          {{ submitting() ? t('paidActions.processing') : t('paidActions.submitParticipationRequest') }}
+        </button>
+      </div>
+    </div>
+  </section>
+</div>

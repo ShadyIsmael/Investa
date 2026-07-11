@@ -12,6 +12,36 @@
   @if (investment(); as inv) {
     @if (publicOpportunity(); as opp) {
       <div class="animate-fade-in">
+        <!-- Draft Banner for Founder -->
+        @if (isFounder() && isDraft()) {
+          <div class="bg-amber-500/10 border-b border-amber-500/30">
+            <div class="container mx-auto px-6 py-4">
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div class="flex items-center gap-3">
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-sm font-semibold">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                    Draft Status
+                  </span>
+                  <p class="text-amber-200 text-sm">This opportunity is not visible to the public yet. Publish it to make it available to investors.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                  <button type="button"
+                          (click)="editOpportunity()"
+                          class="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-semibold text-sm transition-colors">
+                    Edit
+                  </button>
+                  <button type="button"
+                          (click)="publishOpportunity()"
+                          [disabled]="engagementProcessing()"
+                          class="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                    {{ engagementProcessing() ? 'Publishing...' : 'Publish' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+
         <!-- Public Opportunity Hero -->
         <div class="relative min-h-[460px] bg-slate-900 overflow-hidden">
           @if (getOpportunityCoverUrl(opp)) {
@@ -30,7 +60,13 @@
                 @if (opp.projectStage) {
                   <span class="px-3 py-1 rounded-full bg-blue-500/15 border border-blue-500/25 text-sm font-semibold text-blue-200">{{ opp.projectStage }}</span>
                 }
-                <span class="px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/25 text-sm font-semibold text-emerald-200">{{ getOpportunityStatus(opp) }}</span>
+                <span class="px-3 py-1 rounded-full text-sm font-semibold border"
+                      [ngClass]="{
+                        'bg-slate-600/30 text-gray-300 border-slate-600/30': getOpportunityStatus(opp) === 'Draft',
+                        'bg-emerald-500/15 border border-emerald-500/25 text-emerald-200': getOpportunityStatus(opp) !== 'Draft'
+                      }">
+                  {{ getOpportunityStatus(opp) }}
+                </span>
               </div>
               <h1 class="text-4xl md:text-6xl font-bold text-white tracking-tight mb-5">{{ opp.title }}</h1>
               <p class="text-lg md:text-xl text-slate-200 max-w-3xl leading-8">{{ opp.shortDescription || opp.description }}</p>
@@ -131,7 +167,10 @@
                 <h2 class="text-2xl font-bold text-white mb-4">Founder</h2>
                 <div class="flex flex-col sm:flex-row sm:items-center gap-4">
                   @if (founderAvatar(inv)) {
-                    <img [src]="founderAvatar(inv)" [alt]="getFounderName(opp) + ' profile image'" class="h-16 w-16 rounded-full object-cover border border-slate-600">
+                    <img [src]="founderAvatar(inv)"
+                         [alt]="getFounderName(opp) + ' profile image'"
+                         (error)="onFounderAvatarError(getFounderId(opp))"
+                         class="h-16 w-16 rounded-full object-cover border border-slate-600">
                   } @else {
                     <div class="h-16 w-16 rounded-full bg-slate-700 border border-slate-600 flex items-center justify-center text-xl font-bold text-slate-200">
                       {{ getFounderName(opp).charAt(0) }}
@@ -282,9 +321,9 @@
 
                     @if (showParticipateButton()) {
                       <button type="button"
-                              disabled
-                              class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold py-3 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                        Submit Participation Request
+                              (click)="openParticipationBuilder()"
+                              class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold py-3 px-6 rounded-lg transition-all">
+                        Participate
                       </button>
                     }
 
@@ -374,13 +413,10 @@
                   </span>
                 }
               </div>
-              <h1 class="text-5xl font-bold text-white mb-2">{{ inv.name }}</h1>
+              <h1 class="text-5xl font-bold text-white mb-2">{{ inv.title || inv.name }}</h1>
               <p class="text-gray-400 text-lg max-w-2xl">{{ languageService.language() === 'ar' ? (inv.businessCategoryNameAr || inv.businessCategoryName) : (inv.businessCategoryName || '') }}</p>
             </div>
             <div class="flex items-center gap-3">
-              <button *ngIf="inv.readSource !== 'public-opportunity'" type="button" class="p-3 rounded-full hover:bg-white/10 transition-colors text-gray-400 hover:text-white" (click)="openManageImages(inv)">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M4 6h16v12H4z" /></svg>
-              </button>
               <button type="button" class="p-3 rounded-full hover:bg-white/10 transition-colors text-gray-400 hover:text-white">
                 <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M11.645 20.761A9.865 9.865 0 015.12 5.12a9.865 9.865 0 0115.625 13.625 9.865 9.865 0 01-9.1 1.016zM12 1a11 11 0 110 22 11 11 0 010-22z"></path></svg>
               </button>
@@ -391,9 +427,9 @@
           @if (getProjectMediaImages(inv).length > 0) {
             <div class="flex gap-2 overflow-x-auto pb-1">
               @for (img of getProjectMediaImages(inv); track img.id; let i = $index) {
-                <button type="button" (click)="openLightbox(resolveImageUrl(img.url))"
+                <button type="button" (click)="openLightbox(resolveImageUrl(img.fileUrl || img.previewUrl || img.thumbnailUrl))"
                         class="flex-shrink-0 h-24 w-36 rounded-lg overflow-hidden ring-1 ring-white/10 hover:ring-2 hover:ring-blue-400/70 transition-all focus:outline-none focus:ring-2 focus:ring-blue-400">
-                  <img [src]="resolveImageUrl(img.url)" [alt]="img.caption || ('Image ' + (i + 1))" class="w-full h-full object-cover">
+                  <img [src]="resolveImageUrl(img.fileUrl || img.previewUrl || img.thumbnailUrl)" [alt]="img.caption || ('Image ' + (i + 1))" class="w-full h-full object-cover">
                 </button>
               }
             </div>
@@ -867,16 +903,16 @@
                 <!-- Contact Founder -->
                 <button type="button"
                         (click)="openContactFounder(inv)"
-                        [disabled]="inv.status === 'Funded' || inv.status === 'Closed' || !canUseDeprecatedRequestFlow(inv)"
+                        [disabled]="inv.status === 'Funded' || inv.status === 'Closed'"
                         class="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a10.77 10.77 0 01-4.67-1.03L3 20l1.03-3.33A7.96 7.96 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-                  {{ canUseDeprecatedRequestFlow(inv) ? ('investmentPreview.contactFounder' | translate) : 'Coming soon' }}
+                  {{ 'investmentPreview.contactFounder' | translate }}
                 </button>
 
                 <!-- Invest Now -->
                 <button type="button"
                         (click)="openInvestNow(inv)"
-                        [disabled]="inv.status === 'Funded' || inv.status === 'Closed' || !canUseDeprecatedRequestFlow(inv)"
+                        [disabled]="inv.status === 'Funded' || inv.status === 'Closed'"
                         class="w-full font-bold py-3 px-6 rounded-lg transition-all flex items-center justify-center gap-2 text-base focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
                         [ngClass]="{
                           'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-lg hover:shadow-purple-500/30 active:scale-[0.98] focus:ring-purple-500': inv.status === 'Active' || inv.status === 'Draft',
@@ -888,8 +924,6 @@
                   } @else if (inv.status === 'Closed') {
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
                     {{ 'investmentPreview.closed' | translate }}
-                  } @else if (!canUseDeprecatedRequestFlow(inv)) {
-                    Coming soon
                   } @else {
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     {{ 'investmentPreview.investNow' | translate }}
@@ -952,8 +986,8 @@
               </svg>
             </div>
             <div class="flex-1">
-              <h3 class="text-xl font-bold text-white">Confirm Engagement</h3>
-              <p class="text-sm text-gray-400 mt-1">Please review and confirm your engagement request</p>
+              <h3 class="text-xl font-bold text-white">{{ 'paidActions.conversationRequest' | translate }}</h3>
+              <p class="text-sm text-gray-400 mt-1">{{ 'paidActions.conversationHelper' | translate }}</p>
             </div>
           </div>
         </div>
@@ -963,21 +997,21 @@
           <!-- Opportunity Details -->
           <div class="bg-slate-800/50 border border-slate-700 rounded-lg p-4 space-y-3">
             <div class="flex items-center justify-between">
-              <span class="text-gray-400">Opportunity:</span>
+              <span class="text-gray-400">{{ 'participationBuilder.opportunityFallback' | translate }}:</span>
               <span class="text-white font-semibold">{{ investment.name }}</span>
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-gray-400">Engagement Cost:</span>
-              <span class="text-white font-bold text-lg">{{ engagementCreditCost }} Credits</span>
+              <span class="text-gray-400">{{ 'paidActions.fixedCost' | translate }}:</span>
+              <span class="text-white font-bold text-lg">{{ paidActionCost(contactFounderQuote()) | number:'1.2-2' }} CREDIT</span>
             </div>
             <div class="flex items-center justify-between pt-3 border-t border-slate-700/50">
-              <span class="text-gray-400">Current Credits:</span>
-              <span class="text-blue-300 font-semibold">{{ userCredits() | number:'1.2-2' }}</span>
+              <span class="text-gray-400">{{ 'paidActions.currentBalance' | translate }}:</span>
+              <span class="text-blue-300 font-semibold">{{ paidActionBalance(contactFounderQuote()) | number:'1.2-2' }} CREDIT</span>
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-gray-400">Remaining After:</span>
-              <span [class]="(userCredits() - engagementCreditCost) >= 0 ? 'text-green-300' : 'text-red-300'" class="font-semibold">
-                {{ (userCredits() - engagementCreditCost) | number:'1.2-2' }}
+              <span class="text-gray-400">{{ 'paidActions.balanceAfter' | translate }}:</span>
+              <span [class]="paidActionInsufficient(contactFounderQuote()) ? 'text-red-300' : 'text-green-300'" class="font-semibold">
+                {{ paidActionAfter(contactFounderQuote()) | number:'1.2-2' }} CREDIT
               </span>
             </div>
           </div>
@@ -989,8 +1023,8 @@
                 <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
               </svg>
               <div>
-                <p class="text-sm font-semibold text-orange-300 mb-1">Important Notice</p>
-                <p class="text-sm text-orange-200/80">This action will deduct credits from your account and submit a request to the founder. This action cannot be undone.</p>
+                <p class="text-sm font-semibold text-orange-300 mb-1">{{ 'paidActions.platformFeeNoticeTitle' | translate }}</p>
+                <p class="text-sm text-orange-200/80">{{ 'paidActions.platformFeeNotice' | translate }}</p>
               </div>
             </div>
           </div>
@@ -1001,7 +1035,7 @@
           <button (click)="cancelEngagementConfirmation()" 
                   [disabled]="engagementProcessing()"
                   class="flex-1 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition-colors">
-            Cancel
+            {{ 'paidActions.cancel' | translate }}
           </button>
           <button (click)="confirmEngage()" 
                   [disabled]="engagementProcessing()"
@@ -1011,9 +1045,9 @@
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              Processing...
+              {{ 'paidActions.processing' | translate }}
             } @else {
-              Confirm and Proceed
+              {{ 'paidActions.confirmAndProceed' | translate }}
             }
           </button>
         </div>
@@ -1182,51 +1216,68 @@
             </svg>
           </div>
           <div>
-            <h3 class="text-xl font-bold text-white">Request Chat</h3>
+            <h3 class="text-xl font-bold text-white">{{ 'paidActions.conversationRequest' | translate }}</h3>
             <p class="text-sm text-gray-400">{{ investment.name }}</p>
           </div>
         </div>
 
         <div class="bg-slate-800/50 border border-slate-700 rounded-lg p-4 mb-4">
           <div class="flex items-center justify-between mb-2">
-            <span class="text-gray-400">Current Credit Balance</span>
-            <span class="text-lg font-bold text-white">{{ userCredits() | number }}</span>
+            <span class="text-gray-400">{{ 'paidActions.currentBalance' | translate }}</span>
+            <span class="text-lg font-bold text-white">{{ paidActionBalance(contactFounderQuote()) | number }}</span>
           </div>
           <div class="flex items-center justify-between mb-2">
-            <span class="text-gray-400">Required Credits</span>
-            <span class="text-lg font-bold text-red-400">{{ contactFounderCreditCost | number }}</span>
+            <span class="text-gray-400">{{ 'paidActions.fixedCost' | translate }}</span>
+            <span class="text-lg font-bold text-red-400">{{ paidActionCost(contactFounderQuote()) | number }}</span>
           </div>
           <div class="h-px bg-slate-700 my-2"></div>
           <div class="flex items-center justify-between">
-            <span class="text-gray-300 font-semibold">Remaining Balance</span>
-            <span class="text-lg font-bold text-green-400">{{ (userCredits() - contactFounderCreditCost) | number }}</span>
+            <span class="text-gray-300 font-semibold">{{ 'paidActions.balanceAfter' | translate }}</span>
+            <span [class]="paidActionInsufficient(contactFounderQuote()) ? 'text-lg font-bold text-red-400' : 'text-lg font-bold text-green-400'">{{ paidActionAfter(contactFounderQuote()) | number }}</span>
           </div>
         </div>
 
+        @if (paidActionInsufficient(contactFounderQuote())) {
+          <div class="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200">
+            {{ 'paidActions.insufficientInline' | translate }}
+            <button type="button" (click)="addCredits()" class="ms-2 font-bold text-white underline">{{ 'paidActions.addCredits' | translate }}</button>
+          </div>
+        }
+
         <p class="text-sm text-gray-400 mb-6">
-          A chat request will deduct {{ contactFounderCreditCost }} credits from your balance. This opens discussion only; it does not create participation or unlock Project Room.
+          {{ 'paidActions.conversationHelper' | translate }}
         </p>
 
         <div class="flex gap-3">
           <button (click)="cancelContactFounder()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
-            Cancel
+            {{ 'paidActions.cancel' | translate }}
           </button>
-          <button (click)="confirmContactFounder()" [disabled]="contactFounderProcessing()"
+          <button (click)="confirmContactFounder()" [disabled]="contactFounderProcessing() || paidActionInsufficient(contactFounderQuote())"
                   class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
             @if (contactFounderProcessing()) {
               <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              Processing...
+              {{ 'paidActions.processing' | translate }}
             } @else {
-              Send Chat Request
+              {{ 'paidActions.sendConversationRequest' | translate }}
             }
           </button>
         </div>
       </div>
     </div>
   </div>
+}
+
+@if (participationBuilderOpen() && publicOpportunity(); as opp) {
+  <app-participation-builder
+    [opportunityId]="getPublicOpportunityId(opp)!"
+    [opportunityTitle]="opp.title || 'Opportunity'"
+    source="PublicOpportunity"
+    (closed)="closeParticipationBuilder()"
+    (submitted)="onParticipationSubmitted()">
+  </app-participation-builder>
 }
 
 <!-- Participate / Invest Equity Dialog -->
@@ -1241,26 +1292,25 @@
             </svg>
           </div>
           <div>
-            <h3 class="text-xl font-bold text-white">Participate / Invest</h3>
+            <h3 class="text-xl font-bold text-white">{{ 'participationBuilder.title' | translate }}</h3>
             <p class="text-sm text-gray-400">{{ investment.name }}</p>
           </div>
         </div>
 
-        <!-- Share Price and Available Shares -->
         <div class="grid grid-cols-2 gap-4 mb-6">
           <div class="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-            <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Share Price</p>
+            <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">{{ 'participationBuilder.labels.pricePerShare' | translate }}</p>
             <p class="text-2xl font-bold text-blue-400">${{ investment.sharePrice | number:'1.2-2' }}</p>
           </div>
           <div class="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-            <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Available Shares</p>
+            <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">{{ 'participationBuilder.labels.availableShares' | translate }}</p>
             <p class="text-2xl font-bold text-purple-400">{{ investment.availableShares | number }}</p>
           </div>
         </div>
 
         <!-- Share Selection -->
         <div class="mb-6">
-          <label class="block text-sm font-semibold text-white mb-3">Number of Shares</label>
+          <label class="block text-sm font-semibold text-white mb-3">{{ 'participationBuilder.labels.numberOfShares' | translate }}</label>
           <div class="flex items-center gap-3">
             <button (click)="adjustShares(investment, -1)" [disabled]="equitySharesRequested() <= 1"
                     class="w-12 h-12 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-bold text-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
@@ -1279,7 +1329,7 @@
         <!-- Total Value Calculation -->
         <div class="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/30 rounded-lg p-4 mb-6">
           <div class="flex items-center justify-between">
-            <span class="text-gray-300">Total Value</span>
+            <span class="text-gray-300">{{ 'paidActions.investmentValue' | translate }}</span>
             <span class="text-3xl font-bold text-white">${{ calculateEquityTotalValue(investment) | number:'1.2-2' }}</span>
           </div>
         </div>
@@ -1296,11 +1346,11 @@
 
         <div class="flex gap-3">
           <button (click)="closeInvestNowDialog()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
-            Cancel
+            {{ 'paidActions.cancel' | translate }}
           </button>
           <button (click)="proceedToInvestConfirmation(investment)" [disabled]="!!investmentError()"
                   class="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-            Continue
+            {{ 'common.next' | translate }}
           </button>
         </div>
       </div>
@@ -1320,45 +1370,45 @@
             </svg>
           </div>
           <div>
-            <h3 class="text-xl font-bold text-white">Confirm Participation</h3>
+            <h3 class="text-xl font-bold text-white">{{ 'participationBuilder.labels.participationSummary' | translate }}</h3>
             <p class="text-sm text-gray-400">{{ investment.name }}</p>
           </div>
         </div>
 
         <div class="bg-slate-800/50 border border-slate-700 rounded-lg p-4 mb-4">
           <div class="flex items-center justify-between mb-2">
-            <span class="text-gray-400">Current Credit Balance</span>
-            <span class="text-lg font-bold text-white">{{ userCredits() | number:'1.2-2' }}</span>
+            <span class="text-gray-400">{{ 'paidActions.currentBalance' | translate }}</span>
+            <span class="text-lg font-bold text-white">{{ paidActionBalance(investNowQuote()) | number:'1.2-2' }}</span>
           </div>
           <div class="flex items-center justify-between mb-2">
-            <span class="text-gray-400">Required Credits</span>
-            <span class="text-lg font-bold text-red-400">{{ calculateEquityTotalValue(investment) | number:'1.2-2' }}</span>
+            <span class="text-gray-400">{{ 'paidActions.fixedCost' | translate }}</span>
+            <span class="text-lg font-bold text-red-400">{{ paidActionCost(investNowQuote()) | number:'1.2-2' }}</span>
           </div>
           <div class="h-px bg-slate-700 my-2"></div>
           <div class="flex items-center justify-between">
-            <span class="text-gray-300 font-semibold">Remaining Balance</span>
-            <span class="text-lg font-bold text-green-400">{{ (userCredits() - calculateEquityTotalValue(investment)) | number:'1.2-2' }}</span>
+            <span class="text-gray-300 font-semibold">{{ 'paidActions.balanceAfter' | translate }}</span>
+            <span [class]="paidActionInsufficient(investNowQuote()) ? 'text-lg font-bold text-red-400' : 'text-lg font-bold text-green-400'">{{ paidActionAfter(investNowQuote()) | number:'1.2-2' }}</span>
           </div>
         </div>
 
         <div class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-6">
-          <p class="text-sm text-blue-300 mb-2">Participation Summary</p>
+          <p class="text-sm text-blue-300 mb-2">{{ 'participationBuilder.labels.participationSummary' | translate }}</p>
           <div class="flex items-center justify-between text-sm">
-            <span class="text-gray-400">Shares Requested</span>
+            <span class="text-gray-400">{{ 'participationBuilder.labels.selectedShares' | translate }}</span>
             <span class="text-white font-semibold">{{ equitySharesRequested() }}</span>
           </div>
           <div class="flex items-center justify-between text-sm mt-1">
-            <span class="text-gray-400">Share Price</span>
+            <span class="text-gray-400">{{ 'participationBuilder.labels.pricePerShare' | translate }}</span>
             <span class="text-white font-semibold">${{ investment.sharePrice | number:'1.2-2' }}</span>
           </div>
           <div class="flex items-center justify-between text-sm mt-1">
-            <span class="text-gray-400">Total Value</span>
+            <span class="text-gray-400">{{ 'paidActions.investmentValue' | translate }}</span>
             <span class="text-white font-semibold">${{ calculateEquityTotalValue(investment) | number:'1.2-2' }}</span>
           </div>
         </div>
 
         <p class="text-sm text-gray-400 mb-6">
-          Your participation request will be sent to the founder for approval. Credits will be deducted immediately and refunded if the request is declined.
+          {{ 'paidActions.participationHelper' | translate }}
         </p>
 
         <div class="flex gap-3">

@@ -2,10 +2,11 @@ import { Component, ChangeDetectionStrategy, inject, signal, computed } from '@a
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ProfileService, PublicProfile } from '../../../services/profile.service';
-import { InvestmentService } from '../../../services/investment.service';
+import { Opportunity, OpportunityService } from '../../../services/opportunity.service';
 import { FileStoreService } from '../../../services/file-store.service';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
-import { Investment, InvestmentStatus } from '../../../models/investment.model';
+
+type FounderOpportunity = Opportunity & Record<string, any>;
 
 @Component({
   standalone: true,
@@ -17,26 +18,31 @@ import { Investment, InvestmentStatus } from '../../../models/investment.model';
 export class FounderProfileComponent {
   private route = inject(ActivatedRoute);
   private profileService = inject(ProfileService);
-  private investmentService = inject(InvestmentService);
+  private opportunityService = inject(OpportunityService);
   private fileStoreService = inject(FileStoreService);
 
   founderId = signal<string>('');
   profile = signal<PublicProfile | null>(null);
+  opportunities = signal<FounderOpportunity[]>([]);
   loading = signal(true);
   error = signal(false);
 
   /** Active investments by this founder */
-  founderInvestments = computed<Investment[]>(() => {
+  founderInvestments = computed<FounderOpportunity[]>(() => {
     const id = this.founderId();
     if (!id) return [];
-    return this.investmentService.investments().filter(inv => inv.founderId === id);
+    return this.opportunities().filter(inv => String(inv.founderId || inv.founder?.id || inv.founder?.userId || '') === id);
   });
 
   founderStats = computed(() => {
     const investments = this.founderInvestments();
-    const totalRaised = investments.reduce((sum, investment) => sum + (investment.currentFunding ?? 0), 0);
-    const activeProjects = investments.filter(investment => investment.status === InvestmentStatus.Active).length;
-    const fundedProjects = investments.filter(investment => investment.status === InvestmentStatus.FullyFunded).length;
+    const totalRaised = investments.reduce((sum, investment) => {
+      const target = Number(investment.fundingTarget ?? 0);
+      const progress = Number(investment.fundingProgressPercent ?? 0);
+      return sum + (target > 0 ? target * (progress / 100) : 0);
+    }, 0);
+    const activeProjects = investments.filter(investment => String(investment.status || '').toLowerCase().includes('active')).length;
+    const fundedProjects = investments.filter(investment => String(investment.status || '').toLowerCase().includes('funded')).length;
 
     return {
       totalProjects: investments.length,
@@ -56,10 +62,7 @@ export class FounderProfileComponent {
     if (!id) { this.loading.set(false); this.error.set(true); return; }
 
     try {
-      // Ensure investments are loaded so founderInvestments computed works
-      if (this.investmentService.investments().length === 0) {
-        await this.investmentService.loadInvestments();
-      }
+      this.opportunities.set(await this.opportunityService.getPublicOpportunities());
       const p = await this.profileService.getPublicProfile(id);
       this.profile.set(p);
       if (!p) this.error.set(true);
@@ -97,17 +100,14 @@ export class FounderProfileComponent {
     return `${words[0].charAt(0)}${words[1].charAt(0)}`.toUpperCase();
   }
 
-  getInvestmentImage(inv: Investment): string {
-    if (!inv || !inv.images) return '';
-    // Priority: cover image -> primary image -> first image
-    const coverImage = inv.images.find(i => i.mediaType === 0);
-    if (coverImage) return this.resolveUrl(coverImage.url);
-    const primary = inv.images?.find(i => i.isPrimary) ?? inv.images?.[0];
-    return this.resolveUrl(primary?.url);
+  getInvestmentImage(inv: FounderOpportunity): string {
+    const cover = inv.coverImageUrl;
+    if (cover) return this.resolveUrl(cover);
+    return '';
   }
 
-  fundingPercent(inv: Investment): number {
-    if (!inv.targetFund || inv.targetFund <= 0) return 0;
-    return Math.min(((inv.currentFunding ?? 0) / inv.targetFund) * 100, 100);
+  fundingPercent(inv: FounderOpportunity): number {
+    const pct = Number(inv.fundingProgressPercent ?? 0);
+    return Number.isFinite(pct) ? Math.min(Math.max(pct, 0), 100) : 0;
   }
 }

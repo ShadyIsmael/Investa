@@ -216,7 +216,7 @@ public class NegotiationsController : BaseApiController
 
     [HttpPost("conversations/{id:guid}/close")]
     [ProducesResponseType(typeof(ApiResponse<NegotiationConversationDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Close(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Close(Guid id, [FromBody] CloseNegotiationConversationRequest? request, CancellationToken cancellationToken)
     {
         var userId = ResolveUserIdFromClaims();
         if (userId == null)
@@ -224,8 +224,29 @@ public class NegotiationsController : BaseApiController
 
         try
         {
-            var conversation = await _negotiationService.CloseConversationAsync(userId.Value, id, cancellationToken);
+            var conversation = await _negotiationService.CloseConversationAsync(userId.Value, id, request ?? new CloseNegotiationConversationRequest(), cancellationToken);
             return SuccessResponse(conversation, "Conversation closed successfully");
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
+    [HttpPost("conversations/{id:guid}/hide")]
+    [HttpDelete("conversations/{id:guid}")]
+    [HttpDelete("conversations/{id:guid}/hide")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Hide(Guid id, CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null)
+            return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            await _negotiationService.HideConversationAsync(userId.Value, id, cancellationToken);
+            return SuccessResponse<object?>(null, "Conversation hidden successfully");
         }
         catch (BusinessValidationException ex)
         {
@@ -252,11 +273,129 @@ public class NegotiationsController : BaseApiController
         }
     }
 
+    [HttpGet("conversations/{id:guid}/offers")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<NegotiationOfferDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetOffers(Guid id, CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null)
+            return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            var offers = await _negotiationService.GetOffersAsync(userId.Value, id, cancellationToken);
+            return SuccessResponse(offers);
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
+    [HttpPost("conversations/{id:guid}/offers")]
+    [ProducesResponseType(typeof(ApiResponse<NegotiationOfferDto>), StatusCodes.Status201Created)]
+    public async Task<IActionResult> SendOffer(Guid id, [FromBody] CreateNegotiationOfferRequest request, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return ErrorResponse("Invalid request", 400, ModelState);
+
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null)
+            return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            var offer = await _negotiationService.SendOfferAsync(userId.Value, id, request, cancellationToken);
+            return SuccessResponse(offer, "Negotiation offer sent successfully", 201);
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
+    [HttpPost("conversations/{id:guid}/offers/{offerId:int}/counter")]
+    [ProducesResponseType(typeof(ApiResponse<NegotiationOfferDto>), StatusCodes.Status201Created)]
+    public async Task<IActionResult> CounterOffer(Guid id, int offerId, [FromBody] CreateNegotiationOfferRequest request, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return ErrorResponse("Invalid request", 400, ModelState);
+
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null)
+            return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            var offer = await _negotiationService.CounterOfferAsync(userId.Value, id, offerId, request, cancellationToken);
+            return SuccessResponse(offer, "Negotiation offer countered successfully", 201);
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
+    [HttpPost("conversations/{id:guid}/offers/{offerId:int}/accept")]
+    [ProducesResponseType(typeof(ApiResponse<NegotiationOfferDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> AcceptOffer(Guid id, int offerId, CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null)
+            return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            var offer = await _negotiationService.AcceptOfferAsync(userId.Value, id, offerId, cancellationToken);
+            return SuccessResponse(offer, "Negotiation offer accepted successfully");
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
+    [HttpPost("conversations/{id:guid}/offers/{offerId:int}/reject")]
+    [ProducesResponseType(typeof(ApiResponse<NegotiationOfferDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> RejectOffer(Guid id, int offerId, CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null)
+            return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            var offer = await _negotiationService.RejectOfferAsync(userId.Value, id, offerId, cancellationToken);
+            return SuccessResponse(offer, "Negotiation offer rejected successfully");
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
+    [HttpPost("conversations/{id:guid}/offers/{offerId:int}/withdraw")]
+    [ProducesResponseType(typeof(ApiResponse<NegotiationOfferDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> WithdrawOffer(Guid id, int offerId, CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null)
+            return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            var offer = await _negotiationService.WithdrawOfferAsync(userId.Value, id, offerId, cancellationToken);
+            return SuccessResponse(offer, "Negotiation offer withdrawn successfully");
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
     private Guid? ResolveUserIdFromClaims()
     {
-        var claimValue = User.FindFirst("sub")?.Value
-                         ?? User.FindFirst("id")?.Value
-                         ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var claimValue = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
 
         return Guid.TryParse(claimValue, out var userId) ? userId : null;
     }

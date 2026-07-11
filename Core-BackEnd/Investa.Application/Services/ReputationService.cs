@@ -29,6 +29,7 @@ public class ReputationService : IReputationService
         var transaction = new ReputationTransaction
         {
             UserId = userId,
+            ActivityCode = "AdminAdjustment",
             Points = points,
             Reason = reason,
             CreatedByUserId = performedByUserId,
@@ -48,6 +49,105 @@ public class ReputationService : IReputationService
             userId, points, reason, user.ReputationScore);
     }
 
+    public async Task ApplyActivityAsync(
+        Guid userId,
+        string activityCode,
+        string referenceType,
+        string referenceId,
+        Guid? performedByUserId = null)
+    {
+        if (string.IsNullOrWhiteSpace(activityCode))
+            throw new ArgumentException("Activity code is required.", nameof(activityCode));
+
+        if (string.IsNullOrWhiteSpace(referenceType))
+            throw new ArgumentException("Reference type is required.", nameof(referenceType));
+
+        if (string.IsNullOrWhiteSpace(referenceId))
+            throw new ArgumentException("Reference id is required.", nameof(referenceId));
+
+        var normalizedActivityCode = activityCode.Trim();
+        var normalizedReferenceType = referenceType.Trim();
+        var normalizedReferenceId = referenceId.Trim();
+
+        var rule = await _uow.Repository<ReputationRule>().GetSingleAsync(r =>
+            r.ActivityCode == normalizedActivityCode
+            && r.IsActive
+            && r.IsEnabled);
+
+        if (rule == null)
+        {
+            _logger.LogWarning("Skipping reputation activity {ActivityCode}: active rule not found", normalizedActivityCode);
+            return;
+        }
+
+        var existing = (await _uow.Repository<ReputationTransaction>().FindAsync(t =>
+                t.UserId == userId
+                && t.ActivityCode == normalizedActivityCode
+                && t.ReferenceType == normalizedReferenceType
+                && t.ReferenceId == normalizedReferenceId))
+            .FirstOrDefault();
+
+        if (existing != null)
+        {
+            _logger.LogInformation(
+                "Skipping duplicate reputation activity {ActivityCode} for {UserId} reference {ReferenceType}:{ReferenceId}",
+                normalizedActivityCode,
+                userId,
+                normalizedReferenceType,
+                normalizedReferenceId);
+            return;
+        }
+
+        var user = await _uow.Repository<AuthUser>().GetByIdAsync(userId);
+        if (user == null)
+        {
+            _logger.LogWarning("Skipping reputation activity {ActivityCode}: user {UserId} not found", normalizedActivityCode, userId);
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        var transaction = new ReputationTransaction
+        {
+            UserId = userId,
+            ReputationRuleId = rule.Id,
+            ActivityCode = normalizedActivityCode,
+            Points = rule.Points,
+            Reason = rule.Description,
+            ReferenceType = normalizedReferenceType,
+            ReferenceId = normalizedReferenceId,
+            CreatedByUserId = performedByUserId,
+            SourceModuleValue = ReputationTransaction.SourceModule.System,
+            OccurredAt = now,
+            CreatedAt = now
+        };
+
+        await _uow.Repository<ReputationTransaction>().AddAsync(transaction);
+
+        user.ReputationScore = Math.Max(0, Math.Min(10000, user.ReputationScore + rule.Points));
+        if (rule.Points > 0)
+            user.ActivityScore = Math.Max(0, Math.Min(10000, user.ActivityScore + rule.Points));
+
+        await _uow.Repository<AuthUser>().UpdateAsync(user);
+
+        var client = (await _uow.Repository<Client>().FindAsync(c => c.UserId == userId)).FirstOrDefault();
+        if (client != null)
+        {
+            client.Score = Math.Max(0m, client.Score + rule.Points);
+            client.UpdatedAt = now;
+            await _uow.Repository<Client>().UpdateAsync(client);
+        }
+
+        await _uow.SaveChangesAsync();
+
+        _logger.LogInformation(
+            "Applied reputation activity {ActivityCode} for {UserId}: points={Points} reference={ReferenceType}:{ReferenceId}",
+            normalizedActivityCode,
+            userId,
+            rule.Points,
+            normalizedReferenceType,
+            normalizedReferenceId);
+    }
+
     public async Task ApplyRuleAsync(Guid userId, string ruleCode, string? referenceId = null, string? referenceType = null, Guid? performedByUserId = null)
     {
         // Backwards-compatible wrapper (legacy). Prefer ProcessRuleAsync.
@@ -64,7 +164,7 @@ public class ReputationService : IReputationService
         Guid? performedByUserId = null)
     {
         var rule = await _uow.Repository<ReputationRule>()
-            .GetSingleAsync(r => r.RuleCode == ruleCode && r.IsEnabled);
+            .GetSingleAsync(r => r.RuleCode == ruleCode && r.IsEnabled && r.IsActive);
 
         if (rule == null)
             throw new KeyNotFoundException($"Reputation rule '{ruleCode}' not found or disabled");
@@ -103,13 +203,15 @@ public class ReputationService : IReputationService
         {
             UserId = userId,
             ReputationRuleId = rule.Id,
+            ActivityCode = string.IsNullOrWhiteSpace(rule.ActivityCode) ? rule.RuleCode : rule.ActivityCode,
             Points = rule.Points,
             Reason = reason,
             ReferenceId = referenceId,
             ReferenceType = referenceType,
             CreatedByUserId = performedByUserId,
             SourceModuleValue = sourceModule,
-            OccurredAt = DateTime.UtcNow
+            OccurredAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow
         };
 
         await _uow.Repository<ReputationTransaction>().AddAsync(transaction);
@@ -309,4 +411,3 @@ public class ReputationService : IReputationService
         }).ToList();
     }
 }
-

@@ -5,6 +5,10 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE } from '../../../config/api.token';
+import { ParticipationBuilderComponent } from '../../../components/participation-builder/participation-builder.component';
+import { PaidActionCode, WalletService } from '../../../services/wallet.service';
+import { LanguageService } from '../../../services/language.service';
+import { TranslatePipe } from '../../../pipes/translate.pipe';
 
 type NegotiationStatus =
   | 'Founder Accepted'
@@ -47,6 +51,8 @@ interface NegotiationConversation {
   lastMessageAt?: string | Date | null;
   createdAt?: string | Date | null;
   closedAt?: string | Date | null;
+  closedByUserId?: string | number | null;
+  closeReason?: string | null;
   founderReady?: boolean;
   investorReady?: boolean;
   currentUserReady?: boolean;
@@ -70,37 +76,111 @@ interface TimelineEvent {
   active: boolean;
 }
 
+type OfferLegType = 1 | 2 | 3;
+type OfferStatus = 1 | 2 | 3 | 4 | 5;
+
+interface NegotiationOfferLeg {
+  id?: number;
+  legType: OfferLegType;
+  amount: number;
+  equityPercentage?: number | null;
+  sharesTerms?: string | null;
+  returnRate?: number | null;
+  termMonths?: number | null;
+  repaymentModel?: string | null;
+  profitSharePercentage?: number | null;
+  exitTerms?: string | null;
+}
+
+interface NegotiationOffer {
+  id: number;
+  conversationId: string;
+  createdByUserId?: string | number | null;
+  createdByName?: string;
+  version: number;
+  parentOfferId?: number | null;
+  status: OfferStatus;
+  note?: string | null;
+  currency: string;
+  createdAt?: string | Date | null;
+  legs: NegotiationOfferLeg[];
+}
+
+interface OfferLegDraft {
+  enabled: boolean;
+  amount: FormControl<number | null>;
+  equityPercentage?: FormControl<number | null>;
+  sharesTerms?: FormControl<string | null>;
+  returnRate?: FormControl<number | null>;
+  termMonths?: FormControl<number | null>;
+  repaymentModel?: FormControl<string | null>;
+  profitSharePercentage?: FormControl<number | null>;
+  exitTerms?: FormControl<string | null>;
+}
+
 @Component({
   standalone: true,
   selector: 'app-chat',
   templateUrl: './chat.component.html',
   styleUrls: ['./chat.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink]
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, ParticipationBuilderComponent, TranslatePipe]
 })
 export class ChatComponent implements OnInit {
   private http = inject(HttpClient);
   private apiBase = inject(API_BASE);
   private route = inject(ActivatedRoute);
+  private walletService = inject(WalletService);
+  private languageService = inject(LanguageService);
 
   conversations = signal<NegotiationConversation[]>([]);
   messages = signal<NegotiationMessage[]>([]);
+  offers = signal<NegotiationOffer[]>([]);
   selectedConversation = signal<NegotiationConversation | null>(null);
   loading = signal(true);
   messagesLoading = signal(false);
   sending = signal(false);
   actionProcessing = signal(false);
+  offerProcessing = signal(false);
+  offerBuilderOpen = signal(false);
+  counteringOfferId = signal<number | null>(null);
+  participationBuilderOpen = signal(false);
   error = signal<string | null>(null);
   messagesError = signal<string | null>(null);
   conversationTab = signal<'active' | 'archived' | 'all'>('active');
+  viewerStates = signal<Record<string, any>>({});
   messageControl = new FormControl('');
+  offerNoteControl = new FormControl('');
+  offerCurrencyControl = new FormControl('USD');
+  offerDrafts: Record<OfferLegType, OfferLegDraft> = {
+    1: {
+      enabled: true,
+      amount: new FormControl<number | null>(null),
+      equityPercentage: new FormControl<number | null>(null),
+      sharesTerms: new FormControl<string | null>('')
+    },
+    2: {
+      enabled: false,
+      amount: new FormControl<number | null>(null),
+      returnRate: new FormControl<number | null>(null),
+      termMonths: new FormControl<number | null>(null),
+      repaymentModel: new FormControl<string | null>('Monthly')
+    },
+    3: {
+      enabled: false,
+      amount: new FormControl<number | null>(null),
+      profitSharePercentage: new FormControl<number | null>(null),
+      termMonths: new FormControl<number | null>(null),
+      exitTerms: new FormControl<string | null>('')
+    }
+  };
 
   visibleConversations = computed(() => {
     const tab = this.conversationTab();
     return this.conversations().filter(conversation => {
       if (tab === 'all') return true;
       if (tab === 'archived') return conversation.archived || this.isReadOnly(conversation);
-      return !conversation.archived && !this.isReadOnly(conversation);
+      return !conversation.archived || this.isReadOnly(conversation);
     });
   });
 
@@ -123,7 +203,11 @@ export class ChatComponent implements OnInit {
   isCurrentUserReady = computed(() => !!this.activeConversation()?.currentUserReady);
   isClosed = computed(() => this.isReadOnly(this.activeConversation()));
   bothReady = computed(() => !!this.activeConversation()?.founderReady && !!this.activeConversation()?.investorReady);
-  projectRoomUnlocked = computed(() => this.activeConversation()?.status === 'Participation Approved');
+  projectRoomUnlocked = computed(() => {
+    const conversation = this.activeConversation();
+    const state = this.activeViewerState();
+    return !!state?.projectRoomUnlocked || !!state?.canOpenProjectRoom || conversation?.status === 'Participation Approved';
+  });
   canMarkReady = computed(() => {
     const conversation = this.activeConversation();
     return !!conversation && !this.isReadOnly(conversation) && !this.isCurrentUserReady() && !this.actionProcessing();
@@ -131,6 +215,15 @@ export class ChatComponent implements OnInit {
   canCloseDiscussion = computed(() => {
     const conversation = this.activeConversation();
     return !!conversation && !this.isReadOnly(conversation) && !this.actionProcessing();
+  });
+  canCreateParticipationRequest = computed(() => {
+    const conversation = this.activeConversation();
+    const state = this.activeViewerState();
+    if (!conversation?.opportunityId || this.actionProcessing()) return false;
+    if (state?.projectRoomUnlocked || state?.canOpenProjectRoom || state?.hasPendingParticipationRequest) return false;
+    const summary = this.buildParticipationSummary(conversation).toLowerCase();
+    if (summary.includes('pending') || summary.includes('approved')) return false;
+    return !this.isReadOnly(conversation);
   });
   timeline = computed(() => this.buildTimeline(this.activeConversation()));
   stageSummary = computed(() => this.buildStageSummary(this.activeConversation()));
@@ -171,7 +264,24 @@ export class ChatComponent implements OnInit {
 
   async selectConversation(conversation: NegotiationConversation): Promise<void> {
     this.selectedConversation.set(conversation);
+    await this.loadViewerState(conversation);
     await this.loadMessages(conversation.id);
+    await this.loadOffers(conversation.id);
+  }
+
+  async loadViewerState(conversation: NegotiationConversation): Promise<void> {
+    if (!conversation.opportunityId) return;
+    try {
+      const raw = await this.get<any>(`/api/v1/opportunities/${encodeURIComponent(String(conversation.opportunityId))}/viewer-state`);
+      const state = raw?.data ?? raw;
+      this.viewerStates.update(items => ({ ...items, [String(conversation.opportunityId)]: state }));
+    } catch {
+      this.viewerStates.update(items => {
+        const next = { ...items };
+        delete next[String(conversation.opportunityId)];
+        return next;
+      });
+    }
   }
 
   async loadMessages(conversationId: string): Promise<void> {
@@ -188,6 +298,16 @@ export class ChatComponent implements OnInit {
       this.messages.set([]);
     } finally {
       this.messagesLoading.set(false);
+    }
+  }
+
+  async loadOffers(conversationId: string): Promise<void> {
+    try {
+      const raw = await this.get<any>(`/api/v1/conversations/${encodeURIComponent(conversationId)}/offers`);
+      this.offers.set(this.extractArray(raw).map(row => this.mapOffer(row)));
+    } catch (error) {
+      this.messagesError.set(this.errorMessage(error, 'Unable to load structured offers.'));
+      this.offers.set([]);
     }
   }
 
@@ -209,7 +329,7 @@ export class ChatComponent implements OnInit {
       this.messageControl.setValue('');
       this.updateConversationStatus(conversation.id, 'Negotiation in Progress');
     } catch (error) {
-      this.messagesError.set(this.errorMessage(error, 'Message could not be sent.'));
+      this.messagesError.set(this.errorMessage(error, this.t('chat.errors.messageFailed')));
     } finally {
       this.sending.set(false);
     }
@@ -220,7 +340,7 @@ export class ChatComponent implements OnInit {
     if (!conversation || this.isCurrentUserReady() || this.isReadOnly(conversation) || this.actionProcessing()) return;
 
     const confirmation = window.confirm(
-      'You are confirming that you are ready to move beyond negotiation. This does not mean final participation approval yet. Continue?'
+      this.t('chat.confirm.readyToProceed')
     );
     if (!confirmation) return;
 
@@ -237,7 +357,7 @@ export class ChatComponent implements OnInit {
       this.replaceConversation(updated);
       this.selectedConversation.set(updated);
     } catch (error) {
-      this.messagesError.set(this.errorMessage(error, 'Could not mark ready to proceed.'));
+      this.messagesError.set(this.errorMessage(error, this.t('chat.errors.readyFailed')));
     } finally {
       this.actionProcessing.set(false);
     }
@@ -247,28 +367,174 @@ export class ChatComponent implements OnInit {
     const conversation = this.activeConversation();
     if (!conversation || this.isReadOnly(conversation) || this.actionProcessing()) return;
 
-    const confirmation = window.confirm(
-      'Close this discussion? Messaging will stop for this conversation. This does not approve or reject participation.'
+    const reason = window.prompt(
+      this.t('chat.confirm.closeDiscussion'),
+      ''
     );
-    if (!confirmation) return;
+    if (reason === null) return;
 
     try {
       this.actionProcessing.set(true);
-      const raw = await this.post<any>(`/api/v1/conversations/${encodeURIComponent(conversation.id)}/close`, {});
+      const raw = await this.post<any>(`/api/v1/conversations/${encodeURIComponent(conversation.id)}/close`, { reason: reason.trim() || null });
       const updated = raw?.data ? this.mapConversation(raw.data) : {
         ...conversation,
         status: 'Discussion Closed' as NegotiationStatus,
         closedAt: new Date(),
+        closeReason: reason.trim() || null,
+        closedByUserId: this.resolveCurrentUserId(conversation),
         readOnly: true,
-        archived: true
+        archived: false
       };
       this.replaceConversation(updated);
       this.selectedConversation.set(updated);
     } catch (error) {
-      this.messagesError.set(this.errorMessage(error, 'Could not close discussion.'));
+      this.messagesError.set(this.errorMessage(error, this.t('chat.errors.closeFailed')));
     } finally {
       this.actionProcessing.set(false);
     }
+  }
+
+  async removeClosedConversation(conversation: NegotiationConversation): Promise<void> {
+    if (!this.isReadOnly(conversation) || this.actionProcessing()) return;
+    const confirmation = window.confirm(this.t('chat.confirm.removeClosed'));
+    if (!confirmation) return;
+
+    try {
+      this.actionProcessing.set(true);
+      await this.post<object>(`/api/v1/conversations/${encodeURIComponent(conversation.id)}/hide`, {});
+      this.conversations.update(items => items.filter(item => item.id !== conversation.id));
+      if (this.selectedConversation()?.id === conversation.id) {
+        this.clearSelection();
+      }
+    } catch (error) {
+      this.messagesError.set(this.errorMessage(error, this.t('chat.errors.removeFailed')));
+    } finally {
+      this.actionProcessing.set(false);
+    }
+  }
+
+  openOfferBuilder(counterOffer?: NegotiationOffer): void {
+    if (this.isReadOnly(this.activeConversation()) || this.offerProcessing()) return;
+    this.resetOfferBuilder();
+    if (counterOffer) {
+      this.counteringOfferId.set(counterOffer.id);
+      this.seedOfferBuilder(counterOffer);
+    } else {
+      this.counteringOfferId.set(null);
+    }
+    this.offerBuilderOpen.set(true);
+  }
+
+  closeOfferBuilder(): void {
+    this.offerBuilderOpen.set(false);
+    this.counteringOfferId.set(null);
+  }
+
+  async submitOffer(): Promise<void> {
+    const conversation = this.activeConversation();
+    if (!conversation || this.isReadOnly(conversation) || this.offerProcessing()) return;
+
+    const payload = this.buildOfferPayload();
+    if (!payload.legs.length) {
+      this.messagesError.set('Select at least one offer leg.');
+      return;
+    }
+
+    try {
+      this.offerProcessing.set(true);
+      this.messagesError.set(null);
+      const counterId = this.counteringOfferId();
+      const actionCode: PaidActionCode = counterId ? 'SendCounterOffer' : 'SendFirstOffer';
+      const quote = await this.walletService.getPaidActionQuote(actionCode);
+      if (!quote.hasSufficientCredit) {
+        this.messagesError.set(
+          this.t('paidActions.insufficientMessage')
+            .replace('{required}', this.formatCredits(quote.creditCost))
+            .replace('{balance}', this.formatCredits(quote.currentBalance))
+        );
+        return;
+      }
+      if (!window.confirm(this.confirmationText(quote.displayName || actionCode, quote.creditCost, quote.currentBalance, quote.balanceAfter))) {
+        return;
+      }
+      const path = counterId
+        ? `/api/v1/conversations/${encodeURIComponent(conversation.id)}/offers/${counterId}/counter`
+        : `/api/v1/conversations/${encodeURIComponent(conversation.id)}/offers`;
+      const raw = await this.post<any>(path, payload);
+      const offer = this.mapOffer(raw?.data ?? raw);
+      if (counterId) {
+        this.offers.update(items => [...items.map(item => item.id === counterId ? { ...item, status: 2 as OfferStatus } : item), offer]);
+      } else {
+        this.offers.update(items => [...items, offer]);
+      }
+      this.closeOfferBuilder();
+    } catch (error) {
+      this.messagesError.set(this.errorMessage(error, 'Offer could not be submitted.'));
+    } finally {
+      this.offerProcessing.set(false);
+    }
+  }
+
+  async acceptOffer(offer: NegotiationOffer): Promise<void> {
+    await this.offerAction(offer, 'accept');
+  }
+
+  async rejectOffer(offer: NegotiationOffer): Promise<void> {
+    await this.offerAction(offer, 'reject');
+  }
+
+  async withdrawOffer(offer: NegotiationOffer): Promise<void> {
+    await this.offerAction(offer, 'withdraw');
+  }
+
+  canReceiveOfferAction(offer: NegotiationOffer): boolean {
+    return offer.status === 1 && !this.isOfferCreator(offer) && !this.isReadOnly(this.activeConversation()) && !this.offerProcessing();
+  }
+
+  canWithdrawOffer(offer: NegotiationOffer): boolean {
+    return offer.status === 1 && this.isOfferCreator(offer) && !this.isReadOnly(this.activeConversation()) && !this.offerProcessing();
+  }
+
+  isAcceptedOffer(offer: NegotiationOffer): boolean {
+    return offer.status === 3;
+  }
+
+  offerStatusLabel(status: OfferStatus): string {
+    switch (Number(status)) {
+      case 1: return 'Pending';
+      case 2: return 'Countered';
+      case 3: return 'Accepted';
+      case 4: return 'Rejected';
+      case 5: return 'Withdrawn';
+      default: return 'Unknown';
+    }
+  }
+
+  offerLegLabel(type: OfferLegType): string {
+    switch (Number(type)) {
+      case 1: return 'Equity';
+      case 2: return 'Loan';
+      case 3: return 'Profit Sharing';
+      default: return 'Offer';
+    }
+  }
+
+  openParticipationBuilder(): void {
+    if (!this.canCreateParticipationRequest()) return;
+    this.participationBuilderOpen.set(true);
+  }
+
+  closeParticipationBuilder(): void {
+    this.participationBuilderOpen.set(false);
+  }
+
+  async onParticipationSubmitted(): Promise<void> {
+    this.participationBuilderOpen.set(false);
+    const conversation = this.activeConversation();
+    if (conversation) {
+      await this.loadViewerState(conversation);
+    }
+    await this.loadConversations();
   }
 
   setConversationTab(tab: 'active' | 'archived' | 'all'): void {
@@ -283,8 +549,18 @@ export class ChatComponent implements OnInit {
   composerHint(): string {
     const conversation = this.activeConversation();
     if (!conversation) return 'Select a conversation to begin.';
-    if (this.isReadOnly(conversation)) return 'This discussion is closed.';
+    if (this.isReadOnly(conversation)) return 'This discussion is closed and read-only.';
     return 'Write a negotiation message...';
+  }
+
+  closedByLabel(conversation: NegotiationConversation): string {
+    if (this.sameId(conversation.closedByUserId, conversation.founderUserId)) return conversation.founderName || 'Founder';
+    if (this.sameId(conversation.closedByUserId, conversation.investorUserId)) return conversation.investorName || 'Investor';
+    if (this.sameId(conversation.closedByUserId, conversation.requesterUserId)) return conversation.requesterName || 'Requester';
+    if (this.sameId(conversation.closedByUserId, conversation.recipientUserId)) return conversation.recipientName || 'Recipient';
+    if (conversation.status === 'Declined by Founder') return conversation.founderName || 'Founder';
+    if (conversation.status === 'You withdrew') return 'You';
+    return 'A participant';
   }
 
   statusBadgeClass(status: NegotiationStatus): string {
@@ -364,12 +640,28 @@ export class ChatComponent implements OnInit {
       lastMessageAt: row.lastMessageAt || row.updatedAt || row.createdAt,
       createdAt: row.createdAt,
       closedAt: row.closedAt,
+      closedByUserId: row.closedByUserId ?? row.closedBy ?? null,
+      closeReason: row.closeReason ?? row.closedReason ?? row.reason ?? null,
       founderReady: !!(row.founderReady ?? row.isFounderReady),
       investorReady: !!(row.investorReady ?? row.isInvestorReady),
-      currentUserReady: !!(row.currentUserReady ?? row.isCurrentUserReady),
-      archived: !!row.archived || status === 'Discussion Closed' || status === 'You withdrew' || status === 'Declined by Founder',
+      currentUserReady: this.resolveCurrentUserReady(row, direction),
+      archived: !!row.archived,
       readOnly: !!row.readOnly || status === 'Discussion Closed' || status === 'You withdrew' || status === 'Declined by Founder'
     };
+  }
+
+  private resolveCurrentUserReady(row: any, direction: 'incoming' | 'outgoing' | 'unknown'): boolean {
+    if (row.currentUserReady !== undefined || row.isCurrentUserReady !== undefined) {
+      return !!(row.currentUserReady ?? row.isCurrentUserReady);
+    }
+    const founderReady = !!(row.founderReady ?? row.isFounderReady);
+    const investorReady = !!(row.investorReady ?? row.isInvestorReady);
+    if (direction === 'incoming') return founderReady;
+    if (direction === 'outgoing') return investorReady;
+    const currentUserId = localStorage.getItem('userId');
+    if (this.sameId(currentUserId, row.founderUserId ?? row.founder?.id)) return founderReady;
+    if (this.sameId(currentUserId, row.investorUserId ?? row.investor?.id)) return investorReady;
+    return false;
   }
 
   private mapMessage(row: any, conversation: NegotiationConversation | null): NegotiationMessage {
@@ -387,6 +679,33 @@ export class ChatComponent implements OnInit {
       text: row.text || row.message || row.body || '',
       sentAt: row.sentAt || row.timestamp || row.createdAt || new Date(),
       isSender
+    };
+  }
+
+  private mapOffer(row: any): NegotiationOffer {
+    return {
+      id: Number(row.id),
+      conversationId: String(row.conversationId),
+      createdByUserId: row.createdByUserId ?? null,
+      createdByName: row.createdByName,
+      version: Number(row.version ?? 1),
+      parentOfferId: row.parentOfferId ?? null,
+      status: Number(row.status) as OfferStatus,
+      note: row.note ?? null,
+      currency: row.currency || 'Credits',
+      createdAt: row.createdAt,
+      legs: this.extractArray(row.legs ?? row.Legs).map(leg => ({
+        id: leg.id,
+        legType: Number(leg.legType) as OfferLegType,
+        amount: Number(leg.amount ?? 0),
+        equityPercentage: leg.equityPercentage ?? null,
+        sharesTerms: leg.sharesTerms ?? null,
+        returnRate: leg.returnRate ?? null,
+        termMonths: leg.termMonths ?? null,
+        repaymentModel: leg.repaymentModel ?? null,
+        profitSharePercentage: leg.profitSharePercentage ?? null,
+        exitTerms: leg.exitTerms ?? null
+      }))
     };
   }
 
@@ -432,6 +751,99 @@ export class ChatComponent implements OnInit {
   private sameId(left: unknown, right: unknown): boolean {
     if (left === null || left === undefined || right === null || right === undefined) return false;
     return String(left).toLowerCase() === String(right).toLowerCase();
+  }
+
+  private async offerAction(offer: NegotiationOffer, action: 'accept' | 'reject' | 'withdraw'): Promise<void> {
+    const conversation = this.activeConversation();
+    if (!conversation || this.offerProcessing()) return;
+    try {
+      this.offerProcessing.set(true);
+      this.messagesError.set(null);
+      const raw = await this.post<any>(`/api/v1/conversations/${encodeURIComponent(conversation.id)}/offers/${offer.id}/${action}`, {});
+      const updated = this.mapOffer(raw?.data ?? raw);
+      this.offers.update(items => items.map(item => item.id === updated.id ? updated : item));
+    } catch (error) {
+      this.messagesError.set(this.errorMessage(error, `Offer could not be ${action === 'accept' ? 'accepted' : action === 'reject' ? 'rejected' : 'withdrawn'}.`));
+    } finally {
+      this.offerProcessing.set(false);
+    }
+  }
+
+  private isOfferCreator(offer: NegotiationOffer): boolean {
+    return this.sameId(offer.createdByUserId, this.resolveCurrentUserId(this.activeConversation()));
+  }
+
+  private buildOfferPayload(): any {
+    const legs: any[] = [];
+    const equity = this.offerDrafts[1];
+    if (equity.enabled) {
+      legs.push({
+        legType: 1,
+        amount: Number(equity.amount.value || 0),
+        equityPercentage: equity.equityPercentage?.value || null,
+        sharesTerms: equity.sharesTerms?.value?.trim() || null
+      });
+    }
+    const loan = this.offerDrafts[2];
+    if (loan.enabled) {
+      legs.push({
+        legType: 2,
+        amount: Number(loan.amount.value || 0),
+        returnRate: loan.returnRate?.value || null,
+        termMonths: loan.termMonths?.value || null,
+        repaymentModel: loan.repaymentModel?.value?.trim() || null
+      });
+    }
+    const profit = this.offerDrafts[3];
+    if (profit.enabled) {
+      legs.push({
+        legType: 3,
+        amount: Number(profit.amount.value || 0),
+        profitSharePercentage: profit.profitSharePercentage?.value || null,
+        termMonths: profit.termMonths?.value || null,
+        exitTerms: profit.exitTerms?.value?.trim() || null
+      });
+    }
+    return {
+      note: this.offerNoteControl.value?.trim() || null,
+      currency: this.offerCurrencyControl.value?.trim() || 'USD',
+      legs
+    };
+  }
+
+  private resetOfferBuilder(): void {
+    this.offerNoteControl.setValue('');
+    this.offerCurrencyControl.setValue('USD');
+    for (const key of [1, 2, 3] as OfferLegType[]) {
+      const draft = this.offerDrafts[key];
+      draft.enabled = key === 1;
+      draft.amount.setValue(null);
+      draft.equityPercentage?.setValue(null);
+      draft.sharesTerms?.setValue('');
+      draft.returnRate?.setValue(null);
+      draft.termMonths?.setValue(null);
+      draft.repaymentModel?.setValue('Monthly');
+      draft.profitSharePercentage?.setValue(null);
+      draft.exitTerms?.setValue('');
+    }
+  }
+
+  private seedOfferBuilder(offer: NegotiationOffer): void {
+    this.offerNoteControl.setValue(offer.note ? `Counter: ${offer.note}` : '');
+    this.offerCurrencyControl.setValue(offer.currency || 'USD');
+    for (const leg of offer.legs) {
+      const draft = this.offerDrafts[leg.legType];
+      if (!draft) continue;
+      draft.enabled = true;
+      draft.amount.setValue(leg.amount || null);
+      draft.equityPercentage?.setValue(leg.equityPercentage ?? null);
+      draft.sharesTerms?.setValue(leg.sharesTerms || '');
+      draft.returnRate?.setValue(leg.returnRate ?? null);
+      draft.termMonths?.setValue(leg.termMonths ?? null);
+      draft.repaymentModel?.setValue(leg.repaymentModel || 'Monthly');
+      draft.profitSharePercentage?.setValue(leg.profitSharePercentage ?? null);
+      draft.exitTerms?.setValue(leg.exitTerms || '');
+    }
   }
 
   private normalizeRole(value: unknown): string {
@@ -485,6 +897,11 @@ export class ChatComponent implements OnInit {
 
   private buildParticipationSummary(conversation: NegotiationConversation | null): string {
     if (!conversation) return 'No conversation selected.';
+    const state = this.activeViewerState();
+    const participationStatus = this.normalizeParticipationStatus(state?.participationStatus);
+    if (state?.projectRoomUnlocked || state?.canOpenProjectRoom || participationStatus.includes('approved')) return 'Approved';
+    if (state?.hasPendingParticipationRequest || participationStatus.includes('pending')) return 'Pending approval';
+    if (participationStatus.includes('rejected') || participationStatus.includes('declined')) return 'Rejected';
     if (conversation.status === 'Participation Approved') return 'Approved';
     if (conversation.status === 'Participation Rejected') return 'Rejected';
     if (conversation.status === 'Participation Created') return 'Pending approval';
@@ -492,12 +909,18 @@ export class ChatComponent implements OnInit {
     return 'Not yet created';
   }
 
+  private activeViewerState(): any | null {
+    const opportunityId = this.activeConversation()?.opportunityId;
+    return opportunityId ? this.viewerStates()[String(opportunityId)] ?? null : null;
+  }
+
   private buildNextStep(conversation: NegotiationConversation | null): string {
     if (!conversation) return 'No conversation selected.';
     if (this.isReadOnly(conversation)) return 'This conversation is read-only.';
     if (conversation.status === 'Founder Accepted') return 'Continue the discussion and negotiate the details.';
     if (conversation.status === 'Negotiation in Progress' && !this.isCurrentUserReady()) return 'Mark yourself ready when you are prepared to proceed.';
-    if (conversation.status === 'Ready for Participation' && !this.bothReady()) return 'Wait for the other party to mark themselves ready.';
+    if (conversation.status === 'Ready for Participation' && !this.bothReady()) return 'Readiness helps the negotiation, but an Investor must still submit a Participation Request explicitly.';
+    if (this.bothReady() && !this.buildParticipationSummary(conversation).toLowerCase().includes('pending')) return 'Both parties are ready. You can now submit your Participation Request.';
     if (conversation.status === 'Participation Created') return 'Wait for Founder approval of the participation request.';
     if (conversation.status === 'Participation Approved') return 'Open Project Room to continue collaboration.';
     if (conversation.status === 'Participation Rejected') return 'The participation request was declined.';
@@ -521,6 +944,15 @@ export class ChatComponent implements OnInit {
     if (raw.includes('ready')) return 'Ready for Participation';
     if (raw.includes('declined') || raw.includes('rejected')) return 'Declined by Founder';
     return 'Negotiation in Progress';
+  }
+
+  private normalizeParticipationStatus(value: unknown): string {
+    const raw = String(value ?? '').toLowerCase().replace(/[\s_-]+/g, '');
+    if (raw === '0' || raw.includes('pending')) return 'pending';
+    if (raw === '1' || raw.includes('approved') || raw.includes('accepted')) return 'approved';
+    if (raw === '2' || raw.includes('rejected') || raw.includes('declined')) return 'rejected';
+    if (raw === '3' || raw.includes('cancelled') || raw.includes('canceled')) return 'cancelled';
+    return raw;
   }
 
   private statusAtLeast(status: NegotiationStatus, states: NegotiationStatus[]): boolean {
@@ -592,6 +1024,22 @@ export class ChatComponent implements OnInit {
     if (raw.includes('incoming')) return 'incoming';
     if (raw.includes('outgoing')) return 'outgoing';
     return 'unknown';
+  }
+
+  private t(path: string): string {
+    return this.languageService.translate(path);
+  }
+
+  private confirmationText(action: string, cost: number, balance: number, after: number): string {
+    return this.t('paidActions.confirmationText')
+      .replace('{action}', action)
+      .replace('{cost}', this.formatCredits(cost))
+      .replace('{balance}', this.formatCredits(balance))
+      .replace('{after}', this.formatCredits(after));
+  }
+
+  private formatCredits(value: number): string {
+    return new Intl.NumberFormat(this.languageService.language() === 'ar' ? 'ar-EG' : 'en-US', { maximumFractionDigits: 2 }).format(Number(value ?? 0));
   }
 
   private clearSelection(): void {

@@ -17,14 +17,27 @@ select option {
   color: white;
 }
 
+:host-context(body.investa-theme-light) select option {
+  background-color: #ffffff;
+  color: var(--investa-text-primary);
+}
+
 /* Date input styling */
 input[type="date"] {
   color-scheme: dark;
 }
 
+:host-context(body.investa-theme-light) input[type="date"] {
+  color-scheme: light;
+}
+
 input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(0.5);
   cursor: pointer;
+}
+
+:host-context(body.investa-theme-light) input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: none;
 }
 
 /* Number input - remove spinners */
