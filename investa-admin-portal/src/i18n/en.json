@@ -26,6 +26,7 @@
     "reputationRules": "Reputation Rules",
     "pricing": "Pricing",
     "notifications": "Notifications",
+    "moderationReports": "Moderation Reports",
     "referenceData": "Reference Data",
     "opportunityCategories": "Categories",
     "opportunityTags": "Tags",
@@ -246,6 +247,60 @@
   },
   "support": {
     "activeChats": "Active Chats"
+  },
+  "moderationReports": {
+    "title": "Moderation Reports",
+    "subtitle": "Review and resolve user-submitted reports.",
+    "status": "Status",
+    "allStatuses": "All statuses",
+    "targetType": "Target type",
+    "allTargetTypes": "All target types",
+    "targetId": "Target ID",
+    "reasonCode": "Reason code",
+    "allReasonCodes": "All reason codes",
+    "description": "Description",
+    "reporter": "Reporter",
+    "createdDate": "Created date",
+    "reviewedBy": "Reviewed by",
+    "reviewedAt": "Reviewed at",
+    "resolutionNote": "Resolution note",
+    "actions": "Actions",
+    "confirm": "Confirm",
+    "reject": "Reject",
+    "dismiss": "Dismiss",
+    "confirmReport": "Confirm Report",
+    "rejectReport": "Reject Report",
+    "dismissReport": "Dismiss Report",
+    "resolving": "Resolving...",
+    "resolvePrompt": "Resolve report #{{id}}.",
+    "noReports": "No reports found.",
+    "retry": "Retry",
+    "loadError": "Failed to load reports.",
+    "resolveError": "Failed to resolve report.",
+    "confirmSuccess": "Report confirmed successfully.",
+    "rejectSuccess": "Report rejected successfully.",
+    "dismissSuccess": "Report dismissed successfully.",
+    "statuses": {
+      "Pending": "Pending",
+      "Confirmed": "Confirmed",
+      "Rejected": "Rejected",
+      "Dismissed": "Dismissed"
+    },
+    "targetTypes": {
+      "Opportunity": "Opportunity",
+      "User": "User",
+      "Conversation": "Conversation",
+      "Participant": "Participant"
+    },
+    "reasonCodes": {
+      "SuspiciousOpportunity": "Suspicious opportunity",
+      "MisleadingInformation": "Misleading information",
+      "Spam": "Spam",
+      "Abuse": "Abuse",
+      "FraudConcern": "Fraud concern",
+      "InappropriateContent": "Inappropriate content",
+      "Other": "Other"
+    }
   },
   "common": {
     "save": "Save",

@@ -23,19 +23,23 @@ public class OpportunityService : IOpportunityService
     private readonly IUnitOfWork _uow;
     private readonly IPaidActionService _paidActionService;
     private readonly IReputationService _reputationService;
+    private readonly IInvestmentContractService _investmentContractService;
 
-    public OpportunityService(IUnitOfWork uow, IPaidActionService paidActionService, IReputationService reputationService)
+    public OpportunityService(IUnitOfWork uow, IPaidActionService paidActionService, IReputationService reputationService, IInvestmentContractService investmentContractService)
     {
         _uow = uow;
         _paidActionService = paidActionService;
         _reputationService = reputationService;
+        _investmentContractService = investmentContractService;
     }
 
     public async Task<OpportunityDetailDto> CreateAsync(Guid founderId, CreateOpportunityRequest request, CancellationToken cancellationToken = default)
     {
         ValidateFounder(founderId);
         ValidateCoreFields(request.Title, request.FundingTarget, request.InvestmentModel, request.ProjectStage);
-        ValidateProductFields(request.ShortDescription, request.UseOfFunds, request.InvestmentModel, request.EquityOfferedPercentage);
+        ValidateProductFields(request.ShortDescription, request.UseOfFunds, request.InvestmentModel, request.EquityOfferedPercentage, request.ProfitSharePercentage, request.ProfitSharingPayoutFrequency, request.ExpectedDurationMonths, request.ProfitSharingContractStartDate, request.ProfitSharingContractEndDate, request.InterestRate, request.RepaymentFrequency, request.FinalRepaymentDate);
+        ValidateEquityConfiguration(request.InvestmentModel, request.Currency, request.SharePrice, request.TotalShares, request.OfferedShares, request.EquityOfferedPercentage, request.MinimumInvestmentAmount);
+        ValidateCurrency(request.Currency);
         ValidateInvestmentBounds(request.MinimumInvestmentAmount, request.MaximumInvestmentAmount);
         var tags = await ValidateClassificationAsync(request.CategoryId, request.FundingGoalId, request.TagIds);
 
@@ -53,7 +57,18 @@ public class OpportunityService : IOpportunityService
             MinimumInvestmentAmount = request.MinimumInvestmentAmount,
             MaximumInvestmentAmount = request.MaximumInvestmentAmount,
             ExpectedDurationMonths = request.ExpectedDurationMonths,
+            Currency = Normalize(request.Currency),
+            SharePrice = request.SharePrice,
+            TotalShares = request.TotalShares,
+            OfferedShares = request.OfferedShares,
             EquityOfferedPercentage = request.EquityOfferedPercentage,
+            ProfitSharePercentage = request.ProfitSharePercentage,
+            ProfitSharingPayoutFrequency = Normalize(request.ProfitSharingPayoutFrequency),
+            ProfitSharingContractStartDate = request.ProfitSharingContractStartDate,
+            ProfitSharingContractEndDate = request.ProfitSharingContractEndDate,
+            InterestRate = request.InterestRate,
+            RepaymentFrequency = Normalize(request.RepaymentFrequency),
+            FinalRepaymentDate = request.FinalRepaymentDate,
             InvestmentModel = request.InvestmentModel!.Value,
             ProjectStage = request.ProjectStage!.Value,
             Status = OpportunityStatus.Draft,
@@ -91,7 +106,9 @@ public class OpportunityService : IOpportunityService
     {
         ValidateFounder(founderId);
         ValidateCoreFields(request.Title, request.FundingTarget, request.InvestmentModel, request.ProjectStage);
-        ValidateProductFields(request.ShortDescription, request.UseOfFunds, request.InvestmentModel, request.EquityOfferedPercentage);
+        ValidateProductFields(request.ShortDescription, request.UseOfFunds, request.InvestmentModel, request.EquityOfferedPercentage, request.ProfitSharePercentage, request.ProfitSharingPayoutFrequency, request.ExpectedDurationMonths, request.ProfitSharingContractStartDate, request.ProfitSharingContractEndDate, request.InterestRate, request.RepaymentFrequency, request.FinalRepaymentDate);
+        ValidateEquityConfiguration(request.InvestmentModel, request.Currency, request.SharePrice, request.TotalShares, request.OfferedShares, request.EquityOfferedPercentage, request.MinimumInvestmentAmount);
+        ValidateCurrency(request.Currency);
         ValidateInvestmentBounds(request.MinimumInvestmentAmount, request.MaximumInvestmentAmount);
         var tags = await ValidateClassificationAsync(request.CategoryId, request.FundingGoalId, request.TagIds);
 
@@ -116,7 +133,18 @@ public class OpportunityService : IOpportunityService
         opportunity.MinimumInvestmentAmount = request.MinimumInvestmentAmount;
         opportunity.MaximumInvestmentAmount = request.MaximumInvestmentAmount;
         opportunity.ExpectedDurationMonths = request.ExpectedDurationMonths;
+        opportunity.Currency = Normalize(request.Currency);
+        opportunity.SharePrice = request.SharePrice;
+        opportunity.TotalShares = request.TotalShares;
+        opportunity.OfferedShares = request.OfferedShares;
         opportunity.EquityOfferedPercentage = request.EquityOfferedPercentage;
+        opportunity.ProfitSharePercentage = request.ProfitSharePercentage;
+        opportunity.ProfitSharingPayoutFrequency = Normalize(request.ProfitSharingPayoutFrequency);
+        opportunity.ProfitSharingContractStartDate = request.ProfitSharingContractStartDate;
+        opportunity.ProfitSharingContractEndDate = request.ProfitSharingContractEndDate;
+        opportunity.InterestRate = request.InterestRate;
+        opportunity.RepaymentFrequency = Normalize(request.RepaymentFrequency);
+        opportunity.FinalRepaymentDate = request.FinalRepaymentDate;
         opportunity.InvestmentModel = request.InvestmentModel!.Value;
         opportunity.ProjectStage = request.ProjectStage!.Value;
         opportunity.Status = nextStatus;
@@ -165,10 +193,94 @@ public class OpportunityService : IOpportunityService
             o => o.FundingGoal!,
             o => o.OpportunityTags);
         var tagLookup = await GetActiveTagLookupAsync();
-        return opportunities
+        var ordered = opportunities
             .OrderByDescending(o => o.UpdatedAt)
             .Select(o => ToDto(o, tagLookup: tagLookup))
             .ToList();
+        await ApplyParticipationSummariesAsync(ordered);
+        return ordered;
+    }
+
+    public async Task<IReadOnlyList<MyParticipationDto>> GetMyParticipationsAsync(Guid investorId, CancellationToken cancellationToken = default)
+    {
+        await ValidateClientAsync(investorId, "Only authenticated clients can view their participations.");
+
+        var approved = (await _uow.Repository<OpportunityJoinRequest>().FindWithIncludesAsync(
+                r => r.InvestorId == investorId && r.Status == OpportunityJoinRequestStatus.Approved && r.IsVisibleToInvestor,
+                r => r.Opportunity!,
+                r => r.Investor!))
+            .Where(r => r.Opportunity != null)
+            .ToList();
+
+        var relationshipGroups = approved.GroupBy(r => r.OpportunityId).ToList();
+        var summaries = await GetParticipationSummariesAsync(relationshipGroups.Select(g => g.Key));
+        var contracts = (await _uow.Repository<InvestmentContract>().FindAsync(c =>
+                c.InvestorUserId == investorId && c.Status == InvestmentContractStatus.Active))
+            .GroupBy(c => c.OpportunityId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(c => c.UpdatedAt).First());
+
+        return relationshipGroups.Select(group =>
+        {
+            var latest = group.OrderByDescending(r => r.ReviewedAt ?? r.UpdatedAt).First();
+            var opportunity = latest.Opportunity!;
+            var investmentRequests = group.Where(r => r.RequestType == OpportunityJoinRequestType.InvestmentParticipation).ToList();
+            var approvedContribution = investmentRequests.Sum(r => r.RequestedAmount ?? 0m);
+            var approvedShares = investmentRequests.Sum(r => TryReadSelectedShares(r.TermsSnapshotJson));
+            var summary = summaries[opportunity.Id];
+            contracts.TryGetValue(opportunity.Id, out var contract);
+            var terms = ParseSnapshot(latest.TermsSnapshotJson);
+
+            return new MyParticipationDto
+            {
+                OpportunityId = opportunity.Id,
+                OpportunityTitle = opportunity.Title,
+                OpportunityStatus = opportunity.Status,
+                InvestmentModel = opportunity.InvestmentModel,
+                FounderId = opportunity.FounderId,
+                FounderDisplayName = summary.FounderDisplayName,
+                CoverImageUrl = opportunity.CoverImageUrl,
+                ShortDescription = opportunity.ShortDescription,
+                ParticipantId = latest.Id,
+                ParticipationRequestId = latest.Id,
+                ApprovedAt = latest.ReviewedAt,
+                ApprovedContributionAmount = approvedContribution,
+                Currency = SnapshotString(terms, "currencySnapshot") ?? opportunity.Currency,
+                ParticipationStatus = OpportunityJoinRequestStatus.Approved,
+                ProjectRoomUnlocked = true,
+                CanOpenProjectRoom = true,
+                ContractAvailable = contract != null,
+                CurrentContractId = contract?.Id,
+                CurrentContractVersion = contract?.CurrentVersionNumber,
+                FundedAmount = summary.FundedAmount,
+                FundingTarget = opportunity.FundingTarget,
+                RemainingFundingAmount = summary.RemainingFundingAmount,
+                FundingProgressPercentage = summary.FundingProgressPercentage,
+                ApprovedParticipantCount = summary.ApprovedParticipantCount,
+                ApprovedShares = opportunity.InvestmentModel == InvestmentModel.Equity ? approvedShares : null,
+                SharePrice = SnapshotDecimal(terms, "sharePriceSnapshot") ?? opportunity.SharePrice,
+                OwnershipPercentage = SnapshotDecimal(terms, "ownershipPercentage", "proposedSharePercentage"),
+                TotalShares = opportunity.TotalShares,
+                OfferedShares = opportunity.OfferedShares,
+                SoldShares = summary.SoldShares,
+                RemainingShares = summary.RemainingShares,
+                AllocatedEquityPercentage = summary.AllocatedEquityPercentage,
+                RemainingEquityPercentage = summary.RemainingEquityPercentage,
+                Principal = opportunity.InvestmentModel == InvestmentModel.LoanInvestment ? approvedContribution : null,
+                InterestRate = SnapshotDecimal(terms, "returnRateSnapshot") ?? opportunity.InterestRate,
+                ExpectedDurationMonths = SnapshotInt(terms, "termValueSnapshot") ?? opportunity.ExpectedDurationMonths,
+                RepaymentFrequency = SnapshotString(terms, "repaymentModelSnapshot") ?? opportunity.RepaymentFrequency,
+                FinalRepaymentDate = SnapshotDate(terms, "finalRepaymentDateSnapshot") ?? opportunity.FinalRepaymentDate,
+                ExpectedReturn = SnapshotDecimal(terms, "expectedReturnAmount"),
+                ExpectedTotalRepayment = SnapshotDecimal(terms, "expectedTotalRepaymentAmount"),
+                Contribution = opportunity.InvestmentModel == InvestmentModel.CapitalContributionProfitSharing ? approvedContribution : null,
+                ProfitSharePercentage = SnapshotDecimal(terms, "profitSharePercentageSnapshot") ?? opportunity.ProfitSharePercentage,
+                PayoutFrequency = SnapshotString(terms, "payoutFrequencySnapshot") ?? opportunity.ProfitSharingPayoutFrequency,
+                ContractStartDate = SnapshotDate(terms, "contractStartDateSnapshot") ?? opportunity.ProfitSharingContractStartDate,
+                ContractEndDate = SnapshotDate(terms, "contractEndDateSnapshot") ?? opportunity.ProfitSharingContractEndDate,
+                ExpectedProfit = SnapshotDecimal(terms, "expectedProfitAmount"),
+                ExpectedTotalPayout = SnapshotDecimal(terms, "expectedTotalPayoutAmount")
+            };
+        }).OrderByDescending(r => r.ApprovedAt).ToList();
     }
 
     public async Task<OpportunityDetailDto> GetFounderOpportunityAsync(Guid founderId, int id, CancellationToken cancellationToken = default)
@@ -176,7 +288,9 @@ public class OpportunityService : IOpportunityService
         ValidateFounder(founderId);
         var opportunity = await GetOwnedOpportunityAsync(founderId, id, includeChildren: true);
         var founder = await _uow.Repository<AuthUser>().GetByIdAsync(opportunity.FounderId);
-        return ToDetailDto(opportunity, founder: founder, tagLookup: await GetActiveTagLookupAsync());
+        var dto = ToDetailDto(opportunity, founder: founder, tagLookup: await GetActiveTagLookupAsync());
+        await ApplyParticipationSummaryAsync(dto);
+        return dto;
     }
 
     public async Task<OpportunityRoomDto> GetProjectRoomAsync(Guid userId, int id, CancellationToken cancellationToken = default)
@@ -184,7 +298,8 @@ public class OpportunityService : IOpportunityService
         await ValidateClientAsync(userId, "Only authenticated clients can access an investor project room.");
         var opportunity = await GetOpportunityAsync(id, includeChildren: true);
         var isFounder = opportunity.FounderId == userId;
-        var approvedParticipantCount = await GetApprovedParticipantCountAsync(id);
+        var summary = await GetParticipationSummaryAsync(id);
+        var approvedParticipantCount = summary.ApprovedParticipantCount;
         var isApprovedParticipant = false;
 
         if (!isFounder)
@@ -199,7 +314,7 @@ public class OpportunityService : IOpportunityService
             throw new BusinessValidationException("PROJECT_ROOM_FORBIDDEN", "Project room access requires founder ownership or an approved join request.");
 
         var founder = await _uow.Repository<AuthUser>().GetByIdAsync(opportunity.FounderId);
-        return ToRoomDto(opportunity, founder, isFounder, isApprovedParticipant, approvedParticipantCount);
+        return ToRoomDto(opportunity, founder, isFounder, isApprovedParticipant, summary);
     }
 
     public async Task<OpportunityMediaDto> AddMediaAsync(Guid founderId, int id, CreateOpportunityMediaRequest request, CancellationToken cancellationToken = default)
@@ -404,13 +519,15 @@ public class OpportunityService : IOpportunityService
         var filtered = ApplyDiscoveryFilters(opportunities.ToList(), query);
         var founders = await GetFounderLookupAsync(filtered.Select(o => o.FounderId));
 
-        return filtered
+        var result = filtered
             .OrderByDescending(o => o.UpdatedAt)
             .Select(o => ToDto(
                 o,
                 founders.TryGetValue(o.FounderId, out var founder) ? founder : null,
                 tagLookup))
             .ToList();
+        await ApplyParticipationSummariesAsync(result);
+        return result;
     }
 
     public async Task<OpportunityDetailDto> GetPublicByIdAsync(int id, CancellationToken cancellationToken = default)
@@ -428,11 +545,13 @@ public class OpportunityService : IOpportunityService
             throw new BusinessValidationException("OPPORTUNITY_NOT_FOUND", "Opportunity was not found.");
 
         var founder = await _uow.Repository<AuthUser>().GetByIdAsync(opportunity.FounderId);
-        return ToDetailDto(
+        var dto = ToDetailDto(
             opportunity,
             publicOnly: true,
             founder: founder,
             tagLookup: await GetActiveTagLookupAsync());
+        await ApplyParticipationSummaryAsync(dto);
+        return dto;
     }
 
     public async Task<OpportunityDetailDto> PublishAsync(Guid founderId, int id, CancellationToken cancellationToken = default)
@@ -474,7 +593,9 @@ public class OpportunityService : IOpportunityService
             }
         }, cancellationToken);
 
-        return ToDetailDto(opportunity, tagLookup: await GetActiveTagLookupAsync());
+        var result = ToDetailDto(opportunity, tagLookup: await GetActiveTagLookupAsync());
+        await ApplyParticipationSummaryAsync(result);
+        return result;
     }
 
     public async Task<OpportunityParticipationFormDto> GetParticipationFormAsync(Guid userId, int opportunityId, CancellationToken cancellationToken = default)
@@ -489,20 +610,21 @@ public class OpportunityService : IOpportunityService
             throw new BusinessValidationException("OPPORTUNITY_NOT_ELIGIBLE", "Opportunity is not currently eligible for participation.");
 
         var linkedInvestment = await GetLinkedInvestmentAsync(opportunity.Id);
-        var alreadyFundedAmount = await GetApprovedFundedAmountAsync(opportunity.Id);
-        var remainingFundingAmount = CalculateRemainingFunding(opportunity.FundingTarget, alreadyFundedAmount);
-        var sharePrice = linkedInvestment?.SharePrice;
-        var totalShares = linkedInvestment?.TotalShares;
-        var approvedShares = await GetApprovedEquitySharesAsync(opportunity.Id);
-        var availableShares = totalShares.HasValue
+        var participationSummary = await GetParticipationSummaryAsync(opportunity.Id);
+        var alreadyFundedAmount = participationSummary.FundedAmount;
+        var remainingFundingAmount = participationSummary.RemainingFundingAmount;
+        var sharePrice = opportunity.SharePrice;
+        var totalShares = opportunity.OfferedShares;
+        var approvedShares = participationSummary.SoldShares;
+        int? availableShares = totalShares.HasValue
             ? Math.Max(totalShares.Value - approvedShares, 0)
-            : linkedInvestment?.AvailableShares;
-        var currency = linkedInvestment?.Currency ?? "Credits";
+            : null;
+        var currency = opportunity.Currency ?? linkedInvestment?.Currency ?? "Credits";
         var minimumInvestment = opportunity.MinimumInvestmentAmount ?? linkedInvestment?.MinInvestment;
         var maximumInvestment = opportunity.MaximumInvestmentAmount ?? linkedInvestment?.MaxInvestment;
-        var loanTermMonths = ResolveLoanTermMonths(opportunity, linkedInvestment);
+        var loanTermMonths = ResolveLoanTermMonths(opportunity);
         var profitSharingTermMonths = ResolveProfitSharingTermMonths(opportunity, linkedInvestment);
-        var profitSharePercentage = ResolveProfitSharePercentage(linkedInvestment);
+        var profitSharePercentage = opportunity.ProfitSharePercentage;
 
         return new OpportunityParticipationFormDto
         {
@@ -512,11 +634,13 @@ public class OpportunityService : IOpportunityService
             FundingTarget = opportunity.FundingTarget,
             AlreadyFundedAmount = alreadyFundedAmount,
             RemainingFundingAmount = remainingFundingAmount,
+            FundingProgressPercentage = participationSummary.FundingProgressPercentage,
+            ApprovedParticipantCount = participationSummary.ApprovedParticipantCount,
             Currency = currency,
             MinimumContribution = minimumInvestment,
             MaximumContribution = maximumInvestment,
-            ReturnRate = opportunity.InvestmentModel == InvestmentModel.LoanInvestment ? linkedInvestment?.InterestRate : null,
-            ReturnRateType = opportunity.InvestmentModel == InvestmentModel.LoanInvestment && linkedInvestment?.InterestRate.HasValue == true
+            ReturnRate = opportunity.InvestmentModel == InvestmentModel.LoanInvestment ? opportunity.InterestRate : null,
+            ReturnRateType = opportunity.InvestmentModel == InvestmentModel.LoanInvestment && opportunity.InterestRate.HasValue == true
                 ? "AnnualSimple"
                 : null,
             TermValue = opportunity.InvestmentModel switch
@@ -531,16 +655,21 @@ public class OpportunityService : IOpportunityService
                 InvestmentModel.CapitalContributionProfitSharing when profitSharingTermMonths.HasValue => "Months",
                 _ => null
             },
-            RepaymentModel = opportunity.InvestmentModel == InvestmentModel.LoanInvestment ? linkedInvestment?.RepaymentFrequency : null,
-            ExpectedMaturityDate = opportunity.InvestmentModel == InvestmentModel.LoanInvestment ? linkedInvestment?.FinalRepaymentDate : null,
+            RepaymentModel = opportunity.InvestmentModel == InvestmentModel.LoanInvestment ? opportunity.RepaymentFrequency : null,
+            ExpectedMaturityDate = opportunity.InvestmentModel == InvestmentModel.LoanInvestment ? opportunity.FinalRepaymentDate : null,
             ProfitSharePercentage = opportunity.InvestmentModel == InvestmentModel.CapitalContributionProfitSharing ? profitSharePercentage : null,
             ExpectedProfitAmount = null,
             ExpectedTotalPayoutAmount = null,
             OpportunityTotalExpectedPayout = opportunity.InvestmentModel == InvestmentModel.CapitalContributionProfitSharing ? linkedInvestment?.TotalExpectedPayout : null,
-            ExitTerms = opportunity.InvestmentModel == InvestmentModel.CapitalContributionProfitSharing ? BuildProfitSharingExitTerms(linkedInvestment) : null,
-            ContractStartDate = opportunity.InvestmentModel == InvestmentModel.CapitalContributionProfitSharing ? linkedInvestment?.ContractStartDate : null,
-            ContractEndDate = opportunity.InvestmentModel == InvestmentModel.CapitalContributionProfitSharing ? linkedInvestment?.ContractEndDate : null,
+            ExitTerms = opportunity.InvestmentModel == InvestmentModel.CapitalContributionProfitSharing ? BuildProfitSharingExitTerms(opportunity, linkedInvestment) : null,
+            ContractStartDate = opportunity.InvestmentModel == InvestmentModel.CapitalContributionProfitSharing ? opportunity.ProfitSharingContractStartDate : null,
+            ContractEndDate = opportunity.InvestmentModel == InvestmentModel.CapitalContributionProfitSharing ? opportunity.ProfitSharingContractEndDate : null,
             TotalShares = totalShares,
+            OfferedShares = opportunity.OfferedShares,
+            SoldShares = participationSummary.SoldShares,
+            RemainingShares = participationSummary.RemainingShares,
+            AllocatedEquityPercentage = participationSummary.AllocatedEquityPercentage,
+            RemainingEquityPercentage = participationSummary.RemainingEquityPercentage,
             AvailableShares = availableShares,
             SharePrice = sharePrice,
             MinimumInvestmentAmount = minimumInvestment,
@@ -718,6 +847,36 @@ public class OpportunityService : IOpportunityService
             .ToList();
     }
 
+    public async Task<IReadOnlyList<FounderIncomingJoinRequestDto>> GetIncomingJoinRequestsAsync(Guid founderId, CancellationToken cancellationToken = default)
+    {
+        await ValidateFounderClientAsync(founderId);
+
+        var requests = await _uow.Repository<OpportunityJoinRequest>().FindWithIncludesAsync(
+            r => r.Opportunity!.FounderId == founderId && r.IsVisibleToFounder,
+            r => r.Opportunity!,
+            r => r.Investor!);
+
+        return requests
+            .OrderByDescending(r => r.CreatedAt)
+            .Select(ToFounderIncomingJoinRequestDto)
+            .ToList();
+    }
+
+    public async Task<FounderIncomingJoinRequestDto> GetIncomingJoinRequestAsync(Guid founderId, int requestId, CancellationToken cancellationToken = default)
+    {
+        await ValidateFounderClientAsync(founderId);
+
+        var request = await _uow.Repository<OpportunityJoinRequest>().GetSingleAsync(
+            r => r.Id == requestId && r.Opportunity!.FounderId == founderId && r.IsVisibleToFounder,
+            r => r.Opportunity!,
+            r => r.Investor!);
+
+        if (request == null)
+            throw new BusinessValidationException("JOIN_REQUEST_NOT_FOUND", "Join request was not found.");
+
+        return ToFounderIncomingJoinRequestDto(request);
+    }
+
     public async Task<OpportunityJoinRequestDto> ApproveJoinRequestAsync(Guid founderId, int requestId, CancellationToken cancellationToken = default)
     {
         var joinRequest = await GetJoinRequestAsync(requestId);
@@ -727,7 +886,7 @@ public class OpportunityService : IOpportunityService
             throw new BusinessValidationException("INVALID_JOIN_REQUEST_STATUS_TRANSITION", "Only pending join requests can be approved.");
 
         if (opportunity.InvestmentModel == InvestmentModel.Equity && joinRequest.RequestType == OpportunityJoinRequestType.InvestmentParticipation)
-            await ValidateEquityAvailabilityForApprovalAsync(opportunity.Id, joinRequest);
+            await ValidateEquityAvailabilityForApprovalAsync(opportunity, joinRequest);
 
         if (opportunity.InvestmentModel == InvestmentModel.LoanInvestment && joinRequest.RequestType == OpportunityJoinRequestType.InvestmentParticipation)
             await ValidateLoanFundingAvailabilityForApprovalAsync(opportunity, joinRequest);
@@ -781,6 +940,7 @@ public class OpportunityService : IOpportunityService
                 await UpdateSourceConversationAfterParticipationReviewAsync(joinRequest, ConversationStatus.ParticipationApproved, now);
                 await _uow.Repository<OpportunityJoinRequest>().UpdateAsync(joinRequest);
                 await _uow.Repository<Opportunity>().UpdateAsync(opportunity);
+                await _investmentContractService.GenerateForApprovedParticipationAsync(opportunity, joinRequest, now, cancellationToken);
                 await _uow.SaveChangesAsync();
                 await ApplyReputationActivitySafeAsync(
                     founderId,
@@ -1079,6 +1239,22 @@ public class OpportunityService : IOpportunityService
 
         if (!opportunity.FundingGoalId.HasValue)
             throw new BusinessValidationException("FUNDING_GOAL_REQUIRED", "FundingGoalId is required before review.");
+
+        ValidateProductFields(
+            opportunity.ShortDescription,
+            opportunity.UseOfFunds,
+            opportunity.InvestmentModel,
+            opportunity.EquityOfferedPercentage,
+            opportunity.ProfitSharePercentage,
+            opportunity.ProfitSharingPayoutFrequency,
+            opportunity.ExpectedDurationMonths,
+            opportunity.ProfitSharingContractStartDate,
+            opportunity.ProfitSharingContractEndDate,
+            opportunity.InterestRate,
+            opportunity.RepaymentFrequency,
+            opportunity.FinalRepaymentDate);
+        ValidateEquityConfiguration(opportunity.InvestmentModel, opportunity.Currency, opportunity.SharePrice, opportunity.TotalShares, opportunity.OfferedShares, opportunity.EquityOfferedPercentage, opportunity.MinimumInvestmentAmount);
+        ValidateCurrency(opportunity.Currency);
     }
 
     private static OpportunityFilePurpose ResolveMediaPurpose(CreateOpportunityMediaRequest request)
@@ -1174,11 +1350,12 @@ public class OpportunityService : IOpportunityService
         if (distinctTagIds.Count == 0)
             return Array.Empty<OpportunityTag>();
 
-        var tags = (await _uow.Repository<OpportunityTag>().FindAsync(t => distinctTagIds.Contains(t.Id))).ToList();
-        return tags.Where(t => t.IsActive).ToList();
+        var requestedTagIds = distinctTagIds.ToHashSet();
+        var tags = await _uow.Repository<OpportunityTag>().GetAllAsync();
+        return tags.Where(t => requestedTagIds.Contains(t.Id) && t.IsActive).ToList();
     }
 
-    private static void ValidateProductFields(string? shortDescription, string? useOfFunds, InvestmentModel? investmentModel, decimal? equityOfferedPercentage)
+    private static void ValidateProductFields(string? shortDescription, string? useOfFunds, InvestmentModel? investmentModel, decimal? equityOfferedPercentage, decimal? profitSharePercentage, string? payoutFrequency, int? durationMonths, DateTime? contractStartDate, DateTime? contractEndDate, decimal? interestRate, string? repaymentFrequency, DateTime? finalRepaymentDate)
     {
         ValidateTextRange(shortDescription, "SHORT_DESCRIPTION_REQUIRED", "ShortDescription", 20, 300);
         ValidateTextRange(useOfFunds, "USE_OF_FUNDS_REQUIRED", "UseOfFunds", 30, 2000);
@@ -1191,10 +1368,55 @@ public class OpportunityService : IOpportunityService
             if (equityOfferedPercentage.Value <= 0 || equityOfferedPercentage.Value > 100)
                 throw new BusinessValidationException("INVALID_EQUITY_OFFERED", "EquityOfferedPercentage must be greater than 0 and less than or equal to 100.");
         }
+        else if (investmentModel == InvestmentModel.LoanInvestment)
+        {
+            if (!durationMonths.HasValue || durationMonths.Value <= 0)
+                throw new BusinessValidationException("LOAN_TERM_REQUIRED", "ExpectedDurationMonths is required for Loan opportunities.");
+
+            if (!interestRate.HasValue || interestRate.Value <= 0 || interestRate.Value > 100)
+                throw new BusinessValidationException("LOAN_INTEREST_RATE_REQUIRED", "InterestRate must be between 0.01 and 100 for Loan opportunities.");
+
+            if (string.IsNullOrWhiteSpace(repaymentFrequency))
+                throw new BusinessValidationException("LOAN_REPAYMENT_FREQUENCY_REQUIRED", "RepaymentFrequency is required for Loan opportunities.");
+
+            if (!finalRepaymentDate.HasValue)
+                throw new BusinessValidationException("LOAN_FINAL_REPAYMENT_DATE_REQUIRED", "FinalRepaymentDate is required for Loan opportunities.");
+
+            if (finalRepaymentDate.Value <= DateTime.UtcNow)
+                throw new BusinessValidationException("LOAN_FINAL_REPAYMENT_DATE_PAST", "FinalRepaymentDate must be in the future.");
+        }
+        else if (investmentModel == InvestmentModel.CapitalContributionProfitSharing)
+        {
+            ValidateProfitSharingTerms(profitSharePercentage, payoutFrequency, durationMonths, contractStartDate, contractEndDate);
+        }
         else if (equityOfferedPercentage.HasValue && (equityOfferedPercentage.Value <= 0 || equityOfferedPercentage.Value > 100))
         {
             throw new BusinessValidationException("INVALID_EQUITY_OFFERED", "EquityOfferedPercentage must be greater than 0 and less than or equal to 100.");
         }
+    }
+
+    private static void ValidateProfitSharingTerms(decimal? percentage, string? payoutFrequency, int? durationMonths, DateTime? startDate, DateTime? endDate)
+    {
+        if (!percentage.HasValue || percentage.Value <= 0 || percentage.Value > 100)
+            throw new BusinessValidationException("PROFIT_SHARE_PERCENTAGE_REQUIRED", "ProfitSharePercentage between 0.01 and 100 is required for Profit Sharing opportunities.");
+        if (string.IsNullOrWhiteSpace(payoutFrequency))
+            throw new BusinessValidationException("PROFIT_SHARING_PAYOUT_FREQUENCY_REQUIRED", "ProfitSharingPayoutFrequency is required for Profit Sharing opportunities.");
+        if ((!durationMonths.HasValue || durationMonths.Value <= 0) && (!startDate.HasValue || !endDate.HasValue))
+            throw new BusinessValidationException("PROFIT_SHARING_CONTRACT_TERM_REQUIRED", "ExpectedDurationMonths or both ProfitSharingContractStartDate and ProfitSharingContractEndDate are required.");
+        if (startDate.HasValue != endDate.HasValue || (startDate.HasValue && endDate <= startDate))
+            throw new BusinessValidationException("INVALID_PROFIT_SHARING_CONTRACT_DATES", "Profit Sharing contract dates must both be provided and end after the start date.");
+    }
+
+    private static void ValidateEquityConfiguration(InvestmentModel? model, string? currency, decimal? sharePrice, int? totalShares, int? offeredShares, decimal? offeredPercentage, decimal? minimumInvestment)
+    {
+        if (model != InvestmentModel.Equity) return;
+        if (string.IsNullOrWhiteSpace(currency)) throw new BusinessValidationException("CURRENCY_REQUIRED", "Currency is required for Equity opportunities.");
+        if (!sharePrice.HasValue || sharePrice.Value <= 0) throw new BusinessValidationException("EQUITY_SHARE_PRICE_REQUIRED", "SharePrice must be greater than zero.");
+        if (!totalShares.HasValue || totalShares.Value <= 0) throw new BusinessValidationException("EQUITY_TOTAL_SHARES_REQUIRED", "TotalShares must be greater than zero.");
+        if (!offeredShares.HasValue || offeredShares.Value <= 0 || offeredShares.Value > totalShares.Value) throw new BusinessValidationException("INVALID_EQUITY_OFFERED_SHARES", "OfferedShares must be positive and cannot exceed TotalShares.");
+        var calculatedPercentage = decimal.Round(offeredShares.Value * 100m / totalShares.Value, 2);
+        if (!offeredPercentage.HasValue || calculatedPercentage != offeredPercentage.Value) throw new BusinessValidationException("EQUITY_PERCENTAGE_MISMATCH", "EquityOfferedPercentage must equal OfferedShares divided by TotalShares.");
+        if (minimumInvestment.HasValue && minimumInvestment.Value % sharePrice.Value != 0) throw new BusinessValidationException("EQUITY_MINIMUM_NOT_SHARE_ALIGNED", "MinimumInvestmentAmount must be divisible by SharePrice.");
     }
 
     private static void ValidateTextRange(string? value, string errorCode, string fieldName, int minLength, int maxLength)
@@ -1205,6 +1427,13 @@ public class OpportunityService : IOpportunityService
 
         if (normalized.Length < minLength || normalized.Length > maxLength)
             throw new BusinessValidationException($"INVALID_{fieldName.ToUpperInvariant()}", $"{fieldName} must be between {minLength} and {maxLength} characters.");
+    }
+
+    private static void ValidateCurrency(string? currency)
+    {
+        var value = currency?.Trim();
+        if (value == null || value.Length != 3 || !value.All(char.IsLetter))
+            throw new BusinessValidationException("INVALID_CURRENCY", "Currency must be a three-letter currency code.");
     }
 
     private static void ValidateInvestmentBounds(decimal? minimumInvestmentAmount, decimal? maximumInvestmentAmount)
@@ -1341,6 +1570,16 @@ public class OpportunityService : IOpportunityService
             throw new BusinessValidationException("CLIENT_REQUIRED", message);
     }
 
+    private async Task ValidateFounderClientAsync(Guid userId)
+    {
+        if (userId == Guid.Empty)
+            throw new BusinessValidationException("USER_REQUIRED", "Authenticated user is required.");
+
+        var user = await _uow.Repository<AuthUser>().GetByIdAsync(userId);
+        if (user == null || user.UserType != UserType.Client || user.ClientType is not (ClientType.Founder or ClientType.Both))
+            throw new BusinessValidationException("FOUNDER_ACCESS_REQUIRED", "Founder access is required.");
+    }
+
     private static void ValidateRequired(string? value, string code, string message)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -1403,19 +1642,18 @@ public class OpportunityService : IOpportunityService
         if (!request.NumberOfShares.HasValue || request.NumberOfShares.Value <= 0)
             throw new BusinessValidationException("INVALID_NUMBER_OF_SHARES", "NumberOfShares must be greater than zero for equity participation.");
 
-        var linkedInvestment = await GetLinkedInvestmentAsync(opportunity.Id);
-        if (linkedInvestment?.SharePrice is null or <= 0)
+        if (opportunity.SharePrice is null or <= 0)
             throw new BusinessValidationException("EQUITY_SHARE_PRICE_REQUIRED", "Equity participation requires configured SharePrice.");
 
-        if (!linkedInvestment.TotalShares.HasValue || linkedInvestment.TotalShares.Value <= 0)
-            throw new BusinessValidationException("EQUITY_TOTAL_SHARES_REQUIRED", "Equity participation requires configured TotalShares.");
+        if (!opportunity.OfferedShares.HasValue || opportunity.OfferedShares.Value <= 0)
+            throw new BusinessValidationException("EQUITY_OFFERED_SHARES_REQUIRED", "Equity participation requires configured OfferedShares.");
 
         var approvedShares = await GetApprovedEquitySharesAsync(opportunity.Id);
-        var availableShares = Math.Max(linkedInvestment.TotalShares.Value - approvedShares, 0);
+        var availableShares = Math.Max(opportunity.OfferedShares.Value - approvedShares, 0);
         if (request.NumberOfShares.Value > availableShares)
             throw new BusinessValidationException("INSUFFICIENT_AVAILABLE_SHARES", $"Only {availableShares} shares are available.");
 
-        var calculatedTotal = request.NumberOfShares.Value * linkedInvestment.SharePrice.Value;
+        var calculatedTotal = request.NumberOfShares.Value * opportunity.SharePrice.Value;
         if (request.TotalAmount.HasValue && request.TotalAmount.Value != calculatedTotal)
             throw new BusinessValidationException("INVALID_TOTAL_AMOUNT", "TotalAmount must equal NumberOfShares multiplied by backend SharePrice.");
 
@@ -1424,8 +1662,11 @@ public class OpportunityService : IOpportunityService
             RequestType = OpportunityJoinRequestType.InvestmentParticipation.ToString(),
             InvestmentModel = opportunity.InvestmentModel.ToString(),
             SelectedShares = request.NumberOfShares,
-            SharePriceSnapshot = linkedInvestment.SharePrice.Value,
-            CurrencySnapshot = linkedInvestment.Currency ?? "Credits",
+            SharePriceSnapshot = opportunity.SharePrice.Value,
+            TotalSharesSnapshot = opportunity.TotalShares,
+            OfferedSharesSnapshot = opportunity.OfferedShares,
+            EquityOfferedPercentageSnapshot = opportunity.EquityOfferedPercentage,
+            CurrencySnapshot = opportunity.Currency ?? "Credits",
             TotalInvestmentAmount = calculatedTotal,
             CalculatedTotalAmount = calculatedTotal,
             AvailableSharesAtSubmission = availableShares,
@@ -1444,7 +1685,7 @@ public class OpportunityService : IOpportunityService
             throw new BusinessValidationException("INVALID_REQUESTED_AMOUNT", "RequestedAmount is required for loan participation.");
 
         var linkedInvestment = await GetLinkedInvestmentAsync(opportunity.Id);
-        var currency = linkedInvestment?.Currency ?? "Credits";
+        var currency = opportunity.Currency ?? linkedInvestment?.Currency ?? "Unspecified";
         var minimumContribution = opportunity.MinimumInvestmentAmount ?? linkedInvestment?.MinInvestment;
         var maximumContribution = opportunity.MaximumInvestmentAmount ?? linkedInvestment?.MaxInvestment;
         var alreadyFundedAmount = await GetApprovedFundedAmountAsync(opportunity.Id);
@@ -1452,20 +1693,20 @@ public class OpportunityService : IOpportunityService
 
         ValidateContributionAmount(request.RequestedAmount.Value, minimumContribution, maximumContribution, remainingFundingAmount);
 
-        if (linkedInvestment?.InterestRate is null or <= 0)
+        if (opportunity.InterestRate is null or <= 0)
             throw new BusinessValidationException("LOAN_RETURN_RATE_REQUIRED", "Loan participation requires configured InterestRate.");
 
-        var durationMonths = ResolveLoanTermMonths(opportunity, linkedInvestment);
+        var durationMonths = ResolveLoanTermMonths(opportunity);
         if (!durationMonths.HasValue || durationMonths.Value <= 0)
             throw new BusinessValidationException("LOAN_TERM_REQUIRED", "Loan participation requires configured loan term.");
 
-        var expectedReturn = CalculateLoanExpectedReturn(request.RequestedAmount.Value, linkedInvestment.InterestRate.Value, durationMonths.Value);
+        var expectedReturn = CalculateLoanExpectedReturn(request.RequestedAmount.Value, opportunity.InterestRate.Value, durationMonths.Value);
         var expectedTotalRepayment = request.RequestedAmount.Value + expectedReturn;
 
         if (request.ExpectedReturnAmount.HasValue && request.ExpectedReturnAmount.Value != expectedReturn)
             throw new BusinessValidationException("INVALID_EXPECTED_RETURN_AMOUNT", "ExpectedReturnAmount does not match the backend calculated loan return.");
 
-        if (request.ExpectedReturnRateSnapshot.HasValue && request.ExpectedReturnRateSnapshot.Value != linkedInvestment.InterestRate.Value)
+        if (request.ExpectedReturnRateSnapshot.HasValue && request.ExpectedReturnRateSnapshot.Value != opportunity.InterestRate.Value)
             throw new BusinessValidationException("INVALID_EXPECTED_RETURN_RATE", "ExpectedReturnRateSnapshot does not match the backend loan return rate.");
 
         if (request.ExpectedDurationMonthsSnapshot.HasValue && request.ExpectedDurationMonthsSnapshot.Value != durationMonths.Value)
@@ -1478,11 +1719,12 @@ public class OpportunityService : IOpportunityService
             ContributionAmount = request.RequestedAmount.Value,
             RequestedAmount = request.RequestedAmount.Value,
             CurrencySnapshot = currency,
-            ReturnRateSnapshot = linkedInvestment.InterestRate.Value,
+            ReturnRateSnapshot = opportunity.InterestRate.Value,
             ReturnRateTypeSnapshot = "AnnualSimple",
             TermValueSnapshot = durationMonths.Value,
             TermUnitSnapshot = "Months",
-            RepaymentModelSnapshot = linkedInvestment.RepaymentFrequency,
+            RepaymentModelSnapshot = opportunity.RepaymentFrequency,
+            FinalRepaymentDateSnapshot = opportunity.FinalRepaymentDate,
             ExpectedReturnAmount = expectedReturn,
             ExpectedTotalRepaymentAmount = expectedTotalRepayment,
             CalculatedTotalAmount = expectedTotalRepayment,
@@ -1506,7 +1748,7 @@ public class OpportunityService : IOpportunityService
             throw new BusinessValidationException("INVALID_REQUESTED_AMOUNT", "RequestedAmount is required for profit sharing participation.");
 
         var linkedInvestment = await GetLinkedInvestmentAsync(opportunity.Id);
-        var currency = linkedInvestment?.Currency ?? "Credits";
+        var currency = opportunity.Currency ?? linkedInvestment?.Currency ?? "Unspecified";
         var minimumContribution = opportunity.MinimumInvestmentAmount ?? linkedInvestment?.MinInvestment;
         var maximumContribution = opportunity.MaximumInvestmentAmount ?? linkedInvestment?.MaxInvestment;
         var alreadyFundedAmount = await GetApprovedFundedAmountAsync(opportunity.Id);
@@ -1514,9 +1756,9 @@ public class OpportunityService : IOpportunityService
 
         ValidateContributionAmount(request.RequestedAmount.Value, minimumContribution, maximumContribution, remainingFundingAmount);
 
-        var profitSharePercentage = ResolveProfitSharePercentage(linkedInvestment);
+        var profitSharePercentage = opportunity.ProfitSharePercentage;
         if (!profitSharePercentage.HasValue || profitSharePercentage.Value <= 0)
-            throw new BusinessValidationException("PROFIT_SHARE_PERCENTAGE_REQUIRED", "Profit sharing participation requires configured ProfitPercentage or RevenueSharePercentage.");
+            throw new BusinessValidationException("PROFIT_SHARING_TERMS_NOT_CONFIGURED", "This Profit Sharing opportunity is missing its configured ProfitSharePercentage.");
 
         var termMonths = ResolveProfitSharingTermMonths(opportunity, linkedInvestment);
         var expectedProfitAmount = CalculateProfitSharingExpectedProfit(request.RequestedAmount.Value, profitSharePercentage.Value);
@@ -1533,10 +1775,9 @@ public class OpportunityService : IOpportunityService
             ProposedSharePercentage = request.ProposedSharePercentage,
             TermValueSnapshot = termMonths,
             TermUnitSnapshot = termMonths.HasValue ? "Months" : null,
-            PayoutFrequencySnapshot = linkedInvestment?.PayoutFrequency,
-            RevenueDistributionFrequencySnapshot = linkedInvestment?.RevenueDistributionFrequency,
-            ContractStartDateSnapshot = linkedInvestment?.ContractStartDate,
-            ContractEndDateSnapshot = linkedInvestment?.ContractEndDate,
+            PayoutFrequencySnapshot = opportunity.ProfitSharingPayoutFrequency,
+            ContractStartDateSnapshot = opportunity.ProfitSharingContractStartDate,
+            ContractEndDateSnapshot = opportunity.ProfitSharingContractEndDate,
             OpportunityTotalExpectedPayoutSnapshot = linkedInvestment?.TotalExpectedPayout,
             ExpectedProfitAmount = expectedProfitAmount,
             ExpectedTotalPayoutAmount = expectedTotalPayout,
@@ -1582,6 +1823,128 @@ public class OpportunityService : IOpportunityService
         return approvedRequests.Sum(r => r.RequestedAmount ?? 0m);
     }
 
+    private async Task<ParticipationSummary> GetParticipationSummaryAsync(int opportunityId)
+    {
+        var summaries = await GetParticipationSummariesAsync([opportunityId]);
+        return summaries[opportunityId];
+    }
+
+    private async Task<IReadOnlyDictionary<int, ParticipationSummary>> GetParticipationSummariesAsync(IEnumerable<int> opportunityIds)
+    {
+        var ids = opportunityIds.Distinct().ToHashSet();
+        if (ids.Count == 0)
+            return new Dictionary<int, ParticipationSummary>();
+
+        var opportunities = (await _uow.Repository<Opportunity>().FindAsync(o => true))
+            .Where(o => ids.Contains(o.Id))
+            .ToList();
+        var founders = await GetFounderLookupAsync(opportunities.Select(o => o.FounderId));
+        var approved = (await _uow.Repository<OpportunityJoinRequest>().FindAsync(r =>
+                r.Status == OpportunityJoinRequestStatus.Approved))
+            .Where(r => ids.Contains(r.OpportunityId))
+            .ToList();
+
+        return opportunities.ToDictionary(opportunity => opportunity.Id, opportunity =>
+        {
+            var requests = approved.Where(r => r.OpportunityId == opportunity.Id).ToList();
+            var financialRequests = requests
+                .Where(r => r.RequestType == OpportunityJoinRequestType.InvestmentParticipation)
+                .GroupBy(r => r.Id)
+                .Select(g => g.First())
+                .ToList();
+            var fundedAmount = financialRequests.Sum(r => r.RequestedAmount ?? 0m);
+            var remainingFunding = CalculateRemainingFunding(opportunity.FundingTarget, fundedAmount);
+            var progress = opportunity.FundingTarget <= 0
+                ? 0m
+                : Math.Min(decimal.Round(fundedAmount / opportunity.FundingTarget * 100m, 2), 100m);
+            var soldShares = opportunity.InvestmentModel == InvestmentModel.Equity
+                ? financialRequests.Sum(r => TryReadSelectedShares(r.TermsSnapshotJson))
+                : 0;
+            int? remainingShares = opportunity.OfferedShares.HasValue
+                ? Math.Max(opportunity.OfferedShares.Value - soldShares, 0)
+                : null;
+            var allocatedEquity = opportunity.TotalShares is > 0
+                ? decimal.Round(soldShares * 100m / opportunity.TotalShares.Value, 2)
+                : 0m;
+            decimal? remainingEquity = opportunity.EquityOfferedPercentage.HasValue
+                ? Math.Max(opportunity.EquityOfferedPercentage.Value - allocatedEquity, 0m)
+                : null;
+
+            return new ParticipationSummary(
+                fundedAmount,
+                remainingFunding,
+                progress,
+                requests.Select(r => r.InvestorId).Distinct().Count(),
+                soldShares,
+                remainingShares,
+                allocatedEquity,
+                remainingEquity,
+                founders.TryGetValue(opportunity.FounderId, out var founder) ? founder.Name : string.Empty);
+        });
+    }
+
+    private async Task ApplyParticipationSummariesAsync(IEnumerable<OpportunityDto> opportunities)
+    {
+        var list = opportunities.ToList();
+        var summaries = await GetParticipationSummariesAsync(list.Select(o => o.Id));
+        foreach (var opportunity in list)
+            ApplyParticipationSummary(opportunity, summaries[opportunity.Id]);
+    }
+
+    private async Task ApplyParticipationSummaryAsync(OpportunityDto opportunity) =>
+        ApplyParticipationSummary(opportunity, await GetParticipationSummaryAsync(opportunity.Id));
+
+    private static void ApplyParticipationSummary(OpportunityDto opportunity, ParticipationSummary summary)
+    {
+        opportunity.FundedAmount = summary.FundedAmount;
+        opportunity.RemainingFundingAmount = summary.RemainingFundingAmount;
+        opportunity.FundingProgressPercentage = summary.FundingProgressPercentage;
+        opportunity.FundingProgressPercent = summary.FundingProgressPercentage;
+        opportunity.ApprovedParticipantCount = summary.ApprovedParticipantCount;
+        opportunity.SoldShares = summary.SoldShares;
+        opportunity.RemainingShares = summary.RemainingShares;
+        opportunity.AllocatedEquityPercentage = summary.AllocatedEquityPercentage;
+        opportunity.RemainingEquityPercentage = summary.RemainingEquityPercentage;
+    }
+
+    private static JsonElement? ParseSnapshot(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try { return JsonDocument.Parse(json).RootElement.Clone(); }
+        catch (JsonException) { return null; }
+    }
+
+    private static JsonElement? SnapshotProperty(JsonElement? root, params string[] names)
+    {
+        if (!root.HasValue || root.Value.ValueKind != JsonValueKind.Object) return null;
+        foreach (var property in root.Value.EnumerateObject())
+            if (names.Any(name => string.Equals(name, property.Name, StringComparison.OrdinalIgnoreCase)))
+                return property.Value;
+        return null;
+    }
+
+    private static decimal? SnapshotDecimal(JsonElement? root, params string[] names)
+    {
+        var value = SnapshotProperty(root, names);
+        if (!value.HasValue) return null;
+        if (value.Value.ValueKind == JsonValueKind.Number && value.Value.TryGetDecimal(out var number)) return number;
+        return decimal.TryParse(value.Value.ToString(), out number) ? number : null;
+    }
+
+    private static int? SnapshotInt(JsonElement? root, params string[] names)
+    {
+        var value = SnapshotProperty(root, names);
+        if (!value.HasValue) return null;
+        if (value.Value.ValueKind == JsonValueKind.Number && value.Value.TryGetInt32(out var number)) return number;
+        return int.TryParse(value.Value.ToString(), out number) ? number : null;
+    }
+
+    private static string? SnapshotString(JsonElement? root, params string[] names) =>
+        SnapshotProperty(root, names)?.ToString();
+
+    private static DateTime? SnapshotDate(JsonElement? root, params string[] names) =>
+        DateTime.TryParse(SnapshotString(root, names), out var date) ? date : null;
+
     private static decimal CalculateRemainingFunding(decimal fundingTarget, decimal alreadyFundedAmount) =>
         Math.Max(fundingTarget - alreadyFundedAmount, 0m);
 
@@ -1600,14 +1963,11 @@ public class OpportunityService : IOpportunityService
             throw new BusinessValidationException("CONTRIBUTION_EXCEEDS_REMAINING_FUNDING", $"RequestedAmount must not exceed remaining funding amount {remainingFundingAmount:0.##}.");
     }
 
-    private static int? ResolveLoanTermMonths(Opportunity opportunity, Investment? linkedInvestment) =>
-        opportunity.ExpectedDurationMonths ?? linkedInvestment?.DurationMonths;
+    private static int? ResolveLoanTermMonths(Opportunity opportunity) =>
+        opportunity.ExpectedDurationMonths;
 
     private static decimal CalculateLoanExpectedReturn(decimal contributionAmount, decimal annualReturnRate, int termMonths) =>
         decimal.Round(contributionAmount * (annualReturnRate / 100m) * termMonths / 12m, 2);
-
-    private static decimal? ResolveProfitSharePercentage(Investment? linkedInvestment) =>
-        linkedInvestment?.ProfitPercentage ?? linkedInvestment?.RevenueSharePercentage;
 
     private static int? ResolveProfitSharingTermMonths(Opportunity opportunity, Investment? linkedInvestment) =>
         opportunity.ExpectedDurationMonths ?? linkedInvestment?.DurationMonths;
@@ -1615,26 +1975,23 @@ public class OpportunityService : IOpportunityService
     private static decimal CalculateProfitSharingExpectedProfit(decimal contributionAmount, decimal profitSharePercentage) =>
         decimal.Round(contributionAmount * (profitSharePercentage / 100m), 2);
 
-    private static string? BuildProfitSharingExitTerms(Investment? linkedInvestment)
+    private static string? BuildProfitSharingExitTerms(Opportunity opportunity, Investment? linkedInvestment)
     {
-        if (linkedInvestment == null)
-            return null;
-
         var parts = new List<string>();
 
-        if (!string.IsNullOrWhiteSpace(linkedInvestment.PayoutFrequency))
-            parts.Add($"Payout frequency: {linkedInvestment.PayoutFrequency}");
+        if (!string.IsNullOrWhiteSpace(opportunity.ProfitSharingPayoutFrequency))
+            parts.Add($"Payout frequency: {opportunity.ProfitSharingPayoutFrequency}");
 
-        if (!string.IsNullOrWhiteSpace(linkedInvestment.RevenueDistributionFrequency))
+        if (!string.IsNullOrWhiteSpace(linkedInvestment?.RevenueDistributionFrequency))
             parts.Add($"Revenue distribution: {linkedInvestment.RevenueDistributionFrequency}");
 
-        if (linkedInvestment.ContractStartDate.HasValue)
-            parts.Add($"Contract start: {linkedInvestment.ContractStartDate.Value:yyyy-MM-dd}");
+        if (opportunity.ProfitSharingContractStartDate.HasValue)
+            parts.Add($"Contract start: {opportunity.ProfitSharingContractStartDate.Value:yyyy-MM-dd}");
 
-        if (linkedInvestment.ContractEndDate.HasValue)
-            parts.Add($"Contract end: {linkedInvestment.ContractEndDate.Value:yyyy-MM-dd}");
+        if (opportunity.ProfitSharingContractEndDate.HasValue)
+            parts.Add($"Contract end: {opportunity.ProfitSharingContractEndDate.Value:yyyy-MM-dd}");
 
-        if (linkedInvestment.TotalExpectedPayout.HasValue)
+        if (linkedInvestment?.TotalExpectedPayout.HasValue == true)
             parts.Add($"Total expected payout: {linkedInvestment.TotalExpectedPayout.Value:0.##}");
 
         return parts.Count == 0 ? null : string.Join(" | ", parts);
@@ -1663,18 +2020,17 @@ public class OpportunityService : IOpportunityService
         return approvedInvestorIds.Count;
     }
 
-    private async Task ValidateEquityAvailabilityForApprovalAsync(int opportunityId, OpportunityJoinRequest joinRequest)
+    private async Task ValidateEquityAvailabilityForApprovalAsync(Opportunity opportunity, OpportunityJoinRequest joinRequest)
     {
-        var linkedInvestment = await GetLinkedInvestmentAsync(opportunityId);
-        if (linkedInvestment?.TotalShares is null or <= 0)
-            throw new BusinessValidationException("EQUITY_TOTAL_SHARES_REQUIRED", "Equity participation requires configured TotalShares.");
+        if (opportunity.OfferedShares is null or <= 0)
+            throw new BusinessValidationException("EQUITY_OFFERED_SHARES_REQUIRED", "Equity participation requires configured OfferedShares.");
 
         var selectedShares = TryReadSelectedShares(joinRequest.TermsSnapshotJson);
         if (selectedShares <= 0)
             throw new BusinessValidationException("INVALID_EQUITY_TERMS_SNAPSHOT", "Equity participation request is missing selected shares.");
 
-        var approvedShares = await GetApprovedEquitySharesAsync(opportunityId, joinRequest.Id);
-        var availableShares = Math.Max(linkedInvestment.TotalShares.Value - approvedShares, 0);
+        var approvedShares = await GetApprovedEquitySharesAsync(opportunity.Id, joinRequest.Id);
+        var availableShares = Math.Max(opportunity.OfferedShares.Value - approvedShares, 0);
         if (selectedShares > availableShares)
             throw new BusinessValidationException("INSUFFICIENT_AVAILABLE_SHARES", $"Only {availableShares} shares are available.");
     }
@@ -1685,10 +2041,10 @@ public class OpportunityService : IOpportunityService
             throw new BusinessValidationException("INVALID_REQUESTED_AMOUNT", "Loan participation request is missing a valid RequestedAmount.");
 
         var linkedInvestment = await GetLinkedInvestmentAsync(opportunity.Id);
-        if (linkedInvestment?.InterestRate is null or <= 0)
+        if (opportunity.InterestRate is null or <= 0)
             throw new BusinessValidationException("LOAN_RETURN_RATE_REQUIRED", "Loan participation requires configured InterestRate.");
 
-        var durationMonths = ResolveLoanTermMonths(opportunity, linkedInvestment);
+        var durationMonths = ResolveLoanTermMonths(opportunity);
         if (!durationMonths.HasValue || durationMonths.Value <= 0)
             throw new BusinessValidationException("LOAN_TERM_REQUIRED", "Loan participation requires configured loan term.");
 
@@ -1706,9 +2062,9 @@ public class OpportunityService : IOpportunityService
             throw new BusinessValidationException("INVALID_REQUESTED_AMOUNT", "Profit sharing participation request is missing a valid RequestedAmount.");
 
         var linkedInvestment = await GetLinkedInvestmentAsync(opportunity.Id);
-        var profitSharePercentage = ResolveProfitSharePercentage(linkedInvestment);
+        var profitSharePercentage = opportunity.ProfitSharePercentage;
         if (!profitSharePercentage.HasValue || profitSharePercentage.Value <= 0)
-            throw new BusinessValidationException("PROFIT_SHARE_PERCENTAGE_REQUIRED", "Profit sharing participation requires configured ProfitPercentage or RevenueSharePercentage.");
+            throw new BusinessValidationException("PROFIT_SHARING_TERMS_NOT_CONFIGURED", "This Profit Sharing opportunity is missing its configured ProfitSharePercentage.");
 
         var minimumContribution = opportunity.MinimumInvestmentAmount ?? linkedInvestment?.MinInvestment;
         var maximumContribution = opportunity.MaximumInvestmentAmount ?? linkedInvestment?.MaxInvestment;
@@ -1809,6 +2165,13 @@ public class OpportunityService : IOpportunityService
             opportunity.MaximumInvestmentAmount,
             opportunity.ExpectedDurationMonths,
             opportunity.EquityOfferedPercentage,
+            opportunity.ProfitSharePercentage,
+            opportunity.ProfitSharingPayoutFrequency,
+            opportunity.ProfitSharingContractStartDate,
+            opportunity.ProfitSharingContractEndDate,
+            opportunity.InterestRate,
+            opportunity.RepaymentFrequency,
+            opportunity.FinalRepaymentDate,
             InvestmentModel = opportunity.InvestmentModel.ToString(),
             ProjectStage = opportunity.ProjectStage.ToString(),
             Status = opportunity.Status.ToString(),
@@ -1845,7 +2208,18 @@ public class OpportunityService : IOpportunityService
             MinimumInvestmentAmount = opportunity.MinimumInvestmentAmount,
             MaximumInvestmentAmount = opportunity.MaximumInvestmentAmount,
             ExpectedDurationMonths = opportunity.ExpectedDurationMonths,
+            Currency = opportunity.Currency,
+            SharePrice = opportunity.SharePrice,
+            TotalShares = opportunity.TotalShares,
+            OfferedShares = opportunity.OfferedShares,
             EquityOfferedPercentage = opportunity.EquityOfferedPercentage,
+            ProfitSharePercentage = opportunity.ProfitSharePercentage,
+            ProfitSharingPayoutFrequency = opportunity.ProfitSharingPayoutFrequency,
+            ProfitSharingContractStartDate = opportunity.ProfitSharingContractStartDate,
+            ProfitSharingContractEndDate = opportunity.ProfitSharingContractEndDate,
+            InterestRate = opportunity.InterestRate,
+            RepaymentFrequency = opportunity.RepaymentFrequency,
+            FinalRepaymentDate = opportunity.FinalRepaymentDate,
             PublicInvestmentTermsSummary = BuildPublicInvestmentTermsSummary(opportunity),
             ExpectedReturnSummary = BuildExpectedReturnSummary(opportunity),
             FundingProgressPercent = 0m,
@@ -1900,7 +2274,18 @@ public class OpportunityService : IOpportunityService
         MinimumInvestmentAmount = opportunity.MinimumInvestmentAmount,
         MaximumInvestmentAmount = opportunity.MaximumInvestmentAmount,
         ExpectedDurationMonths = opportunity.ExpectedDurationMonths,
+        Currency = opportunity.Currency,
+        SharePrice = opportunity.SharePrice,
+        TotalShares = opportunity.TotalShares,
+        OfferedShares = opportunity.OfferedShares,
         EquityOfferedPercentage = opportunity.EquityOfferedPercentage,
+        ProfitSharePercentage = opportunity.ProfitSharePercentage,
+        ProfitSharingPayoutFrequency = opportunity.ProfitSharingPayoutFrequency,
+        ProfitSharingContractStartDate = opportunity.ProfitSharingContractStartDate,
+        ProfitSharingContractEndDate = opportunity.ProfitSharingContractEndDate,
+        InterestRate = opportunity.InterestRate,
+        RepaymentFrequency = opportunity.RepaymentFrequency,
+        FinalRepaymentDate = opportunity.FinalRepaymentDate,
         PublicInvestmentTermsSummary = BuildPublicInvestmentTermsSummary(opportunity),
         ExpectedReturnSummary = BuildExpectedReturnSummary(opportunity),
         FundingProgressPercent = 0m,
@@ -1966,10 +2351,15 @@ public class OpportunityService : IOpportunityService
         };
     }
 
-    private static OpportunityRoomDto ToRoomDto(Opportunity opportunity, AuthUser? founder, bool isFounder, bool isApprovedParticipant, int approvedParticipantCount)
+    private static OpportunityRoomDto ToRoomDto(Opportunity opportunity, AuthUser? founder, bool isFounder, bool isApprovedParticipant, ParticipationSummary summary)
     {
         var canAccessRoom = isFounder || isApprovedParticipant;
         var canViewPrivateFiles = canAccessRoom;
+        var milestoneEvents = opportunity.Events
+            .Where(e => IsMilestoneEvent(e.EventType))
+            .OrderByDescending(e => e.CreatedAt)
+            .ToList();
+        var milestones = milestoneEvents.Select(ToMilestoneDto).ToList();
 
         return new OpportunityRoomDto
         {
@@ -1981,7 +2371,19 @@ public class OpportunityService : IOpportunityService
                 ProjectStage = opportunity.ProjectStage,
                 Founder = ToFounderSummary(founder, opportunity.FounderId),
                 FundingTarget = opportunity.FundingTarget,
-                FundingProgress = 0m,
+                FundingProgress = summary.FundingProgressPercentage,
+                FundingProgressPercent = summary.FundingProgressPercentage,
+                FundedAmount = summary.FundedAmount,
+                RemainingFundingAmount = summary.RemainingFundingAmount,
+                FundingProgressPercentage = summary.FundingProgressPercentage,
+                ApprovedParticipantCount = summary.ApprovedParticipantCount,
+                TotalShares = opportunity.TotalShares,
+                OfferedShares = opportunity.OfferedShares,
+                SoldShares = summary.SoldShares,
+                RemainingShares = summary.RemainingShares,
+                SharePrice = opportunity.SharePrice,
+                AllocatedEquityPercentage = summary.AllocatedEquityPercentage,
+                RemainingEquityPercentage = summary.RemainingEquityPercentage,
                 InvestmentModel = opportunity.InvestmentModel,
                 MinimumInvestment = opportunity.MinimumInvestmentAmount,
                 ExpectedReturnSummary = BuildExpectedReturnSummary(opportunity),
@@ -1990,17 +2392,18 @@ public class OpportunityService : IOpportunityService
             },
             MediaLibrary = BuildRoomMediaLibrary(opportunity.Media, canViewPrivateFiles),
             DocumentsLibrary = BuildRoomDocumentsLibrary(opportunity.Documents, canViewPrivateFiles),
-            Timeline = opportunity.Events
-                .OrderByDescending(e => e.CreatedAt)
+            Timeline = milestoneEvents
                 .Select(ToEventDto)
                 .ToList(),
+            Milestones = milestones,
+            LatestMilestone = milestones.FirstOrDefault(),
             ParticipantContext = new OpportunityRoomParticipantContextDto
             {
                 IsFounder = isFounder,
                 IsApprovedParticipant = isApprovedParticipant,
-                ApprovedParticipantCount = approvedParticipantCount,
+                ApprovedParticipantCount = summary.ApprovedParticipantCount,
                 CanAccessProjectRoom = canAccessRoom,
-                CanEditCoreProject = isFounder && approvedParticipantCount == 0,
+                CanEditCoreProject = isFounder && summary.ApprovedParticipantCount == 0,
                 CanAddUpdate = isFounder,
                 CanAddDocument = isFounder,
                 CanAddMilestone = isFounder,
@@ -2009,6 +2412,22 @@ public class OpportunityService : IOpportunityService
                 CanViewPrivateFiles = canViewPrivateFiles,
                 CanDownloadFiles = canAccessRoom
             }
+        };
+    }
+
+    private static OpportunityMilestoneDto ToMilestoneDto(OpportunityEvent milestone)
+    {
+        var isCompleted = milestone.EventType.Contains("completed", StringComparison.OrdinalIgnoreCase);
+        var isStarted = milestone.EventType.Contains("started", StringComparison.OrdinalIgnoreCase);
+
+        return new OpportunityMilestoneDto
+        {
+            MilestoneId = milestone.Id,
+            Title = milestone.Title,
+            Description = milestone.Description,
+            Status = isCompleted ? "Completed" : isStarted ? "InProgress" : "Created",
+            CreatedAt = milestone.CreatedAt,
+            CompletedAt = isCompleted ? milestone.CreatedAt : null
         };
     }
 
@@ -2200,6 +2619,25 @@ public class OpportunityService : IOpportunityService
         RejectionReason = includeRejectionReason ? joinRequest.RejectionReason : null
     };
 
+    private static FounderIncomingJoinRequestDto ToFounderIncomingJoinRequestDto(OpportunityJoinRequest joinRequest) => new()
+    {
+        RequestId = joinRequest.Id,
+        OpportunityId = joinRequest.OpportunityId,
+        OpportunityTitle = joinRequest.Opportunity?.Title ?? string.Empty,
+        InvestorId = joinRequest.InvestorId,
+        InvestorDisplayName = joinRequest.Investor?.Name ?? string.Empty,
+        InvestmentModel = joinRequest.Opportunity?.InvestmentModel ?? default,
+        RequestType = joinRequest.RequestType,
+        RequestedAmount = joinRequest.RequestedAmount,
+        Status = joinRequest.Status,
+        CreatedAt = joinRequest.CreatedAt,
+        CalculatedTotalAmount = joinRequest.CalculatedTotalAmount,
+        TermsSnapshotJson = joinRequest.TermsSnapshotJson,
+        CanApprove = joinRequest.Status == OpportunityJoinRequestStatus.Pending,
+        CanReject = joinRequest.Status == OpportunityJoinRequestStatus.Pending,
+        SourceConversationId = joinRequest.SourceConversationId
+    };
+
     private sealed record JoinRequestDetails(
         OpportunityJoinRequestType RequestType,
         decimal? RequestedAmount,
@@ -2291,4 +2729,15 @@ public class OpportunityService : IOpportunityService
         CreatedAt = opportunityEvent.CreatedAt,
         IsPublic = opportunityEvent.IsPublic
     };
+
+    private sealed record ParticipationSummary(
+        decimal FundedAmount,
+        decimal RemainingFundingAmount,
+        decimal FundingProgressPercentage,
+        int ApprovedParticipantCount,
+        int SoldShares,
+        int? RemainingShares,
+        decimal AllocatedEquityPercentage,
+        decimal? RemainingEquityPercentage,
+        string FounderDisplayName);
 }

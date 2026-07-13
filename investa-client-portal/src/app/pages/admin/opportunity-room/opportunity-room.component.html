@@ -14,8 +14,8 @@
       <h1 class="text-2xl font-bold text-white">{{ roomError.title }}</h1>
       <p class="mt-3 text-sm text-slate-300">{{ roomError.message }}</p>
       <div class="mt-6 flex flex-wrap justify-center gap-3">
-        <button type="button" (click)="load()" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">Retry</button>
-        <a routerLink="/admin/investments" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-slate-700">Back to Opportunities</a>
+        <button type="button" (click)="load()" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">{{ 'opportunityRoom.errors.retry' | translate }}</button>
+        <a routerLink="/admin/investments" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-slate-700">{{ 'opportunityRoom.backToOpportunities' | translate }}</a>
       </div>
     </section>
   } @else if (room()) {
@@ -24,27 +24,43 @@
         <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div class="max-w-4xl">
             <div class="mb-3 flex flex-wrap gap-2 text-xs font-semibold">
-              <span class="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-cyan-200">Investor Project Room</span>
-              <span class="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-slate-200">{{ roomRole() }}</span>
-              <span class="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-slate-200">{{ status() }}</span>
-              <span class="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-slate-200">{{ stage() }}</span>
+              <span class="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-cyan-200">{{ 'opportunityRoom.badges.investorProjectRoom' | translate }}</span>
+              @if (roomRoleKey()) {
+                <span class="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-slate-200">{{ roomRole() }}</span>
+              } @else {
+                <span class="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-slate-200">{{ status() }}</span>
+              }
+              @if (stageKey()) {
+                <span class="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-slate-200">{{ stageKey() | translate }}</span>
+              } @else {
+                <span class="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-slate-200">{{ stage() }}</span>
+              }
             </div>
             <h1 class="text-3xl font-bold tracking-tight text-white lg:text-4xl">{{ title() }}</h1>
             <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-300 lg:text-base">{{ description() }}</p>
             <p class="mt-4 rounded-xl border border-slate-800 bg-slate-950/70 p-4 text-sm text-slate-300">
-              <span class="font-semibold text-white">Founder summary:</span>
+              <span class="font-semibold text-white">{{ 'opportunityRoom.founderSummary' | translate }}:</span>
               {{ founderSummary() }}
             </p>
           </div>
-          <a routerLink="/admin/investments" class="inline-flex items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-slate-700">Back to Opportunities</a>
+          <div class="flex flex-wrap items-center gap-3">
+            @if (canReportProject()) {
+              <button type="button"
+                      (click)="openProjectReport()"
+                      class="inline-flex items-center justify-center rounded-lg border border-red-400/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-100 transition hover:bg-red-500/20">
+                {{ 'reports.actions.reportProject' | translate }}
+              </button>
+            }
+            <a routerLink="/admin/investments" class="inline-flex items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-slate-700">{{ 'opportunityRoom.backToOpportunities' | translate }}</a>
+          </div>
         </div>
 
         @if (isFounder()) {
           <div class="mt-6 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-5">
             <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-200">Founder Workspace</p>
-                <p class="mt-2 text-sm text-cyan-100">Approved Participants: <strong>{{ approvedParticipantCount() }}</strong></p>
+                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-200">{{ 'opportunityRoom.founderWorkspace.title' | translate }}</p>
+                <p class="mt-2 text-sm text-cyan-100">{{ 'opportunityRoom.founderWorkspace.approvedParticipants' | translate }}: <strong>{{ approvedParticipantCount() ?? '-' }}</strong></p>
                 <p class="mt-1 text-sm text-cyan-100/90">{{ coreEditMessage() }}</p>
               </div>
               <div class="flex flex-wrap gap-3">
@@ -56,16 +72,13 @@
                    [class.bg-slate-800]="!canEditCoreProject()"
                    [class.text-slate-500]="!canEditCoreProject()"
                    [attr.aria-disabled]="!canEditCoreProject()">
-                  Edit Project
+                  {{ 'opportunityRoom.founderWorkspace.editProject' | translate }}
                 </a>
-                <button type="button" (click)="openUpdateModal()" [disabled]="!canAddUpdate()" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">Add Update</button>
-                <button type="button" (click)="openDocumentModal()" [disabled]="!canAddDocument()" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">Add Document</button>
-                <button type="button" (click)="openMilestoneModal()" [disabled]="!canAddMilestone()" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">Add Milestone</button>
+                <button type="button" (click)="openUpdateModal()" [disabled]="!canAddUpdate()" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">{{ 'opportunityRoom.founderWorkspace.addUpdate' | translate }}</button>
+                <button type="button" (click)="openDocumentModal()" [disabled]="!canAddDocument()" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">{{ 'opportunityRoom.founderWorkspace.addDocument' | translate }}</button>
+                <button type="button" (click)="openMilestoneModal()" [disabled]="!canAddMilestone()" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">{{ 'opportunityRoom.founderWorkspace.addMilestone' | translate }}</button>
               </div>
             </div>
-            @if (!canEditCoreProject()) {
-              <p class="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-100">Core project details are locked after the first participant joins. Continue updates through milestone, update, and document actions.</p>
-            }
           </div>
         }
 
@@ -76,37 +89,46 @@
 
       <div class="grid gap-4 p-6 md:grid-cols-2 xl:grid-cols-4 lg:p-8">
         <article class="rounded-2xl border border-slate-800 bg-slate-950/60 p-5">
-          <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Participation</p>
+          <p class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'opportunityRoom.stats.participation' | translate }}</p>
           <p class="mt-2 text-lg font-bold text-white">{{ participationAccessText() }}</p>
           <p class="mt-1 text-sm text-slate-300">{{ roomRole() }}</p>
-          <p class="mt-3 text-xs text-slate-400">Private files: {{ permissionLabel(participantContext().canViewPrivateFiles) }} · Downloads: {{ permissionLabel(participantContext().canDownloadFiles) }}</p>
+          <p class="mt-3 text-xs text-slate-400">{{ 'opportunityRoom.stats.permissions' | translate: { privateFiles: permissionLabel(participantContext().canViewPrivateFiles), downloads: permissionLabel(participantContext().canDownloadFiles) } }}</p>
         </article>
 
         <article class="rounded-2xl border border-slate-800 bg-slate-950/60 p-5">
-          <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Your Terms Snapshot</p>
-          <p class="mt-2 text-sm font-semibold text-white">{{ investmentModel() }} model</p>
-          <p class="mt-2 text-sm text-slate-300">Minimum participation: {{ money(minimumParticipation()) }}</p>
+          <p class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'opportunityRoom.stats.termsSnapshot' | translate }}</p>
+          <p class="mt-2 text-sm font-semibold text-white">{{ 'opportunityRoom.stats.investmentModel' | translate: { model: (investmentModelKey() ? (investmentModelKey() | translate) : investmentModel()) } }}</p>
+          <p class="mt-2 text-sm text-slate-300">{{ 'opportunityRoom.stats.minimumParticipation' | translate }}: {{ money(minimumParticipation()) }}</p>
           <p class="mt-2 line-clamp-3 text-xs text-slate-400">{{ investmentTermsSummary() }}</p>
         </article>
 
         <article class="rounded-2xl border border-slate-800 bg-slate-950/60 p-5">
-          <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Funding Progress</p>
-          <p class="mt-2 text-lg font-bold text-white">{{ fundingProgress() | number:'1.0-0' }}%</p>
-          <p class="mt-1 text-sm text-slate-300">Target: {{ money(fundingTarget()) }}</p>
+          <p class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'opportunityRoom.funding.progress' | translate }}</p>
+          <p class="mt-2 text-lg font-bold text-white">{{ fundingProgress() == null ? '-' : ((fundingProgress() | number:'1.0-2') + '%') }}</p>
+          <div class="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-300">
+            <span>{{ 'opportunityRoom.funding.target' | translate }}</span>
+            <strong class="text-end text-white">{{ money(fundingTarget()) }}</strong>
+            <span>{{ 'opportunityRoom.funding.funded' | translate }}</span>
+            <strong class="text-end text-white">{{ money(fundedAmount()) }}</strong>
+            <span>{{ 'opportunityRoom.funding.remaining' | translate }}</span>
+            <strong class="text-end text-white">{{ money(remainingFundingAmount()) }}</strong>
+            <span>{{ 'opportunityRoom.funding.participants' | translate }}</span>
+            <strong class="text-end text-white">{{ approvedParticipantCount() ?? '-' }}</strong>
+          </div>
           <div class="mt-3 h-2 rounded-full bg-slate-800">
-            <div class="h-2 rounded-full bg-gradient-to-r from-cyan-500 to-emerald-400" [style.width.%]="fundingProgress()"></div>
+            <div class="h-2 rounded-full bg-gradient-to-r from-cyan-500 to-emerald-400" [style.width.%]="fundingProgressBarWidth()"></div>
           </div>
         </article>
 
         <article class="rounded-2xl border border-slate-800 bg-slate-950/60 p-5">
-          <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Latest Change</p>
-          @if (latestActivity(); as latest) {
-            <div class="mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold" [ngClass]="activityKindClass(latest.kind)">{{ activityKindLabel(latest.kind) }}</div>
-            <p class="mt-2 line-clamp-2 text-sm font-semibold text-white">{{ latest.title }}</p>
-            <p class="mt-1 text-xs text-slate-400">{{ latest.detail }}</p>
-            <p class="mt-2 text-xs text-slate-500">{{ latest.dateText }}</p>
+          <p class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'opportunityRoom.stats.latestChange' | translate }}</p>
+          @if (latestMilestone(); as latest) {
+            <div class="mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold border-emerald-500/30 bg-emerald-500/10 text-emerald-200">{{ 'opportunityRoom.milestones.label' | translate }}</div>
+            <p class="mt-2 line-clamp-2 text-sm font-semibold text-white">{{ milestoneTitle(latest) }}</p>
+            <p class="mt-1 text-xs text-slate-400">{{ milestoneDescription(latest) }}</p>
+            <p class="mt-2 text-xs text-slate-500">{{ milestoneDate(latest) }}</p>
           } @else {
-            <p class="mt-2 text-sm text-slate-400">No project activity has been posted yet.</p>
+            <p class="mt-2 text-sm text-slate-400">{{ 'opportunityRoom.milestones.empty' | translate }}</p>
           }
         </article>
       </div>
@@ -115,18 +137,18 @@
     <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
       <article class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
         <div class="flex items-center justify-between">
-          <h2 class="text-lg font-bold text-white">What Changed Recently</h2>
+          <h2 class="text-lg font-bold text-white">{{ 'opportunityRoom.recentActivity.title' | translate }}</h2>
           <div class="flex items-center gap-3">
-            <span class="text-xs text-slate-500">Latest room activity</span>
+            <span class="text-xs text-slate-500">{{ 'opportunityRoom.recentActivity.subtitle' | translate }}</span>
             @if (hasMoreRecentActivity() && !showAllRecentActivity()) {
-              <button type="button" (click)="showAllRecent()" class="text-xs font-semibold text-cyan-300 hover:text-cyan-200">View All</button>
+              <button type="button" (click)="showAllRecent()" class="text-xs font-semibold text-cyan-300 hover:text-cyan-200">{{ 'opportunityRoom.recentActivity.viewAll' | translate }}</button>
             } @else if (hasMoreRecentActivity() && showAllRecentActivity()) {
-              <button type="button" (click)="showRecentSummary()" class="text-xs font-semibold text-cyan-300 hover:text-cyan-200">Show Less</button>
+              <button type="button" (click)="showRecentSummary()" class="text-xs font-semibold text-cyan-300 hover:text-cyan-200">{{ 'opportunityRoom.recentActivity.showLess' | translate }}</button>
             }
           </div>
         </div>
         @if (displayedRecentActivity().length === 0) {
-          <p class="mt-4 rounded-xl bg-slate-950/50 p-4 text-sm text-slate-400">No recent changes yet.</p>
+          <p class="mt-4 rounded-xl bg-slate-950/50 p-4 text-sm text-slate-400">{{ 'opportunityRoom.recentActivity.empty' | translate }}</p>
         } @else {
           <div class="mt-4 space-y-3">
             @for (item of displayedRecentActivity(); track item.trackKey) {
@@ -145,9 +167,9 @@
 
       <aside class="space-y-6">
         <article class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
-          <h2 class="text-lg font-bold text-white">What To Do Next</h2>
+          <h2 class="text-lg font-bold text-white">{{ 'opportunityRoom.nextSteps.title' | translate }}</h2>
           @if (recommendedNextSteps().length === 0) {
-            <p class="mt-4 text-sm text-slate-400">No pending guidance right now.</p>
+            <p class="mt-4 text-sm text-slate-400">{{ 'opportunityRoom.nextSteps.empty' | translate }}</p>
           } @else {
             <ol class="mt-4 space-y-3">
               @for (step of recommendedNextSteps(); track step) {
@@ -158,7 +180,7 @@
         </article>
 
         <article class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
-          <h2 class="text-lg font-bold text-white">Latest Public Note</h2>
+          <h2 class="text-lg font-bold text-white">{{ 'opportunityRoom.publicNote.title' | translate }}</h2>
           <p class="mt-3 whitespace-pre-line text-sm text-slate-300">{{ latestPublicUpdateSummary() }}</p>
         </article>
       </aside>
@@ -173,7 +195,11 @@
                 [class.text-white]="activeTab() === tab.id"
                 [class.text-gray-300]="activeTab() !== tab.id"
                 [class.hover:bg-slate-800]="activeTab() !== tab.id">
-          {{ tab.label }}
+          @if (tab.id === 'contracts') {
+            {{ 'contracts.title' | translate }}
+          } @else {
+            {{ ('opportunityRoom.tabs.' + tab.id) | translate }}
+          }
         </button>
       }
     </nav>
@@ -181,18 +207,29 @@
     @if (activeTab() === 'overview') {
       <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <article class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
-          <h2 class="text-xl font-bold text-white">Project Overview</h2>
+          <h2 class="text-xl font-bold text-white">{{ 'opportunityRoom.overview.title' | translate }}</h2>
           <dl class="mt-5 grid gap-4 md:grid-cols-2">
+            <div class="rounded-xl bg-slate-950/50 p-4"><dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'investmentPreview.amountRaised' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-white">{{ overview().fundedAmount == null ? '—' : (overview().fundedAmount | number:'1.0-0') }}</dd></div>
+            <div class="rounded-xl bg-slate-950/50 p-4"><dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'investmentPreview.remainingFunding' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-white">{{ overview().remainingFundingAmount == null ? '—' : (overview().remainingFundingAmount | number:'1.0-0') }}</dd></div>
+            <div class="rounded-xl bg-slate-950/50 p-4"><dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'investmentPreview.fundingProgress' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-white">{{ overview().fundingProgressPercentage == null ? '—' : ((overview().fundingProgressPercentage | number:'1.0-2') + '%') }}</dd></div>
+            <div class="rounded-xl bg-slate-950/50 p-4"><dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'investmentPreview.approvedParticipants' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-white">{{ overview().approvedParticipantCount == null ? '—' : overview().approvedParticipantCount }}</dd></div>
+            @if (overview().investmentModel === 'Equity' || overview().investmentModel === 1) {
+              <div class="rounded-xl bg-slate-950/50 p-4"><dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'investmentPreview.sharesOffered' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-white">{{ overview().offeredShares == null ? '—' : (overview().offeredShares | number) }}</dd></div>
+              <div class="rounded-xl bg-slate-950/50 p-4"><dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'investmentPreview.sharesSold' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-white">{{ overview().soldShares == null ? '—' : (overview().soldShares | number) }}</dd></div>
+              <div class="rounded-xl bg-slate-950/50 p-4"><dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'investmentPreview.sharesRemaining' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-white">{{ overview().remainingShares == null ? '—' : (overview().remainingShares | number) }}</dd></div>
+              <div class="rounded-xl bg-slate-950/50 p-4"><dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'investmentPreview.equityAllocated' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-white">{{ overview().allocatedEquityPercentage == null ? '—' : ((overview().allocatedEquityPercentage | number:'1.0-2') + '%') }}</dd></div>
+              <div class="rounded-xl bg-slate-950/50 p-4"><dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'investmentPreview.equityRemaining' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-white">{{ overview().remainingEquityPercentage == null ? '—' : ((overview().remainingEquityPercentage | number:'1.0-2') + '%') }}</dd></div>
+            }
             <div class="rounded-xl bg-slate-950/50 p-4">
-              <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">Use of Funds</dt>
+              <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'opportunityRoom.overview.useOfFunds' | translate }}</dt>
               <dd class="mt-2 whitespace-pre-line text-sm text-slate-300">{{ overview().fundingUsage || overview().fundingPurpose || overview().useOfFunds || '-' }}</dd>
             </div>
             <div class="rounded-xl bg-slate-950/50 p-4">
-              <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">Expected Return</dt>
+              <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'opportunityRoom.overview.expectedReturn' | translate }}</dt>
               <dd class="mt-2 whitespace-pre-line text-sm text-slate-300">{{ overview().expectedReturnSummary || '-' }}</dd>
             </div>
             <div class="rounded-xl bg-slate-950/50 p-4 md:col-span-2">
-              <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">Public Investment Terms</dt>
+              <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'opportunityRoom.overview.publicTerms' | translate }}</dt>
               <dd class="mt-2 whitespace-pre-line text-sm text-slate-300">{{ overview().publicInvestmentTermsSummary || '-' }}</dd>
             </div>
           </dl>
@@ -222,12 +259,220 @@
       </section>
     }
 
+    @if (activeTab() === 'contracts') {
+      <section class="grid gap-6 xl:grid-cols-[minmax(320px,420px)_minmax(0,1fr)]">
+        <article class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-bold text-white">{{ 'contracts.title' | translate }}</h2>
+              <p class="mt-2 text-sm text-slate-400">{{ contractListSubtitle() }}</p>
+            </div>
+            <button type="button"
+                    (click)="loadContracts(true)"
+                    [disabled]="contractsLoading()"
+                    class="rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800 disabled:opacity-50">
+              {{ 'contracts.actions.refresh' | translate }}
+            </button>
+          </div>
+
+          @if (contractsLoading()) {
+            <div class="mt-6 space-y-3">
+              <div class="h-24 animate-pulse rounded-xl bg-slate-950/70"></div>
+              <div class="h-24 animate-pulse rounded-xl bg-slate-950/70"></div>
+            </div>
+          } @else if (contractsError()) {
+            <div class="mt-5 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-100">{{ contractsError() }}</div>
+          } @else if (contracts().length === 0) {
+            <div class="mt-6 rounded-2xl border border-dashed border-slate-700 bg-slate-950/50 p-6 text-center">
+              <p class="text-sm font-semibold text-white">{{ 'contracts.empty.title' | translate }}</p>
+              <p class="mt-2 text-sm text-slate-400">{{ 'contracts.empty.helper' | translate }}</p>
+            </div>
+          } @else {
+            <div class="mt-6 space-y-3">
+              @for (contract of contracts(); track contract.contractId) {
+                <button type="button"
+                        (click)="openContractDetails(contract)"
+                        class="w-full rounded-xl border p-4 text-start transition hover:bg-slate-800/70"
+                        [class.border-cyan-500\/50]="selectedContract()?.contract?.contractId === contract.contractId"
+                        [class.bg-cyan-500\/10]="selectedContract()?.contract?.contractId === contract.contractId"
+                        [class.border-slate-800]="selectedContract()?.contract?.contractId !== contract.contractId"
+                        [class.bg-slate-950\/50]="selectedContract()?.contract?.contractId !== contract.contractId">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <p class="truncate text-sm font-bold text-white">{{ contract.contractNumber }}</p>
+                      <p class="mt-1 truncate text-xs text-slate-400">
+                        {{ isFounder() ? contract.investorDisplayName : contract.founderDisplayName }}
+                      </p>
+                    </div>
+                    <span class="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-200">
+                      {{ contractStatusLabel(contract.status) }}
+                    </span>
+                  </div>
+                  <dl class="mt-4 grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <dt class="text-slate-500">{{ 'contracts.fields.investmentModel' | translate }}</dt>
+                      <dd class="mt-1 font-semibold text-slate-200">{{ contract.investmentModel }}</dd>
+                    </div>
+                    <div>
+                      <dt class="text-slate-500">{{ 'contracts.fields.currentVersion' | translate }}</dt>
+                      <dd class="mt-1 font-semibold text-slate-200">V{{ contract.currentVersionNumber }}</dd>
+                    </div>
+                    <div>
+                      <dt class="text-slate-500">{{ 'contracts.fields.latestAgreementDate' | translate }}</dt>
+                      <dd class="mt-1 font-semibold text-slate-200">{{ contractDate(contract.latestAgreementDate) }}</dd>
+                    </div>
+                    <div>
+                      <dt class="text-slate-500">{{ 'contracts.fields.versionCount' | translate }}</dt>
+                      <dd class="mt-1 font-semibold text-slate-200">{{ contract.versionCount }}</dd>
+                    </div>
+                  </dl>
+                </button>
+              }
+            </div>
+          }
+        </article>
+
+        <article class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
+          @if (contractDetailsLoading()) {
+            <div class="space-y-4">
+              <div class="h-10 animate-pulse rounded-lg bg-slate-950/70"></div>
+              <div class="h-44 animate-pulse rounded-xl bg-slate-950/70"></div>
+              <div class="h-32 animate-pulse rounded-xl bg-slate-950/70"></div>
+            </div>
+          } @else if (contractDetailsError()) {
+            <div class="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-100">{{ contractDetailsError() }}</div>
+          } @else if (selectedContract(); as detail) {
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-300">{{ 'contracts.investmentAgreement' | translate }}</p>
+                <h2 class="mt-2 text-2xl font-bold text-white">{{ detail.contract.contractNumber }}</h2>
+                <p class="mt-2 text-sm text-slate-400">{{ title() }}</p>
+              </div>
+              @if (selectedVersion(); as version) {
+                <div class="flex flex-wrap gap-2">
+                  <button type="button"
+                          (click)="openContractPreview(version)"
+                          class="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-bold text-white hover:bg-cyan-500">
+                    {{ 'contracts.actions.preview' | translate }}
+                  </button>
+                  <button type="button"
+                          (click)="downloadContractPdf(version)"
+                          [disabled]="isPdfDownloading(version)"
+                          class="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800 disabled:opacity-50">
+                    {{ isPdfDownloading(version) ? ('contracts.pdf.preparing' | translate) : ('contracts.actions.downloadPdf' | translate) }}
+                  </button>
+                </div>
+              }
+            </div>
+
+            <dl class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div class="rounded-xl bg-slate-950/50 p-4">
+                <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'contracts.fields.founder' | translate }}</dt>
+                <dd class="mt-2 text-sm font-semibold text-white">{{ detail.contract.founderDisplayName || '-' }}</dd>
+              </div>
+              <div class="rounded-xl bg-slate-950/50 p-4">
+                <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'contracts.fields.investor' | translate }}</dt>
+                <dd class="mt-2 text-sm font-semibold text-white">{{ detail.contract.investorDisplayName || '-' }}</dd>
+              </div>
+              <div class="rounded-xl bg-slate-950/50 p-4">
+                <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'contracts.fields.investmentModel' | translate }}</dt>
+                <dd class="mt-2 text-sm font-semibold text-white">{{ detail.contract.investmentModel }}</dd>
+              </div>
+              <div class="rounded-xl bg-slate-950/50 p-4">
+                <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'contracts.fields.currentVersion' | translate }}</dt>
+                <dd class="mt-2 text-sm font-semibold text-white">V{{ detail.contract.currentVersionNumber }}</dd>
+              </div>
+              <div class="rounded-xl bg-slate-950/50 p-4">
+                <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'contracts.fields.effectiveDate' | translate }}</dt>
+                <dd class="mt-2 text-sm font-semibold text-white">{{ effectiveDate() }}</dd>
+              </div>
+              <div class="rounded-xl bg-slate-950/50 p-4">
+                <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'contracts.fields.pdfStatus' | translate }}</dt>
+                <dd class="mt-2 text-sm font-semibold text-white">{{ pdfStatusLabel(currentPdfStatus(selectedVersion())) }}</dd>
+              </div>
+              <div class="rounded-xl bg-slate-950/50 p-4">
+                <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'contracts.fields.sourceParticipation' | translate }}</dt>
+                <dd class="mt-2 text-sm font-semibold text-white">{{ sourceParticipationReference() }}</dd>
+              </div>
+              <div class="rounded-xl bg-slate-950/50 p-4">
+                <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'contracts.fields.acceptedOffer' | translate }}</dt>
+                <dd class="mt-2 text-sm font-semibold text-white">{{ acceptedOfferReference() }}</dd>
+              </div>
+              <div class="rounded-xl bg-slate-950/50 p-4">
+                <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'contracts.fields.status' | translate }}</dt>
+                <dd class="mt-2 text-sm font-semibold text-white">{{ contractStatusLabel(detail.contract.status) }}</dd>
+              </div>
+            </dl>
+
+            <section class="mt-6 rounded-2xl border border-slate-800 bg-slate-950/50 p-5">
+              <h3 class="text-lg font-bold text-white">{{ 'contracts.sections.agreedTerms' | translate }}</h3>
+              @if (selectedTermsSummary().length === 0) {
+                <p class="mt-3 text-sm text-slate-400">{{ 'contracts.empty.noTerms' | translate }}</p>
+              } @else {
+                <dl class="mt-4 grid gap-3 md:grid-cols-2">
+                  @for (term of selectedTermsSummary(); track term.label) {
+                    <div class="rounded-xl bg-slate-900/70 p-3">
+                      <dt class="text-xs text-slate-500">{{ term.label }}</dt>
+                      <dd class="mt-1 text-sm font-semibold text-slate-100">{{ term.value }}</dd>
+                    </div>
+                  }
+                </dl>
+              }
+            </section>
+
+            <section class="mt-6 rounded-2xl border border-slate-800 bg-slate-950/50 p-5">
+              <h3 class="text-lg font-bold text-white">{{ 'contracts.sections.versionHistory' | translate }}</h3>
+              <div class="mt-4 space-y-3">
+                @for (version of detail.versionHistory; track version.versionNumber) {
+                  <article class="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
+                    <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div>
+                        <div class="flex flex-wrap items-center gap-2">
+                          <p class="text-sm font-bold text-white">V{{ version.versionNumber }}</p>
+                          <span class="rounded-full border border-slate-700 px-2.5 py-1 text-xs font-semibold text-slate-300">{{ versionBadgeLabel(version) }}</span>
+                          <span class="rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-xs font-semibold text-blue-200">{{ versionStatusLabel(version.status) }}</span>
+                        </div>
+                        <p class="mt-2 text-sm text-slate-300">{{ versionTypeLabel(version.versionType) }}</p>
+                        <p class="mt-1 text-xs text-slate-500">{{ contractDate(version.activatedAt || version.createdAt) }}</p>
+                      </div>
+                      <div class="flex flex-wrap gap-2">
+                        <button type="button" (click)="openContractVersion(version)" class="rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800">
+                          {{ 'contracts.actions.openVersion' | translate }}
+                        </button>
+                        <button type="button" (click)="openContractPreview(version)" class="rounded-lg border border-cyan-500/40 px-3 py-2 text-xs font-semibold text-cyan-200 hover:bg-cyan-500/10">
+                          {{ 'contracts.actions.preview' | translate }}
+                        </button>
+                        <button type="button" (click)="downloadContractPdf(version)" [disabled]="isPdfDownloading(version)" class="rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800 disabled:opacity-50">
+                          {{ isPdfDownloading(version) ? ('contracts.pdf.preparing' | translate) : ('contracts.actions.downloadPdf' | translate) }}
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                }
+              </div>
+              @if (selectedVersion()) {
+                <div class="mt-4 rounded-xl bg-slate-900/70 p-4">
+                  <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{{ 'contracts.fields.changesSummary' | translate }}</p>
+                  <p class="mt-2 whitespace-pre-line text-sm text-slate-300">{{ selectedChangesSummary() }}</p>
+                </div>
+              }
+            </section>
+          } @else {
+            <div class="rounded-2xl border border-dashed border-slate-700 bg-slate-950/50 p-8 text-center">
+              <p class="text-sm font-semibold text-white">{{ 'contracts.empty.selectTitle' | translate }}</p>
+              <p class="mt-2 text-sm text-slate-400">{{ 'contracts.empty.selectHelper' | translate }}</p>
+            </div>
+          }
+        </article>
+      </section>
+    }
+
     @if (activeTab() === 'timeline') {
       <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
         <h2 class="text-xl font-bold text-white">Milestones Timeline</h2>
         <p class="mt-2 text-sm text-slate-400">Strategic milestones only. Operational updates are listed in the Updates tab.</p>
         @if (timelineSorted().length === 0) {
-          <p class="mt-5 rounded-xl bg-slate-950/50 p-6 text-center text-sm text-slate-400">No milestones have been posted yet.</p>
+          <p class="mt-5 rounded-xl bg-slate-950/50 p-6 text-center text-sm text-slate-400">{{ 'opportunityRoom.milestones.empty' | translate }}</p>
         } @else {
           <ol class="mt-6 space-y-4">
             @for (event of timelineSorted(); track event.id || $index) {
@@ -349,6 +594,99 @@
     }
   }
 </div>
+
+@if (previewModalOpen()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+    <section class="flex max-h-[92vh] w-full max-w-5xl flex-col rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+      <header class="flex flex-col gap-4 border-b border-slate-800 p-5 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">{{ 'contracts.actions.preview' | translate }}</p>
+          <h2 class="mt-2 text-xl font-bold text-white">{{ selectedContract()?.contract?.contractNumber || ('contracts.investmentAgreement' | translate) }}</h2>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button type="button"
+                  (click)="printContractPreview()"
+                  [disabled]="!previewHtml()"
+                  class="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800 disabled:opacity-50">
+            {{ 'contracts.actions.print' | translate }}
+          </button>
+          <button type="button"
+                  (click)="downloadContractPdf(selectedVersion())"
+                  [disabled]="!selectedVersion() || isPdfDownloading(selectedVersion())"
+                  class="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-bold text-white hover:bg-cyan-500 disabled:opacity-50">
+            {{ isPdfDownloading(selectedVersion()) ? ('contracts.pdf.preparing' | translate) : ('contracts.actions.downloadPdf' | translate) }}
+          </button>
+          <button type="button" (click)="closeContractPreview()" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-700">
+            {{ 'common.close' | translate }}
+          </button>
+        </div>
+      </header>
+      <div class="min-h-0 flex-1 overflow-y-auto bg-white p-6 text-slate-950">
+        @if (previewLoading()) {
+          <div class="flex min-h-80 items-center justify-center text-sm font-semibold text-slate-500">{{ 'contracts.preview.loading' | translate }}</div>
+        } @else if (previewError()) {
+          <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{{ previewError() }}</div>
+        } @else if (previewHtml()) {
+          <div class="contract-preview-html" [innerHTML]="previewHtml()"></div>
+        }
+      </div>
+    </section>
+  </div>
+}
+
+@if (reportModalOpen()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+    <section class="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+      <header class="border-b border-slate-800 p-5">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-red-300">{{ 'reports.title' | translate }}</p>
+        <h2 class="mt-2 text-xl font-bold text-white">{{ 'reports.actions.reportProject' | translate }}</h2>
+        <p class="mt-1 text-sm text-slate-400">{{ title() }}</p>
+      </header>
+      <div class="space-y-4 p-5">
+        @if (reportSuccess()) {
+          <div class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">
+            {{ 'reports.success' | translate }}
+          </div>
+        } @else {
+          <label class="block text-sm font-semibold text-slate-200">
+            {{ 'reports.reason' | translate }}
+            <select class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+                    [ngModel]="reportReason()"
+                    (ngModelChange)="setReportReason($event)">
+              @for (reason of reportReasons; track reason) {
+                <option [value]="reason">{{ reportReasonLabel(reason) }}</option>
+              }
+            </select>
+          </label>
+          <label class="block text-sm font-semibold text-slate-200">
+            {{ 'reports.description' | translate }}
+            <textarea rows="4"
+                      class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+                      [placeholder]="'reports.descriptionPlaceholder' | translate"
+                      [ngModel]="reportDescription()"
+                      (ngModelChange)="setReportDescription($event)"></textarea>
+          </label>
+          @if (reportError()) {
+            <div class="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-100">{{ reportError() }}</div>
+          }
+        }
+      </div>
+      <footer class="flex gap-3 border-t border-slate-800 p-5">
+        <button type="button" (click)="closeReportModal()" class="flex-1 rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-700">
+          {{ reportSuccess() ? ('common.close' | translate) : ('reports.cancel' | translate) }}
+        </button>
+        @if (!reportSuccess()) {
+          <button type="button"
+                  (click)="submitProjectReport()"
+                  [disabled]="reportSubmitting()"
+                  class="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50">
+            {{ reportSubmitting() ? ('reports.submitting' | translate) : ('reports.submit' | translate) }}
+          </button>
+        }
+      </footer>
+    </section>
+  </div>
+}
 
 @if (updateModalOpen()) {
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">

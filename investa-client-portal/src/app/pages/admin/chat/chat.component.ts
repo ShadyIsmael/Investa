@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormControl } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
@@ -9,6 +9,7 @@ import { ParticipationBuilderComponent } from '../../../components/participation
 import { PaidActionCode, WalletService } from '../../../services/wallet.service';
 import { LanguageService } from '../../../services/language.service';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
+import { ReportReasonCode, ReportService } from '../../../services/report.service';
 
 type NegotiationStatus =
   | 'Founder Accepted'
@@ -124,7 +125,7 @@ interface OfferLegDraft {
   templateUrl: './chat.component.html',
   styleUrls: ['./chat.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, ParticipationBuilderComponent, TranslatePipe]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, ParticipationBuilderComponent, TranslatePipe]
 })
 export class ChatComponent implements OnInit {
   private http = inject(HttpClient);
@@ -132,6 +133,7 @@ export class ChatComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private walletService = inject(WalletService);
   private languageService = inject(LanguageService);
+  private reportService = inject(ReportService);
 
   conversations = signal<NegotiationConversation[]>([]);
   messages = signal<NegotiationMessage[]>([]);
@@ -147,6 +149,20 @@ export class ChatComponent implements OnInit {
   participationBuilderOpen = signal(false);
   error = signal<string | null>(null);
   messagesError = signal<string | null>(null);
+  reportModalOpen = signal(false);
+  reportSubmitting = signal(false);
+  reportSuccess = signal(false);
+  reportError = signal<string | null>(null);
+  reportReason = signal<ReportReasonCode>('Spam');
+  reportDescription = signal('');
+  reportReasons: ReportReasonCode[] = [
+    'MisleadingInformation',
+    'Spam',
+    'Abuse',
+    'FraudConcern',
+    'InappropriateContent',
+    'Other'
+  ];
   conversationTab = signal<'active' | 'archived' | 'all'>('active');
   viewerStates = signal<Record<string, any>>({});
   messageControl = new FormControl('');
@@ -267,6 +283,59 @@ export class ChatComponent implements OnInit {
     await this.loadViewerState(conversation);
     await this.loadMessages(conversation.id);
     await this.loadOffers(conversation.id);
+  }
+
+  openConversationReport(conversation: NegotiationConversation): void {
+    if (!this.resolveConversationCounterpartyUserId(conversation)) {
+      this.reportError.set(this.t('reports.errors.counterpartyUnavailable'));
+      return;
+    }
+    this.reportReason.set('Spam');
+    this.reportDescription.set('');
+    this.reportError.set(null);
+    this.reportSuccess.set(false);
+    this.reportModalOpen.set(true);
+  }
+
+  closeReportModal(): void {
+    if (this.reportSubmitting()) return;
+    this.reportModalOpen.set(false);
+    this.reportError.set(null);
+    this.reportSuccess.set(false);
+  }
+
+  setReportReason(reason: string): void {
+    this.reportReason.set(reason as ReportReasonCode);
+  }
+
+  setReportDescription(description: string): void {
+    this.reportDescription.set(description);
+  }
+
+  async submitConversationReport(): Promise<void> {
+    const conversation = this.activeConversation();
+    if (!conversation || this.reportSubmitting()) return;
+    const counterpartyUserId = this.resolveConversationCounterpartyUserId(conversation);
+    if (!counterpartyUserId) {
+      this.reportError.set(this.t('reports.errors.counterpartyUnavailable'));
+      return;
+    }
+
+    try {
+      this.reportSubmitting.set(true);
+      this.reportError.set(null);
+      await this.reportService.createReport({
+        targetType: 'User',
+        targetId: counterpartyUserId,
+        reasonCode: this.reportReason(),
+        description: this.reportDescription().trim() || null
+      });
+      this.reportSuccess.set(true);
+    } catch (error: any) {
+      this.reportError.set(this.reportErrorMessage(error));
+    } finally {
+      this.reportSubmitting.set(false);
+    }
   }
 
   async loadViewerState(conversation: NegotiationConversation): Promise<void> {
@@ -617,16 +686,16 @@ export class ChatComponent implements OnInit {
       opportunityTitle: row.opportunityTitle || row.title || opportunity.title || opportunity.businessName || 'Opportunity',
       shortDescription: row.shortDescription || opportunity.shortDescription || opportunity.description,
       founderName: row.founderName || founder.name || opportunity.founderName,
-      founderUserId: row.founderUserId ?? founder.id ?? opportunity.founderId ?? null,
+      founderUserId: row.founderUserId ?? founder.userId ?? founder.user?.id ?? opportunity.founderUserId ?? null,
       investorName: row.investorName || investor.name,
-      investorUserId: row.investorUserId ?? investor.id ?? null,
+      investorUserId: row.investorUserId ?? investor.userId ?? investor.user?.id ?? null,
       requesterUserId: row.requesterUserId ?? row.requester?.id ?? null,
       requesterName,
       requesterRole: row.requesterRole || row.requester?.role,
       recipientUserId: row.recipientUserId ?? row.recipient?.id ?? null,
       recipientName,
       recipientRole: row.recipientRole || row.recipient?.role,
-      counterpartyUserId: row.counterpartyUserId || row.counterpartUserId || row.otherParticipant?.id || row.counterparty?.id || null,
+      counterpartyUserId: row.counterpartyUserId || row.counterpartUserId || row.otherParticipant?.userId || row.otherParticipant?.user?.id || row.counterparty?.userId || row.counterparty?.user?.id || null,
       counterpartyName,
       counterpartyRole,
       avatarUrl: row.avatarUrl || row.counterparty?.avatarUrl || row.otherParticipant?.avatarUrl || 'https://picsum.photos/seed/negotiation/100/100',
@@ -726,6 +795,46 @@ export class ChatComponent implements OnInit {
     if (conversation.direction === 'outgoing') return conversation.requesterUserId ?? conversation.investorUserId ?? null;
     if (conversation.direction === 'incoming') return conversation.recipientUserId ?? conversation.founderUserId ?? null;
     return null;
+  }
+
+  canReportConversationUser(conversation: NegotiationConversation): boolean {
+    return !!this.resolveConversationCounterpartyUserId(conversation);
+  }
+
+  conversationReportLabel(conversation: NegotiationConversation): string {
+    const counterpartyUserId = this.resolveConversationCounterpartyUserId(conversation);
+    if (this.sameId(counterpartyUserId, conversation.founderUserId)) return this.t('reports.actions.reportFounder');
+    if (this.sameId(counterpartyUserId, conversation.investorUserId)) return this.t('reports.actions.reportInvestor');
+    return this.t('reports.actions.reportUser');
+  }
+
+  conversationReportTargetName(conversation: NegotiationConversation): string {
+    const counterpartyUserId = this.resolveConversationCounterpartyUserId(conversation);
+    if (this.sameId(counterpartyUserId, conversation.founderUserId)) {
+      return conversation.founderName || conversation.recipientName || conversation.counterpartyName;
+    }
+    if (this.sameId(counterpartyUserId, conversation.investorUserId)) {
+      return conversation.investorName || conversation.requesterName || conversation.counterpartyName;
+    }
+    return conversation.counterpartyName;
+  }
+
+  private resolveConversationCounterpartyUserId(conversation: NegotiationConversation | null): string | number | null {
+    if (!conversation) return null;
+    const currentUserId = this.resolveCurrentUserId(conversation);
+    if (!currentUserId) return null;
+    const candidates = [
+      conversation.counterpartyUserId,
+      this.sameId(currentUserId, conversation.founderUserId) ? conversation.investorUserId : null,
+      this.sameId(currentUserId, conversation.investorUserId) ? conversation.founderUserId : null,
+      this.sameId(currentUserId, conversation.requesterUserId) ? conversation.recipientUserId : null,
+      this.sameId(currentUserId, conversation.recipientUserId) ? conversation.requesterUserId : null,
+      conversation.founderUserId,
+      conversation.investorUserId,
+      conversation.requesterUserId,
+      conversation.recipientUserId
+    ];
+    return candidates.find(candidate => !!candidate && !this.sameId(candidate, currentUserId)) ?? null;
   }
 
   private resolveSenderIdentity(senderId: unknown, conversation: NegotiationConversation | null): { name: string; role: string } {
@@ -1028,6 +1137,18 @@ export class ChatComponent implements OnInit {
 
   private t(path: string): string {
     return this.languageService.translate(path);
+  }
+
+  reportReasonLabel(reason: ReportReasonCode): string {
+    return this.t(`reports.reasons.${reason}`);
+  }
+
+  private reportErrorMessage(error: any): string {
+    const raw = String(error?.error?.message || error?.message || '').toLowerCase();
+    if (raw.includes('duplicate') || raw.includes('pending')) return this.t('reports.errors.duplicatePending');
+    if (raw.includes('invalid') || raw.includes('target')) return this.t('reports.errors.invalidTarget');
+    if (raw.includes('self')) return this.t('reports.errors.selfReport');
+    return this.t('reports.errors.generic');
   }
 
   private confirmationText(action: string, cost: number, balance: number, after: number): string {

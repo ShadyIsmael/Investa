@@ -34,6 +34,7 @@ import ReputationRules from '@/features/operations/ReputationRules';
 import PricingManagement from '@/features/operations/PricingManagement';
 import NotificationBroadcasts from '@/features/operations/NotificationBroadcasts';
 import OpportunityLookupPage from '@/features/operations/OpportunityLookupPage';
+import ModerationReports from '@/features/operations/ModerationReports';
 
 const ComingSoon = ({ title, subtitle }: { title: string; subtitle: string }) => {
     const navigate = useNavigate();
@@ -190,6 +191,7 @@ const AppContent: React.FC = () => {
                                     <Route path="/operations/reputation-rules" element={<ReputationRules />} />
                                     <Route path="/operations/pricing" element={<PricingManagement />} />
                                     <Route path="/operations/notifications" element={<NotificationBroadcasts />} />
+                                    <Route path="/operations/reports" element={<ModerationReports />} />
                                     <Route path="/reference-data/opportunity-categories" element={<OpportunityLookupPage kind="categories" title="Opportunity Categories" description="Read-only visibility into configured opportunity categories." />} />
                                     <Route path="/reference-data/opportunity-tags" element={<OpportunityLookupPage kind="tags" title="Opportunity Tags" description="Read-only visibility into configured opportunity tags." showSortOrder={false} />} />
                                     <Route path="/reference-data/funding-goals" element={<OpportunityLookupPage kind="funding-goals" title="Funding Goals" description="Read-only visibility into configured funding goals." />} />

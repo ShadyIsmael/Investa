@@ -8,6 +8,7 @@ public interface IFileStorage
     /// Saves the provided stream to the specified relative path under the configured web root and returns the public URL path.
     /// </summary>
     Task<string> SaveFileAsync(string relativePath, Stream data, string contentType);
+    Task<byte[]> ReadFileAsync(string storedPath, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deletes the file located at the specified relative path. Returns true if deleted or not found.

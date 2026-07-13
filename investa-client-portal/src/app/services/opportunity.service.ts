@@ -4,6 +4,54 @@ import { firstValueFrom } from 'rxjs';
 import { API_BASE } from '../config/api.token';
 import { ApiResponse } from '../models/api-response.model';
 
+export interface MyParticipation {
+  id: number | string;
+  opportunityId: number | string | null;
+  opportunityTitle: string | null;
+  founderDisplayName: string | null;
+  investmentModel: string | number | null;
+  shortDescription: string | null;
+  coverImageUrl: string | null;
+  approvedContributionAmount: number | null;
+  fundedAmount: number | null;
+  fundingTarget: number | null;
+  fundingProgressPercentage: number | null;
+  remainingFundingAmount: number | null;
+  approvedParticipantCount: number | null;
+  participationStatus: string | number | null;
+  contractAvailable: boolean | null;
+  currentContractId: string | number | null;
+  currentContractVersion: string | number | null;
+  canOpenProjectRoom: boolean | null;
+  currency: string | null;
+  categoryName: string | null;
+  categoryNameAr: string | null;
+  businessRole: string | null;
+
+  // Loan-specific fields
+  principal: number | null;
+  interestRate: number | null;
+  expectedDurationMonths: number | null;
+  repaymentFrequency: string | null;
+  finalRepaymentDate: string | null;
+  expectedReturn: number | null;
+  expectedTotalRepayment: number | null;
+
+  // Equity-specific fields
+  approvedShares: number | null;
+  sharePrice: number | null;
+  ownershipPercentage: number | null;
+  soldShares: number | null;
+  remainingShares: number | null;
+
+  // Profit Sharing-specific fields
+  contribution: number | null;
+  profitSharePercentage: number | null;
+  payoutFrequency: string | null;
+  expectedProfit: number | null;
+  expectedTotalPayout: number | null;
+}
+
 export interface OpportunityLookup {
   id: number | string;
   name?: string | null;
@@ -66,6 +114,17 @@ export interface OpportunityEvent {
   eventType?: string | null;
   type?: string | null;
   isPublic?: boolean | null;
+}
+
+export interface OpportunityMilestone {
+  milestoneId?: number | string;
+  id?: number | string;
+  title?: string | null;
+  description?: string | null;
+  targetDate?: string | null;
+  status?: string | null;
+  createdAt?: string | null;
+  completedAt?: string | null;
 }
 
 export interface OpportunityRoomParticipantContext {
@@ -163,6 +222,8 @@ export interface OpportunityRoom {
   documents?: OpportunityDocument[] | Record<string, OpportunityDocument[]> | null;
   timeline?: OpportunityEvent[] | Record<string, OpportunityEvent[]> | null;
   events?: OpportunityEvent[] | Record<string, OpportunityEvent[]> | null;
+  milestones?: OpportunityMilestone[] | Record<string, OpportunityMilestone[]> | null;
+  latestMilestone?: OpportunityMilestone | null;
   participantContext?: OpportunityRoomParticipantContext | null;
 }
 
@@ -190,6 +251,20 @@ export interface Opportunity {
   expectedDuration?: string | number | null;
   expectedDurationMonths?: string | number | null;
   equityOfferedPercentage?: number | null;
+  totalShares?: number | null;
+  offeredShares?: number | null;
+  soldShares?: number | null;
+  remainingShares?: number | null;
+  allocatedEquityPercentage?: number | null;
+  remainingEquityPercentage?: number | null;
+  sharePrice?: number | null;
+  profitSharePercentage?: number | null;
+  profitSharingPayoutFrequency?: string | null;
+  profitSharingContractStartDate?: string | null;
+  profitSharingContractEndDate?: string | null;
+  interestRate?: number | null;
+  repaymentFrequency?: string | null;
+  finalRepaymentDate?: string | null;
   coverImageUrl?: string | null;
   founder?: {
     id?: string | null;
@@ -206,6 +281,13 @@ export interface Opportunity {
   publicInvestmentTermsSummary?: string | null;
   expectedReturnSummary?: string | null;
   fundingProgressPercent?: number | null;
+  fundingProgressPercentage?: number | null;
+  approvedParticipantCount?: number | null;
+  fundedAmount?: number | null;
+  alreadyFundedAmount?: number | null;
+  remainingFundingAmount?: number | null;
+  currentUserParticipationStatus?: string | number | null;
+  canAccessProjectRoom?: boolean | null;
   mediaCount?: number | null;
   documentCount?: number | null;
   hasCover?: boolean | null;
@@ -249,7 +331,14 @@ export interface OpportunityUpsert {
   maximumInvestmentAmount?: number | null;
   expectedDuration?: string | number | null;
   expectedDurationMonths?: string | number | null;
+  profitSharePercentage?: number | null;
+  profitSharingPayoutFrequency?: string | null;
+  profitSharingContractStartDate?: string | null;
+  profitSharingContractEndDate?: string | null;
   equityOfferedPercentage?: number | null;
+  interestRate?: number | null;
+  repaymentFrequency?: string | null;
+  finalRepaymentDate?: string | null;
   coverImageUrl?: string | null;
   useOfFunds?: string | null;
   fundingUsage?: string | null;
@@ -289,6 +378,10 @@ export class OpportunityService {
     return this.getList('/api/v1/opportunities/my');
   }
 
+  getMyParticipations(): Promise<MyParticipation[]> {
+    return this.getList('/api/v1/opportunities/my-participations');
+  }
+
   getFounderOpportunity(id: string | number): Promise<Opportunity> {
     return this.getOne(`/api/v1/opportunities/${encodeURIComponent(String(id))}`);
   }
@@ -305,8 +398,8 @@ export class OpportunityService {
     return this.send<Opportunity>('put', `/api/v1/opportunities/${encodeURIComponent(String(id))}`, this.toOpportunityRequest(payload));
   }
 
-  submitForReview(id: string | number): Promise<void> {
-    return this.send<void>('post', `/api/v1/opportunities/${encodeURIComponent(String(id))}/submit-review`, {});
+  publishOpportunity(id: string | number): Promise<Opportunity> {
+    return this.send<Opportunity>('post', `/api/v1/opportunities/${encodeURIComponent(String(id))}/publish`, {});
   }
 
   getMedia(id: string | number): Promise<OpportunityMedia[]> {
@@ -412,7 +505,14 @@ export class OpportunityService {
       minimumInvestmentAmount: payload.minimumInvestmentAmount ?? payload.minimumInvestment ?? null,
       maximumInvestmentAmount: payload.maximumInvestmentAmount ?? payload.maximumInvestment ?? null,
       expectedDurationMonths: payload.expectedDurationMonths ?? payload.expectedDuration ?? null,
+      profitSharePercentage: payload.profitSharePercentage ?? null,
+      profitSharingPayoutFrequency: payload.profitSharingPayoutFrequency ?? null,
+      profitSharingContractStartDate: payload.profitSharingContractStartDate ?? null,
+      profitSharingContractEndDate: payload.profitSharingContractEndDate ?? null,
       equityOfferedPercentage: payload.equityOfferedPercentage ?? null,
+      interestRate: payload.interestRate ?? null,
+      repaymentFrequency: payload.repaymentFrequency ?? null,
+      finalRepaymentDate: payload.finalRepaymentDate ?? null,
       tagIds: (payload.tagIds ?? []).map(value => Number(value)).filter(value => Number.isFinite(value)),
       investmentModel: this.toNumberOrNull(payload.investmentModel),
       projectStage: this.toNumberOrNull(payload.projectStage),

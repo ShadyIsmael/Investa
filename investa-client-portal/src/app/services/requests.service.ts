@@ -5,19 +5,25 @@ import { API_BASE } from '../config/api.token';
 import { LoanTermsSnapshot, OpportunityRequest, OpportunityRequestKind, ProfitSharingTermsSnapshot } from '../models/request.model';
 import { NotificationService } from './notification.service';
 import { AuthService } from './auth.service';
+import { RoleContextService } from './role-context.service';
+import { LanguageService } from './language.service';
 
 @Injectable({ providedIn: 'root' })
 export class RequestsService {
   private http = inject(HttpClient);
   private notifications = inject(NotificationService);
   private authService = inject(AuthService);
+  private roleContext = inject(RoleContextService);
+  private languageService = inject(LanguageService);
   private apiBase = inject(API_BASE);
 
   private _incoming = signal<OpportunityRequest[]>([]);
   private _outgoing = signal<OpportunityRequest[]>([]);
+  private _participationRevision = signal(0);
 
   incoming = this._incoming.asReadonly();
   outgoing = this._outgoing.asReadonly();
+  participationRevision = this._participationRevision.asReadonly();
 
   constructor() {}
 
@@ -50,12 +56,15 @@ export class RequestsService {
       acceptedConversationId = data?.acceptedConversationId;
     } else {
       await firstValueFrom(this.http.post(`${this.apiBase}/api/v1/opportunity-join-requests/${request.id}/approve`, {}, this.authService.getAuthorizedJsonOptions()));
+      this._participationRevision.update(value => value + 1);
     }
 
     await this.loadRequests();
     this.notifications.showToast({
-      title: request.requestType === OpportunityRequestKind.Conversation ? 'Chat Accepted' : 'Participation Approved',
-      message: `${request.projectName} request accepted.`,
+      title: request.requestType === OpportunityRequestKind.Conversation
+        ? this.t('requests.notifications.chatAccepted')
+        : this.t('requests.notifications.participationApproved'),
+      message: this.interpolate(this.t('requests.notifications.acceptedMessage'), { projectName: request.projectName }),
       type: 'success'
     });
     return acceptedConversationId;
@@ -70,8 +79,10 @@ export class RequestsService {
 
     await this.loadRequests();
     this.notifications.showToast({
-      title: request.requestType === OpportunityRequestKind.Conversation ? 'Chat Declined' : 'Participation Rejected',
-      message: `${request.projectName} request declined.`,
+      title: request.requestType === OpportunityRequestKind.Conversation
+        ? this.t('requests.notifications.chatDeclined')
+        : this.t('requests.notifications.participationRejected'),
+      message: this.interpolate(this.t('requests.notifications.declinedMessage'), { projectName: request.projectName }),
       type: 'warning'
     });
   }
@@ -85,21 +96,37 @@ export class RequestsService {
 
     await this.loadRequests();
     this.notifications.showToast({
-      title: 'Request Withdrawn',
-      message: `${request.projectName} request withdrawn.`,
+      title: this.t('requests.notifications.withdrawn'),
+      message: this.interpolate(this.t('requests.notifications.withdrawnMessage'), { projectName: request.projectName }),
       type: 'success'
     });
   }
 
   private async loadRequests(): Promise<void> {
     try {
-      const [conversationRequestRaw, joinRaw] = await Promise.all([
+      try {
+        await this.roleContext.ensureProfileLoaded();
+      } catch (profileError) {
+        console.warn('Unable to refresh role context before loading requests:', profileError);
+      }
+      const activeContext = this.roleContext.activeContext();
+      const canLoadFounderParticipation = activeContext === 'founder' && this.roleContext.isFounderUser();
+      const canLoadInvestorParticipation = activeContext === 'investor' && this.roleContext.isInvestorUser();
+
+      const [conversationRequestRaw, founderIncomingJoinRaw, investorOutgoingJoinRaw] = await Promise.all([
         firstValueFrom(this.http.get<any>(`${this.apiBase}/api/v1/conversation-requests`, this.authService.getAuthorizedJsonOptions())),
-        firstValueFrom(this.http.get<any>(`${this.apiBase}/api/v1/opportunities/my-join-requests`, this.authService.getAuthorizedJsonOptions()))
+        canLoadFounderParticipation
+          ? firstValueFrom(this.http.get<any>(`${this.apiBase}/api/v1/opportunities/incoming-join-requests`, this.authService.getAuthorizedJsonOptions()))
+          : Promise.resolve([]),
+        canLoadInvestorParticipation
+          ? firstValueFrom(this.http.get<any>(`${this.apiBase}/api/v1/opportunities/my-join-requests`, this.authService.getAuthorizedJsonOptions()))
+          : Promise.resolve([])
       ]);
 
       const conversationRequests = this.extractArray(conversationRequestRaw).map(row => this.mapConversationRequest(row));
-      const joinRequests = this.extractArray(joinRaw).map(row => this.mapJoinRequest(row));
+      const founderIncomingJoinRequests = this.extractArray(founderIncomingJoinRaw).map(row => this.mapJoinRequest(row, 'incoming'));
+      const investorOutgoingJoinRequests = this.extractArray(investorOutgoingJoinRaw).map(row => this.mapJoinRequest(row, 'outgoing'));
+      const joinRequests = [...founderIncomingJoinRequests, ...investorOutgoingJoinRequests];
       const all = [...conversationRequests, ...joinRequests].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
       this._incoming.set(all.filter(request => request.direction === 'incoming'));
@@ -138,19 +165,19 @@ export class RequestsService {
     };
   }
 
-  private mapJoinRequest(data: any): OpportunityRequest {
+  private mapJoinRequest(data: any, directionFallback?: 'incoming' | 'outgoing'): OpportunityRequest {
     const terms = this.parseTermsSnapshot(data.termsSnapshotJson);
     const loanTerms = this.toLoanTermsSnapshot(terms);
     const profitSharingTerms = this.toProfitSharingTermsSnapshot(terms);
     const investmentModel = data.investmentModel ?? terms.InvestmentModel ?? terms.investmentModel ?? null;
     return {
-      id: data.id,
+      id: data.id ?? data.requestId,
       type: 'participation',
-      direction: this.normalizeDirection(data.direction),
-      projectName: data.opportunityTitle || 'Opportunity',
+      direction: this.normalizeDirection(data.direction, directionFallback),
+      projectName: data.opportunityTitle || this.t('requests.fallbacks.opportunity'),
       projectImageUrl: '',
-      counterpartName: data.counterpartyFullName || data.counterpartyName || data.investorFullName || data.investorName || data.founderFullName || data.founderName || 'Participant',
-      senderName: data.requesterFullName || data.requesterName || data.investorFullName || data.investorName,
+      counterpartName: data.counterpartyFullName || data.counterpartyName || data.investorDisplayName || data.investorFullName || data.investorName || data.founderFullName || data.founderName || this.t('requests.fallbacks.participant'),
+      senderName: data.requesterFullName || data.requesterName || data.investorDisplayName || data.investorFullName || data.investorName,
       receiverName: data.recipientFullName || data.recipientName || data.founderFullName || data.founderName,
       status: this.normalizeStatus(data.status),
       createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
@@ -166,6 +193,9 @@ export class RequestsService {
       investmentModel: investmentModel ? String(investmentModel) : null,
       loanTermsSnapshot: loanTerms,
       profitSharingTermsSnapshot: profitSharingTerms,
+      acceptedConversationId: data.acceptedConversationId ?? data.sourceConversationId ?? null,
+      canAccept: data.canApprove,
+      canReject: data.canReject,
       requestMetadata: { ...data, termsSnapshot: terms }
     };
   }
@@ -236,12 +266,12 @@ export class RequestsService {
   private normalizeStatus(value: unknown): OpportunityRequest['status'] {
     const raw = String(value || 'Pending').toLowerCase();
     if (raw === '0') return 'Pending';
-    if (raw.includes('accepted') || raw.includes('approved')) return 'Accepted';
+    if (raw === '1' || raw.includes('accepted') || raw.includes('approved')) return 'Accepted';
     if (raw.includes('partner')) return 'Partner';
-    if (raw.includes('reject')) return 'Rejected';
+    if (raw === '2' || raw.includes('reject')) return 'Rejected';
     if (raw.includes('declin')) return 'Declined';
     if (raw.includes('withdraw')) return 'Withdrawn';
-    if (raw.includes('cancel')) return 'Cancelled';
+    if (raw === '3' || raw.includes('cancel')) return 'Cancelled';
     if (raw.includes('clos')) return 'Closed';
     if (raw.includes('negotiat') || raw.includes('progress')) return 'Negotiating';
     return 'Pending';
@@ -282,9 +312,11 @@ export class RequestsService {
     return [];
   }
 
-  private normalizeDirection(value: unknown): 'incoming' | 'outgoing' {
+  private normalizeDirection(value: unknown, fallback: 'incoming' | 'outgoing' = 'outgoing'): 'incoming' | 'outgoing' {
     const raw = String(value || '').toLowerCase();
-    return raw.includes('incoming') ? 'incoming' : 'outgoing';
+    if (raw.includes('incoming')) return 'incoming';
+    if (raw.includes('outgoing')) return 'outgoing';
+    return fallback;
   }
 
   private toNumber(value: unknown): number | undefined {
@@ -295,6 +327,14 @@ export class RequestsService {
   private toNullableNumber(value: unknown): number | null {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private t(path: string): string {
+    return this.languageService.translate(path);
+  }
+
+  private interpolate(template: string, values: Record<string, string | number>): string {
+    return Object.entries(values).reduce((text, [key, value]) => text.replaceAll(`{${key}}`, String(value)), template);
   }
 
 }

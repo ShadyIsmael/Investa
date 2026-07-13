@@ -67,6 +67,13 @@
                       }">
                   {{ getOpportunityStatus(opp) }}
                 </span>
+                @if (!isFounder()) {
+                  <button type="button"
+                          (click)="openOpportunityReport(opp)"
+                          class="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-sm font-semibold text-slate-200 transition-colors hover:bg-white/10">
+                    {{ 'reports.actions.reportOpportunity' | translate }}
+                  </button>
+                }
               </div>
               <h1 class="text-4xl md:text-6xl font-bold text-white tracking-tight mb-5">{{ opp.title }}</h1>
               <p class="text-lg md:text-xl text-slate-200 max-w-3xl leading-8">{{ opp.shortDescription || opp.description }}</p>
@@ -661,14 +668,14 @@
             <!-- Funding Progress Section -->
             <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-8">
               <h3 class="text-xl font-bold text-white mb-6">{{ 'investmentPreview.fundingProgress' | translate }}</h3>
-              @let rawProgress = inv.targetFund > 0 ? ((inv.currentFunding ?? 0) / inv.targetFund) * 100 : 0;
-              @let progress = rawProgress > 100 ? 100 : rawProgress;
+              @let rawProgress = inv.fundingPercentage;
+              @let progress = rawProgress === null ? null : (rawProgress > 100 ? 100 : rawProgress);
               
               <div class="mb-6">
                 <div class="flex justify-between items-end mb-3">
                   <div>
                     <p class="text-gray-400 text-sm mb-1">{{ 'investmentPreview.amountRaised' | translate }}</p>
-                    <p class="text-3xl font-bold text-white">${{ inv.currentFunding | number:'1.0-0' }}</p>
+                    <p class="text-3xl font-bold text-white">{{ inv.currentFunding === null ? '—' : (inv.currentFunding | number:'1.0-0') }}</p>
                   </div>
                   <div class="text-right">
                     <p class="text-gray-400 text-sm mb-1">{{ 'investmentPreview.target' | translate }}</p>
@@ -678,7 +685,7 @@
                 
                 <div class="w-full bg-slate-700/50 rounded-full h-4 overflow-hidden border border-slate-600/50">
                   <div class="h-full transition-all duration-700 ease-out"
-                       [style.width]="progress + '%'"
+                       [style.width]="(progress ?? 0) + '%'"
                        [class]="rawProgress >= 100 ? 'bg-gradient-to-r from-blue-500 to-cyan-400' :
                                 rawProgress >= 75  ? 'bg-gradient-to-r from-emerald-500 to-green-400' :
                                 rawProgress >= 40  ? 'bg-gradient-to-r from-amber-400 to-orange-400' :
@@ -687,7 +694,7 @@
                 </div>
                 
                 <div class="flex justify-between items-center mt-3">
-                  <span class="text-gray-400 text-sm">{{ progress | number:'1.0-0' }}% {{ 'investmentPreview.funded' | translate }}</span>
+                  <span class="text-gray-400 text-sm">{{ progress === null ? '—' : ((progress | number:'1.0-0') + '%') }} {{ 'investmentPreview.funded' | translate }}</span>
                   <div class="flex items-center gap-3">
                     <span class="text-gray-400 text-sm">{{ inv.investorCount }} {{ 'investments.investors' | translate }}</span>
                     @if (inv.endDate) {
@@ -699,6 +706,17 @@
                     }
                   </div>
                 </div>
+                <dl class="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  <div class="rounded-lg bg-slate-900/50 p-3"><dt class="text-xs text-gray-400">{{ 'investmentPreview.remainingFunding' | translate }}</dt><dd class="mt-1 font-bold text-white">{{ inv.remainingFundingAmount === null ? '—' : (inv.remainingFundingAmount | number:'1.0-0') }}</dd></div>
+                  <div class="rounded-lg bg-slate-900/50 p-3"><dt class="text-xs text-gray-400">{{ 'investmentPreview.approvedParticipants' | translate }}</dt><dd class="mt-1 font-bold text-white">{{ inv.investorCount === null ? '—' : inv.investorCount }}</dd></div>
+                  @if (inv.investmentModel === 'Equity' || inv.investmentModel === 1) {
+                    <div class="rounded-lg bg-slate-900/50 p-3"><dt class="text-xs text-gray-400">{{ 'investmentPreview.sharesSold' | translate }}</dt><dd class="mt-1 font-bold text-white">{{ inv.soldShares == null ? '—' : (inv.soldShares | number) }}</dd></div>
+                    <div class="rounded-lg bg-slate-900/50 p-3"><dt class="text-xs text-gray-400">{{ 'investmentPreview.sharesRemaining' | translate }}</dt><dd class="mt-1 font-bold text-white">{{ inv.remainingShares == null ? '—' : (inv.remainingShares | number) }}</dd></div>
+                    <div class="rounded-lg bg-slate-900/50 p-3"><dt class="text-xs text-gray-400">{{ 'investmentPreview.sharesOffered' | translate }}</dt><dd class="mt-1 font-bold text-white">{{ inv.offeredShares == null ? '—' : (inv.offeredShares | number) }}</dd></div>
+                    <div class="rounded-lg bg-slate-900/50 p-3"><dt class="text-xs text-gray-400">{{ 'investmentPreview.equityAllocated' | translate }}</dt><dd class="mt-1 font-bold text-white">{{ inv.allocatedEquityPercentage == null ? '—' : ((inv.allocatedEquityPercentage | number:'1.0-2') + '%') }}</dd></div>
+                    <div class="rounded-lg bg-slate-900/50 p-3"><dt class="text-xs text-gray-400">{{ 'investmentPreview.equityRemaining' | translate }}</dt><dd class="mt-1 font-bold text-white">{{ inv.remainingEquityPercentage == null ? '—' : ((inv.remainingEquityPercentage | number:'1.0-2') + '%') }}</dd></div>
+                  }
+                </dl>
               </div>
 
               <!-- Your Investment -->
@@ -819,10 +837,10 @@
                   </div>
                   <div class="rounded-lg bg-slate-700/40 border border-slate-700/30 p-3 text-center">
                     <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">{{ 'investmentPreview.fundingProgress' | translate }}</p>
-                    @let fp = (inv.targetFund > 0) ? ((inv.currentFunding ?? 0) / inv.targetFund) * 100 : 0;
+                    @let fp = inv.fundingPercentage;
                     <p class="text-xl font-bold"
                        [class]="fp >= 75 ? 'text-emerald-300' : fp >= 40 ? 'text-amber-300' : 'text-white'">
-                      {{ (fp | number:'1.0-0') }}%
+                      {{ fp === null ? '—' : ((fp | number:'1.0-0') + '%') }}
                     </p>
                   </div>
                 </div>
@@ -1433,3 +1451,56 @@
   </div>
 }
 
+@if (reportModalOpen() && reportTarget(); as target) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+    <section class="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+      <header class="border-b border-slate-800 p-5">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-red-300">{{ 'reports.title' | translate }}</p>
+        <h2 class="mt-2 text-xl font-bold text-white">{{ 'reports.sendReport' | translate }}</h2>
+        <p class="mt-1 text-sm text-slate-400">{{ target.title }}</p>
+      </header>
+      <div class="space-y-4 p-5">
+        @if (reportSuccess()) {
+          <div class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">
+            {{ 'reports.success' | translate }}
+          </div>
+        } @else {
+          <label class="block text-sm font-semibold text-slate-200">
+            {{ 'reports.reason' | translate }}
+            <select class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+                    [ngModel]="reportReason()"
+                    (ngModelChange)="setReportReason($event)">
+              @for (reason of reportReasons; track reason) {
+                <option [value]="reason">{{ reportReasonLabel(reason) }}</option>
+              }
+            </select>
+          </label>
+          <label class="block text-sm font-semibold text-slate-200">
+            {{ 'reports.description' | translate }}
+            <textarea rows="4"
+                      class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+                      [placeholder]="'reports.descriptionPlaceholder' | translate"
+                      [ngModel]="reportDescription()"
+                      (ngModelChange)="setReportDescription($event)"></textarea>
+          </label>
+          @if (reportError()) {
+            <div class="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-100">{{ reportError() }}</div>
+          }
+        }
+      </div>
+      <footer class="flex gap-3 border-t border-slate-800 p-5">
+        <button type="button" (click)="closeReportModal()" class="flex-1 rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-700">
+          {{ reportSuccess() ? ('common.close' | translate) : ('reports.cancel' | translate) }}
+        </button>
+        @if (!reportSuccess()) {
+          <button type="button"
+                  (click)="submitReport()"
+                  [disabled]="reportSubmitting()"
+                  class="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50">
+            {{ reportSubmitting() ? ('reports.submitting' | translate) : ('reports.submit' | translate) }}
+          </button>
+        }
+      </footer>
+    </section>
+  </div>
+}

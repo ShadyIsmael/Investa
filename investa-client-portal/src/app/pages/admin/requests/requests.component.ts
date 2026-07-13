@@ -7,6 +7,7 @@ import { TranslatePipe } from '../../../pipes/translate.pipe';
 import { LanguageService } from '../../../services/language.service';
 
 import { RequestsService } from '../../../services/requests.service';
+import { RoleContextService } from '../../../services/role-context.service';
 
 import { FileStoreService } from '../../../services/file-store.service';
 
@@ -36,6 +37,7 @@ export class RequestsComponent {
   private router = inject(Router);
   private languageService = inject(LanguageService);
   private fileStoreService = inject(FileStoreService);
+  private roleContext = inject(RoleContextService);
 
 
 
@@ -49,6 +51,8 @@ export class RequestsComponent {
 
   incomingCount = computed(() => this.incoming().length);
   outgoingCount = computed(() => this.outgoing().length);
+  currentConversationCount = computed(() => this.currentTabRequests().filter(request => request.requestType === OpportunityRequestKind.Conversation).length);
+  currentParticipationCount = computed(() => this.currentTabRequests().filter(request => request.requestType === OpportunityRequestKind.Participation).length);
 
 
 
@@ -141,6 +145,9 @@ export class RequestsComponent {
 
       return true;
 
+    }).sort((a, b) => {
+      const typeDelta = this.requestTypeOrder(a) - this.requestTypeOrder(b);
+      return typeDelta || b.createdAt.getTime() - a.createdAt.getTime();
     });
 
   });
@@ -191,6 +198,59 @@ export class RequestsComponent {
 
     await this.requestsService.refreshRequests();
 
+  }
+
+  currentTabRequests(): OpportunityRequest[] {
+    return this.tab() === 'incoming' ? this.incoming() : this.outgoing();
+  }
+
+  shouldShowSectionHeader(request: OpportunityRequest, index: number): boolean {
+    if (this.typeFilter() !== 'all') return index === 0;
+    const previous = this.paginatedRequests()[index - 1];
+    return !previous || previous.requestType !== request.requestType;
+  }
+
+  getSectionTitle(request: OpportunityRequest): string {
+    return request.requestType === OpportunityRequestKind.Conversation
+      ? this.t('requests.sections.conversationRequests', 'Conversation Requests')
+      : this.t('requests.sections.participationRequests', 'Participation Requests');
+  }
+
+  getSectionCount(request: OpportunityRequest): number {
+    return request.requestType === OpportunityRequestKind.Conversation
+      ? this.currentConversationCount()
+      : this.currentParticipationCount();
+  }
+
+  getEmptyTitle(): string {
+    if (this.filteredRequests().length === 0 && this.currentTabRequests().length > 0) {
+      return this.t('requests.empty.noMatch', 'No requests match the selected filters.');
+    }
+
+    if (this.typeFilter() === 'participation') {
+      if (this.tab() === 'incoming' && this.roleContext.isActiveFounderContext()) {
+        return this.t('requests.empty.noIncomingParticipation', 'No incoming participation requests');
+      }
+      if (this.tab() === 'outgoing') {
+        return this.t('requests.empty.noOutgoingParticipation', 'No participation requests submitted');
+      }
+    }
+
+    return this.tab() === 'incoming'
+      ? this.t('requests.noIncoming', 'No incoming requests.')
+      : this.t('requests.noOutgoing', 'No outgoing requests.');
+  }
+
+  getEmptySubtitle(): string {
+    if (this.filteredRequests().length === 0 && this.currentTabRequests().length > 0) {
+      return this.t('requests.empty.tryAdjustFilters', 'Try adjusting your filter criteria.');
+    }
+    if (this.typeFilter() === 'participation') {
+      return this.t('requests.empty.participationHelper', 'Participation requests are shown separately from conversation requests.');
+    }
+    return this.tab() === 'incoming'
+      ? this.t('requests.noIncomingSubtitle', 'Incoming requests will appear here.')
+      : this.t('requests.noOutgoingSubtitle', 'Outgoing requests will appear here.');
   }
 
 
@@ -557,6 +617,10 @@ export class RequestsComponent {
     if (start === 'Unavailable' && end === 'Unavailable') return 'Unavailable';
     if (start !== 'Unavailable' && end !== 'Unavailable') return `${start} - ${end}`;
     return start !== 'Unavailable' ? `Starts ${start}` : `Ends ${end}`;
+  }
+
+  private requestTypeOrder(request: OpportunityRequest): number {
+    return request.requestType === OpportunityRequestKind.Participation ? 0 : 1;
   }
 
   formatOptionalMoney(request: OpportunityRequest, value: number | null): string {

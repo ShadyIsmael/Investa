@@ -345,10 +345,49 @@
     "typeFilter": "Investment Model",
     "type": {
       "founding": "Profit Sharing",
-      "equity": "Equity"
+      "equity": "Equity",
+      "loan": "Loan",
+      "revenueSharing": "Profit Sharing"
     },
     "funding": "Funding",
     "fundingProgress": "Funding Progress",
+    "funded": "Funded",
+    "target": "Target",
+    "remaining": "Remaining",
+    "approvedParticipants": "Approved Participants",
+    "yourApprovedContribution": "Your Approved Contribution",
+    "remainingToFund": "Remaining to Fund",
+    "participants": "Participants",
+    "projectRoom": "Project Room",
+    "contract": "View Contract",
+    "loan": {
+      "interestRate": "Interest Rate",
+      "duration": "Duration",
+      "expectedTotalRepayment": "Expected Total Repayment"
+    },
+    "equity": {
+      "approvedShares": "Approved Shares",
+      "ownership": "Ownership",
+      "remainingShares": "Remaining Shares"
+    },
+    "profitSharing": {
+      "profitShare": "Profit Share",
+      "payoutFrequency": "Payout Frequency",
+      "expectedTotalPayout": "Expected Total Payout"
+    },
+    "status": {
+      "draft": "Draft",
+      "active": "Active",
+      "reviewingParticipants": "Reviewing Participants",
+      "inProgress": "In Progress",
+      "fullyFunded": "Fully Funded",
+      "paused": "Paused",
+      "completed": "Completed",
+      "archived": "Archived",
+      "closed": "Closed"
+    },
+    "roi": "ROI",
+    "toInvest": "to invest",
     "min": "Min",
     "to": "to",
     "max": "Max",
@@ -402,6 +441,26 @@
       "warning": "Important Notice",
       "warningMessage": "This action will deduct credits from your account and submit a request to the founder. This action cannot be undone.",
       "confirmButton": "Confirm and Proceed"
+    },
+    "myParticipation": {
+      "approvedContribution": "Your Approved Contribution",
+      "remainingToFund": "Remaining to Fund",
+      "approvedParticipants": "Approved Participants",
+      "loan": {
+        "interestRate": "Interest Rate",
+        "duration": "Duration",
+        "totalRepayment": "Expected Total Repayment"
+      },
+      "equity": {
+        "shares": "Approved Shares",
+        "ownership": "Ownership",
+        "remaining": "Remaining Shares"
+      },
+      "profitSharing": {
+        "share": "Profit Share",
+        "payoutFrequency": "Payout Frequency",
+        "totalPayout": "Expected Total Payout"
+      }
     }
   },
   "dashboard": {
@@ -961,10 +1020,19 @@
       "withdraw": "Withdraw",
       "withdrawRequest": "Withdraw Request"
     },
+    "sections": {
+      "conversationRequests": "Conversation Requests",
+      "participationRequests": "Participation Requests",
+      "conversationHelper": "Chat requests remain separate from participation approvals.",
+      "participationHelper": "Direct participation requests appear here without requiring a conversation."
+    },
     "types": {
       "participationRequest": "Participation Request",
       "conversationRequest": "Conversation Request",
-      "participation": "Participation"
+      "participation": "Participation",
+      "loan": "Loan",
+      "profitSharing": "Profit Sharing",
+      "equity": "Equity"
     },
     "status": {
       "waitingFounderResponse": "Waiting for founder response",
@@ -990,7 +1058,14 @@
     },
     "empty": {
       "noMatch": "No requests match the selected filters.",
-      "tryAdjustFilters": "Try adjusting your filter criteria."
+      "tryAdjustFilters": "Try adjusting your filter criteria.",
+      "noIncomingParticipation": "No incoming participation requests",
+      "noOutgoingParticipation": "No participation requests submitted",
+      "participationHelper": "Participation requests are shown separately from conversation requests."
+    },
+    "fallbacks": {
+      "opportunity": "Opportunity",
+      "participant": "Participant"
     },
     "filters": {
       "status": "Status",
@@ -1012,8 +1087,12 @@
     },
     "notifications": {
       "accepted": "Request Accepted",
+      "chatAccepted": "Chat Accepted",
+      "participationApproved": "Participation Approved",
       "acceptedMessage": "{projectName} invitation accepted.",
       "declined": "Request Declined",
+      "chatDeclined": "Chat Declined",
+      "participationRejected": "Participation Rejected",
       "declinedMessage": "{projectName} invitation declined.",
       "withdrawn": "Request Withdrawn",
       "withdrawnMessage": "{projectName} request withdrawn."
@@ -1046,6 +1125,13 @@
     "valuationCap": "Valuation Cap",
     "fundingProgress": "Funding Progress",
     "amountRaised": "Amount Raised",
+    "remainingFunding": "Remaining Funding",
+    "approvedParticipants": "Approved Participants",
+    "sharesOffered": "Shares Offered",
+    "sharesSold": "Shares Sold",
+    "sharesRemaining": "Shares Remaining",
+    "equityAllocated": "Equity Allocated",
+    "equityRemaining": "Equity Remaining",
     "target": "Target",
     "funded": "Funded",
     "yourInvestment": "Your Participation",
@@ -1240,6 +1326,7 @@
       "profitShare": "Profit Share %",
       "durationTerm": "Duration / Term",
       "expectedProfit": "Expected Profit",
+      "illustrativeExpectedProfit": "Illustrative expected profit",
       "expectedPayout": "Expected Total Payout",
       "opportunityPayout": "Opportunity Expected Payout",
       "contractPeriod": "Contract Period",
@@ -1299,6 +1386,361 @@
       "minutes": "{count} minutes ago",
       "second": "{count} second ago",
       "seconds": "{count} seconds ago"
+    },
+    "yes": "Yes",
+    "no": "No"
+  },
+  "reports": {
+    "title": "Reports",
+    "sendReport": "Send Report",
+    "reason": "Reason",
+    "description": "Description",
+    "descriptionPlaceholder": "Add optional details to help moderation review this report.",
+    "cancel": "Cancel",
+    "submit": "Submit Report",
+    "submitting": "Sending...",
+    "success": "Your report was sent to moderation for review.",
+    "actions": {
+      "report": "Report",
+      "reportUser": "Report User",
+      "reportOpportunity": "Report Opportunity",
+      "reportProject": "Report Project",
+      "reportFounder": "Report Founder",
+      "reportInvestor": "Report Investor"
+    },
+    "targets": {
+      "opportunity": "Opportunity",
+      "user": "User",
+      "conversation": "Conversation",
+      "participant": "Participant"
+    },
+    "reasons": {
+      "SuspiciousOpportunity": "Suspicious Opportunity",
+      "MisleadingInformation": "Misleading Information",
+      "Spam": "Spam",
+      "Abuse": "Abuse",
+      "FraudConcern": "Fraud Concern",
+      "InappropriateContent": "Inappropriate Content",
+      "Other": "Other"
+    },
+    "errors": {
+      "duplicatePending": "You already have a pending report for this item.",
+      "invalidTarget": "This report target is not available.",
+      "selfReport": "You cannot report yourself.",
+      "generic": "Report could not be sent. Please try again.",
+      "counterpartyUnavailable": "We could not identify the other participant safely. Please try again later."
+    }
+  },
+  "opportunityPublish": {
+    "action": "Publish Opportunity",
+    "publishing": "Publishing...",
+    "confirmation": "{action} will become publicly visible. Fixed platform fee: {cost} CREDIT. Current balance: {balance} CREDIT. Balance after publishing: {after} CREDIT.",
+    "successTitle": "Opportunity Published",
+    "successMessage": "Opportunity published successfully",
+    "failureTitle": "Publishing Failed",
+    "failureMessage": "The Opportunity remains a Draft. Please review its required information and try again."
+  },
+  "opportunityEditor": {
+    "savedTitle": "Draft Saved",
+    "savedMessage": "Opportunity draft saved.",
+    "saveFailureTitle": "Save Failed",
+    "saveFailureMessage": "Unable to save the Opportunity. Please try again."
+  },
+  "contracts": {
+    "title": "Contracts & Agreements",
+    "investmentAgreement": "Investment Agreement",
+    "room": {
+      "founderListHelper": "Founder view includes all authorized contracts for this Opportunity.",
+      "investorListHelper": "Investor view includes only contracts where you are a named party."
+    },
+    "actions": {
+      "refresh": "Refresh",
+      "preview": "Preview Contract",
+      "downloadPdf": "Download PDF",
+      "openVersion": "Open Version",
+      "print": "Print"
+    },
+    "fields": {
+      "investmentModel": "Investment Model",
+      "contractNumber": "Contract Number",
+      "currentVersion": "Current Version",
+      "status": "Status",
+      "latestAgreementDate": "Latest Agreement Date",
+      "versionCount": "Version Count",
+      "founder": "Founder",
+      "investor": "Investor",
+      "opportunity": "Opportunity",
+      "effectiveDate": "Effective Date",
+      "sourceParticipation": "Source Participation Reference",
+      "acceptedOffer": "Accepted Offer Reference",
+      "pdfStatus": "PDF Status",
+      "changesSummary": "Changes Summary"
+    },
+    "sections": {
+      "agreedTerms": "Agreed Terms Summary",
+      "versionHistory": "Previous Versions"
+    },
+    "badges": {
+      "current": "Current Version",
+      "previous": "Previous Version"
+    },
+    "empty": {
+      "title": "No contracts yet",
+      "helper": "Contract will appear automatically after participation approval.",
+      "selectTitle": "Select a contract",
+      "selectHelper": "Choose a contract from the list to view its details and version history.",
+      "noTerms": "No agreed terms summary is available.",
+      "noChangesSummary": "No changes summary is available for this version."
+    },
+    "preview": {
+      "loading": "Loading contract preview..."
+    },
+    "pdf": {
+      "preparing": "Preparing official PDF..."
+    },
+    "status": {
+      "0": "Active",
+      "1": "Terminated",
+      "Active": "Active",
+      "Terminated": "Terminated",
+      "unknown": "Unknown"
+    },
+    "versionTypes": {
+      "0": "Initial Agreement",
+      "1": "Additional Investment",
+      "2": "Additional Share Purchase",
+      "3": "Terms Amendment",
+      "4": "Loan Restructuring",
+      "5": "Profit Sharing Amendment",
+      "6": "Extension",
+      "7": "Partial Exit",
+      "8": "Termination",
+      "InitialAgreement": "Initial Agreement",
+      "AdditionalInvestment": "Additional Investment",
+      "AdditionalSharePurchase": "Additional Share Purchase",
+      "TermsAmendment": "Terms Amendment",
+      "LoanRestructuring": "Loan Restructuring",
+      "ProfitSharingAmendment": "Profit Sharing Amendment",
+      "Extension": "Extension",
+      "PartialExit": "Partial Exit",
+      "Termination": "Termination",
+      "unknown": "Unknown"
+    },
+    "versionStatus": {
+      "0": "Active",
+      "1": "Superseded",
+      "2": "Terminated",
+      "3": "Cancelled",
+      "Active": "Active",
+      "Superseded": "Superseded",
+      "Terminated": "Terminated",
+      "Cancelled": "Cancelled",
+      "unknown": "Unknown"
+    },
+    "pdfStatus": {
+      "0": "Not generated",
+      "1": "Generating",
+      "2": "Ready",
+      "3": "Failed",
+      "NotGenerated": "Not generated",
+      "Generating": "Generating",
+      "Ready": "Ready",
+      "Failed": "Failed",
+      "unknown": "Unknown"
+    },
+    "errors": {
+      "accessDenied": "You do not have access to this contract.",
+      "notFound": "Contract was not found.",
+      "pdfGenerating": "The official PDF is still being generated. Please try again shortly.",
+      "generic": "Unable to load contract information. Please try again."
+    }
+  },
+  "opportunityRoom": {
+    "title": "Project Room",
+    "loading": "Loading project room...",
+    "role": {
+      "founder": "Founder",
+      "approvedInvestor": "Approved Investor",
+      "investor": "Investor"
+    },
+    "badges": {
+      "investorProjectRoom": "Investor Project Room",
+      "public": "Public",
+      "private": "Private",
+      "room": "Room"
+    },
+    "founderSummary": "Founder summary",
+    "backToOpportunities": "Back to Opportunities",
+    "founderWorkspace": {
+      "title": "Founder Workspace",
+      "approvedParticipants": "Approved Participants",
+      "editProject": "Edit Project",
+      "addUpdate": "Add Update",
+      "addDocument": "Add Document",
+      "addMilestone": "Add Milestone",
+      "editAvailable": "Core project editing is available until the first participant joins.",
+      "lockedMessage": "Core project details are locked after the first participant joins. Continue updates through milestone, update, and document actions."
+    },
+    "stats": {
+      "participation": "Participation",
+      "permissions": "Private files: {privateFiles} \u00B7 Downloads: {downloads}",
+      "termsSnapshot": "Your Terms Snapshot",
+      "investmentModel": "{model} model",
+      "minimumParticipation": "Minimum participation",
+      "latestChange": "Latest Change"
+    },
+    "funding": {
+      "progress": "Funding Progress",
+      "target": "Funding target",
+      "funded": "Funded amount",
+      "remaining": "Remaining funding",
+      "participants": "Approved participants"
+    },
+    "milestones": {
+      "label": "Milestone",
+      "latest": "Latest Milestone",
+      "empty": "No milestones have been added yet.",
+      "untitled": "Untitled milestone",
+      "noDescription": "No milestone details available."
+    },
+    "recentActivity": {
+      "title": "What Changed Recently",
+      "subtitle": "Latest room activity",
+      "viewAll": "View All",
+      "showLess": "Show Less",
+      "empty": "No recent changes yet."
+    },
+    "nextSteps": {
+      "title": "What To Do Next",
+      "empty": "No pending guidance right now."
+    },
+    "publicNote": {
+      "title": "Latest Public Note"
+    },
+    "tabs": {
+      "overview": "Overview",
+      "timeline": "Timeline",
+      "documents": "Documents",
+      "media": "Media",
+      "updates": "Updates"
+    },
+    "overview": {
+      "title": "Project Overview",
+      "useOfFunds": "Use of Funds",
+      "expectedReturn": "Expected Return",
+      "publicTerms": "Public Investment Terms"
+    },
+    "participationSummary": {
+      "title": "Participation Summary",
+      "roomRole": "Room role",
+      "roomAccess": "Room access",
+      "viewPrivateFiles": "View private files",
+      "downloadFiles": "Download files",
+      "activeAccess": "Active room access",
+      "limitedAccess": "Limited room access"
+    },
+    "timeline": {
+      "title": "Milestones Timeline",
+      "subtitle": "Strategic milestones only. Operational updates are listed in the Updates tab."
+    },
+    "updates": {
+      "title": "Founder Updates",
+      "subtitle": "Progress notes, announcements, and operational updates.",
+      "empty": "No updates yet."
+    },
+    "documents": {
+      "title": "Documents",
+      "empty": "No documents uploaded yet.",
+      "preview": "Preview",
+      "download": "Download",
+      "general": "General"
+    },
+    "media": {
+      "title": "Media",
+      "empty": "No media available yet.",
+      "preview": "Preview",
+      "download": "Download",
+      "video": "Video"
+    },
+    "modals": {
+      "addUpdate": {
+        "title": "Add Update",
+        "subtitle": "Operational communication for participants.",
+        "titlePlaceholder": "Update title",
+        "contentPlaceholder": "Update content",
+        "publicLabel": "Public update",
+        "cancel": "Cancel",
+        "saving": "Saving...",
+        "submit": "Add Update"
+      },
+      "addMilestone": {
+        "title": "Add Milestone",
+        "subtitle": "Strategic project evolution. This creates a real Timeline event.",
+        "titlePlaceholder": "Milestone title",
+        "descriptionPlaceholder": "Milestone description",
+        "publicLabel": "Public milestone",
+        "cancel": "Cancel",
+        "saving": "Saving...",
+        "submit": "Add Milestone"
+      },
+      "addDocument": {
+        "title": "Add Document",
+        "subtitle": "Uploads use Investa FileStore, then the document reference is attached to the Opportunity.",
+        "titlePlaceholder": "Document title (optional)",
+        "visibilityPrivate": "Private",
+        "visibilityPublic": "Public",
+        "purposePrivateDocument": "Private Document",
+        "purposePublicDocument": "Public Document",
+        "purposeFinancialReport": "Financial Report",
+        "purposeContract": "Contract",
+        "purposeLegal": "Legal",
+        "purposeInternalFile": "Internal File",
+        "purposeGeneral": "General",
+        "cancel": "Cancel",
+        "uploading": "Uploading...",
+        "submit": "Add Document"
+      }
+    },
+    "errors": {
+      "retry": "Retry",
+      "notFound": "Project Room not found",
+      "notFoundMessage": "We could not find a Project Room for this opportunity.",
+      "approvalRequired": "Approval required",
+      "approvalRequiredMessage": "Project Room is available after final participation approval.",
+      "genericTitle": "Unable to load Project Room",
+      "genericMessage": "Please try again."
+    },
+    "fallback": {
+      "noData": "-",
+      "file": "File",
+      "projectUpdate": "Project update",
+      "update": "Update",
+      "milestoneUpdate": "Milestone update",
+      "founderUpdate": "Founder update",
+      "publicDocument": "Public document",
+      "privateDocument": "Private document",
+      "publicMedia": "Public media",
+      "privateMedia": "Private media",
+      "allowed": "Allowed",
+      "notAllowed": "Not allowed"
+    },
+    "validation": {
+      "updateTitleRequired": "Update title is required.",
+      "milestoneTitleRequired": "Milestone title is required.",
+      "documentFileRequired": "Select a document file first."
+    },
+    "toasts": {
+      "updateAdded": "Update added.",
+      "milestoneAdded": "Milestone added.",
+      "documentAdded": "Document added.",
+      "saveFailed": "Failed to save project activity.",
+      "documentAddFailed": "Failed to add document."
+    },
+    "investmentTerms": {
+      "fallback": "Investment terms are available from the founder summary and room documents."
+    },
+    "publicUpdate": {
+      "empty": "No public update summary yet."
     }
   }
 }

@@ -55,4 +55,10 @@ public class LocalFileStorage : IFileStorage
         var webRelative = "/" + relativePath.TrimStart('/', '\\').Replace("\\", "/");
         return webRelative;
     }
+
+    public Task<byte[]> ReadFileAsync(string storedPath, CancellationToken cancellationToken = default)
+    {
+        var fullPath = Path.Combine(GetWebRootPath(), storedPath.TrimStart('/', '\\').Replace('/', Path.DirectorySeparatorChar));
+        return File.ReadAllBytesAsync(fullPath, cancellationToken);
+    }
 }

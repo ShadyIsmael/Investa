@@ -35,7 +35,30 @@ public class CreateOpportunityRequest
 
     public int? ExpectedDurationMonths { get; set; }
 
+    [StringLength(10)] public string? Currency { get; set; }
+    [Range(0.01, double.MaxValue)] public decimal? SharePrice { get; set; }
+    [Range(1, int.MaxValue)] public int? TotalShares { get; set; }
+    [Range(1, int.MaxValue)] public int? OfferedShares { get; set; }
+
     public decimal? EquityOfferedPercentage { get; set; }
+
+    [Range(0.01, 100)]
+    public decimal? ProfitSharePercentage { get; set; }
+
+    [StringLength(50)]
+    public string? ProfitSharingPayoutFrequency { get; set; }
+
+    public DateTime? ProfitSharingContractStartDate { get; set; }
+    public DateTime? ProfitSharingContractEndDate { get; set; }
+
+    // Loan Model Fields
+    [Range(0.01, 100, ErrorMessage = "InterestRate must be between 0.01 and 100.")]
+    public decimal? InterestRate { get; set; }
+
+    [StringLength(50)]
+    public string? RepaymentFrequency { get; set; }
+
+    public DateTime? FinalRepaymentDate { get; set; }
 
     public IReadOnlyList<int> TagIds { get; set; } = Array.Empty<int>();
 
@@ -81,7 +104,30 @@ public class UpdateOpportunityRequest
 
     public int? ExpectedDurationMonths { get; set; }
 
+    [StringLength(10)] public string? Currency { get; set; }
+    [Range(0.01, double.MaxValue)] public decimal? SharePrice { get; set; }
+    [Range(1, int.MaxValue)] public int? TotalShares { get; set; }
+    [Range(1, int.MaxValue)] public int? OfferedShares { get; set; }
+
     public decimal? EquityOfferedPercentage { get; set; }
+
+    [Range(0.01, 100)]
+    public decimal? ProfitSharePercentage { get; set; }
+
+    [StringLength(50)]
+    public string? ProfitSharingPayoutFrequency { get; set; }
+
+    public DateTime? ProfitSharingContractStartDate { get; set; }
+    public DateTime? ProfitSharingContractEndDate { get; set; }
+
+    // Loan Model Fields
+    [Range(0.01, 100, ErrorMessage = "InterestRate must be between 0.01 and 100.")]
+    public decimal? InterestRate { get; set; }
+
+    [StringLength(50)]
+    public string? RepaymentFrequency { get; set; }
+
+    public DateTime? FinalRepaymentDate { get; set; }
 
     public IReadOnlyList<int> TagIds { get; set; } = Array.Empty<int>();
 
@@ -227,10 +273,29 @@ public class OpportunityDto
     public decimal? MinimumInvestmentAmount { get; set; }
     public decimal? MaximumInvestmentAmount { get; set; }
     public int? ExpectedDurationMonths { get; set; }
+    public string? Currency { get; set; }
+    public decimal? SharePrice { get; set; }
+    public int? TotalShares { get; set; }
+    public int? OfferedShares { get; set; }
     public decimal? EquityOfferedPercentage { get; set; }
+    public decimal? ProfitSharePercentage { get; set; }
+    public string? ProfitSharingPayoutFrequency { get; set; }
+    public DateTime? ProfitSharingContractStartDate { get; set; }
+    public DateTime? ProfitSharingContractEndDate { get; set; }
+    public decimal? InterestRate { get; set; }
+    public string? RepaymentFrequency { get; set; }
+    public DateTime? FinalRepaymentDate { get; set; }
     public string? PublicInvestmentTermsSummary { get; set; }
     public string? ExpectedReturnSummary { get; set; }
     public decimal FundingProgressPercent { get; set; }
+    public decimal FundedAmount { get; set; }
+    public decimal RemainingFundingAmount { get; set; }
+    public decimal FundingProgressPercentage { get; set; }
+    public int ApprovedParticipantCount { get; set; }
+    public int SoldShares { get; set; }
+    public int? RemainingShares { get; set; }
+    public decimal AllocatedEquityPercentage { get; set; }
+    public decimal? RemainingEquityPercentage { get; set; }
     public IReadOnlyList<OpportunityLookupDto> Tags { get; set; } = Array.Empty<OpportunityLookupDto>();
     public InvestmentModel InvestmentModel { get; set; }
     public ProjectStage ProjectStage { get; set; }
@@ -255,6 +320,8 @@ public class OpportunityRoomDto
     public IReadOnlyList<OpportunityRoomMediaGroupDto> MediaLibrary { get; set; } = Array.Empty<OpportunityRoomMediaGroupDto>();
     public IReadOnlyList<OpportunityRoomDocumentGroupDto> DocumentsLibrary { get; set; } = Array.Empty<OpportunityRoomDocumentGroupDto>();
     public IReadOnlyList<OpportunityEventDto> Timeline { get; set; } = Array.Empty<OpportunityEventDto>();
+    public IReadOnlyList<OpportunityMilestoneDto> Milestones { get; set; } = Array.Empty<OpportunityMilestoneDto>();
+    public OpportunityMilestoneDto? LatestMilestone { get; set; }
     public OpportunityRoomParticipantContextDto ParticipantContext { get; set; } = new();
 }
 
@@ -267,11 +334,34 @@ public class OpportunityRoomOverviewDto
     public FounderSummaryDto Founder { get; set; } = new();
     public decimal FundingTarget { get; set; }
     public decimal FundingProgress { get; set; }
+    public decimal FundingProgressPercent { get; set; }
+    public decimal FundedAmount { get; set; }
+    public decimal RemainingFundingAmount { get; set; }
+    public decimal FundingProgressPercentage { get; set; }
+    public int ApprovedParticipantCount { get; set; }
+    public int? TotalShares { get; set; }
+    public int? OfferedShares { get; set; }
+    public int SoldShares { get; set; }
+    public int? RemainingShares { get; set; }
+    public decimal? SharePrice { get; set; }
+    public decimal AllocatedEquityPercentage { get; set; }
+    public decimal? RemainingEquityPercentage { get; set; }
     public InvestmentModel InvestmentModel { get; set; }
     public decimal? MinimumInvestment { get; set; }
     public string? ExpectedReturnSummary { get; set; }
     public string? UseOfFunds { get; set; }
     public string? PublicInvestmentTermsSummary { get; set; }
+}
+
+public class OpportunityMilestoneDto
+{
+    public int MilestoneId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public DateTime? TargetDate { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public DateTime? CompletedAt { get; set; }
 }
 
 public class OpportunityRoomMediaGroupDto
@@ -300,6 +390,57 @@ public class OpportunityRoomParticipantContextDto
     public bool CanPostUpdate { get; set; }
     public bool CanViewPrivateFiles { get; set; }
     public bool CanDownloadFiles { get; set; }
+}
+
+public class MyParticipationDto
+{
+    public int OpportunityId { get; set; }
+    public string OpportunityTitle { get; set; } = string.Empty;
+    public OpportunityStatus OpportunityStatus { get; set; }
+    public InvestmentModel InvestmentModel { get; set; }
+    public Guid FounderId { get; set; }
+    public string FounderDisplayName { get; set; } = string.Empty;
+    public string? CoverImageUrl { get; set; }
+    public string? ShortDescription { get; set; }
+    public int ParticipantId { get; set; }
+    public int ParticipationRequestId { get; set; }
+    public DateTime? ApprovedAt { get; set; }
+    public decimal ApprovedContributionAmount { get; set; }
+    public string? Currency { get; set; }
+    public OpportunityJoinRequestStatus ParticipationStatus { get; set; }
+    public bool ProjectRoomUnlocked { get; set; }
+    public bool CanOpenProjectRoom { get; set; }
+    public bool ContractAvailable { get; set; }
+    public int? CurrentContractId { get; set; }
+    public int? CurrentContractVersion { get; set; }
+    public decimal FundedAmount { get; set; }
+    public decimal FundingTarget { get; set; }
+    public decimal RemainingFundingAmount { get; set; }
+    public decimal FundingProgressPercentage { get; set; }
+    public int ApprovedParticipantCount { get; set; }
+    public int? ApprovedShares { get; set; }
+    public decimal? SharePrice { get; set; }
+    public decimal? OwnershipPercentage { get; set; }
+    public int? TotalShares { get; set; }
+    public int? OfferedShares { get; set; }
+    public int SoldShares { get; set; }
+    public int? RemainingShares { get; set; }
+    public decimal AllocatedEquityPercentage { get; set; }
+    public decimal? RemainingEquityPercentage { get; set; }
+    public decimal? Principal { get; set; }
+    public decimal? InterestRate { get; set; }
+    public int? ExpectedDurationMonths { get; set; }
+    public string? RepaymentFrequency { get; set; }
+    public DateTime? FinalRepaymentDate { get; set; }
+    public decimal? ExpectedReturn { get; set; }
+    public decimal? ExpectedTotalRepayment { get; set; }
+    public decimal? Contribution { get; set; }
+    public decimal? ProfitSharePercentage { get; set; }
+    public string? PayoutFrequency { get; set; }
+    public DateTime? ContractStartDate { get; set; }
+    public DateTime? ContractEndDate { get; set; }
+    public decimal? ExpectedProfit { get; set; }
+    public decimal? ExpectedTotalPayout { get; set; }
 }
 
 public class FounderSummaryDto
@@ -406,6 +547,8 @@ public class OpportunityParticipationFormDto
     public decimal FundingTarget { get; set; }
     public decimal AlreadyFundedAmount { get; set; }
     public decimal RemainingFundingAmount { get; set; }
+    public decimal FundingProgressPercentage { get; set; }
+    public int ApprovedParticipantCount { get; set; }
     public string Currency { get; set; } = "Credits";
     public decimal? MinimumContribution { get; set; }
     public decimal? MaximumContribution { get; set; }
@@ -423,6 +566,11 @@ public class OpportunityParticipationFormDto
     public DateTime? ContractStartDate { get; set; }
     public DateTime? ContractEndDate { get; set; }
     public int? TotalShares { get; set; }
+    public int? OfferedShares { get; set; }
+    public int SoldShares { get; set; }
+    public int? RemainingShares { get; set; }
+    public decimal AllocatedEquityPercentage { get; set; }
+    public decimal? RemainingEquityPercentage { get; set; }
     public int? AvailableShares { get; set; }
     public decimal? SharePrice { get; set; }
     public int? MinimumShares { get; set; }
@@ -460,6 +608,25 @@ public class OpportunityJoinRequestDto
     public DateTime CreatedAt { get; set; }
     public DateTime? ReviewedAt { get; set; }
     public string? RejectionReason { get; set; }
+}
+
+public class FounderIncomingJoinRequestDto
+{
+    public int RequestId { get; set; }
+    public int OpportunityId { get; set; }
+    public string OpportunityTitle { get; set; } = string.Empty;
+    public Guid InvestorId { get; set; }
+    public string InvestorDisplayName { get; set; } = string.Empty;
+    public InvestmentModel InvestmentModel { get; set; }
+    public OpportunityJoinRequestType RequestType { get; set; }
+    public decimal? RequestedAmount { get; set; }
+    public OpportunityJoinRequestStatus Status { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public decimal? CalculatedTotalAmount { get; set; }
+    public string? TermsSnapshotJson { get; set; }
+    public bool CanApprove { get; set; }
+    public bool CanReject { get; set; }
+    public Guid? SourceConversationId { get; set; }
 }
 
 public class OpportunityMediaDto

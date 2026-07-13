@@ -81,7 +81,15 @@ export const NAV_ITEMS: NavItem[] = [
         iconName: 'bell',
         path: '/operations/notifications',
         permissions: ['User.Manage'],
-      }
+      },
+      {
+        id: 'moderation-reports',
+        label: 'Moderation Reports',
+        labelKey: 'nav.moderationReports',
+        iconName: 'shield-check',
+        path: '/operations/reports',
+        permissions: ['User.Manage'],
+      },
     ]
   },
   {

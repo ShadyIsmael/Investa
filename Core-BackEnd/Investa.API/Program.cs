@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Linq;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
@@ -284,6 +285,7 @@ try
 
     builder.Services.AddHttpClient();
     builder.Services.AddScoped<IFileStorage, Investa.Infrastructure.Services.FileStoreStorage>();
+    builder.Services.AddScoped<IHtmlToPdfRenderer, Investa.Infrastructure.Services.PlaywrightHtmlToPdfRenderer>();
     // Register file storage implementation (local by default)
 
     // === EMAIL CONFIGURATION (Options Pattern) ===
@@ -299,6 +301,7 @@ try
                options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
                options.JsonSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
                options.JsonSerializerOptions.WriteIndented = false;
+               options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
            })
            .ConfigureApiBehaviorOptions(options =>
            {
@@ -338,6 +341,12 @@ try
 
     // === DEVELOPMENT IDENTITY RESEED (repair-only) ===
     builder.Services.AddDevIdentityReseed();
+
+    // === DEVELOPMENT OPPORTUNITY SEED (repair-only) ===
+    if (builder.Environment.IsDevelopment())
+    {
+        builder.Services.AddDevOpportunitySeed();
+    }
 
 
     // === APPLICATION SERVICES REGISTRATION ===
@@ -419,6 +428,41 @@ try
                 roomDemoDataResult.MediaCreated,
                 roomDemoDataResult.JoinRequestsCreated,
                 roomDemoDataResult.Skipped);
+
+            // === DEV-ONLY OPPORTUNITY SEED ===
+            var opportunitySeed = scope.ServiceProvider.GetRequiredService<Investa.Infrastructure.Services.OpportunitySeedService>();
+            var seedResult = await opportunitySeed.SeedAsync(seedValue: 20260712);
+            logger.LogInformation(
+                "✅ Opportunity seed result: inspected={Inspected}, updated={Updated}, equitiesRepaired={EquitiesRepaired}, loansRepaired={LoansRepaired}, profitSharingRepaired={ProfitSharingRepaired}, validationErrors={ValidationErrorCount}",
+                seedResult.TotalInspected,
+                seedResult.TotalUpdated,
+                seedResult.EquitiesRepaired,
+                seedResult.LoansRepaired,
+                seedResult.ProfitSharingRepaired,
+                seedResult.ValidationErrors.Count);
+
+            if (seedResult.Opportunity2028Details != null)
+            {
+                logger.LogInformation(
+                    "📊 Opportunity 2028 final values: Title={Title}, Model={Model}, FundingTarget={FundingTarget}, MinInvestment={MinInvestment}, MaxInvestment={MaxInvestment}, EquityPercent={EquityPercent}, InterestRate={InterestRate}, RepaymentFreq={RepaymentFreq}, FinalDate={FinalDate}, ProfitSharePercent={ProfitSharePercent}",
+                    seedResult.Opportunity2028Details.Title,
+                    seedResult.Opportunity2028Details.Model,
+                    seedResult.Opportunity2028Details.FundingTarget,
+                    seedResult.Opportunity2028Details.MinimumInvestment,
+                    seedResult.Opportunity2028Details.MaximumInvestment,
+                    seedResult.Opportunity2028Details.EquityPercentage,
+                    seedResult.Opportunity2028Details.InterestRate,
+                    seedResult.Opportunity2028Details.RepaymentFrequency,
+                    seedResult.Opportunity2028Details.FinalRepaymentDate,
+                    seedResult.Opportunity2028Details.ProfitSharePercentage);
+            }
+
+            if (seedResult.ValidationErrors.Any())
+            {
+                logger.LogWarning(
+                    "⚠️  Opportunity seed validation errors: {Errors}",
+                    string.Join(" | ", seedResult.ValidationErrors.Take(5)));
+            }
         }
     }
     catch (Exception ex)
@@ -551,7 +595,9 @@ static void RegisterApplicationServices(IServiceCollection services)
     services.AddScoped<IWalletService, WalletService>();
     services.AddScoped<IPriceService, PriceService>();
     services.AddScoped<IPaidActionService, PaidActionService>();
+    services.AddScoped<IReportService, ReportService>();
     services.AddScoped<IOpportunityService, OpportunityService>();
+    services.AddScoped<IInvestmentContractService, InvestmentContractService>();
     services.AddScoped<INegotiationService, NegotiationService>();
     services.AddScoped<InvestmentOpportunityBackfillService>();
     services.AddScoped<OpportunityCategoryBackfillService>();

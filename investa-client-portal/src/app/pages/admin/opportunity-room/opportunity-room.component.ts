@@ -1,20 +1,34 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { DomSanitizer } from '@angular/platform-browser';
+import { ChangeDetectionStrategy, Component, SecurityContext, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
   Opportunity,
   OpportunityDocument,
   OpportunityEvent,
+  OpportunityMilestone,
   OpportunityMedia,
   OpportunityRoom,
   OpportunityRoomParticipantContext,
   OpportunityService
 } from '../../../services/opportunity.service';
 import { FileStoreService } from '../../../services/file-store.service';
+import { ReportReasonCode, ReportService } from '../../../services/report.service';
+import { LanguageService } from '../../../services/language.service';
+import { TranslatePipe } from '../../../pipes/translate.pipe';
+import { RequestsService } from '../../../services/requests.service';
+import {
+  ContractService,
+  InvestmentContractDetail,
+  InvestmentContractSummary,
+  InvestmentContractVersion,
+  InvestmentContractVersionSummary,
+  PdfGenerationStatus
+} from '../../../services/contract.service';
 
-type RoomTab = 'overview' | 'timeline' | 'documents' | 'media' | 'updates';
+type RoomTab = 'overview' | 'contracts' | 'timeline' | 'documents' | 'media' | 'updates';
 
 interface ActivityFeedItem {
   trackKey: string;
@@ -36,7 +50,7 @@ const RECENT_ACTIVITY_LIMIT = 5;
 @Component({
   standalone: true,
   selector: 'app-opportunity-room',
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, TranslatePipe],
   templateUrl: './opportunity-room.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -44,6 +58,11 @@ export class OpportunityRoomComponent {
   private route = inject(ActivatedRoute);
   private opportunityService = inject(OpportunityService);
   private fileStore = inject(FileStoreService);
+  private reportService = inject(ReportService);
+  private languageService = inject(LanguageService);
+  private contractService = inject(ContractService);
+  private sanitizer = inject(DomSanitizer);
+  private requestsService = inject(RequestsService);
 
   room = signal<OpportunityRoom | null>(null);
   isLoading = signal(false);
@@ -66,9 +85,40 @@ export class OpportunityRoomComponent {
     searchTags: ''
   });
   selectedDocumentFile = signal<File | null>(null);
+  reportModalOpen = signal(false);
+  reportSubmitting = signal(false);
+  reportSuccess = signal(false);
+  reportError = signal<string | null>(null);
+  reportReason = signal<ReportReasonCode>('Spam');
+  reportDescription = signal('');
+  contracts = signal<InvestmentContractSummary[]>([]);
+  contractsLoading = signal(false);
+  contractsLoaded = signal(false);
+  contractsError = signal<string | null>(null);
+  selectedContract = signal<InvestmentContractDetail | null>(null);
+  selectedVersion = signal<InvestmentContractVersion | null>(null);
+  contractDetailsLoading = signal(false);
+  contractDetailsError = signal<string | null>(null);
+  previewModalOpen = signal(false);
+  previewHtml = signal<string | null>(null);
+  previewLoading = signal(false);
+  previewError = signal<string | null>(null);
+  pdfDownloading = signal<string | null>(null);
+  pdfStatusOverrides = signal<Record<string, PdfGenerationStatus>>({});
+
+  readonly reportReasons: ReportReasonCode[] = [
+    'SuspiciousOpportunity',
+    'MisleadingInformation',
+    'Spam',
+    'Abuse',
+    'FraudConcern',
+    'InappropriateContent',
+    'Other'
+  ];
 
   tabs: Array<{ id: RoomTab; label: string }> = [
     { id: 'overview', label: 'Overview' },
+    { id: 'contracts', label: '' },
     { id: 'timeline', label: 'Timeline' },
     { id: 'documents', label: 'Documents' },
     { id: 'media', label: 'Media' },
@@ -79,10 +129,9 @@ export class OpportunityRoomComponent {
   participantContext = computed(() => (this.room()?.participantContext ?? {}) as OpportunityRoomParticipantContext);
   documents = computed(() => this.flattenLibrary<OpportunityDocument>(this.room()?.documentsLibrary ?? this.room()?.documents));
   media = computed(() => this.flattenLibrary<OpportunityMedia>(this.room()?.mediaLibrary ?? this.room()?.media));
+  milestones = computed(() => this.flattenLibrary<OpportunityMilestone>(this.room()?.milestones));
   timeline = computed(() => {
-    const operationalTypes = ['update', 'projectupdate', 'founderupdate', 'announcement', 'progressupdate'];
-    return this.flattenLibrary<OpportunityEvent>(this.room()?.timeline ?? this.room()?.events)
-      .filter(item => !operationalTypes.includes(this.eventType(item).toLowerCase().replace(/\s+/g, '')));
+    return this.milestones().map(milestone => this.milestoneToEvent(milestone));
   });
   updates = computed(() => {
     const updateTypes = ['update', 'projectupdate', 'founderupdate', 'announcement', 'progressupdate'];
@@ -90,7 +139,8 @@ export class OpportunityRoomComponent {
       .filter(item => updateTypes.includes(this.eventType(item).toLowerCase().replace(/\s+/g, '')));
   });
 
-  timelineSorted = computed(() => this.sortEventsByDateDesc(this.timeline()));
+  milestonesSorted = computed(() => this.sortMilestonesByDateDesc(this.milestones()));
+  timelineSorted = computed(() => this.milestonesSorted().map(milestone => this.milestoneToEvent(milestone)));
   updatesSorted = computed(() => this.sortEventsByDateDesc(this.updates()));
   documentsSorted = computed(() => this.sortByDateDesc(this.documents(), item => this.documentRawDate(item)));
   mediaSorted = computed(() => this.sortByDateDesc(this.media(), item => this.mediaRawDate(item)));
@@ -98,10 +148,7 @@ export class OpportunityRoomComponent {
   documentGroups = computed(() => this.groupDocuments(this.documents()));
   mediaGroups = computed(() => this.groupMedia(this.media()));
 
-  latestActivity = computed(() => {
-    const items = this.activityFeed().sort((a, b) => b.dateValue - a.dateValue);
-    return items[0] ?? null;
-  });
+  latestMilestone = computed(() => this.room()?.latestMilestone ?? this.milestonesSorted()[0] ?? null);
 
   recentActivity = computed(() => this.activityFeed().sort((a, b) => b.dateValue - a.dateValue));
   displayedRecentActivity = computed(() => {
@@ -113,7 +160,7 @@ export class OpportunityRoomComponent {
   recommendedNextSteps = computed(() => {
     const steps: string[] = [];
     const context = this.participantContext();
-    const latest = this.latestActivity();
+    const latest = this.latestMilestone();
 
     if (!context.canViewPrivateFiles) {
       steps.push('Review public documents first, then request private-room permissions if needed.');
@@ -131,8 +178,8 @@ export class OpportunityRoomComponent {
       steps.push('Review milestones to understand strategic progress before evaluating new updates.');
     }
 
-    if (latest?.kind === 'update') {
-      steps.push('Start with the latest founder update to understand what changed most recently.');
+    if (latest) {
+      steps.push('Review the latest milestone to understand what changed most recently.');
     }
 
     if (steps.length === 0) {
@@ -144,6 +191,9 @@ export class OpportunityRoomComponent {
 
   constructor() {
     void this.load();
+    effect(() => {
+      if (this.requestsService.participationRevision() > 0) void this.load();
+    });
   }
 
   async load(): Promise<void> {
@@ -154,6 +204,8 @@ export class OpportunityRoomComponent {
       this.isLoading.set(true);
       this.error.set(null);
       this.room.set(await this.opportunityService.getOpportunityRoom(id));
+      this.resetContractState();
+      await this.loadContracts(true);
     } catch (error) {
       this.room.set(null);
       this.error.set(this.toRoomError(error));
@@ -164,6 +216,9 @@ export class OpportunityRoomComponent {
 
   setTab(tab: RoomTab): void {
     this.activeTab.set(tab);
+    if (tab === 'contracts') {
+      void this.loadContracts();
+    }
   }
 
   showAllRecent(): void {
@@ -182,8 +237,12 @@ export class OpportunityRoomComponent {
     return this.participantContext().isFounder === true || this.roomRole() === 'Founder';
   }
 
-  approvedParticipantCount(): number {
-    return Number(this.participantContext().approvedParticipantCount ?? 0);
+  canReportProject(): boolean {
+    return !!this.opportunityId() && !this.isFounder();
+  }
+
+  approvedParticipantCount(): number | null {
+    return this.numberValue(this.overview().approvedParticipantCount);
   }
 
   canEditCoreProject(): boolean {
@@ -204,8 +263,8 @@ export class OpportunityRoomComponent {
 
   coreEditMessage(): string {
     return this.canEditCoreProject()
-      ? 'Core project editing is available until the first participant joins.'
-      : 'Core project details are locked after the first participant joins.';
+      ? this.t('opportunityRoom.founderWorkspace.editAvailable')
+      : this.t('opportunityRoom.founderWorkspace.lockedMessage');
   }
 
   openUpdateModal(): void {
@@ -218,6 +277,175 @@ export class OpportunityRoomComponent {
     this.actionError.set(null);
     this.actionSuccess.set(null);
     this.documentModalOpen.set(true);
+  }
+
+  openProjectReport(): void {
+    if (!this.canReportProject()) return;
+    this.reportReason.set('Spam');
+    this.reportDescription.set('');
+    this.reportError.set(null);
+    this.reportSuccess.set(false);
+    this.reportModalOpen.set(true);
+  }
+
+  closeReportModal(): void {
+    if (this.reportSubmitting()) return;
+    this.reportModalOpen.set(false);
+    this.reportError.set(null);
+    this.reportSuccess.set(false);
+  }
+
+  setReportReason(reason: string): void {
+    this.reportReason.set(reason as ReportReasonCode);
+  }
+
+  setReportDescription(description: string): void {
+    this.reportDescription.set(description);
+  }
+
+  reportReasonLabel(reason: ReportReasonCode): string {
+    return this.t(`reports.reasons.${reason}`);
+  }
+
+  async submitProjectReport(): Promise<void> {
+    const opportunityId = this.opportunityId();
+    if (!opportunityId || this.reportSubmitting() || !this.canReportProject()) return;
+
+    try {
+      this.reportSubmitting.set(true);
+      this.reportError.set(null);
+      await this.reportService.createReport({
+        targetType: 'Opportunity',
+        targetId: opportunityId,
+        reasonCode: this.reportReason(),
+        description: this.reportDescription().trim() || null
+      });
+      this.reportSuccess.set(true);
+    } catch (error: any) {
+      this.reportError.set(this.reportErrorMessage(error));
+    } finally {
+      this.reportSubmitting.set(false);
+    }
+  }
+
+  async loadContracts(force = false): Promise<void> {
+    const opportunityId = this.opportunityId();
+    if (!opportunityId || this.contractsLoading() || (this.contractsLoaded() && !force)) return;
+
+    try {
+      this.contractsLoading.set(true);
+      this.contractsError.set(null);
+      const contracts = await this.contractService.getOpportunityContracts(opportunityId);
+      this.contracts.set(contracts);
+      this.contractsLoaded.set(true);
+      if (!this.selectedContract() && contracts.length > 0) {
+        await this.openContractDetails(contracts[0]);
+      }
+    } catch (error: any) {
+      this.contracts.set([]);
+      this.contractsLoaded.set(true);
+      this.contractsError.set(this.contractErrorMessage(error));
+    } finally {
+      this.contractsLoading.set(false);
+    }
+  }
+
+  private resetContractState(): void {
+    this.contracts.set([]);
+    this.contractsLoaded.set(false);
+    this.contractsError.set(null);
+    this.selectedContract.set(null);
+    this.selectedVersion.set(null);
+    this.contractDetailsError.set(null);
+  }
+
+  async openContractDetails(contract: InvestmentContractSummary): Promise<void> {
+    if (this.contractDetailsLoading()) return;
+    try {
+      this.contractDetailsLoading.set(true);
+      this.contractDetailsError.set(null);
+      const detail = await this.contractService.getContract(contract.contractId);
+      this.selectedContract.set(detail);
+      this.selectedVersion.set(detail.currentVersion);
+    } catch (error: any) {
+      this.contractDetailsError.set(this.contractErrorMessage(error));
+    } finally {
+      this.contractDetailsLoading.set(false);
+    }
+  }
+
+  async openContractVersion(version: InvestmentContractVersionSummary): Promise<void> {
+    const detail = this.selectedContract();
+    if (!detail || this.contractDetailsLoading()) return;
+    try {
+      this.contractDetailsLoading.set(true);
+      this.contractDetailsError.set(null);
+      this.selectedVersion.set(await this.contractService.getVersion(detail.contract.contractId, version.versionNumber));
+    } catch (error: any) {
+      this.contractDetailsError.set(this.contractErrorMessage(error));
+    } finally {
+      this.contractDetailsLoading.set(false);
+    }
+  }
+
+  async openContractPreview(version: InvestmentContractVersion | InvestmentContractVersionSummary | null = this.selectedVersion()): Promise<void> {
+    const detail = this.selectedContract();
+    if (!detail || !version) return;
+    this.previewModalOpen.set(true);
+    this.previewLoading.set(true);
+    this.previewError.set(null);
+    this.previewHtml.set(null);
+    try {
+      const html = await this.contractService.getPreviewHtml(detail.contract.contractId, version.versionNumber);
+      this.previewHtml.set(this.sanitizeContractHtml(html));
+    } catch (error: any) {
+      this.previewError.set(this.contractErrorMessage(error));
+    } finally {
+      this.previewLoading.set(false);
+    }
+  }
+
+  closeContractPreview(): void {
+    this.previewModalOpen.set(false);
+    this.previewHtml.set(null);
+    this.previewError.set(null);
+  }
+
+  printContractPreview(): void {
+    const html = this.previewHtml();
+    if (!html) return;
+    const frame = document.createElement('iframe');
+    frame.style.position = 'fixed';
+    frame.style.right = '0';
+    frame.style.bottom = '0';
+    frame.style.width = '0';
+    frame.style.height = '0';
+    frame.style.border = '0';
+    document.body.appendChild(frame);
+    frame.contentDocument?.open();
+    frame.contentDocument?.write(html);
+    frame.contentDocument?.close();
+    frame.contentWindow?.focus();
+    frame.contentWindow?.print();
+    setTimeout(() => frame.remove(), 1000);
+  }
+
+  async downloadContractPdf(version: InvestmentContractVersion | InvestmentContractVersionSummary | null = this.selectedVersion()): Promise<void> {
+    const detail = this.selectedContract();
+    if (!detail || !version) return;
+    const key = this.contractVersionKey(detail.contract.contractId, version.versionNumber);
+    try {
+      this.pdfDownloading.set(key);
+      this.previewError.set(null);
+      const file = await this.contractService.downloadPdf(detail.contract.contractId, version.versionNumber);
+      this.saveBlob(file.blob, file.fileName);
+      this.pdfStatusOverrides.update(items => ({ ...items, [key]: 2 }));
+    } catch (error: any) {
+      this.pdfStatusOverrides.update(items => ({ ...items, [key]: 3 }));
+      this.previewError.set(this.contractErrorMessage(error));
+    } finally {
+      this.pdfDownloading.set(null);
+    }
   }
 
   openMilestoneModal(): void {
@@ -278,10 +506,10 @@ export class OpportunityRoomComponent {
   async submitUpdate(): Promise<void> {
     const form = this.updateForm();
     if (!form.title.trim()) {
-      this.actionError.set('Update title is required.');
+      this.actionError.set(this.t('opportunityRoom.validation.updateTitleRequired'));
       return;
     }
-    await this.createEvent('ProjectUpdate', form.title, form.content, form.isPublic, 'Update added.', () => {
+    await this.createEvent('ProjectUpdate', form.title, form.content, form.isPublic, this.t('opportunityRoom.toasts.updateAdded'), () => {
       this.updateForm.set({ title: '', content: '', isPublic: false });
       this.updateModalOpen.set(false);
       this.activeTab.set('updates');
@@ -291,10 +519,10 @@ export class OpportunityRoomComponent {
   async submitMilestone(): Promise<void> {
     const form = this.milestoneForm();
     if (!form.title.trim()) {
-      this.actionError.set('Milestone title is required.');
+      this.actionError.set(this.t('opportunityRoom.validation.milestoneTitleRequired'));
       return;
     }
-    await this.createEvent('Milestone', form.title, form.description, form.isPublic, 'Milestone added.', () => {
+    await this.createEvent('Milestone', form.title, form.description, form.isPublic, this.t('opportunityRoom.toasts.milestoneAdded'), () => {
       this.milestoneForm.set({ title: '', description: '', isPublic: true });
       this.milestoneModalOpen.set(false);
       this.activeTab.set('timeline');
@@ -306,7 +534,7 @@ export class OpportunityRoomComponent {
     const file = this.selectedDocumentFile();
     const form = this.documentForm();
     if (!opportunityId || !file) {
-      this.actionError.set('Select a document file first.');
+      this.actionError.set(this.t('opportunityRoom.validation.documentFileRequired'));
       return;
     }
 
@@ -336,14 +564,14 @@ export class OpportunityRoomComponent {
         visibility: this.documentVisibilityValue(form.visibility),
         searchTags: form.searchTags
       } as any);
-      this.actionSuccess.set('Document added.');
+      this.actionSuccess.set(this.t('opportunityRoom.toasts.documentAdded'));
       this.documentForm.set({ title: '', visibility: 'Private', purpose: 'PrivateDocument', category: 'OpportunityPrivateDocument', searchTags: '' });
       this.selectedDocumentFile.set(null);
       this.documentModalOpen.set(false);
       this.activeTab.set('documents');
       await this.refreshRoomData();
     } catch (error: any) {
-      this.actionError.set(error?.error?.message || error?.message || 'Failed to add document.');
+      this.actionError.set(error?.error?.message || error?.message || this.t('opportunityRoom.toasts.documentAddFailed'));
     } finally {
       this.isSubmittingAction.set(false);
     }
@@ -351,7 +579,7 @@ export class OpportunityRoomComponent {
 
   title(): string {
     const overview = this.overview();
-    return overview.title || overview.name || overview.businessName || 'Project Room';
+    return overview.title || overview.name || overview.businessName || this.t('opportunityRoom.title');
   }
 
   description(): string {
@@ -371,19 +599,45 @@ export class OpportunityRoomComponent {
     return this.overview().investmentModel || this.overview().model || '-';
   }
 
-  fundingTarget(): number | null {
-    return this.numberValue(this.overview().fundingTarget ?? this.overview().targetFund);
+  investmentModelKey(): string {
+    const model = this.overview().investmentModel || this.overview().model || '';
+    if (model === 'Equity' || model === '1' || model === 1) return 'investments.type.equity';
+    if (model === 'Loan' || model === '2' || model === 2) return 'investments.type.loan';
+    if (model === 'ProfitSharing' || model === '3' || model === 3) return 'investments.type.revenueSharing';
+    if (model === 'Founding' || model === 'Founding') return 'investments.type.founding';
+    return '';
   }
 
-  fundingProgress(): number {
-    const overview = this.overview();
-    const explicit = this.numberValue(overview.fundingProgressPercent ?? overview.fundingPercentage);
-    if (explicit !== null) return Math.max(0, Math.min(100, explicit));
+  statusKey(): string {
+    const status = this.overview().status || '';
+    return status ? `investments.status.${status.toLowerCase()}` : '';
+  }
 
-    const raised = this.numberValue(overview.currentFunding ?? overview.amountRaised);
-    const target = this.fundingTarget();
-    if (!raised || !target) return 0;
-    return Math.max(0, Math.min(100, (raised / target) * 100));
+  stageKey(): string {
+    const stage = this.overview().projectStage || this.overview().stage || '';
+    return stage ? `opportunity.stage.${stage.toLowerCase()}` : '';
+  }
+
+  fundingTarget(): number | null {
+    return this.numberValue(this.overview().fundingTarget);
+  }
+
+  fundedAmount(): number | null {
+    return this.numberValue(this.overview().fundedAmount);
+  }
+
+  remainingFundingAmount(): number | null {
+    return this.numberValue(this.overview().remainingFundingAmount);
+  }
+
+  fundingProgress(): number | null {
+    return this.numberValue(this.overview().fundingProgressPercentage);
+  }
+
+  fundingProgressBarWidth(): number {
+    const progress = this.fundingProgress();
+    if (progress === null) return 0;
+    return Math.max(0, Math.min(100, progress));
   }
 
   minimumParticipation(): number | null {
@@ -401,15 +655,24 @@ export class OpportunityRoomComponent {
 
   roomRole(): string {
     const context = this.participantContext();
-    if (context.isFounder) return 'Founder';
-    if (context.isApprovedParticipant) return 'Approved Investor';
+    if (context.isFounder) return this.t('opportunityRoom.role.founder');
+    if (context.isApprovedParticipant) return this.t('opportunityRoom.role.approvedInvestor');
     const role = context.role || context.userRole || context.roomRole;
     if (!role) return '-';
-    return role === 'ApprovedInvestor' ? 'Approved Investor' : String(role);
+    return role === 'ApprovedInvestor' ? this.t('opportunityRoom.role.approvedInvestor') : String(role);
+  }
+
+  roomRoleKey(): string {
+    const context = this.participantContext();
+    if (context.isFounder) return 'opportunityRoom.role.founder';
+    if (context.isApprovedParticipant) return 'opportunityRoom.role.approvedInvestor';
+    const role = context.role || context.userRole || context.roomRole;
+    if (!role) return '';
+    return role === 'ApprovedInvestor' ? 'opportunityRoom.role.approvedInvestor' : '';
   }
 
   permissionLabel(value: boolean | null | undefined): string {
-    return value ? 'Allowed' : 'Not allowed';
+    return value ? this.t('opportunityRoom.fallback.allowed') : this.t('opportunityRoom.fallback.notAllowed');
   }
 
   money(value: number | null | undefined): string {
@@ -426,7 +689,7 @@ export class OpportunityRoomComponent {
 
   fileTitle(item: OpportunityDocument | OpportunityMedia): string {
     const file = item as OpportunityDocument & OpportunityMedia;
-    return file.title || file.name || file.originalFileName || file.fileName || 'File';
+    return file.title || file.name || file.originalFileName || file.fileName || this.t('opportunityRoom.fallback.file');
   }
 
   extension(item: OpportunityDocument | OpportunityMedia): string {
@@ -434,9 +697,14 @@ export class OpportunityRoomComponent {
   }
 
   visibility(item: OpportunityDocument | OpportunityMedia): string {
-    if ('visibility' in item && item.visibility) return String(item.visibility);
-    if (item.isPublic === true) return 'Public';
-    if (item.isPublic === false) return 'Private';
+    if ('visibility' in item && item.visibility) {
+      const vis = String(item.visibility);
+      if (vis === 'Public') return this.t('opportunityRoom.badges.public');
+      if (vis === 'Private') return this.t('opportunityRoom.badges.private');
+      return vis;
+    }
+    if (item.isPublic === true) return this.t('opportunityRoom.badges.public');
+    if (item.isPublic === false) return this.t('opportunityRoom.badges.private');
     return '-';
   }
 
@@ -458,6 +726,79 @@ export class OpportunityRoomComponent {
     return item.fileUrl || '';
   }
 
+  contractListSubtitle(): string {
+    return this.isFounder() ? this.t('contracts.room.founderListHelper') : this.t('contracts.room.investorListHelper');
+  }
+
+  contractStatusLabel(status: unknown): string {
+    return this.contractEnumLabel('contracts.status', status);
+  }
+
+  versionTypeLabel(type: unknown): string {
+    return this.contractEnumLabel('contracts.versionTypes', type);
+  }
+
+  versionStatusLabel(status: unknown): string {
+    return this.contractEnumLabel('contracts.versionStatus', status);
+  }
+
+  pdfStatusLabel(status: unknown): string {
+    return this.contractEnumLabel('contracts.pdfStatus', status);
+  }
+
+  currentPdfStatus(version: InvestmentContractVersion | InvestmentContractVersionSummary | null): PdfGenerationStatus {
+    const detail = this.selectedContract();
+    if (!detail || !version) return 0;
+    const key = this.contractVersionKey(detail.contract.contractId, version.versionNumber);
+    return this.pdfStatusOverrides()[key] ?? ('pdfStatus' in version ? version.pdfStatus : 0);
+  }
+
+  contractVersionKey(contractId: number | string, versionNumber: number | string): string {
+    return `${contractId}:${versionNumber}`;
+  }
+
+  versionBadgeLabel(version: InvestmentContractVersionSummary): string {
+    return version.versionNumber === this.selectedContract()?.contract.currentVersionNumber
+      ? this.t('contracts.badges.current')
+      : this.t('contracts.badges.previous');
+  }
+
+  contractDate(raw: string | null | undefined): string {
+    if (!raw) return '-';
+    const date = new Date(raw);
+    return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString();
+  }
+
+  selectedTermsSummary(): Array<{ label: string; value: string }> {
+    return this.termsSummary(this.selectedVersion()?.termsSnapshotJson);
+  }
+
+  selectedChangesSummary(): string {
+    const changes = this.parseJsonRecord(this.selectedVersion()?.changesSnapshotJson);
+    if (!changes) return this.t('contracts.empty.noChangesSummary');
+    const lines = Object.entries(changes)
+      .filter(([, value]) => value !== null && value !== undefined && value !== '')
+      .map(([key, value]) => `${this.humanizeKey(key)}: ${this.displayJsonValue(value)}`);
+    return lines.length ? lines.join('\n') : this.t('contracts.empty.noChangesSummary');
+  }
+
+  sourceParticipationReference(): string {
+    return this.readTermsValue(['sourceParticipationRequestId', 'SourceParticipationRequestId', 'participationRequestId', 'ParticipationRequestId']);
+  }
+
+  acceptedOfferReference(): string {
+    return this.readTermsValue(['acceptedOfferId', 'AcceptedOfferId', 'acceptedOfferReference', 'AcceptedOfferReference']);
+  }
+
+  effectiveDate(): string {
+    return this.contractDate(this.selectedVersion()?.activatedAt || this.selectedVersion()?.createdAt);
+  }
+
+  isPdfDownloading(version: InvestmentContractVersion | InvestmentContractVersionSummary | null): boolean {
+    const detail = this.selectedContract();
+    return !!detail && !!version && this.pdfDownloading() === this.contractVersionKey(detail.contract.contractId, version.versionNumber);
+  }
+
   mediaUrl(item: OpportunityMedia): string {
     return this.fileStore.getPublicUrl(item.thumbnailUrl || item.previewUrl || item.fileUrl || '');
   }
@@ -471,11 +812,11 @@ export class OpportunityRoomComponent {
   }
 
   eventTitle(item: OpportunityEvent): string {
-    return item.title || this.eventType(item) || 'Project update';
+    return item.title || this.eventType(item) || this.t('opportunityRoom.fallback.projectUpdate');
   }
 
   eventType(item: OpportunityEvent): string {
-    return item.eventType || item.type || 'Update';
+    return item.eventType || item.type || this.t('opportunityRoom.fallback.update');
   }
 
   eventDate(item: OpportunityEvent): string {
@@ -485,11 +826,26 @@ export class OpportunityRoomComponent {
     return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString();
   }
 
+  milestoneTitle(item: OpportunityMilestone): string {
+    return item.title || this.t('opportunityRoom.milestones.untitled');
+  }
+
+  milestoneDescription(item: OpportunityMilestone): string {
+    return item.description || this.t('opportunityRoom.milestones.noDescription');
+  }
+
+  milestoneDate(item: OpportunityMilestone): string {
+    const raw = item.completedAt || item.targetDate || item.createdAt;
+    if (!raw) return '-';
+    const date = new Date(raw);
+    return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString();
+  }
+
   activityKindLabel(kind: ActivityFeedItem['kind']): string {
-    if (kind === 'milestone') return 'Milestone';
-    if (kind === 'update') return 'Update';
-    if (kind === 'document') return 'Document';
-    return 'Media';
+    if (kind === 'milestone') return this.t('opportunityRoom.fallback.milestoneUpdate');
+    if (kind === 'update') return this.t('opportunityRoom.fallback.update');
+    if (kind === 'document') return this.t('opportunityRoom.fallback.publicDocument');
+    return this.t('opportunityRoom.fallback.publicMedia');
   }
 
   activityKindClass(kind: ActivityFeedItem['kind']): string {
@@ -502,21 +858,21 @@ export class OpportunityRoomComponent {
   participationAccessText(): string {
     const context = this.participantContext();
     if (context.isApprovedParticipant || context.canAccessProjectRoom) {
-      return 'Active room access';
+      return this.t('opportunityRoom.participationSummary.activeAccess');
     }
-    return 'Limited room access';
+    return this.t('opportunityRoom.participationSummary.limitedAccess');
   }
 
   investmentTermsSummary(): string {
     const overview = this.overview();
     if (overview.publicInvestmentTermsSummary) return overview.publicInvestmentTermsSummary;
     if (overview.expectedReturnSummary) return overview.expectedReturnSummary;
-    return 'Investment terms are available from the founder summary and room documents.';
+    return this.t('opportunityRoom.investmentTerms.fallback');
   }
 
   latestPublicUpdateSummary(): string {
     const overview = this.overview();
-    return overview.latestPublicUpdate || 'No public update summary yet.';
+    return overview.latestPublicUpdate || this.t('opportunityRoom.publicUpdate.empty');
   }
 
   private flattenLibrary<T>(library: T[] | Record<string, T[]> | null | undefined): T[] {
@@ -529,6 +885,10 @@ export class OpportunityRoomComponent {
 
   private sortEventsByDateDesc(items: OpportunityEvent[]): OpportunityEvent[] {
     return [...items].sort((a, b) => this.dateValueFromRaw(b.eventDate || b.date || b.createdAt) - this.dateValueFromRaw(a.eventDate || a.date || a.createdAt));
+  }
+
+  private sortMilestonesByDateDesc(items: OpportunityMilestone[]): OpportunityMilestone[] {
+    return [...items].sort((a, b) => this.milestoneDateValue(b) - this.milestoneDateValue(a));
   }
 
   private sortByDateDesc<T>(items: T[], getRawDate: (item: T) => unknown): T[] {
@@ -575,6 +935,23 @@ export class OpportunityRoomComponent {
     return [...milestones, ...updates, ...documents, ...media].filter(item => item.dateValue > 0);
   }
 
+  private milestoneToEvent(milestone: OpportunityMilestone): OpportunityEvent {
+    return {
+      id: milestone.milestoneId ?? milestone.id,
+      title: milestone.title,
+      description: milestone.description,
+      eventDate: milestone.completedAt ?? milestone.targetDate ?? milestone.createdAt,
+      createdAt: milestone.createdAt,
+      eventType: 'Milestone',
+      type: milestone.status ?? 'Milestone',
+      isPublic: true
+    };
+  }
+
+  private milestoneDateValue(milestone: OpportunityMilestone): number {
+    return this.dateValueFromRaw(milestone.completedAt || milestone.targetDate || milestone.createdAt);
+  }
+
   private dateValueFromRaw(raw: unknown): number {
     if (!raw) return 0;
     const date = new Date(String(raw));
@@ -607,7 +984,7 @@ export class OpportunityRoomComponent {
       onSuccess();
       await this.refreshRoomData();
     } catch (error: any) {
-      this.actionError.set(error?.error?.message || error?.message || 'Failed to save project activity.');
+      this.actionError.set(error?.error?.message || error?.message || this.t('opportunityRoom.toasts.saveFailed'));
     } finally {
       this.isSubmittingAction.set(false);
     }
@@ -687,26 +1064,150 @@ export class OpportunityRoomComponent {
     return name.split('.').pop() || '';
   }
 
+  private reportErrorMessage(error: any): string {
+    const raw = error?.error?.message || error?.message || '';
+    const status = error?.status;
+    const normalized = String(raw).toLowerCase();
+    if (status === 409 || normalized.includes('duplicate') || normalized.includes('pending report')) {
+      return this.t('reports.errors.duplicate');
+    }
+    if (status === 400 && (normalized.includes('self') || normalized.includes('own'))) {
+      return this.t('reports.errors.selfReport');
+    }
+    if (status === 404 || normalized.includes('invalid target')) {
+      return this.t('reports.errors.invalidTarget');
+    }
+    return this.t('reports.errors.generic');
+  }
+
+  private contractErrorMessage(error: any): string {
+    const status = error?.status;
+    const raw = error?.error?.message || error?.message || '';
+    const normalized = String(raw).toLowerCase();
+    if (status === 403 || normalized.includes('access denied')) return this.t('contracts.errors.accessDenied');
+    if (status === 404 || normalized.includes('not found')) return this.t('contracts.errors.notFound');
+    if (status === 409 || normalized.includes('generating')) return this.t('contracts.errors.pdfGenerating');
+    return this.t('contracts.errors.generic');
+  }
+
+  private sanitizeContractHtml(html: string): string {
+    const withoutScripts = html
+      .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
+      .replace(/\son[a-z]+\s*=\s*(['"]).*?\1/gi, '')
+      .replace(/\s(href|src)\s*=\s*(['"])\s*javascript:[\s\S]*?\2/gi, '');
+    return this.sanitizer.sanitize(SecurityContext.HTML, withoutScripts) ?? '';
+  }
+
+  private saveBlob(blob: Blob, fileName: string): void {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.rel = 'noopener';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  private termsSummary(raw: string | null | undefined): Array<{ label: string; value: string }> {
+    const terms = this.parseJsonRecord(raw);
+    if (!terms) return [];
+    const preferredKeys = [
+      'contractNumber',
+      'investmentModel',
+      'requestedAmount',
+      'numberOfShares',
+      'sharePrice',
+      'proposedSharePercentage',
+      'profitSharePercentage',
+      'returnRate',
+      'termMonths',
+      'repaymentModel',
+      'contractStartDate',
+      'contractEndDate',
+      'acceptedOfferId',
+      'sourceParticipationRequestId'
+    ];
+    const entries = preferredKeys
+      .filter(key => terms[key] !== null && terms[key] !== undefined && terms[key] !== '')
+      .map(key => ({ label: this.humanizeKey(key), value: this.displayJsonValue(terms[key]) }));
+    if (entries.length > 0) return entries;
+    return Object.entries(terms)
+      .filter(([, value]) => value !== null && value !== undefined && value !== '')
+      .slice(0, 8)
+      .map(([key, value]) => ({ label: this.humanizeKey(key), value: this.displayJsonValue(value) }));
+  }
+
+  private readTermsValue(keys: string[]): string {
+    const terms = this.parseJsonRecord(this.selectedVersion()?.termsSnapshotJson);
+    if (!terms) return '-';
+    for (const key of keys) {
+      const value = terms[key];
+      if (value !== null && value !== undefined && value !== '') return this.displayJsonValue(value);
+    }
+    return '-';
+  }
+
+  private parseJsonRecord(raw: string | null | undefined): Record<string, any> | null {
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private displayJsonValue(value: unknown): string {
+    if (value === null || value === undefined || value === '') return '-';
+    if (typeof value === 'number') return Number.isFinite(value) ? String(value) : '-';
+    if (typeof value === 'boolean') return value ? this.t('common.yes') : this.t('common.no');
+    if (Array.isArray(value)) return value.map(item => this.displayJsonValue(item)).join(', ');
+    if (typeof value === 'object') return JSON.stringify(value);
+    const text = String(value);
+    const date = /^\d{4}-\d{2}-\d{2}/.test(text) ? new Date(text) : null;
+    return date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString() : text;
+  }
+
+  private humanizeKey(key: string): string {
+    return key
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/[_-]+/g, ' ')
+      .replace(/\b\w/g, char => char.toUpperCase());
+  }
+
+  private contractEnumLabel(prefix: string, value: unknown): string {
+    const normalized = String(value ?? '').trim();
+    const key = normalized === '' ? 'unknown' : normalized;
+    const translated = this.t(`${prefix}.${key}`);
+    return translated === `${prefix}.${key}` ? key : translated;
+  }
+
+  private t(path: string): string {
+    return this.languageService.translate(path);
+  }
+
   private toRoomError(error: unknown): RoomError {
     const status = error instanceof HttpErrorResponse ? error.status : (error as any)?.status;
     if (status === 403) {
       return {
         status,
-        title: 'Approval required',
-        message: 'Project Room is available after final participation approval.'
+        title: this.t('opportunityRoom.errors.approvalRequired'),
+        message: this.t('opportunityRoom.errors.approvalRequiredMessage')
       };
     }
     if (status === 404) {
       return {
         status,
-        title: 'Project Room not found',
-        message: 'We could not find a Project Room for this opportunity.'
+        title: this.t('opportunityRoom.errors.notFound'),
+        message: this.t('opportunityRoom.errors.notFoundMessage')
       };
     }
     return {
       status,
-      title: 'Unable to load Project Room',
-      message: (error as any)?.error?.message || (error as any)?.message || 'Please try again.'
+      title: this.t('opportunityRoom.errors.genericTitle'),
+      message: (error as any)?.error?.message || (error as any)?.message || this.t('opportunityRoom.errors.genericMessage')
     };
   }
 }

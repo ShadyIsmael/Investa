@@ -102,6 +102,9 @@
 
     </div>
 
+
+
+
   </div>
 
 
@@ -202,6 +205,27 @@
 
 
 
+  <div class="mb-6 grid grid-cols-1 gap-3 md:grid-cols-2">
+    <div class="rounded-xl border border-slate-700/60 bg-slate-900/50 p-4">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{ 'requests.sections.conversationRequests' | translate }}</p>
+          <p class="mt-1 text-sm text-slate-500">{{ 'requests.sections.conversationHelper' | translate }}</p>
+        </div>
+        <span class="rounded-full border border-blue-500/30 bg-blue-500/15 px-3 py-1 text-sm font-bold text-blue-200">{{ currentConversationCount() }}</span>
+      </div>
+    </div>
+    <div class="rounded-xl border border-slate-700/60 bg-slate-900/50 p-4">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{ 'requests.sections.participationRequests' | translate }}</p>
+          <p class="mt-1 text-sm text-slate-500">{{ 'requests.sections.participationHelper' | translate }}</p>
+        </div>
+        <span class="rounded-full border border-purple-500/30 bg-purple-500/15 px-3 py-1 text-sm font-bold text-purple-200">{{ currentParticipationCount() }}</span>
+      </div>
+    </div>
+  </div>
+
   <!-- ── INCOMING (Founder Requests) ── -->
 
   @if (tab() === 'incoming') {
@@ -210,6 +234,17 @@
 
       @for (request of paginatedRequests(); track request.id) {
 
+        @if (shouldShowSectionHeader(request, $index)) {
+
+          <div class="col-span-full mt-2 flex items-center justify-between border-b border-slate-800 pb-2">
+
+            <h2 class="text-sm font-bold uppercase tracking-wide text-slate-300">{{ getSectionTitle(request) }}</h2>
+
+            <span class="text-xs font-semibold text-slate-500">{{ getSectionCount(request) }} {{ 'requests.filters.requests' | translate | lowercase }}</span>
+
+          </div>
+
+        }
         <article class="relative bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-2xl overflow-hidden hover:border-slate-600/60 hover:shadow-xl hover:shadow-black/30 transition-all duration-200 group">
 
 
@@ -556,7 +591,7 @@
                 <button (click)="withdraw(request)"
                         class="flex-1 flex items-center justify-center gap-2 bg-slate-800 hover:bg-red-500/20 border border-slate-700 hover:border-red-500/40 text-gray-400 hover:text-red-400 text-sm font-semibold px-4 py-2.5 rounded-xl transition-all">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                  Withdraw
+                  {{ 'requests.actions.withdraw' | translate }}
                 </button>
               </div>
             }
@@ -579,33 +614,9 @@
 
           </div>
 
-          <p class="text-lg font-semibold text-white mb-1">
+          <p class="text-lg font-semibold text-white mb-1">{{ getEmptyTitle() }}</p>
 
-            @if (filteredRequests().length === 0) {
-
-              {{ 'requests.empty.noMatch' | translate }}
-
-            } @else {
-
-              {{ 'requests.noIncoming' | translate }}
-
-            }
-
-          </p>
-
-          <p class="text-sm text-gray-500">
-
-            @if (filteredRequests().length === 0) {
-
-              {{ 'requests.empty.tryAdjustFilters' | translate }}
-
-            } @else {
-
-              {{ 'requests.noIncomingSubtitle' | translate }}
-
-            }
-
-          </p>
+          <p class="text-sm text-gray-500">{{ getEmptySubtitle() }}</p>
 
         </div>
 
@@ -687,6 +698,17 @@
 
       @for (request of paginatedRequests(); track request.id) {
 
+        @if (shouldShowSectionHeader(request, $index)) {
+
+          <div class="col-span-full mt-2 flex items-center justify-between border-b border-slate-800 pb-2">
+
+            <h2 class="text-sm font-bold uppercase tracking-wide text-slate-300">{{ getSectionTitle(request) }}</h2>
+
+            <span class="text-xs font-semibold text-slate-500">{{ getSectionCount(request) }} {{ 'requests.filters.requests' | translate | lowercase }}</span>
+
+          </div>
+
+        }
         <article class="relative bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-2xl overflow-hidden hover:border-slate-600/60 hover:shadow-xl hover:shadow-black/30 transition-all duration-200 group">
 
 
@@ -1059,33 +1081,9 @@
 
           </div>
 
-          <p class="text-lg font-semibold text-white mb-1">
+          <p class="text-lg font-semibold text-white mb-1">{{ getEmptyTitle() }}</p>
 
-            @if (filteredRequests().length === 0) {
-
-              {{ 'requests.empty.noMatch' | translate }}
-
-            } @else {
-
-              {{ 'requests.noOutgoing' | translate }}
-
-            }
-
-          </p>
-
-          <p class="text-sm text-gray-500">
-
-            @if (filteredRequests().length === 0) {
-
-              {{ 'requests.empty.tryAdjustFilters' | translate }}
-
-            } @else {
-
-              {{ 'requests.noOutgoingSubtitle' | translate }}
-
-            }
-
-          </p>
+          <p class="text-sm text-gray-500">{{ getEmptySubtitle() }}</p>
 
         </div>
 

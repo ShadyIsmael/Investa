@@ -2,6 +2,7 @@ using Investa.Domain.Entities;
 using Investa.Infrastructure.Identity;
 using Investa.Infrastructure.Persistence;
 using Investa.Infrastructure.Seed;
+using Investa.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -35,6 +36,16 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddDevIdentityReseed(this IServiceCollection services)
     {
         services.AddScoped<DevIdentityReseedService>();
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the DEV-ONLY Opportunity seed service for data repair.
+    /// MUST ONLY BE USED IN DEVELOPMENT ENVIRONMENT.
+    /// </summary>
+    public static IServiceCollection AddDevOpportunitySeed(this IServiceCollection services)
+    {
+        services.AddScoped<OpportunitySeedService>();
         return services;
     }
 

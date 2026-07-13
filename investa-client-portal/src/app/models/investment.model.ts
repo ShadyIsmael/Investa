@@ -280,8 +280,12 @@ export interface Investment {
 
   // Founding-specific fields
   durationMonths?: number;
+  expectedDuration?: number;
+  expectedDurationMonths?: number;
   profitPercentage?: number;
   payoutFrequency?: string;
+  interestRate?: number;
+  repaymentFrequency?: string;
   
   // ==================== Equity Exit Strategy Fields ====================
   

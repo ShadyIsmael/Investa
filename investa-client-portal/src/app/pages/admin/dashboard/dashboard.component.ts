@@ -11,6 +11,7 @@ import { NotificationService } from '../../../services/notification.service';
 import { FileStoreService } from '../../../services/file-store.service';
 import { RoleContextService } from '../../../services/role-context.service';
 import { Opportunity, OpportunityService } from '../../../services/opportunity.service';
+import { WalletService } from '../../../services/wallet.service';
 import { OpportunityRequest, OpportunityRequestKind } from '../../../models/request.model';
 import { TIME_INTERVALS } from '../../../config/constants';
 import { get } from 'lodash-es';
@@ -107,6 +108,7 @@ type DashboardProject = Opportunity & Record<string, any>;
 })
 export class DashboardComponent {
   private opportunityService = inject(OpportunityService);
+  private walletService = inject(WalletService);
   private languageService = inject(LanguageService);
   private authService = inject(AuthService);
   private profileService = inject(ProfileService);
@@ -290,6 +292,7 @@ export class DashboardComponent {
   });
   founderProjectCount = computed(() => this.founderProjects().length);
   selectedFounderProject = signal<DashboardProject | null>(null);
+  publishingOpportunityId = signal<string | number | null>(null);
   selectedFounderProjectRequests = computed(() => {
     const project = this.selectedFounderProject();
     if (!project) return [] as OpportunityRequest[];
@@ -463,8 +466,8 @@ export class DashboardComponent {
 
   fundingProgress = computed(() => {
     const p = this.selectedFounderProject();
-    if (!p || (p.fundingTarget ?? 0) === 0) return 0;
-    return (this.getNativeFundedAmount(p) / (p.fundingTarget ?? 1)) * 100;
+    if (!p) return null;
+    return this.toNullableNumber((p as Record<string, any>)['fundingProgressPercentage'] ?? p.fundingProgressPercent);
   });
   
   // Mock data for founder dashboard
@@ -564,6 +567,52 @@ export class DashboardComponent {
 
   getRoomOpportunityId(project: DashboardProject): string | number | null {
     return project.opportunityId ?? project.id ?? null;
+  }
+
+  isDraftOpportunity(project: DashboardProject): boolean {
+    const status = String(project.status ?? '').trim().toLowerCase();
+    return status === '1' || status === 'draft';
+  }
+
+  async publishFounderOpportunity(project: DashboardProject, event?: Event): Promise<void> {
+    event?.stopPropagation();
+    if (!this.isDraftOpportunity(project) || this.publishingOpportunityId() !== null) return;
+
+    try {
+      this.publishingOpportunityId.set(project.id);
+      const quote = await this.walletService.getPaidActionQuote('PublishOpportunity');
+      if (!quote.hasSufficientCredit) {
+        this.notificationService.showToast({
+          title: this.t('paidActions.insufficientTitle', 'Insufficient CREDIT'),
+          message: this.t('paidActions.insufficientMessage', 'Required: {required} CREDIT. Current balance: {balance} CREDIT.')
+            .replace('{required}', this.formatCredits(quote.creditCost))
+            .replace('{balance}', this.formatCredits(quote.currentBalance)),
+          type: 'error'
+        });
+        return;
+      }
+
+      const confirmation = this.t('opportunityPublish.confirmation', '{action} will become publicly visible. Fixed platform fee: {cost} CREDIT. Current balance: {balance} CREDIT. Balance after publishing: {after} CREDIT.')
+        .replace('{action}', this.t('opportunityPublish.action', 'Publish Opportunity'))
+        .replace('{cost}', this.formatCredits(quote.creditCost))
+        .replace('{balance}', this.formatCredits(quote.currentBalance))
+        .replace('{after}', this.formatCredits(quote.balanceAfter));
+      if (!window.confirm(confirmation)) return;
+
+      const published = this.normalizeDashboardProject(await this.opportunityService.publishOpportunity(project.id) as DashboardProject);
+      this.allInvestments.update(items => items.map(item => String(item.id) === String(project.id) ? published : item));
+      if (String(this.selectedFounderProject()?.id) === String(project.id)) this.selectedFounderProject.set(published);
+      this.notificationService.showToast({ title: this.t('opportunityPublish.successTitle', 'Published'), message: this.t('opportunityPublish.successMessage', 'Opportunity published successfully'), type: 'success' });
+      await Promise.all([this.loadProjects(), this.userService.refreshUser().catch(() => {})]);
+    } catch (error: any) {
+      this.notificationService.showToast({ title: this.t('opportunityPublish.failureTitle', 'Publishing failed'), message: error?.error?.message || error?.message || this.t('opportunityPublish.failureMessage', 'The opportunity remains a Draft. Please try again.'), type: 'error' });
+    } finally {
+      this.publishingOpportunityId.set(null);
+    }
+  }
+
+  private formatCredits(value: number): string {
+    return new Intl.NumberFormat(this.languageService.language() === 'ar' ? 'ar-EG' : 'en-US', { maximumFractionDigits: 2 }).format(Number(value ?? 0));
   }
 
   private normalizeDashboardProject(project: DashboardProject): DashboardProject {
@@ -701,18 +750,15 @@ getProjectAvatar(project: DashboardProject): string {
     return '';
   }
 
-  getNativeFundedAmount(project: DashboardProject): number {
+  getNativeFundedAmount(project: DashboardProject): number | null {
     const source = project as Record<string, any>;
-    const explicit = this.toSafeNumber(source['alreadyFundedAmount'] ?? source['fundedAmount'] ?? source['amountRaised']);
-    if (explicit > 0) return explicit;
+    return this.toNullableNumber(source['fundedAmount']);
+  }
 
-    const target = this.toSafeNumber(project.fundingTarget);
-    const progress = this.toSafeNumber(project.fundingProgressPercent);
-    if (target > 0 && progress > 0) {
-      return (target * progress) / 100;
-    }
-
-    return 0;
+  private toNullableNumber(value: unknown): number | null {
+    if (value === null || value === undefined || value === '') return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
   }
 
   getNameInitial(name?: string): string {
@@ -823,7 +869,7 @@ getProjectAvatar(project: DashboardProject): string {
     const lang = this.languageService.language();
     for (const investment of investments) {
       const value = this.getNativeFundedAmount(investment);
-      if (typeof value !== 'number' || value <= 0) continue;
+      if (value === null || value <= 0) continue;
 
       const categoryName = lang === 'ar'
         ? (investment.businessCategoryNameAr || investment.businessCategoryName || this.t('dashboard.uncategorized', 'Uncategorized'))

@@ -341,11 +341,50 @@
     },
     "typeFilter": "نوع الاستثمار",
     "type": {
-      "founding": "شريك مؤسس",
-      "equity": "أسهم"
+      "founding": "مشاركة الأرباح",
+      "equity": "أسهم",
+      "loan": "قرض",
+      "revenueSharing": "مشاركة الأرباح"
     },
     "funding": "التمويل",
     "fundingProgress": "تقدم التمويل",
+    "funded": "الممول",
+    "target": "المستهدف",
+    "remaining": "المتبقي",
+    "approvedParticipants": "المشاركون المعتمدون",
+    "yourApprovedContribution": "مساهمتك المعتمدة",
+    "remainingToFund": "المتبقي للتمويل",
+    "participants": "المشاركون",
+    "projectRoom": "غرفة المشروع",
+    "contract": "عرض العقد",
+    "loan": {
+      "interestRate": "معدل العائد",
+      "duration": "المدة",
+      "expectedTotalRepayment": "إجمالي السداد المتوقع"
+    },
+    "equity": {
+      "approvedShares": "الأسهم المعتمدة",
+      "ownership": "نسبة الملكية",
+      "remainingShares": "الأسهم المتبقية"
+    },
+    "profitSharing": {
+      "profitShare": "نسبة مشاركة الأرباح",
+      "payoutFrequency": "دورية التوزيع",
+      "expectedTotalPayout": "إجمالي العائد المتوقع"
+    },
+    "status": {
+      "draft": "مسودة",
+      "active": "نشط",
+      "reviewingParticipants": "قيد مراجعة المشاركين",
+      "inProgress": "قيد التنفيذ",
+      "fullyFunded": "ممول بالكامل",
+      "paused": "متوقف",
+      "completed": "مكتمل",
+      "archived": "مؤرشف",
+      "closed": "مغلق"
+    },
+    "roi": "العائد على الاستثمار",
+    "toInvest": "للاستثمار",
     "min": "الحد الأدنى",
     "to": "إلى",
     "max": "الحد الأقصى",
@@ -399,6 +438,26 @@
       "warning": "تنبيه مهم",
       "warningMessage": "سيتم خصم الرصيد من حسابك وإرسال الطلب إلى المؤسس. لا يمكن التراجع عن هذا الإجراء.",
       "confirmButton": "تأكيد ومتابعة"
+    },
+    "myParticipation": {
+      "approvedContribution": "مساهمتك المعتمدة",
+      "remainingToFund": "المتبقي للتمويل",
+      "approvedParticipants": "المشاركون المعتمدون",
+      "loan": {
+        "interestRate": "معدل العائد",
+        "duration": "المدة",
+        "totalRepayment": "إجمالي السداد المتوقع"
+      },
+      "equity": {
+        "shares": "الأسهم المعتمدة",
+        "ownership": "نسبة الملكية",
+        "remaining": "الأسهم المتبقية"
+      },
+      "profitSharing": {
+        "share": "نسبة مشاركة الأرباح",
+        "payoutFrequency": "دورية التوزيع",
+        "totalPayout": "إجمالي العائد المتوقع"
+      }
     }
   },
   "submitInvestment": {
@@ -481,6 +540,13 @@
     "valuationCap": "سقف التقييم",
     "fundingProgress": "تقدم التمويل",
     "amountRaised": "المبلغ المجمع",
+    "remainingFunding": "التمويل المتبقي",
+    "approvedParticipants": "المشاركون المعتمدون",
+    "sharesOffered": "الأسهم المعروضة",
+    "sharesSold": "الأسهم المباعة",
+    "sharesRemaining": "الأسهم المتبقية",
+    "equityAllocated": "الملكية المخصصة",
+    "equityRemaining": "الملكية المتبقية",
     "target": "الهدف",
     "funded": "ممول",
     "yourInvestment": "مشاركتك",
@@ -1092,7 +1158,10 @@
     "types": {
       "participationRequest": "طلب مشاركة",
       "conversationRequest": "طلب محادثة",
-      "participation": "مشاركة"
+      "participation": "مشاركة",
+      "loan": "قرض",
+      "profitSharing": "مشاركة أرباح",
+      "equity": "أسهم"
     },
     "status": {
       "waitingFounderResponse": "بانتظار رد المؤسس",
@@ -1118,7 +1187,10 @@
     },
     "empty": {
       "noMatch": "لا توجد طلبات تطابق الفلاتر المحددة.",
-      "tryAdjustFilters": "جرّب تعديل معايير الفلاتر."
+      "tryAdjustFilters": "جرّب تعديل معايير الفلاتر.",
+      "noIncomingParticipation": "لا توجد طلبات مشاركة واردة",
+      "noOutgoingParticipation": "لم يتم إرسال أي طلبات مشاركة",
+      "participationHelper": "طلبات المشاركة معروضة بشكل منفصل عن طلبات المحادثة."
     },
     "filters": {
       "status": "الحالة",
@@ -1144,7 +1216,21 @@
       "declined": "تم رفض الطلب",
       "declinedMessage": "تم رفض طلب {projectName}.",
       "withdrawn": "تم سحب الطلب",
-      "withdrawnMessage": "تم سحب طلب {projectName}."
+      "withdrawnMessage": "تم سحب طلب {projectName}.",
+      "chatAccepted": "تم قبول المحادثة",
+      "participationApproved": "تمت الموافقة على المشاركة",
+      "chatDeclined": "تم رفض المحادثة",
+      "participationRejected": "تم رفض المشاركة"
+    },
+    "sections": {
+      "conversationRequests": "طلبات المحادثة",
+      "participationRequests": "طلبات المشاركة",
+      "conversationHelper": "طلبات المحادثة منفصلة عن موافقات المشاركة.",
+      "participationHelper": "طلبات المشاركة المباشرة تظهر هنا حتى بدون محادثة."
+    },
+    "fallbacks": {
+      "opportunity": "فرصة",
+      "participant": "مشارك"
     }
   },
   "common": {
@@ -1182,8 +1268,10 @@
       "second": "قبل {count} ثانية",
       "seconds": "قبل {count} ثوانٍ"
     },
-    "close": "إغلاق",
-    "unavailable": "غير متاح"
+    "close": "?????",
+    "unavailable": "غير متاح",
+    "yes": "???",
+    "no": "??"
   },
   "countryPlaceholder": "مثال: الولايات المتحدة",
   "businessPlan": "ورقة عمل أو خطة عمل",
@@ -1271,6 +1359,7 @@
       "profitShare": "نسبة الربح",
       "durationTerm": "المدة / الفترة",
       "expectedProfit": "الأرباح المتوقعة",
+      "illustrativeExpectedProfit": "ربح متوقع توضيحي",
       "expectedPayout": "إجمالي العائد المتوقع",
       "opportunityPayout": "إجمالي عائد الفرصة",
       "contractPeriod": "فترة العقد",
@@ -1292,6 +1381,359 @@
     "errors": {
       "loadFailed": "فشل تحميل نموذج المشاركة.",
       "submitFailed": "فشل إرسال طلب المشاركة."
+    }
+  },
+  "reports": {
+    "title": "????????",
+    "sendReport": "????? ????",
+    "reason": "??? ??????",
+    "description": "??? ???????",
+    "descriptionPlaceholder": "???? ?????? ????? ???? ???????? ?? ??? ??????.",
+    "cancel": "?????",
+    "submit": "????? ????",
+    "submitting": "???? ???????...",
+    "success": "?? ????? ?????? ????? ????????.",
+    "actions": {
+      "report": "????",
+      "reportUser": "??????? ?? ????????",
+      "reportOpportunity": "??????? ?? ??????",
+      "reportProject": "??????? ?? ???????",
+      "reportFounder": "??????? ?? ??????",
+      "reportInvestor": "??????? ?? ????????"
+    },
+    "targets": {
+      "opportunity": "Opportunity",
+      "user": "??????",
+      "conversation": "??????",
+      "participant": "?????"
+    },
+    "reasons": {
+      "SuspiciousOpportunity": "Opportunity ????? ????",
+      "MisleadingInformation": "??????? ?????",
+      "Spam": "????? ?????",
+      "Abuse": "?????",
+      "FraudConcern": "?????? ??????",
+      "InappropriateContent": "????? ??? ?????",
+      "Other": "??? ???"
+    },
+    "errors": {
+      "duplicatePending": "???? ???? ??? ???????? ??? ??? ?????? ??????.",
+      "invalidTarget": "?????? ?????? ??????? ??? ??? ????.",
+      "selfReport": "?? ????? ????? ???? ?? ????.",
+      "generic": "???? ????? ??????. ???? ??? ????.",
+      "counterpartyUnavailable": "???? ????? ????? ????? ?????. ????? ???????? ??????."
+    }
+  },
+  "opportunityPublish": {
+    "action": "نشر الفرصة",
+    "publishing": "جارٍ النشر...",
+    "confirmation": "بعد اختيار {action}، الفرصة هتظهر للناس على المنصة. رسوم خدمة المنصة الثابتة: {cost} CREDIT. رصيدك الحالي: {balance} CREDIT. الرصيد بعد النشر: {after} CREDIT.",
+    "successTitle": "تم نشر الفرصة",
+    "successMessage": "تم نشر الفرصة بنجاح",
+    "failureTitle": "تعذر نشر الفرصة",
+    "failureMessage": "الفرصة ما زالت مسودة. راجع البيانات المطلوبة وحاول مرة تانية."
+  },
+  "opportunityEditor": {
+    "savedTitle": "تم حفظ المسودة",
+    "savedMessage": "تم حفظ مسودة الفرصة.",
+    "saveFailureTitle": "تعذر الحفظ",
+    "saveFailureMessage": "تعذر حفظ الفرصة. حاول مرة تانية."
+  },
+  "contracts": {
+    "title": "?????? ???????????",
+    "investmentAgreement": "??????? ???????",
+    "room": {
+      "founderListHelper": "??? ?????? ???? ?? ?????? ?????? ??? ???? ??????.",
+      "investorListHelper": "??? ???????? ???? ??? ?????? ???? ???? ????? ???? ????."
+    },
+    "actions": {
+      "refresh": "?????",
+      "preview": "?????? ?????",
+      "downloadPdf": "????? PDF",
+      "openVersion": "??? ???????",
+      "print": "?????"
+    },
+    "fields": {
+      "investmentModel": "????? ?????????",
+      "contractNumber": "??? ?????",
+      "currentVersion": "??????? ??????",
+      "status": "??????",
+      "latestAgreementDate": "????? ??? ???????",
+      "versionCount": "??? ?????????",
+      "founder": "??????",
+      "investor": "????????",
+      "opportunity": "??????",
+      "effectiveDate": "????? ???????",
+      "sourceParticipation": "???? ??? ????????",
+      "acceptedOffer": "???? ????? ???????",
+      "pdfStatus": "???? PDF",
+      "changesSummary": "???? ?????????"
+    },
+    "sections": {
+      "agreedTerms": "???? ?????? ?????? ?????",
+      "versionHistory": "????????? ???????"
+    },
+    "badges": {
+      "current": "??????? ??????",
+      "previous": "????? ????"
+    },
+    "empty": {
+      "title": "?? ???? ???? ???",
+      "helper": "????? ????? ???????? ??? ???????? ??? ??? ????????.",
+      "selectTitle": "???? ?????",
+      "selectHelper": "???? ????? ?? ??????? ???? ???????? ???? ?????????.",
+      "noTerms": "?? ???? ???? ???? ?????? ?????? ?????.",
+      "noChangesSummary": "?? ???? ???? ??????? ???? ???? ???????."
+    },
+    "preview": {
+      "loading": "???? ????? ?????? ?????..."
+    },
+    "pdf": {
+      "preparing": "???? ????? ???? PDF ???????..."
+    },
+    "status": {
+      "0": "???",
+      "1": "?????",
+      "Active": "???",
+      "Terminated": "?????",
+      "unknown": "??? ?????"
+    },
+    "versionTypes": {
+      "0": "??????? ?????",
+      "1": "??????? ?????",
+      "2": "???? ??? ??????",
+      "3": "????? ????",
+      "4": "????? ????? ???",
+      "5": "????? ?????? ?????",
+      "6": "?????",
+      "7": "???? ????",
+      "8": "?????",
+      "InitialAgreement": "??????? ?????",
+      "AdditionalInvestment": "??????? ?????",
+      "AdditionalSharePurchase": "???? ??? ??????",
+      "TermsAmendment": "????? ????",
+      "LoanRestructuring": "????? ????? ???",
+      "ProfitSharingAmendment": "????? ?????? ?????",
+      "Extension": "?????",
+      "PartialExit": "???? ????",
+      "Termination": "?????",
+      "unknown": "??? ?????"
+    },
+    "versionStatus": {
+      "0": "???",
+      "1": "?? ????????",
+      "2": "?????",
+      "3": "????",
+      "Active": "???",
+      "Superseded": "?? ????????",
+      "Terminated": "?????",
+      "Cancelled": "????",
+      "unknown": "??? ?????"
+    },
+    "pdfStatus": {
+      "0": "?? ??? ??????",
+      "1": "???? ???????",
+      "2": "????",
+      "3": "???",
+      "NotGenerated": "?? ??? ??????",
+      "Generating": "???? ???????",
+      "Ready": "????",
+      "Failed": "???",
+      "unknown": "??? ?????"
+    },
+    "errors": {
+      "accessDenied": "??? ???? ?????? ???? ??? ?????.",
+      "notFound": "?? ??? ?????? ??? ?????.",
+      "pdfGenerating": "???? PDF ??????? ?? ???? ??? ???????. ????? ???????? ??? ????.",
+      "generic": "???? ????? ?????? ?????. ????? ???????? ??? ????."
+    }
+  },
+  "opportunityRoom": {
+    "title": "غرفة المشروع",
+    "loading": "جارٍ تحميل غرفة المشروع...",
+    "role": {
+      "founder": "مؤسس",
+      "approvedInvestor": "مستثمر معتمد",
+      "investor": "مستثمر"
+    },
+    "badges": {
+      "investorProjectRoom": "غرفة المشروع للمستثمر",
+      "public": "عام",
+      "private": "خاص",
+      "room": "الغرفة"
+    },
+    "founderSummary": "ملخص المؤسس",
+    "backToOpportunities": "العودة إلى الفرص",
+    "founderWorkspace": {
+      "title": "مساحة عمل المؤسس",
+      "approvedParticipants": "المشاركون المعتمدون",
+      "editProject": "تعديل المشروع",
+      "addUpdate": "إضافة تحديث",
+      "addDocument": "إضافة مستند",
+      "addMilestone": "إضافة مرحلة رئيسية",
+      "editAvailable": "تحرير المشروع متاح إلى أن ينضم أول مشارك.",
+      "lockedMessage": "بيانات المشروع الأساسية مقفولة بعد انضمام أول مشارك. استمر في التحديثات من خلال المراحل والتحديثات والمستندات."
+    },
+    "stats": {
+      "participation": "المشاركة",
+      "permissions": "الملفات الخاصة: {privateFiles} · التنزيلات: {downloads}",
+      "termsSnapshot": "ملخص الشروط الخاصة بك",
+      "investmentModel": "نموذج {model}",
+      "minimumParticipation": "الحد الأدنى للمشاركة",
+      "latestChange": "آخر تغيير"
+    },
+    "funding": {
+      "progress": "تقدم التمويل",
+      "target": "المستهدف التمويلي",
+      "funded": "المبلغ الممول",
+      "remaining": "التمويل المتبقي",
+      "participants": "المشاركون المعتمدون"
+    },
+    "milestones": {
+      "label": "مرحلة رئيسية",
+      "latest": "أحدث مرحلة رئيسية",
+      "empty": "لم تتم إضافة أي مراحل رئيسية حتى الآن.",
+      "untitled": "مرحلة رئيسية بدون عنوان",
+      "noDescription": "لا توجد تفاصيل لهذه المرحلة."
+    },
+    "recentActivity": {
+      "title": "ما الذي تغير مؤخراً",
+      "subtitle": "آخر نشاط في الغرفة",
+      "viewAll": "عرض الكل",
+      "showLess": "إظهار أقل",
+      "empty": "لا توجد تغييرات حديثة بعد."
+    },
+    "nextSteps": {
+      "title": "ما يجب فعله بعد ذلك",
+      "empty": "لا توجد إرشادات معلقة الآن."
+    },
+    "publicNote": {
+      "title": "آخر ملاحظة عامة"
+    },
+    "tabs": {
+      "overview": "نظرة عامة",
+      "timeline": "الجدول الزمني",
+      "documents": "المستندات",
+      "media": "الوسائط",
+      "updates": "التحديثات"
+    },
+    "overview": {
+      "title": "نظرة عامة على المشروع",
+      "useOfFunds": "استخدام الأموال",
+      "expectedReturn": "العائد المتوقع",
+      "publicTerms": "شروط الاستثمار العامة"
+    },
+    "participationSummary": {
+      "title": "ملخص المشاركة",
+      "roomRole": "دور الغرفة",
+      "roomAccess": "الوصول إلى الغرفة",
+      "viewPrivateFiles": "عرض الملفات الخاصة",
+      "downloadFiles": "تنزيل الملفات",
+      "activeAccess": "وصول نشط للغرفة",
+      "limitedAccess": "وصول محدود للغرفة"
+    },
+    "timeline": {
+      "title": "الجدول الزمني للمراحل",
+      "subtitle": "المراحل الرئيسية فقط. التحديثات التشغيلية موجودة في تبويب التحديثات."
+    },
+    "updates": {
+      "title": "تحديثات المؤسس",
+      "subtitle": "ملاحظات التقدم والإعلانات والتحديثات التشغيلية.",
+      "empty": "لا توجد تحديثات بعد."
+    },
+    "documents": {
+      "title": "المستندات",
+      "empty": "لم يتم رفع مستندات بعد.",
+      "preview": "معاينة",
+      "download": "تنزيل",
+      "general": "عام"
+    },
+    "media": {
+      "title": "الوسائط",
+      "empty": "لا توجد وسائط متاحة بعد.",
+      "preview": "معاينة",
+      "download": "تنزيل",
+      "video": "فيديو"
+    },
+    "modals": {
+      "addUpdate": {
+        "title": "إضافة تحديث",
+        "subtitle": "تواصل تشغيلي للمشاركين.",
+        "titlePlaceholder": "عنوان التحديث",
+        "contentPlaceholder": "محتوى التحديث",
+        "publicLabel": "تحديث عام",
+        "cancel": "إلغاء",
+        "saving": "جاري الحفظ...",
+        "submit": "إضافة تحديث"
+      },
+      "addMilestone": {
+        "title": "إضافة مرحلة رئيسية",
+        "subtitle": "تطور استراتيجي للمشروع. ينشئ حدثاً في الجدول الزمني.",
+        "titlePlaceholder": "عنوان المرحلة",
+        "descriptionPlaceholder": "وصف المرحلة",
+        "publicLabel": "مرحلة عامة",
+        "cancel": "إلغاء",
+        "saving": "جاري الحفظ...",
+        "submit": "إضافة مرحلة رئيسية"
+      },
+      "addDocument": {
+        "title": "إضافة مستند",
+        "subtitle": "يتم الرفع عبر Investa FileStore، ثم يتم إرفاق المستند بالفرصة.",
+        "titlePlaceholder": "عنوان المستند (اختياري)",
+        "visibilityPrivate": "خاص",
+        "visibilityPublic": "عام",
+        "purposePrivateDocument": "مستند خاص",
+        "purposePublicDocument": "مستند عام",
+        "purposeFinancialReport": "تقرير مالي",
+        "purposeContract": "عقد",
+        "purposeLegal": "قانوني",
+        "purposeInternalFile": "ملف داخلي",
+        "purposeGeneral": "عام",
+        "cancel": "إلغاء",
+        "uploading": "جاري الرفع...",
+        "submit": "إضافة مستند"
+      }
+    },
+    "errors": {
+      "retry": "إعادة المحاولة",
+      "notFound": "غرفة المشروع غير موجودة",
+      "notFoundMessage": "لم نتمكن من العثور على غرفة مشروع لهذه الفرصة.",
+      "approvalRequired": "الموافقة مطلوبة",
+      "approvalRequiredMessage": "غرفة المشروع متاحة بعد الموافقة النهائية على المشاركة.",
+      "genericTitle": "تعذر تحميل غرفة المشروع",
+      "genericMessage": "حاول مرة أخرى."
+    },
+    "fallback": {
+      "noData": "-",
+      "file": "ملف",
+      "projectUpdate": "تحديث مشروع",
+      "update": "تحديث",
+      "milestoneUpdate": "تحديث مرحلة",
+      "founderUpdate": "تحديث المؤسس",
+      "publicDocument": "مستند عام",
+      "privateDocument": "مستند خاص",
+      "publicMedia": "وسائط عامة",
+      "privateMedia": "وسائط خاصة",
+      "allowed": "مسموح",
+      "notAllowed": "غير مسموح"
+    },
+    "validation": {
+      "updateTitleRequired": "عنوان التحديث مطلوب.",
+      "milestoneTitleRequired": "عنوان المرحلة الرئيسية مطلوب.",
+      "documentFileRequired": "اختر ملف المستند أولاً."
+    },
+    "toasts": {
+      "updateAdded": "تمت إضافة التحديث.",
+      "milestoneAdded": "تمت إضافة المرحلة الرئيسية.",
+      "documentAdded": "تمت إضافة المستند.",
+      "saveFailed": "فشل حفظ نشاط المشروع.",
+      "documentAddFailed": "فشل إضافة المستند."
+    },
+    "investmentTerms": {
+      "fallback": "شروط الاستثمار متاحة من ملخص المؤسس ومستندات الغرفة."
+    },
+    "publicUpdate": {
+      "empty": "لا يوجد ملخص تحديث عام بعد."
     }
   }
 }

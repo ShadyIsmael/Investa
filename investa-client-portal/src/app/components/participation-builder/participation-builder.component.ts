@@ -365,17 +365,12 @@ export class ParticipationBuilderComponent implements OnChanges {
     return null;
   }
 
-  private submitPayload(): { requestType: number; numberOfShares?: number; requestedAmount?: number; proposedSharePercentage?: number } {
+  private submitPayload(): { requestType: number; numberOfShares?: number; requestedAmount?: number } {
     if (this.isLoan() || this.isProfitSharing()) {
-      const payload: { requestType: number; requestedAmount: number; proposedSharePercentage?: number } = {
+      return {
         requestType: 2,
         requestedAmount: Number(this.contributionAmount())
       };
-      const profitSharePercentage = this.profitSharePercentage();
-      if (this.isProfitSharing() && profitSharePercentage !== null) {
-        payload.proposedSharePercentage = profitSharePercentage;
-      }
-      return payload;
     }
     return {
       requestType: 2,

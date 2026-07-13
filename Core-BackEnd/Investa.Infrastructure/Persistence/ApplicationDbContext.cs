@@ -248,6 +248,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
     public DbSet<OpportunityDocument> OpportunityDocuments { get; set; }
     public DbSet<OpportunityEvent> OpportunityEvents { get; set; }
     public DbSet<OpportunityJoinRequest> OpportunityJoinRequests { get; set; }
+    public DbSet<InvestmentContract> InvestmentContracts { get; set; }
+    public DbSet<InvestmentContractVersion> InvestmentContractVersions { get; set; }
+    public DbSet<ContractEvent> ContractEvents { get; set; }
     public DbSet<OpportunityCategory> OpportunityCategories { get; set; }
     public DbSet<OpportunityTag> OpportunityTags { get; set; }
     public DbSet<OpportunityTagAssignment> OpportunityTagAssignments { get; set; }
@@ -266,6 +269,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
     // All reputation changes are stored in ReputationTransaction
 
     public DbSet<ReputationTransaction> ReputationTransactions { get; set; }
+
+    public DbSet<Report> Reports { get; set; }
 
 
     // Investment requests between investors and founders
@@ -982,6 +987,31 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
                     .OnDelete(DeleteBehavior.SetNull);
             });
 
+            modelBuilder.Entity<Report>(r =>
+            {
+                r.HasKey(x => x.Id);
+                r.Property(x => x.TargetType).HasConversion<string>().HasMaxLength(40).IsRequired();
+                r.Property(x => x.TargetId).HasMaxLength(100).IsRequired();
+                r.Property(x => x.ReasonCode).HasConversion<string>().HasMaxLength(60).IsRequired();
+                r.Property(x => x.Description).HasMaxLength(2000);
+                r.Property(x => x.Status).HasConversion<string>().HasMaxLength(40).HasDefaultValue(ReportStatus.Pending).IsRequired();
+                r.Property(x => x.ResolutionNote).HasMaxLength(2000);
+                r.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+                r.HasOne(x => x.ReporterUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.ReporterUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                r.HasOne(x => x.ReviewedByUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.ReviewedByUserId)
+                    .OnDelete(DeleteBehavior.SetNull);
+                r.HasIndex(x => new { x.ReporterUserId, x.TargetType, x.TargetId, x.Status });
+                r.HasIndex(x => new { x.Status, x.CreatedAt });
+                r.HasIndex(x => new { x.ReporterUserId, x.TargetType, x.TargetId })
+                    .IsUnique()
+                    .HasFilter("[Status] = 'Pending'");
+            });
+
             // CreditConfiguration mapping
 
             modelBuilder.Entity<CreditConfiguration>(cc =>
@@ -1164,11 +1194,18 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
             o.Property(x => x.MinimumInvestmentAmount).HasPrecision(18, 2);
             o.Property(x => x.MaximumInvestmentAmount).HasPrecision(18, 2);
             o.Property(x => x.EquityOfferedPercentage).HasPrecision(5, 2);
+            o.Property(x => x.Currency).HasMaxLength(10);
+            o.Property(x => x.SharePrice).HasPrecision(18, 2);
+            o.Property(x => x.ProfitSharePercentage).HasPrecision(5, 2);
+            o.Property(x => x.ProfitSharingPayoutFrequency).HasMaxLength(50);
             o.Property(x => x.InvestmentModel).HasConversion<string>().HasMaxLength(60).IsRequired();
             o.Property(x => x.ProjectStage).HasConversion<string>().HasMaxLength(40).IsRequired();
             o.Property(x => x.Status).HasConversion<string>().HasMaxLength(40).IsRequired();
             o.Property(x => x.CoverImageUrl).HasMaxLength(1000);
             o.Property(x => x.IsLockedForEditing).HasDefaultValue(false);
+            o.Property(x => x.InterestRate).HasPrecision(5, 2);
+            o.Property(x => x.RepaymentFrequency).HasMaxLength(50);
+            o.Property(x => x.FinalRepaymentDate);
             o.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             o.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             o.HasIndex(x => x.FounderId);
@@ -1240,6 +1277,61 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
              .HasForeignKey(x => x.ReviewedByFounderId)
              .OnDelete(DeleteBehavior.Restrict)
              .IsRequired(false);
+        });
+
+        modelBuilder.Entity<InvestmentContract>(c =>
+        {
+            c.HasKey(x => x.Id);
+            c.Property(x => x.ContractNumber).HasMaxLength(80).IsRequired();
+            c.Property(x => x.InvestmentModel).HasConversion<string>().HasMaxLength(50).IsRequired();
+            c.Property(x => x.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
+            c.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            c.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            c.HasIndex(x => x.ContractNumber).IsUnique();
+            c.HasIndex(x => new { x.OpportunityId, x.FounderUserId, x.InvestorUserId, x.InvestmentModel }).IsUnique();
+            c.HasOne(x => x.Opportunity).WithMany().HasForeignKey(x => x.OpportunityId).OnDelete(DeleteBehavior.Restrict);
+            c.HasOne(x => x.FounderUser).WithMany().HasForeignKey(x => x.FounderUserId).OnDelete(DeleteBehavior.Restrict);
+            c.HasOne(x => x.InvestorUser).WithMany().HasForeignKey(x => x.InvestorUserId).OnDelete(DeleteBehavior.Restrict);
+            c.HasMany(x => x.Versions).WithOne(x => x.Contract).HasForeignKey(x => x.ContractId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<InvestmentContractVersion>(v =>
+        {
+            v.HasKey(x => x.Id);
+            v.Property(x => x.VersionType).HasConversion<string>().HasMaxLength(50).IsRequired();
+            v.Property(x => x.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
+            v.Property(x => x.TermsSnapshotJson).HasColumnType("nvarchar(max)").IsRequired();
+            v.Property(x => x.PreviousTermsSnapshotJson).HasColumnType("nvarchar(max)");
+            v.Property(x => x.ChangesSnapshotJson).HasColumnType("nvarchar(max)");
+            v.Property(x => x.DocumentUrl).HasMaxLength(1000);
+            v.Property(x => x.DocumentHash).HasMaxLength(64).IsRequired();
+            v.Property(x => x.DocumentContent).HasColumnType("nvarchar(max)").IsRequired();
+            v.Property(x => x.PdfDocumentUrl).HasMaxLength(1000);
+            v.Property(x => x.PdfDocumentHash).HasMaxLength(64);
+            v.Property(x => x.PdfGenerationStatus).HasConversion<string>().HasMaxLength(30).HasDefaultValue(PdfGenerationStatus.NotGenerated).IsRequired();
+            v.Property(x => x.PdfGenerationError).HasMaxLength(1000);
+            v.Property(x => x.PdfMimeType).HasMaxLength(100).HasDefaultValue("application/pdf").IsRequired();
+            v.Property(x => x.PdfRendererVersion).HasMaxLength(50).HasDefaultValue("playwright-chromium-v1").IsRequired();
+            v.Property(x => x.RowVersion).IsRowVersion();
+            v.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            v.HasIndex(x => new { x.ContractId, x.VersionNumber }).IsUnique();
+            v.HasIndex(x => x.SourceParticipationRequestId).IsUnique();
+            v.HasIndex(x => x.ContractId).IsUnique().HasFilter("[Status] = 'Active'");
+            v.HasOne(x => x.PreviousVersion).WithMany().HasForeignKey(x => x.PreviousVersionId).OnDelete(DeleteBehavior.Restrict);
+            v.HasOne(x => x.SourceParticipationRequest).WithMany().HasForeignKey(x => x.SourceParticipationRequestId).OnDelete(DeleteBehavior.Restrict);
+            v.HasOne(x => x.SourceNegotiationOffer).WithMany().HasForeignKey(x => x.SourceNegotiationOfferId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ContractEvent>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.EventType).HasConversion<string>().HasMaxLength(30).IsRequired();
+            e.Property(x => x.Description).HasMaxLength(500).IsRequired();
+            e.Property(x => x.MetadataJson).HasColumnType("nvarchar(max)");
+            e.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.HasIndex(x => new { x.ContractVersionId, x.CreatedAt });
+            e.HasOne(x => x.ContractVersion).WithMany(x => x.Events).HasForeignKey(x => x.ContractVersionId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.PerformedByUser).WithMany().HasForeignKey(x => x.PerformedByUserId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<OpportunityCategory>(c =>

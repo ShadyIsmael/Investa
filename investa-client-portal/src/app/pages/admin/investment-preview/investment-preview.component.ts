@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, computed, inject, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, computed, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -8,8 +8,9 @@ import { LanguageService } from '../../../services/language.service';
 import { RequestsService } from '../../../services/requests.service';
 import { UserService } from '../../../services/user.service';
 import { FileStoreService } from '../../../services/file-store.service';
-import { Opportunity, OpportunityLookup, OpportunityMedia, OpportunityDocument, OpportunityEvent, OpportunityService, OpportunityViewerState } from '../../../services/opportunity.service';
+import { Opportunity, OpportunityLookup, OpportunityMedia, OpportunityDocument, OpportunityEvent, OpportunityRoom, OpportunityService, OpportunityViewerState } from '../../../services/opportunity.service';
 import { PaidActionCode, PaidActionQuote, WalletService } from '../../../services/wallet.service';
+import { ReportReasonCode, ReportService, ReportTargetType } from '../../../services/report.service';
 import { OpportunityRequestKind } from '../../../models/request.model';
 import { ParticipationBuilderComponent } from '../../../components/participation-builder/participation-builder.component';
 import { get } from 'lodash-es';
@@ -80,6 +81,7 @@ export class InvestmentPreviewComponent {
   private fileStoreService = inject(FileStoreService);
   private opportunityService = inject(OpportunityService);
   private walletService = inject(WalletService);
+  private reportService = inject(ReportService);
 
   protected readonly InvestmentType = InvestmentType;
 
@@ -141,6 +143,48 @@ export class InvestmentPreviewComponent {
     this.participationBuilderOpen.set(false);
   }
 
+  openOpportunityReport(opportunity: Opportunity): void {
+    const id = this.getPublicOpportunityId(opportunity);
+    if (!id) return;
+    this.openReport('Opportunity', id, opportunity.title || this.t('reports.targets.opportunity'));
+  }
+
+  closeReportModal(): void {
+    if (this.reportSubmitting()) return;
+    this.reportModalOpen.set(false);
+    this.reportError.set(null);
+    this.reportSuccess.set(false);
+  }
+
+  setReportReason(reason: string): void {
+    this.reportReason.set(reason as ReportReasonCode);
+  }
+
+  setReportDescription(description: string): void {
+    this.reportDescription.set(description);
+  }
+
+  async submitReport(): Promise<void> {
+    const target = this.reportTarget();
+    if (!target || this.reportSubmitting()) return;
+
+    try {
+      this.reportSubmitting.set(true);
+      this.reportError.set(null);
+      await this.reportService.createReport({
+        targetType: target.type,
+        targetId: target.id,
+        reasonCode: this.reportReason(),
+        description: this.reportDescription().trim() || null
+      });
+      this.reportSuccess.set(true);
+    } catch (error: any) {
+      this.reportError.set(this.reportErrorMessage(error));
+    } finally {
+      this.reportSubmitting.set(false);
+    }
+  }
+
   async onParticipationSubmitted(): Promise<void> {
     this.participationBuilderOpen.set(false);
     const opportunityId = this.getPublicOpportunityId(this.publicOpportunity());
@@ -177,6 +221,22 @@ export class InvestmentPreviewComponent {
   engagementConfirmationOpen = signal(false);
   engagementProcessing = signal(false);
   participationBuilderOpen = signal(false);
+  reportModalOpen = signal(false);
+  reportSubmitting = signal(false);
+  reportSuccess = signal(false);
+  reportError = signal<string | null>(null);
+  reportTarget = signal<{ type: ReportTargetType; id: string | number; title: string } | null>(null);
+  reportReason = signal<ReportReasonCode>('SuspiciousOpportunity');
+  reportDescription = signal('');
+  reportReasons: ReportReasonCode[] = [
+    'SuspiciousOpportunity',
+    'MisleadingInformation',
+    'Spam',
+    'Abuse',
+    'FraudConcern',
+    'InappropriateContent',
+    'Other'
+  ];
 
   // Contact Founder flow
   contactFounderConfirmationOpen = signal(false);
@@ -206,6 +266,9 @@ export class InvestmentPreviewComponent {
 
   constructor() {
     this.loadInvestment();
+    effect(() => {
+      if (this.requestsService.participationRevision() > 0) void this.loadInvestment();
+    });
   }
 
   /**
@@ -250,8 +313,13 @@ export class InvestmentPreviewComponent {
         opportunity = await this.opportunityService.getPublicOpportunity(opportunityId);
       }
 
+      if (viewerState?.isFounder || viewerState?.canOpenProjectRoom || viewerState?.projectRoomUnlocked) {
+        const room = await this.opportunityService.getOpportunityRoom(opportunityId);
+        opportunity = this.mergeAuthorizedRoomSummary(opportunity, room);
+      }
+
       this.publicOpportunity.set(opportunity);
-      this.investment.set(opportunity as OpportunityView);
+      this.investment.set(this.toOpportunityView(opportunity));
 
       if (typeof ngDevMode !== 'undefined' && ngDevMode) {
         console.log('Opportunity loaded', opportunity, 'isFounder:', viewerState?.isFounder);
@@ -752,8 +820,7 @@ export class InvestmentPreviewComponent {
 
   /**
    * Publish the opportunity directly
-   * Note: Backend currently only supports submit-review workflow
-   * This method uses submit-review as a workaround until direct publish API is available
+   * Uses the direct founder publish flow.
    */
   async publishOpportunity(): Promise<void> {
     const opportunityId = this.getPublicOpportunityId(this.publicOpportunity());
@@ -761,18 +828,29 @@ export class InvestmentPreviewComponent {
 
     try {
       this.engagementProcessing.set(true);
-      await this.opportunityService.submitForReview(opportunityId);
+      const quote = await this.walletService.getPaidActionQuote('PublishOpportunity');
+      if (!quote.hasSufficientCredit) {
+        this.notificationService.showToast({ title: this.t('paidActions.insufficientTitle'), message: this.insufficientCreditText(quote), type: 'error' });
+        return;
+      }
+      const confirmation = this.t('opportunityPublish.confirmation')
+        .replace('{action}', this.t('opportunityPublish.action'))
+        .replace('{cost}', this.formatCredits(quote.creditCost))
+        .replace('{balance}', this.formatCredits(quote.currentBalance))
+        .replace('{after}', this.formatCredits(quote.balanceAfter));
+      if (!window.confirm(confirmation)) return;
+      await this.opportunityService.publishOpportunity(opportunityId);
       this.notificationService.showToast({
-        title: 'Opportunity Published',
-        message: 'Your opportunity has been published and is now visible to investors.',
+        title: this.t('opportunityPublish.successTitle'),
+        message: this.t('opportunityPublish.successMessage'),
         type: 'success'
       });
       // Reload to get updated status
       await this.loadInvestment();
     } catch (error: any) {
       this.notificationService.showToast({
-        title: 'Publish Failed',
-        message: error?.error?.message || error?.message || 'Unable to publish opportunity.',
+        title: this.t('opportunityPublish.failureTitle'),
+        message: error?.error?.message || error?.message || this.t('opportunityPublish.failureMessage'),
         type: 'error'
       });
     } finally {
@@ -826,6 +904,44 @@ export class InvestmentPreviewComponent {
       return;
     }
     this.contactFounderConfirmationOpen.set(true);
+  }
+
+  private toOpportunityView(opportunity: Opportunity): OpportunityView {
+    const source = opportunity as Opportunity & Record<string, any>;
+    const targetFund = Number(source.fundingTarget ?? source.targetFund ?? 0);
+    const fundingPercentage = this.numberOrNull(source.fundingProgressPercentage ?? source.fundingProgressPercent);
+    const currentFunding = this.numberOrNull(source.fundedAmount);
+
+    return {
+      ...source,
+      name: source.title || source.name || 'Untitled Opportunity',
+      targetFund,
+      currentFunding,
+      fundingPercentage,
+      remainingFundingAmount: this.numberOrNull(source.remainingFundingAmount),
+      investorCount: this.numberOrNull(source.approvedParticipantCount),
+      minInvestment: Number(source.minimumInvestmentAmount ?? source.minimumInvestment ?? 0),
+      maxInvestment: Number(source.maximumInvestmentAmount ?? source.maximumInvestment ?? 0),
+      currency: source.currency || '',
+      imageUrl: source.coverImageUrl || source.imageUrl || ''
+    };
+  }
+
+  private numberOrNull(value: unknown): number | null {
+    if (value === null || value === undefined || value === '') return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private mergeAuthorizedRoomSummary(opportunity: Opportunity, room: OpportunityRoom): Opportunity {
+    const overview = (room.overview ?? {}) as Opportunity & Record<string, any>;
+    const context = room.participantContext ?? {};
+    return {
+      ...opportunity,
+      ...overview,
+      approvedParticipantCount: context.approvedParticipantCount ?? opportunity.approvedParticipantCount,
+      canAccessProjectRoom: context.canAccessProjectRoom ?? opportunity.canAccessProjectRoom
+    };
   }
 
   /**
@@ -1206,6 +1322,27 @@ addCredits(): void {
 
 t(path: string): string {
   return this.languageService.translate(path);
+}
+
+reportReasonLabel(reason: ReportReasonCode): string {
+  return this.t(`reports.reasons.${reason}`);
+}
+
+private openReport(type: ReportTargetType, id: string | number, title: string): void {
+  this.reportTarget.set({ type, id, title });
+  this.reportReason.set(type === 'Opportunity' ? 'SuspiciousOpportunity' : 'Spam');
+  this.reportDescription.set('');
+  this.reportError.set(null);
+  this.reportSuccess.set(false);
+  this.reportModalOpen.set(true);
+}
+
+private reportErrorMessage(error: any): string {
+  const raw = String(error?.error?.message || error?.message || '').toLowerCase();
+  if (raw.includes('duplicate') || raw.includes('pending')) return this.t('reports.errors.duplicatePending');
+  if (raw.includes('invalid') || raw.includes('target')) return this.t('reports.errors.invalidTarget');
+  if (raw.includes('self')) return this.t('reports.errors.selfReport');
+  return this.t('reports.errors.generic');
 }
 
 private async loadPaidActionQuote(actionCode: PaidActionCode): Promise<PaidActionQuote> {

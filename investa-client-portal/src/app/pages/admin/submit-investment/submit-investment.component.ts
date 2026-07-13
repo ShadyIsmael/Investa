@@ -287,9 +287,9 @@ export class SubmitInvestmentComponent implements OnInit {
         revenueSharePercentage: null, // estimated from profitPercentage if available
 
         // Loan fields
-        interestRate: null,
-        loanDurationMonths: null,
-        repaymentFrequency: 'Monthly',
+        interestRate: investment.interestRate ?? null,
+        loanDurationMonths: investment.expectedDurationMonths ?? investment.expectedDuration ?? investment.durationMonths ?? null,
+        repaymentFrequency: investment.repaymentFrequency ?? '',
         gracePeriodMonths: null,
         estimatedInstallment: null,
         repaymentStartDate: this.formatDateForInput(investment.repaymentStartDate),
@@ -370,9 +370,10 @@ export class SubmitInvestmentComponent implements OnInit {
       // Revenue Sharing-specific fields
       contractStartDate: [''],
       contractEndDate: [''],
+      expectedDurationMonths: [null, [Validators.min(1)]],
       totalExpectedPayout: [null, [Validators.min(1)]],
       revenueDistributionFrequency: ['Monthly'],
-      revenueSharePercentage: [null, [Validators.min(0.1), Validators.max(100)]],
+      revenueSharePercentage: [null, [Validators.min(0.01), Validators.max(100)]],
       minimumContribution: [null, [Validators.min(1)]],
 
       // Loan-specific fields
@@ -470,9 +471,10 @@ export class SubmitInvestmentComponent implements OnInit {
 
       case InvestmentType.RevenueSharing:
         // Profit sharing: keep only the simple product fields required.
-        this.investmentForm.get('revenueSharePercentage')?.setValidators([Validators.required, Validators.min(0.1), Validators.max(100)]);
+        this.investmentForm.get('revenueSharePercentage')?.setValidators([Validators.required, Validators.min(0.01), Validators.max(100)]);
         this.investmentForm.get('minimumContribution')?.setValidators([Validators.required, Validators.min(1)]);
         this.investmentForm.get('revenueDistributionFrequency')?.setValidators([Validators.required]);
+        this.investmentForm.get('expectedDurationMonths')?.setValidators([Validators.min(1)]);
         break;
 
       case InvestmentType.Loan:
@@ -783,6 +785,8 @@ export class SubmitInvestmentComponent implements OnInit {
   private validateCurrentStep(): boolean {
     const step = this.currentStep();
     let fieldsToValidate: string[] = [];
+    const invalidFields: string[] = [];
+    let isValid = true;
 
     switch (step) {
       case 1:
@@ -799,6 +803,15 @@ export class SubmitInvestmentComponent implements OnInit {
             break;
           case InvestmentType.RevenueSharing:
             fieldsToValidate.push('minimumContribution', 'revenueSharePercentage', 'revenueDistributionFrequency');
+            const duration = Number(this.investmentForm.get('expectedDurationMonths')?.value);
+            const start = this.investmentForm.get('contractStartDate')?.value;
+            const end = this.investmentForm.get('contractEndDate')?.value;
+            if (!(Number.isFinite(duration) && duration > 0) && !(start && end && new Date(start) < new Date(end))) {
+              invalidFields.push(this.t('submitInvestment.validation.profitSharingDurationOrDates'));
+            }
+            if (start && end && new Date(start) >= new Date(end)) {
+              invalidFields.push(this.t('submitInvestment.validation.contractDatesMustBeOrdered'));
+            }
             break;
         }
         break;
@@ -812,8 +825,6 @@ export class SubmitInvestmentComponent implements OnInit {
         return this.investmentForm.valid && this.hasCoverImage();
     }
 
-    let isValid = true;
-    const invalidFields: string[] = [];
     fieldsToValidate.forEach(field => {
       const control = this.investmentForm.get(field);
       if (control) {
@@ -1088,7 +1099,6 @@ export class SubmitInvestmentComponent implements OnInit {
           ? formValue.minimumContribution || undefined
           : formValue.minInvestment || undefined,
         maximumInvestment: formValue.maxInvestment || undefined,
-        expectedDuration: typeId === InvestmentType.Founding ? formValue.durationMonths || undefined : (typeId === InvestmentType.Loan ? formValue.loanDurationMonths || undefined : undefined),
         equityOfferedPercentage: typeId === InvestmentType.Equity ? formValue.equityOfferedPercentage || undefined : undefined,
         coverImageUrl: formValue.imageUrl?.trim() || undefined,
         fundingUsage: formValue.fundingPurposeDetails?.trim() || undefined,
@@ -1117,56 +1127,46 @@ export class SubmitInvestmentComponent implements OnInit {
         
         // Duration - used for both Founding and Loan
         durationMonths: typeId === InvestmentType.Founding ? formValue.durationMonths || undefined : (typeId === InvestmentType.Loan ? formValue.loanDurationMonths || undefined : undefined),
+
+        // Loan-specific authoritative Opportunity fields
+        interestRate: typeId === InvestmentType.Loan ? formValue.interestRate || undefined : undefined,
+        repaymentFrequency: typeId === InvestmentType.Loan ? formValue.repaymentFrequency || undefined : undefined,
+        finalRepaymentDate: typeId === InvestmentType.Loan ? this.toIsoDateString(formValue.finalRepaymentDate) : undefined,
         
         // Founding-specific fields (profit sharing)
         profitPercentage: typeId === InvestmentType.Founding ? formValue.profitPercentage || undefined : undefined,
         payoutFrequency: typeId === InvestmentType.Founding ? formValue.payoutFrequency || undefined : undefined,
-
-        // Equity fields
-        sharePrice: typeId === InvestmentType.Equity ? formValue.sharePrice || undefined : undefined,
-        totalShares: typeId === InvestmentType.Equity ? formValue.totalShares || undefined : undefined,
-        valuationCap: typeId === InvestmentType.Equity ? formValue.valuationCap || undefined : undefined,
         
-        // Equity exit strategy
-        currentValuation: typeId === InvestmentType.Equity ? formValue.currentValuation || undefined : undefined,
-        estimatedFutureValuation: typeId === InvestmentType.Equity ? formValue.estimatedFutureValuation || undefined : undefined,
-        equityExitType: typeId === InvestmentType.Equity ? formValue.equityExitType || undefined : undefined,
-        exitTargetDate: typeId === InvestmentType.Equity ? this.toIsoDateString(formValue.exitTargetDate) : undefined,
-        expectedExitStrategy: typeId === InvestmentType.Equity ? formValue.expectedExitStrategy?.trim() || undefined : undefined,
-
-        // Revenue Sharing fields
-        contractStartDate: typeId === InvestmentType.RevenueSharing ? this.toIsoDateString(formValue.contractStartDate) : undefined,
-        contractEndDate: typeId === InvestmentType.RevenueSharing ? this.toIsoDateString(formValue.contractEndDate) : undefined,
-        totalExpectedPayout: typeId === InvestmentType.RevenueSharing ? formValue.totalExpectedPayout || undefined : undefined,
-        revenueDistributionFrequency: typeId === InvestmentType.RevenueSharing ? formValue.revenueDistributionFrequency || undefined : undefined,
-
-        // Loan fields
-        interestRate: typeId === InvestmentType.Loan ? formValue.interestRate || undefined : undefined,
-        repaymentFrequency: typeId === InvestmentType.Loan ? formValue.repaymentFrequency || undefined : undefined,
-        gracePeriodMonths: typeId === InvestmentType.Loan ? formValue.gracePeriodMonths || undefined : undefined,
-        estimatedInstallment: typeId === InvestmentType.Loan ? formValue.estimatedInstallment || undefined : undefined,
-        totalRepaymentAmount: typeId === InvestmentType.Loan ? formValue.totalRepaymentAmount || undefined : undefined
+        // Revenue Sharing / Profit Sharing fields
+        profitSharePercentage: typeId === InvestmentType.RevenueSharing ? formValue.revenueSharePercentage || undefined : undefined,
+        profitSharingPayoutFrequency: typeId === InvestmentType.RevenueSharing ? formValue.revenueDistributionFrequency || undefined : undefined,
+        expectedDurationMonths: typeId === InvestmentType.RevenueSharing
+          ? formValue.expectedDurationMonths || undefined
+          : (typeId === InvestmentType.Loan ? formValue.loanDurationMonths || undefined : undefined),
+        profitSharingContractStartDate: typeId === InvestmentType.RevenueSharing ? this.toIsoDateString(formValue.contractStartDate) : undefined,
+        profitSharingContractEndDate: typeId === InvestmentType.RevenueSharing ? this.toIsoDateString(formValue.contractEndDate) : undefined
       };
 
-      const editId = this.editingInvestmentId();
-      const result = editId
-        ? await this.opportunityService.updateOpportunity(editId, payload)
-        : await this.opportunityService.createOpportunity(payload);
+      let investmentId = this.editingInvestmentId();
+      if (investmentId !== null) {
+        await this.opportunityService.updateOpportunity(investmentId, payload);
+      } else {
+        const created = await this.opportunityService.createOpportunity(payload);
+        investmentId = Number(created?.id ?? null);
+        if (Number.isNaN(investmentId)) investmentId = null;
+      }
 
-      const investmentId = Number(result?.id ?? editId!);
-
-      // Handle file uploads...
       if (this.coverFile) {
         this.isUploadingCover.set(true);
         try {
-          const uploadResult = await this.fileStoreService.uploadFile('OpportunityCover', this.coverFile, {
+          const coverResult = await this.fileStoreService.uploadFile('Cover', this.coverFile, {
             purpose: 'Cover',
             visibility: 'Public',
             isPublic: true
           });
-          const imageUrl = uploadResult.previewUrl || uploadResult.url || uploadResult.fileKey;
-          if (imageUrl) {
-            await this.opportunityService.updateOpportunity(investmentId, { ...payload, coverImageUrl: imageUrl });
+          const coverUrl = coverResult.previewUrl || coverResult.url || coverResult.fileKey;
+          if (coverUrl && investmentId !== null) {
+            await this.opportunityService.updateOpportunity(investmentId, { ...payload, coverImageUrl: coverUrl });
           }
         } catch (err) {
           console.error('Cover upload failed', err);
@@ -1179,6 +1179,8 @@ export class SubmitInvestmentComponent implements OnInit {
           this.isUploadingCover.set(false);
         }
       }
+
+      const editId = investmentId !== null;
 
       if (this.galleryFiles.length > 0) {
         this.isUploadingCover.set(true);

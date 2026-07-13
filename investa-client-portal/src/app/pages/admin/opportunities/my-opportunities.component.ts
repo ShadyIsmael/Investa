@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Opportunity, OpportunityService } from '../../../services/opportunity.service';
@@ -8,11 +8,13 @@ import { money, opportunityDescription, opportunityTitle } from './opportunity-u
 import { RoleContextService } from '../../../services/role-context.service';
 import { WalletService } from '../../../services/wallet.service';
 import { LanguageService } from '../../../services/language.service';
+import { TranslatePipe } from '../../../pipes/translate.pipe';
+import { RequestsService } from '../../../services/requests.service';
 
 @Component({
   standalone: true,
   selector: 'app-my-opportunities',
-  imports: [CommonModule, RouterLink, OpportunityStatusBadgeComponent],
+  imports: [CommonModule, RouterLink, OpportunityStatusBadgeComponent, TranslatePipe],
   templateUrl: './my-opportunities.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -21,6 +23,7 @@ export class MyOpportunitiesComponent {
   private notifications = inject(NotificationService);
   private walletService = inject(WalletService);
   private languageService = inject(LanguageService);
+  private requestsService = inject(RequestsService);
   roleContext = inject(RoleContextService);
 
   opportunities = signal<Opportunity[]>([]);
@@ -34,6 +37,9 @@ export class MyOpportunitiesComponent {
 
   constructor() {
     this.load();
+    effect(() => {
+      if (this.requestsService.participationRevision() > 0) void this.load();
+    });
   }
 
   async load(): Promise<void> {
@@ -48,7 +54,12 @@ export class MyOpportunitiesComponent {
     }
   }
 
-  async submitForReview(opportunity: Opportunity): Promise<void> {
+  isDraft(opportunity: Opportunity): boolean {
+    const status = String(opportunity.status ?? '').trim().toLowerCase();
+    return status === '1' || status === 'draft';
+  }
+
+  async publishOpportunity(opportunity: Opportunity): Promise<void> {
     try {
       this.submittingId.set(opportunity.id);
       const quote = await this.walletService.getPaidActionQuote('PublishOpportunity');
@@ -60,14 +71,14 @@ export class MyOpportunitiesComponent {
         });
         return;
       }
-      if (!window.confirm(this.t('paidActions.confirmationText').replace('{action}', quote.displayName || quote.actionCode).replace('{cost}', this.formatCredits(quote.creditCost)).replace('{balance}', this.formatCredits(quote.currentBalance)).replace('{after}', this.formatCredits(quote.balanceAfter)))) {
+      if (!window.confirm(this.t('opportunityPublish.confirmation').replace('{action}', this.t('opportunityPublish.action')).replace('{cost}', this.formatCredits(quote.creditCost)).replace('{balance}', this.formatCredits(quote.currentBalance)).replace('{after}', this.formatCredits(quote.balanceAfter)))) {
         return;
       }
-      await this.service.submitForReview(opportunity.id);
-      this.notifications.showToast({ title: 'Submitted', message: 'Opportunity submitted for review.', type: 'success' });
+      await this.service.publishOpportunity(opportunity.id);
+      this.notifications.showToast({ title: this.t('opportunityPublish.successTitle'), message: this.t('opportunityPublish.successMessage'), type: 'success' });
       await this.load();
     } catch (error: any) {
-      this.notifications.showToast({ title: 'Submit failed', message: error?.message || 'Backend rejected the request.', type: 'error' });
+      this.notifications.showToast({ title: this.t('opportunityPublish.failureTitle'), message: error?.error?.message || error?.message || this.t('opportunityPublish.failureMessage'), type: 'error' });
     } finally {
       this.submittingId.set(null);
     }

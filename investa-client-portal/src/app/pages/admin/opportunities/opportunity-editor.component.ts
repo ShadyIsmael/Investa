@@ -7,6 +7,7 @@ import { NotificationService } from '../../../services/notification.service';
 import { FileStoreFile, FileStoreService } from '../../../services/file-store.service';
 import { WalletService } from '../../../services/wallet.service';
 import { LanguageService } from '../../../services/language.service';
+import { TranslatePipe } from '../../../pipes/translate.pipe';
 
 type PendingUploadKind = 'cover' | 'gallery' | 'video' | 'publicDocument' | 'privateDocument';
 
@@ -20,7 +21,7 @@ interface PendingUpload {
 @Component({
   standalone: true,
   selector: 'app-opportunity-editor',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslatePipe],
   templateUrl: './opportunity-editor.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -41,6 +42,8 @@ export class OpportunityEditorComponent {
     LoanInvestment: 3
   };
 
+  readonly payoutFrequencies = ['Monthly', 'Quarterly', 'Semi-Annually', 'Annually', 'At Maturity'] as const;
+
   step = signal(1);
   isLoading = signal(false);
   isSaving = signal(false);
@@ -57,6 +60,8 @@ export class OpportunityEditorComponent {
   fileStoreCategories = signal<string[]>([]);
   editId = this.route.snapshot.paramMap.get('id');
   isEdit = computed(() => !!this.editId);
+  existingStatus = signal<string | number | null>(null);
+  canPublish = computed(() => !this.isEdit() || ['1', 'draft'].includes(String(this.existingStatus() ?? '').trim().toLowerCase()));
 
   // Reactive Form
   form: FormGroup;
@@ -74,13 +79,16 @@ export class OpportunityEditorComponent {
       minimumInvestment: [null, [Validators.min(1)]],
       maximumInvestment: [null],
       expectedDuration: [null],
+      profitSharingPayoutFrequency: [''],
+      profitSharingContractStartDate: [''],
+      profitSharingContractEndDate: [''],
       coverImageUrl: [''],
       // Equity-specific fields
       equityOfferedPercentage: [null, [Validators.min(0), Validators.max(100)]],
       // Loan-specific fields
-      returnRate: [null, [Validators.min(0), Validators.max(100)]],
-      loanTerm: [null, [Validators.min(1)]],
-      repaymentModel: [''],
+      interestRate: [null, [Validators.min(0), Validators.max(100)]],
+      repaymentFrequency: [''],
+      finalRepaymentDate: [''],
       // Profit Sharing-specific fields
       profitSharePercentage: [null, [Validators.min(0), Validators.max(100)]],
       exitTerms: [''],
@@ -112,6 +120,7 @@ export class OpportunityEditorComponent {
       this.fundingGoals.set(fundingGoals);
       if (this.editId) {
         const existing = await this.service.getFounderOpportunity(this.editId);
+        this.existingStatus.set(existing.status ?? null);
         this.form.patchValue({
           title: existing.title || '',
           shortDescription: existing.shortDescription || existing.description || '',
@@ -124,8 +133,14 @@ export class OpportunityEditorComponent {
           minimumInvestment: existing.minimumInvestment ?? existing.minimumInvestmentAmount ?? null,
           maximumInvestment: existing.maximumInvestment ?? existing.maximumInvestmentAmount ?? null,
           expectedDuration: existing.expectedDuration ?? existing.expectedDurationMonths ?? null,
+          profitSharingPayoutFrequency: existing.profitSharingPayoutFrequency || '',
+          profitSharingContractStartDate: this.formatDateForInput(existing.profitSharingContractStartDate),
+          profitSharingContractEndDate: this.formatDateForInput(existing.profitSharingContractEndDate),
           coverImageUrl: existing.coverImageUrl || '',
           equityOfferedPercentage: existing.equityOfferedPercentage ?? null,
+          interestRate: existing.interestRate ?? null,
+          repaymentFrequency: existing.repaymentFrequency ?? '',
+          finalRepaymentDate: this.formatDateForInput(existing.finalRepaymentDate),
           fundingUsage: existing.useOfFunds || existing.fundingPurpose || existing.fundingUsage || '',
           risks: existing.risks || '',
           exitStrategy: existing.exitStrategy || ''
@@ -137,6 +152,19 @@ export class OpportunityEditorComponent {
     } finally {
       this.isLoading.set(false);
     }
+  }
+
+  private formatDateForInput(value: string | Date | null | undefined): string {
+    if (value === null || value === undefined || value === '') {
+      return '';
+    }
+
+    const date = value instanceof Date ? value : new Date(String(value));
+    if (Number.isNaN(date.getTime())) {
+      return '';
+    }
+
+    return date.toISOString().slice(0, 10);
   }
 
   /**
@@ -189,10 +217,13 @@ export class OpportunityEditorComponent {
     // Clear all model-specific fields first
     this.form.patchValue({
       equityOfferedPercentage: null,
-      returnRate: null,
-      loanTerm: null,
-      repaymentModel: '',
+      interestRate: null,
+      repaymentFrequency: '',
+      finalRepaymentDate: '',
       profitSharePercentage: null,
+      profitSharingPayoutFrequency: '',
+      profitSharingContractStartDate: '',
+      profitSharingContractEndDate: '',
       exitTerms: ''
     });
 
@@ -205,8 +236,8 @@ export class OpportunityEditorComponent {
    */
   private updateValidatorsByModel(model: number | null): void {
     const equityFields = ['equityOfferedPercentage'];
-    const loanFields = ['returnRate', 'loanTerm', 'repaymentModel'];
-    const profitSharingFields = ['profitSharePercentage', 'exitTerms'];
+    const loanFields = ['interestRate', 'repaymentFrequency', 'finalRepaymentDate'];
+    const profitSharingFields = ['profitSharePercentage', 'profitSharingPayoutFrequency', 'profitSharingContractStartDate', 'profitSharingContractEndDate', 'exitTerms'];
 
     // Clear all model-specific validators
     [...equityFields, ...loanFields, ...profitSharingFields].forEach(field => {
@@ -218,11 +249,12 @@ export class OpportunityEditorComponent {
     if (model === this.InvestmentModel.Equity) {
       this.form.get('equityOfferedPercentage')?.setValidators([Validators.required, Validators.min(0), Validators.max(100)]);
     } else if (model === this.InvestmentModel.LoanInvestment) {
-      this.form.get('returnRate')?.setValidators([Validators.required, Validators.min(0), Validators.max(100)]);
-      this.form.get('loanTerm')?.setValidators([Validators.required, Validators.min(1)]);
-      this.form.get('repaymentModel')?.setValidators([Validators.required]);
+      this.form.get('interestRate')?.setValidators([Validators.required, Validators.min(0), Validators.max(100)]);
+      this.form.get('repaymentFrequency')?.setValidators([Validators.required]);
+      this.form.get('finalRepaymentDate')?.setValidators([Validators.required]);
     } else if (model === this.InvestmentModel.CapitalContributionProfitSharing) {
-      this.form.get('profitSharePercentage')?.setValidators([Validators.required, Validators.min(0), Validators.max(100)]);
+      this.form.get('profitSharePercentage')?.setValidators([Validators.required, Validators.min(0.01), Validators.max(100)]);
+      this.form.get('profitSharingPayoutFrequency')?.setValidators([Validators.required]);
       this.form.get('exitTerms')?.setValidators([Validators.required]);
     }
 
@@ -256,12 +288,14 @@ export class OpportunityEditorComponent {
       if (model === this.InvestmentModel.Equity) {
         if (form.get('equityOfferedPercentage')?.invalid) invalidFields.push('Equity offered percentage is required');
       } else if (model === this.InvestmentModel.LoanInvestment) {
-        if (form.get('returnRate')?.invalid) invalidFields.push('Return rate is required');
-        if (form.get('loanTerm')?.invalid) invalidFields.push('Loan term is required');
-        if (form.get('repaymentModel')?.invalid) invalidFields.push('Repayment model is required');
+        if (form.get('interestRate')?.invalid) invalidFields.push('Interest rate is required');
+        if (form.get('repaymentFrequency')?.invalid) invalidFields.push('Repayment frequency is required');
+        if (form.get('finalRepaymentDate')?.invalid) invalidFields.push('Final repayment date is required');
       } else if (model === this.InvestmentModel.CapitalContributionProfitSharing) {
         if (form.get('profitSharePercentage')?.invalid) invalidFields.push('Profit share percentage is required');
-        if (form.get('exitTerms')?.invalid) invalidFields.push('Exit terms are required');
+        if (form.get('profitSharingPayoutFrequency')?.invalid) invalidFields.push('Profit sharing payout frequency is required');
+        if (!this.hasProfitSharingDurationOrDates()) invalidFields.push('Either expected duration or both contract start and end dates are required');
+        if (form.get('profitSharingContractStartDate')?.value && form.get('profitSharingContractEndDate')?.value && new Date(form.get('profitSharingContractStartDate')?.value) >= new Date(form.get('profitSharingContractEndDate')?.value)) invalidFields.push('Contract end date must be after start date');
       }
     }
     // Step 3 and 4 have no required validation
@@ -298,6 +332,10 @@ export class OpportunityEditorComponent {
       this.isSaving.set(true);
       this.errorMessage.set(null);
       const formValue = this.form.value;
+      const expectedDuration = formValue.investmentModel === this.InvestmentModel.LoanInvestment
+        ? formValue.expectedDuration
+        : formValue.expectedDuration;
+
       const payload: OpportunityUpsert = {
         title: formValue.title,
         shortDescription: formValue.shortDescription,
@@ -310,9 +348,16 @@ export class OpportunityEditorComponent {
         fundingTarget: formValue.fundingTarget,
         minimumInvestment: formValue.minimumInvestment,
         maximumInvestment: formValue.maximumInvestment,
-        expectedDuration: formValue.expectedDuration,
+        expectedDurationMonths: expectedDuration,
+        profitSharePercentage: formValue.profitSharePercentage,
+        profitSharingPayoutFrequency: formValue.profitSharingPayoutFrequency || null,
+        profitSharingContractStartDate: formValue.profitSharingContractStartDate || null,
+        profitSharingContractEndDate: formValue.profitSharingContractEndDate || null,
         coverImageUrl: formValue.coverImageUrl,
         equityOfferedPercentage: formValue.equityOfferedPercentage,
+        interestRate: formValue.interestRate,
+        repaymentFrequency: formValue.repaymentFrequency || null,
+        finalRepaymentDate: formValue.finalRepaymentDate || null,
         fundingUsage: formValue.fundingUsage,
         risks: formValue.risks,
         exitStrategy: formValue.exitStrategy
@@ -325,17 +370,17 @@ export class OpportunityEditorComponent {
         if (!quote.hasSufficientCredit) {
           throw new Error(this.t('paidActions.insufficientMessage').replace('{required}', this.formatCredits(quote.creditCost)).replace('{balance}', this.formatCredits(quote.currentBalance)));
         }
-        if (!window.confirm(this.t('paidActions.confirmationText').replace('{action}', quote.displayName || quote.actionCode).replace('{cost}', this.formatCredits(quote.creditCost)).replace('{balance}', this.formatCredits(quote.currentBalance)).replace('{after}', this.formatCredits(quote.balanceAfter)))) {
+        if (!window.confirm(this.t('opportunityPublish.confirmation').replace('{action}', this.t('opportunityPublish.action')).replace('{cost}', this.formatCredits(quote.creditCost)).replace('{balance}', this.formatCredits(quote.currentBalance)).replace('{after}', this.formatCredits(quote.balanceAfter)))) {
           return;
         }
-        await this.service.submitForReview(saved.id);
+        await this.service.publishOpportunity(saved.id);
       }
-      this.notifications.showToast({ title: submit ? 'Published' : 'Saved', message: submit ? 'Opportunity published and is now visible to investors.' : 'Opportunity draft saved.', type: 'success' });
+      this.notifications.showToast({ title: submit ? this.t('opportunityPublish.successTitle') : this.t('opportunityEditor.savedTitle'), message: submit ? this.t('opportunityPublish.successMessage') : this.t('opportunityEditor.savedMessage'), type: 'success' });
       this.router.navigate(['/admin/my-opportunities']);
     } catch (error: any) {
-      const message = error?.message || 'Failed to save opportunity.';
+      const message = error?.error?.message || error?.message || this.t(submit ? 'opportunityPublish.failureMessage' : 'opportunityEditor.saveFailureMessage');
       this.errorMessage.set(message);
-      this.notifications.showToast({ title: 'Save failed', message, type: 'error' });
+      this.notifications.showToast({ title: this.t(submit ? 'opportunityPublish.failureTitle' : 'opportunityEditor.saveFailureTitle'), message, type: 'error' });
     } finally {
       this.isSaving.set(false);
     }
@@ -357,6 +402,15 @@ export class OpportunityEditorComponent {
 
   private formatCredits(value: number): string {
     return new Intl.NumberFormat(this.languageService.language() === 'ar' ? 'ar-EG' : 'en-US', { maximumFractionDigits: 2 }).format(Number(value ?? 0));
+  }
+
+  private hasProfitSharingDurationOrDates(): boolean {
+    const duration = Number(this.form.get('expectedDuration')?.value);
+    const start = this.form.get('profitSharingContractStartDate')?.value;
+    const end = this.form.get('profitSharingContractEndDate')?.value;
+    const hasDuration = Number.isFinite(duration) && duration > 0;
+    const hasDates = !!start && !!end && new Date(start) < new Date(end);
+    return hasDuration || hasDates;
   }
 
   onFilesSelected(event: Event, kind: PendingUploadKind): void {

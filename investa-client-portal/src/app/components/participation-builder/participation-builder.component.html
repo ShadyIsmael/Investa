@@ -227,7 +227,7 @@
               <strong class="text-white">{{ profitSharingTermText() }}</strong>
             </div>
             <div class="flex justify-between gap-4">
-              <span class="text-slate-400">{{ t('participationBuilder.labels.expectedProfit') }}</span>
+              <span class="text-slate-400">{{ t('participationBuilder.labels.illustrativeExpectedProfit') }}</span>
               <strong class="text-white">{{ expectedProfitAmount() !== null ? money(expectedProfitAmount()) : t('common.unavailable') }}</strong>
             </div>
             <div class="flex justify-between gap-4">
@@ -255,7 +255,7 @@
             <div class="flex justify-between gap-4"><span>{{ t('participationBuilder.labels.yourContribution') }}</span><strong class="text-white">{{ money(contributionAmount()) }}</strong></div>
             <div class="flex justify-between gap-4"><span>{{ t('participationBuilder.labels.profitShare') }}</span><strong class="text-white">{{ profitShareText() }}</strong></div>
             <div class="flex justify-between gap-4"><span>{{ t('participationBuilder.labels.durationTerm') }}</span><strong class="text-white">{{ profitSharingTermText() }}</strong></div>
-            <div class="flex justify-between gap-4"><span>{{ t('participationBuilder.labels.expectedProfit') }}</span><strong class="text-white">{{ expectedProfitAmount() !== null ? money(expectedProfitAmount()) : t('common.unavailable') }}</strong></div>
+            <div class="flex justify-between gap-4"><span>{{ t('participationBuilder.labels.illustrativeExpectedProfit') }}</span><strong class="text-white">{{ expectedProfitAmount() !== null ? money(expectedProfitAmount()) : t('common.unavailable') }}</strong></div>
             <div class="flex justify-between gap-4"><span>{{ t('participationBuilder.labels.expectedPayout') }}</span><strong class="text-white">{{ expectedTotalPayoutAmount() !== null ? money(expectedTotalPayoutAmount()) : t('common.unavailable') }}</strong></div>
             <div class="flex justify-between gap-4"><span>{{ t('participationBuilder.labels.opportunityPayout') }}</span><strong class="text-white">{{ opportunityTotalExpectedPayout() !== null ? money(opportunityTotalExpectedPayout()) : t('common.unavailable') }}</strong></div>
             <div class="flex justify-between gap-4"><span>{{ t('participationBuilder.labels.contractPeriod') }}</span><strong class="text-white">{{ contractPeriodText() }}</strong></div>

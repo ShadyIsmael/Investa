@@ -18,6 +18,25 @@ public class OpportunityJoinRequestsController : BaseApiController
         _opportunityService = opportunityService;
     }
 
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(ApiResponse<FounderIncomingJoinRequestDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Get(int id, CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null)
+            return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            var joinRequest = await _opportunityService.GetIncomingJoinRequestAsync(userId.Value, id, cancellationToken);
+            return SuccessResponse(joinRequest);
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
     [HttpPost("{id:int}/cancel")]
     [ProducesResponseType(typeof(ApiResponse<OpportunityJoinRequestDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Cancel(int id, CancellationToken cancellationToken)
@@ -87,7 +106,12 @@ public class OpportunityJoinRequestsController : BaseApiController
 
     private IActionResult ToBusinessError(BusinessValidationException ex)
     {
-        var statusCode = ex.Code is "JOIN_REQUEST_NOT_FOUND" or "OPPORTUNITY_NOT_FOUND" ? 404 : 400;
+        var statusCode = ex.Code switch
+        {
+            "JOIN_REQUEST_NOT_FOUND" or "OPPORTUNITY_NOT_FOUND" => 404,
+            "FOUNDER_ACCESS_REQUIRED" => 403,
+            _ => 400
+        };
         return ErrorResponse(ex.Message, statusCode);
     }
 }

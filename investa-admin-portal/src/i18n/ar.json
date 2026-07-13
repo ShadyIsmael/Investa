@@ -26,6 +26,7 @@
     "reputationRules": "Reputation Rules",
     "pricing": "Pricing",
     "notifications": "Notifications",
+    "moderationReports": "البلاغات",
     "referenceData": "Reference Data",
     "opportunityCategories": "Categories",
     "opportunityTags": "Tags",
@@ -246,6 +247,60 @@
   },
   "support": {
     "activeChats": "المحادثات النشطة"
+  },
+  "moderationReports": {
+    "title": "البلاغات",
+    "subtitle": "مراجعة البلاغات المرسلة من المستخدمين ومعالجتها.",
+    "status": "الحالة",
+    "allStatuses": "كل الحالات",
+    "targetType": "نوع العنصر",
+    "allTargetTypes": "كل الأنواع",
+    "targetId": "معرف العنصر",
+    "reasonCode": "رمز السبب",
+    "allReasonCodes": "كل الأسباب",
+    "description": "الوصف",
+    "reporter": "مقدم البلاغ",
+    "createdDate": "تاريخ الإنشاء",
+    "reviewedBy": "تمت المراجعة بواسطة",
+    "reviewedAt": "تاريخ المراجعة",
+    "resolutionNote": "ملاحظة المعالجة",
+    "actions": "الإجراءات",
+    "confirm": "تأكيد",
+    "reject": "رفض",
+    "dismiss": "تجاهل",
+    "confirmReport": "تأكيد البلاغ",
+    "rejectReport": "رفض البلاغ",
+    "dismissReport": "تجاهل البلاغ",
+    "resolving": "جارٍ المعالجة...",
+    "resolvePrompt": "معالجة البلاغ رقم {{id}}.",
+    "noReports": "لا توجد بلاغات.",
+    "retry": "إعادة المحاولة",
+    "loadError": "تعذر تحميل البلاغات.",
+    "resolveError": "تعذرت معالجة البلاغ.",
+    "confirmSuccess": "تم تأكيد البلاغ بنجاح.",
+    "rejectSuccess": "تم رفض البلاغ بنجاح.",
+    "dismissSuccess": "تم تجاهل البلاغ بنجاح.",
+    "statuses": {
+      "Pending": "قيد الانتظار",
+      "Confirmed": "مؤكد",
+      "Rejected": "مرفوض",
+      "Dismissed": "تم تجاهله"
+    },
+    "targetTypes": {
+      "Opportunity": "فرصة",
+      "User": "مستخدم",
+      "Conversation": "محادثة",
+      "Participant": "مشارك"
+    },
+    "reasonCodes": {
+      "SuspiciousOpportunity": "فرصة مشبوهة",
+      "MisleadingInformation": "معلومات مضللة",
+      "Spam": "رسائل مزعجة",
+      "Abuse": "إساءة",
+      "FraudConcern": "اشتباه احتيال",
+      "InappropriateContent": "محتوى غير مناسب",
+      "Other": "أخرى"
+    }
   },
   "common": {
     "save": "حفظ",

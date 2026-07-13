@@ -71,18 +71,43 @@
         <div *ngIf="isLoanModel()" class="rounded-lg border border-green-500/30 bg-green-500/10 p-4">
           <h3 class="mb-3 text-sm font-semibold text-green-200">Loan Details</h3>
           <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <input formControlName="returnRate" type="number" placeholder="Return rate %" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
-            <input formControlName="loanTerm" type="number" placeholder="Loan term (months)" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
-            <input formControlName="repaymentModel" placeholder="Repayment model" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+            <input formControlName="interestRate" type="number" placeholder="Interest rate %" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+            <input formControlName="repaymentFrequency" placeholder="Repayment frequency" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+            <input formControlName="finalRepaymentDate" type="date" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
           </div>
         </div>
         
         <!-- Profit Sharing-specific fields -->
         <div *ngIf="isProfitSharingModel()" class="rounded-lg border border-purple-500/30 bg-purple-500/10 p-4">
-          <h3 class="mb-3 text-sm font-semibold text-purple-200">Profit Sharing Details</h3>
+          <h3 class="mb-3 text-sm font-semibold text-purple-200">{{ 'opportunityEditor.labels.profitSharingTerms' | translate }}</h3>
           <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <input formControlName="profitSharePercentage" type="number" placeholder="Profit share %" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
-            <input formControlName="exitTerms" placeholder="Exit terms" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+            <div>
+              <label class="block text-xs font-semibold text-purple-100 mb-2">{{ 'opportunityEditor.labels.profitSharePercentage' | translate }}</label>
+              <input formControlName="profitSharePercentage" type="number" step="0.01" placeholder="{{ 'opportunityEditor.placeholders.profitSharePercentage' | translate }}" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-purple-100 mb-2">{{ 'opportunityEditor.labels.payoutFrequency' | translate }}</label>
+              <select formControlName="profitSharingPayoutFrequency" class="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+                <option [ngValue]="''" disabled>{{ 'opportunityEditor.placeholders.selectPayoutFrequency' | translate }}</option>
+                <option *ngFor="let option of payoutFrequencies" [value]="option">{{ option }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-purple-100 mb-2">{{ 'opportunityEditor.labels.expectedDurationMonths' | translate }}</label>
+              <input formControlName="expectedDuration" type="number" min="1" placeholder="{{ 'opportunityEditor.placeholders.expectedDurationMonths' | translate }}" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-purple-100 mb-2">{{ 'opportunityEditor.labels.contractStartDate' | translate }}</label>
+              <input formControlName="profitSharingContractStartDate" type="date" class="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-purple-100 mb-2">{{ 'opportunityEditor.labels.contractEndDate' | translate }}</label>
+              <input formControlName="profitSharingContractEndDate" type="date" class="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-purple-100 mb-2">{{ 'opportunityEditor.labels.exitTerms' | translate }}</label>
+              <input formControlName="exitTerms" placeholder="{{ 'opportunityEditor.placeholders.exitTerms' | translate }}" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
+            </div>
           </div>
         </div>
         
@@ -195,7 +220,7 @@
       <div class="flex gap-3">
         <button type="button" *ngIf="step() < 4" (click)="next()" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">Next</button>
         <button type="button" *ngIf="step() === 4" (click)="save(false)" [disabled]="isSaving()" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-slate-700 disabled:opacity-50">Save Draft</button>
-        <button type="button" *ngIf="step() === 4" (click)="save(true)" [disabled]="isSaving()" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50">Publish</button>
+        <button type="button" *ngIf="step() === 4 && canPublish()" (click)="save(true)" [disabled]="isSaving()" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50">{{ isSaving() ? ('opportunityPublish.publishing' | translate) : ('opportunityPublish.action' | translate) }}</button>
       </div>
     </div>
   </div>

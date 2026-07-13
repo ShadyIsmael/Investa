@@ -25,6 +25,9 @@
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Category</th>
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Investment Model</th>
           <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Funding</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">{{ 'investmentPreview.amountRaised' | translate }}</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">{{ 'investmentPreview.remainingFunding' | translate }}</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">{{ 'investmentPreview.approvedParticipants' | translate }}</th>
           <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Minimum</th>
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Created</th>
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Files</th>
@@ -38,6 +41,9 @@
           <td class="px-4 py-4 text-sm text-gray-300">{{ opportunity.categoryName || opportunity.categoryId || '-' }}</td>
           <td class="px-4 py-4 text-sm text-gray-300">{{ opportunity.investmentModel || '-' }}</td>
           <td class="px-4 py-4 text-right text-sm text-gray-300">{{ money(opportunity.fundingTarget) }}</td>
+          <td class="px-4 py-4 text-right text-sm text-gray-300">{{ opportunity.fundedAmount == null ? '—' : money(opportunity.fundedAmount) }}</td>
+          <td class="px-4 py-4 text-right text-sm text-gray-300">{{ opportunity.remainingFundingAmount == null ? '—' : money(opportunity.remainingFundingAmount) }}</td>
+          <td class="px-4 py-4 text-right text-sm text-gray-300">{{ opportunity.approvedParticipantCount == null ? '—' : opportunity.approvedParticipantCount }}</td>
           <td class="px-4 py-4 text-right text-sm text-gray-300">{{ money(opportunity.minimumInvestment) }}</td>
           <td class="px-4 py-4 text-sm text-gray-400">{{ formatDate(opportunity.createdAt) }}</td>
           <td class="px-4 py-4">
@@ -52,7 +58,7 @@
             <div class="flex justify-end gap-2">
               <a [routerLink]="['/admin/opportunities', opportunity.id]" class="rounded-md bg-slate-800 px-3 py-2 text-xs font-semibold text-gray-200 hover:bg-slate-700">View</a>
               <a [routerLink]="['/admin/opportunities', opportunity.id, 'edit']" class="rounded-md bg-slate-800 px-3 py-2 text-xs font-semibold text-gray-200 hover:bg-slate-700">Edit</a>
-              <button (click)="submitForReview(opportunity)" [disabled]="submittingId() === opportunity.id" class="rounded-md bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-500 disabled:opacity-50">Submit</button>
+              <button *ngIf="isDraft(opportunity)" (click)="publishOpportunity(opportunity)" [disabled]="submittingId() === opportunity.id" class="rounded-md bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-500 disabled:opacity-50">{{ submittingId() === opportunity.id ? ('opportunityPublish.publishing' | translate) : ('opportunityPublish.action' | translate) }}</button>
             </div>
           </td>
         </tr>

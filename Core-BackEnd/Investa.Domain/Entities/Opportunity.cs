@@ -42,8 +42,37 @@ public class Opportunity
 
     public int? ExpectedDurationMonths { get; set; }
 
+    [StringLength(10)]
+    public string? Currency { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal? SharePrice { get; set; }
+
+    public int? TotalShares { get; set; }
+
+    public int? OfferedShares { get; set; }
+
     [Column(TypeName = "decimal(5,2)")]
     public decimal? EquityOfferedPercentage { get; set; }
+
+    [Column(TypeName = "decimal(5,2)")]
+    public decimal? ProfitSharePercentage { get; set; }
+
+    [StringLength(50)]
+    public string? ProfitSharingPayoutFrequency { get; set; }
+
+    public DateTime? ProfitSharingContractStartDate { get; set; }
+
+    public DateTime? ProfitSharingContractEndDate { get; set; }
+
+    // Loan Model Fields
+    [Column(TypeName = "decimal(5,2)")]
+    public decimal? InterestRate { get; set; }
+
+    [StringLength(50)]
+    public string? RepaymentFrequency { get; set; }
+
+    public DateTime? FinalRepaymentDate { get; set; }
 
     [Required]
     public InvestmentModel InvestmentModel { get; set; }
