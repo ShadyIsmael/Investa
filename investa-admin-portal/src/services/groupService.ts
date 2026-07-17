@@ -1,5 +1,5 @@
 import { api } from '@/api/api';
-import { Group, PaginatedGroups, GroupCreateDto, GroupUpdateDto, MemberSample, Role, Permission } from '@/types';
+import { Group, PaginatedGroups, GroupCreateDto, GroupUpdateDto, MemberSample, LegacyRole as Role, Permission } from '@/types';
 
 const GROUPS_KEY = 'investa:mock:groups';
 

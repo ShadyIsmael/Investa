@@ -1,513 +1,182 @@
-<div class="container mx-auto p-6 lg:p-8">
-  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
-    <!-- Left Column: User Card & Navigation -->
-    <aside class="lg:col-span-4 xl:col-span-3 lg:sticky top-8">
-      <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl p-6 text-center">
-        <div class="w-32 h-32 mx-auto mb-4 relative group cursor-pointer" (click)="onAvatarClick()">
-          <img class="w-32 h-32 rounded-full ring-4 ring-slate-800 object-cover" [src]="avatarUrl()" [alt]="('profile.avatarAlt' | translate)">
-
-          <!-- Upload overlay -->
-          <div class="absolute inset-0 rounded-full bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-               [class.opacity-100]="isUploadingAvatar()">
-            <ng-container *ngIf="!isUploadingAvatar(); else uploadingSpinner">
-              <svg class="w-7 h-7 text-white mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16v1a3 3 0 003 3h12a3 3 0 003-3v-1M16 10l-4-4-4 4M12 6v10"/>
-              </svg>
-              <span class="text-white text-xs font-medium">{{ 'profile.changePhoto' | translate }}</span>
-            </ng-container>
-            <ng-template #uploadingSpinner>
-              <div class="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
-            </ng-template>
-          </div>
-
-          <!-- Hidden file input -->
-          <input #avatarInput type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" (change)="onAvatarFileSelected($event)">
-        </div>
-
-        <h2 class="text-2xl font-bold text-white">{{ fullName() || ('profile.titleDefault' | translate) }}</h2>
-        <p class="text-gray-400 mb-4">{{ getCountryLabel(profileForm.get('nationality')?.value) || getCountryLabel(profileService.profile()?.basicInfo?.nationality) }}</p>
-
-        <!-- Credits (moved to top) -->
-        <div class="bg-slate-800/50 p-4 rounded-lg mt-4">
-          <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center gap-2">
-              <span class="text-sm font-semibold text-blue-400">
-                <i class="fas fa-coins"></i>
-                {{ 'profile.credits.title' | translate }}
-              </span>
+<main class="user-profile-page" [attr.dir]="isRtl() ? 'rtl' : 'ltr'">
+  <div class="profile-shell">
+    @if (isLoading() && !profileService.profile()) {
+      <section class="state-card"><span class="profile-spinner" aria-hidden="true"></span><p>{{ 'userProfile.loading' | translate }}</p></section>
+    } @else if (errorMessage() && !profileService.profile()) {
+      <section class="state-card"><div class="state-icon">!</div><h1>{{ 'profile.loadErrorTitle' | translate }}</h1><p>{{ errorMessage() }}</p><button type="button" class="primary-action" (click)="loadProfile()">{{ 'profile.buttons.retry' | translate }}</button></section>
+    } @else if (profileService.profile(); as person) {
+      <header class="profile-header profile-card">
+        <button type="button" class="avatar-wrap" (click)="onAvatarClick()" [attr.aria-label]="'profile.changePhoto' | translate">
+          @if (avatarUrl()) { <img [src]="avatarUrl()" [alt]="'profile.avatarAlt' | translate"> }
+          @else { <span aria-hidden="true">{{ avatarInitials() }}</span> }
+          @if (isUploadingAvatar()) { <span class="avatar-loading profile-spinner" aria-hidden="true"></span> }
+        </button>
+        <input #avatarInput type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden (change)="onAvatarFileSelected($event)">
+        <div class="identity-block">
+          <div class="identity-title">
+            <div>
+              <h1>{{ fullName() || ('userProfile.member' | translate) }}</h1>
+              <p class="role-line">{{ roleLabel() }} @if (person.basicInfo?.jobTitle) { <span>· {{ person.basicInfo?.jobTitle }}</span> }</p>
             </div>
+            <button type="button" class="primary-action" (click)="selectSection('personal'); editMode.set(true)">{{ 'userProfile.editProfile' | translate }}</button>
           </div>
-
-          <div class="text-center mb-3">
-            {{ currentScorePts() }}
-            <p class="text-xs text-gray-400 mt-1">{{ 'profile.credits.available' | translate }}</p>
-          </div>
-
-          <button
-            (click)="navigateToChargeCredits()"
-            class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-4 rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2">
-            <i class="fas fa-credit-card"></i>
-            <span>{{ 'profile.credits.chargeNow' | translate }}</span>
-          </button>
-        </div>
-
-        <!-- Navigation moved up under credits -->
-        <div class="text-start mt-4">
-          <nav class="mt-2 space-y-1">
-            <button
-              (click)="selectSection('personal')"
-              class="w-full flex items-center gap-3 text-start px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
-              [class.bg-blue-500/20]="activeSection() === 'personal'"
-              [class.text-blue-300]="activeSection() === 'personal'"
-              [class.border-blue-500/30]="activeSection() === 'personal'"
-              [class.border]="activeSection() === 'personal'"
-              [class.text-gray-400]="activeSection() !== 'personal'"
-              [class.hover:bg-slate-800/50]="activeSection() !== 'personal'"
-              [class.hover:text-white]="activeSection() !== 'personal'">
-              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
-              </svg>
-              {{ 'profile.tabs.editProfile' | translate }}
-            </button>
-
-            <button
-              (click)="selectSection('investment')"
-              class="w-full flex items-center gap-3 text-start px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
-              [class.bg-blue-500/20]="activeSection() === 'investment'"
-              [class.text-blue-300]="activeSection() === 'investment'"
-              [class.border-blue-500/30]="activeSection() === 'investment'"
-              [class.border]="activeSection() === 'investment'"
-              [class.text-gray-400]="activeSection() !== 'investment'"
-              [class.hover:bg-slate-800/50]="activeSection() !== 'investment'"
-              [class.hover:text-white]="activeSection() !== 'investment'">
-              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5V4.5m0 15h15m-15 0l6-6 4 4 4-4"/>
-              </svg>
-              {{ 'profile.tabs.investment' | translate }}
-            </button>
-
-            <button
-              (click)="selectSection('personalization')"
-              class="w-full flex items-center gap-3 text-start px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
-              [class.bg-blue-500/20]="activeSection() === 'personalization'"
-              [class.text-blue-300]="activeSection() === 'personalization'"
-              [class.border-blue-500/30]="activeSection() === 'personalization'"
-              [class.border]="activeSection() === 'personalization'"
-              [class.text-gray-400]="activeSection() !== 'personalization'"
-              [class.hover:bg-slate-800/50]="activeSection() !== 'personalization'"
-              [class.hover:text-white]="activeSection() !== 'personalization'">
-              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-              </svg>
-              {{ 'profile.tabs.personalization' | translate }}
-            </button>
-
-            <button
-              (click)="selectSection('notifications')"
-              class="w-full flex items-center gap-3 text-start px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
-              [class.bg-blue-500/20]="activeSection() === 'notifications'"
-              [class.text-blue-300]="activeSection() === 'notifications'"
-              [class.border-blue-500/30]="activeSection() === 'notifications'"
-              [class.border]="activeSection() === 'notifications'"
-              [class.text-gray-400]="activeSection() !== 'notifications'"
-              [class.hover:bg-slate-800/50]="activeSection() !== 'notifications'"
-              [class.hover:text-white]="activeSection() !== 'notifications'">
-              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
-              </svg>
-              {{ 'profile.tabs.notifications' | translate }}
-            </button>
-
-            <button
-              (click)="selectSection('security')"
-              class="w-full flex items-center gap-3 text-start px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
-              [class.bg-blue-500/20]="activeSection() === 'security'"
-              [class.text-blue-300]="activeSection() === 'security'"
-              [class.border-blue-500/30]="activeSection() === 'security'"
-              [class.border]="activeSection() === 'security'"
-              [class.text-gray-400]="activeSection() !== 'security'"
-              [class.hover:bg-slate-800/50]="activeSection() !== 'security'"
-              [class.hover:text-white]="activeSection() !== 'security'">
-              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/>
-              </svg>
-              {{ 'profile.tabs.security' | translate }}
-            </button>
-
-            <button
-              (click)="selectSection('credit')"
-              class="w-full flex items-center gap-3 text-start px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
-              [class.bg-blue-500/20]="activeSection() === 'credit'"
-              [class.text-blue-300]="activeSection() === 'credit'"
-              [class.border-blue-500/30]="activeSection() === 'credit'"
-              [class.border]="activeSection() === 'credit'"
-              [class.text-gray-400]="activeSection() !== 'credit'"
-              [class.hover:bg-slate-800/50]="activeSection() !== 'credit'"
-              [class.hover:text-white]="activeSection() !== 'credit'">
-              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2m-3 0l4-4m0 0l-4-4m4 4H10"/>
-              </svg>
-              {{ 'profile.tabs.credit' | translate }}
-            </button>
-
-            <button
-              (click)="selectSection('score')"
-              class="w-full flex items-center gap-3 text-start px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
-              [class.bg-blue-500/20]="activeSection() === 'score'"
-              [class.text-blue-300]="activeSection() === 'score'"
-              [class.border-blue-500/30]="activeSection() === 'score'"
-              [class.border]="activeSection() === 'score'"
-              [class.text-gray-400]="activeSection() !== 'score'"
-              [class.hover:bg-slate-800/50]="activeSection() !== 'score'"
-              [class.hover:text-white]="activeSection() !== 'score'">
-              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5 1a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-              {{ 'profile.tabs.score' | translate }}
-            </button>
-          </nav>
-        </div>
-
-      </div>
-    </aside>
-
-    <!-- Right Column: Content -->
-    <main class="lg:col-span-8 xl:col-span-9">
-      <div *ngIf="errorMessage()" class="mb-6 p-4 rounded-lg bg-red-800 text-white">
-        <div class="flex items-start justify-between">
-          <div>
-            <p class="font-semibold">{{ 'profile.loadErrorTitle' | translate }}</p>
-            <p class="text-sm mt-1">{{ errorMessage() }}</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <button (click)="loadProfile()" class="bg-white text-red-800 px-3 py-1 rounded-md">{{ 'profile.buttons.retry' | translate }}</button>
+          <div class="header-meta">
+            @if (person.basicInfo?.companyName) { <span>{{ person.basicInfo?.companyName }}</span> }
+            @if (person.contactInfo?.city || person.basicInfo?.country) { <span>{{ person.contactInfo?.city }}@if (person.contactInfo?.city && person.basicInfo?.country) {, }{{ person.basicInfo?.country }}</span> }
+            <span class="status-badge status-badge--green">{{ verificationLabel() }}</span>
           </div>
         </div>
-      </div>
+      </header>
 
-      @switch (activeSection()) {
-        @case ('personal') {
-          <form [formGroup]="profileForm" (ngSubmit)="onProfileSubmit()" class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl animate-fade-in">
-            <div class="p-8 space-y-6">
-              <h2 class="text-2xl font-bold text-white">{{ 'profile.personalInfo.title' | translate }}</h2>
+      <nav class="profile-tabs profile-card" role="tablist" [attr.aria-label]="'profile.ownerSettings' | translate">
+        <button type="button" role="tab" [attr.aria-selected]="activeSection() === 'personal'" [class.active]="activeSection() === 'personal'" (click)="selectSection('personal')">{{ 'profile.tabs.editProfile' | translate }}</button>
+        <button type="button" role="tab" [attr.aria-selected]="activeSection() === 'investment'" [class.active]="activeSection() === 'investment'" (click)="selectSection('investment')">{{ 'profile.tabs.investment' | translate }}</button>
+        <button type="button" role="tab" [attr.aria-selected]="activeSection() === 'personalization'" [class.active]="activeSection() === 'personalization'" (click)="selectSection('personalization')">{{ 'profile.tabs.personalization' | translate }}</button>
+        <button type="button" role="tab" [attr.aria-selected]="activeSection() === 'notifications'" [class.active]="activeSection() === 'notifications'" (click)="selectSection('notifications')">{{ 'profile.tabs.notifications' | translate }}</button>
+        <button type="button" role="tab" [attr.aria-selected]="activeSection() === 'security'" [class.active]="activeSection() === 'security'" (click)="selectSection('security')">{{ 'profile.tabs.security' | translate }}</button>
+        <button type="button" role="tab" [attr.aria-selected]="activeSection() === 'credit'" [class.active]="activeSection() === 'credit'" (click)="selectSection('credit')">{{ 'profile.tabs.credit' | translate }}</button>
+        <button type="button" role="tab" [attr.aria-selected]="activeSection() === 'score'" [class.active]="activeSection() === 'score'" (click)="selectSection('score')">{{ 'profile.tabs.score' | translate }}</button>
+      </nav>
 
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label for="firstName" class="block text-sm font-medium text-gray-300">{{ 'profile.personalInfo.firstName' | translate }}</label>
-                  <input id="firstName" type="text" formControlName="firstName" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+      @if (errorMessage()) { <p class="error-banner">{{ errorMessage() }}</p> }
+
+      <section class="tab-panel" role="tabpanel">
+        @switch (activeSection()) {
+          @case ('personal') {
+            @if (!editMode()) {
+              <section class="stats-grid">
+                <article class="stat-card profile-card"><span>{{ 'userProfile.stats.opportunities' | translate }}</span><strong>{{ westernNumber(myOpportunities().length) }}</strong></article>
+                <article class="stat-card profile-card"><span>{{ 'userProfile.stats.participations' | translate }}</span><strong>{{ westernNumber(myParticipations().length) }}</strong></article>
+                <article class="stat-card profile-card"><span>{{ 'userProfile.stats.credibility' | translate }}</span><strong>{{ westernNumber(reputationScore()) }}</strong></article>
+                <article class="stat-card profile-card"><span>{{ 'userProfile.fields.memberSince' | translate }}</span><strong class="date-stat">{{ westernDate(person.createdAt) || ('userProfile.notAvailable' | translate) }}</strong></article>
+              </section>
+              <div class="content-grid">
+                <div class="main-column">
+                  @if (person.basicInfo?.bio) { <section class="profile-card section-card"><div class="section-heading"><h2>{{ 'userProfile.sections.about' | translate }}</h2></div><p class="bio-copy">{{ person.basicInfo?.bio }}</p></section> }
+                  <section class="profile-card section-card owner-section">
+                    <div class="section-heading"><div><span class="eyebrow">{{ 'userProfile.ownerOnly' | translate }}</span><h2>{{ 'userProfile.sections.contact' | translate }}</h2></div></div>
+                    <dl class="detail-grid">
+                      @if (person.contactInfo?.email) { <div><dt>{{ 'profile.communication.email' | translate }}</dt><dd>{{ person.contactInfo?.email }}</dd></div> }
+                      @if (person.contactInfo?.phone1) { <div><dt>{{ 'profile.communication.mobile' | translate }}</dt><dd dir="ltr">{{ person.contactInfo?.phone1 }}</dd></div> }
+                      @if (person.contactInfo?.city) { <div><dt>{{ 'profile.communication.city' | translate }}</dt><dd>{{ person.contactInfo?.city }}</dd></div> }
+                      @if (person.contactInfo?.address) { <div><dt>{{ 'profile.communication.address' | translate }}</dt><dd>{{ person.contactInfo?.address }}</dd></div> }
+                    </dl>
+                  </section>
                 </div>
-                <div>
-                  <label for="lastName" class="block text-sm font-medium text-gray-300">{{ 'profile.personalInfo.lastName' | translate }}</label>
-                  <input id="lastName" type="text" formControlName="lastName" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
+                <aside class="main-column">
+                  <section class="profile-card section-card"><div class="section-heading"><h2>{{ 'userProfile.sections.professional' | translate }}</h2></div>
+                    <dl class="detail-grid">
+                      @if (person.basicInfo?.jobTitle) { <div><dt>{{ 'userProfile.fields.jobTitle' | translate }}</dt><dd>{{ person.basicInfo?.jobTitle }}</dd></div> }
+                      @if (person.basicInfo?.companyName) { <div><dt>{{ 'userProfile.fields.company' | translate }}</dt><dd>{{ person.basicInfo?.companyName }}</dd></div> }
+                      @if (person.basicInfo?.websiteUrl) { <div><dt>{{ 'userProfile.fields.website' | translate }}</dt><dd><a [href]="person.basicInfo?.websiteUrl" target="_blank" rel="noopener noreferrer">{{ person.basicInfo?.websiteUrl }}</a></dd></div> }
+                      @if (person.contactInfo?.linkedInUrl) { <div><dt>{{ 'userProfile.fields.linkedin' | translate }}</dt><dd><a [href]="person.contactInfo?.linkedInUrl" target="_blank" rel="noopener noreferrer">{{ 'userProfile.openLinkedIn' | translate }}</a></dd></div> }
+                    </dl>
+                  </section>
+                </aside>
               </div>
+            } @else {
+              <form class="profile-card edit-card" [formGroup]="profileForm" (ngSubmit)="onProfileSubmit()">
+                <div class="section-heading"><div><span class="eyebrow">{{ 'userProfile.ownerOnly' | translate }}</span><h2>{{ 'profile.personalInfo.title' | translate }}</h2></div><button type="button" class="photo-action" (click)="onAvatarClick()">{{ 'profile.changePhoto' | translate }}</button></div>
+                <div class="form-section"><div class="form-grid">
+                  <label>{{ 'profile.personalInfo.firstName' | translate }}<input formControlName="firstName" autocomplete="given-name"></label>
+                  <label>{{ 'profile.personalInfo.lastName' | translate }}<input formControlName="lastName" autocomplete="family-name"></label>
+                  <label>{{ 'profile.personalInfo.dateOfBirth' | translate }}<input type="date" formControlName="dateOfBirth"></label>
+                  <label>{{ 'profile.personalInfo.gender' | translate }}<select formControlName="gender"><option value="">{{ 'profile.personalInfo.genderSelect' | translate }}</option><option value="M">{{ 'profile.personalInfo.male' | translate }}</option><option value="F">{{ 'profile.personalInfo.female' | translate }}</option></select></label>
+                  <label>{{ 'profile.personalInfo.nationality' | translate }}<select formControlName="nationality"><option value="">{{ 'profile.personalInfo.nationalitySelect' | translate }}</option>@for (country of nationalityOptions; track country.code) { <option [value]="country.code">{{ country.key | translate }}</option> }</select></label>
+                  <label>{{ 'profile.personalInfo.country' | translate }}<select formControlName="country"><option value="">{{ 'profile.personalInfo.countrySelect' | translate }}</option>@for (country of nationalityOptions; track country.code) { <option [value]="country.code">{{ country.key | translate }}</option> }</select></label>
+                  <label class="span-2">{{ 'profile.personalInfo.bio' | translate }}<textarea rows="4" formControlName="bio"></textarea></label>
+                </div></div>
 
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label for="dateOfBirth" class="block text-sm font-medium text-gray-300">{{ 'profile.personalInfo.dateOfBirth' | translate }}</label>
-                  <div class="relative mt-1">
-                    <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                      <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                    </div>
-                    <input id="dateOfBirth" type="text" readonly (click)="toggleDobCalendar()" [value]="profileForm.get('dateOfBirth')?.value || ''" class="cursor-pointer block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm h-10 py-2 pl-10 pr-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <div *ngIf="dobCalendarOpen()" class="absolute z-50 mt-2 bg-white text-slate-900 rounded-md shadow-lg border border-slate-200 w-[28rem] p-3">
-                      <div class="flex items-center justify-between mb-2">
-                        <div class="text-sm font-semibold">{{ dobCalendarYear() }}</div>
-                        <div class="text-sm font-semibold">{{ getMonths()[dobCalendarMonth()].name }} {{ dobCalendarYear() }}</div>
-                        <div></div>
-                      </div>
-                      <div class="grid grid-cols-3 gap-2">
-                        <div class="h-52 overflow-y-auto border rounded-md p-1 bg-white">
-                          <div *ngFor="let y of getYears()" class="py-1">
-                            <button type="button" (click)="onSelectYear(y)" [class]="(y === dobCalendarYear() ? 'font-semibold text-blue-600' : 'text-slate-600') + ' w-full text-left px-2 py-1 rounded'">{{ y }}</button>
-                          </div>
-                        </div>
-                        <div class="h-52 overflow-y-auto border rounded-md p-1 bg-white" [attr.dir]="isRtl ? 'rtl' : 'ltr'">
-                          <div *ngFor="let m of getMonths()" class="py-1">
-                            <button type="button" (click)="onSelectMonth(m.idx)" [class]="(m.idx === dobCalendarMonth() ? 'font-semibold text-blue-600' : 'text-slate-600') + ' w-full text-left px-2 py-1 rounded'">{{ m.name }}</button>
-                          </div>
-                        </div>
-                        <div class="h-52 overflow-y-auto border rounded-md p-1 bg-white">
-                          <div class="grid grid-cols-7 gap-1">
-                            <ng-container *ngFor="let d of getDaysForMonth(dobCalendarYear(), dobCalendarMonth())">
-                              <button type="button" (click)="onSelectDayNumber(d)" [class]="(isSelectedDob(d) ? 'bg-blue-600 text-white' : 'text-slate-700') + ' rounded py-1'">{{ d }}</button>
-                            </ng-container>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="text-end mt-2">
-                        <button type="button" (click)="closeDobCalendar()" class="text-sm text-slate-500">Close</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <div class="form-section identity-section"><h3>{{ 'profile.identityDocuments' | translate }}</h3><div class="form-grid">
+                  <label>{{ 'profile.personalInfo.nationalId' | translate }}<input formControlName="nationalId" inputmode="numeric"></label>
+                  <div class="file-field"><span>{{ 'profile.personalInfo.uploadId' | translate }}</span><button type="button" class="quiet-action" (click)="triggerNationalIdSelect()">{{ 'profile.personalInfo.chooseFile' | translate }}</button><small>{{ nationalIdFileName() || ('profile.personalInfo.noFileChosen' | translate) }}</small><input #nationalIdInput type="file" accept="image/*,.pdf" hidden multiple (change)="onFileChange($event)"></div>
+                  @if (nationalIdFiles().length) { <div class="file-list span-2">@for (file of nationalIdFiles(); track file.fileName; let index = $index) { <article><a [href]="file.url" target="_blank" rel="noopener noreferrer">{{ file.fileName }}</a><button type="button" class="quiet-action" (click)="triggerNationalIdSelect(index)">{{ 'profile.personalInfo.replaceFile' | translate }}</button></article> }</div> }
+                </div></div>
 
-                <div>
-                  <label for="gender" class="block text-sm font-medium text-gray-300">{{ 'profile.personalInfo.gender' | translate }}</label>
-                  <select id="gender" formControlName="gender" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">{{ 'profile.personalInfo.genderSelect' | translate }}</option>
-                    <option value="M">{{ 'profile.personalInfo.male' | translate }}</option>
-                    <option value="F">{{ 'profile.personalInfo.female' | translate }}</option>
-                  </select>
-                </div>
+                <div class="form-section" [formGroup]="communicationForm"><h3>{{ 'profile.communication.title' | translate }}</h3><div class="form-grid">
+                  <label>{{ 'profile.communication.email' | translate }}<input type="email" formControlName="email" autocomplete="email"></label>
+                  <label>{{ 'profile.communication.mobile' | translate }}<input formControlName="mobile" autocomplete="tel"></label>
+                  <label>{{ 'profile.communication.address' | translate }}<input formControlName="address" autocomplete="street-address"></label>
+                  <label>{{ 'profile.communication.city' | translate }}<input formControlName="city" autocomplete="address-level2"></label>
+                  <label>{{ 'profile.communication.state' | translate }}<input formControlName="state" autocomplete="address-level1"></label>
+                  <label>{{ 'profile.communication.businessAddress' | translate }}<input formControlName="businessAddress"></label>
+                </div></div>
+
+                <div class="form-section"><h3>{{ 'profile.company.title' | translate }}</h3><div class="form-grid">
+                  <label>{{ 'profile.company.name' | translate }}<input formControlName="companyName"></label>
+                  <label>{{ 'profile.personalInfo.businessRole' | translate }}<input formControlName="jobTitle"></label>
+                  <label>{{ 'profile.company.email' | translate }}<input type="email" formControlName="companyEmail"></label>
+                  <label>{{ 'profile.company.address' | translate }}<input formControlName="companyAddress"></label>
+                  <label>{{ 'userProfile.fields.website' | translate }}<input type="url" formControlName="websiteUrl" inputmode="url"></label>
+                  <div class="file-field"><span>{{ 'profile.company.hrLetter' | translate }}</span><label class="quiet-action" for="hrLetterCopy">{{ 'profile.personalInfo.chooseFile' | translate }}</label><input id="hrLetterCopy" type="file" hidden (change)="onHrLetterChange($event)"><small>{{ hrLetterFileName() || ('profile.personalInfo.noFileChosen' | translate) }}</small></div>
+                  <label>{{ 'profile.personalInfo.linkedin' | translate }}<input type="url" formControlName="linkedinUrl" inputmode="url"></label>
+                  <label>{{ 'profile.personalInfo.facebook' | translate }}<input type="url" formControlName="facebookUrl" inputmode="url"></label>
+                </div></div>
+                <footer class="form-actions"><button type="button" class="quiet-action" (click)="cancelEdit()">{{ 'common.cancel' | translate }}</button><button type="submit" class="primary-action" [disabled]="isLoading() || profileForm.invalid || (!isProfileChanged() && !isCommunicationChanged())">{{ isLoading() ? ('profile.notifications.saving' | translate) : ('profile.saveButton' | translate) }}</button></footer>
+              </form>
+            }
+          }
+
+          @case ('investment') {
+            @if (myOpportunities().length || myParticipations().length) {
+              <div class="content-grid activity-grid">
+                @if (myOpportunities().length) {
+                  <section class="profile-card section-card"><div class="section-heading"><h2>{{ 'userProfile.sections.opportunities' | translate }}</h2><span class="count-badge">{{ westernNumber(myOpportunities().length) }}</span></div>
+                    <div class="activity-list">@for (item of limitedOpportunities(); track item.id) { <a [routerLink]="['/admin/investments', item.id]"><span>{{ item.title || ('userProfile.opportunity' | translate) }}</span><small>{{ enumLabel('opportunityStatus', item.status, 'unknown') }}</small></a> }</div>
+                  </section>
+                }
+                @if (myParticipations().length) {
+                  <section class="profile-card section-card owner-section"><div class="section-heading"><div><span class="eyebrow">{{ 'userProfile.ownerOnly' | translate }}</span><h2>{{ 'userProfile.sections.participation' | translate }}</h2></div><div class="section-actions"><span class="count-badge">{{ westernNumber(myParticipations().length) }}</span><a class="text-action" routerLink="/admin/my-projects">{{ 'profile.viewAllParticipations' | translate }}</a></div></div>
+                    <div class="activity-list">@for (item of limitedParticipations(); track item.id) { @if (item.opportunityId) { <a [routerLink]="['/admin/investments', item.opportunityId]"><span>{{ item.opportunityTitle || ('userProfile.opportunity' | translate) }}</span><small>{{ enumLabel('participationStatus', item.participationStatus, 'unknown') }}</small></a> } @else { <div class="activity-row"><span>{{ item.opportunityTitle || ('userProfile.opportunity' | translate) }}</span><small>{{ enumLabel('participationStatus', item.participationStatus, 'unknown') }}</small></div> } }</div>
+                  </section>
+                }
               </div>
+            } @else {
+              <section class="profile-card section-card compact-empty"><p class="empty-copy">{{ 'profile.activityEmpty' | translate }}</p></section>
+            }
+          }
 
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label for="nationality" class="block text-sm font-medium text-gray-300 mb-1">{{ 'profile.personalInfo.nationality' | translate }}</label>
-                  <select id="nationality" formControlName="nationality" class="block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">{{ 'profile.personalInfo.nationalitySelect' | translate }}</option>
-                    <option *ngFor="let c of nationalityOptions" [value]="c.code">{{ c.key | translate }}</option>
-                  </select>
-                </div>
+          @case ('personalization') {
+            <section class="profile-card settings-card"><div class="section-heading"><div><span class="eyebrow">{{ 'userProfile.ownerOnly' | translate }}</span><h2>{{ 'settings.personalization.title' | translate }}</h2></div></div>
+              <div class="settings-group"><h3>{{ 'settings.appearance.theme.label' | translate }}</h3><div class="choice-row">@for (option of themeOptions; track option) { <button type="button" [class.selected]="settings().theme === option" (click)="setTheme(option)">{{ ('settings.appearance.theme.options.' + option) | translate }}</button> }</div></div>
+              <div class="settings-group"><h3>{{ 'settings.personalization.dashboardDensity.label' | translate }}</h3><div class="choice-row">@for (option of densityOptions; track option) { <button type="button" [class.selected]="settings().personalization.dashboardDensity === option" (click)="setPersonalization({ dashboardDensity: option })">{{ ('settings.personalization.dashboardDensity.options.' + option) | translate }}</button> }</div></div>
+              <div class="settings-group"><h3>{{ 'settings.personalization.defaultInvestmentType.label' | translate }}</h3><div class="choice-row">@for (option of investmentTypeOptions; track option) { <button type="button" [class.selected]="settings().personalization.defaultInvestmentType === option" (click)="setPersonalization({ defaultInvestmentType: option })">{{ ('settings.personalization.defaultInvestmentType.options.' + option) | translate }}</button> }</div></div>
+              <label class="toggle-row"><span>{{ 'settings.personalization.showRiskIndicators' | translate }}</span><input type="checkbox" [checked]="settings().personalization.showRiskIndicators" (change)="setPersonalization({ showRiskIndicators: !settings().personalization.showRiskIndicators })"></label>
+              <a class="quiet-action inline-link" routerLink="/admin/settings">{{ 'profile.openAllSettings' | translate }}</a>
+            </section>
+          }
 
-                <div>
-                  <label for="country" class="block text-sm font-medium text-gray-300 mb-1">{{ 'profile.personalInfo.country' | translate }}</label>
-                  <select id="country" formControlName="country" class="block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">{{ 'profile.personalInfo.countrySelect' | translate }}</option>
-                    <option value="Egypt">Egypt</option>
-                    <option value="United States">United States</option>
-                    <option value="United Kingdom">United Kingdom</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-              </div>
+          @case ('notifications') {
+            <form class="profile-card settings-card" [formGroup]="notificationSettingsForm" (ngSubmit)="onNotificationSettingsSubmit()"><div class="section-heading"><div><h2>{{ 'profile.notifications.title' | translate }}</h2><p>{{ 'profile.notifications.subtitle' | translate }}</p></div><button type="button" class="quiet-action" (click)="navigateToNotificationCenter()">{{ 'profile.openNotifications' | translate }}</button></div>
+              <label class="toggle-row"><span><strong>{{ 'profile.notifications.opportunities.title' | translate }}</strong><small>{{ 'profile.notifications.opportunities.description' | translate }}</small></span><input type="checkbox" formControlName="newOpportunities"></label>
+              <label class="toggle-row"><span><strong>{{ 'profile.notifications.portfolio.title' | translate }}</strong><small>{{ 'profile.notifications.portfolio.description' | translate }}</small></span><input type="checkbox" formControlName="portfolioUpdates"></label>
+              <label class="toggle-row"><span><strong>{{ 'profile.notifications.security.title' | translate }}</strong><small>{{ 'profile.notifications.security.description' | translate }}</small></span><input type="checkbox" formControlName="securityAlerts"></label>
+              <label class="toggle-row"><span><strong>{{ 'profile.notifications.news.title' | translate }}</strong><small>{{ 'profile.notifications.news.description' | translate }}</small></span><input type="checkbox" formControlName="marketNews"></label>
+              <footer class="form-actions"><button type="submit" class="primary-action" [disabled]="notificationSettingsForm.pristine">{{ 'profile.saveButton' | translate }}</button></footer>
+            </form>
+          }
 
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                <div>
-                  <label for="nationalId" class="block text-sm font-medium text-gray-300 mb-1">{{ 'profile.personalInfo.nationalId' | translate }}</label>
-                  <input id="nationalId" type="text" formControlName="nationalId" class="block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
+          @case ('security') {
+            <form class="profile-card settings-card security-form" [formGroup]="passwordForm" (ngSubmit)="onPasswordSubmit()"><div class="section-heading"><div><h2>{{ 'profile.password.title' | translate }}</h2><p>{{ 'profile.password.description' | translate }}</p></div></div>
+              <div class="form-grid"><label class="span-2">{{ 'profile.password.current' | translate }}<span class="input-action"><input type="password" formControlName="currentPassword" autocomplete="current-password"><button type="button" class="quiet-action" (click)="sendPasswordOtp()" [disabled]="isLoading()">{{ otpSent() ? ('profile.password.resendOtp' | translate) : ('profile.password.sendOtp' | translate) }}</button></span></label>
+                @if (otpSent()) { <label class="span-2">{{ 'profile.password.otp' | translate }}<input type="text" formControlName="otpToken" inputmode="numeric" autocomplete="one-time-code"></label><label>{{ 'profile.password.new' | translate }}<input type="password" formControlName="newPassword" autocomplete="new-password"></label><label>{{ 'profile.password.confirm' | translate }}<input type="password" formControlName="confirmNewPassword" autocomplete="new-password"></label>@if (passwordForm.hasError('passwordMismatch') && passwordForm.get('confirmNewPassword')?.touched) { <p class="error-message span-2">{{ 'profile.password.mismatch' | translate }}</p> } }
+              </div>@if (otpSent()) { <footer class="form-actions"><button type="submit" class="primary-action" [disabled]="passwordForm.invalid || isLoading()">{{ 'profile.saveButton' | translate }}</button></footer> }
+            </form>
+          }
 
-                <div>
-                  <label class="block text-sm font-medium text-gray-300 mb-1">{{ 'profile.personalInfo.uploadId' | translate }}</label>
-                  <div class="flex items-center">
-                    <label for="nationalIdCopy" class="cursor-pointer bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-4 rounded-md transition-colors">
-                      <span>{{ 'profile.personalInfo.chooseFile' | translate }}</span>
-                    </label>
-                    <input id="nationalIdCopy" type="file" class="hidden" (change)="onFileChange($event)">
-                    <span class="ms-3 text-gray-400 text-sm truncate">{{ nationalIdFileName() || ('profile.personalInfo.noFileChosen' | translate) }}</span>
-                  </div>
-                </div>
-              </div>
+          @case ('credit') {
+            <section class="profile-card settings-card"><div class="section-heading"><div><span class="eyebrow">{{ 'userProfile.ownerOnly' | translate }}</span><h2>{{ 'profile.creditManagement.title' | translate }}</h2></div></div>
+              <div class="wallet-summary"><div><span>{{ 'profile.credits.available' | translate }}</span><strong>{{ westernNumber(currentScorePts()) }}</strong></div><div class="wallet-actions"><button type="button" class="quiet-action" (click)="navigateToWallet()">{{ 'profile.viewWallet' | translate }}</button><button type="button" class="primary-action" (click)="navigateToChargeCredits()">{{ 'profile.credits.chargeNow' | translate }}</button></div></div>
+              <div class="section-heading history-heading"><h3>{{ 'profile.credibilityHistory' | translate }}</h3>@if (creditHistory().length) { <button type="button" class="text-action" (click)="viewAllTransactions()">{{ 'profile.viewAll' | translate }}</button> }</div>
+              @if (!limitedCreditHistory().length) { <p class="empty-copy">{{ 'wallet.transactions.empty' | translate }}</p> } @else { <div class="transaction-list">@for (transaction of limitedCreditHistory(); track transaction.id) { <article><div><strong>{{ walletTransactionTitle(transaction) }}</strong><small>{{ westernDate(transaction.createdAt) }}</small></div><span [class.positive]="isWalletCredit(transaction)">{{ signedWalletAmount(transaction) > 0 ? '+' : '' }}{{ westernNumber(signedWalletAmount(transaction)) }}</span></article> }</div> }
+            </section>
+          }
 
-              <div class="space-y-6 pt-6 border-t border-slate-800">
-                <h3 class="text-lg font-medium text-gray-200">{{ 'profile.company.title' | translate }}</h3>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label for="companyName" class="block text-sm font-medium text-gray-300">{{ 'profile.company.name' | translate }}</label>
-                    <input id="companyName" type="text" formControlName="companyName" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  </div>
-                  <div>
-                    <label for="companyEmail" class="block text-sm font-medium text-gray-300">{{ 'profile.company.email' | translate }}</label>
-                    <input id="companyEmail" type="email" formControlName="companyEmail" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  </div>
-                </div>
-
-                <div>
-                  <label for="companyAddress" class="block text-sm font-medium text-gray-300">{{ 'profile.company.address' | translate }}</label>
-                  <input id="companyAddress" type="text" formControlName="companyAddress" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-300 mb-1">{{ 'profile.company.hrLetter' | translate }}</label>
-                  <div class="flex items-center">
-                    <label for="hrLetterCopy" class="cursor-pointer bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-4 rounded-md transition-colors">
-                      <span>{{ 'profile.personalInfo.chooseFile' | translate }}</span>
-                    </label>
-                    <input id="hrLetterCopy" type="file" class="hidden" (change)="onHrLetterChange($event)">
-                    <span class="ms-3 text-gray-400 text-sm truncate">{{ hrLetterFileName() || ('profile.personalInfo.noFileChosen' | translate) }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label for="bio" class="block text-sm font-medium text-gray-300">{{ 'profile.personalInfo.bio' | translate }}</label>
-                <textarea id="bio" formControlName="bio" rows="4" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-              </div>
-
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label for="linkedinUrl" class="block text-sm font-medium text-gray-300">{{ 'profile.personalInfo.linkedin' | translate }}</label>
-                  <input id="linkedinUrl" type="url" formControlName="linkedinUrl" placeholder="https://linkedin.com/in/..." class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                  <label for="facebookUrl" class="block text-sm font-medium text-gray-300">{{ 'profile.personalInfo.facebook' | translate }}</label>
-                  <input id="facebookUrl" type="url" formControlName="facebookUrl" placeholder="https://facebook.com/..." class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-              </div>
-            </div>
-
-            <div class="p-6 bg-slate-900/50 border-t border-slate-800 text-end rounded-b-xl">
-              <button type="submit" [disabled]="!isProfileChanged() || isLoading()" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-                {{ 'profile.saveButton' | translate }}
-              </button>
-            </div>
-          </form>
+          @case ('score') {
+            <section class="profile-card settings-card score-card"><div class="section-heading"><h2>{{ 'profile.score.title' | translate }}</h2></div>@if (reputationScore() !== null) { <strong class="score-value">{{ westernNumber(reputationScore()) }}</strong> } @else { <strong class="score-value score-unavailable">{{ 'profile.score.unavailable' | translate }}</strong> }<p>{{ 'profile.score.description' | translate }}</p><small>{{ 'profile.score.activityHelper' | translate }}</small></section>
+          }
         }
-
-        @case ('investment') {
-          <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl animate-fade-in p-8 space-y-6">
-            <h2 class="text-2xl font-bold text-white">{{ 'profile.investment.title' | translate }}</h2>
-            <!-- Existing investment UI not present in this template batch; keeping structure only -->
-          </div>
-        }
-
-        @case ('personalization') {
-          <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl animate-fade-in p-8 space-y-6">
-            <h2 class="text-2xl font-bold text-white">{{ 'profile.personalization.title' | translate }}</h2>
-          </div>
-        }
-
-        @case ('notifications') {
-          <form [formGroup]="notificationSettingsForm" (ngSubmit)="onNotificationSettingsSubmit()" class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl animate-fade-in">
-            <div class="p-8">
-              <h2 class="text-2xl font-bold text-white mb-2">{{ 'profile.notifications.title' | translate }}</h2>
-              <p class="text-gray-400 mb-8 max-w-2xl">{{ 'profile.notifications.subtitle' | translate }}</p>
-
-              <div class="rounded-xl border border-slate-800 bg-slate-800/40 p-5 mb-8">
-                <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <p class="text-lg font-semibold text-white">Notification Center</p>
-                    <p class="mt-1 text-sm text-gray-400">View notifications and manage read status.</p>
-                  </div>
-                  <button type="button" (click)="navigateToNotificationCenter()" class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">
-                    Open Notifications
-                  </button>
-                </div>
-              </div>
-
-              <div class="space-y-6">
-                <div class="flex items-start justify-between p-4 rounded-lg bg-slate-800/50">
-                  <div>
-                    <h3 class="font-semibold text-white">{{ 'profile.notifications.opportunities.title' | translate }}</h3>
-                    <p class="text-sm text-gray-400 max-w-md">{{ 'profile.notifications.opportunities.description' | translate }}</p>
-                  </div>
-                  <label class="relative inline-flex items-center cursor-pointer flex-shrink-0 ms-6">
-                    <input type="checkbox" formControlName="newOpportunities" class="sr-only peer">
-                    <div class="w-11 h-6 bg-slate-700 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-500/50 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-
-                <div class="flex items-start justify-between p-4 rounded-lg bg-slate-800/50">
-                  <div>
-                    <h3 class="font-semibold text-white">{{ 'profile.notifications.portfolio.title' | translate }}</h3>
-                    <p class="text-sm text-gray-400 max-w-md">{{ 'profile.notifications.portfolio.description' | translate }}</p>
-                  </div>
-                  <label class="relative inline-flex items-center cursor-pointer flex-shrink-0 ms-6">
-                    <input type="checkbox" formControlName="portfolioUpdates" class="sr-only peer">
-                    <div class="w-11 h-6 bg-slate-700 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-500/50 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-
-                <div class="flex items-start justify-between p-4 rounded-lg bg-slate-800/50">
-                  <div>
-                    <h3 class="font-semibold text-white">{{ 'profile.notifications.security.title' | translate }}</h3>
-                    <p class="text-sm text-gray-400 max-w-md">{{ 'profile.notifications.security.description' | translate }}</p>
-                  </div>
-                  <label class="relative inline-flex items-center cursor-pointer flex-shrink-0 ms-6">
-                    <input type="checkbox" formControlName="securityAlerts" class="sr-only peer">
-                    <div class="w-11 h-6 bg-slate-700 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-500/50 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-
-                <div class="flex items-start justify-between p-4 rounded-lg bg-slate-800/50">
-                  <div>
-                    <h3 class="font-semibold text-white">{{ 'profile.notifications.news.title' | translate }}</h3>
-                    <p class="text-sm text-gray-400 max-w-md">{{ 'profile.notifications.news.description' | translate }}</p>
-                  </div>
-                  <label class="relative inline-flex items-center cursor-pointer flex-shrink-0 ms-6">
-                    <input type="checkbox" formControlName="marketNews" class="sr-only peer">
-                    <div class="w-11 h-6 bg-slate-700 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-500/50 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div class="p-6 bg-slate-900/50 border-t border-slate-800 text-end rounded-b-xl">
-              <button type="submit" [disabled]="notificationSettingsForm.pristine" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-                {{ 'profile.saveButton' | translate }}
-              </button>
-            </div>
-          </form>
-        }
-
-        @case ('security') {
-          <form [formGroup]="passwordForm" (ngSubmit)="onPasswordSubmit()" class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl animate-fade-in">
-            <div class="p-8 space-y-6 max-w-lg">
-              <h2 class="text-2xl font-bold text-white">{{ 'profile.password.title' | translate }}</h2>
-              <p class="text-sm text-gray-400">{{ 'profile.password.description' | translate }}</p>
-
-              <div>
-                <label for="currentPassword" class="block text-sm font-medium text-gray-300">{{ 'profile.password.current' | translate }}</label>
-                <div class="mt-1 flex gap-3">
-                  <input id="currentPassword" type="password" formControlName="currentPassword" class="flex-1 bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <button type="button" (click)="sendPasswordOtp()" class="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-white font-semibold hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400">
-                    {{ otpSent() ? ('profile.password.resendOtp' | translate) : ('profile.password.sendOtp' | translate) }}
-                  </button>
-                </div>
-              </div>
-
-              @if (otpSent()) {
-                <div>
-                  <label for="otpToken" class="block text-sm font-medium text-gray-300">{{ 'profile.password.otp' | translate }}</label>
-                  <input id="otpToken" type="text" formControlName="otpToken" placeholder="{{ 'profile.password.otpPlaceholder' | translate }}" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-
-                <div>
-                  <label for="newPassword" class="block text-sm font-medium text-gray-300">{{ 'profile.password.new' | translate }}</label>
-                  <input id="newPassword" type="password" formControlName="newPassword" placeholder="{{ 'profile.password.newPlaceholder' | translate }}" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-
-                <div>
-                  <label for="confirmNewPassword" class="block text-sm font-medium text-gray-300">{{ 'profile.password.confirm' | translate }}</label>
-                  <input id="confirmNewPassword" type="password" formControlName="confirmNewPassword" placeholder="{{ 'profile.password.confirmPlaceholder' | translate }}" class="mt-1 block w-full bg-slate-800 border border-slate-700 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  @if (passwordForm.hasError('passwordMismatch') && passwordForm.get('confirmNewPassword')?.touched) {
-                    <p class="text-red-400 text-sm mt-1">{{ 'profile.password.mismatch' | translate }}</p>
-                  }
-                </div>
-
-                <div class="p-6 bg-slate-900/50 border-t border-slate-800 text-end rounded-b-xl">
-                  <button type="submit" [disabled]="passwordForm.invalid" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-                    {{ 'profile.saveButton' | translate }}
-                  </button>
-                </div>
-              }
-            </div>
-          </form>
-        }
-
-        @case ('credit') {
-          <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl animate-fade-in p-8 space-y-6">
-            <h2 class="text-2xl font-bold text-white">{{ 'profile.creditManagement.title' | translate }}</h2>
-            <div class="rounded-xl border border-slate-800 bg-slate-800/40 p-5">
-              <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <p class="text-lg font-semibold text-white">Wallet overview</p>
-                  <p class="mt-1 text-sm text-gray-400">View your balance and wallet transaction history.</p>
-                </div>
-                <button type="button" (click)="navigateToWallet()" class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">
-                  View Wallet
-                </button>
-              </div>
-            </div>
-          </div>
-        }
-
-        @case ('score') {
-          <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl animate-fade-in p-8 space-y-6">
-            <h2 class="text-2xl font-bold text-white">{{ 'profile.score.title' | translate }}</h2>
-            <div class="text-center">
-              <div class="text-4xl font-bold text-blue-400">{{ currentScorePts() }}</div>
-            </div>
-          </div>
-        }
-      }
-
-    </main>
-
+      </section>
+    }
   </div>
-</div>
-
+</main>

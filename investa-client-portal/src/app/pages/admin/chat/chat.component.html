@@ -1,131 +1,261 @@
-<div class="h-[calc(100vh-61px)] flex">
-  <!-- Sidebar with contacts -->
-  <aside class="w-1/3 xl:w-1/4 bg-slate-900 border-e border-slate-800 flex flex-col">
-    <div class="p-4 border-b border-slate-800">
-      <h2 class="text-xl font-bold text-white">{{ 'chat.title' | translate }}</h2>
-      <div class="relative mt-4">
-        <input type="text" [placeholder]="'chat.searchPlaceholder' | translate" class="w-full bg-slate-800 border border-slate-700 rounded-full py-2 ps-10 pe-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
-        <div class="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none">
-          <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-        </div>
+<main class="conversation-page" [class.mobile-list]="mobileView() === 'list'" [class.mobile-chat]="mobileView() === 'chat'" [class.mobile-context]="mobileView() === 'context'">
+  <nav class="mobile-switcher" [attr.aria-label]="'conversationWorkspace.mobile.navigation' | translate">
+    <button type="button" [class.active]="mobileView() === 'list'" (click)="setMobileView('list')">{{ 'conversationWorkspace.mobile.list' | translate }}</button>
+    <button type="button" [class.active]="mobileView() === 'chat'" [disabled]="!activeConversation() && !selectedRequest()" (click)="setMobileView('chat')">{{ 'conversationWorkspace.mobile.chat' | translate }}</button>
+    <button type="button" [class.active]="mobileView() === 'context'" [disabled]="!activeConversation()" (click)="setMobileView('context')">{{ 'conversationWorkspace.mobile.context' | translate }}</button>
+  </nav>
+
+  <section class="workspace-panel list-panel">
+    <header class="panel-heading">
+      <div>
+        <p class="eyebrow">{{ 'conversationWorkspace.eyebrow' | translate }}</p>
+        <h1>{{ 'conversationWorkspace.title' | translate }}</h1>
       </div>
+    </header>
+
+    <div class="workspace-tabs" role="tablist">
+      <button type="button" role="tab" [class.active]="workspaceTab() === 'incoming'" (click)="setWorkspaceTab('incoming')">
+        {{ 'conversationWorkspace.tabs.incoming' | translate }}
+      </button>
+      <button type="button" role="tab" [class.active]="workspaceTab() === 'outgoing'" (click)="setWorkspaceTab('outgoing')">
+        {{ 'conversationWorkspace.tabs.outgoing' | translate }}
+      </button>
+      <button type="button" role="tab" [class.active]="workspaceTab() === 'conversations'" (click)="setWorkspaceTab('conversations')">
+        {{ 'conversationWorkspace.tabs.conversations' | translate }}
+      </button>
     </div>
-    <div class="flex-1 overflow-y-auto">
-      @for (contact of contacts(); track contact.id) {
-        <div (click)="selectContact(contact)" class="flex items-center p-4 cursor-pointer hover:bg-slate-800/50 transition-colors" [class.bg-blue-600/20]="selectedContact()?.id === contact.id">
-          <div class="relative flex-shrink-0">
-            <img class="w-12 h-12 rounded-full object-cover" [src]="contact.avatarUrl" [alt]="contact.name">
-            @if(contact.online) {
-              <span class="absolute bottom-0 end-0 block h-3 w-3 rounded-full bg-green-500 ring-2 ring-slate-900"></span>
-            }
-          </div>
-          <div class="ms-4 flex-1 truncate">
-            <p class="font-semibold text-white truncate">{{ contact.name }}</p>
-            <p class="text-sm text-gray-400 truncate">{{ contact.lastMessage }}</p>
-          </div>
-          <span class="text-xs text-gray-500 ms-2">{{ contact.timestamp }}</span>
-        </div>
+
+    <div class="list-tools">
+      <label class="search-field">
+        <span aria-hidden="true">⌕</span>
+        <input type="search" [value]="searchTerm()" (input)="setSearchTerm($event.target.value)" [placeholder]="'conversationWorkspace.search' | translate">
+      </label>
+      @if (workspaceTab() === 'conversations') {
+        <select [value]="conversationFilter()" (change)="setConversationFilter($event.target.value)" [attr.aria-label]="'conversationWorkspace.filter.label' | translate">
+          <option value="all">{{ 'conversationWorkspace.filter.all' | translate }}</option>
+          <option value="active">{{ 'conversationWorkspace.filter.active' | translate }}</option>
+          <option value="closed">{{ 'conversationWorkspace.filter.closed' | translate }}</option>
+        </select>
       }
     </div>
-  </aside>
 
-  <!-- Main chat area -->
-  <main class="flex-1 flex flex-col bg-slate-950/80">
-    @if (selectedContact(); as contact) {
-      <!-- Chat Header -->
-      <header class="flex items-center justify-between p-4 bg-slate-900 border-b border-slate-800">
-        <div class="flex items-center">
-          <img class="w-10 h-10 rounded-full object-cover me-4" [src]="contact.avatarUrl" [alt]="contact.name">
-          <div>
-            <p class="font-semibold text-white">{{ contact.name }}</p>
-            <p class="text-sm text-gray-400">{{ contact.online ? ('chat.online' | translate) : ('chat.offline' | translate) }}</p>
-          </div>
-        </div>
-        <div class="flex items-center gap-2">
-          <button (click)="startAudioCall()" [title]="'chat.startAudioCall' | translate" class="text-gray-400 hover:text-white p-2 rounded-full hover:bg-slate-700 transition-colors">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
-          </button>
-          <button (click)="startVideoCall()" [title]="'chat.startVideoCall' | translate" class="text-gray-400 hover:text-white p-2 rounded-full hover:bg-slate-700 transition-colors">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-          </button>
+    <div class="conversation-list">
+      @if (loading()) {
+        <div class="compact-state"><span class="spinner"></span><p>{{ 'conversationWorkspace.loading' | translate }}</p></div>
+      } @else if (error()) {
+        <div class="compact-state compact-state--error"><p>{{ error() }}</p><button type="button" (click)="loadConversations()">{{ 'conversationWorkspace.retry' | translate }}</button></div>
+      } @else if (workspaceTab() === 'conversations') {
+        @for (conversation of visibleConversations(); track conversation.id) {
+          <article class="list-card" [class.selected]="activeConversation()?.id === conversation.id">
+            <button type="button" class="list-card__select" (click)="selectConversation(conversation)" [attr.aria-label]="conversation.counterpartyName"></button>
+            <div class="avatar avatar--small">
+              @if (conversation.avatarUrl) { <img [src]="conversation.avatarUrl" [alt]="conversation.counterpartyName"> }
+              @else { <span>{{ initials(conversation.counterpartyName) }}</span> }
+            </div>
+            <div class="list-card__body">
+              <div class="list-card__top"><strong>{{ conversation.counterpartyName }}</strong><time>{{ formatTime(conversation.lastMessageAt) }}</time></div>
+              <p class="opportunity-line">{{ conversation.opportunityTitle }}</p>
+              @if (conversation.lastMessage) { <p class="message-preview">{{ conversation.lastMessage }}</p> }
+              <span [class]="statusBadgeClass(conversation.status)">{{ statusLabel(conversation.status) }}</span>
+            </div>
+          </article>
+        } @empty {
+          <div class="compact-state"><p>{{ 'conversationWorkspace.empty.conversations' | translate }}</p></div>
+        }
+      } @else {
+        @for (request of visibleRequests(); track request.id) {
+          <article class="list-card" [class.selected]="selectedRequest()?.id === request.id">
+            <button type="button" class="list-card__select" (click)="selectRequest(request)" [attr.aria-label]="request.counterpartyName"></button>
+            <div class="avatar avatar--small"><span>{{ initials(request.counterpartyName) }}</span></div>
+            <div class="list-card__body">
+              <div class="list-card__top"><strong>{{ request.counterpartyName }}</strong><time>{{ formatDate(request.updatedAt || request.createdAt) }}</time></div>
+              <p class="opportunity-line">{{ request.opportunityTitle }}</p>
+              @if (request.message) { <p class="message-preview">{{ request.message }}</p> }
+              <span class="status-badge" [class.status-badge--success]="request.status === 'accepted'" [class.status-badge--closed]="request.status === 'rejected' || request.status === 'withdrawn'">{{ requestStatusLabel(request.status) }}</span>
+            </div>
+          </article>
+        } @empty {
+          <div class="compact-state"><p>{{ 'conversationWorkspace.empty.requests' | translate }}</p></div>
+        }
+      }
+    </div>
+  </section>
+
+  <section class="workspace-panel chat-panel">
+    @if (activeConversation(); as conversation) {
+      <header class="chat-header">
+        <div class="header-actions">
+          <button type="button" class="primary-button" (click)="openOfferBuilder()" [disabled]="isClosed() || offerProcessing()">{{ 'conversationWorkspace.actions.createOffer' | translate }}</button>
+          @if (canReportConversationUser(conversation)) {
+            <button type="button" class="secondary-button" (click)="openConversationReport(conversation)">{{ 'conversationWorkspace.actions.report' | translate }}</button>
+          }
         </div>
       </header>
-      
-      <!-- Messages -->
-      <div class="flex-1 p-6 overflow-y-auto space-y-4">
-        @for(message of conversation(); track message.id) {
-          <div class="flex items-end gap-2 animate-fade-in" [class.justify-end]="message.isSender">
-            @if(!message.isSender) {
-               <img class="w-8 h-8 rounded-full object-cover self-end" [src]="contact.avatarUrl" [alt]="contact.name">
-            }
-            <div class="max-w-xs md:max-w-md lg:max-w-lg p-1 rounded-2xl" [class]="message.isSender ? 'bg-blue-600 text-white rounded-ee-none' : 'bg-slate-800 text-gray-200 rounded-es-none'">
-              <div class="p-2">
-                @if(message.file; as file) {
-                  <div class="flex items-center gap-3 bg-black/20 p-2 rounded-lg mb-2">
-                    <div class="flex-shrink-0 h-10 w-10 bg-slate-600 rounded-lg flex items-center justify-center">
-                      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                    </div>
-                    <div class="truncate">
-                      <p class="font-semibold text-sm truncate">{{ file.name }}</p>
-                      <p class="text-xs opacity-70">{{ formatFileSize(file.size) }}</p>
-                    </div>
+
+      <section class="journey-panel" [attr.aria-label]="'conversationWorkspace.journey.title' | translate">
+        <div class="journey-heading">
+          <div><p class="eyebrow">{{ 'conversationWorkspace.journey.eyebrow' | translate }}</p><h2>{{ 'conversationWorkspace.journey.title' | translate }}</h2></div>
+          @if (terminalJourneyStatus()) { <span class="terminal-status">{{ terminalJourneyStatus() }}</span> }
+        </div>
+        <ol class="journey-steps">
+          @for (step of journeySteps(); track step.key) {
+            <li [class.completed]="step.state === 'completed'" [class.current]="step.state === 'current'" [class.future]="step.state === 'future'">
+              <span class="journey-dot">{{ step.state === 'completed' ? '✓' : $index + 1 }}</span>
+              <span class="journey-label">{{ step.label }}</span>
+            </li>
+          }
+        </ol>
+      </section>
+
+      <div class="message-stream">
+        @if (messagesLoading()) {
+          <div class="compact-state"><span class="spinner"></span><p>{{ 'conversationWorkspace.messages.loading' | translate }}</p></div>
+        } @else {
+          <div class="system-event"><span>{{ 'conversationWorkspace.events.started' | translate }} · {{ formatDate(conversation.createdAt) }}</span></div>
+          @for (item of chatItems(); track item.id; let index = $index) {
+            @if (item.kind === 'message') {
+              <article class="message-row" [class.own]="item.message.isSender" [class.grouped]="!isMessageGroupStart(index)">
+                @if (isMessageGroupStart(index)) {
+                  <div class="message-meta"><strong>{{ item.message.isSender ? ('conversationWorkspace.messages.you' | translate) : item.message.senderName }}</strong>@if (item.message.senderRole) { <span>{{ roleLabel(item.message.senderRole) }}</span> }</div>
+                }
+                <div class="message-bubble"><p>{{ item.message.text }}</p><time>{{ formatTime(item.message.sentAt) }}</time></div>
+              </article>
+            } @else {
+            <article class="offer-card" [class.offer-card--accepted]="isAcceptedOffer(item.offer)">
+              <header>
+                <div><p class="eyebrow">{{ 'conversationWorkspace.offers.version' | translate }} {{ item.offer.version }}</p><strong>{{ 'conversationWorkspace.offers.title' | translate }}</strong></div>
+                <span class="status-badge" [class.status-badge--success]="isAcceptedOffer(item.offer)">{{ offerStatusLabel(item.offer.status) }}</span>
+              </header>
+              @if (parentOfferVersion(item.offer); as parentVersion) { <p class="offer-relation">↳ {{ 'conversationWorkspace.offers.counters' | translate }} {{ parentVersion }}</p> }
+              <div class="offer-terms">
+                @for (leg of item.offer.legs; track leg.id || leg.legType) {
+                  <div><span>{{ offerLegLabel(leg.legType) }}</span><strong>{{ money(leg.amount) }}</strong>
+                    @if (leg.equityPercentage) { <small>{{ leg.equityPercentage }}%</small> }
+                    @if (leg.returnRate) { <small>{{ leg.returnRate }}%</small> }
+                    @if (leg.profitSharePercentage) { <small>{{ leg.profitSharePercentage }}%</small> }
                   </div>
                 }
-                @if(message.text) {
-                  <p class="whitespace-pre-wrap break-words">{{ message.text }}</p>
-                }
               </div>
-              <span class="text-xs mt-1 px-2 pb-1 block opacity-60" [class.text-end]="message.isSender">{{ message.timestamp }}</span>
-            </div>
-             @if(message.isSender) {
-               <img class="w-8 h-8 rounded-full object-cover self-end" src="https://picsum.photos/seed/admin/100/100" alt="You">
+              @if (item.offer.note) { <p class="offer-note">{{ item.offer.note }}</p> }
+              <footer><time>{{ formatDate(item.offer.createdAt) }} · {{ formatTime(item.offer.createdAt) }}</time><div>
+                @if (canReceiveOfferAction(item.offer)) {
+                  <button type="button" class="primary-button" (click)="acceptOffer(item.offer)">{{ 'conversationWorkspace.actions.accept' | translate }}</button>
+                  <button type="button" class="secondary-button" (click)="openOfferBuilder(item.offer)">{{ 'conversationWorkspace.actions.counter' | translate }}</button>
+                  <button type="button" class="text-button" (click)="rejectOffer(item.offer)">{{ 'conversationWorkspace.actions.reject' | translate }}</button>
+                } @else if (canWithdrawOffer(item.offer)) {
+                  <button type="button" class="text-button" (click)="withdrawOffer(item.offer)">{{ 'conversationWorkspace.actions.withdraw' | translate }}</button>
+                }
+              </div></footer>
+            </article>
             }
-          </div>
-        } @empty {
-          <div class="flex justify-center items-center h-full text-gray-500">
-            <p>{{ 'chat.noMessages' | translate }}</p>
-          </div>
+          } @empty {
+            <div class="compact-state"><p>{{ 'conversationWorkspace.messages.empty' | translate }}</p></div>
+          }
+          @if (isClosed()) {
+            <div class="system-event system-event--closed"><span>{{ 'conversationWorkspace.events.closed' | translate }} · {{ formatDate(conversation.closedAt) }}</span></div>
+          }
         }
       </div>
 
-      <!-- Message Input -->
-      <footer class="p-4 bg-slate-900 border-t border-slate-800">
-        @if(attachedFile(); as file) {
-            <div class="px-1 pb-3">
-                <div class="bg-slate-800 p-2 rounded-lg flex items-center justify-between animate-fade-in">
-                    <div class="flex items-center gap-3 truncate">
-                         <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                        <span class="text-sm text-gray-300 truncate">{{ file.name }}</span>
-                    </div>
-                    <button (click)="removeAttachment()" [title]="'chat.removeAttachment' | translate" class="p-1 text-gray-400 hover:text-white hover:bg-slate-700 rounded-full">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
-                </div>
-            </div>
-        }
-        <form (ngSubmit)="sendMessage()" class="flex items-center gap-4">
-          <input #fileInput type="file" class="hidden" (change)="onFileSelected($event)">
-          <button type="button" (click)="fileInput.click()" [title]="'chat.attachFile' | translate" class="text-gray-400 hover:text-white p-2 rounded-full hover:bg-slate-700 transition-colors">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-          </button>
-          <input 
-            [formControl]="messageControl"
-            type="text" 
-            [placeholder]="'chat.messagePlaceholder' | translate" 
-            class="flex-1 bg-slate-800 border border-slate-700 rounded-full py-3 px-5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <button type="submit" class="bg-blue-600 text-white rounded-full p-3 hover:bg-blue-700 transition-colors disabled:opacity-50" [disabled]="!messageControl.value?.trim() && !attachedFile()">
-            <svg class="w-6 h-6 transform rotate-90 rtl:-rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-          </button>
-        </form>
-      </footer>
-    } @else {
-       <div class="flex-1 flex items-center justify-center text-gray-500">
-        <div class="text-center">
-            <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 5.523-4.477 10-10 10S1 17.523 1 12 5.477 2 12 2s10 4.477 10 10z"></path></svg>
-            <h3 class="mt-2 text-sm font-semibold text-white">{{ 'chat.noConversationSelected.title' | translate }}</h3>
-            <p class="mt-1 text-sm text-gray-500">{{ 'chat.noConversationSelected.subtitle' | translate }}</p>
+      @if (messagesError()) { <p class="inline-error">{{ messagesError() }}</p> }
+      <form class="message-composer" (submit)="onMessageSubmit($event)">
+        <input [formControl]="messageControl" [placeholder]="composerHint()" [readonly]="isClosed()">
+        <button type="submit" class="primary-button" [disabled]="!canSendMessage()">{{ sending() ? ('conversationWorkspace.composer.sending' | translate) : ('conversationWorkspace.composer.send' | translate) }}</button>
+      </form>
+    } @else if (selectedRequest(); as request) {
+      <div class="request-detail">
+        <div class="avatar"><span>{{ initials(request.counterpartyName) }}</span></div>
+        <p class="eyebrow">{{ workspaceTab() === 'incoming' ? ('conversationWorkspace.tabs.incoming' | translate) : ('conversationWorkspace.tabs.outgoing' | translate) }}</p>
+        <h2>{{ request.counterpartyName }}</h2>
+        @if (roleLabel(request.counterpartyRole)) { <p>{{ roleLabel(request.counterpartyRole) }}</p> }
+        <h3>{{ request.opportunityTitle }}</h3>
+        @if (request.message) { <blockquote>{{ request.message }}</blockquote> }
+        <span class="status-badge">{{ requestStatusLabel(request.status) }}</span>
+        <div class="request-actions">
+          @if (request.canAccept) { <button type="button" class="primary-button" (click)="acceptRequest(request)" [disabled]="actionProcessing()">{{ 'conversationWorkspace.actions.accept' | translate }}</button> }
+          @if (request.canReject) { <button type="button" class="secondary-button" (click)="rejectRequest(request)" [disabled]="actionProcessing()">{{ 'conversationWorkspace.actions.reject' | translate }}</button> }
         </div>
-    </div>
+      </div>
+    } @else {
+      <div class="empty-workspace"><div class="empty-icon">↔</div><h2>{{ 'chat.empty.noConversationTitle' | translate }}</h2><p>{{ 'chat.empty.noConversationSubtitle' | translate }}</p></div>
     }
-  </main>
-</div>
+  </section>
+
+  <aside class="workspace-panel context-panel">
+    @if (activeConversation(); as conversation) {
+      <header class="panel-heading"><div><p class="eyebrow">{{ 'conversationWorkspace.context.eyebrow' | translate }}</p><h2>{{ 'conversationWorkspace.context.title' | translate }}</h2></div></header>
+      <div class="context-scroll">
+        <section class="opportunity-summary">
+          <div class="opportunity-mark">{{ initials(conversation.opportunityTitle) }}</div>
+          <div><h3>{{ conversation.opportunityTitle }}</h3>@if (conversation.shortDescription) { <p>{{ conversation.shortDescription }}</p> }</div>
+        </section>
+        @if (conversation.founderName) {
+          <section class="context-section"><h3>{{ 'conversationWorkspace.context.founder' | translate }}</h3>
+            @if (founderProfileId(conversation); as founderId) { <a class="founder-row" [routerLink]="['/admin/founders', founderId]"><span class="avatar avatar--small">{{ initials(conversation.founderName) }}</span><strong>{{ conversation.founderName }}</strong></a> }
+            @else { <div class="founder-row"><span class="avatar avatar--small">{{ initials(conversation.founderName) }}</span><strong>{{ conversation.founderName }}</strong></div> }
+          </section>
+        }
+        <section class="context-section"><h3>{{ 'conversationWorkspace.context.details' | translate }}</h3><dl class="detail-rows">
+          <div><dt>{{ 'conversationWorkspace.context.conversationStatus' | translate }}</dt><dd>{{ statusLabel(conversation.status) }}</dd></div>
+          @if (investmentModelLabel(conversation.investmentModel)) { <div><dt>{{ 'conversationWorkspace.context.model' | translate }}</dt><dd>{{ investmentModelLabel(conversation.investmentModel) }}</dd></div> }
+          @if (conversation.fundingTarget) { <div><dt>{{ 'conversationWorkspace.context.target' | translate }}</dt><dd>{{ money(conversation.fundingTarget) }}</dd></div> }
+          @if (conversation.minimumParticipation) { <div><dt>{{ 'conversationWorkspace.context.minimum' | translate }}</dt><dd>{{ money(conversation.minimumParticipation) }}</dd></div> }
+          <div><dt>{{ 'conversationWorkspace.context.participation' | translate }}</dt><dd>{{ participationSummary() }}</dd></div>
+        </dl></section>
+        <section class="context-section"><h3>{{ 'conversationWorkspace.context.readiness' | translate }}</h3><div class="readiness-row"><span>{{ 'conversationWorkspace.roles.founder' | translate }}</span><strong [class.ready]="conversation.founderReady">{{ (conversation.founderReady ? 'conversationWorkspace.status.readyShort' : 'conversationWorkspace.status.notReady') | translate }}</strong></div><div class="readiness-row"><span>{{ 'conversationWorkspace.roles.investor' | translate }}</span><strong [class.ready]="conversation.investorReady">{{ (conversation.investorReady ? 'conversationWorkspace.status.readyShort' : 'conversationWorkspace.status.notReady') | translate }}</strong></div><div class="readiness-row"><span>{{ 'conversationWorkspace.context.yourReadyState' | translate }}</span><strong [class.ready]="isCurrentUserReady()">{{ (isCurrentUserReady() ? 'conversationWorkspace.status.readyShort' : 'conversationWorkspace.status.notReady') | translate }}</strong></div>@if (canMarkReady()) { <button type="button" class="secondary-button context-ready-action" (click)="markReadyToProceed()" [disabled]="actionProcessing()">{{ 'conversationWorkspace.actions.ready' | translate }}</button> }</section>
+        @if (isClosed()) { <section class="closed-note"><strong>{{ 'conversationWorkspace.events.closed' | translate }}</strong>@if (conversation.closeReason) { <p>{{ conversation.closeReason }}</p> }</section> }
+        <div class="context-actions">
+          @if (conversation.opportunityId) { <a class="secondary-button" [routerLink]="['/admin/investments', conversation.opportunityId]">{{ 'conversationWorkspace.actions.viewOpportunity' | translate }}</a> }
+          @if (canCreateParticipationRequest()) { <button type="button" class="primary-button" (click)="openParticipationBuilder()">{{ 'conversationWorkspace.actions.participate' | translate }}</button> }
+          @if (projectRoomUnlocked() && conversation.opportunityId) { <a class="primary-button primary-button--green" [routerLink]="['/admin/opportunities', conversation.opportunityId, 'room']">{{ 'conversationWorkspace.actions.openRoom' | translate }}</a> }
+          @if (canCloseDiscussion()) { <button type="button" class="secondary-button context-danger-action" (click)="closeDiscussion()" [disabled]="actionProcessing()">{{ 'conversationWorkspace.actions.close' | translate }}</button> }
+          @if (isClosed()) { <button type="button" class="secondary-button context-danger-action" (click)="removeClosedConversation(conversation)" [disabled]="actionProcessing()">{{ 'conversationWorkspace.actions.remove' | translate }}</button> }
+        </div>
+      </div>
+    } @else if (selectedRequest(); as request) {
+      <header class="panel-heading"><div><p class="eyebrow">{{ 'conversationWorkspace.context.requestEyebrow' | translate }}</p><h2>{{ 'conversationWorkspace.context.requestTitle' | translate }}</h2></div></header>
+      <div class="context-scroll">
+        <section class="opportunity-summary"><div class="opportunity-mark">{{ initials(request.opportunityTitle) }}</div><div><h3>{{ request.opportunityTitle }}</h3></div></section>
+        <section class="context-section"><h3>{{ 'conversationWorkspace.context.participant' | translate }}</h3><div class="founder-row"><span class="avatar avatar--small">{{ initials(request.counterpartyName) }}</span><div><strong>{{ request.counterpartyName }}</strong>@if (roleLabel(request.counterpartyRole)) { <small>{{ roleLabel(request.counterpartyRole) }}</small> }</div></div></section>
+        <section class="context-section"><h3>{{ 'conversationWorkspace.context.requestState' | translate }}</h3><dl class="detail-rows"><div><dt>{{ 'conversationWorkspace.context.direction' | translate }}</dt><dd>{{ (request.direction === 'incoming' ? 'conversationWorkspace.tabs.incoming' : 'conversationWorkspace.tabs.outgoing') | translate }}</dd></div><div><dt>{{ 'conversationWorkspace.context.statusLabel' | translate }}</dt><dd>{{ requestStatusLabel(request.status) }}</dd></div></dl></section>
+        @if (request.canWithdraw) { <div class="context-actions"><button type="button" class="secondary-button context-danger-action" (click)="withdrawRequest(request)" [disabled]="actionProcessing()">{{ 'conversationWorkspace.actions.withdraw' | translate }}</button></div> }
+      </div>
+    } @else { <div class="compact-state"><p>{{ 'conversationWorkspace.context.empty' | translate }}</p></div> }
+  </aside>
+</main>
+
+@if (offerBuilderOpen()) {
+  <div class="modal-backdrop" (click)="closeOfferBuilder()">
+    <section class="modal-card offer-builder" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <header><div><p class="eyebrow">{{ counteringOfferId() ? ('chat.offerBuilder.counterOffer' | translate) : ('chat.offerBuilder.makeOffer' | translate) }}</p><h2>{{ 'conversationWorkspace.offers.terms' | translate }}</h2></div><button type="button" class="icon-button" (click)="closeOfferBuilder()">×</button></header>
+      <div class="builder-grid">
+        @for (type of offerLegTypes; track type) {
+          <section class="leg-editor" [class.enabled]="offerDrafts[type].enabled">
+            <label class="check-row"><input type="checkbox" [checked]="offerDrafts[type].enabled" (change)="setOfferLegEnabled(type, $event.target.checked)"><strong>{{ offerLegLabel(type) }}</strong></label>
+            @if (offerDrafts[type].enabled) {
+              <label>{{ 'chat.offerBuilder.amount' | translate }}<input type="number" min="0" [formControl]="offerDrafts[type].amount"></label>
+              @if (type === 1) { <label>{{ 'chat.offerBuilder.equityPercentage' | translate }}<input type="number" min="0" max="100" [formControl]="offerDrafts[1].equityPercentage!"></label> }
+              @if (type === 2) { <label>{{ 'chat.offerBuilder.returnPercentage' | translate }}<input type="number" min="0" [formControl]="offerDrafts[2].returnRate!"></label> }
+              @if (type === 3) { <label>{{ 'conversationWorkspace.offers.profitPercentage' | translate }}<input type="number" min="0" max="100" [formControl]="offerDrafts[3].profitSharePercentage!"></label> }
+            }
+          </section>
+        }
+      </div>
+      <label>{{ 'chat.offerBuilder.offerNote' | translate }}<textarea rows="3" [formControl]="offerNoteControl"></textarea></label>
+      <footer><button type="button" class="secondary-button" (click)="closeOfferBuilder()">{{ 'conversationWorkspace.actions.cancel' | translate }}</button><button type="button" class="primary-button" (click)="submitOffer()" [disabled]="offerProcessing()">{{ counteringOfferId() ? ('chat.offerBuilder.sendCounter' | translate) : ('chat.offerBuilder.sendOffer' | translate) }}</button></footer>
+    </section>
+  </div>
+}
+
+@if (reportModalOpen() && activeConversation(); as conversation) {
+  <div class="modal-backdrop" (click)="closeReportModal()"><section class="modal-card report-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true"><header><div><p class="eyebrow">{{ conversationReportLabel(conversation) }}</p><h2>{{ conversationReportTargetName(conversation) }}</h2></div><button type="button" class="icon-button" (click)="closeReportModal()">×</button></header>
+    @if (reportSuccess()) { <div class="success-note">{{ 'reports.success' | translate }}</div> }
+    @else { <label>{{ 'reports.reason' | translate }}<select [value]="reportReason()" (change)="setReportReason($event.target.value)">@for (reason of reportReasons; track reason) { <option [value]="reason">{{ reportReasonLabel(reason) }}</option> }</select></label><label>{{ 'reports.description' | translate }}<textarea rows="4" [value]="reportDescription()" (input)="setReportDescription($event.target.value)"></textarea></label>@if (reportError()) { <p class="inline-error">{{ reportError() }}</p> }<footer><button type="button" class="secondary-button" (click)="closeReportModal()">{{ 'conversationWorkspace.actions.cancel' | translate }}</button><button type="button" class="primary-button" (click)="submitConversationReport()" [disabled]="reportSubmitting()">{{ reportSubmitting() ? ('reports.submitting' | translate) : ('reports.submit' | translate) }}</button></footer> }
+  </section></div>
+}
+
+@if (participationBuilderOpen() && activeConversation(); as conversation) {
+  @if (conversation.opportunityId; as opportunityId) {
+    <app-participation-builder [opportunityId]="opportunityId" [opportunityTitle]="conversation.opportunityTitle" source="Conversation" [conversationId]="conversation.id" (closed)="closeParticipationBuilder()" (submitted)="onParticipationSubmitted()"></app-participation-builder>
+  }
+}

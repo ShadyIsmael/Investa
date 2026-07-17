@@ -1,87 +1,93 @@
-<div class="container mx-auto p-6 lg:p-8">
-  <div *ngIf="isLoading()" class="h-96 animate-pulse rounded-xl border border-slate-800 bg-slate-900/80"></div>
-  <div *ngIf="errorMessage() && !isLoading()" class="rounded-lg border border-red-500/50 bg-red-500/20 p-4 text-red-200">{{ errorMessage() }}</div>
+<div class="investa-page">
+  <div class="investa-container">
+    <div *ngIf="isLoading()" class="investa-card h-96 animate-pulse"></div>
+    <div *ngIf="errorMessage() && !isLoading()" class="rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-red-700">{{ errorMessage() }}</div>
 
-  <ng-container *ngIf="opportunity() as opportunity">
-    <section class="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/80">
-      <img [src]="cover(opportunity)" [alt]="title(opportunity)" class="h-72 w-full object-cover">
-      <div class="p-6 lg:p-8">
-        <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <h1 class="text-3xl font-bold text-white">{{ title(opportunity) }}</h1>
-            <p class="mt-3 max-w-3xl text-gray-400">{{ description(opportunity) }}</p>
+    <ng-container *ngIf="opportunity() as opportunity">
+      <section class="investa-card overflow-hidden">
+        <img [src]="cover(opportunity)" [alt]="title(opportunity)" class="h-72 w-full object-cover">
+        <div class="p-6 lg:p-8">
+          <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <h1 class="investa-title text-3xl">{{ title(opportunity) }}</h1>
+              <p class="investa-muted mt-3 max-w-3xl">{{ description(opportunity) }}</p>
+            </div>
+            <button disabled class="investa-btn-primary opacity-60">Request to Participate - Coming Soon</button>
           </div>
-          <button disabled class="rounded-lg bg-slate-700 px-5 py-3 text-sm font-semibold text-gray-300 opacity-70">Request to Participate - Coming Soon</button>
-        </div>
-        <dl class="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
-          <div class="rounded-lg bg-slate-800/50 p-4"><dt class="text-xs text-gray-500">Funding Target</dt><dd class="mt-1 text-lg font-bold text-white">{{ money(opportunity.fundingTarget) }}</dd></div>
-          <div class="rounded-lg bg-slate-800/50 p-4"><dt class="text-xs text-gray-500">Minimum Participation</dt><dd class="mt-1 text-lg font-bold text-white">{{ money(opportunity.minimumInvestment) }}</dd></div>
-          <div class="rounded-lg bg-slate-800/50 p-4"><dt class="text-xs text-gray-500">Investment Model</dt><dd class="mt-1 text-lg font-bold text-white">{{ opportunity.investmentModel || '-' }}</dd></div>
-          <div class="rounded-lg bg-slate-800/50 p-4"><dt class="text-xs text-gray-500">Opportunity Stage</dt><dd class="mt-1 text-lg font-bold text-white">{{ opportunity.projectStage || '-' }}</dd></div>
-        </dl>
-        <div class="mt-6 flex flex-wrap gap-2">
-          <span class="rounded-full bg-slate-800 px-3 py-1 text-xs text-gray-300">{{ label(categories(), opportunity.categoryId, opportunity.categoryName) }}</span>
-          <span *ngFor="let tag of opportunity.tags || []" class="rounded-full bg-blue-500/10 px-3 py-1 text-xs text-blue-200">{{ tagLabel(tag) }}</span>
-        </div>
-        <p *ngIf="opportunity.founderSummary" class="mt-6 rounded-lg bg-slate-800/50 p-4 text-sm text-gray-300">{{ opportunity.founderSummary }}</p>
-      </div>
-    </section>
 
-    <section class="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
-      <div class="rounded-xl border border-slate-800 bg-slate-900/80 p-6 lg:col-span-2">
-        <h2 class="text-xl font-bold text-white">Details</h2>
-        <p class="mt-4 whitespace-pre-line text-gray-300">{{ opportunity.fullDescription || opportunity.description || '-' }}</p>
-        <dl class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div><dt class="text-xs text-gray-500">Funding Goal</dt><dd class="text-gray-200">{{ label(fundingGoals(), opportunity.fundingGoalId, opportunity.fundingGoalName) }}</dd></div>
-          <div><dt class="text-xs text-gray-500">Expected Duration</dt><dd class="text-gray-200">{{ opportunity.expectedDuration || '-' }}</dd></div>
-          <div><dt class="text-xs text-gray-500">Maximum Participation</dt><dd class="text-gray-200">{{ money(opportunity.maximumInvestment) }}</dd></div>
-        </dl>
-      </div>
-      <div class="rounded-xl border border-slate-800 bg-slate-900/80 p-6">
-        <h2 class="text-xl font-bold text-white">Public Documents</h2>
-        <div *ngIf="documents().length === 0" class="mt-4 text-sm text-gray-400">No public documents returned.</div>
-        <div *ngFor="let doc of documents()" class="mt-3 rounded-lg bg-slate-800/50 p-3">
-          <div class="flex items-start gap-3">
-            <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-slate-900 text-xs font-bold text-gray-300">{{ doc.fileExtension || 'FILE' }}</div>
-            <div class="min-w-0 flex-1">
-              <p class="truncate text-sm font-semibold text-white">{{ fileTitle(doc) }}</p>
-              <p class="mt-1 text-xs text-gray-400">{{ doc.mimeType || '-' }} · {{ fileSize(doc.fileSize) }} · {{ doc.category || '-' }}</p>
-              <div class="mt-2 flex gap-3">
-                <a [href]="previewUrl(doc)" target="_blank" class="text-xs font-semibold text-blue-300 hover:text-blue-200">Preview</a>
-                <a [href]="downloadUrl(doc)" target="_blank" class="text-xs font-semibold text-blue-300 hover:text-blue-200">Download</a>
+          <dl class="investa-hero-dark mt-8 grid grid-cols-2 gap-4 p-5 md:grid-cols-4">
+            <div><dt class="text-xs text-current opacity-60">Funding Target</dt><dd class="mt-1 text-lg font-bold">{{ money(opportunity.fundingTarget) }}</dd></div>
+            <div><dt class="text-xs text-current opacity-60">Minimum Participation</dt><dd class="mt-1 text-lg font-bold">{{ money(opportunity.minimumInvestment) }}</dd></div>
+            <div><dt class="text-xs text-current opacity-60">Investment Model</dt><dd class="mt-1 text-lg font-bold">{{ opportunity.investmentModel || '-' }}</dd></div>
+            <div><dt class="text-xs text-current opacity-60">Opportunity Stage</dt><dd class="mt-1 text-lg font-bold">{{ opportunity.projectStage || '-' }}</dd></div>
+          </dl>
+
+          <div class="mt-6 flex flex-wrap gap-2">
+            <span class="investa-badge">{{ label(categories(), opportunity.categoryId, opportunity.categoryName) }}</span>
+            <span *ngFor="let tag of opportunity.tags || []" class="investa-badge investa-badge-accent">{{ tagLabel(tag) }}</span>
+          </div>
+
+          <p *ngIf="opportunity.founderSummary" class="investa-card-soft mt-6 p-4 text-sm">{{ opportunity.founderSummary }}</p>
+        </div>
+      </section>
+
+      <section class="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div class="investa-card p-6 lg:col-span-2">
+          <h2 class="investa-section-title text-xl">Details</h2>
+          <p class="investa-muted mt-4 whitespace-pre-line">{{ opportunity.fullDescription || opportunity.description || '-' }}</p>
+          <dl class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div><dt class="investa-meta text-xs">Funding Goal</dt><dd class="font-semibold">{{ label(fundingGoals(), opportunity.fundingGoalId, opportunity.fundingGoalName) }}</dd></div>
+            <div><dt class="investa-meta text-xs">Expected Duration</dt><dd class="font-semibold">{{ opportunity.expectedDuration || '-' }}</dd></div>
+            <div><dt class="investa-meta text-xs">Maximum Participation</dt><dd class="font-semibold">{{ money(opportunity.maximumInvestment) }}</dd></div>
+          </dl>
+        </div>
+
+        <div class="investa-card p-6">
+          <h2 class="investa-section-title text-xl">Public Documents</h2>
+          <div *ngIf="documents().length === 0" class="investa-muted mt-4 text-sm">No public documents returned.</div>
+          <div *ngFor="let doc of documents()" class="investa-card-soft mt-3 p-3">
+            <div class="flex items-start gap-3">
+              <div class="investa-badge flex h-10 w-10 flex-shrink-0 justify-center rounded-lg px-0">{{ doc.fileExtension || 'FILE' }}</div>
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-semibold">{{ fileTitle(doc) }}</p>
+                <p class="investa-meta mt-1 text-xs">{{ doc.mimeType || '-' }} · {{ fileSize(doc.fileSize) }} · {{ doc.category || '-' }}</p>
+                <div class="mt-2 flex gap-3">
+                  <a [href]="previewUrl(doc)" target="_blank" class="text-xs font-semibold text-current underline-offset-4 hover:underline">Preview</a>
+                  <a [href]="downloadUrl(doc)" target="_blank" class="text-xs font-semibold text-current underline-offset-4 hover:underline">Download</a>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="mt-8 rounded-xl border border-slate-800 bg-slate-900/80 p-6">
-      <h2 class="text-xl font-bold text-white">Public Gallery</h2>
-      <div *ngIf="media().length === 0" class="mt-4 text-sm text-gray-400">No public media returned.</div>
-      <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div *ngFor="let item of media()" class="rounded-lg bg-slate-800/50 p-3">
-          <img *ngIf="(item.mimeType || '').startsWith('image') || item.thumbnailUrl || item.fileUrl" [src]="mediaUrl(item)" [alt]="item.caption || item.originalFileName || 'Opportunity media'" class="h-44 w-full rounded-lg object-cover">
-          <div *ngIf="(item.mimeType || '').startsWith('video')" class="mt-3">
-            <a [href]="previewUrl(item)" target="_blank" class="text-sm font-semibold text-blue-300 hover:text-blue-200">Open video preview</a>
+      <section class="investa-card mt-8 p-6">
+        <h2 class="investa-section-title text-xl">Public Gallery</h2>
+        <div *ngIf="media().length === 0" class="investa-muted mt-4 text-sm">No public media returned.</div>
+        <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div *ngFor="let item of media()" class="investa-card-soft p-3">
+            <img *ngIf="(item.mimeType || '').startsWith('image') || item.thumbnailUrl || item.fileUrl" [src]="mediaUrl(item)" [alt]="item.caption || item.originalFileName || 'Opportunity media'" class="h-44 w-full rounded-lg object-cover">
+            <div *ngIf="(item.mimeType || '').startsWith('video')" class="mt-3">
+              <a [href]="previewUrl(item)" target="_blank" class="text-sm font-semibold text-current underline-offset-4 hover:underline">Open video preview</a>
+            </div>
+            <p class="investa-muted mt-2 truncate text-sm">{{ item.caption || item.originalFileName || item.fileName || 'Media file' }}</p>
           </div>
-          <p class="mt-2 truncate text-sm text-gray-300">{{ item.caption || item.originalFileName || item.fileName || 'Media file' }}</p>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="mt-8 rounded-xl border border-slate-800 bg-slate-900/80 p-6">
-      <h2 class="text-xl font-bold text-white">Timeline</h2>
-      <app-opportunity-timeline class="mt-4 block" [events]="events()"></app-opportunity-timeline>
-    </section>
+      <section class="investa-card mt-8 p-6">
+        <h2 class="investa-section-title text-xl">Timeline</h2>
+        <app-opportunity-timeline class="mt-4 block" [events]="events()"></app-opportunity-timeline>
+      </section>
 
-    <section class="mt-8 rounded-xl border border-slate-800 bg-slate-900/80 p-6">
-      <h2 class="text-xl font-bold text-white">Advanced Info</h2>
-      <dl class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div><dt class="text-xs text-gray-500">Use of Funds</dt><dd class="mt-1 text-sm text-gray-300">{{ opportunity.fundingUsage || '-' }}</dd></div>
-        <div><dt class="text-xs text-gray-500">Risks</dt><dd class="mt-1 text-sm text-gray-300">{{ opportunity.risks || '-' }}</dd></div>
-        <div><dt class="text-xs text-gray-500">Exit Strategy</dt><dd class="mt-1 text-sm text-gray-300">{{ opportunity.exitStrategy || '-' }}</dd></div>
-      </dl>
-    </section>
-  </ng-container>
+      <section class="investa-card mt-8 p-6">
+        <h2 class="investa-section-title text-xl">Advanced Info</h2>
+        <dl class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div><dt class="investa-meta text-xs">Use of Funds</dt><dd class="investa-muted mt-1 text-sm">{{ opportunity.fundingUsage || '-' }}</dd></div>
+          <div><dt class="investa-meta text-xs">Risks</dt><dd class="investa-muted mt-1 text-sm">{{ opportunity.risks || '-' }}</dd></div>
+          <div><dt class="investa-meta text-xs">Exit Strategy</dt><dd class="investa-muted mt-1 text-sm">{{ opportunity.exitStrategy || '-' }}</dd></div>
+        </dl>
+      </section>
+    </ng-container>
+  </div>
 </div>

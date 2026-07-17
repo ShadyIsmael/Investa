@@ -49,6 +49,13 @@ namespace Investa.Domain.Entities.Security
 
         public const string FinanceView = "Finance.View";
         public const string FinanceManage = "Finance.Manage";
+        public const string FinanceCreate = "Finance.Create";
+        public const string FinanceEditDraft = "Finance.EditDraft";
+        public const string FinanceSubmit = "Finance.Submit";
+        public const string FinanceReview = "Finance.Review";
+        public const string FinanceConfirm = "Finance.Confirm";
+        public const string FinanceReverse = "Finance.Reverse";
+        public const string FinanceManageMasterData = "Finance.ManageMasterData";
 
         public const string AccountView = "Account.View";
         public const string BillingView = "Billing.View";

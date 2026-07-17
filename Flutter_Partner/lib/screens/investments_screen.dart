@@ -1102,11 +1102,11 @@ class _InvestmentCardState extends State<_InvestmentCard> {
                             const SizedBox(height: 6),
                             // Status badge (Opportunity Lifecycle)
                             OpportunityStatusUi.badge(
-                              rawStatus: item['status'] ??
+                              raw: item['status'] ??
                                   item['opportunityStatus'] ??
                                   item['opportunity_status'] ??
                                   item['lifecycleStatus'],
-                              fontSize: 11,
+                              textStyle: TextStyle(fontSize: 11),
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 4),
                             ),

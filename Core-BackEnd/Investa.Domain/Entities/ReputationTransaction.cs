@@ -31,6 +31,10 @@ public class ReputationTransaction
     public int? ReputationRuleId { get; set; }
 
     [Required]
+    [StringLength(100)]
+    public string ActivityCode { get; set; } = string.Empty;
+
+    [Required]
     public int Points { get; set; }
 
     public string? Reason { get; set; }
@@ -42,6 +46,8 @@ public class ReputationTransaction
     public SourceModule SourceModuleValue { get; set; } = SourceModule.System;
 
     public DateTime OccurredAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
 
     public Guid? CreatedByUserId { get; set; }

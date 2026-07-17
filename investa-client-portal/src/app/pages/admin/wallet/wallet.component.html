@@ -1,32 +1,32 @@
 <div class="container mx-auto p-6 lg:p-8">
   <div class="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
     <div class="flex items-center gap-3">
-      <button type="button" (click)="goBack()" class="p-2 hover:bg-slate-700 rounded-lg transition-colors" aria-label="Back to profile">
+      <button type="button" (click)="goBack()" class="p-2 hover:bg-slate-700 rounded-lg transition-colors" [attr.aria-label]="'wallet.backToProfile' | translate">
         <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
         </svg>
       </button>
       <div>
-        <h1 class="text-3xl font-bold text-white">Wallet</h1>
-        <p class="text-sm text-gray-400 mt-1">Balance and transaction history</p>
+        <h1 class="text-3xl font-bold text-white">{{ 'wallet.title' | translate }}</h1>
+        <p class="text-sm text-gray-400 mt-1">{{ 'wallet.subtitle' | translate }}</p>
       </div>
     </div>
 
     <button type="button" (click)="loadWallet()" [disabled]="isLoading()" class="inline-flex items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-slate-700 disabled:opacity-50">
-      Refresh
+      {{ 'wallet.refresh' | translate }}
     </button>
   </div>
 
   <div *ngIf="isLoading()" class="text-center py-12">
     <div class="w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-    <p class="text-gray-400">Loading wallet...</p>
+    <p class="text-gray-400">{{ 'wallet.loading' | translate }}</p>
   </div>
 
   <div *ngIf="errorMessage() && !isLoading()" class="bg-red-500/20 border border-red-500/50 rounded-lg p-4 mb-6">
     <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <p class="text-red-200">{{ errorMessage() }}</p>
       <button type="button" (click)="loadWallet()" class="rounded-md bg-red-500/20 px-3 py-2 text-sm font-semibold text-red-100 hover:bg-red-500/30">
-        Retry
+        {{ 'wallet.retry' | translate }}
       </button>
     </div>
   </div>
@@ -34,16 +34,20 @@
   <ng-container *ngIf="!isLoading() && !errorMessage()">
     <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
       <div *ngFor="let item of summaryItems()" class="bg-slate-900/80 border border-slate-800 rounded-xl p-5">
-        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">{{ item.label }}</p>
+        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">{{ item.labelKey | translate }}</p>
         <p class="text-3xl font-bold" [class]="item.tone">{{ formatNumber(item.value) }}</p>
       </div>
     </section>
 
+    <p class="mb-4 rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-100">
+      {{ 'wallet.platformCreditHelper' | translate }}
+    </p>
+
     <section class="bg-slate-900/80 border border-slate-800 rounded-xl overflow-hidden">
       <div class="p-5 border-b border-slate-800 flex items-center justify-between">
         <div>
-          <h2 class="text-xl font-bold text-white">Transactions</h2>
-          <p class="text-sm text-gray-400 mt-1">{{ transactions().length }} records</p>
+          <h2 class="text-xl font-bold text-white">{{ 'wallet.transactions.title' | translate }}</h2>
+          <p class="text-sm text-gray-400 mt-1">{{ 'wallet.transactions.recordCount' | translate }} {{ transactions().length }}</p>
         </div>
       </div>
 
@@ -51,22 +55,22 @@
         <svg class="w-16 h-16 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
         </svg>
-        <p class="text-gray-400">No wallet transactions found.</p>
+        <p class="text-gray-400">{{ 'wallet.transactions.empty' | translate }}</p>
       </div>
 
       <div *ngIf="transactions().length > 0" class="overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-800">
           <thead class="bg-slate-950/50">
             <tr>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Created At</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Direction</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Reason</th>
-              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Credit Amount</th>
-              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Balance Before</th>
-              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Balance After</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Reference Type</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Reference ID</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Description</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">{{ 'wallet.transactions.createdAt' | translate }}</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">{{ 'wallet.transactions.direction' | translate }}</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">{{ 'wallet.transactions.reason' | translate }}</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">{{ 'wallet.transactions.creditAmount' | translate }}</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">{{ 'wallet.transactions.balanceBefore' | translate }}</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">{{ 'wallet.transactions.balanceAfter' | translate }}</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">{{ 'wallet.transactions.referenceType' | translate }}</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">{{ 'wallet.transactions.referenceId' | translate }}</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">{{ 'wallet.transactions.description' | translate }}</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-800">
@@ -74,14 +78,14 @@
               <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-300">{{ formatDate(transaction.createdAt) }}</td>
               <td class="px-4 py-4 whitespace-nowrap">
                 <span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold" [class]="directionTone(transaction.direction)">
-                  {{ displayValue(transaction.direction) }}
+                  {{ directionLabel(transaction.direction) }}
                 </span>
               </td>
-              <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-300">{{ displayValue(transaction.reason) }}</td>
+              <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-300">{{ reasonLabel(transaction.reason) }}</td>
               <td class="px-4 py-4 whitespace-nowrap text-right text-sm font-semibold text-white">{{ formatNumber(transaction.creditAmount) }}</td>
               <td class="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-300">{{ formatNumber(transaction.balanceBefore) }}</td>
               <td class="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-300">{{ formatNumber(transaction.balanceAfter) }}</td>
-              <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-300">{{ displayValue(transaction.referenceType) }}</td>
+              <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-300">{{ referenceTypeLabel(transaction.referenceType) }}</td>
               <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-400">{{ displayValue(transaction.referenceId) }}</td>
               <td class="px-4 py-4 min-w-64 text-sm text-gray-300">{{ displayValue(transaction.description) }}</td>
             </tr>

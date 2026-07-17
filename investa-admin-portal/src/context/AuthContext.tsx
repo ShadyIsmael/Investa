@@ -22,6 +22,7 @@ export interface AuthUser {
   id: string;
   name: string;
   email: string;
+  userType?: string;
   avatar?: string;
   permissions: Permission[];
 }
@@ -140,6 +141,7 @@ export function parseJWT(token: string): { permissions: Permission[]; roles: str
       id: payload.sub || payload.userId || payload.id || '',
       name: payload.name || payload.fullName || payload.userName || '',
       email: payload.email || payload.emailAddress || '',
+      userType: payload.userType || payload.UserType || '',
       avatar: payload.avatar || payload.picture || undefined,
     };
 

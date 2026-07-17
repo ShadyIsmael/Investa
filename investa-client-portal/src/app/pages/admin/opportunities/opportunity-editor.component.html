@@ -1,168 +1,90 @@
-<div class="container mx-auto p-6 lg:p-8 max-w-5xl">
-  <div class="mb-8">
-    <h1 class="text-3xl font-bold text-white">{{ isEdit() ? 'Edit Opportunity' : 'Create Opportunity' }}</h1>
-    <p class="mt-2 text-gray-400">A simple founder wizard for draft creation. Richer details stay optional.</p>
-  </div>
+<main class="editor-page" [attr.dir]="direction()" [attr.lang]="language()">
+  <div class="editor-shell">
+    <header class="editor-header editor-card">
+      <p class="eyebrow">{{ 'opportunityEditor.eyebrow' | translate }}</p>
+      <h1>{{ (isEdit() ? 'opportunityEditor.editTitle' : 'opportunityEditor.createTitle') | translate }}</h1>
+      <p>{{ 'opportunityEditor.subtitle' | translate }}</p>
+    </header>
 
-  <div *ngIf="isLoading()" class="h-96 animate-pulse rounded-xl border border-slate-800 bg-slate-900/80"></div>
-  <div *ngIf="errorMessage() && !isLoading()" class="mb-6 rounded-lg border border-red-500/50 bg-red-500/20 p-4 text-red-200">{{ errorMessage() }}</div>
+    <div *ngIf="isLoading()" class="loading-card editor-card" role="status">{{ 'opportunityEditor.loading' | translate }}</div>
+    <div *ngIf="errorMessage() && !isLoading()" class="alert alert-error" role="alert">{{ errorMessage() }}</div>
+    <div *ngIf="stepErrorMessage() && !isLoading()" class="alert alert-warning" role="alert">{{ stepErrorMessage() }}</div>
 
-  <div *ngIf="!isLoading()" class="rounded-xl border border-slate-800 bg-slate-900/80">
-    <div class="border-b border-slate-800 p-5">
-      <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <button *ngFor="let s of [1,2,3,4]" type="button" (click)="step.set(s)" class="rounded-lg px-3 py-2 text-sm font-semibold" [class.bg-blue-600]="step() === s" [class.text-white]="step() === s" [class.bg-slate-800]="step() !== s" [class.text-gray-300]="step() !== s">
-          Step {{ s }}
+    <form *ngIf="!isLoading()" [formGroup]="form" class="wizard-layout" novalidate>
+      <aside class="step-nav editor-card" [attr.aria-label]="'opportunityEditor.stepperLabel' | translate">
+        <button *ngFor="let item of wizardSteps" type="button" (click)="goToStep(item.id)" [class.active]="step() === item.id" [class.completed]="isStepCompleted(item.id)" [class.step-error]="isStepInvalid(item.id)" [attr.aria-current]="step() === item.id ? 'step' : null">
+          <span class="step-index">{{ item.id }}</span>
+          <span class="step-copy"><strong>{{ ('opportunityEditor.steps.' + item.key + '.title') | translate }}</strong><small>{{ ('opportunityEditor.steps.' + item.key + '.short') | translate }}</small></span>
         </button>
-      </div>
-    </div>
+      </aside>
 
-    <div class="p-6 lg:p-8">
-      <section *ngIf="step() === 1" class="space-y-5">
-        <h2 class="text-xl font-bold text-white">Tell us about your opportunity</h2>
-        <input [(ngModel)]="form.title" placeholder="Title" class="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
-        <textarea [(ngModel)]="form.shortDescription" rows="3" placeholder="Short description" class="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"></textarea>
-        <textarea [(ngModel)]="form.fullDescription" rows="6" placeholder="Full description" class="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"></textarea>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <select [(ngModel)]="form.categoryId" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
-            <option [ngValue]="null">Category</option>
-            <option *ngFor="let category of categories()" [ngValue]="category.id">{{ label(category) }}</option>
-          </select>
-          <input [(ngModel)]="form.projectStage" placeholder="Opportunity stage" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
-        </div>
-        <div>
-          <p class="mb-2 text-sm font-semibold text-gray-300">Tags</p>
-          <div class="flex flex-wrap gap-2">
-            <button *ngFor="let tag of tags()" type="button" (click)="toggleTag(tag.id)" class="rounded-full border px-3 py-1 text-xs font-semibold" [class.bg-blue-500/20]="isTagSelected(tag.id)" [class.text-blue-200]="isTagSelected(tag.id)" [class.border-blue-500/40]="isTagSelected(tag.id)" [class.bg-slate-800]="!isTagSelected(tag.id)" [class.text-gray-300]="!isTagSelected(tag.id)" [class.border-slate-700]="!isTagSelected(tag.id)">
-              {{ label(tag) }}
-            </button>
-          </div>
-        </div>
-      </section>
+      <section class="form-panel editor-card">
+        <header class="section-header">
+          <p class="eyebrow">{{ ('opportunityEditor.stepCount' | translate).replace('{current}', step().toString()).replace('{total}', wizardSteps.length.toString()) }}</p>
+          <h2>{{ ('opportunityEditor.steps.' + wizardSteps[step() - 1].key + '.title') | translate }}</h2>
+          <p>{{ ('opportunityEditor.steps.' + wizardSteps[step() - 1].key + '.description') | translate }}</p>
+        </header>
 
-      <section *ngIf="step() === 2" class="space-y-5">
-        <h2 class="text-xl font-bold text-white">Funding Basics</h2>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <input [(ngModel)]="form.investmentModel" placeholder="Investment model" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
-          <select [(ngModel)]="form.fundingGoalId" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
-            <option [ngValue]="null">Funding goal</option>
-            <option *ngFor="let goal of fundingGoals()" [ngValue]="goal.id">{{ label(goal) }}</option>
-          </select>
-          <input [(ngModel)]="form.fundingTarget" type="number" placeholder="Funding target" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
-          <input [(ngModel)]="form.minimumInvestment" type="number" placeholder="Minimum investment" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
-          <input [(ngModel)]="form.maximumInvestment" type="number" placeholder="Maximum investment optional" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
-          <input [(ngModel)]="form.expectedDuration" placeholder="Expected duration optional" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
-        </div>
-        <details class="rounded-lg border border-slate-800 bg-slate-800/40 p-4">
-          <summary class="cursor-pointer text-sm font-semibold text-gray-200">Advanced optional details</summary>
-          <div class="mt-4 grid grid-cols-1 gap-4">
-            <textarea [(ngModel)]="form.fundingUsage" rows="3" placeholder="Funding usage" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"></textarea>
-            <textarea [(ngModel)]="form.risks" rows="3" placeholder="Risks" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"></textarea>
-            <textarea [(ngModel)]="form.exitStrategy" rows="3" placeholder="Exit strategy" class="rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white"></textarea>
-          </div>
-        </details>
-      </section>
-
-      <section *ngIf="step() === 3" class="space-y-5">
-        <h2 class="text-xl font-bold text-white">Media & Documents</h2>
-        <input [(ngModel)]="form.coverImageUrl" placeholder="Cover image URL" class="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-white">
-
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div class="rounded-lg border border-slate-700 bg-slate-800/40 p-4" (dragover)="$event.preventDefault()" (drop)="onDrop($event, 'cover')">
-            <p class="font-semibold text-white">Cover image</p>
-            <p class="mt-1 text-xs text-gray-400">Public: Visible before investor joins. Cover is always public.</p>
-            <label class="mt-4 inline-flex cursor-pointer rounded-md bg-slate-700 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-600">
-              Choose file
-              <input type="file" accept="image/*" class="hidden" (change)="onFilesSelected($event, 'cover')">
-            </label>
-          </div>
-          <div class="rounded-lg border border-slate-700 bg-slate-800/40 p-4" (dragover)="$event.preventDefault()" (drop)="onDrop($event, 'gallery')">
-            <p class="font-semibold text-white">Gallery images</p>
-            <p class="mt-1 text-xs text-gray-400">Public: Visible before investor joins.</p>
-            <label class="mt-4 inline-flex cursor-pointer rounded-md bg-slate-700 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-600">
-              Choose files
-              <input type="file" accept="image/*" multiple class="hidden" (change)="onFilesSelected($event, 'gallery')">
-            </label>
-          </div>
-          <div class="rounded-lg border border-slate-700 bg-slate-800/40 p-4" (dragover)="$event.preventDefault()" (drop)="onDrop($event, 'video')">
-            <p class="font-semibold text-white">Videos</p>
-            <p class="mt-1 text-xs text-gray-400">Public: Visible before investor joins.</p>
-            <label class="mt-4 inline-flex cursor-pointer rounded-md bg-slate-700 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-600">
-              Choose files
-              <input type="file" accept="video/*" multiple class="hidden" (change)="onFilesSelected($event, 'video')">
-            </label>
-          </div>
-          <div class="rounded-lg border border-slate-700 bg-slate-800/40 p-4" (dragover)="$event.preventDefault()" (drop)="onDrop($event, 'publicDocument')">
-            <p class="font-semibold text-white">Public documents</p>
-            <p class="mt-1 text-xs text-gray-400">Public: Visible before investor joins.</p>
-            <label class="mt-4 inline-flex cursor-pointer rounded-md bg-slate-700 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-600">
-              Choose files
-              <input type="file" multiple class="hidden" (change)="onFilesSelected($event, 'publicDocument')">
-            </label>
-          </div>
-          <div class="rounded-lg border border-slate-700 bg-slate-800/40 p-4 md:col-span-2" (dragover)="$event.preventDefault()" (drop)="onDrop($event, 'privateDocument')">
-            <p class="font-semibold text-white">Private documents</p>
-            <p class="mt-1 text-xs text-gray-400">Private: Visible only after approved participation.</p>
-            <label class="mt-4 inline-flex cursor-pointer rounded-md bg-slate-700 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-600">
-              Choose files
-              <input type="file" multiple class="hidden" (change)="onFilesSelected($event, 'privateDocument')">
-            </label>
-          </div>
-        </div>
-
-        <div *ngIf="pendingUploads().length > 0" class="rounded-lg border border-slate-800 bg-slate-800/40 p-4">
-          <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p class="font-semibold text-white">Pending files</p>
-              <p class="text-xs text-gray-400">Saving uploads will save the draft first, then attach FileStore metadata.</p>
+        <div class="form-content">
+          <section *ngIf="step() === 1" class="section-stack">
+            <div class="form-grid">
+              <label class="field field-wide"><span>{{ 'opportunityEditor.fields.title' | translate }} <b>*</b></span><input formControlName="title" [placeholder]="'opportunityEditor.placeholders.title' | translate" [class.invalid]="isControlInvalid('title')"><small *ngIf="isControlInvalid('title')">{{ 'opportunityEditor.validation.titleRequired' | translate }}</small></label>
+              <label class="field field-wide"><span>{{ 'opportunityEditor.fields.shortDescription' | translate }} <b>*</b></span><textarea formControlName="shortDescription" rows="3" [placeholder]="'opportunityEditor.placeholders.shortDescription' | translate" [class.invalid]="isControlInvalid('shortDescription')"></textarea><small *ngIf="isControlInvalid('shortDescription')">{{ 'opportunityEditor.validation.shortDescriptionRequired' | translate }}</small></label>
+              <label class="field field-wide"><span>{{ 'opportunityEditor.fields.story' | translate }}</span><textarea formControlName="fullDescription" rows="5" [placeholder]="'opportunityEditor.placeholders.story' | translate"></textarea></label>
+              <label class="field"><span>{{ 'opportunityEditor.fields.category' | translate }} <b>*</b></span><select formControlName="categoryId"><option [ngValue]="null">{{ 'opportunityEditor.placeholders.category' | translate }}</option><option *ngFor="let category of categories()" [ngValue]="category.id">{{ localizedLookupLabel(category, 'categories') }}</option></select></label>
+              <label class="field"><span>{{ 'opportunityEditor.fields.projectStage' | translate }} <b>*</b></span><select formControlName="projectStage" [class.invalid]="isControlInvalid('projectStage')"><option [ngValue]="null">{{ 'opportunityEditor.placeholders.projectStage' | translate }}</option><option *ngFor="let stage of projectStages" [ngValue]="stage">{{ projectStageKey(stage) | translate }}</option></select><small *ngIf="isControlInvalid('projectStage')">{{ 'opportunityEditor.validation.projectStageRequired' | translate }}</small></label>
             </div>
-            <button type="button" (click)="uploadAndAttach()" [disabled]="isUploading()" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50">
-              {{ isUploading() ? 'Uploading...' : 'Save Draft & Upload' }}
-            </button>
-          </div>
-          <ul class="mt-4 divide-y divide-slate-700">
-            <li *ngFor="let item of pendingUploads()" class="flex items-center justify-between gap-4 py-3">
-              <div>
-                <p class="text-sm font-semibold text-white">{{ item.file.name }}</p>
-                <p class="text-xs text-gray-400">{{ item.category }} · {{ item.file.type || 'unknown type' }}</p>
-              </div>
-              <button type="button" (click)="removePendingUpload(item.id)" class="rounded-md bg-slate-700 px-3 py-1 text-xs font-semibold text-gray-200 hover:bg-slate-600">Remove</button>
-            </li>
-          </ul>
+            <div class="field-group">
+              <span class="group-label">{{ 'opportunityEditor.fields.tags' | translate }}</span>
+              <div class="tag-list"><button *ngFor="let tag of tags()" type="button" class="tag-button" [class.selected]="isTagSelected(tag.id)" (click)="toggleTag(tag.id)">{{ localizedLookupLabel(tag, 'tags') }}</button><span *ngIf="tags().length === 0" class="empty-inline">{{ 'opportunityEditor.empty.noTags' | translate }}</span></div>
+            </div>
+          </section>
+
+          <section *ngIf="step() === 2" class="section-stack">
+            <div class="form-grid">
+              <label class="field"><span>{{ 'opportunityEditor.fields.investmentModel' | translate }} <b>*</b></span><select formControlName="investmentModel" [class.invalid]="isControlInvalid('investmentModel')"><option [ngValue]="null">{{ 'opportunityEditor.placeholders.investmentModel' | translate }}</option><option [ngValue]="InvestmentModel.Equity">{{ 'opportunityEditor.models.equity' | translate }}</option><option [ngValue]="InvestmentModel.LoanInvestment">{{ 'opportunityEditor.models.loan' | translate }}</option><option [ngValue]="InvestmentModel.CapitalContributionProfitSharing">{{ 'opportunityEditor.models.profitSharing' | translate }}</option></select></label>
+              <label class="field"><span>{{ 'opportunityEditor.fields.fundingGoal' | translate }} <b>*</b></span><select formControlName="fundingGoalId"><option [ngValue]="null">{{ 'opportunityEditor.placeholders.fundingGoal' | translate }}</option><option *ngFor="let goal of fundingGoals()" [ngValue]="goal.id">{{ localizedLookupLabel(goal, 'fundingGoals') }}</option></select></label>
+              <label class="field"><span>{{ 'opportunityEditor.fields.fundingTarget' | translate }}</span><input formControlName="fundingTarget" type="number" min="1" inputmode="decimal" dir="ltr" [placeholder]="'opportunityEditor.placeholders.fundingTarget' | translate" [class.invalid]="isControlInvalid('fundingTarget')"></label>
+              <label class="field"><span>{{ 'opportunityEditor.fields.minimumInvestment' | translate }}</span><input formControlName="minimumInvestment" type="number" min="1" inputmode="decimal" dir="ltr" [placeholder]="'opportunityEditor.placeholders.minimumInvestment' | translate" [class.invalid]="isControlInvalid('minimumInvestment')"></label>
+              <label class="field"><span>{{ 'opportunityEditor.fields.maximumInvestment' | translate }}</span><input formControlName="maximumInvestment" type="number" min="1" inputmode="decimal" dir="ltr" [placeholder]="'opportunityEditor.placeholders.maximumInvestment' | translate"></label>
+              <label class="field" *ngIf="!isProfitSharingModel()"><span>{{ 'opportunityEditor.fields.expectedDuration' | translate }} <b *ngIf="isLoanModel()">*</b></span><input formControlName="expectedDuration" type="number" min="1" inputmode="numeric" dir="ltr" [placeholder]="'opportunityEditor.placeholders.expectedDurationMonths' | translate" [class.invalid]="isControlInvalid('expectedDuration')"></label>
+            </div>
+
+            <div *ngIf="isEquityModel()" class="model-card"><h3>{{ 'opportunityEditor.models.equityTerms' | translate }}</h3><div class="form-grid"><label class="field"><span>{{ 'opportunityEditor.fields.currency' | translate }} <b>*</b></span><select formControlName="currency" [class.invalid]="isControlInvalid('currency')"><option value="">{{ 'opportunityEditor.placeholders.currency' | translate }}</option><option *ngFor="let currency of currencies" [value]="currency">{{ ('opportunityEditor.currencies.' + currency) | translate }}</option></select></label><label class="field"><span>{{ 'opportunityEditor.fields.sharePrice' | translate }} <b>*</b></span><input formControlName="sharePrice" type="number" min="0.01" step="0.01" dir="ltr" [class.invalid]="isControlInvalid('sharePrice')"></label><label class="field"><span>{{ 'opportunityEditor.fields.totalShares' | translate }} <b>*</b></span><input formControlName="totalShares" type="number" min="1" step="1" dir="ltr" [class.invalid]="isControlInvalid('totalShares')"></label><label class="field"><span>{{ 'opportunityEditor.fields.offeredShares' | translate }} <b>*</b></span><input formControlName="offeredShares" type="number" min="1" step="1" dir="ltr" [class.invalid]="isControlInvalid('offeredShares')"></label><label class="field"><span>{{ 'opportunityEditor.fields.equityOffered' | translate }} <b>*</b></span><input formControlName="equityOfferedPercentage" type="number" dir="ltr" readonly [class.invalid]="isControlInvalid('equityOfferedPercentage')"><small>{{ 'opportunityEditor.help.equityPercentage' | translate }}</small></label></div></div>
+
+            <div *ngIf="isLoanModel()" class="model-card"><h3>{{ 'opportunityEditor.models.loanTerms' | translate }}</h3><div class="form-grid"><label class="field"><span>{{ 'opportunityEditor.fields.interestRate' | translate }} <b>*</b></span><input formControlName="interestRate" type="number" min="0" max="100" step="0.01" dir="ltr" [class.invalid]="isControlInvalid('interestRate')"></label><label class="field"><span>{{ 'opportunityEditor.fields.repaymentFrequency' | translate }} <b>*</b></span><input formControlName="repaymentFrequency" [placeholder]="'opportunityEditor.placeholders.repaymentFrequency' | translate" [class.invalid]="isControlInvalid('repaymentFrequency')"></label><label class="field"><span>{{ 'opportunityEditor.fields.finalRepaymentDate' | translate }} <b>*</b></span><input formControlName="finalRepaymentDate" type="date" dir="ltr" [class.invalid]="isControlInvalid('finalRepaymentDate')"></label></div></div>
+
+            <div *ngIf="isProfitSharingModel()" class="model-card"><h3>{{ 'opportunityEditor.models.profitSharingTerms' | translate }}</h3><p class="model-help">{{ 'opportunityEditor.help.profitSharing' | translate }}</p><div class="form-grid"><label class="field"><span>{{ 'opportunityEditor.fields.profitSharePercentage' | translate }} <b>*</b></span><input formControlName="profitSharePercentage" type="number" min="0.01" max="100" step="0.01" dir="ltr" [class.invalid]="isControlInvalid('profitSharePercentage')"></label><label class="field"><span>{{ 'opportunityEditor.fields.payoutFrequency' | translate }} <b>*</b></span><select formControlName="profitSharingPayoutFrequency" [class.invalid]="isControlInvalid('profitSharingPayoutFrequency')"><option value="">{{ 'opportunityEditor.placeholders.selectPayoutFrequency' | translate }}</option><option *ngFor="let option of payoutFrequencies" [value]="option">{{ payoutFrequencyKey(option) | translate }}</option></select></label><label class="field"><span>{{ 'opportunityEditor.fields.expectedDuration' | translate }}</span><input formControlName="expectedDuration" type="number" min="1" inputmode="numeric" dir="ltr" [placeholder]="'opportunityEditor.placeholders.expectedDurationMonths' | translate"></label><label class="field"><span>{{ 'opportunityEditor.fields.contractStartDate' | translate }}</span><input formControlName="profitSharingContractStartDate" type="date" dir="ltr"></label><label class="field"><span>{{ 'opportunityEditor.fields.contractEndDate' | translate }}</span><input formControlName="profitSharingContractEndDate" type="date" dir="ltr"></label><label class="field field-wide"><span>{{ 'opportunityEditor.fields.exitTerms' | translate }}</span><input formControlName="exitTerms" [placeholder]="'opportunityEditor.placeholders.exitTerms' | translate"></label></div></div>
+
+            <details class="advanced-card"><summary>{{ 'opportunityEditor.advanced.title' | translate }}</summary><p>{{ 'opportunityEditor.advanced.description' | translate }}</p><div class="form-grid"><label class="field field-wide"><span>{{ 'opportunityEditor.fields.useOfFunds' | translate }} <b>*</b></span><textarea formControlName="fundingUsage" rows="3" [class.invalid]="isControlInvalid('fundingUsage')"></textarea></label><label class="field"><span>{{ 'opportunityEditor.fields.risks' | translate }}</span><textarea formControlName="risks" rows="3"></textarea></label><label class="field"><span>{{ 'opportunityEditor.fields.exitStrategy' | translate }}</span><textarea formControlName="exitStrategy" rows="3"></textarea></label></div></details>
+          </section>
+
+          <section *ngIf="step() === 3" class="section-stack">
+            <label class="field"><span>{{ 'opportunityEditor.fields.coverImageUrl' | translate }}</span><input formControlName="coverImageUrl" type="url" dir="ltr" [placeholder]="'opportunityEditor.placeholders.coverImageUrl' | translate"></label>
+            <div *ngIf="existingMedia().length" class="file-panel"><strong>{{ 'opportunityEditor.media.existingMedia' | translate }}</strong><ul><li *ngFor="let item of existingMedia()"><span>{{ existingMediaName(item) }}</span></li></ul></div>
+            <div *ngIf="existingDocuments().length" class="file-panel"><strong>{{ 'opportunityEditor.media.existingDocuments' | translate }}</strong><ul><li *ngFor="let item of existingDocuments()"><span>{{ existingDocumentName(item) }}</span></li></ul></div>
+            <div *ngIf="existingEvents().length" class="file-panel"><strong>{{ 'opportunityEditor.media.existingTimeline' | translate }}</strong><ul><li *ngFor="let item of existingEvents()"><span><strong>{{ existingEventName(item) }}</strong><small *ngIf="existingEventDate(item)" dir="ltr">{{ existingEventDate(item) }}</small></span></li></ul></div>
+            <div class="upload-grid">
+              <div class="upload-card" *ngFor="let kind of uploadKinds" (dragover)="$event.preventDefault()" (drop)="onDrop($event, kind)"><strong>{{ ('opportunityEditor.media.types.' + kind) | translate }}</strong><small>{{ (kind === 'privateDocument' ? 'opportunityEditor.media.privateHelp' : 'opportunityEditor.media.publicHelp') | translate }}</small><label class="secondary-button">{{ 'opportunityEditor.actions.chooseFiles' | translate }}<input type="file" [accept]="kind === 'cover' || kind === 'gallery' ? 'image/*' : (kind === 'video' ? 'video/*' : '')" [multiple]="kind !== 'cover'" (change)="onFilesSelected($event, kind)"></label></div>
+            </div>
+            <div *ngIf="pendingUploads().length" class="file-panel"><div class="file-panel-header"><div><strong>{{ 'opportunityEditor.media.pending' | translate }}</strong><small>{{ 'opportunityEditor.media.pendingHelp' | translate }}</small></div><button type="button" class="primary-button" (click)="uploadAndAttach()" [disabled]="isUploading()">{{ (isUploading() ? 'opportunityEditor.actions.uploading' : 'opportunityEditor.actions.saveAndUpload') | translate }}</button></div><ul><li *ngFor="let item of pendingUploads()"><span><strong>{{ item.file.name }}</strong><small>{{ uploadKindKey(item.kind) | translate }} · {{ item.file.type || ('opportunityEditor.media.unknownType' | translate) }}</small></span><button type="button" class="text-button" (click)="removePendingUpload(item.id)">{{ 'opportunityEditor.actions.remove' | translate }}</button></li></ul></div>
+            <div *ngIf="uploadedFiles().length" class="file-panel success-panel"><strong>{{ 'opportunityEditor.media.uploaded' | translate }}</strong><ul><li *ngFor="let file of uploadedFiles()"><span>{{ file.originalFileName || file.fileName }} · {{ uploadedCategoryKey(file.category) | translate }}</span></li></ul></div>
+            <div *ngIf="uploadMessage()" class="alert alert-success" role="status">{{ uploadMessage() }}</div>
+          </section>
+
+          <section *ngIf="step() === 4" class="section-stack">
+            <div class="review-hero"><div><span>{{ 'opportunityEditor.review.opportunity' | translate }}</span><h3>{{ form.get('title')?.value || ('opportunityEditor.review.untitled' | translate) }}</h3><p>{{ form.get('shortDescription')?.value || ('opportunityEditor.review.notAvailable' | translate) }}</p></div><span class="model-badge">{{ investmentModelKey() | translate }}</span></div>
+            <div class="review-section"><h3>{{ 'opportunityEditor.review.details' | translate }}</h3><dl class="review-grid"><div><dt>{{ 'opportunityEditor.fields.category' | translate }}</dt><dd>{{ lookupLabel(categories(), form.get('categoryId')?.value, 'categories') }}</dd></div><div><dt>{{ 'opportunityEditor.fields.projectStage' | translate }}</dt><dd>{{ projectStageKey(form.get('projectStage')?.value) | translate }}</dd></div><div><dt>{{ 'opportunityEditor.fields.tags' | translate }}</dt><dd>{{ selectedTagLabels() }}</dd></div><div><dt>{{ 'opportunityEditor.fields.fundingGoal' | translate }}</dt><dd>{{ lookupLabel(fundingGoals(), form.get('fundingGoalId')?.value, 'fundingGoals') }}</dd></div><div><dt>{{ 'opportunityEditor.fields.fundingTarget' | translate }}</dt><dd dir="ltr">{{ westernNumber(form.get('fundingTarget')?.value) }}</dd></div><div><dt>{{ 'opportunityEditor.fields.minimumInvestment' | translate }}</dt><dd dir="ltr">{{ westernNumber(form.get('minimumInvestment')?.value) }}</dd></div><div *ngIf="form.get('maximumInvestment')?.value"><dt>{{ 'opportunityEditor.fields.maximumInvestment' | translate }}</dt><dd dir="ltr">{{ westernNumber(form.get('maximumInvestment')?.value) }}</dd></div><div *ngIf="form.get('expectedDuration')?.value"><dt>{{ 'opportunityEditor.fields.expectedDuration' | translate }}</dt><dd dir="ltr">{{ westernNumber(form.get('expectedDuration')?.value) }}</dd></div></dl></div>
+            <div class="review-section" *ngIf="form.get('fullDescription')?.value"><h3>{{ 'opportunityEditor.fields.story' | translate }}</h3><dl class="review-stack"><div><dd>{{ form.get('fullDescription')?.value }}</dd></div></dl></div>
+            <div class="review-section" *ngIf="isEquityModel() || isLoanModel() || isProfitSharingModel()"><h3>{{ 'opportunityEditor.review.modelTerms' | translate }}</h3><dl class="review-grid"><ng-container *ngIf="isEquityModel()"><div><dt>{{ 'opportunityEditor.fields.currency' | translate }}</dt><dd>{{ ('opportunityEditor.currencies.' + form.get('currency')?.value) | translate }}</dd></div><div><dt>{{ 'opportunityEditor.fields.sharePrice' | translate }}</dt><dd dir="ltr">{{ westernNumber(form.get('sharePrice')?.value) }}</dd></div><div><dt>{{ 'opportunityEditor.fields.totalShares' | translate }}</dt><dd dir="ltr">{{ westernNumber(form.get('totalShares')?.value) }}</dd></div><div><dt>{{ 'opportunityEditor.fields.offeredShares' | translate }}</dt><dd dir="ltr">{{ westernNumber(form.get('offeredShares')?.value) }}</dd></div><div><dt>{{ 'opportunityEditor.fields.equityOffered' | translate }}</dt><dd dir="ltr">{{ westernNumber(form.get('equityOfferedPercentage')?.value) }}%</dd></div></ng-container><ng-container *ngIf="isLoanModel()"><div><dt>{{ 'opportunityEditor.fields.interestRate' | translate }}</dt><dd dir="ltr">{{ westernNumber(form.get('interestRate')?.value) }}%</dd></div><div><dt>{{ 'opportunityEditor.fields.repaymentFrequency' | translate }}</dt><dd>{{ form.get('repaymentFrequency')?.value || ('opportunityEditor.review.notAvailable' | translate) }}</dd></div><div><dt>{{ 'opportunityEditor.fields.finalRepaymentDate' | translate }}</dt><dd dir="ltr">{{ form.get('finalRepaymentDate')?.value || ('opportunityEditor.review.notAvailable' | translate) }}</dd></div></ng-container><ng-container *ngIf="isProfitSharingModel()"><div><dt>{{ 'opportunityEditor.fields.profitSharePercentage' | translate }}</dt><dd dir="ltr">{{ westernNumber(form.get('profitSharePercentage')?.value) }}%</dd></div><div><dt>{{ 'opportunityEditor.fields.payoutFrequency' | translate }}</dt><dd>{{ payoutFrequencyKey(form.get('profitSharingPayoutFrequency')?.value) | translate }}</dd></div><div *ngIf="form.get('profitSharingContractStartDate')?.value"><dt>{{ 'opportunityEditor.fields.contractStartDate' | translate }}</dt><dd dir="ltr">{{ form.get('profitSharingContractStartDate')?.value }}</dd></div><div *ngIf="form.get('profitSharingContractEndDate')?.value"><dt>{{ 'opportunityEditor.fields.contractEndDate' | translate }}</dt><dd dir="ltr">{{ form.get('profitSharingContractEndDate')?.value }}</dd></div></ng-container></dl></div>
+            <div class="review-section" *ngIf="form.get('fundingUsage')?.value || form.get('coverImageUrl')?.value"><h3>{{ 'opportunityEditor.review.additional' | translate }}</h3><dl class="review-stack"><div *ngIf="form.get('fundingUsage')?.value"><dt>{{ 'opportunityEditor.fields.useOfFunds' | translate }}</dt><dd>{{ form.get('fundingUsage')?.value }}</dd></div><div *ngIf="form.get('coverImageUrl')?.value"><dt>{{ 'opportunityEditor.fields.coverImageUrl' | translate }}</dt><dd dir="ltr">{{ form.get('coverImageUrl')?.value }}</dd></div></dl></div>
+          </section>
         </div>
 
-        <div *ngIf="uploadedFiles().length > 0" class="rounded-lg border border-emerald-500/25 bg-emerald-500/10 p-4">
-          <p class="font-semibold text-emerald-100">Uploaded files</p>
-          <ul class="mt-3 space-y-2">
-            <li *ngFor="let file of uploadedFiles()" class="text-sm text-emerald-50">{{ file.originalFileName || file.fileName }} · {{ file.category }}</li>
-          </ul>
-        </div>
-
-        <div *ngIf="uploadMessage()" class="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">
-          {{ uploadMessage() }}
-        </div>
+        <footer class="wizard-actions"><button type="button" class="secondary-button" (click)="back()" [disabled]="step() === 1">{{ 'opportunityEditor.actions.back' | translate }}</button><div><button type="button" *ngIf="step() < 4" class="primary-button" (click)="next()">{{ 'opportunityEditor.actions.next' | translate }}</button><button type="button" *ngIf="step() === 4" class="secondary-button" (click)="save(false)" [disabled]="isSaving()">{{ (isSaving() && savingMode() === 'draft' ? 'opportunityEditor.actions.savingDraft' : 'opportunityEditor.actions.saveDraft') | translate }}</button><button type="button" *ngIf="step() === 4 && canPublish()" class="primary-button" (click)="save(true)" [disabled]="isSaving()">{{ (isSaving() && savingMode() === 'publish' ? 'opportunityPublish.publishing' : 'opportunityPublish.action') | translate }}</button></div></footer>
       </section>
 
-      <section *ngIf="step() === 4" class="space-y-5">
-        <h2 class="text-xl font-bold text-white">Review</h2>
-        <div class="rounded-xl border border-slate-800 bg-slate-800/40 p-5">
-          <p class="text-2xl font-bold text-white">{{ form.title || 'Untitled opportunity' }}</p>
-          <p class="mt-2 text-gray-400">{{ form.shortDescription || '-' }}</p>
-          <dl class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div><dt class="text-xs text-gray-500">Model</dt><dd class="text-gray-200">{{ form.investmentModel || '-' }}</dd></div>
-            <div><dt class="text-xs text-gray-500">Funding</dt><dd class="text-gray-200">{{ form.fundingTarget || 0 }}</dd></div>
-            <div><dt class="text-xs text-gray-500">Minimum</dt><dd class="text-gray-200">{{ form.minimumInvestment || 0 }}</dd></div>
-          </dl>
-        </div>
-      </section>
-    </div>
-
-    <div class="flex flex-col gap-3 border-t border-slate-800 p-5 md:flex-row md:justify-between">
-      <button type="button" (click)="back()" [disabled]="step() === 1" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-slate-700 disabled:opacity-50">Back</button>
-      <div class="flex gap-3">
-        <button type="button" *ngIf="step() < 4" (click)="next()" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">Next</button>
-        <button type="button" *ngIf="step() === 4" (click)="save(false)" [disabled]="isSaving()" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-slate-700 disabled:opacity-50">Save Draft</button>
-        <button type="button" *ngIf="step() === 4" (click)="save(true)" [disabled]="isSaving()" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50">Submit for Review</button>
-      </div>
-    </div>
+      <aside *ngIf="step() < 4" class="summary-panel editor-card"><p class="eyebrow">{{ 'opportunityEditor.summary.eyebrow' | translate }}</p><h2>{{ 'opportunityEditor.summary.title' | translate }}</h2><dl><div><dt>{{ 'opportunityEditor.fields.title' | translate }}</dt><dd>{{ form.get('title')?.value || ('opportunityEditor.review.untitled' | translate) }}</dd></div><div><dt>{{ 'opportunityEditor.fields.investmentModel' | translate }}</dt><dd>{{ investmentModelKey() | translate }}</dd></div><div><dt>{{ 'opportunityEditor.fields.fundingTarget' | translate }}</dt><dd dir="ltr">{{ westernNumber(form.get('fundingTarget')?.value) }}</dd></div><div><dt>{{ 'opportunityEditor.fields.minimumInvestment' | translate }}</dt><dd dir="ltr">{{ westernNumber(form.get('minimumInvestment')?.value) }}</dd></div></dl><p>{{ 'opportunityEditor.summary.help' | translate }}</p></aside>
+    </form>
   </div>
-</div>
+</main>

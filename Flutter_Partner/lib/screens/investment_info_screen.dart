@@ -2487,7 +2487,7 @@ class _InvestNowDialogState extends State<_InvestNowDialog> {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _infoCard(context, 'Target Amount', '$currency${targetAmount.toStringAsFixed(0)}', Icons.target),
+              child: _infoCard(context, 'Target Amount', '$currency${targetAmount.toStringAsFixed(0)}', Icons.flag),
             ),
           ],
         ),

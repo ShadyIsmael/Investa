@@ -1,12 +1,14 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { Wallet, WalletService, WalletTransaction } from '../../../services/wallet.service';
+import { walletDirectionKey, walletReasonKey, walletReferenceTypeKey, Wallet, WalletService, WalletTransaction } from '../../../services/wallet.service';
+import { LanguageService } from '../../../services/language.service';
+import { TranslatePipe } from '../../../pipes/translate.pipe';
 
 @Component({
   standalone: true,
   selector: 'app-wallet',
-  imports: [CommonModule],
+  imports: [CommonModule, TranslatePipe],
   templateUrl: './wallet.component.html',
   styleUrls: ['./wallet.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -14,9 +16,10 @@ import { Wallet, WalletService, WalletTransaction } from '../../../services/wall
 export class WalletComponent {
   private walletService = inject(WalletService);
   private router = inject(Router);
+  private languageService = inject(LanguageService);
 
   wallet = signal<Wallet | null>(null);
-  balance = signal<number>(0);
+  balance = this.walletService.balance;
   transactions = signal<WalletTransaction[]>([]);
   isLoading = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
@@ -24,10 +27,10 @@ export class WalletComponent {
   summaryItems = computed(() => {
     const wallet = this.wallet();
     return [
-      { label: 'Current Balance', value: this.balance(), tone: 'text-blue-300' },
-      { label: 'Total Purchased Credits', value: wallet?.totalPurchasedCredits ?? 0, tone: 'text-emerald-300' },
-      { label: 'Total Bonus Credits', value: wallet?.totalBonusCredits ?? 0, tone: 'text-violet-300' },
-      { label: 'Total Refund Credits', value: wallet?.totalRefundCredits ?? 0, tone: 'text-amber-300' }
+      { labelKey: 'wallet.summary.currentBalance', value: this.balance(), tone: 'text-blue-300' },
+      { labelKey: 'wallet.summary.purchased', value: wallet?.totalPurchasedCredits ?? 0, tone: 'text-emerald-300' },
+      { labelKey: 'wallet.summary.bonus', value: wallet?.totalBonusCredits ?? 0, tone: 'text-violet-300' },
+      { labelKey: 'wallet.summary.refunds', value: wallet?.totalRefundCredits ?? 0, tone: 'text-amber-300' }
     ];
   });
 
@@ -42,10 +45,9 @@ export class WalletComponent {
 
       const view = await this.walletService.loadCurrentUserWallet();
       this.wallet.set(view.wallet);
-      this.balance.set(view.balance ?? view.wallet.currentBalance ?? 0);
       this.transactions.set(view.transactions);
-    } catch (error: any) {
-      this.errorMessage.set(error?.message || 'Failed to load wallet.');
+    } catch (error: unknown) {
+      this.errorMessage.set(this.errorText(error));
       this.wallet.set(null);
       this.transactions.set([]);
     } finally {
@@ -54,14 +56,14 @@ export class WalletComponent {
   }
 
   formatNumber(value: number | null | undefined): string {
-    return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value ?? 0);
+    return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value ?? 0);
   }
 
   formatDate(value: string | null | undefined): string {
     if (!value) return '-';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
-    return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+    return new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
   }
 
   displayValue(value: string | number | null | undefined): string {
@@ -70,13 +72,33 @@ export class WalletComponent {
   }
 
   directionTone(direction: string | number): string {
-    const text = String(direction).toLowerCase();
-    return text.includes('credit') || text === '0'
+    return walletDirectionKey(direction) === 'credit'
       ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25'
       : 'bg-red-500/15 text-red-300 border-red-500/25';
   }
 
   goBack(): void {
     this.router.navigate(['/admin/profile']);
+  }
+
+  t(path: string): string {
+    return this.languageService.translate(path);
+  }
+
+  directionLabel(value: string | number): string {
+    return this.t(`wallet.enums.direction.${walletDirectionKey(value)}`);
+  }
+
+  reasonLabel(value: string | number): string {
+    return this.t(`wallet.enums.reason.${walletReasonKey(value)}`);
+  }
+
+  referenceTypeLabel(value: string | number): string {
+    return this.t(`wallet.enums.referenceType.${walletReferenceTypeKey(value)}`);
+  }
+
+  private errorText(error: unknown): string {
+    const record = typeof error === 'object' && error !== null ? error as Record<string, unknown> : null;
+    return typeof record?.['message'] === 'string' ? record['message'] : this.t('wallet.errors.loadFailed');
   }
 }

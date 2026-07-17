@@ -22,11 +22,16 @@ public class JwtTokenService : IJwtTokenService
 {
     private readonly IConfiguration _configuration;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IEffectivePermissionService _effectivePermissionService;
 
-    public JwtTokenService(IConfiguration configuration, IUnitOfWork unitOfWork)
+    public JwtTokenService(
+        IConfiguration configuration,
+        IUnitOfWork unitOfWork,
+        IEffectivePermissionService effectivePermissionService)
     {
         _configuration = configuration;
         _unitOfWork = unitOfWork;
+        _effectivePermissionService = effectivePermissionService;
     }
 
     /// <inheritdoc/>
@@ -59,8 +64,6 @@ public class JwtTokenService : IJwtTokenService
         // Default role and user type (use enums)
         var roleClaimValue = UserRoles.Client.ToString();
         var userTypeValue = UserRoles.Client.ToString();
-        string? groupName = null;
-        int? groupId = null;
 
         // Identity roles are authoritative for JWT role claims.
         var explicitRoles = identityRoles?
@@ -81,7 +84,10 @@ public class JwtTokenService : IJwtTokenService
         }
 
 
-        var roleNames = new List<string>(explicitRoles);
+        var roleNames = new HashSet<string>(explicitRoles, StringComparer.OrdinalIgnoreCase);
+        var permissionKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var groupIds = new HashSet<int>();
+        var groupNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         // Try to parse Identity user id as GUID and fetch auth user info
         AuthUser? authUser = null;
@@ -109,54 +115,18 @@ public class JwtTokenService : IJwtTokenService
                         }
                 }
             }
-            
-            // Fetch role from UserRoles -> Roles -> Group (Group-Bound Role Architecture)
-            try
+            if (authUser != null)
             {
-                var userRole = (await _unitOfWork.Repository<Investa.Domain.Entities.Security.UserRole>()
-                    .FindAsync(ur => ur.UserId == userGuid))
-                    .FirstOrDefault();
-                    
-                if (userRole != null)
-                {
-                    var role = (await _unitOfWork.Repository<Investa.Domain.Entities.Security.Role>()
-                        .FindAsync(r => r.Id == userRole.RoleId && r.IsActive))
-                        .FirstOrDefault();
-                        
-                    if (role != null)
-                    {
-                        if (!roleNames.Contains(role.Name, StringComparer.OrdinalIgnoreCase))
-                        {
-                            roleNames.Add(role.Name);
-                        }
-
-                        if (!explicitRoles.Any())
-                        {
-                            roleClaimValue = role.Name;
-                            userTypeValue = role.Name;
-                        }
-
-                        groupId = role.GroupId;
-                        
-                        var group = (await _unitOfWork.Repository<Group>()
-                            .FindAsync(g => g.Id == role.GroupId))
-                            .FirstOrDefault();
-                            
-                        if (group != null)
-                            groupName = group.Name;
-                    }
-                }
-            }
-            catch
-            {
-                // Swallow errors to avoid blocking token generation
+                var effectivePermissions = await _effectivePermissionService.ResolveAsync(userGuid);
+                roleNames.UnionWith(effectivePermissions.RoleNames);
+                permissionKeys.UnionWith(effectivePermissions.PermissionKeys);
+                groupIds.UnionWith(effectivePermissions.GroupIds);
+                groupNames.UnionWith(effectivePermissions.GroupNames);
             }
         }
 
         if (!roleNames.Any())
             roleNames.Add(roleClaimValue);
-
-        var distinctRoleNames = roleNames.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
         // Create claims with phone number as identifier
         var claims = new List<Claim>
@@ -169,75 +139,23 @@ public class JwtTokenService : IJwtTokenService
             new Claim("userType", userTypeValue),
         };
 
-        foreach (var roleName in distinctRoleNames)
+        foreach (var roleName in roleNames)
         {
             claims.Add(new Claim(ClaimTypes.Role, roleName));
             claims.Add(new Claim("role", roleName));
         }
         
-        if (groupId.HasValue)
-            claims.Add(new Claim("group_id", groupId.Value.ToString()));
-        
-        if (!string.IsNullOrEmpty(groupName))
+        foreach (var groupId in groupIds)
+            claims.Add(new Claim("group_id", groupId.ToString()));
+
+        foreach (var groupName in groupNames)
             claims.Add(new Claim("group", groupName));
 
-        if (string.Equals(roleClaimValue, "Admin", StringComparison.OrdinalIgnoreCase))
-            claims.Add(new Claim("permission", SystemPermissions.SuperAccess));
+        if (explicitRoles.Contains("Admin", StringComparer.OrdinalIgnoreCase))
+            permissionKeys.Add(SystemPermissions.SuperAccess);
 
-        // Add group and permission claims from UserGroups + UserRoles
-        if (authUser != null)
-        {
-            try
-            {
-                var userGroups = (await _unitOfWork.Repository<UserGroup>().FindAsync(ug => ug.UserId == authUser.Id)).ToList();
-                if (userGroups.Any())
-                {
-                    var groupIds = userGroups.Select(ug => ug.GroupId).Distinct().ToList();
-                    var groups = (await _unitOfWork.Repository<Group>().FindAsync(g => groupIds.Contains(g.Id))).ToList();
-                    foreach (var g in groups)
-                    {
-                        if (string.IsNullOrEmpty(groupName) || g.Name != groupName)
-                            claims.Add(new Claim("group", g.Name));
-                    }
-
-                    var groupPerms = (await _unitOfWork.Repository<GroupPermission>().FindAsync(gp => groupIds.Contains(gp.GroupId))).ToList();
-                    var permissionIds = groupPerms.Select(gp => gp.PermissionId).Distinct().ToList();
-                    var perms = (await _unitOfWork.Repository<Permission>().FindAsync(p => permissionIds.Contains(p.Id))).ToList();
-                    foreach (var p in perms.DistinctBy(x => x.Key))
-                        claims.Add(new Claim("permission", p.Key));
-                }
-                
-                // Permissions from RolePermissions (Group-Bound Role Architecture)
-                if (userGuid != Guid.Empty)
-                {
-                    var userRole = (await _unitOfWork.Repository<Investa.Domain.Entities.Security.UserRole>()
-                        .FindAsync(ur => ur.UserId == userGuid))
-                        .FirstOrDefault();
-                        
-                    if (userRole != null)
-                    {
-                        var rolePerms = (await _unitOfWork.Repository<Investa.Domain.Entities.Security.RolePermission>()
-                            .FindAsync(rp => rp.RoleId == userRole.RoleId))
-                            .ToList();
-                            
-                        if (rolePerms.Any())
-                        {
-                            var permIds = rolePerms.Select(rp => rp.PermissionId).Distinct().ToList();
-                            var permissions = (await _unitOfWork.Repository<Permission>().FindAsync(p => permIds.Contains(p.Id))).ToList();
-                            foreach (var perm in permissions.DistinctBy(x => x.Key))
-                            {
-                                if (!claims.Any(c => c.Type == "permission" && c.Value == perm.Key))
-                                    claims.Add(new Claim("permission", perm.Key));
-                            }
-                        }
-                    }
-                }
-            }
-            catch
-            {
-                // swallow permission-loading errors to avoid blocking token issuance
-            }
-        }
+        foreach (var permissionKey in permissionKeys)
+            claims.Add(new Claim("permission", permissionKey));
 
         // Calculate expiration time
         var expiresAt = DateTime.UtcNow.AddMinutes(expirationMinutes);

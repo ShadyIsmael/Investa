@@ -1,0 +1,157 @@
+[
+  {
+    "url": "http://127.0.0.1:4300/#/login",
+    "routeText": "Investa\nWelcome Back\n\nInvestors/Partners: sign in to explore and fund opportunities.\n\nMobile Number\n+20\nPassword\nRemember me\nForgot password?\nSign In\nOr continue with\nSign in with Google\nSign in with Facebook\n\nNot a member? Sign Up Now",
+    "body": {
+      "className": "bg-gray-950 investa-theme-light",
+      "backgroundColor": "rgb(232, 232, 232)",
+      "color": "rgb(33, 34, 37)",
+      "direction": "ltr",
+      "htmlDirection": "ltr"
+    },
+    "header": null,
+    "activeNav": null,
+    "title": null,
+    "primaryButton": {
+      "selector": "app-investments button.bg-blue-600, .investa-btn-primary, button[class*=\"bg-gradient-to-r\"], a[class*=\"bg-gradient-to-r\"]",
+      "tag": "BUTTON",
+      "className": "bg-gradient-to-r border border-transparent disabled:cursor-not-allowed disabled:opacity-50 duration-300 flex font-medium from-emerald-600 hover:from-emerald-700 hover:opacity-90 hover:to-teal-700 justify-center px-4 py-2.5 rounded-full shadow-sm text-sm text-white to-teal-600 transition-opacity w-full",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "backgroundImage": "linear-gradient(to right, rgb(5, 150, 105), rgb(13, 148, 136))",
+      "color": "rgb(255, 255, 255)",
+      "borderColor": "rgba(0, 0, 0, 0)",
+      "boxShadow": "rgba(0, 0, 0, 0.05) 0px 1px 2px 0px",
+      "direction": "ltr",
+      "borderRadius": "9999px"
+    },
+    "card": null,
+    "softCard": null,
+    "progress": null,
+    "shell": null,
+    "screenshot": "D:\\projects\\Investa\\gitInvesta\\investa-client-portal\\.codex-runtime-screenshots\\light-admin-opportunity-browse.png"
+  },
+  {
+    "url": "http://127.0.0.1:4300/#/login",
+    "routeText": "Investa\nWelcome Back\n\nInvestors/Partners: sign in to explore and fund opportunities.\n\nMobile Number\n+20\nPassword\nRemember me\nForgot password?\nSign In\nOr continue with\nSign in with Google\nSign in with Facebook\n\nNot a member? Sign Up Now",
+    "body": {
+      "className": "bg-gray-950 investa-theme-light",
+      "backgroundColor": "rgb(232, 232, 232)",
+      "color": "rgb(33, 34, 37)",
+      "direction": "ltr",
+      "htmlDirection": "ltr"
+    },
+    "header": null,
+    "activeNav": null,
+    "title": null,
+    "primaryButton": {
+      "selector": "app-investments button.bg-blue-600, .investa-btn-primary, button[class*=\"bg-gradient-to-r\"], a[class*=\"bg-gradient-to-r\"]",
+      "tag": "BUTTON",
+      "className": "bg-gradient-to-r border border-transparent disabled:cursor-not-allowed disabled:opacity-50 duration-300 flex font-medium from-emerald-600 hover:from-emerald-700 hover:opacity-90 hover:to-teal-700 justify-center px-4 py-2.5 rounded-full shadow-sm text-sm text-white to-teal-600 transition-opacity w-full",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "backgroundImage": "linear-gradient(to right, rgb(5, 150, 105), rgb(13, 148, 136))",
+      "color": "rgb(255, 255, 255)",
+      "borderColor": "rgba(0, 0, 0, 0)",
+      "boxShadow": "rgba(0, 0, 0, 0.05) 0px 1px 2px 0px",
+      "direction": "ltr",
+      "borderRadius": "9999px"
+    },
+    "card": null,
+    "softCard": null,
+    "progress": null,
+    "shell": null,
+    "screenshot": "D:\\projects\\Investa\\gitInvesta\\investa-client-portal\\.codex-runtime-screenshots\\light-admin-public-opportunity-details.png"
+  },
+  {
+    "url": "http://127.0.0.1:4300/#/login",
+    "routeText": "Investa\nWelcome Back\n\nInvestors/Partners: sign in to explore and fund opportunities.\n\nMobile Number\n+20\nPassword\nRemember me\nForgot password?\nSign In\nOr continue with\nSign in with Google\nSign in with Facebook\n\nNot a member? Sign Up Now",
+    "body": {
+      "className": "bg-gray-950 investa-theme-light",
+      "backgroundColor": "rgb(232, 232, 232)",
+      "color": "rgb(33, 34, 37)",
+      "direction": "ltr",
+      "htmlDirection": "ltr"
+    },
+    "header": null,
+    "activeNav": null,
+    "title": null,
+    "primaryButton": {
+      "selector": "app-investments button.bg-blue-600, .investa-btn-primary, button[class*=\"bg-gradient-to-r\"], a[class*=\"bg-gradient-to-r\"]",
+      "tag": "BUTTON",
+      "className": "bg-gradient-to-r border border-transparent disabled:cursor-not-allowed disabled:opacity-50 duration-300 flex font-medium from-emerald-600 hover:from-emerald-700 hover:opacity-90 hover:to-teal-700 justify-center px-4 py-2.5 rounded-full shadow-sm text-sm text-white to-teal-600 transition-opacity w-full",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "backgroundImage": "linear-gradient(to right, rgb(5, 150, 105), rgb(13, 148, 136))",
+      "color": "rgb(255, 255, 255)",
+      "borderColor": "rgba(0, 0, 0, 0)",
+      "boxShadow": "rgba(0, 0, 0, 0.05) 0px 1px 2px 0px",
+      "direction": "ltr",
+      "borderRadius": "9999px"
+    },
+    "card": null,
+    "softCard": null,
+    "progress": null,
+    "shell": null,
+    "screenshot": "D:\\projects\\Investa\\gitInvesta\\investa-client-portal\\.codex-runtime-screenshots\\light-admin-project-room.png"
+  },
+  {
+    "url": "http://127.0.0.1:4300/#/login",
+    "routeText": "Investa\nمرحبًا بعودتك\n\nالمستثمرون/الشركاء: سجّل الدخول لاستكشاف الفرص وتمويلها.\n\nرقم الجوال\n+20\nكلمة المرور\nتذكرني\nنسيت كلمة المرور؟\nتسجيل الدخول\nأو المتابعة عبر\nتسجيل الدخول باستخدام Google\nتسجيل الدخول باستخدام Facebook\n\nلست عضوًا؟ سجل الآن",
+    "body": {
+      "className": "bg-gray-950 investa-theme-light",
+      "backgroundColor": "rgb(232, 232, 232)",
+      "color": "rgb(33, 34, 37)",
+      "direction": "rtl",
+      "htmlDirection": "rtl"
+    },
+    "header": null,
+    "activeNav": null,
+    "title": null,
+    "primaryButton": {
+      "selector": "app-investments button.bg-blue-600, .investa-btn-primary, button[class*=\"bg-gradient-to-r\"], a[class*=\"bg-gradient-to-r\"]",
+      "tag": "BUTTON",
+      "className": "bg-gradient-to-r border border-transparent disabled:cursor-not-allowed disabled:opacity-50 duration-300 flex font-medium from-emerald-600 hover:from-emerald-700 hover:opacity-90 hover:to-teal-700 justify-center px-4 py-2.5 rounded-full shadow-sm text-sm text-white to-teal-600 transition-opacity w-full",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "backgroundImage": "linear-gradient(to right, rgb(5, 150, 105), rgb(13, 148, 136))",
+      "color": "rgb(255, 255, 255)",
+      "borderColor": "rgba(0, 0, 0, 0)",
+      "boxShadow": "rgba(0, 0, 0, 0.05) 0px 1px 2px 0px",
+      "direction": "rtl",
+      "borderRadius": "9999px"
+    },
+    "card": null,
+    "softCard": null,
+    "progress": null,
+    "shell": null,
+    "screenshot": "D:\\projects\\Investa\\gitInvesta\\investa-client-portal\\.codex-runtime-screenshots\\rtl-admin-opportunity-browse.png"
+  },
+  {
+    "url": "http://127.0.0.1:4300/#/login",
+    "routeText": "Investa\nWelcome Back\n\nInvestors/Partners: sign in to explore and fund opportunities.\n\nMobile Number\n+20\nPassword\nRemember me\nForgot password?\nSign In\nOr continue with\nSign in with Google\nSign in with Facebook\n\nNot a member? Sign Up Now",
+    "body": {
+      "className": "bg-gray-950",
+      "backgroundColor": "rgb(3, 7, 18)",
+      "color": "rgb(30, 41, 59)",
+      "direction": "ltr",
+      "htmlDirection": "ltr"
+    },
+    "header": null,
+    "activeNav": null,
+    "title": null,
+    "primaryButton": {
+      "selector": "app-investments button.bg-blue-600, .investa-btn-primary, button[class*=\"bg-gradient-to-r\"], a[class*=\"bg-gradient-to-r\"]",
+      "tag": "BUTTON",
+      "className": "bg-gradient-to-r border border-transparent disabled:cursor-not-allowed disabled:opacity-50 duration-300 flex font-medium from-emerald-600 hover:from-emerald-700 hover:opacity-90 hover:to-teal-700 justify-center px-4 py-2.5 rounded-full shadow-sm text-sm text-white to-teal-600 transition-opacity w-full",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "backgroundImage": "linear-gradient(to right, rgb(5, 150, 105), rgb(13, 148, 136))",
+      "color": "rgb(255, 255, 255)",
+      "borderColor": "rgba(0, 0, 0, 0)",
+      "boxShadow": "rgba(0, 0, 0, 0.05) 0px 1px 2px 0px",
+      "direction": "ltr",
+      "borderRadius": "9999px"
+    },
+    "card": null,
+    "softCard": null,
+    "progress": null,
+    "shell": null,
+    "screenshot": "D:\\projects\\Investa\\gitInvesta\\investa-client-portal\\.codex-runtime-screenshots\\dark-admin-opportunity-browse.png"
+  }
+]

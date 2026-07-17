@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Investa.Application.Interfaces;
 using Investa.Application.DTOs;
+using Investa.Application.Common;
 using Investa.Domain.Entities.Security;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Localization;
@@ -19,7 +20,7 @@ namespace Investa.API.Controllers.Admin
     [ApiController]
     [Route("api/v1/admin/users")]
     [Route("api/admin/users")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Policy = "RequirePermission:User.Manage")]
     public class UsersAdminController : ControllerBase
     {
         private readonly IOrgUserService _orgUserService;
@@ -204,9 +205,9 @@ namespace Investa.API.Controllers.Admin
 
                 return CreatedAtAction(nameof(GetUsersList), new { id = user.Id }, user);
             }
-            catch (NotImplementedException)
+            catch (OrgUserValidationException ex)
             {
-                return StatusCode(501, new { message = "Feature not yet implemented" });
+                return BadRequest(new { code = ex.Code, message = ex.Message, errors = ex.Errors });
             }
             catch (Exception ex)
             {
@@ -231,9 +232,9 @@ namespace Investa.API.Controllers.Admin
 
                 return Ok(user);
             }
-            catch (NotImplementedException)
+            catch (OrgUserValidationException ex)
             {
-                return StatusCode(501, new { message = "Feature not yet implemented" });
+                return BadRequest(new { code = ex.Code, message = ex.Message, errors = ex.Errors });
             }
             catch (Exception ex)
             {
@@ -258,9 +259,9 @@ namespace Investa.API.Controllers.Admin
 
                 return NoContent();
             }
-            catch (NotImplementedException)
+            catch (OrgUserValidationException ex)
             {
-                return StatusCode(501, new { message = "Feature not yet implemented" });
+                return BadRequest(new { code = ex.Code, message = ex.Message, errors = ex.Errors });
             }
             catch (Exception ex)
             {

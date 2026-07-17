@@ -1,11 +1,15 @@
-import { Component, ChangeDetectionStrategy, signal, computed, inject, effect, DestroyRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormControl, FormGroup } from '@angular/forms';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
-import { ProfileService, CreditTransaction } from '../../../services/profile.service';
 import { LanguageService } from '../../../services/language.service';
 import { Router } from '@angular/router';
+import {
+  walletDirectionKey,
+  walletReasonKey,
+  walletReferenceTypeKey,
+  WalletService,
+  WalletTransaction
+} from '../../../services/wallet.service';
 
 @Component({
   standalone: true,
@@ -13,76 +17,80 @@ import { Router } from '@angular/router';
   templateUrl: './transactions.component.html',
   styleUrls: ['./transactions.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, TranslatePipe]
+  imports: [CommonModule, TranslatePipe]
 })
 export class TransactionsComponent {
-  private destroyRef = inject(DestroyRef);
-  private profileService = inject(ProfileService);
-  private languageService = inject(LanguageService);
+  private walletService = inject(WalletService);
+  languageService = inject(LanguageService);
   private router = inject(Router);
 
-  // Credit history
-  creditHistory = signal<CreditTransaction[]>([]);
-
-  // Current language preference from LanguageService
-  currentLanguage = computed<'ar' | 'en'>(() => this.languageService.language());
-
-  // Loading and error state
-  isLoading = signal<boolean>(false);
+  transactions = signal<WalletTransaction[]>([]);
+  currentBalance = this.walletService.balance;
+  isLoading = signal(false);
   errorMessage = signal<string | null>(null);
-
-  // Pagination
   itemsPerPage = 10;
-  currentPage = signal<number>(1);
+  currentPage = signal(1);
 
-  // Computed values
   paginatedTransactions = computed(() => {
-    const transactions = this.creditHistory();
     const start = (this.currentPage() - 1) * this.itemsPerPage;
-    return transactions.slice(start, start + this.itemsPerPage);
+    return this.transactions().slice(start, start + this.itemsPerPage);
   });
 
-  totalPages = computed(() => {
-    const total = this.creditHistory().length;
-    return Math.ceil(total / this.itemsPerPage);
-  });
-
-  currentScore = computed(() => {
-    const transactions = this.creditHistory();
-    if (!transactions || transactions.length === 0) return 0;
-    return transactions.reduce((sum, tx) => sum + tx.amount, 0);
-  });
+  totalPages = computed(() => Math.ceil(this.transactions().length / this.itemsPerPage));
 
   constructor() {
-    this.loadTransactions();
+    void this.loadTransactions();
   }
 
   async loadTransactions(): Promise<void> {
     try {
       this.isLoading.set(true);
       this.errorMessage.set(null);
-      const history = await this.profileService.getCreditHistory();
-      this.creditHistory.set(history);
-    } catch (e) {
-      this.errorMessage.set('Failed to load transactions');
-      console.error('Failed to fetch transactions', e);
+      const view = await this.walletService.loadCurrentUserWallet();
+      this.transactions.set(view.transactions);
+    } catch (error: unknown) {
+      const record = typeof error === 'object' && error !== null ? error as Record<string, unknown> : null;
+      this.errorMessage.set(typeof record?.['message'] === 'string' ? record['message'] : this.t('wallet.errors.loadFailed'));
     } finally {
       this.isLoading.set(false);
     }
   }
 
-  getJustification = (transaction: CreditTransaction): string => {
-    return this.currentLanguage() === 'ar' ? transaction.justificationAr : transaction.justificationEn;
-  };
+  transactionTitle(transaction: WalletTransaction): string {
+    return transaction.description?.trim() || this.t(`wallet.enums.reason.${walletReasonKey(transaction.reason)}`);
+  }
+
+  directionLabel(value: string | number): string {
+    return this.t(`wallet.enums.direction.${walletDirectionKey(value)}`);
+  }
+
+  referenceTypeLabel(value: string | number): string {
+    return this.t(`wallet.enums.referenceType.${walletReferenceTypeKey(value)}`);
+  }
+
+  isCredit(transaction: WalletTransaction): boolean {
+    return walletDirectionKey(transaction.direction) === 'credit';
+  }
+
+  signedAmount(transaction: WalletTransaction): number {
+    return this.isCredit(transaction) ? transaction.creditAmount : -transaction.creditAmount;
+  }
+
+  formatNumber(value: number): string {
+    return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value);
+  }
+
+  formatDate(value: string): string {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? '' : new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+  }
 
   goToPage(page: number): void {
-    if (page >= 1 && page <= this.totalPages()) {
-      this.currentPage.set(page);
-    }
+    if (page >= 1 && page <= this.totalPages()) this.currentPage.set(page);
   }
 
   goBack(): void {
-    this.router.navigate(['/admin/profile']);
+    void this.router.navigate(['/admin/profile']);
   }
 
   private t(path: string): string {

@@ -50,7 +50,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ currentUser, handleLogout, chil
         <ChatConversationsListener />
 
         <main className="flex-1 overflow-y-auto overflow-x-hidden bg-background">
-          <div className="max-w-[1400px] mx-auto px-6 py-8 animate-in fade-in slide-up duration-500">
+          <div className="max-w-[1600px] mx-auto px-4 py-5 lg:px-5 lg:py-6 animate-in fade-in slide-up duration-500">
             {children || <Outlet />}
           </div>
         </main>

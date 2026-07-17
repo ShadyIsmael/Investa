@@ -3,14 +3,13 @@
 // ===========================
 
 // Import SCSS architecture first
+@use 'theme';
+@use 'light-theme';
 @use 'variables' as *;
 @use 'sass:color' as color;
 @use 'mixins' as *;
 @use 'typography' as *;
 @use 'utilities' as *;
-
-// Opt-in Light Theme (Soft Light V1)
-@use 'light-theme';
 
 // ===========================
 // CSS Reset
@@ -30,9 +29,75 @@ html {
 
 body {
   min-height: 100vh;
+  overflow-x: hidden;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+// ===========================
+// Investa Semantic UI Classes
+// ===========================
+
+.investa-container {
+  width: min(100%, 1440px);
+  margin-inline: auto;
+  padding: 1.5rem;
+
+  @media (min-width: 1024px) {
+    padding: 2rem;
+  }
+}
+
+.investa-card-hover {
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: var(--investa-border-strong, rgba(148, 163, 184, 0.34));
+    box-shadow: var(--investa-shadow-md, 0 16px 38px rgba(2, 6, 23, 0.28));
+  }
+}
+
+.investa-hero-dark {
+  background:
+    radial-gradient(circle at 82% 0%, rgba(34, 197, 50, 0.16), transparent 34%),
+    linear-gradient(145deg, #2a2b2f 0%, #212225 54%, #151619 100%);
+  border: 1px solid rgba(21, 22, 25, 0.18);
+  border-radius: var(--investa-radius-xl, 1.625rem);
+  color: #ffffff;
+  box-shadow: var(--investa-shadow-md, 0 14px 34px rgba(20, 20, 20, 0.08));
+}
+
+.investa-hero-dark .investa-card-soft {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.investa-hero-dark .investa-muted,
+.investa-hero-dark .investa-meta {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.investa-title {
+  color: var(--investa-text-primary, #f8fafc);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.investa-muted {
+  color: var(--investa-text-secondary, #cbd5e1);
+}
+
+.investa-empty {
+  border: 1px dashed var(--investa-border-strong, rgba(148, 163, 184, 0.34));
+  border-radius: var(--investa-radius-lg, 1.25rem);
+  background: var(--investa-surface-2, rgba(30, 41, 59, 0.72));
+  color: var(--investa-text-secondary, #cbd5e1);
+  padding: 2rem;
+  text-align: center;
 }
 
 // ===========================

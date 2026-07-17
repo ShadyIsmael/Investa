@@ -22,16 +22,14 @@ import 'core/services/fcm_service.dart';
 import 'core/services/logger_service.dart';
 import 'core/services/secure_storage_service.dart';
 import 'core/network/network_config.dart';
-import 'firebase_options.dart';
+// import 'firebase_options.dart'; // Disabled for web development
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 // Background message handler - must be top-level function
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  if (kIsWeb) {
-    await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform);
-  } else {
+  // Skip Firebase initialization on web for development
+  if (!kIsWeb) {
     await Firebase.initializeApp();
   }
   AppLogger.logInfo('fcm', 'Handling background message: ${message.messageId}');
@@ -47,17 +45,14 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Skip Firebase initialization on web for development
   try {
-    if (kIsWeb) {
-      AppLogger.logInfo('main',
-          'Initializing Firebase for web with DefaultFirebaseOptions...');
-      await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform);
-      AppLogger.logInfo('main', 'Firebase initialized successfully on web');
-    } else {
+    if (!kIsWeb) {
       AppLogger.logInfo('main', 'Initializing Firebase for mobile...');
       await Firebase.initializeApp();
       AppLogger.logInfo('main', 'Firebase initialized successfully on mobile');
+    } else {
+      AppLogger.logInfo('main', 'Skipping Firebase initialization on web for development');
     }
   } catch (e, st) {
     AppLogger.logError('main', 'Firebase initialization error: $e', st);

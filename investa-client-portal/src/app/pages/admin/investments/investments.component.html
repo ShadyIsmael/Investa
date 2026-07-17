@@ -186,7 +186,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 mt-8 min-h-[550px]">
       @for (investment of displayedInvestments(); track investment.name) {
 
-        @let progress = investment.fundingPercentage || (investment.targetFund && investment.targetFund > 0 ? (investment.currentFunding / investment.targetFund) * 100 : 0);
+        @let progress = investment.fundingPercentage;
 
         <article class="group relative flex flex-col rounded-2xl border border-slate-700/50 bg-slate-900/70 backdrop-blur-sm overflow-hidden transition-all duration-300 hover:border-slate-500/60 hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/50 animate-fade-in cursor-pointer"
                  (click)="navigateToDetails(investment)">
@@ -212,12 +212,15 @@
 
           <!-- ── Header: Founder + Quick Actions ── -->
           <div class="flex items-start justify-between px-5 pt-4 pb-3">
-            <div class="flex items-center gap-3 flex-1 min-w-0">
+            <button type="button" class="flex items-center gap-3 flex-1 min-w-0 text-start" (click)="openFounderProfile(investment.founderId, $event)" [disabled]="!investment.founderId">
               <!-- Avatar with live-dot for Active -->
               <div class="relative flex-shrink-0">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-md overflow-hidden">
                   @if (getFounderAvatarUrl(investment)) {
-                    <img [src]="getFounderAvatarUrl(investment)" [alt]="investment.founderDisplay || 'Founder'" class="w-full h-full object-cover">
+                    <img [src]="getFounderAvatarUrl(investment)"
+                         [alt]="investment.founderDisplay || 'Founder'"
+                         (error)="onFounderAvatarError(investment.founderId)"
+                         class="w-full h-full object-cover">
                   } @else {
                     {{ investment.founderDisplay?.charAt(0)?.toUpperCase() || '?' }}
                   }
@@ -230,7 +233,7 @@
                 <p class="text-sm font-semibold text-white truncate leading-tight">{{ investment.founderDisplay || 'Unknown' }}</p>
                 <p class="text-xs text-gray-400 truncate mt-0.5">{{ investment.businessRole || investment.businessCategoryName || '&nbsp;' }}</p>
               </div>
-            </div>
+            </button>
             <!-- Micro-actions: favorite + share -->
             <div class="flex items-center gap-0.5 flex-shrink-0 ms-2 -mt-0.5">
               <button (click)="toggleFavorite(investment); $event.stopPropagation()"
@@ -261,7 +264,7 @@
               @if (investment.investmentType) {
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold rounded-md"
                       [ngClass]="getInvestmentTypeBadgeClass(investment.investmentType)">
-                  {{ getInvestmentTypeDisplay(investment.investmentType) }}
+                  {{ getInvestmentTypeI18nKey(investment.investmentType) | translate }}
                 </span>
               }
               <span class="px-2 py-0.5 text-[11px] font-semibold rounded-md"
@@ -275,20 +278,20 @@
                   {{ languageService.language() === 'ar' ? (investment.businessCategoryNameAr || investment.businessCategoryName) : investment.businessCategoryName }}
                 </span>
               }
-              <span class="ms-auto text-[11px] font-bold px-2 py-0.5 rounded-md border"
-                    [ngClass]="{
-                      'bg-slate-600/30  text-gray-400   border-slate-600/30':                  investment.status === 'Draft',
-                      'bg-emerald-500/15 text-emerald-300 border-emerald-500/25':               investment.status === 'Active',
-                      'bg-amber-500/15   text-amber-300   border-amber-500/25':                 investment.status === 'Reviewing Participants',
-                      'bg-blue-500/15    text-blue-300    border-blue-500/25':                   investment.status === 'In Progress',
-                      'bg-cyan-500/15    text-cyan-300    border-cyan-500/25':                   investment.status === 'Fully Funded',
-                      'bg-yellow-500/15  text-yellow-300  border-yellow-500/25':                investment.status === 'Paused',
-                      'bg-green-500/15   text-green-300   border-green-500/25':                 investment.status === 'Completed',
-                      'bg-gray-500/15    text-gray-300    border-gray-500/25':                  investment.status === 'Archived',
-                      'bg-red-500/15     text-red-300     border-red-500/25':                   investment.status === 'Closed'
-                    }">
-                {{ investment.status || 'Draft' }}
-              </span>
+<span class="ms-auto text-[11px] font-bold px-2 py-0.5 rounded-md border"
+                      [ngClass]="{
+                        'bg-slate-600/30  text-gray-400   border-slate-600/30':                  investment.status === 'Draft',
+                        'bg-emerald-500/15 text-emerald-300 border-emerald-500/25':               investment.status === 'Active',
+                        'bg-amber-500/15   text-amber-300   border-amber-500/25':                 investment.status === 'Reviewing Participants',
+                        'bg-blue-500/15    text-blue-300    border-blue-500/25':                   investment.status === 'In Progress',
+                        'bg-cyan-500/15    text-cyan-300    border-cyan-500/25':                   investment.status === 'Fully Funded',
+                        'bg-yellow-500/15  text-yellow-300  border-yellow-500/25':                investment.status === 'Paused',
+                        'bg-green-500/15   text-green-300   border-green-500/25':                 investment.status === 'Completed',
+                        'bg-gray-500/15    text-gray-300    border-gray-500/25':                  investment.status === 'Archived',
+                        'bg-red-500/15     text-red-300     border-red-500/25':                   investment.status === 'Closed'
+                      }">
+                  {{ ('investments.status.' + getStatusKey(investment.status)) | translate }}
+                </span>
             </div>
 
             <!-- Description -->
@@ -308,7 +311,7 @@
             <!-- Tile 2: ROI | Share Price | Min Investment | Score -->
             @if (investment.investmentType === InvestmentType.Equity && investment.expectedROI && investment.expectedROI > 0) {
               <div class="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-3">
-                <p class="text-[10px] uppercase tracking-wider text-emerald-400/70 mb-1">ROI</p>
+                <p class="text-[10px] uppercase tracking-wider text-emerald-400/70 mb-1">{{ 'investments.roi' | translate }}</p>
                 <p class="text-sm font-bold text-emerald-300 leading-none">{{ investment.expectedROI }}%</p>
                 <p class="text-[10px] text-emerald-400/50 mt-0.5">{{ 'investmentPreview.annual' | translate }}</p>
               </div>
@@ -322,7 +325,7 @@
               <div class="rounded-xl bg-purple-500/10 border border-purple-500/20 p-3">
                 <p class="text-[10px] uppercase tracking-wider text-purple-400/70 mb-1">{{ 'investments.min' | translate }}</p>
                 <p class="text-sm font-bold text-purple-300 leading-none tabular-nums">{{ investment.minInvestment | currency:(investment.currency || 'USD'):'symbol':'1.0-0' }}</p>
-                <p class="text-[10px] text-purple-400/50 mt-0.5">to invest</p>
+                <p class="text-[10px] text-purple-400/50 mt-0.5">{{ 'investments.toInvest' | translate }}</p>
               </div>
             } @else {
               <div class="rounded-xl bg-slate-800/60 border border-slate-700/30 p-3">
@@ -347,30 +350,112 @@
                     {{ getDaysRemaining(investment.endDate) }}d
                   </span>
                 }
-                <span class="text-sm font-bold text-white tabular-nums">{{ progress | number:'1.0-0' }}%</span>
+                <span class="text-sm font-bold text-white tabular-nums">{{ progress === null ? '—' : ((progress | number:'1.0-0') + '%') }}</span>
               </div>
             </div>
             <!-- Segmented progress track — colour shifts with progress amount -->
             <div class="w-full bg-slate-700/50 rounded-full h-2 overflow-hidden">
               <div class="h-2 rounded-full transition-all duration-700 ease-out"
-                   [style.width]="(progress > 100 ? 100 : progress) + '%'"
+                   [style.width]="(progress === null ? 0 : (progress > 100 ? 100 : progress)) + '%'"
                    [class]="progress >= 100 ? 'bg-gradient-to-r from-blue-500 to-cyan-400' :
                             progress >= 75  ? 'bg-gradient-to-r from-emerald-500 to-green-400' :
                             progress >= 40  ? 'bg-gradient-to-r from-amber-400 to-orange-400' :
                                               'bg-gradient-to-r from-slate-400 to-slate-500'">
               </div>
             </div>
-            <div class="flex justify-between mt-1.5">
-              <span class="text-[11px] text-gray-400 tabular-nums">{{ investment.currentFunding | number:'1.0-0' }} <span class="text-gray-600">{{ investment.currency || 'USD' }}</span></span>
+<div class="flex justify-between mt-1.5">
+              <span class="text-[11px] text-gray-400 tabular-nums">{{ investment.currentFunding === null ? '—' : (investment.currentFunding | number:'1.0-0') }} <span class="text-gray-600">{{ investment.currency || '' }}</span></span>
               @if (investment.targetFund) {
-                <span class="text-[11px] text-gray-500 tabular-nums">/ {{ investment.targetFund | number:'1.0-0' }}</span>
+                <span class="text-[11px] text-gray-500 tabular-nums">{{ 'investments.target' | translate }} {{ investment.targetFund | number:'1.0-0' }}</span>
               }
             </div>
-            <!-- Personal investment indicator -->
-            @if (investment.investedAmount && investment.investedAmount > 0) {
-              <div class="mt-2 flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/20 rounded-lg px-2.5 py-1.5">
-                <svg class="w-3 h-3 text-blue-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                <span class="text-[11px] text-blue-300">{{ 'investmentPreview.yourInvestment' | translate }}: <span class="font-semibold tabular-nums">{{ investment.investedAmount | number:'1.0-0' }} {{ investment.currency || 'USD' }}</span></span>
+            @if (investment.approvedContributionAmount != null) {
+              <div class="mt-3 rounded-xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 p-3">
+                <p class="text-[10px] uppercase tracking-wider text-blue-400/70 mb-1">{{ 'investments.myParticipation.approvedContribution' | translate }}</p>
+                <p class="text-lg font-bold text-white tabular-nums">{{ investment.approvedContributionAmount | number:'1.0-0' }} {{ investment.currency || 'USD' }}</p>
+              </div>
+              @if (investment.remainingFundingAmount != null) {
+                <div class="mt-2 flex items-center gap-1.5 text-[11px] text-gray-400">
+                  <span>{{ 'investments.myParticipation.remainingToFund' | translate }} <strong class="text-white tabular-nums">{{ investment.remainingFundingAmount | number:'1.0-0' }} {{ investment.currency || 'USD' }}</strong></span>
+                </div>
+              }
+              @if (investment.approvedParticipantCount != null) {
+                <div class="mt-1 flex items-center gap-1.5 text-[11px] text-gray-400">
+                  <span>{{ 'investments.myParticipation.approvedParticipants' | translate }} <strong class="text-white tabular-nums">{{ investment.approvedParticipantCount }}</strong></span>
+                </div>
+              }
+              @if (investment.investmentType === InvestmentType.Loan) {
+                <div class="mt-2 grid grid-cols-3 gap-2">
+                  @if (investment.interestRate != null) {
+                    <div class="rounded-lg bg-slate-800/60 border border-slate-700/30 p-2 text-center">
+                      <p class="text-[9px] uppercase tracking-wider text-gray-500">{{ 'investments.myParticipation.loan.interestRate' | translate }}</p>
+                      <p class="text-xs font-bold text-white tabular-nums">{{ investment.interestRate }}%</p>
+                    </div>
+                  }
+                  @if (investment.expectedDurationMonths != null) {
+                    <div class="rounded-lg bg-slate-800/60 border border-slate-700/30 p-2 text-center">
+                      <p class="text-[9px] uppercase tracking-wider text-gray-500">{{ 'investments.myParticipation.loan.duration' | translate }}</p>
+                      <p class="text-xs font-bold text-white tabular-nums">{{ investment.expectedDurationMonths }}m</p>
+                    </div>
+                  }
+                  @if (investment.expectedTotalRepayment != null) {
+                    <div class="rounded-lg bg-slate-800/60 border border-slate-700/30 p-2 text-center">
+                      <p class="text-[9px] uppercase tracking-wider text-gray-500">{{ 'investments.myParticipation.loan.totalRepayment' | translate }}</p>
+                      <p class="text-xs font-bold text-white tabular-nums">{{ investment.expectedTotalRepayment | number:'1.0-0' }}</p>
+                    </div>
+                  }
+                </div>
+              }
+              @if (investment.investmentType === InvestmentType.Equity) {
+                <div class="mt-2 grid grid-cols-3 gap-2">
+                  @if (investment.approvedShares != null) {
+                    <div class="rounded-lg bg-slate-800/60 border border-slate-700/30 p-2 text-center">
+                      <p class="text-[9px] uppercase tracking-wider text-gray-500">{{ 'investments.myParticipation.equity.shares' | translate }}</p>
+                      <p class="text-xs font-bold text-white tabular-nums">{{ investment.approvedShares | number }}</p>
+                    </div>
+                  }
+                  @if (investment.ownershipPercentage != null) {
+                    <div class="rounded-lg bg-slate-800/60 border border-slate-700/30 p-2 text-center">
+                      <p class="text-[9px] uppercase tracking-wider text-gray-500">{{ 'investments.myParticipation.equity.ownership' | translate }}</p>
+                      <p class="text-xs font-bold text-white tabular-nums">{{ investment.ownershipPercentage }}%</p>
+                    </div>
+                  }
+                  @if (investment.remainingShares != null) {
+                    <div class="rounded-lg bg-slate-800/60 border border-slate-700/30 p-2 text-center">
+                      <p class="text-[9px] uppercase tracking-wider text-gray-500">{{ 'investments.myParticipation.equity.remaining' | translate }}</p>
+                      <p class="text-xs font-bold text-white tabular-nums">{{ investment.remainingShares | number }}</p>
+                    </div>
+                  }
+                </div>
+              }
+              @if (investment.investmentType === InvestmentType.RevenueSharing) {
+                <div class="mt-2 grid grid-cols-3 gap-2">
+                  @if (investment.profitSharePercentage != null) {
+                    <div class="rounded-lg bg-slate-800/60 border border-slate-700/30 p-2 text-center">
+                      <p class="text-[9px] uppercase tracking-wider text-gray-500">{{ 'investments.myParticipation.profitSharing.share' | translate }}</p>
+                      <p class="text-xs font-bold text-white tabular-nums">{{ investment.profitSharePercentage }}%</p>
+                    </div>
+                  }
+                  @if (investment.payoutFrequency) {
+                    <div class="rounded-lg bg-slate-800/60 border border-slate-700/30 p-2 text-center">
+                      <p class="text-[9px] uppercase tracking-wider text-gray-500">{{ 'investments.myParticipation.profitSharing.payoutFrequency' | translate }}</p>
+                      <p class="text-xs font-bold text-white tabular-nums">{{ investment.payoutFrequency }}</p>
+                    </div>
+                  }
+                  @if (investment.expectedTotalPayout != null) {
+                    <div class="rounded-lg bg-slate-800/60 border border-slate-700/30 p-2 text-center">
+                      <p class="text-[9px] uppercase tracking-wider text-gray-500">{{ 'investments.myParticipation.profitSharing.totalPayout' | translate }}</p>
+                      <p class="text-xs font-bold text-white tabular-nums">{{ investment.expectedTotalPayout | number:'1.0-0' }}</p>
+                    </div>
+                  }
+                </div>
+              }
+            } @else if (investment.investmentModel === 'Equity' || investment.investmentModel === 1) {
+              <div class="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+                <span class="text-gray-400">{{ 'investmentPreview.sharesOffered' | translate }} <strong class="text-white">{{ investment.offeredShares == null ? '—' : (investment.offeredShares | number) }}</strong></span>
+                <span class="text-gray-400">{{ 'investmentPreview.sharesSold' | translate }} <strong class="text-white">{{ investment.soldShares == null ? '—' : (investment.soldShares | number) }}</strong></span>
+                <span class="text-gray-400">{{ 'investmentPreview.sharesRemaining' | translate }} <strong class="text-white">{{ investment.remainingShares == null ? '—' : (investment.remainingShares | number) }}</strong></span>
+                <span class="text-gray-400">{{ 'investmentPreview.equityAllocated' | translate }} <strong class="text-white">{{ investment.allocatedEquityPercentage == null ? '—' : ((investment.allocatedEquityPercentage | number:'1.0-2') + '%') }}</strong></span>
               </div>
             }
           </div>
@@ -414,56 +499,85 @@
             </div>
           </div>
 
-          <!-- ── Primary CTA — full-width, state-aware ── -->
-          <div class="mt-auto px-4 pb-4">
-            <button
-              (click)="navigateToDetails(investment); $event.stopPropagation()"
-              class="w-full py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 flex items-center justify-center gap-2"
-              [disabled]="
-                investment.status === 'Fully Funded' ||
-                investment.status === 'Completed' ||
-                investment.status === 'Archived' ||
-                investment.status === 'Paused'
-              "
-              [ngClass]="{
-                'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-md hover:shadow-purple-500/30 focus:ring-purple-500 active:scale-[0.98]':
-                  investment.status === 'Active' ||
-                  investment.status === 'Reviewing Participants' ||
-                  investment.status === 'In Progress',
+          <!-- ── Primary CTA — full-width, state-aware (Public Opportunities only) ── -->
+            @if (investment.approvedContributionAmount == null) {
+              <div class="mt-auto px-4 pb-4">
+                <button
+                  (click)="navigateToDetails(investment); $event.stopPropagation()"
+                  class="w-full py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 flex items-center justify-center gap-2"
+                  [disabled]="
+                    investment.status === 'Fully Funded' ||
+                    investment.status === 'Completed' ||
+                    investment.status === 'Archived' ||
+                    investment.status === 'Paused'
+                  "
+                  [ngClass]="{
+                    'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-md hover:shadow-purple-500/30 focus:ring-purple-500 active:scale-[0.98]':
+                      investment.status === 'Active' ||
+                      investment.status === 'Reviewing Participants' ||
+                      investment.status === 'In Progress',
 
-                'bg-slate-700/50 text-gray-500 border border-slate-600/40 cursor-not-allowed':
-                  investment.status === 'Fully Funded' ||
-                  investment.status === 'Completed' ||
-                  investment.status === 'Archived' ||
-                  investment.status === 'Paused',
+                    'bg-slate-700/50 text-gray-500 border border-slate-600/40 cursor-not-allowed':
+                      investment.status === 'Fully Funded' ||
+                      investment.status === 'Completed' ||
+                      investment.status === 'Archived' ||
+                      investment.status === 'Paused',
 
-                'bg-slate-700/50 hover:bg-slate-700 text-gray-300 border border-slate-600/40 focus:ring-slate-500':
-                  investment.status === 'Draft'
-              }"
-            >
-              @if (
-                investment.status === 'Fully Funded' ||
-                investment.status === 'Completed' ||
-                investment.status === 'Archived'
-              ) {
-                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-1.293-6.707a1 1 0 011.414-1.414L11 11.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-1-1z" clip-rule="evenodd"/>
-                </svg>
-                {{ 'investmentPreview.fullyFunded' | translate }}
-              } @else if (investment.status === 'Paused') {
-                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M6 2a1 1 0 011 1v14a1 1 0 01-2 0V3a1 1 0 011-1zm8 0a1 1 0 011 1v14a1 1 0 01-2 0V3a1 1 0 011-1z" clip-rule="evenodd"/>
-                </svg>
-                {{ 'investmentPreview.learnMore' | translate }}
-              } @else {
-                {{ 'investmentPreview.learnMore' | translate }}
-                <svg class="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-                </svg>
-              }
-            </button>
-          </div>
+                    'bg-slate-700/50 hover:bg-slate-700 text-gray-300 border border-slate-600/40 focus:ring-slate-500':
+                      investment.status === 'Draft'
+                  }"
+                >
+                  @if (
+                    investment.status === 'Fully Funded' ||
+                    investment.status === 'Completed' ||
+                    investment.status === 'Archived'
+                  ) {
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-1.293-6.707a1 1 0 011.414-1.414L11 11.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                    {{ 'investmentPreview.fullyFunded' | translate }}
+                  } @else if (investment.status === 'Paused') {
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M6 2a1 1 0 011 1v14a1 1 0 01-2 0V3a1 1 0 011-1zm8 0a1 1 0 011 1v14a1 1 0 01-2 0V3a1 1 0 011-1z" clip-rule="evenodd"/>
+                    </svg>
+                    {{ 'investmentPreview.learnMore' | translate }}
+                  } @else {
+                    {{ 'investmentPreview.learnMore' | translate }}
+                    <svg class="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                    </svg>
+                  }
+                </button>
+              </div>
+            }
 
+            <!-- MyParticipation actions: Project Room / Contract -->
+            @if (investment.approvedContributionAmount != null) {
+              <div class="mt-2 grid grid-cols-2 gap-2">
+                @if (investment.canOpenProjectRoom) {
+                  <button
+                    (click)="openProjectRoom(investment); $event.stopPropagation()"
+                    class="w-full py-2 rounded-xl text-sm font-medium text-white bg-slate-700/50 border border-slate-600/40 hover:bg-slate-700 hover:border-slate-500/50 transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    {{ 'investments.projectRoom' | translate }}
+                  </button>
+                }
+                @if (investment.contractAvailable) {
+                  <button
+                    (click)="openContract(investment); $event.stopPropagation()"
+                    class="w-full py-2 rounded-xl text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    {{ 'investments.contract' | translate }}
+                  </button>
+                }
+              </div>
+            }
         </article>
 
       } @empty {
@@ -489,8 +603,6 @@
     
     </div>
   }
-</div>
-
 @if (investmentToEngage(); as investment) {
   <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in" style="animation-duration: 0.2s;">
     <div class="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl w-full max-w-lg m-4 p-8 text-center animate-fade-in" style="animation-delay: 0.1s; animation-duration: 0.3s;">
@@ -600,7 +712,7 @@
         <div class="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-lg p-4">
           <div class="flex items-center justify-between mb-2">
             <span class="text-gray-300">Total Participation:</span>
-            <span class="text-2xl font-bold text-white">{{ calculateInvestmentAmount(investment) | currency:(investment.currency || 'USD') }}</span>
+            <span class="text-2xl font-bold text-white">{{ calculateRequestedAmount(investment) | currency:(investment.currency || 'USD') }}</span>
           </div>
           @if (investment.expectedROI && investment.expectedROI > 0) {
             <div class="flex items-center justify-between text-sm">
@@ -671,7 +783,7 @@
             </div>
             <div class="border-t border-slate-700 pt-3 flex items-center justify-between">
               <span class="text-gray-300 font-medium">{{ 'investments.confirmDialog.totalCostLabel' | translate }}</span>
-              <span class="text-2xl font-bold text-white">{{ calculateInvestmentAmount(investment) | currency:(investment.currency || 'USD') }}</span>
+              <span class="text-2xl font-bold text-white">{{ calculateRequestedAmount(investment) | currency:(investment.currency || 'USD') }}</span>
             </div>
           </div>
 

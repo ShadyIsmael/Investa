@@ -1,127 +1,44 @@
-<div class="container mx-auto p-6 lg:p-8">
-  <!-- Header -->
-  <div class="mb-8">
-    <div class="flex items-center justify-between mb-6">
+<main class="container mx-auto p-6 lg:p-8" [attr.dir]="languageService.direction()">
+  <header class="mb-8">
+    <div class="flex items-center justify-between gap-4 mb-6">
       <div class="flex items-center gap-3">
-        <button (click)="goBack()" class="p-2 hover:bg-slate-700 rounded-lg transition-colors">
-          <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-          </svg>
+        <button type="button" (click)="goBack()" class="p-2 hover:bg-slate-700 rounded-lg transition-colors" [attr.aria-label]="'wallet.backToProfile' | translate">
+          <span aria-hidden="true">←</span>
         </button>
-        <h1 class="text-3xl font-bold text-white">{{ 'profile.credibilityHistory' | translate }}</h1>
+        <div><h1 class="text-3xl font-bold text-white">{{ 'wallet.transactions.title' | translate }}</h1><p class="text-sm text-gray-400">{{ 'wallet.platformCreditHelper' | translate }}</p></div>
       </div>
-      <div class="text-right">
-        <p class="text-sm text-gray-400">{{ 'profile.currentScore' | translate }}</p>
-        <p class="text-2xl font-bold text-blue-400">{{ currentScore() }}</p>
-      </div>
+      <div class="text-end"><p class="text-sm text-gray-400">{{ 'wallet.summary.currentBalance' | translate }}</p><p class="text-2xl font-bold text-emerald-400">{{ formatNumber(currentBalance()) }}</p></div>
     </div>
-
-    <!-- Stats -->
     <div class="grid grid-cols-2 gap-4 max-w-md">
-      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4">
-        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ 'transactions.total' | translate }}</p>
-        <p class="text-2xl font-bold text-white">{{ creditHistory().length }}</p>
-      </div>
-      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4">
-        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ 'transactions.pages' | translate }}</p>
-        <p class="text-2xl font-bold text-white">{{ totalPages() }}</p>
-      </div>
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4"><p class="text-xs text-gray-500 mb-1">{{ 'transactions.total' | translate }}</p><p class="text-2xl font-bold text-white">{{ formatNumber(transactions().length) }}</p></div>
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4"><p class="text-xs text-gray-500 mb-1">{{ 'transactions.pages' | translate }}</p><p class="text-2xl font-bold text-white">{{ formatNumber(totalPages()) }}</p></div>
     </div>
-  </div>
+  </header>
 
-  <!-- Loading State -->
-  <div *ngIf="isLoading()" class="text-center py-12">
-    <div class="w-12 h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-    <p class="text-gray-400">{{ 'common.loading' | translate }}</p>
-  </div>
-
-  <!-- Error State -->
-  <div *ngIf="errorMessage() && !isLoading()" class="bg-red-500/20 border border-red-500/50 rounded-lg p-4 mb-6">
-    <p class="text-red-300">{{ errorMessage() }}</p>
-  </div>
-
-  <!-- Empty State -->
-  <div *ngIf="creditHistory().length === 0 && !isLoading()" class="bg-slate-900/80 border border-slate-800 rounded-xl p-12 text-center">
-    <svg class="w-16 h-16 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-    </svg>
-    <p class="text-gray-400">{{ 'profile.noHistory' | translate }}</p>
-  </div>
-
-  <!-- Transactions List -->
-  <div *ngIf="creditHistory().length > 0 && !isLoading()" class="space-y-4 mb-8">
-    <div *ngFor="let transaction of paginatedTransactions()" class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition-colors">
-      <div class="flex items-start justify-between gap-4">
-        <!-- Amount Badge -->
-        <div class="flex-shrink-0">
-          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold"
-               [class.bg-emerald-500/15]="transaction.amount > 0"
-               [class.text-emerald-400]="transaction.amount > 0"
-               [class.border]="true"
-               [class.border-emerald-500/25]="transaction.amount > 0"
-               [class.bg-red-500/15]="transaction.amount <= 0"
-               [class.text-red-400]="transaction.amount <= 0"
-               [class.border-red-500/25]="transaction.amount <= 0">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" [attr.d]="transaction.amount > 0 ? 'M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18' : 'M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3'"/>
-            </svg>
-            {{ transaction.amount > 0 ? '+' : '' }}{{ transaction.amount }}
+  @if (isLoading()) {
+    <div class="text-center py-12"><div class="w-10 h-10 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div><p class="text-gray-400">{{ 'wallet.loading' | translate }}</p></div>
+  } @else if (errorMessage()) {
+    <div class="bg-red-500/20 border border-red-500/50 rounded-lg p-4"><p class="text-red-300">{{ errorMessage() }}</p><button type="button" (click)="loadTransactions()" class="mt-3 px-4 py-2 rounded-lg bg-slate-900 text-white">{{ 'wallet.retry' | translate }}</button></div>
+  } @else if (!transactions().length) {
+    <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-10 text-center"><p class="text-gray-400">{{ 'wallet.transactions.empty' | translate }}</p></div>
+  } @else {
+    <section class="space-y-3 mb-8">
+      @for (transaction of paginatedTransactions(); track transaction.id) {
+        <article class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5">
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0"><h2 class="text-white font-semibold">{{ transactionTitle(transaction) }}</h2><p class="mt-2 text-sm text-gray-400">{{ formatDate(transaction.createdAt) }}</p><div class="mt-2 flex flex-wrap gap-2 text-xs"><span class="rounded-full border border-slate-700 px-2 py-1 text-gray-300">{{ directionLabel(transaction.direction) }}</span><span class="rounded-full border border-slate-700 px-2 py-1 text-gray-300">{{ referenceTypeLabel(transaction.referenceType) }}</span></div></div>
+            <strong class="shrink-0" [class.text-emerald-400]="isCredit(transaction)" [class.text-red-400]="!isCredit(transaction)">{{ signedAmount(transaction) > 0 ? '+' : '' }}{{ formatNumber(signedAmount(transaction)) }}</strong>
           </div>
-        </div>
+        </article>
+      }
+    </section>
 
-        <!-- Transaction Details -->
-        <div class="flex-1 min-w-0">
-          <h3 class="text-white font-semibold text-lg">{{ getJustification(transaction) }}</h3>
-          <div class="mt-3 space-y-2 text-sm">
-            <div class="flex items-center gap-2 text-gray-400">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>{{ transaction.createdAt | date:'medium' }}</span>
-            </div>
-            <div *ngIf="transaction.adminName" class="flex items-center gap-2">
-              <span class="px-3 py-1 bg-purple-500/20 text-purple-300 rounded text-xs">
-                Admin: {{ transaction.adminName }}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- ID -->
-        <div class="text-right text-sm">
-          <p class="text-gray-500">ID: {{ transaction.id }}</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Pagination -->
-  <div *ngIf="totalPages() > 1 && !isLoading()" class="flex items-center justify-center gap-2">
-    <button 
-      (click)="goToPage(currentPage() - 1)" 
-      [disabled]="currentPage() === 1"
-      class="px-3 py-2 rounded-lg bg-slate-800 text-gray-400 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-      ← {{ 'common.previous' | translate }}
-    </button>
-
-    <div class="flex gap-1">
-      <button 
-        *ngFor="let page of [].constructor(totalPages()); let i = index"
-        (click)="goToPage(i + 1)"
-        [class.bg-blue-600]="currentPage() === i + 1"
-        [class.bg-slate-800]="currentPage() !== i + 1"
-        [class.text-white]="currentPage() === i + 1"
-        [class.text-gray-400]="currentPage() !== i + 1"
-        class="w-10 h-10 rounded-lg hover:bg-slate-700 transition-colors font-medium">
-        {{ i + 1 }}
-      </button>
-    </div>
-
-    <button 
-      (click)="goToPage(currentPage() + 1)" 
-      [disabled]="currentPage() === totalPages()"
-      class="px-3 py-2 rounded-lg bg-slate-800 text-gray-400 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-      {{ 'common.next' | translate }} →
-    </button>
-  </div>
-</div>
+    @if (totalPages() > 1) {
+      <nav class="flex items-center justify-center gap-2" [attr.aria-label]="'transactions.pages' | translate">
+        <button type="button" (click)="goToPage(currentPage() - 1)" [disabled]="currentPage() === 1" class="px-3 py-2 rounded-lg bg-slate-800 text-gray-300 disabled:opacity-50">{{ 'wallet.pagination.previous' | translate }}</button>
+        <span class="px-3 text-gray-300">{{ formatNumber(currentPage()) }} / {{ formatNumber(totalPages()) }}</span>
+        <button type="button" (click)="goToPage(currentPage() + 1)" [disabled]="currentPage() === totalPages()" class="px-3 py-2 rounded-lg bg-slate-800 text-gray-300 disabled:opacity-50">{{ 'wallet.pagination.next' | translate }}</button>
+      </nav>
+    }
+  }
+</main>

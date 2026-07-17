@@ -16,56 +16,46 @@ export class SettingsService {
   readonly privacy = computed(() => this._settings().privacy);
   readonly personalization = computed(() => this._settings().personalization);
   readonly support = computed(() => this._settings().support);
-  readonly walletBalance = computed(() => this._settings().walletBalance);
   readonly sessionTimeoutMinutes = computed(() => this._settings().sessionTimeoutMinutes ?? 30);
 
-  update(partial: Partial<UserSettings>) {
+  update(partial: Partial<UserSettings>): boolean {
     const next: UserSettings = { ...this._settings(), ...partial };
+    if (!this.saveToStorage(next)) return false;
     this._settings.set(next);
-    this.saveToStorage(next);
+    return true;
   }
 
-  setTheme(theme: ThemePreference) {
-    this.update({ theme });
+  setTheme(theme: ThemePreference): boolean {
+    return this.update({ theme });
   }
 
-  setLanguage(language: string) {
-    this.update({ language });
+  setLanguage(language: string): boolean {
+    return this.update({ language });
   }
 
-  setCurrency(currency: CurrencyPreference) {
-    this.update({ currency });
+  setCurrency(currency: CurrencyPreference): boolean {
+    return this.update({ currency });
   }
 
-  setNotifications(notifications: UserSettings['notifications']) {
-    this.update({ notifications });
+  setNotifications(notifications: UserSettings['notifications']): boolean {
+    return this.update({ notifications });
   }
 
-  setPrivacy(privacy: UserSettings['privacy']) {
-    this.update({ privacy });
+  setPrivacy(privacy: UserSettings['privacy']): boolean {
+    return this.update({ privacy });
   }
 
-  setPersonalization(personalization: UserSettings['personalization']) {
-    this.update({ personalization });
+  setPersonalization(personalization: UserSettings['personalization']): boolean {
+    return this.update({ personalization });
   }
 
-  setSupport(support: SupportSettings) {
-    this.update({ support });
+  setSupport(support: SupportSettings): boolean {
+    return this.update({ support });
   }
 
-  setWalletBalance(walletBalance: number) {
-    this.update({ walletBalance });
-  }
-
-  setSessionTimeout(minutes: number | null) {
+  setSessionTimeout(minutes: number | null): boolean {
     const nextTimeout = minutes && isFinite(minutes) && minutes > 0 ? Math.floor(minutes) : null;
-    this.update({ sessionTimeoutMinutes: nextTimeout ?? undefined });
-  }
-
-  addFunds(amount: number) {
-    const current = this._settings().walletBalance ?? 0;
-    const next = Math.max(0, current + (isFinite(amount) ? amount : 0));
-    this.update({ walletBalance: next });
+    return this.update({ sessionTimeoutMinutes: nextTimeout ?? undefined });
   }
 
   private loadFromStorage(): UserSettings {
@@ -81,11 +71,12 @@ export class SettingsService {
     return this.defaultSettings();
   }
 
-  private saveToStorage(settings: UserSettings) {
+  private saveToStorage(settings: UserSettings): boolean {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+      return true;
     } catch {
-      // ignore
+      return false;
     }
   }
 
@@ -102,7 +93,6 @@ export class SettingsService {
         showRiskIndicators: true,
       },
       support: { available: true, hours: '' },
-      walletBalance: 0,
       sessionTimeoutMinutes: 30,
     };
   }
@@ -131,7 +121,6 @@ export class SettingsService {
         available: settings.support?.available ?? d.support.available,
         hours: settings.support?.hours ?? d.support.hours,
       },
-      walletBalance: settings.walletBalance ?? d.walletBalance,
       sessionTimeoutMinutes: settings.sessionTimeoutMinutes ?? d.sessionTimeoutMinutes,
     };
   }

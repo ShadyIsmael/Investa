@@ -12,11 +12,15 @@ public class UpdateInvestmentDto
 
     // Opportunity fields
     public string? BusinessName { get; set; }
+    public string? ShortDescription { get; set; }
     public string? Description { get; set; }
+    public string? UseOfFunds { get; set; }
     public DateTime? StartDate { get; set; }
     public int? BusinessStageId { get; set; }
     public int? BusinessCategoryId { get; set; }
     public int? ProjectPhaseId { get; set; }
+    public int? FundingGoalId { get; set; }
+    public IReadOnlyList<int>? TagIds { get; set; }
     public decimal? TargetFund { get; set; }
 
     public string? Milestone { get; set; }
@@ -29,6 +33,7 @@ public class UpdateInvestmentDto
     public decimal? MinInvestment { get; set; }
     public decimal? MaxInvestment { get; set; }
     public decimal? ValuationCap { get; set; }
+    public decimal? EquityOfferedPercentage { get; set; }
     public decimal? ExpectedROI { get; set; }
     public InvestmentType? InvestmentTypeId { get; set; }
     public string? Status { get; set; } // Draft, Active, Funded, Closed, or model-specific statuses

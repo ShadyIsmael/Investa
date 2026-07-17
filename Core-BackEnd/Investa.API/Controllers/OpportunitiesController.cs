@@ -12,10 +12,25 @@ namespace Investa.API.Controllers;
 public class OpportunitiesController : BaseApiController
 {
     private readonly IOpportunityService _opportunityService;
+    private readonly IInvestmentContractService _investmentContractService;
 
-    public OpportunitiesController(IOpportunityService opportunityService)
+    public OpportunitiesController(IOpportunityService opportunityService, IInvestmentContractService investmentContractService)
     {
         _opportunityService = opportunityService;
+        _investmentContractService = investmentContractService;
+    }
+
+    [HttpGet("{id:int}/contracts")]
+    public async Task<IActionResult> GetContracts(int id, CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null) return ErrorResponse("Unable to resolve authenticated user", 401);
+        try { return SuccessResponse(await _investmentContractService.GetOpportunityContractsAsync(userId.Value, id, cancellationToken)); }
+        catch (BusinessValidationException ex)
+        {
+            var status = ex.Code == "OPPORTUNITY_NOT_FOUND" ? 404 : ex.Code == "CONTRACT_ACCESS_DENIED" ? 403 : 400;
+            return ErrorResponse(ex.Message, status);
+        }
     }
 
     [HttpPost]
@@ -74,6 +89,24 @@ public class OpportunitiesController : BaseApiController
         return SuccessResponse(opportunities);
     }
 
+    [HttpGet("my-participations")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<MyParticipationDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMyParticipations(CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null)
+            return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            return SuccessResponse(await _opportunityService.GetMyParticipationsAsync(userId.Value, cancellationToken));
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(ApiResponse<OpportunityDetailDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Get(int id, CancellationToken cancellationToken)
@@ -94,7 +127,8 @@ public class OpportunitiesController : BaseApiController
     }
 
     [HttpGet("{id:int}/room")]
-    [ProducesResponseType(typeof(ApiResponse<OpportunityDetailDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<OpportunityRoomDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetProjectRoom(int id, CancellationToken cancellationToken)
     {
         var userId = ResolveUserIdFromClaims();
@@ -112,9 +146,10 @@ public class OpportunitiesController : BaseApiController
         }
     }
 
+    [HttpPost("{id:int}/publish")]
     [HttpPost("{id:int}/submit-review")]
     [ProducesResponseType(typeof(ApiResponse<OpportunityDetailDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> SubmitForReview(int id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Publish(int id, CancellationToken cancellationToken)
     {
         var userId = ResolveUserIdFromClaims();
         if (userId == null)
@@ -122,8 +157,8 @@ public class OpportunitiesController : BaseApiController
 
         try
         {
-            var opportunity = await _opportunityService.SubmitForReviewAsync(userId.Value, id, cancellationToken);
-            return SuccessResponse(opportunity, "Opportunity submitted for review successfully");
+            var opportunity = await _opportunityService.PublishAsync(userId.Value, id, cancellationToken);
+            return SuccessResponse(opportunity, "Opportunity published successfully");
         }
         catch (BusinessValidationException ex)
         {
@@ -153,6 +188,25 @@ public class OpportunitiesController : BaseApiController
         }
     }
 
+    [HttpGet("{id:int}/participation-form")]
+    [ProducesResponseType(typeof(ApiResponse<OpportunityParticipationFormDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetParticipationForm(int id, CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null)
+            return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            var form = await _opportunityService.GetParticipationFormAsync(userId.Value, id, cancellationToken);
+            return SuccessResponse(form);
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
     [HttpGet("my-join-requests")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<OpportunityJoinRequestDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMyJoinRequests([FromQuery] OpportunityJoinRequestQuery query, CancellationToken cancellationToken)
@@ -164,6 +218,25 @@ public class OpportunitiesController : BaseApiController
         try
         {
             var requests = await _opportunityService.GetMyJoinRequestsAsync(userId.Value, query, cancellationToken);
+            return SuccessResponse(requests);
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
+    [HttpGet("incoming-join-requests")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<FounderIncomingJoinRequestDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetIncomingJoinRequests(CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null)
+            return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            var requests = await _opportunityService.GetIncomingJoinRequestsAsync(userId.Value, cancellationToken);
             return SuccessResponse(requests);
         }
         catch (BusinessValidationException ex)
@@ -316,9 +389,7 @@ public class OpportunitiesController : BaseApiController
 
     private Guid? ResolveUserIdFromClaims()
     {
-        var claimValue = User.FindFirst("sub")?.Value
-                         ?? User.FindFirst("id")?.Value
-                         ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var claimValue = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
 
         return Guid.TryParse(claimValue, out var userId) ? userId : null;
     }
@@ -329,6 +400,7 @@ public class OpportunitiesController : BaseApiController
         {
             "OPPORTUNITY_NOT_FOUND" => 404,
             "PROJECT_ROOM_FORBIDDEN" => 403,
+            "FOUNDER_ACCESS_REQUIRED" => 403,
             _ => 400
         };
         return ErrorResponse(ex.Message, statusCode);

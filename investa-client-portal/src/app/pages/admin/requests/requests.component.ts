@@ -1,14 +1,17 @@
 import { Component, ChangeDetectionStrategy, inject, signal, computed, effect } from '@angular/core';
 
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 
 import { TranslatePipe } from '../../../pipes/translate.pipe';
+import { LanguageService } from '../../../services/language.service';
 
 import { RequestsService } from '../../../services/requests.service';
+import { RoleContextService } from '../../../services/role-context.service';
 
 import { FileStoreService } from '../../../services/file-store.service';
 
-import { InvestmentRequest, InvestmentRequestType } from '../../../models/request.model';
+import { OpportunityRequest, OpportunityRequestKind } from '../../../models/request.model';
 
 
 
@@ -31,8 +34,10 @@ import { InvestmentRequest, InvestmentRequestType } from '../../../models/reques
 export class RequestsComponent {
 
   private requestsService = inject(RequestsService);
-
+  private router = inject(Router);
+  private languageService = inject(LanguageService);
   private fileStoreService = inject(FileStoreService);
+  private roleContext = inject(RoleContextService);
 
 
 
@@ -44,15 +49,23 @@ export class RequestsComponent {
 
   outgoing = this.requestsService.outgoing;
 
+  incomingCount = computed(() => this.incoming().length);
+  outgoingCount = computed(() => this.outgoing().length);
+  currentConversationCount = computed(() => this.currentTabRequests().filter(request => request.requestType === OpportunityRequestKind.Conversation).length);
+  currentParticipationCount = computed(() => this.currentTabRequests().filter(request => request.requestType === OpportunityRequestKind.Participation).length);
+
 
 
   // Filter state
 
-  statusFilter = signal<string>('all');
+  statusFilter = signal<string>('pending');
 
   typeFilter = signal<string>('all');
 
   dateFilter = signal<string>('all');
+  searchTerm = signal('');
+  loading = signal(false);
+  loadError = signal<string | null>(null);
 
 
 
@@ -65,7 +78,12 @@ export class RequestsComponent {
 
 
   constructor() {
+    void this.refresh();
+  }
 
+  t(path: string, fallback?: string): string {
+    const result = this.languageService.translate(path);
+    return result === path ? (fallback ?? path) : result;
   }
 
 
@@ -79,12 +97,21 @@ export class RequestsComponent {
 
 
     return requests.filter(request => {
+      const query = this.searchTerm().trim().toLocaleLowerCase('en');
+      if (query && ![
+        request.projectName,
+        request.counterpartName,
+        request.senderName,
+        request.receiverName,
+        request.businessName
+      ].filter((value): value is string => !!value).some(value => value.toLocaleLowerCase('en').includes(query))) return false;
+
 
       // Status filter
 
       if (this.statusFilter() !== 'all') {
 
-        if (this.statusFilter() === 'pending' && request.status !== 'Pending') return false;
+        if (this.statusFilter() === 'pending' && !this.isPendingRequest(request)) return false;
 
         if (this.statusFilter() === 'accepted' && request.status !== 'Accepted' && request.status !== 'Partner') return false;
 
@@ -98,9 +125,9 @@ export class RequestsComponent {
 
       if (this.typeFilter() !== 'all') {
 
-        if (this.typeFilter() === 'contact' && request.requestType !== InvestmentRequestType.ContactFounder) return false;
+        if (this.typeFilter() === 'conversation' && request.requestType !== OpportunityRequestKind.Conversation) return false;
 
-        if (this.typeFilter() === 'investment' && request.requestType !== InvestmentRequestType.InvestmentInterest) return false;
+        if (this.typeFilter() === 'participation' && request.requestType !== OpportunityRequestKind.Participation) return false;
 
       }
 
@@ -130,6 +157,9 @@ export class RequestsComponent {
 
       return true;
 
+    }).sort((a, b) => {
+      const typeDelta = this.requestTypeOrder(a) - this.requestTypeOrder(b);
+      return typeDelta || b.createdAt.getTime() - a.createdAt.getTime();
     });
 
   });
@@ -177,9 +207,69 @@ export class RequestsComponent {
 
 
   async refresh() {
+    try {
+      this.loading.set(true);
+      this.loadError.set(null);
+      await this.requestsService.refreshRequests();
+    } catch {
+      this.loadError.set(this.t('requests.states.loadError', 'Unable to load requests.'));
+    } finally {
+      this.loading.set(false);
+    }
 
-    await this.requestsService.refreshRequests();
+  }
 
+  currentTabRequests(): OpportunityRequest[] {
+    return this.tab() === 'incoming' ? this.incoming() : this.outgoing();
+  }
+
+  shouldShowSectionHeader(request: OpportunityRequest, index: number): boolean {
+    if (this.typeFilter() !== 'all') return index === 0;
+    const previous = this.paginatedRequests()[index - 1];
+    return !previous || previous.requestType !== request.requestType;
+  }
+
+  getSectionTitle(request: OpportunityRequest): string {
+    return request.requestType === OpportunityRequestKind.Conversation
+      ? this.t('requests.sections.conversationRequests', 'Conversation Requests')
+      : this.t('requests.sections.participationRequests', 'Participation Requests');
+  }
+
+  getSectionCount(request: OpportunityRequest): number {
+    return request.requestType === OpportunityRequestKind.Conversation
+      ? this.currentConversationCount()
+      : this.currentParticipationCount();
+  }
+
+  getEmptyTitle(): string {
+    if (this.filteredRequests().length === 0 && this.currentTabRequests().length > 0) {
+      return this.t('requests.empty.noMatch', 'No requests match the selected filters.');
+    }
+
+    if (this.typeFilter() === 'participation') {
+      if (this.tab() === 'incoming' && this.roleContext.isActiveFounderContext()) {
+        return this.t('requests.empty.noIncomingParticipation', 'No incoming participation requests');
+      }
+      if (this.tab() === 'outgoing') {
+        return this.t('requests.empty.noOutgoingParticipation', 'No participation requests submitted');
+      }
+    }
+
+    return this.tab() === 'incoming'
+      ? this.t('requests.noIncoming', 'No incoming requests.')
+      : this.t('requests.noOutgoing', 'No outgoing requests.');
+  }
+
+  getEmptySubtitle(): string {
+    if (this.filteredRequests().length === 0 && this.currentTabRequests().length > 0) {
+      return this.t('requests.empty.tryAdjustFilters', 'Try adjusting your filter criteria.');
+    }
+    if (this.typeFilter() === 'participation') {
+      return this.t('requests.empty.participationHelper', 'Participation requests are shown separately from conversation requests.');
+    }
+    return this.tab() === 'incoming'
+      ? this.t('requests.noIncomingSubtitle', 'Incoming requests will appear here.')
+      : this.t('requests.noOutgoingSubtitle', 'Outgoing requests will appear here.');
   }
 
 
@@ -222,6 +312,11 @@ export class RequestsComponent {
 
   }
 
+  setSearchTerm(value: string) {
+    this.searchTerm.set(value);
+    this.currentPage.set(1);
+  }
+
 
 
   goToPage(page: number) {
@@ -260,15 +355,17 @@ export class RequestsComponent {
 
 
 
-  accept(request: InvestmentRequest) {
-
-    this.requestsService.acceptRequest(request);
+  async accept(request: OpportunityRequest) {
+    const acceptedConversationId = await this.requestsService.acceptRequest(request);
+    if (request.requestType === OpportunityRequestKind.Conversation && acceptedConversationId) {
+      await this.router.navigate(['/admin/chat'], { queryParams: { conversationId: acceptedConversationId } });
+    }
 
   }
 
 
 
-  decline(request: InvestmentRequest) {
+  decline(request: OpportunityRequest) {
 
     this.requestsService.declineRequest(request);
 
@@ -276,7 +373,7 @@ export class RequestsComponent {
 
 
 
-  withdraw(request: InvestmentRequest) {
+  withdraw(request: OpportunityRequest) {
 
     this.requestsService.withdrawRequest(request);
 
@@ -332,25 +429,25 @@ export class RequestsComponent {
 
    */
 
-  getRequestTypeDisplay(request: InvestmentRequest): string {
+  getRequestTypeDisplay(request: OpportunityRequest): string {
 
-    if (!request.requestType) return 'Participation Request';
+    if (!request.requestType) return this.t('requests.types.participationRequest', 'Participation Request');
 
 
 
     switch (request.requestType) {
 
-      case InvestmentRequestType.ContactFounder:
+      case OpportunityRequestKind.Conversation:
 
-        return 'Contact Founder';
+        return this.t('requests.types.conversationRequest', 'Conversation Request');
 
-      case InvestmentRequestType.InvestmentInterest:
+      case OpportunityRequestKind.Participation:
 
-        return 'Participation Interest';
+        return `${this.getInvestmentModelDisplay(request)} ${this.t('requests.types.participation', 'Participation')}`;
 
       default:
 
-        return 'Participation Request';
+        return this.t('requests.types.participationRequest', 'Participation Request');
 
     }
 
@@ -364,27 +461,10 @@ export class RequestsComponent {
 
    */
 
-  getRequestTypeBadgeClass(request: InvestmentRequest): string {
-
-    if (!request.requestType) return 'bg-slate-500/15 text-slate-300 border-slate-500/30';
-
-
-
-    switch (request.requestType) {
-
-      case InvestmentRequestType.ContactFounder:
-
-        return 'bg-blue-500/15 text-blue-300 border-blue-500/30';
-
-      case InvestmentRequestType.InvestmentInterest:
-
-        return 'bg-purple-500/15 text-purple-300 border-purple-500/30';
-
-      default:
-
-        return 'bg-slate-500/15 text-slate-300 border-slate-500/30';
-
-    }
+  getRequestTypeBadgeClass(request: OpportunityRequest): string {
+    return request.requestType === OpportunityRequestKind.Participation
+      ? 'request-type-badge participation'
+      : 'request-type-badge conversation';
 
   }
 
@@ -396,9 +476,9 @@ export class RequestsComponent {
 
    */
 
-  hasInvestmentMetadata(request: InvestmentRequest): boolean {
+  hasParticipationMetadata(request: OpportunityRequest): boolean {
 
-    return request.requestType === InvestmentRequestType.InvestmentInterest && request.requestMetadata;
+    return request.requestType === OpportunityRequestKind.Participation && request.requestMetadata;
 
   }
 
@@ -410,9 +490,9 @@ export class RequestsComponent {
 
    */
 
-  getSharesRequested(request: InvestmentRequest): number {
+  getSharesRequested(request: OpportunityRequest): number {
 
-    return request.requestMetadata?.sharesRequested || 0;
+    return request.shares || request.requestMetadata?.sharesRequested || request.requestMetadata?.numberOfShares || request.requestMetadata?.termsSnapshot?.SelectedShares || 0;
 
   }
 
@@ -424,10 +504,148 @@ export class RequestsComponent {
 
    */
 
-  getSharePrice(request: InvestmentRequest): number {
+  getSharePrice(request: OpportunityRequest): number {
 
-    return request.requestMetadata?.sharePrice || 0;
+    return request.sharePriceSnapshot || request.requestMetadata?.sharePrice || request.requestMetadata?.termsSnapshot?.SharePriceSnapshot || 0;
 
+  }
+
+  isLoanRequest(request: OpportunityRequest): boolean {
+    const model = request.investmentModel ?? request.loanTermsSnapshot?.investmentModel ?? request.requestMetadata?.termsSnapshot?.InvestmentModel;
+    const key = String(model ?? '').toLowerCase().replace(/[\s_-]+/g, '');
+    return key === 'loaninvestment' || key === 'loan' || key === '3' || !!request.loanTermsSnapshot;
+  }
+
+  isProfitSharingRequest(request: OpportunityRequest): boolean {
+    const model = request.investmentModel ?? request.profitSharingTermsSnapshot?.investmentModel ?? request.requestMetadata?.termsSnapshot?.InvestmentModel;
+    const key = String(model ?? '').toLowerCase().replace(/[\s_-]+/g, '');
+    return key === 'capitalcontributionprofitsharing'
+      || key === 'profitsharing'
+      || key === 'profitshare'
+      || key === '2'
+      || !!request.profitSharingTermsSnapshot;
+  }
+
+  getInvestmentModelDisplay(request: OpportunityRequest): string {
+    if (this.isLoanRequest(request)) return this.t('requests.types.loan', 'Loan');
+    if (this.isProfitSharingRequest(request)) return this.t('requests.types.profitSharing', 'Profit Sharing');
+    return this.t('requests.types.equity', 'Equity');
+  }
+
+  getLoanContributionAmount(request: OpportunityRequest): number {
+    return request.loanTermsSnapshot?.contributionAmount
+      ?? request.loanTermsSnapshot?.requestedAmount
+      ?? request.requestedAmount
+      ?? 0;
+  }
+
+  getLoanReturnRate(request: OpportunityRequest): string {
+    const snapshot = request.loanTermsSnapshot;
+    const rate = snapshot?.returnRateSnapshot;
+    if (rate === null || rate === undefined) return this.unavailableLabel();
+    const suffix = snapshot?.returnRateTypeSnapshot ? ` ${this.localizedTermValue(snapshot.returnRateTypeSnapshot)}` : '';
+    return `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 }).format(rate)}%${suffix}`;
+  }
+
+  getLoanTerm(request: OpportunityRequest): string {
+    const snapshot = request.loanTermsSnapshot;
+    if (!snapshot?.termValueSnapshot) return this.unavailableLabel();
+    return `${snapshot.termValueSnapshot} ${snapshot.termUnitSnapshot ? this.localizedTermValue(snapshot.termUnitSnapshot) : ''}`.trim();
+  }
+
+  getLoanRepaymentModel(request: OpportunityRequest): string {
+    const value = request.loanTermsSnapshot?.repaymentModelSnapshot;
+    return value ? this.localizedTermValue(value) : this.unavailableLabel();
+  }
+
+  getLoanExpectedReturn(request: OpportunityRequest): number {
+    return request.loanTermsSnapshot?.expectedReturnAmount ?? 0;
+  }
+
+  getLoanExpectedTotalRepayment(request: OpportunityRequest): number {
+    return request.loanTermsSnapshot?.expectedTotalRepaymentAmount
+      ?? request.loanTermsSnapshot?.calculatedTotalAmount
+      ?? request.calculatedTotalAmount
+      ?? 0;
+  }
+
+  getProfitSharingContributionAmount(request: OpportunityRequest): number {
+    return request.profitSharingTermsSnapshot?.contributionAmount
+      ?? request.profitSharingTermsSnapshot?.requestedAmount
+      ?? request.requestedAmount
+      ?? 0;
+  }
+
+  getProfitSharePercentage(request: OpportunityRequest): string {
+    const percentage = request.profitSharingTermsSnapshot?.profitSharePercentageSnapshot
+      ?? request.profitSharingTermsSnapshot?.proposedSharePercentage
+      ?? request.requestMetadata?.termsSnapshot?.ProfitSharePercentageSnapshot
+      ?? request.requestMetadata?.termsSnapshot?.ProposedSharePercentage;
+    if (percentage === null || percentage === undefined) return this.unavailableLabel();
+    return `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 }).format(Number(percentage))}%`;
+  }
+
+  getProfitSharingTerm(request: OpportunityRequest): string {
+    const snapshot = request.profitSharingTermsSnapshot;
+    const term = snapshot?.termValueSnapshot ?? snapshot?.expectedDurationMonthsSnapshot;
+    if (!term) return this.unavailableLabel();
+    return `${term} ${this.localizedTermValue(snapshot?.termUnitSnapshot || 'Months')}`.trim();
+  }
+
+  getProfitSharingExitTerms(request: OpportunityRequest): string {
+    return request.profitSharingTermsSnapshot?.exitTermsSnapshot
+      ?? request.requestMetadata?.termsSnapshot?.ExitTermsSnapshot
+      ?? request.requestMetadata?.termsSnapshot?.ExitTerms
+      ?? this.unavailableLabel();
+  }
+
+  getProfitSharingExpectedProfit(request: OpportunityRequest): number | null {
+    return request.profitSharingTermsSnapshot?.expectedProfitAmount
+      ?? request.requestMetadata?.termsSnapshot?.ExpectedProfitAmount
+      ?? null;
+  }
+
+  getProfitSharingExpectedTotalPayout(request: OpportunityRequest): number | null {
+    return request.profitSharingTermsSnapshot?.expectedTotalPayoutAmount
+      ?? request.requestMetadata?.termsSnapshot?.ExpectedTotalPayoutAmount
+      ?? request.calculatedTotalAmount
+      ?? null;
+  }
+
+  getProfitSharingOpportunityTotalPayout(request: OpportunityRequest): number | null {
+    return request.profitSharingTermsSnapshot?.opportunityTotalExpectedPayout
+      ?? request.requestMetadata?.termsSnapshot?.OpportunityTotalExpectedPayout
+      ?? null;
+  }
+
+  getProfitSharingContractPeriod(request: OpportunityRequest): string {
+    const start = this.formatSnapshotDate(request.profitSharingTermsSnapshot?.contractStartDate ?? request.requestMetadata?.termsSnapshot?.ContractStartDate);
+    const end = this.formatSnapshotDate(request.profitSharingTermsSnapshot?.contractEndDate ?? request.requestMetadata?.termsSnapshot?.ContractEndDate);
+    const unavailable = this.unavailableLabel();
+    if (start === unavailable && end === unavailable) return unavailable;
+    if (start !== unavailable && end !== unavailable) return `${start} - ${end}`;
+    return start !== unavailable
+      ? this.t('requests.values.starts', 'Starts {date}').replace('{date}', start)
+      : this.t('requests.values.ends', 'Ends {date}').replace('{date}', end);
+  }
+
+  private requestTypeOrder(request: OpportunityRequest): number {
+    return request.requestType === OpportunityRequestKind.Participation ? 0 : 1;
+  }
+
+  formatOptionalMoney(request: OpportunityRequest, value: number | null): string {
+    if (value === null || value === undefined) return this.unavailableLabel();
+    return `${this.getRequestCurrency(request)} ${new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(Number(value))}`;
+  }
+
+  private formatSnapshotDate(value: unknown): string {
+    if (!value) return this.unavailableLabel();
+    const date = new Date(String(value));
+    const locale = this.languageService.language() === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB';
+    return Number.isNaN(date.getTime()) ? this.unavailableLabel() : new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
   }
 
 
@@ -438,9 +656,15 @@ export class RequestsComponent {
 
    */
 
-  getTotalValue(request: InvestmentRequest): number {
+  getTotalValue(request: OpportunityRequest): number {
 
-    return request.requestMetadata?.totalValue || 0;
+    return request.calculatedTotalAmount || request.requestedAmount || request.requestMetadata?.totalValue || request.requestMetadata?.termsSnapshot?.TotalInvestmentAmount || request.requestMetadata?.termsSnapshot?.CalculatedTotalAmount || 0;
+
+  }
+
+  getRequestCurrency(request: OpportunityRequest): string {
+
+    return request.currencySnapshot || request.requestMetadata?.termsSnapshot?.CurrencySnapshot || 'Credits';
 
   }
 
@@ -452,7 +676,7 @@ export class RequestsComponent {
 
    */
 
-  getCredibilityScore(request: InvestmentRequest): string {
+  getCredibilityScore(request: OpportunityRequest): string {
 
     const score = request.investorCredibilityScore ?? 0;
 
@@ -468,7 +692,7 @@ export class RequestsComponent {
 
    */
 
-  getFounderScore(request: InvestmentRequest): string {
+  getFounderScore(request: OpportunityRequest): string {
 
     const score = request.founderCredibilityScore ?? 0;
 
@@ -484,7 +708,7 @@ export class RequestsComponent {
 
    */
 
-  getTrustLevel(request: InvestmentRequest): string {
+  getTrustLevel(request: OpportunityRequest): string {
 
     // Use appropriate trust level based on request direction
 
@@ -508,40 +732,103 @@ export class RequestsComponent {
 
    */
 
-  getStatusDisplay(request: InvestmentRequest): string {
+  getStatusDisplay(request: OpportunityRequest): string {
 
     const status = request.status;
 
     switch (status) {
 
       case 'Pending':
-
-        return 'Pending Review';
+      case 'Requested':
+        return request.requestType === OpportunityRequestKind.Conversation
+          ? this.t('requests.status.waitingFounderResponse', 'Waiting for founder response')
+          : this.t('requests.status.participationPending', 'Participation pending');
 
       case 'Negotiating':
 
-        return 'Negotiating';
+        return this.t('requests.status.negotiationInProgress', 'Negotiation in progress');
 
       case 'Partner':
 
-        return 'Partner';
+        return this.t('requests.status.projectParticipant', 'Project Participant');
 
       case 'Accepted':
 
-        return 'Accepted';
+        return request.requestType === OpportunityRequestKind.Conversation
+          ? this.t('requests.status.chatAccepted', 'Chat accepted')
+          : this.t('requests.status.participationApproved', 'Participation approved');
 
       case 'Declined':
 
       case 'Rejected':
 
-        return 'Declined';
+        return this.t('requests.status.declined', 'Declined');
+
+      case 'Cancelled':
+
+      case 'Withdrawn':
+
+        return this.t('requests.status.withdrawn', 'Withdrawn');
 
       default:
-
-        return status;
+        return this.t('requests.status.closed', 'Closed');
 
     }
 
+  }
+
+  getDirectionCopy(request: OpportunityRequest): string {
+    if (request.type === 'conversation') {
+      if (request.direction === 'incoming') {
+        return this.t('requests.direction.incomingConversation', 'This Investor wants to start a conversation about your Opportunity.');
+      }
+      return this.t('requests.direction.outgoingConversation', 'Conversation request sent. Waiting for the Founder to respond.');
+    }
+
+    if (request.direction === 'incoming') {
+      return this.t('requests.direction.incomingParticipation', '{model} participation request received. Review the final submitted terms.')
+        .replace('{model}', this.getInvestmentModelDisplay(request));
+    }
+    return this.t('requests.direction.outgoingParticipation', '{model} participation request sent. Waiting for Founder review.')
+      .replace('{model}', this.getInvestmentModelDisplay(request));
+  }
+
+  getPrimaryActionLabel(request: OpportunityRequest): string {
+    if (request.type === 'conversation') {
+      return request.direction === 'incoming'
+        ? this.t('requests.actions.acceptChat', 'Accept Chat')
+        : this.t('requests.actions.withdraw', 'Withdraw');
+    }
+    return request.direction === 'incoming'
+      ? this.t('requests.actions.approveParticipation', 'Approve {model}').replace('{model}', this.getInvestmentModelDisplay(request))
+      : this.t('requests.actions.withdraw', 'Withdraw');
+  }
+
+  canShowWithdraw(request: OpportunityRequest): boolean {
+    if (request.type === 'conversation') {
+      return request.direction === 'outgoing' && request.status === 'Pending' && request.canWithdraw !== false;
+    }
+    return request.direction === 'outgoing' && request.status === 'Pending';
+  }
+
+  canShowAcceptReject(request: OpportunityRequest): boolean {
+    if (request.type === 'conversation') {
+      return request.direction === 'incoming' && request.status === 'Pending' && request.canAccept !== false && request.canReject !== false;
+    }
+    return request.direction === 'incoming' && request.status === 'Pending';
+  }
+
+  isPendingRequest(request: OpportunityRequest): boolean {
+    return request.type === 'conversation'
+      ? request.status === 'Pending'
+      : request.status === 'Pending';
+  }
+
+  getCounterpartyName(request: OpportunityRequest): string {
+    if (request.direction === 'incoming') {
+      return request.senderName || request.counterpartName || 'Investor';
+    }
+    return request.receiverName || request.counterpartName || 'Founder';
   }
 
 
@@ -553,41 +840,47 @@ export class RequestsComponent {
    */
 
   getExactDateTime(date: Date): string {
-
     const d = new Date(date);
-
-    const day = d.getDate();
-
-    const month = d.toLocaleString('en-US', { month: 'short' });
-
-    const year = d.getFullYear();
-
-    const hours = d.getHours();
-
-    const minutes = d.getMinutes().toString().padStart(2, '0');
-
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-
-    const displayHours = hours % 12 || 12;
-
-    return `${day} ${month} ${year}, ${displayHours}:${minutes} ${ampm}`;
+    if (Number.isNaN(d.getTime())) return this.unavailableLabel();
+    const locale = this.languageService.language() === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB';
+    return new Intl.DateTimeFormat(locale, {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }).format(d);
 
   }
 
+  initials(name?: string): string {
+    return (name || '').trim().split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || '—';
+  }
 
+  isConversationRequest(request: OpportunityRequest): boolean {
+    return request.requestType === OpportunityRequestKind.Conversation;
+  }
 
-  /**
+  statusTone(request: OpportunityRequest): 'pending' | 'success' | 'danger' | 'neutral' {
+    if (request.status === 'Accepted' || request.status === 'Partner') return 'success';
+    if (request.status === 'Declined' || request.status === 'Rejected' || request.status === 'Withdrawn' || request.status === 'Cancelled') return 'danger';
+    if (this.isPendingRequest(request) || request.status === 'Negotiating') return 'pending';
+    return 'neutral';
+  }
 
-   * Get project type display
+  private unavailableLabel(): string {
+    return this.t('requests.values.unavailable', 'Unavailable');
+  }
 
-   */
-
-  getProjectType(request: InvestmentRequest): string {
-
-    // For now, return a default value - this can be extended when backend provides project type
-
-    return 'Startup';
-
+  private localizedTermValue(value: string): string {
+    const key = value.trim().toLowerCase().replace(/[\s_-]+/g, '');
+    const known: Record<string, string> = {
+      month: 'month', months: 'months', year: 'year', years: 'years',
+      monthly: 'monthly', quarterly: 'quarterly', annually: 'annually', bullet: 'bullet',
+      fixed: 'fixed', variable: 'variable', simple: 'simple', compound: 'compound'
+    };
+    return known[key] ? this.t(`requests.values.${known[key]}`, value) : value;
   }
 
 
@@ -598,7 +891,7 @@ export class RequestsComponent {
 
    */
 
-  getProgressPercentage(request: InvestmentRequest): number {
+  getProgressPercentage(request: OpportunityRequest): number {
 
     const status = request.status;
 
@@ -640,7 +933,7 @@ export class RequestsComponent {
 
    */
 
-  getProgressLabel(request: InvestmentRequest): string {
+  getProgressLabel(request: OpportunityRequest): string {
 
     const status = request.status;
 
@@ -648,27 +941,27 @@ export class RequestsComponent {
 
       case 'Pending':
 
-        return 'In Review';
+        return this.t('requests.progress.inReview', 'In Review');
 
       case 'Negotiating':
 
-        return 'Negotiating';
+        return this.t('requests.progress.negotiating', 'Negotiating');
 
       case 'Partner':
 
       case 'Accepted':
 
-        return 'Completed';
+        return this.t('requests.progress.completed', 'Completed');
 
       case 'Declined':
 
       case 'Rejected':
 
-        return 'Ended';
+        return this.t('requests.progress.ended', 'Ended');
 
       default:
 
-        return 'In Review';
+        return this.t('requests.progress.inReview', 'In Review');
 
     }
 

@@ -1,66 +1,40 @@
-/* ========================================================================== */
-/* Light Theme V1 - Soft Light (runtime via body.investa-theme-light)        */
-/* ========================================================================== */
-
-/*
-  This file only defines CSS variables inside the opt-in selector.
-  Dark Theme remains controlled by existing defaults (and does not change).
-*/
-
+// Light theme values only. No class-name interception, no Tailwind substring hacks.
 body.investa-theme-light {
-  /* Soft Backgrounds / Premium Surfaces */
-  --investa-bg: #f6f7fb;
+  color-scheme: light;
+
+  --investa-bg: #e8e8e8;
   --investa-surface: #ffffff;
-  --investa-surface-2: #f3f6fb;
-  --investa-border: rgba(15, 23, 42, 0.12);
+  --investa-surface-soft: #f0f0f0;
+  --investa-surface-2: #f7f7f7;
+  --investa-surface-3: #eeeeee;
+  --investa-border: #dedede;
+  --investa-border-strong: #c9c9c9;
 
-  /* Text */
-  --investa-text-primary: #0f172a;
-  --investa-text-secondary: rgba(15, 23, 42, 0.72);
-  --investa-text-muted: rgba(15, 23, 42, 0.52);
+  --investa-text-primary: #212225;
+  --investa-text-secondary: #66686b;
+  --investa-text-muted: #8e8f8e;
 
-  /* Primary Identity: Green gradient */
-  --investa-green-1: #10b981; /* emerald-ish */
-  --investa-green-2: #22c55e; /* green-ish */
-  --investa-primary-gradient: linear-gradient(135deg, var(--investa-green-1), var(--investa-green-2));
+  --investa-primary: #212225;
+  --investa-primary-hover: #151619;
+  --investa-primary-contrast: #ffffff;
 
-  /* Financial Accent: Orange gradient */
-  --investa-orange-1: #fb923c; /* orange-400 */
-  --investa-orange-2: #f97316; /* orange-500 */
-  --investa-financial-gradient: linear-gradient(135deg, var(--investa-orange-1), var(--investa-orange-2));
+  --investa-accent: #22c532;
+  --investa-accent-hover: #19a927;
+  --investa-accent-soft: #dbeada;
+  --investa-accent-border: rgba(34, 197, 50, 0.32);
 
-  /* Attention / Alerts */
-  --investa-attention: #ef4444; /* red-500 */
+  --investa-success: #158322;
+  --investa-warning: #b45309;
+  --investa-error: #b91c1c;
+  --investa-info: #1d4ed8;
 
-  /* Informational: blue kept */
-  --investa-info: #2563eb; /* blue-600 */
+  --investa-overlay: rgba(21, 22, 25, 0.46);
+  --investa-focus-ring: rgba(34, 197, 50, 0.18);
 
-  /* Success (kept as green-ish) */
-  --investa-success: #10b981;
+  --investa-shadow-sm: 0 1px 2px rgba(21, 22, 25, 0.05);
+  --investa-shadow-md: 0 8px 24px rgba(21, 22, 25, 0.07);
+  --investa-shadow-lg: 0 18px 48px rgba(21, 22, 25, 0.11);
 
-  /* Warning (amber) */
-  --investa-warning: #f59e0b;
-
-  /* Error */
-  --investa-error: #ef4444;
-
-  /* Shadows (minimal shadows, premium) */
-  --investa-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
-  --investa-shadow-md: 0 6px 18px rgba(15, 23, 42, 0.08);
-
-  /* Radius */
-  --investa-radius: 16px;
-
-  /* Semantic tokens (used by component styles after global refactor) */
-  --investa-primary: #10b981;
-  --investa-accent: #f97316;
-
-  --investa-card-bg: var(--investa-surface);
-  --investa-card-border: var(--investa-border);
-  --investa-card-shadow: var(--investa-shadow-sm);
-
-  /* Notifications semantics */
-  --investa-notification-bg: rgba(37, 99, 235, 0.08);
-  --investa-notification-border: rgba(37, 99, 235, 0.18);
-  --investa-notification-text: #1d4ed8;
+  color: var(--investa-text-primary);
+  background: var(--investa-bg);
 }

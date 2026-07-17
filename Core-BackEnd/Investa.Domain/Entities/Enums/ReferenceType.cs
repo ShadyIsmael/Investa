@@ -21,5 +21,11 @@ public enum ReferenceType
     /// <summary>Linked to an administrative action.</summary>
     Admin = 5,
     /// <summary>Linked to an internal / system process (bonus grants, scheduled jobs).</summary>
-    System = 6
+    System = 6,
+    /// <summary>Linked to a negotiation conversation request.</summary>
+    ConversationRequest = 7,
+    /// <summary>Linked to a negotiation conversation.</summary>
+    Conversation = 8,
+    /// <summary>Linked to an opportunity participation/join request.</summary>
+    OpportunityJoinRequest = 9
 }

@@ -28,7 +28,11 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
         var conn = config.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-        optionsBuilder.UseSqlServer(conn, b => b.MigrationsAssembly("Investa.Infrastructure"));
+        optionsBuilder.UseSqlServer(conn, b =>
+        {
+            b.MigrationsAssembly("Investa.Infrastructure");
+            b.UseCompatibilityLevel(120);
+        });
 
         return new ApplicationDbContext(optionsBuilder.Options);
     }

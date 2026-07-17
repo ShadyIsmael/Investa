@@ -1,5 +1,4 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
-import { HeaderComponent } from '../../components/header/header.component';
 import { HeroComponent } from '../../components/hero/hero.component';
 import { FeaturesComponent } from '../../components/features/features.component';
 import { AboutComponent } from '../../components/about/about.component';
@@ -16,7 +15,6 @@ import { TranslatePipe } from '../../pipes/translate.pipe';
   styleUrls: ['./home.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    HeaderComponent,
     HeroComponent,
     FeaturesComponent,
     AboutComponent,

@@ -13,11 +13,15 @@ public class CreateInvestmentDto
 
     // Opportunity basic fields
     public string BusinessName { get; set; } = string.Empty;
+    public string? ShortDescription { get; set; }
     public string Description { get; set; } = string.Empty;
+    public string? UseOfFunds { get; set; }
     public DateTime StartDate { get; set; }
     public int BusinessStageId { get; set; }
     public int BusinessCategoryId { get; set; }
     public int? ProjectPhaseId { get; set; }
+    public int? FundingGoalId { get; set; }
+    public IReadOnlyList<int> TagIds { get; set; } = Array.Empty<int>();
     public string Milestone { get; set; } = string.Empty;
     public string RiskLevel { get; set; } = string.Empty;
     public decimal TargetFund { get; set; }
@@ -29,6 +33,7 @@ public class CreateInvestmentDto
     public decimal? MinInvestment { get; set; }
     public decimal? MaxInvestment { get; set; }
     public decimal? ValuationCap { get; set; }
+    public decimal? EquityOfferedPercentage { get; set; }
     public decimal? ExpectedROI { get; set; }
     public InvestmentType? InvestmentTypeId { get; set; } // Founding, Equity, Revenue Sharing, or Loan
     public DateTime? EndDate { get; set; }

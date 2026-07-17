@@ -22,6 +22,8 @@ namespace Investa.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.HasSequence("RoleCodeSequence");
+
             modelBuilder.Entity("Investa.Domain.Entities.AuthUser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -261,8 +263,27 @@ namespace Investa.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("AttachmentsJson")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<Guid?>("ConversationId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EditedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsEdited")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsRead")
                         .ValueGeneratedOnAdd()
@@ -278,6 +299,9 @@ namespace Investa.Infrastructure.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
+                    b.Property<Guid?>("SenderUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("SupportSessionId")
                         .HasColumnType("uniqueidentifier");
 
@@ -288,7 +312,9 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ConversationId");
+                    b.HasIndex("SenderUserId");
+
+                    b.HasIndex("ConversationId", "Timestamp");
 
                     b.HasIndex("SupportSessionId", "Timestamp");
 
@@ -309,28 +335,93 @@ namespace Investa.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("CloseReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ClosedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ConversationRequestId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<Guid?>("FounderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("FounderReady")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid?>("InvestorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("InvestorReady")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
+                    b.Property<bool>("IsVisibleToFounder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsVisibleToInvestor")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<int?>("OpportunityId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ParticipationRequestId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ReadyForParticipationAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasColumnType("nvarchar(max)")
-                        .HasDefaultValue("Pending");
+                        .HasDefaultValue("Requested");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("UserMobile")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ConversationRequestId")
+                        .IsUnique()
+                        .HasFilter("[ConversationRequestId] IS NOT NULL");
+
+                    b.HasIndex("FounderId");
+
+                    b.HasIndex("InvestorId");
+
+                    b.HasIndex("OpportunityId");
+
+                    b.HasIndex("ParticipationRequestId");
+
+                    b.HasIndex("OpportunityId", "FounderId", "InvestorId", "IsActive");
 
                     b.ToTable("Conversations");
                 });
@@ -367,6 +458,61 @@ namespace Investa.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("ConversationParticipants");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.Chat.ConversationRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("AcceptedConversationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("OpportunityId")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("RecipientUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RequesterUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("RespondedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AcceptedConversationId")
+                        .IsUnique()
+                        .HasFilter("[AcceptedConversationId] IS NOT NULL");
+
+                    b.HasIndex("OpportunityId");
+
+                    b.HasIndex("RecipientUserId");
+
+                    b.HasIndex("RequesterUserId");
+
+                    b.HasIndex("OpportunityId", "RequesterUserId", "RecipientUserId", "Status");
+
+                    b.ToTable("ConversationRequests");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Chat.MessageAttachment", b =>
@@ -420,6 +566,115 @@ namespace Investa.Infrastructure.Migrations
                     b.HasKey("MessageId", "UserId");
 
                     b.ToTable("MessageReactions");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.Chat.NegotiationOffer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<Guid>("ConversationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int?>("ParentOfferId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConversationId");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("ParentOfferId");
+
+                    b.HasIndex("ConversationId", "Status");
+
+                    b.HasIndex("ConversationId", "Version")
+                        .IsUnique();
+
+                    b.ToTable("NegotiationOffers");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.Chat.NegotiationOfferLeg", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("EquityPercentage")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("ExitTerms")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("LegType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("OfferId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("ProfitSharePercentage")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("RepaymentModel")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal?>("ReturnRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("SharesTerms")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int?>("TermMonths")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OfferId");
+
+                    b.ToTable("NegotiationOfferLegs");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Client", b =>
@@ -651,6 +906,47 @@ namespace Investa.Infrastructure.Migrations
                     b.ToTable("ClientStatusHistories");
                 });
 
+            modelBuilder.Entity("Investa.Domain.Entities.ContractEvent", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("ContractVersionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("MetadataJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("PerformedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PerformedByUserId");
+
+                    b.HasIndex("ContractVersionId", "CreatedAt");
+
+                    b.ToTable("ContractEvents");
+                });
+
             modelBuilder.Entity("Investa.Domain.Entities.CreditConfiguration", b =>
                 {
                     b.Property<int>("Id")
@@ -803,6 +1099,538 @@ namespace Investa.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("CreditTransactions");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.ExpenseCategory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("GLAccountCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("ExpenseCategories", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Code = "EXP-OTHER",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Default company operating expense category",
+                            IsActive = true,
+                            Name = "Other Operating Expense",
+                            SortOrder = 999
+                        });
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.FinanceAccount", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AccountType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("BankAccountNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("BankName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<decimal>("CurrentBalance")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("OpeningDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("FinanceAccounts", (string)null);
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.FinanceAttachment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("DocumentReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("DocumentType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("FileStorageKey")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("FileUrl")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MimeType")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("TransactionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TransactionId");
+
+                    b.ToTable("FinanceAttachments", (string)null);
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.FinanceAuditEvent", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("EventType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
+
+                    b.Property<string>("Metadata")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NewValues")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OldValues")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("PerformedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("TransactionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TransactionId", "CreatedAt");
+
+                    b.ToTable("FinanceAuditEvents", (string)null);
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.FinanceReconciliation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("ActualStatementBalance")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(19, 4)");
+
+                    b.Property<DateTime?>("ConfirmedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ConfirmedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Difference")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(19, 4)");
+
+                    b.Property<int>("FinanceAccountId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<decimal>("OpeningBalance")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(19, 4)");
+
+                    b.Property<decimal>("PeriodActivity")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(19, 4)");
+
+                    b.Property<DateTime>("PeriodEndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("PeriodStartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ReconciliationDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("SystemCalculatedBalance")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(19, 4)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FinanceAccountId", "PeriodEndDate");
+
+                    b.ToTable("FinanceReconciliations", (string)null);
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.FinanceTransaction", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("AmountInBaseCurrency")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid?>("CheckerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ConfirmedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ConfirmedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int?>("DestinationAccountId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DocumentationStatus")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("ExchangeRate")
+                        .HasPrecision(19, 8)
+                        .HasColumnType("decimal(10,6)");
+
+                    b.Property<int?>("ExpenseCategoryId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ExternalReference")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid?>("FounderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("IncomeCategoryId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("IncomingMoneyType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("InvoiceNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid?>("MakerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("NetAmountReceived")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<decimal>("PaymentGatewayFee")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("PaymentMethod")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("PostingDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReferenceNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ReversalCancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int?>("ReversalOfTransactionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReviewDecision")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ReviewReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int?>("SourceAccountId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SourceName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("TransactionDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("TransactionType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DestinationAccountId");
+
+                    b.HasIndex("ExpenseCategoryId");
+
+                    b.HasIndex("IncomeCategoryId");
+
+                    b.HasIndex("MakerId");
+
+                    b.HasIndex("ReferenceNumber")
+                        .IsUnique();
+
+                    b.HasIndex("ReversalOfTransactionId");
+
+                    b.HasIndex("SourceAccountId");
+
+                    b.HasIndex("SupplierId");
+
+                    b.HasIndex("Status", "TransactionDate");
+
+                    b.ToTable("FinanceTransactions", (string)null);
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.FinanceTransactionLine", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("CreditAmount")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("DebitAmount")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("GLAccountCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("GLAccountDescription")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("LineSequence")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TransactionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TransactionId", "LineSequence")
+                        .IsUnique();
+
+                    b.ToTable("FinanceTransactionLines", (string)null);
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.FundingGoal", b =>
@@ -1130,6 +1958,79 @@ namespace Investa.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Investa.Domain.Entities.IncomeCategory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("GLAccountCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("NameAr")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("NameEn")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("IncomeCategories", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Code = "INC-OTHER",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Default company operating income category",
+                            IsActive = true,
+                            Name = "Other Operating Income",
+                            NameEn = "Other Operating Income",
+                            SortOrder = 999
+                        });
+                });
+
             modelBuilder.Entity("Investa.Domain.Entities.Investment", b =>
                 {
                     b.Property<int>("Id")
@@ -1402,6 +2303,194 @@ namespace Investa.Infrastructure.Migrations
                             TotalShares = 5000,
                             ValuationCap = 2000000m
                         });
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.InvestmentContract", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ContractNumber")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int>("CurrentVersionNumber")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("FounderUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("InvestmentModel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid>("InvestorUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("OpportunityId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContractNumber")
+                        .IsUnique();
+
+                    b.HasIndex("FounderUserId");
+
+                    b.HasIndex("InvestorUserId");
+
+                    b.HasIndex("OpportunityId", "FounderUserId", "InvestorUserId", "InvestmentModel")
+                        .IsUnique();
+
+                    b.ToTable("InvestmentContracts");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.InvestmentContractVersion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ActivatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ChangesSnapshotJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ContractId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("DocumentContent")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DocumentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("DocumentUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("PdfDocumentHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<long?>("PdfDocumentSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("PdfDocumentUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("PdfGeneratedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PdfGenerationError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("PdfGenerationStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)")
+                        .HasDefaultValue("NotGenerated");
+
+                    b.Property<string>("PdfMimeType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasDefaultValue("application/pdf");
+
+                    b.Property<string>("PdfRendererVersion")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasDefaultValue("playwright-chromium-v1");
+
+                    b.Property<string>("PreviousTermsSnapshotJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("PreviousVersionId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int?>("SourceNegotiationOfferId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SourceParticipationRequestId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("TermsSnapshotJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("int");
+
+                    b.Property<string>("VersionType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContractId")
+                        .IsUnique()
+                        .HasFilter("[Status] = 'Active'");
+
+                    b.HasIndex("PreviousVersionId");
+
+                    b.HasIndex("SourceNegotiationOfferId");
+
+                    b.HasIndex("SourceParticipationRequestId")
+                        .IsUnique();
+
+                    b.HasIndex("ContractId", "VersionNumber")
+                        .IsUnique();
+
+                    b.ToTable("InvestmentContractVersions");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.InvestmentEvent", b =>
@@ -2208,12 +3297,23 @@ namespace Investa.Infrastructure.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("SYSUTCDATETIME()");
 
+                    b.Property<string>("Currency")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
                     b.Property<string>("Description")
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
 
+                    b.Property<decimal?>("EquityOfferedPercentage")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
                     b.Property<int?>("ExpectedDurationMonths")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("FinalRepaymentDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("FirstInvestorJoinedAt")
                         .HasColumnType("datetime2");
@@ -2227,6 +3327,10 @@ namespace Investa.Infrastructure.Migrations
                     b.Property<decimal>("FundingTarget")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("InterestRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
 
                     b.Property<string>("InvestmentModel")
                         .IsRequired()
@@ -2246,10 +3350,42 @@ namespace Investa.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int?>("OfferedShares")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("ProfitSharePercentage")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTime?>("ProfitSharingContractEndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ProfitSharingContractStartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ProfitSharingPayoutFrequency")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<string>("ProjectStage")
                         .IsRequired()
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("RepaymentFrequency")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal?>("SharePrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("ShortDescription")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)")
+                        .HasDefaultValue("");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -2261,10 +3397,20 @@ namespace Investa.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<int?>("TotalShares")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("UseOfFunds")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)")
+                        .HasDefaultValue("");
 
                     b.HasKey("Id");
 
@@ -2668,6 +3814,16 @@ namespace Investa.Infrastructure.Migrations
                     b.Property<Guid>("InvestorId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<bool>("IsVisibleToFounder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsVisibleToInvestor")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
                     b.Property<string>("Message")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
@@ -2696,6 +3852,9 @@ namespace Investa.Infrastructure.Migrations
                     b.Property<Guid?>("ReviewedByFounderId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("SourceConversationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -2716,6 +3875,8 @@ namespace Investa.Infrastructure.Migrations
                     b.HasIndex("OpportunityId");
 
                     b.HasIndex("ReviewedByFounderId");
+
+                    b.HasIndex("SourceConversationId");
 
                     b.HasIndex("OpportunityId", "InvestorId", "Status");
 
@@ -3095,6 +4256,120 @@ namespace Investa.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Investa.Domain.Entities.PricingRule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ActionCode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<decimal>("CreditCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActionCode")
+                        .IsUnique();
+
+                    b.ToTable("PricingRules");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Action = "SendConversationRequest",
+                            ActionCode = "SendConversationRequest",
+                            CreatedAt = new DateTime(2026, 7, 9, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreditCost = 5m,
+                            Description = "Fixed CREDIT fee to send a negotiation conversation request.",
+                            DisplayName = "Send Conversation Request",
+                            IsActive = true,
+                            UpdatedAt = new DateTime(2026, 7, 9, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Action = "SendFirstOffer",
+                            ActionCode = "SendFirstOffer",
+                            CreatedAt = new DateTime(2026, 7, 9, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreditCost = 5m,
+                            Description = "Fixed CREDIT fee to send the first negotiation offer.",
+                            DisplayName = "Send First Offer",
+                            IsActive = true,
+                            UpdatedAt = new DateTime(2026, 7, 9, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Action = "SendCounterOffer",
+                            ActionCode = "SendCounterOffer",
+                            CreatedAt = new DateTime(2026, 7, 9, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreditCost = 2m,
+                            Description = "Fixed CREDIT fee to send a counter offer.",
+                            DisplayName = "Send Counter Offer",
+                            IsActive = true,
+                            UpdatedAt = new DateTime(2026, 7, 9, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Action = "SubmitParticipationRequest",
+                            ActionCode = "SubmitParticipationRequest",
+                            CreatedAt = new DateTime(2026, 7, 9, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreditCost = 10m,
+                            Description = "Fixed CREDIT fee to submit an opportunity participation request.",
+                            DisplayName = "Submit Participation Request",
+                            IsActive = true,
+                            UpdatedAt = new DateTime(2026, 7, 9, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Action = "PublishOpportunity",
+                            ActionCode = "PublishOpportunity",
+                            CreatedAt = new DateTime(2026, 7, 9, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreditCost = 15m,
+                            Description = "Fixed CREDIT fee to publish an opportunity.",
+                            DisplayName = "Publish Opportunity",
+                            IsActive = true,
+                            UpdatedAt = new DateTime(2026, 7, 9, 0, 0, 0, 0, DateTimeKind.Utc)
+                        });
+                });
+
             modelBuilder.Entity("Investa.Domain.Entities.ProfileChangeAudit", b =>
                 {
                     b.Property<int>("Id")
@@ -3175,6 +4450,73 @@ namespace Investa.Infrastructure.Migrations
                     b.ToTable("RefreshTokens");
                 });
 
+            modelBuilder.Entity("Investa.Domain.Entities.Report", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("ReasonCode")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<Guid>("ReporterUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ResolutionNote")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ReviewedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
+                        .HasDefaultValue("Pending");
+
+                    b.Property<string>("TargetId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("TargetType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReviewedByUserId");
+
+                    b.HasIndex("Status", "CreatedAt");
+
+                    b.HasIndex("ReporterUserId", "TargetType", "TargetId")
+                        .IsUnique()
+                        .HasFilter("[Status] = 'Pending'");
+
+                    b.HasIndex("ReporterUserId", "TargetType", "TargetId", "Status");
+
+                    b.ToTable("Reports");
+                });
+
             modelBuilder.Entity("Investa.Domain.Entities.ReputationRule", b =>
                 {
                     b.Property<int>("Id")
@@ -3182,6 +4524,11 @@ namespace Investa.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ActivityCode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<bool>("CanRepeat")
                         .ValueGeneratedOnAdd()
@@ -3200,6 +4547,11 @@ namespace Investa.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<bool>("IsAutomatic")
                         .ValueGeneratedOnAdd()
@@ -3224,6 +4576,13 @@ namespace Investa.Infrastructure.Migrations
                     b.Property<int>("Points")
                         .HasColumnType("int");
 
+                    b.Property<string>("RoleScope")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasDefaultValue("Any");
+
                     b.Property<string>("RuleCode")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -3233,9 +4592,14 @@ namespace Investa.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ActivityCode")
+                        .IsUnique();
 
                     b.HasIndex("CreatedByUserId");
 
@@ -3248,154 +4612,187 @@ namespace Investa.Infrastructure.Migrations
                         new
                         {
                             Id = 1,
+                            ActivityCode = "",
                             CanRepeat = false,
                             CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Profile completed",
+                            IsActive = true,
                             IsAutomatic = true,
                             IsEnabled = true,
                             IsSystem = true,
                             MaximumOccurrences = 1,
                             Points = 50,
+                            RoleScope = "Any",
                             RuleCode = "profile_completed",
                             SortOrder = 1
                         },
                         new
                         {
                             Id = 2,
+                            ActivityCode = "",
                             CanRepeat = false,
                             CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Email verified",
+                            IsActive = true,
                             IsAutomatic = true,
                             IsEnabled = true,
                             IsSystem = true,
                             MaximumOccurrences = 1,
                             Points = 30,
+                            RoleScope = "Any",
                             RuleCode = "email_verified",
                             SortOrder = 2
                         },
                         new
                         {
                             Id = 3,
+                            ActivityCode = "",
                             CanRepeat = false,
                             CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Phone verified",
+                            IsActive = true,
                             IsAutomatic = true,
                             IsEnabled = true,
                             IsSystem = true,
                             MaximumOccurrences = 1,
                             Points = 30,
+                            RoleScope = "Any",
                             RuleCode = "phone_verified",
                             SortOrder = 3
                         },
                         new
                         {
                             Id = 4,
+                            ActivityCode = "",
                             CanRepeat = false,
                             CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Company verified",
+                            IsActive = true,
                             IsAutomatic = true,
                             IsEnabled = true,
                             IsSystem = true,
                             MaximumOccurrences = 1,
                             Points = 100,
+                            RoleScope = "Any",
                             RuleCode = "company_verified",
                             SortOrder = 4
                         },
                         new
                         {
                             Id = 5,
+                            ActivityCode = "",
                             CanRepeat = true,
                             CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Investment published",
+                            IsActive = true,
                             IsAutomatic = true,
                             IsEnabled = true,
                             IsSystem = true,
                             MaximumOccurrences = 10,
                             Points = 200,
+                            RoleScope = "Any",
                             RuleCode = "investment_published",
                             SortOrder = 5
                         },
                         new
                         {
                             Id = 6,
+                            ActivityCode = "",
                             CanRepeat = false,
                             CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Investment approved",
+                            IsActive = true,
                             IsAutomatic = true,
                             IsEnabled = true,
                             IsSystem = true,
                             MaximumOccurrences = 1,
                             Points = 150,
+                            RoleScope = "Any",
                             RuleCode = "investment_approved",
                             SortOrder = 6
                         },
                         new
                         {
                             Id = 7,
+                            ActivityCode = "",
                             CanRepeat = false,
                             CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "First investment",
+                            IsActive = true,
                             IsAutomatic = true,
                             IsEnabled = true,
                             IsSystem = true,
                             MaximumOccurrences = 1,
                             Points = 500,
+                            RoleScope = "Any",
                             RuleCode = "first_investment",
                             SortOrder = 7
                         },
                         new
                         {
                             Id = 8,
+                            ActivityCode = "",
                             CanRepeat = true,
                             CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Repeat investment",
+                            IsActive = true,
                             IsAutomatic = true,
                             IsEnabled = true,
                             IsSystem = true,
                             MaximumOccurrences = 10,
                             Points = 200,
+                            RoleScope = "Any",
                             RuleCode = "repeat_investment",
                             SortOrder = 8
                         },
                         new
                         {
                             Id = 9,
+                            ActivityCode = "",
                             CanRepeat = false,
                             CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Successful investment",
+                            IsActive = true,
                             IsAutomatic = true,
                             IsEnabled = true,
                             IsSystem = true,
                             MaximumOccurrences = 1,
                             Points = 300,
+                            RoleScope = "Any",
                             RuleCode = "successful_investment",
                             SortOrder = 9
                         },
                         new
                         {
                             Id = 10,
+                            ActivityCode = "",
                             CanRepeat = false,
                             CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Policy violation",
+                            IsActive = true,
                             IsAutomatic = false,
                             IsEnabled = true,
                             IsSystem = true,
                             MaximumOccurrences = 1,
                             Points = -500,
+                            RoleScope = "Any",
                             RuleCode = "policy_violation",
                             SortOrder = 10
                         },
                         new
                         {
                             Id = 11,
+                            ActivityCode = "",
                             CanRepeat = false,
                             CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Admin penalty",
+                            IsActive = true,
                             IsAutomatic = false,
                             IsEnabled = true,
                             IsSystem = true,
                             MaximumOccurrences = 1,
                             Points = -1000,
+                            RoleScope = "Any",
                             RuleCode = "admin_penalty",
                             SortOrder = 11
                         });
@@ -3408,6 +4805,16 @@ namespace Investa.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ActivityCode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
 
                     b.Property<Guid?>("CreatedByUserId")
                         .HasColumnType("uniqueidentifier");
@@ -3446,7 +4853,9 @@ namespace Investa.Infrastructure.Migrations
 
                     b.HasIndex("ReputationRuleId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId", "ActivityCode", "ReferenceType", "ReferenceId")
+                        .IsUnique()
+                        .HasFilter("[ReferenceType] IS NOT NULL AND [ReferenceId] IS NOT NULL");
 
                     b.ToTable("ReputationTransactions");
                 });
@@ -3642,6 +5051,14 @@ namespace Investa.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<string>("DescriptionAr")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("DescriptionEn")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<int>("GroupId")
                         .HasColumnType("int");
 
@@ -3656,10 +5073,32 @@ namespace Investa.Infrastructure.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
+                    b.Property<string>("NameAr")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("NameEn")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
                     b.Property<string>("NormalizedName")
                         .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("RoleCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)")
+                        .HasComputedColumnSql("'ROL-' + CASE WHEN LEN(CONVERT(varchar(20), [RoleNumber])) < 6 THEN REPLICATE('0', 6 - LEN(CONVERT(varchar(20), [RoleNumber]))) ELSE '' END + CONVERT(varchar(20), [RoleNumber])", true);
+
+                    b.Property<long>("RoleNumber")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValueSql("NEXT VALUE FOR [RoleCodeSequence]");
 
                     b.Property<Guid?>("TenantId")
                         .HasColumnType("uniqueidentifier");
@@ -3667,6 +5106,9 @@ namespace Investa.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedName")
+                        .IsUnique();
+
+                    b.HasIndex("RoleCode")
                         .IsUnique();
 
                     b.HasIndex("GroupId", "Name")
@@ -3926,6 +5368,104 @@ namespace Investa.Infrastructure.Migrations
                             ServiceName = "Admin Manual Charge",
                             UpdatedAt = new DateTime(2026, 6, 29, 0, 0, 0, 0, DateTimeKind.Utc)
                         });
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.Supplier", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ContactPerson")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Country")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LegalName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("PaymentDetails")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("PaymentTerms")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("ServiceCategory")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("SupplierCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("SupplierType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TaxId")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SupplierCode")
+                        .IsUnique();
+
+                    b.ToTable("Suppliers", (string)null);
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.SupportSession", b =>
@@ -4369,6 +5909,10 @@ namespace Investa.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("ActionCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<decimal>("BalanceAfter")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -4410,8 +5954,8 @@ namespace Investa.Infrastructure.Migrations
                     b.Property<string>("ReferenceType")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)")
                         .HasDefaultValue("None");
 
                     b.Property<Guid>("WalletId")
@@ -4424,6 +5968,10 @@ namespace Investa.Infrastructure.Migrations
                     b.HasIndex("WalletId");
 
                     b.HasIndex("WalletId", "CreatedAt");
+
+                    b.HasIndex("WalletId", "ActionCode", "ReferenceType", "ReferenceId")
+                        .IsUnique()
+                        .HasFilter("[ActionCode] IS NOT NULL AND [ReferenceId] IS NOT NULL");
 
                     b.ToTable("WalletTransactions");
                 });
@@ -4627,14 +6175,62 @@ namespace Investa.Infrastructure.Migrations
 
             modelBuilder.Entity("Investa.Domain.Entities.Chat.ChatMessage", b =>
                 {
-                    b.HasOne("Investa.Domain.Entities.Chat.Conversation", null)
+                    b.HasOne("Investa.Domain.Entities.Chat.Conversation", "Conversation")
                         .WithMany("Messages")
-                        .HasForeignKey("ConversationId");
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Investa.Domain.Entities.AuthUser", "Sender")
+                        .WithMany()
+                        .HasForeignKey("SenderUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Investa.Domain.Entities.SupportSession", null)
                         .WithMany()
                         .HasForeignKey("SupportSessionId")
                         .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Conversation");
+
+                    b.Navigation("Sender");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.Chat.Conversation", b =>
+                {
+                    b.HasOne("Investa.Domain.Entities.Chat.ConversationRequest", "ConversationRequest")
+                        .WithOne()
+                        .HasForeignKey("Investa.Domain.Entities.Chat.Conversation", "ConversationRequestId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Investa.Domain.Entities.AuthUser", "Founder")
+                        .WithMany()
+                        .HasForeignKey("FounderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Investa.Domain.Entities.AuthUser", "Investor")
+                        .WithMany()
+                        .HasForeignKey("InvestorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Investa.Domain.Entities.Opportunity", "Opportunity")
+                        .WithMany()
+                        .HasForeignKey("OpportunityId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Investa.Domain.Entities.OpportunityJoinRequest", "ParticipationRequest")
+                        .WithMany()
+                        .HasForeignKey("ParticipationRequestId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("ConversationRequest");
+
+                    b.Navigation("Founder");
+
+                    b.Navigation("Investor");
+
+                    b.Navigation("Opportunity");
+
+                    b.Navigation("ParticipationRequest");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Chat.ConversationParticipant", b =>
@@ -4646,6 +6242,40 @@ namespace Investa.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Conversation");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.Chat.ConversationRequest", b =>
+                {
+                    b.HasOne("Investa.Domain.Entities.Chat.Conversation", "AcceptedConversation")
+                        .WithOne()
+                        .HasForeignKey("Investa.Domain.Entities.Chat.ConversationRequest", "AcceptedConversationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Investa.Domain.Entities.Opportunity", "Opportunity")
+                        .WithMany()
+                        .HasForeignKey("OpportunityId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Investa.Domain.Entities.AuthUser", "Recipient")
+                        .WithMany()
+                        .HasForeignKey("RecipientUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Investa.Domain.Entities.AuthUser", "Requester")
+                        .WithMany()
+                        .HasForeignKey("RequesterUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AcceptedConversation");
+
+                    b.Navigation("Opportunity");
+
+                    b.Navigation("Recipient");
+
+                    b.Navigation("Requester");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Chat.MessageAttachment", b =>
@@ -4668,6 +6298,43 @@ namespace Investa.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Message");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.Chat.NegotiationOffer", b =>
+                {
+                    b.HasOne("Investa.Domain.Entities.Chat.Conversation", "Conversation")
+                        .WithMany("Offers")
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Investa.Domain.Entities.AuthUser", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Investa.Domain.Entities.Chat.NegotiationOffer", "ParentOffer")
+                        .WithMany()
+                        .HasForeignKey("ParentOfferId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Conversation");
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("ParentOffer");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.Chat.NegotiationOfferLeg", b =>
+                {
+                    b.HasOne("Investa.Domain.Entities.Chat.NegotiationOffer", "Offer")
+                        .WithMany("Legs")
+                        .HasForeignKey("OfferId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Offer");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Client", b =>
@@ -4719,6 +6386,24 @@ namespace Investa.Infrastructure.Migrations
                     b.Navigation("Client");
                 });
 
+            modelBuilder.Entity("Investa.Domain.Entities.ContractEvent", b =>
+                {
+                    b.HasOne("Investa.Domain.Entities.InvestmentContractVersion", "ContractVersion")
+                        .WithMany("Events")
+                        .HasForeignKey("ContractVersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Investa.Domain.Entities.AuthUser", "PerformedByUser")
+                        .WithMany()
+                        .HasForeignKey("PerformedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ContractVersion");
+
+                    b.Navigation("PerformedByUser");
+                });
+
             modelBuilder.Entity("Investa.Domain.Entities.CreditPlanPurchase", b =>
                 {
                     b.HasOne("Investa.Domain.Entities.CreditPlan", "Plan")
@@ -4760,6 +6445,93 @@ namespace Investa.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Investa.Domain.Entities.FinanceAttachment", b =>
+                {
+                    b.HasOne("Investa.Domain.Entities.FinanceTransaction", "Transaction")
+                        .WithMany("Attachments")
+                        .HasForeignKey("TransactionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Transaction");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.FinanceAuditEvent", b =>
+                {
+                    b.HasOne("Investa.Domain.Entities.FinanceTransaction", "Transaction")
+                        .WithMany("AuditEvents")
+                        .HasForeignKey("TransactionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Transaction");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.FinanceReconciliation", b =>
+                {
+                    b.HasOne("Investa.Domain.Entities.FinanceAccount", "FinanceAccount")
+                        .WithMany()
+                        .HasForeignKey("FinanceAccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("FinanceAccount");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.FinanceTransaction", b =>
+                {
+                    b.HasOne("Investa.Domain.Entities.FinanceAccount", "DestinationAccount")
+                        .WithMany()
+                        .HasForeignKey("DestinationAccountId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Investa.Domain.Entities.ExpenseCategory", "ExpenseCategory")
+                        .WithMany("Transactions")
+                        .HasForeignKey("ExpenseCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Investa.Domain.Entities.IncomeCategory", "IncomeCategory")
+                        .WithMany("Transactions")
+                        .HasForeignKey("IncomeCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Investa.Domain.Entities.FinanceTransaction", null)
+                        .WithMany()
+                        .HasForeignKey("ReversalOfTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Investa.Domain.Entities.FinanceAccount", "SourceAccount")
+                        .WithMany()
+                        .HasForeignKey("SourceAccountId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Investa.Domain.Entities.Supplier", "Supplier")
+                        .WithMany("Transactions")
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("DestinationAccount");
+
+                    b.Navigation("ExpenseCategory");
+
+                    b.Navigation("IncomeCategory");
+
+                    b.Navigation("SourceAccount");
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.FinanceTransactionLine", b =>
+                {
+                    b.HasOne("Investa.Domain.Entities.FinanceTransaction", "Transaction")
+                        .WithMany("TransactionLines")
+                        .HasForeignKey("TransactionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Transaction");
+                });
+
             modelBuilder.Entity("Investa.Domain.Entities.GroupPermission", b =>
                 {
                     b.HasOne("Investa.Domain.Entities.Security.ApplicationPermission", null)
@@ -4799,6 +6571,66 @@ namespace Investa.Infrastructure.Migrations
                     b.Navigation("Founder");
 
                     b.Navigation("Opportunity");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.InvestmentContract", b =>
+                {
+                    b.HasOne("Investa.Domain.Entities.AuthUser", "FounderUser")
+                        .WithMany()
+                        .HasForeignKey("FounderUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Investa.Domain.Entities.AuthUser", "InvestorUser")
+                        .WithMany()
+                        .HasForeignKey("InvestorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Investa.Domain.Entities.Opportunity", "Opportunity")
+                        .WithMany()
+                        .HasForeignKey("OpportunityId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("FounderUser");
+
+                    b.Navigation("InvestorUser");
+
+                    b.Navigation("Opportunity");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.InvestmentContractVersion", b =>
+                {
+                    b.HasOne("Investa.Domain.Entities.InvestmentContract", "Contract")
+                        .WithMany("Versions")
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Investa.Domain.Entities.InvestmentContractVersion", "PreviousVersion")
+                        .WithMany()
+                        .HasForeignKey("PreviousVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Investa.Domain.Entities.Chat.NegotiationOffer", "SourceNegotiationOffer")
+                        .WithMany()
+                        .HasForeignKey("SourceNegotiationOfferId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Investa.Domain.Entities.OpportunityJoinRequest", "SourceParticipationRequest")
+                        .WithMany()
+                        .HasForeignKey("SourceParticipationRequestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Contract");
+
+                    b.Navigation("PreviousVersion");
+
+                    b.Navigation("SourceNegotiationOffer");
+
+                    b.Navigation("SourceParticipationRequest");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.InvestmentEvent", b =>
@@ -5046,6 +6878,24 @@ namespace Investa.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("AuthUser");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.Report", b =>
+                {
+                    b.HasOne("Investa.Domain.Entities.AuthUser", "ReporterUser")
+                        .WithMany()
+                        .HasForeignKey("ReporterUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Investa.Domain.Entities.AuthUser", "ReviewedByUser")
+                        .WithMany()
+                        .HasForeignKey("ReviewedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("ReporterUser");
+
+                    b.Navigation("ReviewedByUser");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.ReputationRule", b =>
@@ -5349,6 +7199,13 @@ namespace Investa.Infrastructure.Migrations
             modelBuilder.Entity("Investa.Domain.Entities.Chat.Conversation", b =>
                 {
                     b.Navigation("Messages");
+
+                    b.Navigation("Offers");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.Chat.NegotiationOffer", b =>
+                {
+                    b.Navigation("Legs");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Client", b =>
@@ -5361,6 +7218,20 @@ namespace Investa.Infrastructure.Migrations
             modelBuilder.Entity("Investa.Domain.Entities.CreditPlan", b =>
                 {
                     b.Navigation("Purchases");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.ExpenseCategory", b =>
+                {
+                    b.Navigation("Transactions");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.FinanceTransaction", b =>
+                {
+                    b.Navigation("Attachments");
+
+                    b.Navigation("AuditEvents");
+
+                    b.Navigation("TransactionLines");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.FundingGoal", b =>
@@ -5377,6 +7248,11 @@ namespace Investa.Infrastructure.Migrations
                     b.Navigation("UserGroups");
                 });
 
+            modelBuilder.Entity("Investa.Domain.Entities.IncomeCategory", b =>
+                {
+                    b.Navigation("Transactions");
+                });
+
             modelBuilder.Entity("Investa.Domain.Entities.Investment", b =>
                 {
                     b.Navigation("Images");
@@ -5384,6 +7260,16 @@ namespace Investa.Infrastructure.Migrations
                     b.Navigation("Participants");
 
                     b.Navigation("TeamMembers");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.InvestmentContract", b =>
+                {
+                    b.Navigation("Versions");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.InvestmentContractVersion", b =>
+                {
+                    b.Navigation("Events");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.Notification", b =>
@@ -5433,6 +7319,11 @@ namespace Investa.Infrastructure.Migrations
                     b.Navigation("RolePermissions");
 
                     b.Navigation("UserRoles");
+                });
+
+            modelBuilder.Entity("Investa.Domain.Entities.Supplier", b =>
+                {
+                    b.Navigation("Transactions");
                 });
 
             modelBuilder.Entity("Investa.Domain.Entities.SupportSession", b =>

@@ -256,7 +256,8 @@ public class WalletService : IWalletService
             && reason != WalletReason.PublishOpportunity
             && reason != WalletReason.FeaturedOpportunity
             && reason != WalletReason.Subscription
-            && reason != WalletReason.AdminAdjustmentDebit)
+            && reason != WalletReason.AdminAdjustmentDebit
+            && reason != WalletReason.PlatformServiceFee)
         {
             throw new BusinessValidationException(
                 "INVALID_REASON",
@@ -280,6 +281,7 @@ public class WalletService : IWalletService
         WalletId = t.WalletId,
         Direction = t.Direction,
         Reason = t.Reason,
+        ActionCode = t.ActionCode,
         CreditAmount = t.CreditAmount,
         BalanceBefore = t.BalanceBefore,
         BalanceAfter = t.BalanceAfter,

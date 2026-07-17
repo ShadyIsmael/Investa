@@ -72,6 +72,17 @@ public class FileStoreStorage : IFileStorage
         return fileUrl;
     }
 
+    public async Task<byte[]> ReadFileAsync(string storedPath, CancellationToken cancellationToken = default)
+    {
+        var url = Uri.TryCreate(storedPath, UriKind.Absolute, out var absolute)
+            ? absolute.ToString()
+            : $"{_baseUrl}/{storedPath.TrimStart('/')}";
+        using var response = await _http.GetAsync(url, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            throw new IOException($"FileStore download failed: {response.StatusCode}");
+        return await response.Content.ReadAsByteArrayAsync(cancellationToken);
+    }
+
     /// <summary>
     /// Deletes a file from Investa.FileStore by converting the relative path to category + filename.
     /// </summary>

@@ -25,6 +25,7 @@ public class WalletTransactionDto
     public Guid WalletId { get; set; }
     public WalletDirection Direction { get; set; }
     public WalletReason Reason { get; set; }
+    public string? ActionCode { get; set; }
     public decimal CreditAmount { get; set; }
     public decimal BalanceBefore { get; set; }
     public decimal BalanceAfter { get; set; }

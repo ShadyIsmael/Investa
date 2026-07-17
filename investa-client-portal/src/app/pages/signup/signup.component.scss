@@ -1,7 +1,6 @@
 @use 'variables' as *;
 @use 'sass:color' as color;
 @use 'mixins' as *;
-@use 'theme' as theme;
 
 :host {
   display: block;
@@ -11,7 +10,7 @@
 .signup-page {
   min-height: 100vh;
   @include flex-center;
-  background: linear-gradient(135deg, theme.$color-accent 0%, theme.$color-accent-alt 100%);
+  background: linear-gradient(135deg, $color-accent 0%, #19a927 100%);
   padding: $spacing-4;
   position: relative;
   overflow: hidden;
@@ -30,7 +29,7 @@
 
 .signup-container {
   position: relative;
-  z-index: theme.$z-dropdown;
+  z-index: 1000;
   width: 100%;
   max-width: 550px;
   @include fade-in(0.4s);
@@ -38,7 +37,7 @@
 
 .signup-card {
   @include card($spacing-8);
-  background: rgba(theme.$color-surface, 0.98);
+  background: rgba($color-surface, 0.98);
   backdrop-filter: blur(10px);
 
   @include respond-to('md') {
@@ -160,7 +159,7 @@
     width: 18px;
     height: 18px;
     cursor: pointer;
-    accent-color: theme.$color-accent;
+    accent-color: $color-accent;
   }
 
   label {
@@ -169,11 +168,11 @@
     margin: 0;
 
     a {
-      color: theme.$color-accent;
+      color: $color-accent;
       text-decoration: underline;
 
       &:hover {
-        color: theme.$color-accent-alt;
+        color: #19a927;
       }
     }
   }

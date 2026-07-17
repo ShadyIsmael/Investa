@@ -10,9 +10,20 @@ namespace Investa.Domain.Entities.Security;
 public class Role
 {
     public Guid Id { get; set; }
+
+    /// <summary>Database-generated sequence value used only to produce RoleCode.</summary>
+    public long RoleNumber { get; private set; }
+
+    /// <summary>Immutable backend-generated business identifier (for example ROL-000001).</summary>
+    public string RoleCode { get; private set; } = null!;
+
+    public string NameEn { get; set; } = null!;
+    public string NameAr { get; set; } = null!;
+    public string? DescriptionEn { get; set; }
+    public string? DescriptionAr { get; set; }
     
     /// <summary>
-    /// Name of the role (e.g., "Manager", "Viewer", "Editor")
+    /// Legacy compatibility value. Kept synchronized with NameEn.
     /// </summary>
     public string Name { get; set; } = null!;
     
@@ -22,7 +33,7 @@ public class Role
     public string NormalizedName { get; set; } = null!;
     
     /// <summary>
-    /// Optional description of the role's purpose
+    /// Legacy compatibility value. Kept synchronized with DescriptionEn.
     /// </summary>
     public string? Description { get; set; }
     

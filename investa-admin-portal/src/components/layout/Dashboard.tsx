@@ -3,7 +3,6 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
-import { financeService } from '@/services/financeService';
 import { clientService } from '@/services/clientService';
 import { generateExecutiveSummary } from '@/services/geminiService';
 import { AiStatus, DashboardStat, ChartDataPoint, Client } from '@/types';
@@ -61,23 +60,9 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     (async () => {
       try {
-        const [rev, st, cl, cps] = await Promise.allSettled([
-          financeService.getRevenueData(),
-          financeService.getDashboardStats(),
-          clientService.getTopClients(),
-          financeService.getCreditPlanPurchaseStats(),
-        ]);
-        if (rev.status === 'fulfilled') setRevenue(rev.value);
-        if (st.status  === 'fulfilled') setStats(st.value);
-        if (cps.status === 'fulfilled') setCreditPlanStats(cps.value);
+        const [cl] = await Promise.allSettled([clientService.getTopClients()]);
         if (cl.status  === 'fulfilled') {
           setClients(cl.value);
-          setCategories([
-            { name: 'Technology',   value: 15_400_000 },
-            { name: 'Real Estate',  value: 12_100_000 },
-            { name: 'Healthcare',   value:  8_900_000 },
-            { name: 'Green Energy', value:  4_200_000 },
-          ]);
         }
       } finally {
         setLoading(false);

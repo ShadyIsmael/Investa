@@ -48,9 +48,10 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onForgotPassword }) => {
       const token = resp?.token || resp?.access_token || resp?.data?.token || resp?.authToken || resp?.tokenId || resp?.data?.accessToken;
       if (token) {
         const parsed = parseJWT(token);
-        const hasAdminRole = Boolean(parsed?.roles?.some((r) => /(^|\W)admin(\W|$)/i.test(r)));
-        if (!hasAdminRole) {
-          setError('Login succeeded but the token does not include Admin role access. Please use an Admin account.');
+        const isOrganizationalUser = parsed?.user?.userType?.toLowerCase() === 'orguser';
+        const hasPortalPermission = Boolean(parsed?.permissions?.some((permission) => permission.trim().length > 0));
+        if (!isOrganizationalUser || !hasPortalPermission) {
+          setError('This account is not eligible to access the Admin Portal.');
           return;
         }
 

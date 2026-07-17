@@ -1,79 +1,57 @@
-<header class="sticky top-0 z-[1060] bg-slate-900/95 backdrop-blur-md border-b border-slate-700/50 py-4">
-  <div class="container mx-auto px-6 flex justify-between items-center flex-nowrap">
-    <!-- Logo -->
-    <div class="flex items-center">
-      <svg class="h-8 w-8 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<header class="header-bar">
+  <div class="header-inner">
+    <a routerLink="/" class="header-logo">
+      <svg class="header-logo-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
         <path d="M10 16.75l-1.53 -1.22a2 2 0 0 0 -2.94 0l-3.53 2.82"></path>
         <path d="M14 16.75l-1.53 -1.22a2 2 0 0 1 2.94 0l3.53 2.82"></path>
         <path d="M10 14l2 -2l2 -2"></path>
         <path d="M12 12l3.5 -4.5l2.5 -2.5"></path>
         <path d="M12 12l-3.5 -4.5l-2.5 -2.5"></path>
-     </svg>
-      <span class="text-white text-2xl font-bold ms-2">Investa</span>
-    </div>
+      </svg>
+      <span class="header-logo-text">Investa</span>
+    </a>
 
-    <!-- Navigation Links -->
-    <nav class="flex items-center space-x-4 order-2 md:order-1 w-auto justify-start whitespace-nowrap overflow-x-auto">
-      @for(link of navLinks(); track link.label) {
-        <a [routerLink]="link.routerLink" [href]="link.href" class="text-gray-300 hover:text-white transition-colors duration-300 py-1 px-2 inline-block">{{ 'header.nav.' + link.label.toLowerCase() | translate }}</a>
-      }
-
-      @if (isAuthenticated()) {
-        <a (click)="navigateToMyOffice()" class="flex items-center space-x-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 font-semibold py-2 px-4 rounded-lg cursor-pointer transition-all duration-300 border border-blue-500/30">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-          </svg>
-          <span>My Office</span>
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
-          </svg>
-        </a>
+    <nav class="header-nav">
+      @for(link of navLinks(); track link.key) {
+        <a [routerLink]="link.routerLink" class="header-nav-link" (click)="closeMobileMenu()">{{ 'header.nav.' + link.key | translate }}</a>
       }
     </nav>
 
-    <!-- Action Buttons (Language Toggle, Login, Signup, User Account) -->
-    <div class="flex items-center space-x-4 order-3 md:order-2 w-auto justify-end mt-0">
-      <a href="#" (click)="toggleLanguage($event)" class="text-gray-300 hover:text-white font-semibold py-2 px-4 transition-colors duration-300">
-         {{ 'language.toggle' | translate }}
-      </a>
+    <div class="header-actions">
+      <button (click)="toggleLanguage($event)" class="header-action-btn" title="Toggle language">
+        {{ 'language.toggle' | translate }}
+      </button>
+
+      <button (click)="toggleTheme($event)" class="header-action-btn" title="Toggle theme">
+        @if (isDarkTheme()) {
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        } @else {
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        }
+      </button>
 
       @if (!isAuthenticated()) {
-        <a href="#" (click)="openLoginModal($event)" class="text-gray-300 hover:text-white font-semibold py-2 px-4 transition-colors duration-300">
+        <a href="#" (click)="openLoginModal($event)" class="header-login-link">
           {{ 'header.login' | translate }}
         </a>
 
-        <a routerLink="/signup" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 transition-opacity duration-300">
+        <a routerLink="/signup" class="header-signup-btn" (click)="closeMobileMenu()">
           {{ 'header.signup' | translate }}
         </a>
       } @else {
-        <!-- User Account Avatar -->
         <div class="relative user-menu-container">
-          <button (click)="toggleUserMenu($event)" class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-slate-800/50 transition-colors duration-200 overflow-hidden">
+          <button (click)="toggleUserMenu($event)" class="header-avatar-btn">
             @if (userAvatarUrl() && !imageLoadFailed()) {
-              <!-- Profile Image -->
-              <img [src]="userAvatarUrl()" [alt]="userDisplayName()" (error)="onImageError()" class="w-full h-full object-cover">
+              <img [src]="userAvatarUrl()" [alt]="userDisplayName()" (error)="onImageError()" class="header-avatar-img">
             } @else {
-              <!-- Initials Avatar -->
-              <div class="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                <span class="text-white font-bold text-sm">{{ userInitials() }}</span>
-              </div>
+              <div class="header-avatar-fallback">{{ userInitials() }}</div>
             }
           </button>
 
-          <!-- User Menu Dropdown -->
           @if (isUserMenuOpen()) {
-            <div class="absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-lg py-2 z-50">
+            <div class="header-dropdown">
               @for (item of userMenuItems(); track item.label) {
-                <button (click)="handleUserMenuItemClick(item)" class="w-full text-left px-4 py-2 text-gray-300 hover:bg-slate-700 hover:text-white transition-colors duration-200 flex items-center space-x-3">
-                  @if (item.action === 'logout') {
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                    </svg>
-                  } @else {
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
-                    </svg>
-                  }
+                <button (click)="handleUserMenuItemClick(item)" class="header-dropdown-item">
                   <span>{{ item.label }}</span>
                 </button>
               }
@@ -81,6 +59,29 @@
           }
         </div>
       }
+
+      <button (click)="toggleMobileMenu()" class="header-mobile-btn" aria-label="Menu">
+        @if (!isMobileMenuOpen()) {
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        } @else {
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        }
+      </button>
     </div>
   </div>
+
+  @if (isMobileMenuOpen()) {
+    <div class="header-mobile-menu">
+      @for(link of navLinks(); track link.key) {
+        <a [routerLink]="link.routerLink" class="header-mobile-link" (click)="closeMobileMenu()">{{ 'header.nav.' + link.key | translate }}</a>
+      }
+      <hr class="header-mobile-divider">
+      @if (!isAuthenticated()) {
+        <a href="#" (click)="openLoginModal($event); closeMobileMenu()" class="header-mobile-link">{{ 'header.login' | translate }}</a>
+        <a routerLink="/signup" class="header-mobile-link header-mobile-signup" (click)="closeMobileMenu()">{{ 'header.signup' | translate }}</a>
+      } @else {
+        <a routerLink="/admin/dashboard" class="header-mobile-link" (click)="closeMobileMenu()">My Office</a>
+      }
+    </div>
+  }
 </header>

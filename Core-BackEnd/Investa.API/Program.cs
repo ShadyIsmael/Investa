@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Linq;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
@@ -19,6 +20,7 @@ using Investa.API.Authorization;
 using Investa.Application.Common;
 using Investa.Application.Interfaces;
 using Investa.Application.Services;
+using Investa.Application.Services.Finance;
 using Investa.Infrastructure.Persistence;
 using Investa.Infrastructure.Services;
 using Investa.Infrastructure.Repositories;
@@ -99,8 +101,14 @@ try
         builder.Services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(connectionString, sqlOptions =>
             {
+                // Production/local database is SQL Server 2014 (compatibility level 120).
+                // Prevent EF from translating captured primitive collections through OPENJSON.
+                sqlOptions.UseCompatibilityLevel(120);
                 sqlOptions.CommandTimeout(30);
-                sqlOptions.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorNumbersToAdd: null);
+                sqlOptions.EnableRetryOnFailure(
+                    maxRetryCount: 3,
+                    maxRetryDelay: TimeSpan.FromSeconds(10),
+                    errorNumbersToAdd: null);
             }));
         Console.WriteLine("[STARTUP] Database configured successfully");
     }
@@ -281,6 +289,7 @@ try
 
     builder.Services.AddHttpClient();
     builder.Services.AddScoped<IFileStorage, Investa.Infrastructure.Services.FileStoreStorage>();
+    builder.Services.AddScoped<IHtmlToPdfRenderer, Investa.Infrastructure.Services.PlaywrightHtmlToPdfRenderer>();
     // Register file storage implementation (local by default)
 
     // === EMAIL CONFIGURATION (Options Pattern) ===
@@ -296,6 +305,7 @@ try
                options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
                options.JsonSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
                options.JsonSerializerOptions.WriteIndented = false;
+               options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
            })
            .ConfigureApiBehaviorOptions(options =>
            {
@@ -335,6 +345,13 @@ try
 
     // === DEVELOPMENT IDENTITY RESEED (repair-only) ===
     builder.Services.AddDevIdentityReseed();
+    builder.Services.AddScoped<FinancePermissionBackfillService>();
+
+    // === DEVELOPMENT OPPORTUNITY SEED (repair-only) ===
+    if (builder.Environment.IsDevelopment())
+    {
+        builder.Services.AddDevOpportunitySeed();
+    }
 
 
     // === APPLICATION SERVICES REGISTRATION ===
@@ -373,6 +390,13 @@ try
             await backfillContext.Database.MigrateAsync();
         }
 
+        var financePermissionBackfill = scope.ServiceProvider.GetRequiredService<FinancePermissionBackfillService>();
+        var addedFinancePermissions = await financePermissionBackfill.BackfillAsync();
+        logger.LogInformation(
+            "Company Finance permission backfill added {Count} keys: {Keys}",
+            addedFinancePermissions.Count,
+            string.Join(", ", addedFinancePermissions));
+
         var backfill = scope.ServiceProvider.GetRequiredService<InvestmentOpportunityBackfillService>();
         var result = await backfill.BackfillAsync();
         logger.LogInformation(
@@ -391,6 +415,67 @@ try
             categoryResult.Skipped,
             string.Join(", ", categoryResult.CategoriesUsed),
             string.Join(" | ", categoryResult.Errors));
+
+        var productFieldsBackfill = scope.ServiceProvider.GetRequiredService<OpportunityProductFieldsBackfillService>();
+        var productFieldsResult = await productFieldsBackfill.BackfillAsync();
+        logger.LogInformation(
+            "Opportunity product fields backfill result: scanned={Scanned}, shortDescriptionPopulated={ShortDescriptionPopulated}, useOfFundsPopulated={UseOfFundsPopulated}, equityOfferedPercentageCalculated={EquityOfferedPercentageCalculated}, skipped={Skipped}, errors={Errors}",
+            productFieldsResult.Scanned,
+            productFieldsResult.ShortDescriptionPopulated,
+            productFieldsResult.UseOfFundsPopulated,
+            productFieldsResult.EquityOfferedPercentageCalculated,
+            productFieldsResult.Skipped,
+            string.Join(" | ", productFieldsResult.Errors));
+
+        if (app.Environment.IsDevelopment())
+        {
+            var roomDemoDataBackfill = scope.ServiceProvider.GetRequiredService<OpportunityRoomDemoDataBackfillService>();
+            var roomDemoDataResult = await roomDemoDataBackfill.BackfillAsync();
+            logger.LogInformation(
+                "Opportunity room demo data backfill result: scanned={Scanned}, populated={Populated}, timelineEventsCreated={TimelineEventsCreated}, documentsCreated={DocumentsCreated}, mediaCreated={MediaCreated}, joinRequestsCreated={JoinRequestsCreated}, skipped={Skipped}",
+                roomDemoDataResult.Scanned,
+                roomDemoDataResult.OpportunitiesPopulated,
+                roomDemoDataResult.TimelineEventsCreated,
+                roomDemoDataResult.DocumentsCreated,
+                roomDemoDataResult.MediaCreated,
+                roomDemoDataResult.JoinRequestsCreated,
+                roomDemoDataResult.Skipped);
+
+            // === DEV-ONLY OPPORTUNITY SEED ===
+            var opportunitySeed = scope.ServiceProvider.GetRequiredService<Investa.Infrastructure.Services.OpportunitySeedService>();
+            var seedResult = await opportunitySeed.SeedAsync(seedValue: 20260712);
+            logger.LogInformation(
+                "✅ Opportunity seed result: inspected={Inspected}, updated={Updated}, equitiesRepaired={EquitiesRepaired}, loansRepaired={LoansRepaired}, profitSharingRepaired={ProfitSharingRepaired}, validationErrors={ValidationErrorCount}",
+                seedResult.TotalInspected,
+                seedResult.TotalUpdated,
+                seedResult.EquitiesRepaired,
+                seedResult.LoansRepaired,
+                seedResult.ProfitSharingRepaired,
+                seedResult.ValidationErrors.Count);
+
+            if (seedResult.Opportunity2028Details != null)
+            {
+                logger.LogInformation(
+                    "📊 Opportunity 2028 final values: Title={Title}, Model={Model}, FundingTarget={FundingTarget}, MinInvestment={MinInvestment}, MaxInvestment={MaxInvestment}, EquityPercent={EquityPercent}, InterestRate={InterestRate}, RepaymentFreq={RepaymentFreq}, FinalDate={FinalDate}, ProfitSharePercent={ProfitSharePercent}",
+                    seedResult.Opportunity2028Details.Title,
+                    seedResult.Opportunity2028Details.Model,
+                    seedResult.Opportunity2028Details.FundingTarget,
+                    seedResult.Opportunity2028Details.MinimumInvestment,
+                    seedResult.Opportunity2028Details.MaximumInvestment,
+                    seedResult.Opportunity2028Details.EquityPercentage,
+                    seedResult.Opportunity2028Details.InterestRate,
+                    seedResult.Opportunity2028Details.RepaymentFrequency,
+                    seedResult.Opportunity2028Details.FinalRepaymentDate,
+                    seedResult.Opportunity2028Details.ProfitSharePercentage);
+            }
+
+            if (seedResult.ValidationErrors.Any())
+            {
+                logger.LogWarning(
+                    "⚠️  Opportunity seed validation errors: {Errors}",
+                    string.Join(" | ", seedResult.ValidationErrors.Take(5)));
+            }
+        }
     }
     catch (Exception ex)
     {
@@ -497,13 +582,17 @@ finally
 /// </summary>
 static void RegisterApplicationServices(IServiceCollection services)
 {
+    services.AddHttpContextAccessor();
+    services.AddScoped<ICurrentUserContext, Investa.API.Services.HttpCurrentUserContext>();
     // === INFRASTRUCTURE LAYER ===
     // Unit of Work & Repository Pattern (Scoped - per request)
     services.AddScoped<IUnitOfWork, UnitOfWork>();
     services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+    services.AddScoped<IEffectivePermissionService, EffectivePermissionService>();
     
     // Specialized repositories with complex query support
     services.AddScoped<IInvestmentRepository, InvestmentRepository>();
+    services.AddScoped<IFinanceRepository, FinanceRepository>();
 
     // === APPLICATION LAYER - Business Services (Scoped - per request) ===
     services.AddScoped<IProfileService, ProfileService>();
@@ -521,11 +610,23 @@ static void RegisterApplicationServices(IServiceCollection services)
     services.AddScoped<ICreditService, CreditService>();
     services.AddScoped<IWalletService, WalletService>();
     services.AddScoped<IPriceService, PriceService>();
+    services.AddScoped<IPaidActionService, PaidActionService>();
+    services.AddScoped<IReportService, ReportService>();
     services.AddScoped<IOpportunityService, OpportunityService>();
+    services.AddScoped<IInvestmentContractService, InvestmentContractService>();
+    services.AddScoped<INegotiationService, NegotiationService>();
     services.AddScoped<InvestmentOpportunityBackfillService>();
     services.AddScoped<OpportunityCategoryBackfillService>();
+    services.AddScoped<OpportunityProductFieldsBackfillService>();
+    services.AddScoped<OpportunityRoomDemoDataBackfillService>();
     services.AddScoped<IChatService, ChatService>();
     services.AddScoped<IGroupService, GroupService>();
+    services.AddScoped<IFinanceValidationService, FinanceValidationService>();
+    services.AddScoped<IFinanceAccountingService, FinanceAccountingService>();
+    services.AddScoped<IFinanceTransactionService, FinanceTransactionService>();
+    services.AddScoped<IFinanceMasterDataService, FinanceMasterDataService>();
+    services.AddScoped<IFinanceOverviewService, FinanceOverviewService>();
+    services.AddScoped<IFinanceReconciliationService, FinanceReconciliationService>();
 
     // === INFRASTRUCTURE LAYER - External Services ===
     // Security Services (Scoped - stateful per request)

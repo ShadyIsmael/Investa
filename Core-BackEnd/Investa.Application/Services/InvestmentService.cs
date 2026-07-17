@@ -169,6 +169,7 @@ public class InvestmentService : IInvestmentService
             MinInvestment = dto.MinInvestment,
             MaxInvestment = dto.MaxInvestment,
             ValuationCap = dto.ValuationCap,
+            EquityOfferedPercentage = dto.EquityOfferedPercentage,
             ExpectedROI = dto.ExpectedROI,
             InvestmentTypeId = dto.InvestmentTypeId ?? InvestmentType.Equity,
             Status = "Draft",
@@ -262,6 +263,7 @@ public class InvestmentService : IInvestmentService
         if (dto.MinInvestment.HasValue) entity.MinInvestment = dto.MinInvestment.Value;
         if (dto.MaxInvestment.HasValue) entity.MaxInvestment = dto.MaxInvestment.Value;
         if (dto.ValuationCap.HasValue) entity.ValuationCap = dto.ValuationCap.Value;
+        if (dto.EquityOfferedPercentage.HasValue) entity.EquityOfferedPercentage = dto.EquityOfferedPercentage.Value;
         if (dto.ExpectedROI.HasValue) entity.ExpectedROI = dto.ExpectedROI.Value;
         if (dto.InvestmentTypeId.HasValue) entity.InvestmentTypeId = dto.InvestmentTypeId.Value;
         if (dto.Status != null) entity.Status = dto.Status;
@@ -298,7 +300,7 @@ public class InvestmentService : IInvestmentService
 
         await repo.UpdateAsync(entity);
         await _unitOfWork.SaveChangesAsync();
-        await MirrorLegacyUpdateToOpportunityAsync(entity, oldBusinessName);
+        await MirrorLegacyUpdateToOpportunityAsync(entity, oldBusinessName, dto);
 
         // Emit status change event if status changed
         if (oldStatus != entity.Status)
@@ -470,7 +472,7 @@ public class InvestmentService : IInvestmentService
         }
     }
 
-    private async Task MirrorLegacyUpdateToOpportunityAsync(Investment investment, string? oldBusinessName)
+    private async Task MirrorLegacyUpdateToOpportunityAsync(Investment investment, string? oldBusinessName, UpdateInvestmentDto? dto = null)
     {
         try
         {
@@ -478,7 +480,7 @@ public class InvestmentService : IInvestmentService
             if (existing is null)
                 return;
 
-            if (!InvestmentOpportunityCompatibilityMapper.TryUpdateRequest(investment, out var request, out var skipReason))
+            if (!InvestmentOpportunityCompatibilityMapper.TryUpdateRequest(investment, dto, out var request, out var skipReason))
             {
                 _logger.LogWarning(
                     "Legacy investment {InvestmentId} Opportunity mirror update skipped: {Reason}",

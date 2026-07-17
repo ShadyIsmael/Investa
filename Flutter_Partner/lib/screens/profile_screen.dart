@@ -304,6 +304,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               _ProfileHeader(
                 profile: _profile,
+                trustProfile: _trustProfile,
                 onEdit: _openEdit,
                 onRefresh: _loadProfile,
                 isDarkMode: isDarkMode,
@@ -400,6 +401,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
 class _ProfileHeader extends StatelessWidget {
   final Profile? profile;
+  final TrustProfile? trustProfile;
   final VoidCallback onEdit;
   final VoidCallback onRefresh;
   final bool isDarkMode;
@@ -407,6 +409,7 @@ class _ProfileHeader extends StatelessWidget {
   const _ProfileHeader({
     Key? key,
     required this.profile,
+    required this.trustProfile,
     required this.onEdit,
     required this.onRefresh,
     required this.isDarkMode,
@@ -559,7 +562,7 @@ class _ProfileHeader extends StatelessWidget {
         // Trust Level Card
         const SizedBox(height: 16),
         _TrustLevelCard(
-          profile: profile,
+          trustProfile: trustProfile,
           isDarkMode: isDarkMode,
         ),
       ],
@@ -877,10 +880,10 @@ class _Divider extends StatelessWidget {
 // ─── Trust Level Card ────────────────────────────────────────────────────────
 
 class _TrustLevelCard extends StatelessWidget {
-  final Profile? profile;
+  final TrustProfile? trustProfile;
   final bool isDarkMode;
 
-  const _TrustLevelCard({required this.profile, required this.isDarkMode});
+  const _TrustLevelCard({required this.trustProfile, required this.isDarkMode});
 
   @override
   Widget build(BuildContext context) {
@@ -914,7 +917,7 @@ class _TrustLevelCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          if (profile == null)
+          if (trustProfile == null)
             const Center(
               child: SizedBox(
                 width: 20,
@@ -924,7 +927,7 @@ class _TrustLevelCard extends StatelessWidget {
               ),
             )
           else ...[
-            TrustBadgeWidget(trustLevel: trust.trustLevel),
+            TrustBadgeWidget(trustLevel: trustProfile!.trustLevel),
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -935,11 +938,11 @@ class _TrustLevelCard extends StatelessWidget {
                         color: isDarkMode
                             ? const Color(0xFF94A3B8)
                             : const Color(0xFF64748B))),
-                Text('${trust.profileCompletionPercentage}%',
+                Text('${trustProfile!.profileCompletionPercentage}%',
                     style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: trust.profileCompletionPercentage >= 60
+                        color: trustProfile!.profileCompletionPercentage >= 60
                             ? const Color(0xFF10B981)
                             : const Color(0xFF3B82F6))),
               ],
@@ -948,12 +951,12 @@ class _TrustLevelCard extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
-                value: trust.profileCompletionPercentage / 100.0,
+                value: trustProfile!.profileCompletionPercentage / 100.0,
                 minHeight: 6,
                 backgroundColor: isDarkMode
                     ? const Color(0xFF334155)
                     : const Color(0xFFE2E8F0),
-                color: trust.profileCompletionPercentage >= 60
+                color: trustProfile!.profileCompletionPercentage >= 60
                     ? const Color(0xFF10B981)
                     : const Color(0xFF3B82F6),
               ),
@@ -961,19 +964,19 @@ class _TrustLevelCard extends StatelessWidget {
             const SizedBox(height: 12),
             _VerificationRow(
                 label: 'Email',
-                verified: trust.isEmailVerified,
+                verified: trustProfile!.isEmailVerified,
                 isDarkMode: isDarkMode),
             const SizedBox(height: 6),
             _VerificationRow(
                 label: 'Phone',
-                verified: trust.isPhoneVerified,
+                verified: trustProfile!.isPhoneVerified,
                 isDarkMode: isDarkMode),
             const SizedBox(height: 6),
             _VerificationRow(
                 label: 'Government ID',
-                verified: trust.isIdentityVerified,
+                verified: trustProfile!.isIdentityVerified,
                 isDarkMode: isDarkMode),
-            if (trust.nextLevelRequirements.isNotEmpty) ...[
+            if (trustProfile!.nextLevelRequirements.isNotEmpty) ...[
               const SizedBox(height: 14),
               Text('To reach next level:',
                   style: TextStyle(
@@ -983,7 +986,7 @@ class _TrustLevelCard extends StatelessWidget {
                           ? const Color(0xFF94A3B8)
                           : const Color(0xFF64748B))),
               const SizedBox(height: 8),
-              ...trust.nextLevelRequirements.map((req) => Padding(
+              ...trustProfile!.nextLevelRequirements.map((req) => Padding(
                     padding: const EdgeInsets.only(bottom: 4),
                     child: Row(
                       children: [

@@ -1,242 +1,153 @@
-<div class="container mx-auto px-4 py-6">
-  <div class="mb-6">
-    <a routerLink="/admin/dashboard" class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
-      <svg class="w-5 h-5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+<main class="settings-page">
+  <div class="settings-shell">
+    <a routerLink="/admin/dashboard" class="back-link">
+      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m15 19-7-7 7-7"></path></svg>
       {{ 'settings.backToDashboard' | translate }}
     </a>
-  </div>
 
-  <h1 class="text-2xl font-bold text-white mb-2">{{ 'settings.title' | translate }}</h1>
-  <p class="text-gray-300 mb-6 text-sm">{{ 'settings.subtitle' | translate }}</p>
+    <header class="settings-header settings-card">
+      <p class="eyebrow">{{ 'settings.eyebrow' | translate }}</p>
+      <h1>{{ 'settings.title' | translate }}</h1>
+      <p>{{ 'settings.subtitle' | translate }}</p>
+    </header>
 
-  <div class="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-5">
-    <!-- Sidebar -->
-    <aside class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-4">
-      <nav class="space-y-1">
-        @for (item of menuItems; track item.id) {
-          <button type="button" (click)="selectSection(item.id)"
-            class="w-full text-left px-3 py-2 rounded-md border transition-colors"
-            [class.bg-blue-500/20]="activeSection === item.id"
-            [class.border-blue-500]="activeSection === item.id"
-            [class.text-blue-300]="activeSection === item.id"
-            [class.bg-slate-700/50]="activeSection !== item.id"
-            [class.border-slate-600]="activeSection !== item.id"
-            [class.text-gray-300]="activeSection !== item.id">
-            {{ item.labelKey | translate }}
-          </button>
-        }
-      </nav>
-    </aside>
+    <div class="settings-workspace">
+      <aside class="settings-nav settings-card" [attr.aria-label]="'settings.navigationLabel' | translate">
+        <nav>
+          @for (item of menuItems; track item.id) {
+            <button type="button" (click)="selectSection(item.id)" [class.active]="activeSection === item.id">
+              <span>{{ item.labelKey | translate }}</span>
+              @if (hasUnsavedChanges(item.id)) { <span class="unsaved-dot" aria-hidden="true"></span> }
+            </button>
+          }
+        </nav>
+      </aside>
 
-    <!-- Content -->
-    <section class="space-y-6">
-      @switch (activeSection) {
-        @case ('appearance') {
-          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
-            <h2 class="text-lg font-semibold text-white mb-3">{{ 'settings.appearance.title' | translate }}</h2>
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-300 mb-2">{{ 'settings.appearance.theme.label' | translate }}</label>
-              <div class="flex flex-wrap gap-2">
-                @for (opt of themeOptions; track opt) {
-                  <button type="button" (click)="setTheme(opt)"
-                    class="px-4 py-2 rounded-md border transition-colors"
-                    [class.bg-blue-500/20]="settings().theme === opt"
-                    [class.border-blue-500]="settings().theme === opt"
-                    [class.text-blue-300]="settings().theme === opt"
-                    [class.bg-slate-700/50]="settings().theme !== opt"
-                    [class.border-slate-600]="settings().theme !== opt"
-                    [class.text-gray-300]="settings().theme !== opt">
-                    {{ ('settings.appearance.theme.options.' + opt) | translate }}
-                  </button>
-                }
-              </div>
-            </div>
+      <section class="settings-panel settings-card">
+        <header class="section-header">
+          <p class="eyebrow">{{ 'settings.sectionEyebrow' | translate }}</p>
+          <h2>{{ ('settings.' + activeSection + '.title') | translate }}</h2>
+          <p>{{ ('settings.sections.' + activeSection + '.description') | translate }}</p>
+        </header>
+
+        @if (feedbackSection() === activeSection && feedback()) {
+          <div class="feedback" [class.feedback-error]="feedback() === 'error'" role="status">
+            {{ (feedback() === 'saved' ? 'settings.actions.saved' : 'settings.actions.saveError') | translate }}
           </div>
         }
-        @case ('localization') {
-          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
-            <h2 class="text-lg font-semibold text-white mb-3">{{ 'settings.localization.title' | translate }}</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">{{ 'settings.localization.language.label' | translate }}</label>
-                <select class="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-gray-200"
-                  [value]="languageService.language()" (change)="setLanguage($any($event.target).value)">
-                  <option value="en">{{ 'settings.localization.language.options.en' | translate }}</option>
-                  <option value="ar">{{ 'settings.localization.language.options.ar' | translate }}</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">{{ 'settings.localization.currency.label' | translate }}</label>
-                <select class="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-gray-200"
-                  [value]="settings().currency" (change)="setCurrency($any($event.target).value)">
-                  @for (cur of currencyOptions; track cur) {
-                    <option [value]="cur">{{ ('settings.localization.currency.options.' + cur) | translate }}</option>
-                  }
-                </select>
-              </div>
-            </div>
-          </div>
-        }
-        @case ('notifications') {
-          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
-            <h2 class="text-lg font-semibold text-white mb-3">{{ 'settings.notifications.title' | translate }}</h2>
-            <div class="space-y-3">
-              <label class="flex items-center justify-between gap-4 cursor-pointer group py-1">
-                <span class="text-sm text-gray-300 group-hover:text-white transition-colors">{{ 'settings.notifications.email' | translate }}</span>
-                <div class="relative flex-shrink-0">
-                  <input type="checkbox" class="sr-only peer" [checked]="settings().notifications.email" (change)="toggleNotifications('email', $any($event.target).checked)">
-                  <div class="w-11 h-6 bg-slate-700 peer-checked:bg-blue-600 rounded-full transition-colors border border-slate-600 peer-checked:border-blue-500"></div>
-                  <div class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5 shadow-sm"></div>
-                </div>
-              </label>
-              <label class="flex items-center justify-between gap-4 cursor-pointer group py-1">
-                <span class="text-sm text-gray-300 group-hover:text-white transition-colors">{{ 'settings.notifications.push' | translate }}</span>
-                <div class="relative flex-shrink-0">
-                  <input type="checkbox" class="sr-only peer" [checked]="settings().notifications.push" (change)="toggleNotifications('push', $any($event.target).checked)">
-                  <div class="w-11 h-6 bg-slate-700 peer-checked:bg-blue-600 rounded-full transition-colors border border-slate-600 peer-checked:border-blue-500"></div>
-                  <div class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5 shadow-sm"></div>
-                </div>
-              </label>
-              <label class="flex items-center justify-between gap-4 cursor-pointer group py-1">
-                <span class="text-sm text-gray-300 group-hover:text-white transition-colors">{{ 'settings.notifications.sms' | translate }}</span>
-                <div class="relative flex-shrink-0">
-                  <input type="checkbox" class="sr-only peer" [checked]="settings().notifications.sms" (change)="toggleNotifications('sms', $any($event.target).checked)">
-                  <div class="w-11 h-6 bg-slate-700 peer-checked:bg-blue-600 rounded-full transition-colors border border-slate-600 peer-checked:border-blue-500"></div>
-                  <div class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5 shadow-sm"></div>
-                </div>
-              </label>
-            </div>
-          </div>
-        }
-        @case ('privacy') {
-          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
-            <h2 class="text-lg font-semibold text-white mb-3">{{ 'settings.privacy.title' | translate }}</h2>
-            <div class="space-y-3">
-              <label class="flex items-center justify-between gap-4 cursor-pointer group py-1">
-                <span class="text-sm text-gray-300 group-hover:text-white transition-colors">{{ 'settings.privacy.showPublicProfile' | translate }}</span>
-                <div class="relative flex-shrink-0">
-                  <input type="checkbox" class="sr-only peer" [checked]="settings().privacy.showPublicProfile" (change)="togglePrivacy('showPublicProfile', $any($event.target).checked)">
-                  <div class="w-11 h-6 bg-slate-700 peer-checked:bg-blue-600 rounded-full transition-colors border border-slate-600 peer-checked:border-blue-500"></div>
-                  <div class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5 shadow-sm"></div>
-                </div>
-              </label>
-              <label class="flex items-center justify-between gap-4 cursor-pointer group py-1">
-                <span class="text-sm text-gray-300 group-hover:text-white transition-colors">{{ 'settings.privacy.sharePortfolioPerformance' | translate }}</span>
-                <div class="relative flex-shrink-0">
-                  <input type="checkbox" class="sr-only peer" [checked]="settings().privacy.sharePortfolioPerformance" (change)="togglePrivacy('sharePortfolioPerformance', $any($event.target).checked)">
-                  <div class="w-11 h-6 bg-slate-700 peer-checked:bg-blue-600 rounded-full transition-colors border border-slate-600 peer-checked:border-blue-500"></div>
-                  <div class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5 shadow-sm"></div>
-                </div>
-              </label>
-            </div>
-          </div>
-        }
-        @case ('personalization') {
-          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
-            <h2 class="text-lg font-semibold text-white mb-3">{{ 'settings.personalization.title' | translate }}</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">{{ 'settings.personalization.dashboardDensity.label' | translate }}</label>
-                <div class="flex flex-wrap gap-2">
-                  @for (opt of densityOptions; track opt) {
-                    <button type="button" (click)="setPersonalization({ dashboardDensity: opt })"
-                      class="px-4 py-2 rounded-md border transition-colors"
-                      [class.bg-blue-500/20]="settings().personalization.dashboardDensity === opt"
-                      [class.border-blue-500]="settings().personalization.dashboardDensity === opt"
-                      [class.text-blue-300]="settings().personalization.dashboardDensity === opt"
-                      [class.bg-slate-700/50]="settings().personalization.dashboardDensity !== opt"
-                      [class.border-slate-600]="settings().personalization.dashboardDensity !== opt"
-                      [class.text-gray-300]="settings().personalization.dashboardDensity !== opt">
-                      {{ ('settings.personalization.dashboardDensity.options.' + opt) | translate }}
+
+        <div class="settings-content">
+          @switch (activeSection) {
+            @case ('appearance') {
+              <div class="setting-group">
+                <label>{{ 'settings.appearance.theme.label' | translate }}</label>
+                <div class="choice-group">
+                  @for (opt of themeOptions; track opt) {
+                    <button type="button" class="choice-button" [class.selected]="draft().theme === opt" (click)="setTheme(opt)">
+                      {{ ('settings.appearance.theme.options.' + opt) | translate }}
                     </button>
                   }
                 </div>
               </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">{{ 'settings.personalization.defaultInvestmentType.label' | translate }}</label>
-                <div class="flex flex-wrap gap-2">
-                  @for (opt of investmentTypeOptions; track opt) {
-                    <button type="button" (click)="setPersonalization({ defaultInvestmentType: opt })"
-                      class="px-4 py-2 rounded-md border transition-colors"
-                      [class.bg-blue-500/20]="settings().personalization.defaultInvestmentType === opt"
-                      [class.border-blue-500]="settings().personalization.defaultInvestmentType === opt"
-                      [class.text-blue-300]="settings().personalization.defaultInvestmentType === opt"
-                      [class.bg-slate-700/50]="settings().personalization.defaultInvestmentType !== opt"
-                      [class.border-slate-600]="settings().personalization.defaultInvestmentType !== opt"
-                      [class.text-gray-300]="settings().personalization.defaultInvestmentType !== opt">
-                      {{ ('settings.personalization.defaultInvestmentType.options.' + opt) | translate }}
-                    </button>
-                  }
-                </div>
-              </div>
-              <div class="md:col-span-2">
-                <label class="flex items-center justify-between gap-4 cursor-pointer group py-1">
-                  <span class="text-sm text-gray-300 group-hover:text-white transition-colors">{{ 'settings.personalization.showRiskIndicators' | translate }}</span>
-                  <div class="relative flex-shrink-0">
-                    <input type="checkbox" class="sr-only peer" [checked]="settings().personalization.showRiskIndicators" (change)="setPersonalization({ showRiskIndicators: $any($event.target).checked })">
-                    <div class="w-11 h-6 bg-slate-700 peer-checked:bg-blue-600 rounded-full transition-colors border border-slate-600 peer-checked:border-blue-500"></div>
-                    <div class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5 shadow-sm"></div>
-                  </div>
+            }
+            @case ('localization') {
+              <div class="form-grid">
+                <label class="field">
+                  <span>{{ 'settings.localization.language.label' | translate }}</span>
+                  <select [value]="draft().language" (change)="setLanguageFromEvent($event)">
+                    <option value="en">{{ 'settings.localization.language.options.en' | translate }}</option>
+                    <option value="ar">{{ 'settings.localization.language.options.ar' | translate }}</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>{{ 'settings.localization.currency.label' | translate }}</span>
+                  <select [value]="draft().currency" (change)="setCurrencyFromEvent($event)">
+                    @for (cur of currencyOptions; track cur) {
+                      <option [value]="cur">{{ ('settings.localization.currency.options.' + cur) | translate }}</option>
+                    }
+                  </select>
                 </label>
               </div>
-            </div>
-          </div>
-        }
-        @case ('support') {
-          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
-            <h2 class="text-lg font-semibold text-white mb-3">{{ 'settings.support.title' | translate }}</h2>
-            <div class="space-y-4">
-              <label class="flex items-center justify-between gap-4 cursor-pointer group py-1">
-                <span class="text-sm text-gray-300 group-hover:text-white transition-colors">{{ 'settings.support.available' | translate }}</span>
-                <div class="relative flex-shrink-0">
-                  <input type="checkbox" class="sr-only peer" [checked]="settings().support?.available" (change)="setSupportAvailability($any($event.target).checked)">
-                  <div class="w-11 h-6 bg-slate-700 peer-checked:bg-blue-600 rounded-full transition-colors border border-slate-600 peer-checked:border-blue-500"></div>
-                  <div class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5 shadow-sm"></div>
+            }
+            @case ('notifications') {
+              <div class="toggle-list">
+                <label class="toggle-row"><span>{{ 'settings.notifications.email' | translate }}</span><span class="switch-control"><input type="checkbox" [checked]="draft().notifications.email" (change)="setNotificationFromEvent('email', $event)"><span class="switch-track"><span></span></span></span></label>
+                <label class="toggle-row"><span>{{ 'settings.notifications.push' | translate }}</span><span class="switch-control"><input type="checkbox" [checked]="draft().notifications.push" (change)="setNotificationFromEvent('push', $event)"><span class="switch-track"><span></span></span></span></label>
+                <label class="toggle-row"><span>{{ 'settings.notifications.sms' | translate }}</span><span class="switch-control"><input type="checkbox" [checked]="draft().notifications.sms" (change)="setNotificationFromEvent('sms', $event)"><span class="switch-track"><span></span></span></span></label>
+              </div>
+            }
+            @case ('privacy') {
+              <div class="toggle-list">
+                <label class="toggle-row"><span>{{ 'settings.privacy.showPublicProfile' | translate }}</span><span class="switch-control"><input type="checkbox" [checked]="draft().privacy.showPublicProfile" (change)="setPrivacyFromEvent('showPublicProfile', $event)"><span class="switch-track"><span></span></span></span></label>
+                <label class="toggle-row"><span>{{ 'settings.privacy.sharePortfolioPerformance' | translate }}</span><span class="switch-control"><input type="checkbox" [checked]="draft().privacy.sharePortfolioPerformance" (change)="setPrivacyFromEvent('sharePortfolioPerformance', $event)"><span class="switch-track"><span></span></span></span></label>
+              </div>
+            }
+            @case ('personalization') {
+              <div class="form-grid">
+                <div class="setting-group">
+                  <label>{{ 'settings.personalization.dashboardDensity.label' | translate }}</label>
+                  <div class="choice-group">
+                    @for (opt of densityOptions; track opt) {
+                      <button type="button" class="choice-button" [class.selected]="draft().personalization.dashboardDensity === opt" (click)="setPersonalization({ dashboardDensity: opt })">{{ ('settings.personalization.dashboardDensity.options.' + opt) | translate }}</button>
+                    }
+                  </div>
                 </div>
+                <div class="setting-group">
+                  <label>{{ 'settings.personalization.defaultInvestmentType.label' | translate }}</label>
+                  <div class="choice-group">
+                    @for (opt of investmentTypeOptions; track opt) {
+                      <button type="button" class="choice-button" [class.selected]="draft().personalization.defaultInvestmentType === opt" (click)="setPersonalization({ defaultInvestmentType: opt })">{{ ('settings.personalization.defaultInvestmentType.options.' + opt) | translate }}</button>
+                    }
+                  </div>
+                </div>
+              </div>
+              <label class="toggle-row standalone-toggle"><span>{{ 'settings.personalization.showRiskIndicators' | translate }}</span><span class="switch-control"><input type="checkbox" [checked]="draft().personalization.showRiskIndicators" (change)="setRiskIndicatorsFromEvent($event)"><span class="switch-track"><span></span></span></span></label>
+            }
+            @case ('support') {
+              <div class="toggle-list">
+                <label class="toggle-row"><span>{{ 'settings.support.available' | translate }}</span><span class="switch-control"><input type="checkbox" [checked]="draft().support.available" (change)="setSupportAvailabilityFromEvent($event)"><span class="switch-track"><span></span></span></span></label>
+              </div>
+              <label class="field spaced-field">
+                <span>{{ 'settings.support.hours' | translate }}</span>
+                <input type="text" [value]="draft().support.hours ?? ''" (input)="setSupportHoursFromEvent($event)" [placeholder]="'settings.placeholders.supportHours' | translate">
               </label>
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">{{ 'settings.support.hours' | translate }}</label>
-                <input type="text" class="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-gray-200"
-                  [value]="settings().support?.hours || ''" (change)="setSupportHours($any($event.target).value)" placeholder="e.g. 9:00-17:00">
-              </div>
-            </div>
-          </div>
-        }
-        @case ('security') {
-          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
-            <h2 class="text-lg font-semibold text-white mb-3">{{ 'settings.security.title' | translate }}</h2>
-            <div>
-              <label class="block text-sm font-medium text-gray-300 mb-2">{{ 'settings.security.sessionTimeout.label' | translate }}</label>
-              <div class="grid grid-cols-[1fr_auto] gap-3 items-center">
-                <input type="number" min="1" class="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-gray-200"
-                  [value]="settings().sessionTimeoutMinutes || 30" (change)="setSessionTimeoutMinutes($any($event.target).value)">
-                <span class="text-gray-300 pl-2">{{ 'settings.security.sessionTimeout.minutes' | translate }}</span>
-              </div>
-              <p class="text-sm text-gray-400 mt-2">{{ 'settings.security.sessionTimeout.help' | translate }}</p>
-            </div>
-          </div>
-        }
-        @case ('wallet') {
-          <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
-            <h2 class="text-lg font-semibold text-white mb-3">{{ 'settings.wallet.title' | translate }}</h2>
-            <div class="space-y-4">
-              <div class="text-gray-300">
-                <span class="font-medium">{{ 'settings.wallet.balance' | translate }}:</span>
-                <span class="ml-2">{{ settings().walletBalance }}</span>
-              </div>
-              <div class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-center">
-                <div>
-                  <label class="block text-sm font-medium text-gray-300 mb-2">{{ 'settings.wallet.amount' | translate }}</label>
-                  <input #fundAmount type="number" min="1" step="0.01" class="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-gray-200" placeholder="0.00">
+            }
+            @case ('security') {
+              <label class="field compact-field">
+                <span>{{ 'settings.security.sessionTimeout.label' | translate }}</span>
+                <span class="number-field"><input type="number" min="1" inputmode="numeric" dir="ltr" [value]="draft().sessionTimeoutMinutes ?? ''" (input)="setSessionTimeoutFromEvent($event)"><span>{{ 'settings.security.sessionTimeout.minutes' | translate }}</span></span>
+                <small>{{ 'settings.security.sessionTimeout.help' | translate }}</small>
+              </label>
+            }
+            @case ('wallet') {
+              @if (creditLoading()) {
+                <div class="credit-state" role="status">{{ 'settings.wallet.loading' | translate }}</div>
+              } @else if (creditError()) {
+                <div class="credit-state credit-error">
+                  <span>{{ 'settings.wallet.loadError' | translate }}</span>
+                  <button type="button" class="secondary-button" (click)="retryCreditBalance()">{{ 'settings.actions.retry' | translate }}</button>
                 </div>
-                <button type="button" (click)="addFunds(fundAmount.value)" class="px-4 py-2 rounded-md border border-blue-500 text-blue-300 bg-blue-500/20 hover:bg-blue-500/30 transition-colors">
-                  {{ 'settings.wallet.addButton' | translate }}
-                </button>
+              } @else {
+                <div class="credit-summary">
+                  <span>{{ 'settings.wallet.availableCredit' | translate }}</span>
+                  <strong dir="ltr">{{ platformCreditBalance() | number:'1.0-2':'en-US' }}</strong>
+                </div>
+              }
+              <div class="wallet-actions">
+                <a routerLink="/admin/profile/wallet" class="secondary-button">{{ 'profile.viewWallet' | translate }}</a>
+                <a routerLink="/admin/credit-charge" class="primary-button">{{ 'profile.credits.chargeNow' | translate }}</a>
               </div>
-            </div>
-          </div>
+            }
+          }
+        </div>
+
+        @if (showSaveAction()) {
+          <footer class="section-actions">
+            <span [class.unsaved-label]="hasUnsavedChanges(activeSection)">{{ (hasUnsavedChanges(activeSection) ? 'settings.actions.unsaved' : 'settings.actions.upToDate') | translate }}</span>
+            <button type="button" class="primary-button" [disabled]="!hasUnsavedChanges(activeSection)" (click)="saveActiveSection()">{{ 'settings.actions.save' | translate }}</button>
+          </footer>
         }
-      }
-    </section>
+      </section>
+    </div>
   </div>
-</div>
+</main>

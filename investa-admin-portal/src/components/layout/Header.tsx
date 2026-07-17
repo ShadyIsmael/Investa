@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '@/components/common/Icons';
 import { performAiSearch } from '@/services/geminiService';
-import { MOCK_USERS, DASHBOARD_STATS, MOCK_COA } from '@/mocks';
+import { MOCK_USERS } from '@/mocks';
 import { AiSearchResult, AiStatus, User } from '@/types';
 import { useSupport } from '@/context/SupportProvider';
 import { useTranslation } from 'react-i18next';
@@ -59,7 +59,7 @@ export const Header: React.FC<HeaderProps> = React.memo(
       setSearchStatus(AiStatus.LOADING);
       setShowResults(true);
       try {
-        const data = { users: MOCK_USERS, stats: DASHBOARD_STATS, accounts: MOCK_COA };
+        const data = { users: MOCK_USERS, stats: [], accounts: [] };
         setSearchResults(await performAiSearch(searchQuery, data));
         setSearchStatus(AiStatus.SUCCESS);
       } catch {
@@ -116,11 +116,11 @@ export const Header: React.FC<HeaderProps> = React.memo(
 
     return (
       <header
-        className="h-16 flex-shrink-0 flex items-center justify-between px-6 bg-card border-b border-border"
+        className="h-14 flex-shrink-0 flex items-center justify-between px-4 lg:px-5 bg-card border-b border-border"
         style={{ zIndex: 'var(--z-fixed)' }}
       >
         {/* Left: hamburger + breadcrumb */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <button onClick={toggleSidebar} className="btn-ghost p-2 md:hidden">
             <Icon name="menu" className="w-5 h-5" />
           </button>

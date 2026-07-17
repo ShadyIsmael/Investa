@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Investa.Application.Common;
 using Investa.Application.DTOs;
 using Investa.Application.Interfaces;
+using Investa.Domain.Entities.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,10 +12,12 @@ namespace Investa.API.Controllers;
 public class WalletController : BaseApiController
 {
     private readonly IWalletService _walletService;
+    private readonly IPaidActionService _paidActionService;
 
-    public WalletController(IWalletService walletService)
+    public WalletController(IWalletService walletService, IPaidActionService paidActionService)
     {
         _walletService = walletService;
+        _paidActionService = paidActionService;
     }
 
     [HttpGet("me")]
@@ -65,6 +68,30 @@ public class WalletController : BaseApiController
         await _walletService.CreateWalletAsync(userId.Value, cancellationToken);
         var transactions = await _walletService.GetTransactionsAsync(userId.Value, skip, take, cancellationToken);
         return SuccessResponse(transactions);
+    }
+
+    [HttpGet("me/paid-actions/{actionCode}/quote")]
+    [Authorize]
+    [ProducesResponseType(typeof(ApiResponse<PaidActionQuoteDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMyPaidActionQuote(string actionCode, CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null || userId == Guid.Empty)
+            return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        if (!Enum.TryParse<PricingAction>(actionCode, ignoreCase: false, out var action) || !Enum.IsDefined(action))
+            return ErrorResponse("Unknown paid action", 404);
+
+        try
+        {
+            var quote = await _paidActionService.GetQuoteAsync(userId.Value, action, cancellationToken);
+            return SuccessResponse(quote);
+        }
+        catch (BusinessValidationException ex)
+        {
+            var statusCode = ex.Code == "PRICING_RULE_NOT_AVAILABLE" ? 404 : 400;
+            return ErrorResponse(ex.Message, statusCode);
+        }
     }
 
     [HttpGet("{userId:guid}")]

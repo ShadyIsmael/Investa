@@ -13,10 +13,20 @@ public class ReputationRule
     public string RuleCode { get; set; } = string.Empty;
 
     [Required]
+    [StringLength(100)]
+    public string ActivityCode { get; set; } = string.Empty;
+
+    [Required]
     [StringLength(200)]
     public string Description { get; set; } = string.Empty;
 
     public int Points { get; set; }
+
+    [Required]
+    [StringLength(50)]
+    public string RoleScope { get; set; } = "Any";
+
+    public bool IsActive { get; set; } = true;
 
     public bool IsEnabled { get; set; } = true;
 

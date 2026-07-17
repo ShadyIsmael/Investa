@@ -482,8 +482,11 @@ public class AuthController : BaseApiController
             .FindAsync(a => a.Id == tokenEntity.AuthUserId))
             .FirstOrDefault();
 
-        if (authUser == null)
+        if (authUser == null || !authUser.Status)
             return ErrorResponse("Invalid token owner", 401);
+
+        if (authUser.SuspendedUntil.HasValue && authUser.SuspendedUntil.Value > DateTime.UtcNow)
+            return ErrorResponse("Account suspended", 401);
 
         var identityUser = await _userManager.FindByIdAsync(authUser.Id.ToString());
         if (identityUser == null)

@@ -1,10 +1,11 @@
 import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { InvestmentService } from '../../../services/investment.service';
+import { Opportunity, OpportunityMedia, OpportunityService } from '../../../services/opportunity.service';
 import { FileStoreService } from '../../../services/file-store.service';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
-import { Investment } from '../../../models/investment.model';
+
+type MediaOpportunity = Opportunity & Record<string, any>;
 
 @Component({
   standalone: true,
@@ -15,10 +16,11 @@ import { Investment } from '../../../models/investment.model';
 })
 export class InvestmentMediaComponent {
   private route = inject(ActivatedRoute);
-  private investmentService = inject(InvestmentService);
+  private opportunityService = inject(OpportunityService);
   private fileStoreService = inject(FileStoreService);
 
-  investment = signal<Investment | null>(null);
+  investment = signal<MediaOpportunity | null>(null);
+  mediaItems = signal<OpportunityMedia[]>([]);
   loading = signal(true);
   lightboxIndex = signal<number | null>(null);
 
@@ -30,10 +32,12 @@ export class InvestmentMediaComponent {
     const id = parseInt(this.route.snapshot.paramMap.get('id') ?? '', 10);
     if (!id || isNaN(id)) { this.loading.set(false); return; }
     try {
-      const inv = await this.investmentService.getInvestmentById(id);
-      this.investment.set(inv);
+      const inv = await this.opportunityService.getPublicOpportunity(id);
+      this.investment.set(inv as MediaOpportunity);
+      this.mediaItems.set(await this.opportunityService.getMedia(id));
     } catch {
       this.investment.set(null);
+      this.mediaItems.set([]);
     } finally {
       this.loading.set(false);
     }
@@ -49,33 +53,33 @@ export class InvestmentMediaComponent {
    * Get project media images (excluding cover images)
    * Cover images (mediaType === 0) are not part of the project media gallery
    */
-  getProjectMediaImages(inv: Investment | null): any[] {
-    if (!inv || !inv.images) return [];
-    return inv.images.filter(img => img.mediaType !== 0); // Filter out CoverImage type
+  getProjectMediaImages(inv: MediaOpportunity | null): OpportunityMedia[] {
+    if (!inv) return [];
+    return this.mediaItems().filter(img => String(img.purpose || '').toLowerCase() !== 'cover');
   }
 
   /**
    * Get the current active cover image (if any)
    */
-  getCoverImage(inv: Investment | null): any {
-    if (!inv || !inv.images) return null;
-    return inv.images.find(img => img.mediaType === 0); // MediaType.CoverImage = 0
+  getCoverImage(inv: MediaOpportunity | null): OpportunityMedia | null {
+    if (!inv) return null;
+    return this.mediaItems().find(img => String(img.purpose || '').toLowerCase() === 'cover') || null;
   }
 
   /**
    * Get photos only (mediaType === 1, excluding cover images)
    */
-  getPhotos(inv: Investment | null): any[] {
-    if (!inv || !inv.images) return [];
-    return inv.images.filter(img => img.mediaType === 1); // MediaType.Image = 1
+  getPhotos(inv: MediaOpportunity | null): OpportunityMedia[] {
+    if (!inv) return [];
+    return this.mediaItems().filter(img => (img.mimeType || '').toLowerCase().startsWith('image') && String(img.purpose || '').toLowerCase() !== 'cover');
   }
 
   /**
    * Get videos only (mediaType === 2)
    */
-  getVideos(inv: Investment | null): any[] {
-    if (!inv || !inv.images) return [];
-    return inv.images.filter(img => img.mediaType === 2); // MediaType.Video = 2
+  getVideos(inv: MediaOpportunity | null): OpportunityMedia[] {
+    if (!inv) return [];
+    return this.mediaItems().filter(img => (img.mimeType || '').toLowerCase().startsWith('video') || /\.(mp4|mov|webm)$/i.test(String(img.fileName || img.fileUrl || '')));
   }
 
   openLightbox(index: number): void { this.lightboxIndex.set(index); }

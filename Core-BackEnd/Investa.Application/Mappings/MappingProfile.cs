@@ -71,7 +71,10 @@ public class MappingProfile : Profile
             .ForMember(d => d.TransactionTypeKey, opt => opt.MapFrom(s => s.TransactionType != null ? s.TransactionType.Key : null));
 
         // Sectional profile mappings
-        CreateMap<UserProfile, BasicInfoDto>();
+        CreateMap<UserProfile, BasicInfoDto>()
+            .ForMember(dest => dest.JobTitle, opt => opt.MapFrom(src => src.BusinessRole))
+            .ForMember(dest => dest.VerificationStatus, opt => opt.MapFrom(src => src.VerificationStatus.ToString()))
+            .ForMember(dest => dest.WebsiteUrl, opt => opt.Ignore());
         CreateMap<UserProfile, ContactInfoDto>();
         CreateMap<UserProfile, AuditUsageDto>();
 

@@ -1,68 +1,76 @@
-import { Component, ChangeDetectionStrategy, inject, signal, computed } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ProfileService, PublicProfile } from '../../../services/profile.service';
-import { InvestmentService } from '../../../services/investment.service';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FileStoreService } from '../../../services/file-store.service';
+import { LanguageService } from '../../../services/language.service';
+import { Opportunity, OpportunityService } from '../../../services/opportunity.service';
+import { ProfileService, PublicProfile } from '../../../services/profile.service';
+import { ReportReasonCode, ReportService } from '../../../services/report.service';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
-import { Investment, InvestmentStatus } from '../../../models/investment.model';
 
 @Component({
   standalone: true,
   selector: 'app-founder-profile',
   templateUrl: './founder-profile.component.html',
+  styleUrls: ['./founder-profile.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, RouterLink, TranslatePipe]
+  imports: [CommonModule, FormsModule, RouterLink, TranslatePipe]
 })
 export class FounderProfileComponent {
-  private route = inject(ActivatedRoute);
-  private profileService = inject(ProfileService);
-  private investmentService = inject(InvestmentService);
-  private fileStoreService = inject(FileStoreService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly profileService = inject(ProfileService);
+  private readonly opportunityService = inject(OpportunityService);
+  private readonly fileStoreService = inject(FileStoreService);
+  private readonly reportService = inject(ReportService);
+  readonly languageService = inject(LanguageService);
 
-  founderId = signal<string>('');
-  profile = signal<PublicProfile | null>(null);
-  loading = signal(true);
-  error = signal(false);
+  readonly founderId = signal('');
+  readonly profile = signal<PublicProfile | null>(null);
+  readonly opportunities = signal<Opportunity[]>([]);
+  readonly loading = signal(true);
+  readonly error = signal(false);
+  readonly avatarFailed = signal(false);
+  readonly reportModalOpen = signal(false);
+  readonly reportSubmitting = signal(false);
+  readonly reportSuccess = signal(false);
+  readonly reportError = signal<string | null>(null);
+  readonly reportReason = signal<ReportReasonCode>('Spam');
+  readonly reportDescription = signal('');
+  readonly reportReasons: ReportReasonCode[] = ['Spam', 'Abuse', 'FraudConcern', 'InappropriateContent', 'Other'];
 
-  /** Active investments by this founder */
-  founderInvestments = computed<Investment[]>(() => {
-    const id = this.founderId();
-    if (!id) return [];
-    return this.investmentService.investments().filter(inv => inv.founderId === id);
-  });
-
-  founderStats = computed(() => {
-    const investments = this.founderInvestments();
-    const totalRaised = investments.reduce((sum, investment) => sum + (investment.currentFunding ?? 0), 0);
-    const activeProjects = investments.filter(investment => investment.status === InvestmentStatus.Active).length;
-    const fundedProjects = investments.filter(investment => investment.status === InvestmentStatus.FullyFunded).length;
-
+  readonly isOwner = computed(() => this.profileService.profile()?.userId === this.founderId());
+  readonly founderOpportunities = computed(() => this.opportunities().filter(item => this.opportunityFounderId(item) === this.founderId()));
+  readonly stats = computed(() => {
+    const projects = this.founderOpportunities();
     return {
-      totalProjects: investments.length,
-      activeProjects,
-      fundedProjects,
-      totalRaised
+      total: projects.length,
+      active: projects.filter(item => this.normalizedStatus(item.status) === 'active').length,
+      funded: projects.filter(item => this.normalizedStatus(item.status) === 'funded').length
     };
   });
 
   constructor() {
-    this.load();
+    void this.load();
   }
 
   private async load(): Promise<void> {
-    const id = this.route.snapshot.paramMap.get('id') ?? '';
+    const id = (this.route.snapshot.paramMap.get('id') ?? '').trim();
     this.founderId.set(id);
-    if (!id) { this.loading.set(false); this.error.set(true); return; }
+    if (!id || id === 'undefined' || id === 'null') {
+      this.error.set(true);
+      this.loading.set(false);
+      return;
+    }
 
     try {
-      // Ensure investments are loaded so founderInvestments computed works
-      if (this.investmentService.investments().length === 0) {
-        await this.investmentService.loadInvestments();
-      }
-      const p = await this.profileService.getPublicProfile(id);
-      this.profile.set(p);
-      if (!p) this.error.set(true);
+      const [profile, opportunities] = await Promise.all([
+        this.profileService.getPublicProfile(id),
+        this.opportunityService.getPublicOpportunities()
+      ]);
+      this.profile.set(profile);
+      this.opportunities.set(opportunities);
+      this.error.set(!profile);
     } catch {
       this.error.set(true);
     } finally {
@@ -70,44 +78,125 @@ export class FounderProfileComponent {
     }
   }
 
-  resolveUrl(url?: string | null): string {
-    if (!url) return '';
-    if (url.startsWith('http')) return url;
-    return this.fileStoreService.getPublicUrl(url);
-  }
-
   get displayName(): string {
-    const p = this.profile();
-    return p?.fullName || [p?.firstName, p?.lastName].filter(Boolean).join(' ') || '—';
+    const profile = this.profile();
+    return this.clean(profile?.displayName) || this.clean(profile?.fullName) ||
+      [profile?.firstName, profile?.lastName].map(value => this.clean(value)).filter(Boolean).join(' ') ||
+      this.t('userProfile.member');
   }
 
   get avatarInitials(): string {
-    const p = this.profile();
-    const fullName = this.displayName;
-    const words = fullName.split(/\s+/).filter(word => word.length > 0);
-
-    if (words.length === 0 || fullName === '—') {
-      return 'F';
-    }
-
-    if (words.length === 1) {
-      return words[0].charAt(0).toUpperCase();
-    }
-
-    return `${words[0].charAt(0)}${words[1].charAt(0)}`.toUpperCase();
+    return this.displayName.split(/\s+/u).filter(Boolean).slice(0, 2).map(word => word.charAt(0)).join('').toUpperCase() || 'U';
   }
 
-  getInvestmentImage(inv: Investment): string {
-    if (!inv || !inv.images) return '';
-    // Priority: cover image -> primary image -> first image
-    const coverImage = inv.images.find(i => i.mediaType === 0);
-    if (coverImage) return this.resolveUrl(coverImage.url);
-    const primary = inv.images?.find(i => i.isPrimary) ?? inv.images?.[0];
-    return this.resolveUrl(primary?.url);
+  avatarUrl(value?: string | null): string {
+    if (!value || this.avatarFailed()) return '';
+    return value.startsWith('http') ? value : this.fileStoreService.getPublicUrl(value);
   }
 
-  fundingPercent(inv: Investment): number {
-    if (!inv.targetFund || inv.targetFund <= 0) return 0;
-    return Math.min(((inv.currentFunding ?? 0) / inv.targetFund) * 100, 100);
+  opportunityImage(item: Opportunity): string {
+    const value = this.clean(item.coverImageUrl);
+    return value ? (value.startsWith('http') ? value : this.fileStoreService.getPublicUrl(value)) : '';
+  }
+
+  location(profile: PublicProfile): string {
+    return this.clean(profile.location) || [profile.city, profile.country].map(value => this.clean(value)).filter(Boolean).join(', ');
+  }
+
+  roleLabel(value?: string | null): string {
+    return this.enumLabel('roles', value, 'member');
+  }
+
+  verificationLabel(value?: string | null): string {
+    return this.enumLabel('verification', value, 'none');
+  }
+
+  accountLabel(value?: string | null): string {
+    return this.enumLabel('account', value, 'inactive');
+  }
+
+  opportunityStatusLabel(value?: string | number | null): string {
+    return this.enumLabel('opportunityStatus', value, 'unknown');
+  }
+
+  westernNumber(value: number): string {
+    return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(Number.isFinite(value) ? value : 0);
+  }
+
+  westernDate(value?: string | null): string {
+    if (!value) return '';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? '' : new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric' }).format(date);
+  }
+
+  openUserReport(): void {
+    if (!this.profile()?.userId || this.isOwner()) return;
+    this.reportReason.set('Spam');
+    this.reportDescription.set('');
+    this.reportError.set(null);
+    this.reportSuccess.set(false);
+    this.reportModalOpen.set(true);
+  }
+
+  closeReportModal(): void {
+    if (this.reportSubmitting()) return;
+    this.reportModalOpen.set(false);
+    this.reportError.set(null);
+    this.reportSuccess.set(false);
+  }
+
+  async submitUserReport(): Promise<void> {
+    const targetId = this.profile()?.userId;
+    if (!targetId || this.reportSubmitting()) return;
+    try {
+      this.reportSubmitting.set(true);
+      this.reportError.set(null);
+      await this.reportService.createReport({
+        targetType: 'User', targetId, reasonCode: this.reportReason(), description: this.reportDescription().trim() || null
+      });
+      this.reportSuccess.set(true);
+    } catch (error: unknown) {
+      this.reportError.set(this.reportErrorMessage(error));
+    } finally {
+      this.reportSubmitting.set(false);
+    }
+  }
+
+  reportReasonLabel(reason: ReportReasonCode): string {
+    return this.t(`reports.reasons.${reason}`);
+  }
+
+  private opportunityFounderId(item: Opportunity): string {
+    return String(item.founderId ?? item.founder?.userId ?? item.founder?.id ?? '');
+  }
+
+  private normalizedStatus(value: string | number | null | undefined): string {
+    return String(value ?? '').trim().toLowerCase().replace(/[\s_-]+/gu, '');
+  }
+
+  private enumLabel(group: string, value: string | number | null | undefined, fallback: string): string {
+    const normalized = this.normalizedStatus(value) || fallback;
+    const key = `userProfile.enums.${group}.${normalized}`;
+    const translated = this.t(key);
+    return translated === key ? this.t(`userProfile.enums.${group}.${fallback}`) : translated;
+  }
+
+  private clean(value?: string | null): string {
+    const result = value?.trim() ?? '';
+    return result === 'null' || result === 'undefined' ? '' : result;
+  }
+
+  private t(path: string): string {
+    return this.languageService.translate(path);
+  }
+
+  private reportErrorMessage(error: unknown): string {
+    const record = typeof error === 'object' && error !== null ? error as Record<string, unknown> : null;
+    const nested = record && typeof record['error'] === 'object' && record['error'] !== null ? record['error'] as Record<string, unknown> : null;
+    const raw = String(nested?.['message'] ?? record?.['message'] ?? '').toLowerCase();
+    if (raw.includes('duplicate') || raw.includes('pending')) return this.t('reports.errors.duplicatePending');
+    if (raw.includes('invalid') || raw.includes('target')) return this.t('reports.errors.invalidTarget');
+    if (raw.includes('self')) return this.t('reports.errors.selfReport');
+    return this.t('reports.errors.generic');
   }
 }

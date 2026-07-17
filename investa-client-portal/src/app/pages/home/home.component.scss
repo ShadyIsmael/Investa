@@ -1,4 +1,5 @@
-@use 'variables' as *;
-@use 'mixins' as *;
-
-.home { padding: $spacing-8 0; }
+.home-root {
+  min-height: 100vh;
+  background: var(--investa-bg);
+  color: var(--investa-text-primary);
+}

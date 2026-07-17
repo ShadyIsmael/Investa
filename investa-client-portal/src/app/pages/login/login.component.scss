@@ -1,7 +1,6 @@
 @use "variables" as *;
 @use "sass:color" as color;
 @use "mixins" as *;
-@use "theme" as theme;
 
 :host {
   display: block;
@@ -11,7 +10,7 @@
 .login-page {
   min-height: 100vh;
   @include flex-center;
-  background: linear-gradient(135deg, theme.$color-accent 0%, theme.$color-accent-alt 100%);
+  background: linear-gradient(135deg, $color-accent 0%, #19a927 100%);
   padding: $spacing-4;
   position: relative;
   overflow: hidden;
@@ -30,7 +29,7 @@
 
 .login-container {
   position: relative;
-  z-index: theme.$z-dropdown;
+  z-index: 1000;
   width: 100%;
   max-width: 440px;
   @include fade-in(0.4s);
@@ -38,7 +37,7 @@
 
 .login-card {
   @include card($spacing-8);
-  background: rgba(theme.$color-surface, 0.98);
+  background: rgba($color-surface, 0.98);
   backdrop-filter: blur(10px);
 
   @include respond-to('md') {
@@ -80,13 +79,13 @@
     transition: all $transition-base;
 
     &.active {
-      background: theme.$color-surface;
-      color: theme.$color-accent;
+      background: $color-surface;
+      color: $color-accent;
       box-shadow: $shadow-sm;
     }
 
     &:hover:not(.active) {
-      background: rgba(theme.$color-surface, 0.5);
+      background: rgba($color-surface, 0.5);
     }
   }
 }
@@ -128,7 +127,7 @@
     transition: all $transition-base;
 
     &:hover {
-      border-color: theme.$color-accent;
+      border-color: $color-accent;
     }
 
     .fi-sm {
@@ -144,11 +143,11 @@
     right: 0;
     max-height: 250px;
     overflow-y: auto;
-    background: theme.$color-surface;
+    background: $color-surface;
     border: 1px solid $color-border;
     border-radius: $border-radius-md;
     box-shadow: $shadow-lg;
-    z-index: theme.$z-dropdown;
+    z-index: 1000;
     @include custom-scrollbar;
 
     .country-option {
@@ -183,13 +182,13 @@
   transition: color $transition-base;
 
   &:hover {
-    color: theme.$color-accent-alt;
+    color: #19a927;
   }
 }
 
 .submit-button {
   @include button-base;
-  @include button-variant(theme.$color-accent);
+  @include button-variant($color-accent);
   width: 100%;
   padding: $spacing-4;
   font-size: $font-size-base;

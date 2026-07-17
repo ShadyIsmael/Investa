@@ -1,0 +1,262 @@
+[
+  {
+    "url": "http://127.0.0.1:4300/#/",
+    "body": {
+      "className": "bg-gray-950 investa-theme-light",
+      "backgroundColor": "rgb(232, 232, 232)",
+      "color": "rgb(33, 34, 37)",
+      "direction": "ltr",
+      "htmlDirection": "ltr"
+    },
+    "header": {
+      "selector": "app-admin-navbar .premium-navbar, app-header header",
+      "tag": "HEADER",
+      "className": "sticky top-0 z-[1060] bg-slate-900/95 backdrop-blur-md border-b border-slate-700/50 py-4",
+      "backgroundColor": "rgb(232, 232, 232)",
+      "backgroundImage": "none",
+      "color": "rgb(33, 34, 37)",
+      "borderColor": "rgb(222, 222, 222)",
+      "boxShadow": "rgba(21, 22, 25, 0.05) 0px 1px 2px 0px",
+      "direction": "ltr",
+      "borderRadius": "0px"
+    },
+    "activeNav": null,
+    "title": {
+      "selector": "h1",
+      "tag": "H1",
+      "className": "text-4xl md:text-5xl font-bold mb-6 tracking-tight animate-fade-in",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "backgroundImage": "none",
+      "color": "rgb(30, 41, 59)",
+      "borderColor": "rgb(229, 231, 235)",
+      "boxShadow": "none",
+      "direction": "ltr",
+      "borderRadius": "0px"
+    },
+    "primaryButton": {
+      "selector": "app-investments button.bg-blue-600, .investa-btn-primary, button[class*=\"bg-gradient-to-r\"], a[class*=\"bg-gradient-to-r\"]",
+      "tag": "A",
+      "className": "bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 transition-opacity duration-300",
+      "backgroundColor": "rgb(33, 34, 37)",
+      "backgroundImage": "none",
+      "color": "rgb(255, 255, 255)",
+      "borderColor": "rgb(229, 231, 235)",
+      "boxShadow": "none",
+      "direction": "ltr",
+      "borderRadius": "9999px"
+    },
+    "card": null,
+    "softCard": null,
+    "progress": null,
+    "visibleText": "Investa\nHome\nAbout\nServices\nBlog\nContact\nRequests\nالعربية\nLogin\nSign Up\nSmart Investing,\nPowered by AI\n\nJoin the future of investment with our AI-powered platform. Make data-driven decisions, automate your trading, and maximize your returns.\n\nGet Started\nWatch Demo\nWhy Choose Investa?\n\nCutting-edge technology meets intuitive design.\n\nReal-Time Market Data\n\nAccess live market data and AI-powered insights to stay ahead of the curve.\n\nAutomated Trading Bots\n\nSet your strategy and let our intelligen",
+    "screenshot": "D:\\projects\\Investa\\gitInvesta\\investa-client-portal\\.codex-runtime-screenshots\\light-opportunity-browse.png"
+  },
+  {
+    "url": "http://127.0.0.1:4300/#/",
+    "body": {
+      "className": "bg-gray-950 investa-theme-light",
+      "backgroundColor": "rgb(232, 232, 232)",
+      "color": "rgb(33, 34, 37)",
+      "direction": "ltr",
+      "htmlDirection": "ltr"
+    },
+    "header": {
+      "selector": "app-admin-navbar .premium-navbar, app-header header",
+      "tag": "HEADER",
+      "className": "sticky top-0 z-[1060] bg-slate-900/95 backdrop-blur-md border-b border-slate-700/50 py-4",
+      "backgroundColor": "rgb(232, 232, 232)",
+      "backgroundImage": "none",
+      "color": "rgb(33, 34, 37)",
+      "borderColor": "rgb(222, 222, 222)",
+      "boxShadow": "rgba(21, 22, 25, 0.05) 0px 1px 2px 0px",
+      "direction": "ltr",
+      "borderRadius": "0px"
+    },
+    "activeNav": null,
+    "title": {
+      "selector": "h1",
+      "tag": "H1",
+      "className": "text-4xl md:text-5xl font-bold mb-6 tracking-tight animate-fade-in",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "backgroundImage": "none",
+      "color": "rgb(30, 41, 59)",
+      "borderColor": "rgb(229, 231, 235)",
+      "boxShadow": "none",
+      "direction": "ltr",
+      "borderRadius": "0px"
+    },
+    "primaryButton": {
+      "selector": "app-investments button.bg-blue-600, .investa-btn-primary, button[class*=\"bg-gradient-to-r\"], a[class*=\"bg-gradient-to-r\"]",
+      "tag": "A",
+      "className": "bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 transition-opacity duration-300",
+      "backgroundColor": "rgb(33, 34, 37)",
+      "backgroundImage": "none",
+      "color": "rgb(255, 255, 255)",
+      "borderColor": "rgb(229, 231, 235)",
+      "boxShadow": "none",
+      "direction": "ltr",
+      "borderRadius": "9999px"
+    },
+    "card": null,
+    "softCard": null,
+    "progress": null,
+    "visibleText": "Investa\nHome\nAbout\nServices\nBlog\nContact\nRequests\nالعربية\nLogin\nSign Up\nSmart Investing,\nPowered by AI\n\nJoin the future of investment with our AI-powered platform. Make data-driven decisions, automate your trading, and maximize your returns.\n\nGet Started\nWatch Demo\nWhy Choose Investa?\n\nCutting-edge technology meets intuitive design.\n\nReal-Time Market Data\n\nAccess live market data and AI-powered insights to stay ahead of the curve.\n\nAutomated Trading Bots\n\nSet your strategy and let our intelligen",
+    "screenshot": "D:\\projects\\Investa\\gitInvesta\\investa-client-portal\\.codex-runtime-screenshots\\light-public-opportunity-details.png"
+  },
+  {
+    "url": "http://127.0.0.1:4300/#/",
+    "body": {
+      "className": "bg-gray-950 investa-theme-light",
+      "backgroundColor": "rgb(232, 232, 232)",
+      "color": "rgb(33, 34, 37)",
+      "direction": "ltr",
+      "htmlDirection": "ltr"
+    },
+    "header": {
+      "selector": "app-admin-navbar .premium-navbar, app-header header",
+      "tag": "HEADER",
+      "className": "sticky top-0 z-[1060] bg-slate-900/95 backdrop-blur-md border-b border-slate-700/50 py-4",
+      "backgroundColor": "rgb(232, 232, 232)",
+      "backgroundImage": "none",
+      "color": "rgb(33, 34, 37)",
+      "borderColor": "rgb(222, 222, 222)",
+      "boxShadow": "rgba(21, 22, 25, 0.05) 0px 1px 2px 0px",
+      "direction": "ltr",
+      "borderRadius": "0px"
+    },
+    "activeNav": null,
+    "title": {
+      "selector": "h1",
+      "tag": "H1",
+      "className": "text-4xl md:text-5xl font-bold mb-6 tracking-tight animate-fade-in",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "backgroundImage": "none",
+      "color": "rgb(30, 41, 59)",
+      "borderColor": "rgb(229, 231, 235)",
+      "boxShadow": "none",
+      "direction": "ltr",
+      "borderRadius": "0px"
+    },
+    "primaryButton": {
+      "selector": "app-investments button.bg-blue-600, .investa-btn-primary, button[class*=\"bg-gradient-to-r\"], a[class*=\"bg-gradient-to-r\"]",
+      "tag": "A",
+      "className": "bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 transition-opacity duration-300",
+      "backgroundColor": "rgb(33, 34, 37)",
+      "backgroundImage": "none",
+      "color": "rgb(255, 255, 255)",
+      "borderColor": "rgb(229, 231, 235)",
+      "boxShadow": "none",
+      "direction": "ltr",
+      "borderRadius": "9999px"
+    },
+    "card": null,
+    "softCard": null,
+    "progress": null,
+    "visibleText": "Investa\nHome\nAbout\nServices\nBlog\nContact\nRequests\nالعربية\nLogin\nSign Up\nSmart Investing,\nPowered by AI\n\nJoin the future of investment with our AI-powered platform. Make data-driven decisions, automate your trading, and maximize your returns.\n\nGet Started\nWatch Demo\nWhy Choose Investa?\n\nCutting-edge technology meets intuitive design.\n\nReal-Time Market Data\n\nAccess live market data and AI-powered insights to stay ahead of the curve.\n\nAutomated Trading Bots\n\nSet your strategy and let our intelligen",
+    "screenshot": "D:\\projects\\Investa\\gitInvesta\\investa-client-portal\\.codex-runtime-screenshots\\light-project-room.png"
+  },
+  {
+    "url": "http://127.0.0.1:4300/#/",
+    "body": {
+      "className": "bg-gray-950 investa-theme-light",
+      "backgroundColor": "rgb(232, 232, 232)",
+      "color": "rgb(33, 34, 37)",
+      "direction": "rtl",
+      "htmlDirection": "rtl"
+    },
+    "header": {
+      "selector": "app-admin-navbar .premium-navbar, app-header header",
+      "tag": "HEADER",
+      "className": "sticky top-0 z-[1060] bg-slate-900/95 backdrop-blur-md border-b border-slate-700/50 py-4",
+      "backgroundColor": "rgb(232, 232, 232)",
+      "backgroundImage": "none",
+      "color": "rgb(33, 34, 37)",
+      "borderColor": "rgb(222, 222, 222)",
+      "boxShadow": "rgba(21, 22, 25, 0.05) 0px 1px 2px 0px",
+      "direction": "rtl",
+      "borderRadius": "0px"
+    },
+    "activeNav": null,
+    "title": {
+      "selector": "h1",
+      "tag": "H1",
+      "className": "text-4xl md:text-5xl font-bold mb-6 tracking-tight animate-fade-in",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "backgroundImage": "none",
+      "color": "rgb(30, 41, 59)",
+      "borderColor": "rgb(229, 231, 235)",
+      "boxShadow": "none",
+      "direction": "rtl",
+      "borderRadius": "0px"
+    },
+    "primaryButton": {
+      "selector": "app-investments button.bg-blue-600, .investa-btn-primary, button[class*=\"bg-gradient-to-r\"], a[class*=\"bg-gradient-to-r\"]",
+      "tag": "A",
+      "className": "bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 transition-opacity duration-300",
+      "backgroundColor": "rgb(33, 34, 37)",
+      "backgroundImage": "none",
+      "color": "rgb(255, 255, 255)",
+      "borderColor": "rgb(229, 231, 235)",
+      "boxShadow": "none",
+      "direction": "rtl",
+      "borderRadius": "9999px"
+    },
+    "card": null,
+    "softCard": null,
+    "progress": null,
+    "visibleText": "Investa\nالرئيسية\nمن نحن\nالخدمات\nالمدونة\nاتصل بنا\nالطلبات\nالإنجليزية\nتسجيل الدخول\nإنشاء حساب\nاستثمار ذكي،\nمدعوم بالذكاء الاصطناعي\n\nانضم إلى مستقبل الاستثمار مع منصتنا المدعومة بالذكاء الاصطناعي. اتخذ قرارات مستندة إلى البيانات، وأتمتة تداولاتك، وعظّم عوائدك.\n\nابدأ الآن\nشاهد العرض التوضيحي\nلماذا تختار إنفستا؟\n\nتقنية متطورة تلتقي بتصميم بديهي.\n\nبيانات السوق في الوقت الفعلي\n\nاحصل على بيانات السوق المباشرة ورؤى مدعومة بالذكاء الاصطناعي للبقاء في الصدارة.\n\nروبوتات التداول الآلي\n\nحدد استراتيجيتك ودع رو",
+    "screenshot": "D:\\projects\\Investa\\gitInvesta\\investa-client-portal\\.codex-runtime-screenshots\\rtl-opportunity-browse.png"
+  },
+  {
+    "url": "http://127.0.0.1:4300/#/",
+    "body": {
+      "className": "bg-gray-950",
+      "backgroundColor": "rgb(3, 7, 18)",
+      "color": "rgb(30, 41, 59)",
+      "direction": "ltr",
+      "htmlDirection": "ltr"
+    },
+    "header": {
+      "selector": "app-admin-navbar .premium-navbar, app-header header",
+      "tag": "HEADER",
+      "className": "sticky top-0 z-[1060] bg-slate-900/95 backdrop-blur-md border-b border-slate-700/50 py-4",
+      "backgroundColor": "rgba(15, 23, 42, 0.95)",
+      "backgroundImage": "none",
+      "color": "rgb(30, 41, 59)",
+      "borderColor": "rgba(51, 65, 85, 0.5)",
+      "boxShadow": "none",
+      "direction": "ltr",
+      "borderRadius": "0px"
+    },
+    "activeNav": null,
+    "title": {
+      "selector": "h1",
+      "tag": "H1",
+      "className": "text-4xl md:text-5xl font-bold mb-6 tracking-tight animate-fade-in",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "backgroundImage": "none",
+      "color": "rgb(30, 41, 59)",
+      "borderColor": "rgb(229, 231, 235)",
+      "boxShadow": "none",
+      "direction": "ltr",
+      "borderRadius": "0px"
+    },
+    "primaryButton": {
+      "selector": "app-investments button.bg-blue-600, .investa-btn-primary, button[class*=\"bg-gradient-to-r\"], a[class*=\"bg-gradient-to-r\"]",
+      "tag": "A",
+      "className": "bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-full hover:opacity-90 transition-opacity duration-300",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "backgroundImage": "linear-gradient(to right, rgb(59, 130, 246), rgb(147, 51, 234))",
+      "color": "rgb(255, 255, 255)",
+      "borderColor": "rgb(229, 231, 235)",
+      "boxShadow": "none",
+      "direction": "ltr",
+      "borderRadius": "9999px"
+    },
+    "card": null,
+    "softCard": null,
+    "progress": null,
+    "visibleText": "Investa\nHome\nAbout\nServices\nBlog\nContact\nRequests\nالعربية\nLogin\nSign Up\nSmart Investing,\nPowered by AI\n\nJoin the future of investment with our AI-powered platform. Make data-driven decisions, automate your trading, and maximize your returns.\n\nGet Started\nWatch Demo\nWhy Choose Investa?\n\nCutting-edge technology meets intuitive design.\n\nReal-Time Market Data\n\nAccess live market data and AI-powered insights to stay ahead of the curve.\n\nAutomated Trading Bots\n\nSet your strategy and let our intelligen",
+    "screenshot": "D:\\projects\\Investa\\gitInvesta\\investa-client-portal\\.codex-runtime-screenshots\\dark-opportunity-browse.png"
+  }
+]

@@ -17,6 +17,13 @@ public interface IReputationService
     /// </summary>
     Task AdjustReputationAsync(Guid userId, int points, string reason, Guid? performedByUserId = null);
 
+    Task ApplyActivityAsync(
+        Guid userId,
+        string activityCode,
+        string referenceType,
+        string referenceId,
+        Guid? performedByUserId = null);
+
     /// <summary>
     /// Engine entry point to process a reputation rule by its RuleCode.
     /// </summary>
