@@ -41,7 +41,7 @@ interface NegotiationConversation {
   counterpartyUserId?: string | number | null;
   counterpartyName: string;
   counterpartyRole?: string;
-  avatarUrl: string;
+  avatarUrl?: string;
   fundingTarget?: number | null;
   minimumParticipation?: number | null;
   investmentModel?: string;
@@ -61,6 +61,54 @@ interface NegotiationConversation {
   readOnly?: boolean;
 }
 
+type RequestDirection = 'incoming' | 'outgoing' | 'unknown';
+type RequestStatus = 'pending' | 'accepted' | 'rejected' | 'withdrawn';
+
+interface ConversationRequest {
+  id: string;
+  opportunityId: string | number;
+  opportunityTitle: string;
+  direction: RequestDirection;
+  counterpartyUserId?: string | number;
+  counterpartyName: string;
+  counterpartyRole?: string;
+  message?: string;
+  status: RequestStatus;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+  canAccept: boolean;
+  canReject: boolean;
+  canWithdraw: boolean;
+  acceptedConversationId?: string;
+}
+
+interface ViewerState {
+  projectRoomUnlocked?: boolean;
+  canOpenProjectRoom?: boolean;
+  hasPendingParticipationRequest?: boolean;
+  participationStatus?: string;
+}
+
+interface OfferPayloadLeg {
+  legType: OfferLegType;
+  amount: number;
+  equityPercentage?: number;
+  sharesTerms?: string;
+  returnRate?: number;
+  termMonths?: number;
+  repaymentModel?: string;
+  profitSharePercentage?: number;
+  exitTerms?: string;
+}
+
+interface OfferPayload {
+  currency: string;
+  note: string | null;
+  legs: OfferPayloadLeg[];
+}
+
+type JsonRecord = Record<string, unknown>;
+
 interface NegotiationMessage {
   id: string;
   senderId?: string;
@@ -71,10 +119,12 @@ interface NegotiationMessage {
   isSender: boolean;
 }
 
-interface TimelineEvent {
+type JourneyStepState = 'completed' | 'current' | 'future';
+
+interface JourneyStep {
+  key: string;
   label: string;
-  date?: string | Date | null;
-  active: boolean;
+  state: JourneyStepState;
 }
 
 type OfferLegType = 1 | 2 | 3;
@@ -107,6 +157,10 @@ interface NegotiationOffer {
   legs: NegotiationOfferLeg[];
 }
 
+type ChatTimelineItem =
+  | { kind: 'message'; id: string; date: string | Date; message: NegotiationMessage }
+  | { kind: 'offer'; id: string; date: string | Date; offer: NegotiationOffer };
+
 interface OfferLegDraft {
   enabled: boolean;
   amount: FormControl<number | null>;
@@ -136,9 +190,11 @@ export class ChatComponent implements OnInit {
   private reportService = inject(ReportService);
 
   conversations = signal<NegotiationConversation[]>([]);
+  requests = signal<ConversationRequest[]>([]);
   messages = signal<NegotiationMessage[]>([]);
   offers = signal<NegotiationOffer[]>([]);
   selectedConversation = signal<NegotiationConversation | null>(null);
+  selectedRequest = signal<ConversationRequest | null>(null);
   loading = signal(true);
   messagesLoading = signal(false);
   sending = signal(false);
@@ -163,8 +219,12 @@ export class ChatComponent implements OnInit {
     'InappropriateContent',
     'Other'
   ];
-  conversationTab = signal<'active' | 'archived' | 'all'>('active');
-  viewerStates = signal<Record<string, any>>({});
+  workspaceTab = signal<'incoming' | 'outgoing' | 'conversations'>('conversations');
+  conversationFilter = signal<'all' | 'active' | 'closed'>('all');
+  mobileView = signal<'list' | 'chat' | 'context'>('list');
+  searchControl = new FormControl('', { nonNullable: true });
+  searchTerm = signal('');
+  viewerStates = signal<Record<string, ViewerState>>({});
   messageControl = new FormControl('');
   offerNoteControl = new FormControl('');
   offerCurrencyControl = new FormControl('USD');
@@ -190,20 +250,43 @@ export class ChatComponent implements OnInit {
       exitTerms: new FormControl<string | null>('')
     }
   };
+  readonly offerLegTypes: OfferLegType[] = [1, 2, 3];
 
   visibleConversations = computed(() => {
-    const tab = this.conversationTab();
+    const query = this.searchTerm().trim().toLocaleLowerCase('en');
+    const filter = this.conversationFilter();
     return this.conversations().filter(conversation => {
-      if (tab === 'all') return true;
-      if (tab === 'archived') return conversation.archived || this.isReadOnly(conversation);
-      return !conversation.archived || this.isReadOnly(conversation);
+      const closed = this.isReadOnly(conversation);
+      if (filter === 'active' && closed) return false;
+      if (filter === 'closed' && !closed) return false;
+      return !query || [conversation.counterpartyName, conversation.opportunityTitle, conversation.lastMessage]
+        .filter((value): value is string => !!value)
+        .some(value => value.toLocaleLowerCase('en').includes(query));
     });
+  });
+
+  visibleRequests = computed(() => {
+    const tab = this.workspaceTab();
+    const query = this.searchTerm().trim().toLocaleLowerCase('en');
+    if (tab === 'conversations') return [];
+    return this.requests().filter(request => request.direction === tab && (
+      !query || [request.counterpartyName, request.opportunityTitle, request.message]
+        .filter((value): value is string => !!value)
+        .some(value => value.toLocaleLowerCase('en').includes(query))
+    ));
+  });
+
+  chatItems = computed<ChatTimelineItem[]>(() => {
+    const messageItems: ChatTimelineItem[] = this.messages().map(message => ({ kind: 'message', id: `message-${message.id}`, date: message.sentAt, message }));
+    const offerItems: ChatTimelineItem[] = this.offers().map(offer => ({ kind: 'offer', id: `offer-${offer.id}`, date: offer.createdAt || new Date(0), offer }));
+    return [...messageItems, ...offerItems].sort((left, right) => new Date(left.date).getTime() - new Date(right.date).getTime());
   });
 
   private selectionWatcher = effect(() => {
     const selected = this.selectedConversation();
     if (!selected) return;
 
+    if (this.workspaceTab() !== 'conversations') return;
     const visibleIds = new Set(this.visibleConversations().map(item => item.id));
     if (!visibleIds.has(selected.id)) {
       this.clearSelection();
@@ -237,11 +320,13 @@ export class ChatComponent implements OnInit {
     const state = this.activeViewerState();
     if (!conversation?.opportunityId || this.actionProcessing()) return false;
     if (state?.projectRoomUnlocked || state?.canOpenProjectRoom || state?.hasPendingParticipationRequest) return false;
-    const summary = this.buildParticipationSummary(conversation).toLowerCase();
-    if (summary.includes('pending') || summary.includes('approved')) return false;
+    const participation = this.normalizeParticipationStatus(state?.participationStatus ?? conversation.participationStatus);
+    if (participation === 'pending' || participation === 'approved') return false;
+    if (conversation.status === 'Participation Created' || conversation.status === 'Participation Approved') return false;
     return !this.isReadOnly(conversation);
   });
-  timeline = computed(() => this.buildTimeline(this.activeConversation()));
+  journeySteps = computed(() => this.buildJourney(this.activeConversation()));
+  terminalJourneyStatus = computed(() => this.buildTerminalJourneyStatus(this.activeConversation()));
   stageSummary = computed(() => this.buildStageSummary(this.activeConversation()));
   participationSummary = computed(() => this.buildParticipationSummary(this.activeConversation()));
   nextStep = computed(() => this.buildNextStep(this.activeConversation()));
@@ -254,10 +339,14 @@ export class ChatComponent implements OnInit {
     try {
       this.loading.set(true);
       this.error.set(null);
-      const raw = await this.get<any>('/api/v1/conversations');
+      const [raw, requestRaw] = await Promise.all([
+        this.get<unknown>('/api/v1/conversations'),
+        this.get<unknown>('/api/v1/conversation-requests')
+      ]);
       const rows = this.extractArray(raw);
-      const conversations = rows.map(row => this.mapConversation(row));
+      const conversations = await Promise.all(rows.map(row => this.hydrateConversationPreview(this.mapConversation(row))));
       this.conversations.set(conversations);
+      this.requests.set(this.extractArray(requestRaw).map(row => this.mapRequest(row)));
 
       const current = this.selectedConversation();
       const requestedConversationId = this.route.snapshot.queryParamMap.get('conversationId');
@@ -272,6 +361,7 @@ export class ChatComponent implements OnInit {
     } catch (error) {
       this.error.set(this.errorMessage(error, 'Unable to load conversations.'));
       this.conversations.set([]);
+      this.requests.set([]);
       this.clearSelection();
     } finally {
       this.loading.set(false);
@@ -279,10 +369,32 @@ export class ChatComponent implements OnInit {
   }
 
   async selectConversation(conversation: NegotiationConversation): Promise<void> {
+    this.selectedRequest.set(null);
     this.selectedConversation.set(conversation);
+    this.mobileView.set('chat');
     await this.loadViewerState(conversation);
     await this.loadMessages(conversation.id);
     await this.loadOffers(conversation.id);
+  }
+
+  selectRequest(request: ConversationRequest): void {
+    this.selectedConversation.set(null);
+    this.selectedRequest.set(request);
+    this.messages.set([]);
+    this.offers.set([]);
+    this.mobileView.set('chat');
+  }
+
+  async acceptRequest(request: ConversationRequest): Promise<void> {
+    await this.requestAction(request, 'accept');
+  }
+
+  async rejectRequest(request: ConversationRequest): Promise<void> {
+    await this.requestAction(request, 'reject');
+  }
+
+  async withdrawRequest(request: ConversationRequest): Promise<void> {
+    await this.requestAction(request, 'withdraw');
   }
 
   openConversationReport(conversation: NegotiationConversation): void {
@@ -331,7 +443,7 @@ export class ChatComponent implements OnInit {
         description: this.reportDescription().trim() || null
       });
       this.reportSuccess.set(true);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.reportError.set(this.reportErrorMessage(error));
     } finally {
       this.reportSubmitting.set(false);
@@ -341,8 +453,9 @@ export class ChatComponent implements OnInit {
   async loadViewerState(conversation: NegotiationConversation): Promise<void> {
     if (!conversation.opportunityId) return;
     try {
-      const raw = await this.get<any>(`/api/v1/opportunities/${encodeURIComponent(String(conversation.opportunityId))}/viewer-state`);
-      const state = raw?.data ?? raw;
+      const raw = await this.get<unknown>(`/api/v1/opportunities/${encodeURIComponent(String(conversation.opportunityId))}/viewer-state`);
+      const wrapped = this.asRecord(raw);
+      const state = this.mapViewerState(wrapped['data'] ?? raw);
       this.viewerStates.update(items => ({ ...items, [String(conversation.opportunityId)]: state }));
     } catch {
       this.viewerStates.update(items => {
@@ -357,7 +470,7 @@ export class ChatComponent implements OnInit {
     try {
       this.messagesLoading.set(true);
       this.messagesError.set(null);
-      const raw = await this.get<any>(`/api/v1/conversations/${encodeURIComponent(conversationId)}/messages`);
+      const raw = await this.get<unknown>(`/api/v1/conversations/${encodeURIComponent(conversationId)}/messages`);
       const conversation = this.conversations().find(item => item.id === conversationId) || this.selectedConversation();
       const messages = this.extractArray(raw).map(row => this.mapMessage(row, conversation));
       messages.sort((a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime());
@@ -372,7 +485,7 @@ export class ChatComponent implements OnInit {
 
   async loadOffers(conversationId: string): Promise<void> {
     try {
-      const raw = await this.get<any>(`/api/v1/conversations/${encodeURIComponent(conversationId)}/offers`);
+      const raw = await this.get<unknown>(`/api/v1/conversations/${encodeURIComponent(conversationId)}/offers`);
       this.offers.set(this.extractArray(raw).map(row => this.mapOffer(row)));
     } catch (error) {
       this.messagesError.set(this.errorMessage(error, 'Unable to load structured offers.'));
@@ -393,8 +506,9 @@ export class ChatComponent implements OnInit {
     try {
       this.sending.set(true);
       this.messagesError.set(null);
-      const raw = await this.post<any>(`/api/v1/conversations/${encodeURIComponent(conversation.id)}/messages`, { message: text });
-      this.messages.update(items => [...items, this.mapMessage(raw?.data ?? raw, conversation)]);
+      const raw = await this.post<unknown>(`/api/v1/conversations/${encodeURIComponent(conversation.id)}/messages`, { message: text });
+      const wrapped = this.asRecord(raw);
+      this.messages.update(items => [...items, this.mapMessage(wrapped['data'] ?? raw, conversation)]);
       this.messageControl.setValue('');
       this.updateConversationStatus(conversation.id, 'Negotiation in Progress');
     } catch (error) {
@@ -415,8 +529,9 @@ export class ChatComponent implements OnInit {
 
     try {
       this.actionProcessing.set(true);
-      const raw = await this.post<any>(`/api/v1/conversations/${encodeURIComponent(conversation.id)}/ready-to-proceed`, {});
-      const updated = raw?.data ? this.mapConversation(raw.data) : {
+      const raw = await this.post<unknown>(`/api/v1/conversations/${encodeURIComponent(conversation.id)}/ready-to-proceed`, {});
+      const data = this.asRecord(raw)['data'];
+      const updated = data ? this.mapConversation(data) : {
         ...conversation,
         currentUserReady: true,
         investorReady: conversation.investorReady || this.currentUserLooksInvestor(conversation),
@@ -444,8 +559,9 @@ export class ChatComponent implements OnInit {
 
     try {
       this.actionProcessing.set(true);
-      const raw = await this.post<any>(`/api/v1/conversations/${encodeURIComponent(conversation.id)}/close`, { reason: reason.trim() || null });
-      const updated = raw?.data ? this.mapConversation(raw.data) : {
+      const raw = await this.post<unknown>(`/api/v1/conversations/${encodeURIComponent(conversation.id)}/close`, { reason: reason.trim() || null });
+      const data = this.asRecord(raw)['data'];
+      const updated = data ? this.mapConversation(data) : {
         ...conversation,
         status: 'Discussion Closed' as NegotiationStatus,
         closedAt: new Date(),
@@ -529,8 +645,9 @@ export class ChatComponent implements OnInit {
       const path = counterId
         ? `/api/v1/conversations/${encodeURIComponent(conversation.id)}/offers/${counterId}/counter`
         : `/api/v1/conversations/${encodeURIComponent(conversation.id)}/offers`;
-      const raw = await this.post<any>(path, payload);
-      const offer = this.mapOffer(raw?.data ?? raw);
+      const raw = await this.post<unknown>(path, payload);
+      const wrapped = this.asRecord(raw);
+      const offer = this.mapOffer(wrapped['data'] ?? raw);
       if (counterId) {
         this.offers.update(items => [...items.map(item => item.id === counterId ? { ...item, status: 2 as OfferStatus } : item), offer]);
       } else {
@@ -570,21 +687,21 @@ export class ChatComponent implements OnInit {
 
   offerStatusLabel(status: OfferStatus): string {
     switch (Number(status)) {
-      case 1: return 'Pending';
-      case 2: return 'Countered';
-      case 3: return 'Accepted';
-      case 4: return 'Rejected';
-      case 5: return 'Withdrawn';
-      default: return 'Unknown';
+      case 1: return this.t('conversationWorkspace.offerStatus.pending');
+      case 2: return this.t('conversationWorkspace.offerStatus.countered');
+      case 3: return this.t('conversationWorkspace.offerStatus.accepted');
+      case 4: return this.t('conversationWorkspace.offerStatus.rejected');
+      case 5: return this.t('conversationWorkspace.offerStatus.withdrawn');
+      default: return this.t('conversationWorkspace.status.unavailable');
     }
   }
 
   offerLegLabel(type: OfferLegType): string {
     switch (Number(type)) {
-      case 1: return 'Equity';
-      case 2: return 'Loan';
-      case 3: return 'Profit Sharing';
-      default: return 'Offer';
+      case 1: return this.t('conversationWorkspace.offerTypes.equity');
+      case 2: return this.t('conversationWorkspace.offerTypes.loan');
+      case 3: return this.t('conversationWorkspace.offerTypes.profitSharing');
+      default: return this.t('conversationWorkspace.offers.title');
     }
   }
 
@@ -606,8 +723,22 @@ export class ChatComponent implements OnInit {
     await this.loadConversations();
   }
 
-  setConversationTab(tab: 'active' | 'archived' | 'all'): void {
-    this.conversationTab.set(tab);
+  setWorkspaceTab(tab: 'incoming' | 'outgoing' | 'conversations'): void {
+    this.workspaceTab.set(tab);
+    this.clearSelection();
+  }
+
+  setSearchTerm(value: string): void {
+    this.searchControl.setValue(value, { emitEvent: false });
+    this.searchTerm.set(value);
+  }
+
+  setConversationFilter(value: string): void {
+    if (value === 'active' || value === 'closed' || value === 'all') this.conversationFilter.set(value);
+  }
+
+  setMobileView(view: 'list' | 'chat' | 'context'): void {
+    this.mobileView.set(view);
   }
 
   canSendMessage(): boolean {
@@ -617,9 +748,9 @@ export class ChatComponent implements OnInit {
 
   composerHint(): string {
     const conversation = this.activeConversation();
-    if (!conversation) return 'Select a conversation to begin.';
-    if (this.isReadOnly(conversation)) return 'This discussion is closed and read-only.';
-    return 'Write a negotiation message...';
+    if (!conversation) return this.t('conversationWorkspace.composer.select');
+    if (this.isReadOnly(conversation)) return this.t('conversationWorkspace.composer.closed');
+    return this.t('conversationWorkspace.composer.placeholder');
   }
 
   closedByLabel(conversation: NegotiationConversation): string {
@@ -637,18 +768,18 @@ export class ChatComponent implements OnInit {
       case 'Founder Accepted':
       case 'Negotiation in Progress':
       case 'Ready for Participation':
-        return 'border-blue-500/30 bg-blue-500/10 text-blue-200';
+        return 'status-badge status-badge--active';
       case 'Participation Created':
-        return 'border-purple-500/30 bg-purple-500/10 text-purple-200';
+        return 'status-badge status-badge--pending';
       case 'Participation Approved':
-        return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200';
+        return 'status-badge status-badge--success';
       case 'Declined by Founder':
       case 'You withdrew':
       case 'Participation Rejected':
       case 'Discussion Closed':
-        return 'border-red-500/30 bg-red-500/10 text-red-200';
+        return 'status-badge status-badge--closed';
       default:
-        return 'border-slate-700 bg-slate-800 text-slate-300';
+        return 'status-badge';
     }
   }
 
@@ -660,121 +791,123 @@ export class ChatComponent implements OnInit {
   formatDate(value: string | Date | null | undefined): string {
     if (!value) return '-';
     const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString();
+    return Number.isNaN(date.getTime()) ? '' : new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
   }
 
   formatTime(value: string | Date | null | undefined): string {
     if (!value) return '';
     const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return Number.isNaN(date.getTime()) ? '' : new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true }).format(date);
   }
 
-  private mapConversation(row: any): NegotiationConversation {
-    const status = this.normalizeStatus(row.conversationStatus ?? row.status ?? row.negotiationStatus ?? row.state ?? row.statusText);
-    const opportunity = row.opportunity || row.investment || {};
-    const direction = this.normalizeDirection(row.direction);
-    const founder = row.founder || opportunity.founder || {};
-    const investor = row.investor || {};
-    const requesterName = row.requesterName || row.requester?.name;
-    const recipientName = row.recipientName || row.recipient?.name;
-    const counterpartyName = row.counterpartyName || row.counterpartName || row.otherUserName || row.otherParticipant?.name || row.counterparty?.name || 'Conversation partner';
-    const counterpartyRole = row.counterpartyRole || row.counterpartRole || row.otherParticipant?.role || row.counterparty?.role;
+  private mapConversation(value: unknown): NegotiationConversation {
+    const row = this.asRecord(value);
+    const opportunity = this.asRecord(row['opportunity']);
+    const founder = this.asRecord(row['founder']);
+    const investor = this.asRecord(row['investor']);
+    const status = this.normalizeStatus(row['conversationStatus'] ?? row['statusText'] ?? row['status']);
+    const direction = this.normalizeDirection(row['direction']);
     return {
-      id: String(row.id ?? row.conversationId),
+      id: this.stringValue(row['id'] ?? row['conversationId']),
       direction,
-      opportunityId: row.opportunityId ?? opportunity.id,
-      opportunityTitle: row.opportunityTitle || row.title || opportunity.title || opportunity.businessName || 'Opportunity',
-      shortDescription: row.shortDescription || opportunity.shortDescription || opportunity.description,
-      founderName: row.founderName || founder.name || opportunity.founderName,
-      founderUserId: row.founderUserId ?? founder.userId ?? founder.user?.id ?? opportunity.founderUserId ?? null,
-      investorName: row.investorName || investor.name,
-      investorUserId: row.investorUserId ?? investor.userId ?? investor.user?.id ?? null,
-      requesterUserId: row.requesterUserId ?? row.requester?.id ?? null,
-      requesterName,
-      requesterRole: row.requesterRole || row.requester?.role,
-      recipientUserId: row.recipientUserId ?? row.recipient?.id ?? null,
-      recipientName,
-      recipientRole: row.recipientRole || row.recipient?.role,
-      counterpartyUserId: row.counterpartyUserId || row.counterpartUserId || row.otherParticipant?.userId || row.otherParticipant?.user?.id || row.counterparty?.userId || row.counterparty?.user?.id || null,
-      counterpartyName,
-      counterpartyRole,
-      avatarUrl: row.avatarUrl || row.counterparty?.avatarUrl || row.otherParticipant?.avatarUrl || 'https://picsum.photos/seed/negotiation/100/100',
-      fundingTarget: this.numberValue(row.fundingTarget ?? opportunity.fundingTarget ?? opportunity.targetFund),
-      minimumParticipation: this.numberValue(row.minimumParticipation ?? row.minimumInvestment ?? opportunity.minimumInvestmentAmount ?? opportunity.minimumInvestment),
-      investmentModel: row.investmentModel || opportunity.investmentModel || opportunity.investmentType,
+      opportunityId: this.idValue(row['opportunityId'] ?? opportunity['id']),
+      opportunityTitle: this.stringValue(row['opportunityTitle'] ?? opportunity['title']),
+      shortDescription: this.optionalString(row['shortDescription'] ?? opportunity['shortDescription']),
+      founderName: this.optionalString(row['founderName'] ?? founder['name']),
+      founderUserId: this.idValue(row['founderUserId'] ?? founder['id']),
+      investorName: this.optionalString(row['investorName'] ?? investor['name']),
+      investorUserId: this.idValue(row['investorUserId'] ?? investor['id']),
+      requesterUserId: this.idValue(row['requesterUserId']),
+      requesterName: this.optionalString(row['requesterName']),
+      requesterRole: this.optionalString(row['requesterRole']),
+      recipientUserId: this.idValue(row['recipientUserId']),
+      recipientName: this.optionalString(row['recipientName']),
+      recipientRole: this.optionalString(row['recipientRole']),
+      counterpartyUserId: this.idValue(row['counterpartyUserId']),
+      counterpartyName: this.stringValue(row['counterpartyName']),
+      counterpartyRole: this.optionalString(row['counterpartyRole']),
+      avatarUrl: this.optionalString(row['avatarUrl'] ?? this.asRecord(row['counterparty'])['avatarUrl']),
+      fundingTarget: this.numberValue(row['fundingTarget'] ?? opportunity['fundingTarget']),
+      minimumParticipation: this.numberValue(row['minimumParticipation'] ?? opportunity['minimumInvestmentAmount']),
+      investmentModel: this.optionalString(row['investmentModel'] ?? opportunity['investmentModel']),
       status,
-      participationStatus: row.participationStatus ?? row.joinRequestStatus ?? null,
-      participationRequestId: row.participationRequestId ?? row.joinRequestId ?? null,
-      lastMessage: row.lastMessage || row.preview || 'Start the negotiation',
-      lastMessageAt: row.lastMessageAt || row.updatedAt || row.createdAt,
-      createdAt: row.createdAt,
-      closedAt: row.closedAt,
-      closedByUserId: row.closedByUserId ?? row.closedBy ?? null,
-      closeReason: row.closeReason ?? row.closedReason ?? row.reason ?? null,
-      founderReady: !!(row.founderReady ?? row.isFounderReady),
-      investorReady: !!(row.investorReady ?? row.isInvestorReady),
+      participationStatus: this.optionalString(row['participationStatus']),
+      participationRequestId: this.optionalString(row['participationRequestId']),
+      lastMessage: this.optionalString(row['lastMessage']),
+      lastMessageAt: this.dateValue(row['lastMessageAt'] ?? row['updatedAt'] ?? row['createdAt']),
+      createdAt: this.dateValue(row['createdAt']),
+      closedAt: this.dateValue(row['closedAt']),
+      closedByUserId: this.idValue(row['closedByUserId']),
+      closeReason: this.optionalString(row['closeReason']),
+      founderReady: this.booleanValue(row['founderReady']),
+      investorReady: this.booleanValue(row['investorReady']),
       currentUserReady: this.resolveCurrentUserReady(row, direction),
-      archived: !!row.archived,
-      readOnly: !!row.readOnly || status === 'Discussion Closed' || status === 'You withdrew' || status === 'Declined by Founder'
+      archived: this.booleanValue(row['archived']),
+      readOnly: this.booleanValue(row['readOnly']) || status === 'Discussion Closed' || status === 'You withdrew' || status === 'Declined by Founder'
     };
   }
 
-  private resolveCurrentUserReady(row: any, direction: 'incoming' | 'outgoing' | 'unknown'): boolean {
-    if (row.currentUserReady !== undefined || row.isCurrentUserReady !== undefined) {
-      return !!(row.currentUserReady ?? row.isCurrentUserReady);
+  private resolveCurrentUserReady(row: JsonRecord, direction: RequestDirection): boolean {
+    if (row['currentUserReady'] !== undefined) {
+      return this.booleanValue(row['currentUserReady']);
     }
-    const founderReady = !!(row.founderReady ?? row.isFounderReady);
-    const investorReady = !!(row.investorReady ?? row.isInvestorReady);
+    const founderReady = this.booleanValue(row['founderReady']);
+    const investorReady = this.booleanValue(row['investorReady']);
     if (direction === 'incoming') return founderReady;
     if (direction === 'outgoing') return investorReady;
     const currentUserId = localStorage.getItem('userId');
-    if (this.sameId(currentUserId, row.founderUserId ?? row.founder?.id)) return founderReady;
-    if (this.sameId(currentUserId, row.investorUserId ?? row.investor?.id)) return investorReady;
+    if (this.sameId(currentUserId, row['founderUserId'])) return founderReady;
+    if (this.sameId(currentUserId, row['investorUserId'])) return investorReady;
     return false;
   }
 
-  private mapMessage(row: any, conversation: NegotiationConversation | null): NegotiationMessage {
-    const senderId = row.senderUserId ?? row.senderId ?? row.userId ?? row.authorId;
+  private mapMessage(value: unknown, conversation: NegotiationConversation | null): NegotiationMessage {
+    const row = this.asRecord(value);
+    const senderId = row['senderUserId'] ?? row['senderId'];
     const currentUserId = this.resolveCurrentUserId(conversation);
     const senderIdentity = this.resolveSenderIdentity(senderId, conversation);
-    const isSender = row.isSender ?? (
+    const isSender = this.booleanValue(row['isSender']) || (
       !!senderId && !!currentUserId && this.sameId(senderId, currentUserId)
     );
     return {
-      id: String(row.id ?? row.messageId ?? Date.now()),
+      id: this.stringValue(row['id'] ?? row['messageId']),
       senderId: senderId === null || senderId === undefined ? undefined : String(senderId),
-      senderName: row.senderFullName || row.senderName || row.authorName || senderIdentity.name,
-      senderRole: this.normalizeRole(row.senderRole || row.role || senderIdentity.role),
-      text: row.text || row.message || row.body || '',
-      sentAt: row.sentAt || row.timestamp || row.createdAt || new Date(),
+      senderName: this.optionalString(row['senderName']) || senderIdentity.name,
+      senderRole: this.normalizeRole(row['senderRole'] ?? senderIdentity.role),
+      text: this.stringValue(row['message'] ?? row['text']),
+      sentAt: this.dateValue(row['sentAt']) || new Date(0),
       isSender
     };
   }
 
-  private mapOffer(row: any): NegotiationOffer {
+  private mapOffer(value: unknown): NegotiationOffer {
+    const row = this.asRecord(value);
     return {
-      id: Number(row.id),
-      conversationId: String(row.conversationId),
-      createdByUserId: row.createdByUserId ?? null,
-      createdByName: row.createdByName,
-      version: Number(row.version ?? 1),
-      parentOfferId: row.parentOfferId ?? null,
-      status: Number(row.status) as OfferStatus,
-      note: row.note ?? null,
-      currency: row.currency || 'Credits',
-      createdAt: row.createdAt,
-      legs: this.extractArray(row.legs ?? row.Legs).map(leg => ({
-        id: leg.id,
-        legType: Number(leg.legType) as OfferLegType,
-        amount: Number(leg.amount ?? 0),
-        equityPercentage: leg.equityPercentage ?? null,
-        sharesTerms: leg.sharesTerms ?? null,
-        returnRate: leg.returnRate ?? null,
-        termMonths: leg.termMonths ?? null,
-        repaymentModel: leg.repaymentModel ?? null,
-        profitSharePercentage: leg.profitSharePercentage ?? null,
-        exitTerms: leg.exitTerms ?? null
-      }))
+      id: Number(row['id']),
+      conversationId: this.stringValue(row['conversationId']),
+      createdByUserId: this.idValue(row['createdByUserId']),
+      createdByName: this.optionalString(row['createdByName']),
+      version: Number(row['version'] ?? 1),
+      parentOfferId: this.numberValue(row['parentOfferId']),
+      status: this.offerStatusValue(row['status']),
+      note: this.optionalString(row['note']),
+      currency: this.optionalString(row['currency']) || 'USD',
+      createdAt: this.dateValue(row['createdAt']),
+      legs: this.extractArray(row['legs']).map(value => {
+        const leg = this.asRecord(value);
+        return {
+        id: this.numberValue(leg['id']) ?? undefined,
+        legType: this.offerLegTypeValue(leg['legType']),
+        amount: Number(leg['amount'] ?? 0),
+        equityPercentage: this.numberValue(leg['equityPercentage']),
+        sharesTerms: this.optionalString(leg['sharesTerms']),
+        returnRate: this.numberValue(leg['returnRate']),
+        termMonths: this.numberValue(leg['termMonths']),
+        repaymentModel: this.optionalString(leg['repaymentModel']),
+        profitSharePercentage: this.numberValue(leg['profitSharePercentage']),
+        exitTerms: this.optionalString(leg['exitTerms'])
+      };
+      })
     };
   }
 
@@ -868,8 +1001,8 @@ export class ChatComponent implements OnInit {
     try {
       this.offerProcessing.set(true);
       this.messagesError.set(null);
-      const raw = await this.post<any>(`/api/v1/conversations/${encodeURIComponent(conversation.id)}/offers/${offer.id}/${action}`, {});
-      const updated = this.mapOffer(raw?.data ?? raw);
+      const raw = await this.post<unknown>(`/api/v1/conversations/${encodeURIComponent(conversation.id)}/offers/${offer.id}/${action}`, {});
+      const updated = this.mapOffer(this.asRecord(raw)['data'] ?? raw);
       this.offers.update(items => items.map(item => item.id === updated.id ? updated : item));
     } catch (error) {
       this.messagesError.set(this.errorMessage(error, `Offer could not be ${action === 'accept' ? 'accepted' : action === 'reject' ? 'rejected' : 'withdrawn'}.`));
@@ -882,8 +1015,8 @@ export class ChatComponent implements OnInit {
     return this.sameId(offer.createdByUserId, this.resolveCurrentUserId(this.activeConversation()));
   }
 
-  private buildOfferPayload(): any {
-    const legs: any[] = [];
+  private buildOfferPayload(): OfferPayload {
+    const legs: OfferPayloadLeg[] = [];
     const equity = this.offerDrafts[1];
     if (equity.enabled) {
       legs.push({
@@ -962,20 +1095,83 @@ export class ChatComponent implements OnInit {
     return '';
   }
 
-  private buildTimeline(conversation: NegotiationConversation | null): TimelineEvent[] {
+  private buildJourney(conversation: NegotiationConversation | null): JourneyStep[] {
     if (!conversation) return [];
-    const status = conversation.status;
-    return [
-      { label: 'Conversation Started', date: conversation.createdAt, active: true },
-      { label: 'Founder Accepted', active: this.statusAtLeast(status, ['Founder Accepted', 'Negotiation in Progress', 'Ready for Participation', 'Participation Created', 'Participation Approved', 'Participation Rejected']) },
-      { label: 'Negotiation Started', active: this.messages().length > 0 || this.statusAtLeast(status, ['Negotiation in Progress', 'Ready for Participation', 'Participation Created', 'Participation Approved', 'Participation Rejected']) },
-      { label: 'Founder Ready', active: !!conversation.founderReady },
-      { label: 'Investor Ready', active: !!conversation.investorReady },
-      { label: 'Participation Request Created', active: this.statusAtLeast(status, ['Participation Created', 'Participation Approved', 'Participation Rejected']) },
-      { label: 'Participation Approved', active: status === 'Participation Approved' },
-      { label: 'Participation Rejected', active: status === 'Participation Rejected' },
-      { label: 'Discussion Closed', date: conversation.closedAt, active: this.isReadOnly(conversation) }
+    const viewerState = this.activeViewerState();
+    const participation = this.normalizeParticipationStatus(viewerState?.participationStatus ?? conversation.participationStatus);
+    const offerSent = this.offers().length > 0;
+    const offerAccepted = this.offers().some(offer => offer.status === 3);
+    const participationRequested = !!conversation.participationRequestId
+      || !!viewerState?.hasPendingParticipationRequest
+      || participation === 'pending'
+      || participation === 'approved'
+      || participation === 'rejected'
+      || this.statusAtLeast(conversation.status, ['Participation Created', 'Participation Approved', 'Participation Rejected']);
+    const participationApproved = participation === 'approved'
+      || conversation.status === 'Participation Approved'
+      || this.projectRoomUnlocked();
+    const negotiationStarted = this.messages().length > 0
+      || offerSent
+      || !!conversation.founderReady
+      || !!conversation.investorReady
+      || participationRequested
+      || this.statusAtLeast(conversation.status, ['Negotiation in Progress', 'Ready for Participation', 'Participation Created', 'Participation Approved', 'Participation Rejected']);
+    const terminal = !!this.buildTerminalJourneyStatus(conversation);
+
+    const completed = new Set<string>(['requested']);
+    if (conversation.status !== 'Declined by Founder') completed.add('accepted');
+    if (negotiationStarted) completed.add('negotiation');
+    if (offerSent) completed.add('offerSent');
+    if (offerAccepted) completed.add('offerAccepted');
+    if (conversation.founderReady) completed.add('founderReady');
+    if (conversation.investorReady) completed.add('investorReady');
+    if (participationRequested) completed.add('participationRequest');
+    if (participationApproved) completed.add('participationApproved');
+    if (this.projectRoomUnlocked()) completed.add('projectRoomUnlocked');
+
+    let currentKey = 'accepted';
+    if (this.projectRoomUnlocked()) currentKey = 'projectRoomUnlocked';
+    else if (participationApproved) currentKey = 'projectRoomUnlocked';
+    else if (participationRequested) currentKey = 'participationApproved';
+    else if (conversation.founderReady && conversation.investorReady) currentKey = 'participationRequest';
+    else if (conversation.founderReady) currentKey = 'investorReady';
+    else if (conversation.investorReady) currentKey = 'founderReady';
+    else if (offerAccepted) currentKey = 'founderReady';
+    else if (offerSent) currentKey = 'offerAccepted';
+    else if (negotiationStarted || completed.has('accepted')) currentKey = 'negotiation';
+    if (terminal) currentKey = '';
+
+    const definitions: Array<{ key: string; label: string; optional?: boolean }> = [
+      { key: 'requested', label: this.t('conversationWorkspace.journey.requested') },
+      { key: 'accepted', label: this.t('conversationWorkspace.journey.accepted') },
+      { key: 'negotiation', label: this.t('conversationWorkspace.journey.negotiation') },
+      { key: 'offerSent', label: this.t('conversationWorkspace.journey.offerSent'), optional: true },
+      { key: 'offerAccepted', label: this.t('conversationWorkspace.journey.offerAccepted'), optional: true },
+      { key: 'founderReady', label: this.t('conversationWorkspace.journey.founderReady') },
+      { key: 'investorReady', label: this.t('conversationWorkspace.journey.investorReady') },
+      { key: 'participationRequest', label: this.t('conversationWorkspace.journey.participationRequest') },
+      { key: 'participationApproved', label: this.t('conversationWorkspace.journey.participationApproved') },
+      { key: 'projectRoomUnlocked', label: this.t('conversationWorkspace.journey.projectRoomUnlocked') }
     ];
+
+    return definitions
+      .filter(step => !step.optional || offerSent)
+      .filter(step => !(participationRequested && (step.key === 'founderReady' || step.key === 'investorReady') && !completed.has(step.key)))
+      .filter(step => !terminal || completed.has(step.key))
+      .map(step => ({
+        key: step.key,
+        label: step.label,
+        state: step.key === currentKey ? 'current' : completed.has(step.key) ? 'completed' : 'future'
+      }));
+  }
+
+  private buildTerminalJourneyStatus(conversation: NegotiationConversation | null): string {
+    if (!conversation) return '';
+    if (conversation.status === 'Participation Rejected') return this.t('conversationWorkspace.journey.terminalParticipationRejected');
+    if (conversation.status === 'Declined by Founder') return this.t('conversationWorkspace.journey.terminalDeclined');
+    if (conversation.status === 'You withdrew') return this.t('conversationWorkspace.journey.terminalWithdrawn');
+    if (conversation.status === 'Discussion Closed') return this.t('conversationWorkspace.journey.terminalClosed');
+    return '';
   }
 
   private buildStageSummary(conversation: NegotiationConversation | null): string {
@@ -1005,20 +1201,19 @@ export class ChatComponent implements OnInit {
   }
 
   private buildParticipationSummary(conversation: NegotiationConversation | null): string {
-    if (!conversation) return 'No conversation selected.';
+    if (!conversation) return '';
     const state = this.activeViewerState();
     const participationStatus = this.normalizeParticipationStatus(state?.participationStatus);
-    if (state?.projectRoomUnlocked || state?.canOpenProjectRoom || participationStatus.includes('approved')) return 'Approved';
-    if (state?.hasPendingParticipationRequest || participationStatus.includes('pending')) return 'Pending approval';
-    if (participationStatus.includes('rejected') || participationStatus.includes('declined')) return 'Rejected';
-    if (conversation.status === 'Participation Approved') return 'Approved';
-    if (conversation.status === 'Participation Rejected') return 'Rejected';
-    if (conversation.status === 'Participation Created') return 'Pending approval';
-    if (conversation.participationStatus) return String(conversation.participationStatus);
-    return 'Not yet created';
+    if (state?.projectRoomUnlocked || state?.canOpenProjectRoom || participationStatus.includes('approved')) return this.t('conversationWorkspace.participation.approved');
+    if (state?.hasPendingParticipationRequest || participationStatus.includes('pending')) return this.t('conversationWorkspace.participation.pending');
+    if (participationStatus.includes('rejected') || participationStatus.includes('declined')) return this.t('conversationWorkspace.participation.rejected');
+    if (conversation.status === 'Participation Approved') return this.t('conversationWorkspace.participation.approved');
+    if (conversation.status === 'Participation Rejected') return this.t('conversationWorkspace.participation.rejected');
+    if (conversation.status === 'Participation Created') return this.t('conversationWorkspace.participation.pending');
+    return this.t('conversationWorkspace.participation.notCreated');
   }
 
-  private activeViewerState(): any | null {
+  private activeViewerState(): ViewerState | null {
     const opportunityId = this.activeConversation()?.opportunityId;
     return opportunityId ? this.viewerStates()[String(opportunityId)] ?? null : null;
   }
@@ -1090,16 +1285,18 @@ export class ChatComponent implements OnInit {
     return firstValueFrom(this.http.get<T>(`${this.apiBase}${path}`, this.getHttpOptions()));
   }
 
-  private async post<T>(path: string, body: any): Promise<T> {
+  private async post<T>(path: string, body: unknown): Promise<T> {
     return firstValueFrom(this.http.post<T>(`${this.apiBase}${path}`, body, this.getHttpOptions()));
   }
 
-  private extractArray(raw: any): any[] {
-    const data = raw?.data ?? raw;
+  private extractArray(raw: unknown): unknown[] {
+    const wrapped = this.asRecord(raw);
+    const data = wrapped['data'] ?? raw;
     if (Array.isArray(data)) return data;
-    if (Array.isArray(data?.items)) return data.items;
-    if (Array.isArray(data?.conversations)) return data.conversations;
-    if (Array.isArray(data?.messages)) return data.messages;
+    const record = this.asRecord(data);
+    if (Array.isArray(record['items'])) return record['items'];
+    if (Array.isArray(record['conversations'])) return record['conversations'];
+    if (Array.isArray(record['messages'])) return record['messages'];
     return [];
   }
 
@@ -1135,7 +1332,7 @@ export class ChatComponent implements OnInit {
     return 'unknown';
   }
 
-  private t(path: string): string {
+  t(path: string): string {
     return this.languageService.translate(path);
   }
 
@@ -1143,8 +1340,10 @@ export class ChatComponent implements OnInit {
     return this.t(`reports.reasons.${reason}`);
   }
 
-  private reportErrorMessage(error: any): string {
-    const raw = String(error?.error?.message || error?.message || '').toLowerCase();
+  private reportErrorMessage(error: unknown): string {
+    const errorRecord = this.asRecord(error);
+    const response = this.asRecord(errorRecord['error']);
+    const raw = String(response['message'] ?? errorRecord['message'] ?? '').toLowerCase();
     if (raw.includes('duplicate') || raw.includes('pending')) return this.t('reports.errors.duplicatePending');
     if (raw.includes('invalid') || raw.includes('target')) return this.t('reports.errors.invalidTarget');
     if (raw.includes('self')) return this.t('reports.errors.selfReport');
@@ -1160,12 +1359,180 @@ export class ChatComponent implements OnInit {
   }
 
   private formatCredits(value: number): string {
-    return new Intl.NumberFormat(this.languageService.language() === 'ar' ? 'ar-EG' : 'en-US', { maximumFractionDigits: 2 }).format(Number(value ?? 0));
+    return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(Number(value ?? 0));
   }
 
   private clearSelection(): void {
     this.selectedConversation.set(null);
+    this.selectedRequest.set(null);
     this.messages.set([]);
     this.messagesError.set(null);
+  }
+
+  private asRecord(value: unknown): JsonRecord {
+    return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as JsonRecord : {};
+  }
+
+  private stringValue(value: unknown): string {
+    return value === null || value === undefined ? '' : String(value).trim();
+  }
+
+  private optionalString(value: unknown): string | undefined {
+    const result = this.stringValue(value);
+    return result || undefined;
+  }
+
+  private idValue(value: unknown): string | number | undefined {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    return this.optionalString(value);
+  }
+
+  private dateValue(value: unknown): string | Date | undefined {
+    return value instanceof Date || typeof value === 'string' ? value : undefined;
+  }
+
+  private booleanValue(value: unknown): boolean {
+    return value === true || value === 1 || String(value).toLowerCase() === 'true';
+  }
+
+  private offerStatusValue(value: unknown): OfferStatus {
+    const status = Number(value);
+    return status >= 1 && status <= 5 ? status as OfferStatus : 1;
+  }
+
+  private offerLegTypeValue(value: unknown): OfferLegType {
+    const type = Number(value);
+    return type === 2 || type === 3 ? type : 1;
+  }
+
+  private mapViewerState(value: unknown): ViewerState {
+    const row = this.asRecord(value);
+    return {
+      projectRoomUnlocked: this.booleanValue(row['projectRoomUnlocked']),
+      canOpenProjectRoom: this.booleanValue(row['canOpenProjectRoom']),
+      hasPendingParticipationRequest: this.booleanValue(row['hasPendingParticipationRequest']),
+      participationStatus: this.optionalString(row['participationStatus'])
+    };
+  }
+
+  private mapRequest(value: unknown): ConversationRequest {
+    const row = this.asRecord(value);
+    const opportunity = this.asRecord(row['opportunity']);
+    const statusRaw = String(row['statusText'] ?? row['status'] ?? '').toLowerCase();
+    const status: RequestStatus = statusRaw.includes('accept') || statusRaw === '1' ? 'accepted'
+      : statusRaw.includes('reject') || statusRaw === '2' ? 'rejected'
+      : statusRaw.includes('withdraw') || statusRaw.includes('cancel') || statusRaw === '3' ? 'withdrawn'
+      : 'pending';
+    return {
+      id: this.stringValue(row['id']),
+      opportunityId: this.idValue(row['opportunityId'] ?? opportunity['id']) ?? '',
+      opportunityTitle: this.stringValue(opportunity['title']),
+      direction: this.normalizeDirection(row['direction']),
+      counterpartyUserId: this.idValue(row['counterpartyUserId']),
+      counterpartyName: this.stringValue(row['counterpartyName']),
+      counterpartyRole: this.optionalString(row['counterpartyRole']),
+      message: this.optionalString(row['message']),
+      status,
+      createdAt: this.dateValue(row['createdAt']),
+      updatedAt: this.dateValue(row['updatedAt']),
+      canAccept: this.booleanValue(row['canAccept']),
+      canReject: this.booleanValue(row['canReject']),
+      canWithdraw: this.booleanValue(row['canWithdraw']),
+      acceptedConversationId: this.optionalString(row['acceptedConversationId'])
+    };
+  }
+
+  private async hydrateConversationPreview(conversation: NegotiationConversation): Promise<NegotiationConversation> {
+    if (conversation.lastMessage) return conversation;
+    try {
+      const raw = await this.get<unknown>(`/api/v1/conversations/${encodeURIComponent(conversation.id)}/messages`);
+      const rows = this.extractArray(raw);
+      if (!rows.length) return conversation;
+      const lastMessage = this.mapMessage(rows[rows.length - 1], conversation);
+      return { ...conversation, lastMessage: lastMessage.text, lastMessageAt: lastMessage.sentAt };
+    } catch {
+      return conversation;
+    }
+  }
+
+  private async requestAction(request: ConversationRequest, action: 'accept' | 'reject' | 'withdraw'): Promise<void> {
+    if (this.actionProcessing()) return;
+    try {
+      this.actionProcessing.set(true);
+      this.messagesError.set(null);
+      const body = action === 'reject' ? { reason: '' } : {};
+      const raw = await this.post<unknown>(`/api/v1/conversation-requests/${encodeURIComponent(request.id)}/${action}`, body);
+      const data = this.asRecord(raw)['data'];
+      const acceptedConversationId = this.optionalString(this.asRecord(data)['acceptedConversationId']);
+      await this.loadConversations();
+      if (action === 'accept' && acceptedConversationId) {
+        this.workspaceTab.set('conversations');
+        const conversation = this.conversations().find(item => item.id === acceptedConversationId);
+        if (conversation) await this.selectConversation(conversation);
+      }
+    } catch (error) {
+      this.messagesError.set(this.errorMessage(error, this.t('conversationWorkspace.errors.requestAction')));
+    } finally {
+      this.actionProcessing.set(false);
+    }
+  }
+
+  statusLabel(status: NegotiationStatus): string {
+    const key: Record<NegotiationStatus, string> = {
+      'Founder Accepted': 'founderAccepted',
+      'Negotiation in Progress': 'inProgress',
+      'Declined by Founder': 'declined',
+      'You withdrew': 'withdrawn',
+      'Ready for Participation': 'ready',
+      'Participation Created': 'participationCreated',
+      'Participation Approved': 'participationApproved',
+      'Participation Rejected': 'participationRejected',
+      'Discussion Closed': 'closed'
+    };
+    return this.t(`conversationWorkspace.status.${key[status]}`);
+  }
+
+  requestStatusLabel(status: RequestStatus): string {
+    return this.t(`conversationWorkspace.requestStatus.${status}`);
+  }
+
+  roleLabel(role?: string): string {
+    const normalized = this.normalizeRole(role);
+    return normalized ? this.t(`conversationWorkspace.roles.${normalized.toLowerCase()}`) : '';
+  }
+
+  investmentModelLabel(value?: string): string {
+    const raw = String(value ?? '').toLowerCase().replace(/[\s_-]+/g, '');
+    if (raw.includes('equity') || raw === '1') return this.t('conversationWorkspace.offerTypes.equity');
+    if (raw.includes('loan') || raw.includes('debt') || raw === '2') return this.t('conversationWorkspace.offerTypes.loan');
+    if (raw.includes('profit') || raw === '3') return this.t('conversationWorkspace.offerTypes.profitSharing');
+    return '';
+  }
+
+  initials(name?: string): string {
+    return (name || '').trim().split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || '—';
+  }
+
+  founderProfileId(conversation: NegotiationConversation): string | number | null {
+    return conversation.founderUserId ?? null;
+  }
+
+  participantFounderProfileId(conversation: NegotiationConversation): string | number | null {
+    return this.sameId(conversation.counterpartyUserId, conversation.founderUserId) ? conversation.founderUserId ?? null : null;
+  }
+
+  isMessageGroupStart(index: number): boolean {
+    const current = this.chatItems()[index];
+    const previous = this.chatItems()[index - 1];
+    return current?.kind === 'message' && (previous?.kind !== 'message' || previous.message.senderId !== current.message.senderId);
+  }
+
+  parentOfferVersion(offer: NegotiationOffer): number | null {
+    if (!offer.parentOfferId) return null;
+    return this.offers().find(item => item.id === offer.parentOfferId)?.version ?? null;
+  }
+
+  setOfferLegEnabled(type: OfferLegType, checked: boolean): void {
+    this.offerDrafts[type].enabled = checked;
   }
 }

@@ -45,6 +45,7 @@ export class AppComponent {
       const prefersLight = window.matchMedia?.('(prefers-color-scheme: light)').matches ?? false;
       const useLight = preference === ThemePreference.Light || (preference === ThemePreference.System && prefersLight);
       document.body.classList.toggle('investa-theme-light', useLight);
+      document.body.classList.toggle('investa-theme-dark', !useLight);
     });
 
     // Initialize authentication and user state on app startup

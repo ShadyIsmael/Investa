@@ -51,7 +51,6 @@ export interface UserSettings {
   privacy: PrivacySettings;
   personalization: PersonalizationSettings;
   support: SupportSettings;
-  walletBalance: number;
   // Session timeout in minutes for authenticated users
   sessionTimeoutMinutes?: number;
 }

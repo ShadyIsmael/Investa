@@ -1,258 +1,139 @@
-<div class="container mx-auto space-y-6 p-6 lg:p-8">
-  @if (isLoading()) {
-    <section class="space-y-6">
-      <div class="h-52 animate-pulse rounded-3xl border border-slate-800 bg-slate-900/80"></div>
-      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div class="h-36 animate-pulse rounded-2xl border border-slate-800 bg-slate-900/80"></div>
-        <div class="h-36 animate-pulse rounded-2xl border border-slate-800 bg-slate-900/80"></div>
-        <div class="h-36 animate-pulse rounded-2xl border border-slate-800 bg-slate-900/80"></div>
-        <div class="h-36 animate-pulse rounded-2xl border border-slate-800 bg-slate-900/80"></div>
-      </div>
-    </section>
-  } @else if (error(); as roomError) {
-    <section class="mx-auto max-w-2xl rounded-2xl border border-slate-800 bg-slate-900/90 p-8 text-center">
-      <h1 class="text-2xl font-bold text-white">{{ roomError.title }}</h1>
-      <p class="mt-3 text-sm text-slate-300">{{ roomError.message }}</p>
-      <div class="mt-6 flex flex-wrap justify-center gap-3">
-        <button type="button" (click)="load()" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">{{ 'opportunityRoom.errors.retry' | translate }}</button>
-        <a routerLink="/admin/investments" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-slate-700">{{ 'opportunityRoom.backToOpportunities' | translate }}</a>
-      </div>
-    </section>
-  } @else if (room()) {
-    <section class="overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950">
-      <div class="border-b border-slate-800/80 p-6 lg:p-8">
-        <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-          <div class="max-w-4xl">
-            <div class="mb-3 flex flex-wrap gap-2 text-xs font-semibold">
-              <span class="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-cyan-200">{{ 'opportunityRoom.badges.investorProjectRoom' | translate }}</span>
-              @if (roomRoleKey()) {
-                <span class="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-slate-200">{{ roomRole() }}</span>
-              } @else {
-                <span class="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-slate-200">{{ status() }}</span>
-              }
-              @if (stageKey()) {
-                <span class="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-slate-200">{{ stageKey() | translate }}</span>
-              } @else {
-                <span class="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-slate-200">{{ stage() }}</span>
-              }
+<div class="room-workspace investa-page">
+  <div class="room-shell">
+    @if (isLoading()) {
+      <section class="room-loading">
+        <div class="room-loading-header"></div>
+        <div class="room-loading-body"></div>
+      </section>
+    } @else if (error(); as roomError) {
+      <section class="room-error investa-card">
+        <h1>{{ roomError.title }}</h1>
+        <p>{{ roomError.message }}</p>
+        <div>
+          <button type="button" (click)="load()" class="investa-btn-primary">{{ 'opportunityRoom.errors.retry' | translate }}</button>
+          <a routerLink="/admin/investments" class="investa-btn-secondary">{{ 'opportunityRoom.backToOpportunities' | translate }}</a>
+        </div>
+      </section>
+    } @else if (room()) {
+      <a routerLink="/admin/investments" class="room-back-link">← {{ 'opportunityRoom.backToOpportunities' | translate }}</a>
+
+      <header class="room-header investa-card">
+        <div class="room-identity">
+          <div class="room-thumbnail">{{ title().charAt(0) }}</div>
+          <div class="room-title-block">
+            <div class="room-title-line">
+              <h1>{{ title() }}</h1>
+              <span class="investa-badge investa-badge-accent">{{ status() }}</span>
             </div>
-            <h1 class="text-3xl font-bold tracking-tight text-white lg:text-4xl">{{ title() }}</h1>
-            <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-300 lg:text-base">{{ description() }}</p>
-            <p class="mt-4 rounded-xl border border-slate-800 bg-slate-950/70 p-4 text-sm text-slate-300">
-              <span class="font-semibold text-white">{{ 'opportunityRoom.founderSummary' | translate }}:</span>
-              {{ founderSummary() }}
-            </p>
+            @if (founderProfileId()) {
+              <a class="room-founder-link" [routerLink]="['/admin/founders', founderProfileId()]">{{ founderSummary() }}</a>
+            } @else {
+              <p>{{ founderSummary() }}</p>
+            }
           </div>
-          <div class="flex flex-wrap items-center gap-3">
-            @if (canReportProject()) {
-              <button type="button"
-                      (click)="openProjectReport()"
-                      class="inline-flex items-center justify-center rounded-lg border border-red-400/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-100 transition hover:bg-red-500/20">
-                {{ 'reports.actions.reportProject' | translate }}
+        </div>
+        <div class="room-header-meta">
+          <div><span>{{ 'opportunityRoom.stats.participation' | translate }}</span><strong>{{ roomRole() }}</strong></div>
+          <div><span>{{ 'opportunityRoom.overview.status' | translate }}</span><strong>{{ stageKey() ? (stageKey() | translate) : stage() }}</strong></div>
+          @if (canReportProject()) {
+            <button type="button" (click)="openProjectReport()" class="investa-btn-secondary">{{ 'reports.actions.reportProject' | translate }}</button>
+          }
+        </div>
+      </header>
+
+      <section class="room-metrics investa-card">
+        <div><span>{{ 'opportunityRoom.funding.funded' | translate }}</span><strong>{{ money(fundedAmount()) }}</strong></div>
+        <div><span>{{ 'opportunityRoom.funding.target' | translate }}</span><strong>{{ money(fundingTarget()) }}</strong></div>
+        <div><span>{{ 'opportunityRoom.funding.remaining' | translate }}</span><strong>{{ money(remainingFundingAmount()) }}</strong></div>
+        <div><span>{{ 'opportunityRoom.funding.participants' | translate }}</span><strong>{{ approvedParticipantCount() ?? '-' }}</strong></div>
+        <div class="room-progress-metric">
+          <span>{{ 'opportunityRoom.funding.progress' | translate }}</span>
+          <strong>{{ fundingProgress() == null ? '-' : ((fundingProgress() | number:'1.0-2') + '%') }}</strong>
+          <div class="room-progress"><i [style.width.%]="fundingProgressBarWidth()"></i></div>
+        </div>
+      </section>
+
+      @if (actionSuccess()) { <div class="room-success">{{ actionSuccess() }}</div> }
+
+      <div class="room-workspace-grid">
+        <aside class="room-navigation investa-card">
+          <nav>
+            @for (tab of tabs; track tab.id) {
+              <button type="button" (click)="setTab(tab.id)" [class.active]="activeTab() === tab.id">
+                <span class="room-nav-icon">{{ tab.id === 'overview' ? '⌂' : tab.id === 'timeline' ? '⌁' : tab.id === 'updates' ? '↗' : tab.id === 'documents' ? '□' : tab.id === 'media' ? '▧' : '▤' }}</span>
+                <span>{{ tab.id === 'contracts' ? ('contracts.title' | translate) : (('opportunityRoom.tabs.' + tab.id) | translate) }}</span>
+                @if (tab.id === 'updates' && updates().length) { <small>{{ updates().length }}</small> }
+                @if (tab.id === 'documents' && documents().length) { <small>{{ documents().length }}</small> }
+                @if (tab.id === 'media' && media().length) { <small>{{ media().length }}</small> }
               </button>
             }
-            <a routerLink="/admin/investments" class="inline-flex items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-slate-700">{{ 'opportunityRoom.backToOpportunities' | translate }}</a>
-          </div>
-        </div>
+          </nav>
+        </aside>
 
-        @if (isFounder()) {
-          <div class="mt-6 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-5">
-            <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-200">{{ 'opportunityRoom.founderWorkspace.title' | translate }}</p>
-                <p class="mt-2 text-sm text-cyan-100">{{ 'opportunityRoom.founderWorkspace.approvedParticipants' | translate }}: <strong>{{ approvedParticipantCount() ?? '-' }}</strong></p>
-                <p class="mt-1 text-sm text-cyan-100/90">{{ coreEditMessage() }}</p>
-              </div>
-              <div class="flex flex-wrap gap-3">
-                <a [routerLink]="['/admin/opportunities', opportunityId(), 'edit']"
-                   class="rounded-lg px-4 py-2 text-sm font-bold"
-                   [class.bg-cyan-600]="canEditCoreProject()"
-                   [class.text-white]="canEditCoreProject()"
-                   [class.pointer-events-none]="!canEditCoreProject()"
-                   [class.bg-slate-800]="!canEditCoreProject()"
-                   [class.text-slate-500]="!canEditCoreProject()"
-                   [attr.aria-disabled]="!canEditCoreProject()">
-                  {{ 'opportunityRoom.founderWorkspace.editProject' | translate }}
-                </a>
-                <button type="button" (click)="openUpdateModal()" [disabled]="!canAddUpdate()" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">{{ 'opportunityRoom.founderWorkspace.addUpdate' | translate }}</button>
-                <button type="button" (click)="openDocumentModal()" [disabled]="!canAddDocument()" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">{{ 'opportunityRoom.founderWorkspace.addDocument' | translate }}</button>
-                <button type="button" (click)="openMilestoneModal()" [disabled]="!canAddMilestone()" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">{{ 'opportunityRoom.founderWorkspace.addMilestone' | translate }}</button>
-              </div>
+        <main class="room-content">
+          <div class="room-content-toolbar">
+            <div>
+              <span>{{ roomRole() }}</span>
+              <h2>{{ activeTab() === 'contracts' ? ('contracts.title' | translate) : (('opportunityRoom.tabs.' + activeTab()) | translate) }}</h2>
             </div>
-          </div>
-        }
-
-        @if (actionSuccess()) {
-          <div class="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">{{ actionSuccess() }}</div>
-        }
-      </div>
-
-      <div class="grid gap-4 p-6 md:grid-cols-2 xl:grid-cols-4 lg:p-8">
-        <article class="rounded-2xl border border-slate-800 bg-slate-950/60 p-5">
-          <p class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'opportunityRoom.stats.participation' | translate }}</p>
-          <p class="mt-2 text-lg font-bold text-white">{{ participationAccessText() }}</p>
-          <p class="mt-1 text-sm text-slate-300">{{ roomRole() }}</p>
-          <p class="mt-3 text-xs text-slate-400">{{ 'opportunityRoom.stats.permissions' | translate: { privateFiles: permissionLabel(participantContext().canViewPrivateFiles), downloads: permissionLabel(participantContext().canDownloadFiles) } }}</p>
-        </article>
-
-        <article class="rounded-2xl border border-slate-800 bg-slate-950/60 p-5">
-          <p class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'opportunityRoom.stats.termsSnapshot' | translate }}</p>
-          <p class="mt-2 text-sm font-semibold text-white">{{ 'opportunityRoom.stats.investmentModel' | translate: { model: (investmentModelKey() ? (investmentModelKey() | translate) : investmentModel()) } }}</p>
-          <p class="mt-2 text-sm text-slate-300">{{ 'opportunityRoom.stats.minimumParticipation' | translate }}: {{ money(minimumParticipation()) }}</p>
-          <p class="mt-2 line-clamp-3 text-xs text-slate-400">{{ investmentTermsSummary() }}</p>
-        </article>
-
-        <article class="rounded-2xl border border-slate-800 bg-slate-950/60 p-5">
-          <p class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'opportunityRoom.funding.progress' | translate }}</p>
-          <p class="mt-2 text-lg font-bold text-white">{{ fundingProgress() == null ? '-' : ((fundingProgress() | number:'1.0-2') + '%') }}</p>
-          <div class="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-300">
-            <span>{{ 'opportunityRoom.funding.target' | translate }}</span>
-            <strong class="text-end text-white">{{ money(fundingTarget()) }}</strong>
-            <span>{{ 'opportunityRoom.funding.funded' | translate }}</span>
-            <strong class="text-end text-white">{{ money(fundedAmount()) }}</strong>
-            <span>{{ 'opportunityRoom.funding.remaining' | translate }}</span>
-            <strong class="text-end text-white">{{ money(remainingFundingAmount()) }}</strong>
-            <span>{{ 'opportunityRoom.funding.participants' | translate }}</span>
-            <strong class="text-end text-white">{{ approvedParticipantCount() ?? '-' }}</strong>
-          </div>
-          <div class="mt-3 h-2 rounded-full bg-slate-800">
-            <div class="h-2 rounded-full bg-gradient-to-r from-cyan-500 to-emerald-400" [style.width.%]="fundingProgressBarWidth()"></div>
-          </div>
-        </article>
-
-        <article class="rounded-2xl border border-slate-800 bg-slate-950/60 p-5">
-          <p class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'opportunityRoom.stats.latestChange' | translate }}</p>
-          @if (latestMilestone(); as latest) {
-            <div class="mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold border-emerald-500/30 bg-emerald-500/10 text-emerald-200">{{ 'opportunityRoom.milestones.label' | translate }}</div>
-            <p class="mt-2 line-clamp-2 text-sm font-semibold text-white">{{ milestoneTitle(latest) }}</p>
-            <p class="mt-1 text-xs text-slate-400">{{ milestoneDescription(latest) }}</p>
-            <p class="mt-2 text-xs text-slate-500">{{ milestoneDate(latest) }}</p>
-          } @else {
-            <p class="mt-2 text-sm text-slate-400">{{ 'opportunityRoom.milestones.empty' | translate }}</p>
-          }
-        </article>
-      </div>
-    </section>
-
-    <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-      <article class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
-        <div class="flex items-center justify-between">
-          <h2 class="text-lg font-bold text-white">{{ 'opportunityRoom.recentActivity.title' | translate }}</h2>
-          <div class="flex items-center gap-3">
-            <span class="text-xs text-slate-500">{{ 'opportunityRoom.recentActivity.subtitle' | translate }}</span>
-            @if (hasMoreRecentActivity() && !showAllRecentActivity()) {
-              <button type="button" (click)="showAllRecent()" class="text-xs font-semibold text-cyan-300 hover:text-cyan-200">{{ 'opportunityRoom.recentActivity.viewAll' | translate }}</button>
-            } @else if (hasMoreRecentActivity() && showAllRecentActivity()) {
-              <button type="button" (click)="showRecentSummary()" class="text-xs font-semibold text-cyan-300 hover:text-cyan-200">{{ 'opportunityRoom.recentActivity.showLess' | translate }}</button>
-            }
-          </div>
-        </div>
-        @if (displayedRecentActivity().length === 0) {
-          <p class="mt-4 rounded-xl bg-slate-950/50 p-4 text-sm text-slate-400">{{ 'opportunityRoom.recentActivity.empty' | translate }}</p>
-        } @else {
-          <div class="mt-4 space-y-3">
-            @for (item of displayedRecentActivity(); track item.trackKey) {
-              <div class="flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-950/50 p-3">
-                <span class="mt-0.5 inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold" [ngClass]="activityKindClass(item.kind)">{{ activityKindLabel(item.kind) }}</span>
-                <div class="min-w-0">
-                  <p class="truncate text-sm font-semibold text-white">{{ item.title }}</p>
-                  <p class="line-clamp-2 text-xs text-slate-400">{{ item.detail }}</p>
-                  <p class="mt-1 text-xs text-slate-500">{{ item.dateText }}</p>
-                </div>
+            @if (isFounder()) {
+              <div class="room-founder-actions">
+                @if (activeTab() === 'updates' || activeTab() === 'overview') { <button type="button" (click)="openUpdateModal()" [disabled]="!canAddUpdate()" class="investa-btn-secondary">{{ 'opportunityRoom.founderWorkspace.addUpdate' | translate }}</button> }
+                @if (activeTab() === 'timeline' || activeTab() === 'overview') { <button type="button" (click)="openMilestoneModal()" [disabled]="!canAddMilestone()" class="investa-btn-secondary">{{ 'opportunityRoom.founderWorkspace.addMilestone' | translate }}</button> }
+                @if (activeTab() === 'documents' || activeTab() === 'overview') { <button type="button" (click)="openDocumentModal()" [disabled]="!canAddDocument()" class="investa-btn-secondary">{{ 'opportunityRoom.founderWorkspace.addDocument' | translate }}</button> }
+                <a [routerLink]="['/admin/opportunities', opportunityId(), 'edit']" [class.disabled]="!canEditCoreProject()" class="investa-btn-secondary">{{ 'opportunityRoom.founderWorkspace.editProject' | translate }}</a>
               </div>
             }
           </div>
-        }
-      </article>
-
-      <aside class="space-y-6">
-        <article class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
-          <h2 class="text-lg font-bold text-white">{{ 'opportunityRoom.nextSteps.title' | translate }}</h2>
-          @if (recommendedNextSteps().length === 0) {
-            <p class="mt-4 text-sm text-slate-400">{{ 'opportunityRoom.nextSteps.empty' | translate }}</p>
-          } @else {
-            <ol class="mt-4 space-y-3">
-              @for (step of recommendedNextSteps(); track step) {
-                <li class="rounded-xl border border-slate-800 bg-slate-950/50 px-3 py-2 text-sm text-slate-300">{{ step }}</li>
-              }
-            </ol>
-          }
-        </article>
-
-        <article class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
-          <h2 class="text-lg font-bold text-white">{{ 'opportunityRoom.publicNote.title' | translate }}</h2>
-          <p class="mt-3 whitespace-pre-line text-sm text-slate-300">{{ latestPublicUpdateSummary() }}</p>
-        </article>
-      </aside>
-    </section>
-
-    <nav class="flex gap-2 overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/80 p-2">
-      @for (tab of tabs; track tab.id) {
-        <button type="button"
-                (click)="setTab(tab.id)"
-                class="whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
-                [class.bg-cyan-600]="activeTab() === tab.id"
-                [class.text-white]="activeTab() === tab.id"
-                [class.text-gray-300]="activeTab() !== tab.id"
-                [class.hover:bg-slate-800]="activeTab() !== tab.id">
-          @if (tab.id === 'contracts') {
-            {{ 'contracts.title' | translate }}
-          } @else {
-            {{ ('opportunityRoom.tabs.' + tab.id) | translate }}
-          }
-        </button>
-      }
-    </nav>
-
     @if (activeTab() === 'overview') {
       <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <article class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
-          <h2 class="text-xl font-bold text-white">{{ 'opportunityRoom.overview.title' | translate }}</h2>
+        <article class="investa-card p-6">
+          <h2 class="text-xl font-bold text-current">{{ 'opportunityRoom.overview.title' | translate }}</h2>
           <dl class="mt-5 grid gap-4 md:grid-cols-2">
-            <div class="rounded-xl bg-slate-950/50 p-4"><dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'investmentPreview.amountRaised' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-white">{{ overview().fundedAmount == null ? '—' : (overview().fundedAmount | number:'1.0-0') }}</dd></div>
-            <div class="rounded-xl bg-slate-950/50 p-4"><dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'investmentPreview.remainingFunding' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-white">{{ overview().remainingFundingAmount == null ? '—' : (overview().remainingFundingAmount | number:'1.0-0') }}</dd></div>
-            <div class="rounded-xl bg-slate-950/50 p-4"><dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'investmentPreview.fundingProgress' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-white">{{ overview().fundingProgressPercentage == null ? '—' : ((overview().fundingProgressPercentage | number:'1.0-2') + '%') }}</dd></div>
-            <div class="rounded-xl bg-slate-950/50 p-4"><dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'investmentPreview.approvedParticipants' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-white">{{ overview().approvedParticipantCount == null ? '—' : overview().approvedParticipantCount }}</dd></div>
+            <div class="investa-card-soft p-4"><dt class="text-xs uppercase tracking-[0.16em] investa-meta">{{ 'investmentPreview.amountRaised' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-current">{{ overview().fundedAmount == null ? '—' : (overview().fundedAmount | number:'1.0-0') }}</dd></div>
+            <div class="investa-card-soft p-4"><dt class="text-xs uppercase tracking-[0.16em] investa-meta">{{ 'investmentPreview.remainingFunding' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-current">{{ overview().remainingFundingAmount == null ? '—' : (overview().remainingFundingAmount | number:'1.0-0') }}</dd></div>
+            <div class="investa-card-soft p-4"><dt class="text-xs uppercase tracking-[0.16em] investa-meta">{{ 'investmentPreview.fundingProgress' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-current">{{ overview().fundingProgressPercentage == null ? '—' : ((overview().fundingProgressPercentage | number:'1.0-2') + '%') }}</dd></div>
+            <div class="investa-card-soft p-4"><dt class="text-xs uppercase tracking-[0.16em] investa-meta">{{ 'investmentPreview.approvedParticipants' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-current">{{ overview().approvedParticipantCount == null ? '—' : overview().approvedParticipantCount }}</dd></div>
             @if (overview().investmentModel === 'Equity' || overview().investmentModel === 1) {
-              <div class="rounded-xl bg-slate-950/50 p-4"><dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'investmentPreview.sharesOffered' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-white">{{ overview().offeredShares == null ? '—' : (overview().offeredShares | number) }}</dd></div>
-              <div class="rounded-xl bg-slate-950/50 p-4"><dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'investmentPreview.sharesSold' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-white">{{ overview().soldShares == null ? '—' : (overview().soldShares | number) }}</dd></div>
-              <div class="rounded-xl bg-slate-950/50 p-4"><dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'investmentPreview.sharesRemaining' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-white">{{ overview().remainingShares == null ? '—' : (overview().remainingShares | number) }}</dd></div>
-              <div class="rounded-xl bg-slate-950/50 p-4"><dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'investmentPreview.equityAllocated' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-white">{{ overview().allocatedEquityPercentage == null ? '—' : ((overview().allocatedEquityPercentage | number:'1.0-2') + '%') }}</dd></div>
-              <div class="rounded-xl bg-slate-950/50 p-4"><dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'investmentPreview.equityRemaining' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-white">{{ overview().remainingEquityPercentage == null ? '—' : ((overview().remainingEquityPercentage | number:'1.0-2') + '%') }}</dd></div>
+              <div class="investa-card-soft p-4"><dt class="text-xs uppercase tracking-[0.16em] investa-meta">{{ 'investmentPreview.sharesOffered' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-current">{{ overview().offeredShares == null ? '—' : (overview().offeredShares | number) }}</dd></div>
+              <div class="investa-card-soft p-4"><dt class="text-xs uppercase tracking-[0.16em] investa-meta">{{ 'investmentPreview.sharesSold' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-current">{{ overview().soldShares == null ? '—' : (overview().soldShares | number) }}</dd></div>
+              <div class="investa-card-soft p-4"><dt class="text-xs uppercase tracking-[0.16em] investa-meta">{{ 'investmentPreview.sharesRemaining' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-current">{{ overview().remainingShares == null ? '—' : (overview().remainingShares | number) }}</dd></div>
+              <div class="investa-card-soft p-4"><dt class="text-xs uppercase tracking-[0.16em] investa-meta">{{ 'investmentPreview.equityAllocated' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-current">{{ overview().allocatedEquityPercentage == null ? '—' : ((overview().allocatedEquityPercentage | number:'1.0-2') + '%') }}</dd></div>
+              <div class="investa-card-soft p-4"><dt class="text-xs uppercase tracking-[0.16em] investa-meta">{{ 'investmentPreview.equityRemaining' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-current">{{ overview().remainingEquityPercentage == null ? '—' : ((overview().remainingEquityPercentage | number:'1.0-2') + '%') }}</dd></div>
             }
-            <div class="rounded-xl bg-slate-950/50 p-4">
-              <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'opportunityRoom.overview.useOfFunds' | translate }}</dt>
-              <dd class="mt-2 whitespace-pre-line text-sm text-slate-300">{{ overview().fundingUsage || overview().fundingPurpose || overview().useOfFunds || '-' }}</dd>
+            <div class="investa-card-soft p-4">
+              <dt class="text-xs uppercase tracking-[0.16em] investa-meta">{{ 'opportunityRoom.overview.useOfFunds' | translate }}</dt>
+              <dd class="mt-2 whitespace-pre-line text-sm investa-muted">{{ overview().fundingUsage || overview().fundingPurpose || overview().useOfFunds || '-' }}</dd>
             </div>
-            <div class="rounded-xl bg-slate-950/50 p-4">
-              <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'opportunityRoom.overview.expectedReturn' | translate }}</dt>
-              <dd class="mt-2 whitespace-pre-line text-sm text-slate-300">{{ overview().expectedReturnSummary || '-' }}</dd>
+            <div class="investa-card-soft p-4">
+              <dt class="text-xs uppercase tracking-[0.16em] investa-meta">{{ 'opportunityRoom.overview.expectedReturn' | translate }}</dt>
+              <dd class="mt-2 whitespace-pre-line text-sm investa-muted">{{ overview().expectedReturnSummary || '-' }}</dd>
             </div>
-            <div class="rounded-xl bg-slate-950/50 p-4 md:col-span-2">
-              <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'opportunityRoom.overview.publicTerms' | translate }}</dt>
-              <dd class="mt-2 whitespace-pre-line text-sm text-slate-300">{{ overview().publicInvestmentTermsSummary || '-' }}</dd>
+            <div class="investa-card-soft p-4 md:col-span-2">
+              <dt class="text-xs uppercase tracking-[0.16em] investa-meta">{{ 'opportunityRoom.overview.publicTerms' | translate }}</dt>
+              <dd class="mt-2 whitespace-pre-line text-sm investa-muted">{{ overview().publicInvestmentTermsSummary || '-' }}</dd>
             </div>
           </dl>
         </article>
 
-        <article class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
-          <h2 class="text-xl font-bold text-white">Participation Summary</h2>
+        <article class="investa-card p-6">
+          <h2 class="text-xl font-bold text-current">Participation Summary</h2>
           <div class="mt-5 space-y-3 text-sm">
-            <div class="flex items-center justify-between rounded-xl bg-slate-950/50 p-3">
-              <span class="text-slate-300">Room role</span>
-              <span class="font-semibold text-white">{{ roomRole() }}</span>
+            <div class="flex items-center justify-between investa-card-soft p-3">
+              <span class="investa-muted">Room role</span>
+              <span class="font-semibold text-current">{{ roomRole() }}</span>
             </div>
-            <div class="flex items-center justify-between rounded-xl bg-slate-950/50 p-3">
-              <span class="text-slate-300">Room access</span>
-              <span class="font-semibold text-white">{{ participationAccessText() }}</span>
+            <div class="flex items-center justify-between investa-card-soft p-3">
+              <span class="investa-muted">Room access</span>
+              <span class="font-semibold text-current">{{ participationAccessText() }}</span>
             </div>
-            <div class="flex items-center justify-between rounded-xl bg-slate-950/50 p-3">
-              <span class="text-slate-300">View private files</span>
-              <span class="font-semibold text-white">{{ permissionLabel(participantContext().canViewPrivateFiles) }}</span>
+            <div class="flex items-center justify-between investa-card-soft p-3">
+              <span class="investa-muted">View private files</span>
+              <span class="font-semibold text-current">{{ permissionLabel(participantContext().canViewPrivateFiles) }}</span>
             </div>
-            <div class="flex items-center justify-between rounded-xl bg-slate-950/50 p-3">
-              <span class="text-slate-300">Download files</span>
-              <span class="font-semibold text-white">{{ permissionLabel(participantContext().canDownloadFiles) }}</span>
+            <div class="flex items-center justify-between investa-card-soft p-3">
+              <span class="investa-muted">Download files</span>
+              <span class="font-semibold text-current">{{ permissionLabel(participantContext().canDownloadFiles) }}</span>
             </div>
           </div>
         </article>
@@ -261,46 +142,46 @@
 
     @if (activeTab() === 'contracts') {
       <section class="grid gap-6 xl:grid-cols-[minmax(320px,420px)_minmax(0,1fr)]">
-        <article class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
+        <article class="investa-card p-6">
           <div class="flex items-start justify-between gap-4">
             <div>
-              <h2 class="text-xl font-bold text-white">{{ 'contracts.title' | translate }}</h2>
-              <p class="mt-2 text-sm text-slate-400">{{ contractListSubtitle() }}</p>
+              <h2 class="text-xl font-bold text-current">{{ 'contracts.title' | translate }}</h2>
+              <p class="mt-2 text-sm investa-meta">{{ contractListSubtitle() }}</p>
             </div>
             <button type="button"
                     (click)="loadContracts(true)"
                     [disabled]="contractsLoading()"
-                    class="rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800 disabled:opacity-50">
+                    class="rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold investa-muted hover:bg-transparent disabled:opacity-50">
               {{ 'contracts.actions.refresh' | translate }}
             </button>
           </div>
 
           @if (contractsLoading()) {
             <div class="mt-6 space-y-3">
-              <div class="h-24 animate-pulse rounded-xl bg-slate-950/70"></div>
-              <div class="h-24 animate-pulse rounded-xl bg-slate-950/70"></div>
+              <div class="h-24 animate-pulse rounded-xl investa-card-soft"></div>
+              <div class="h-24 animate-pulse rounded-xl investa-card-soft"></div>
             </div>
           } @else if (contractsError()) {
             <div class="mt-5 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-100">{{ contractsError() }}</div>
           } @else if (contracts().length === 0) {
-            <div class="mt-6 rounded-2xl border border-dashed border-slate-700 bg-slate-950/50 p-6 text-center">
-              <p class="text-sm font-semibold text-white">{{ 'contracts.empty.title' | translate }}</p>
-              <p class="mt-2 text-sm text-slate-400">{{ 'contracts.empty.helper' | translate }}</p>
+            <div class="mt-6 investa-empty p-6">
+              <p class="text-sm font-semibold text-current">{{ 'contracts.empty.title' | translate }}</p>
+              <p class="mt-2 text-sm investa-meta">{{ 'contracts.empty.helper' | translate }}</p>
             </div>
           } @else {
             <div class="mt-6 space-y-3">
               @for (contract of contracts(); track contract.contractId) {
                 <button type="button"
                         (click)="openContractDetails(contract)"
-                        class="w-full rounded-xl border p-4 text-start transition hover:bg-slate-800/70"
-                        [class.border-cyan-500\/50]="selectedContract()?.contract?.contractId === contract.contractId"
-                        [class.bg-cyan-500\/10]="selectedContract()?.contract?.contractId === contract.contractId"
-                        [class.border-slate-800]="selectedContract()?.contract?.contractId !== contract.contractId"
-                        [class.bg-slate-950\/50]="selectedContract()?.contract?.contractId !== contract.contractId">
+                        class="w-full rounded-xl border p-4 text-start transition hover:bg-transparent"
+                        [class.border-emerald-500\/50]="selectedContract()?.contract?.contractId === contract.contractId"
+                        [class.bg-emerald-500\/10]="selectedContract()?.contract?.contractId === contract.contractId"
+                        [class.border-transparent]="selectedContract()?.contract?.contractId !== contract.contractId"
+                        [class.bg-transparent]="selectedContract()?.contract?.contractId !== contract.contractId">
                   <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
-                      <p class="truncate text-sm font-bold text-white">{{ contract.contractNumber }}</p>
-                      <p class="mt-1 truncate text-xs text-slate-400">
+                      <p class="truncate text-sm font-bold text-current">{{ contract.contractNumber }}</p>
+                      <p class="mt-1 truncate text-xs investa-meta">
                         {{ isFounder() ? contract.investorDisplayName : contract.founderDisplayName }}
                       </p>
                     </div>
@@ -310,20 +191,20 @@
                   </div>
                   <dl class="mt-4 grid grid-cols-2 gap-3 text-xs">
                     <div>
-                      <dt class="text-slate-500">{{ 'contracts.fields.investmentModel' | translate }}</dt>
-                      <dd class="mt-1 font-semibold text-slate-200">{{ contract.investmentModel }}</dd>
+                      <dt class="investa-meta">{{ 'contracts.fields.investmentModel' | translate }}</dt>
+                      <dd class="mt-1 font-semibold investa-muted">{{ contract.investmentModel }}</dd>
                     </div>
                     <div>
-                      <dt class="text-slate-500">{{ 'contracts.fields.currentVersion' | translate }}</dt>
-                      <dd class="mt-1 font-semibold text-slate-200">V{{ contract.currentVersionNumber }}</dd>
+                      <dt class="investa-meta">{{ 'contracts.fields.currentVersion' | translate }}</dt>
+                      <dd class="mt-1 font-semibold investa-muted">V{{ contract.currentVersionNumber }}</dd>
                     </div>
                     <div>
-                      <dt class="text-slate-500">{{ 'contracts.fields.latestAgreementDate' | translate }}</dt>
-                      <dd class="mt-1 font-semibold text-slate-200">{{ contractDate(contract.latestAgreementDate) }}</dd>
+                      <dt class="investa-meta">{{ 'contracts.fields.latestAgreementDate' | translate }}</dt>
+                      <dd class="mt-1 font-semibold investa-muted">{{ contractDate(contract.latestAgreementDate) }}</dd>
                     </div>
                     <div>
-                      <dt class="text-slate-500">{{ 'contracts.fields.versionCount' | translate }}</dt>
-                      <dd class="mt-1 font-semibold text-slate-200">{{ contract.versionCount }}</dd>
+                      <dt class="investa-meta">{{ 'contracts.fields.versionCount' | translate }}</dt>
+                      <dd class="mt-1 font-semibold investa-muted">{{ contract.versionCount }}</dd>
                     </div>
                   </dl>
                 </button>
@@ -332,33 +213,33 @@
           }
         </article>
 
-        <article class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
+        <article class="investa-card p-6">
           @if (contractDetailsLoading()) {
             <div class="space-y-4">
-              <div class="h-10 animate-pulse rounded-lg bg-slate-950/70"></div>
-              <div class="h-44 animate-pulse rounded-xl bg-slate-950/70"></div>
-              <div class="h-32 animate-pulse rounded-xl bg-slate-950/70"></div>
+              <div class="h-10 animate-pulse rounded-lg investa-card-soft"></div>
+              <div class="h-44 animate-pulse rounded-xl investa-card-soft"></div>
+              <div class="h-32 animate-pulse rounded-xl investa-card-soft"></div>
             </div>
           } @else if (contractDetailsError()) {
             <div class="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-100">{{ contractDetailsError() }}</div>
           } @else if (selectedContract(); as detail) {
             <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-300">{{ 'contracts.investmentAgreement' | translate }}</p>
-                <h2 class="mt-2 text-2xl font-bold text-white">{{ detail.contract.contractNumber }}</h2>
-                <p class="mt-2 text-sm text-slate-400">{{ title() }}</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-current">{{ 'contracts.investmentAgreement' | translate }}</p>
+                <h2 class="mt-2 text-2xl font-bold text-current">{{ detail.contract.contractNumber }}</h2>
+                <p class="mt-2 text-sm investa-meta">{{ title() }}</p>
               </div>
               @if (selectedVersion(); as version) {
                 <div class="flex flex-wrap gap-2">
                   <button type="button"
                           (click)="openContractPreview(version)"
-                          class="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-bold text-white hover:bg-cyan-500">
+                          class="investa-btn-primary">
                     {{ 'contracts.actions.preview' | translate }}
                   </button>
                   <button type="button"
                           (click)="downloadContractPdf(version)"
                           [disabled]="isPdfDownloading(version)"
-                          class="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800 disabled:opacity-50">
+                          class="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold investa-muted hover:bg-transparent disabled:opacity-50">
                     {{ isPdfDownloading(version) ? ('contracts.pdf.preparing' | translate) : ('contracts.actions.downloadPdf' | translate) }}
                   </button>
                 </div>
@@ -366,53 +247,53 @@
             </div>
 
             <dl class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <div class="rounded-xl bg-slate-950/50 p-4">
-                <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'contracts.fields.founder' | translate }}</dt>
-                <dd class="mt-2 text-sm font-semibold text-white">{{ detail.contract.founderDisplayName || '-' }}</dd>
+              <div class="investa-card-soft p-4">
+                <dt class="text-xs uppercase tracking-[0.16em] investa-meta">{{ 'contracts.fields.founder' | translate }}</dt>
+                <dd class="mt-2 text-sm font-semibold text-current">{{ detail.contract.founderDisplayName || '-' }}</dd>
               </div>
-              <div class="rounded-xl bg-slate-950/50 p-4">
-                <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'contracts.fields.investor' | translate }}</dt>
-                <dd class="mt-2 text-sm font-semibold text-white">{{ detail.contract.investorDisplayName || '-' }}</dd>
+              <div class="investa-card-soft p-4">
+                <dt class="text-xs uppercase tracking-[0.16em] investa-meta">{{ 'contracts.fields.investor' | translate }}</dt>
+                <dd class="mt-2 text-sm font-semibold text-current">{{ detail.contract.investorDisplayName || '-' }}</dd>
               </div>
-              <div class="rounded-xl bg-slate-950/50 p-4">
-                <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'contracts.fields.investmentModel' | translate }}</dt>
-                <dd class="mt-2 text-sm font-semibold text-white">{{ detail.contract.investmentModel }}</dd>
+              <div class="investa-card-soft p-4">
+                <dt class="text-xs uppercase tracking-[0.16em] investa-meta">{{ 'contracts.fields.investmentModel' | translate }}</dt>
+                <dd class="mt-2 text-sm font-semibold text-current">{{ detail.contract.investmentModel }}</dd>
               </div>
-              <div class="rounded-xl bg-slate-950/50 p-4">
-                <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'contracts.fields.currentVersion' | translate }}</dt>
-                <dd class="mt-2 text-sm font-semibold text-white">V{{ detail.contract.currentVersionNumber }}</dd>
+              <div class="investa-card-soft p-4">
+                <dt class="text-xs uppercase tracking-[0.16em] investa-meta">{{ 'contracts.fields.currentVersion' | translate }}</dt>
+                <dd class="mt-2 text-sm font-semibold text-current">V{{ detail.contract.currentVersionNumber }}</dd>
               </div>
-              <div class="rounded-xl bg-slate-950/50 p-4">
-                <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'contracts.fields.effectiveDate' | translate }}</dt>
-                <dd class="mt-2 text-sm font-semibold text-white">{{ effectiveDate() }}</dd>
+              <div class="investa-card-soft p-4">
+                <dt class="text-xs uppercase tracking-[0.16em] investa-meta">{{ 'contracts.fields.effectiveDate' | translate }}</dt>
+                <dd class="mt-2 text-sm font-semibold text-current">{{ effectiveDate() }}</dd>
               </div>
-              <div class="rounded-xl bg-slate-950/50 p-4">
-                <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'contracts.fields.pdfStatus' | translate }}</dt>
-                <dd class="mt-2 text-sm font-semibold text-white">{{ pdfStatusLabel(currentPdfStatus(selectedVersion())) }}</dd>
+              <div class="investa-card-soft p-4">
+                <dt class="text-xs uppercase tracking-[0.16em] investa-meta">{{ 'contracts.fields.pdfStatus' | translate }}</dt>
+                <dd class="mt-2 text-sm font-semibold text-current">{{ pdfStatusLabel(currentPdfStatus(selectedVersion())) }}</dd>
               </div>
-              <div class="rounded-xl bg-slate-950/50 p-4">
-                <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'contracts.fields.sourceParticipation' | translate }}</dt>
-                <dd class="mt-2 text-sm font-semibold text-white">{{ sourceParticipationReference() }}</dd>
+              <div class="investa-card-soft p-4">
+                <dt class="text-xs uppercase tracking-[0.16em] investa-meta">{{ 'contracts.fields.sourceParticipation' | translate }}</dt>
+                <dd class="mt-2 text-sm font-semibold text-current">{{ sourceParticipationReference() }}</dd>
               </div>
-              <div class="rounded-xl bg-slate-950/50 p-4">
-                <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'contracts.fields.acceptedOffer' | translate }}</dt>
-                <dd class="mt-2 text-sm font-semibold text-white">{{ acceptedOfferReference() }}</dd>
+              <div class="investa-card-soft p-4">
+                <dt class="text-xs uppercase tracking-[0.16em] investa-meta">{{ 'contracts.fields.acceptedOffer' | translate }}</dt>
+                <dd class="mt-2 text-sm font-semibold text-current">{{ acceptedOfferReference() }}</dd>
               </div>
-              <div class="rounded-xl bg-slate-950/50 p-4">
-                <dt class="text-xs uppercase tracking-[0.16em] text-slate-500">{{ 'contracts.fields.status' | translate }}</dt>
-                <dd class="mt-2 text-sm font-semibold text-white">{{ contractStatusLabel(detail.contract.status) }}</dd>
+              <div class="investa-card-soft p-4">
+                <dt class="text-xs uppercase tracking-[0.16em] investa-meta">{{ 'contracts.fields.status' | translate }}</dt>
+                <dd class="mt-2 text-sm font-semibold text-current">{{ contractStatusLabel(detail.contract.status) }}</dd>
               </div>
             </dl>
 
-            <section class="mt-6 rounded-2xl border border-slate-800 bg-slate-950/50 p-5">
-              <h3 class="text-lg font-bold text-white">{{ 'contracts.sections.agreedTerms' | translate }}</h3>
+            <section class="mt-6 investa-card-soft p-5">
+              <h3 class="text-lg font-bold text-current">{{ 'contracts.sections.agreedTerms' | translate }}</h3>
               @if (selectedTermsSummary().length === 0) {
-                <p class="mt-3 text-sm text-slate-400">{{ 'contracts.empty.noTerms' | translate }}</p>
+                <p class="mt-3 text-sm investa-meta">{{ 'contracts.empty.noTerms' | translate }}</p>
               } @else {
                 <dl class="mt-4 grid gap-3 md:grid-cols-2">
                   @for (term of selectedTermsSummary(); track term.label) {
-                    <div class="rounded-xl bg-slate-900/70 p-3">
-                      <dt class="text-xs text-slate-500">{{ term.label }}</dt>
+                    <div class="investa-card-soft p-3">
+                      <dt class="text-xs investa-meta">{{ term.label }}</dt>
                       <dd class="mt-1 text-sm font-semibold text-slate-100">{{ term.value }}</dd>
                     </div>
                   }
@@ -420,29 +301,29 @@
               }
             </section>
 
-            <section class="mt-6 rounded-2xl border border-slate-800 bg-slate-950/50 p-5">
-              <h3 class="text-lg font-bold text-white">{{ 'contracts.sections.versionHistory' | translate }}</h3>
+            <section class="mt-6 investa-card-soft p-5">
+              <h3 class="text-lg font-bold text-current">{{ 'contracts.sections.versionHistory' | translate }}</h3>
               <div class="mt-4 space-y-3">
                 @for (version of detail.versionHistory; track version.versionNumber) {
-                  <article class="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
+                  <article class="investa-card-soft p-4">
                     <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                       <div>
                         <div class="flex flex-wrap items-center gap-2">
-                          <p class="text-sm font-bold text-white">V{{ version.versionNumber }}</p>
-                          <span class="rounded-full border border-slate-700 px-2.5 py-1 text-xs font-semibold text-slate-300">{{ versionBadgeLabel(version) }}</span>
+                          <p class="text-sm font-bold text-current">V{{ version.versionNumber }}</p>
+                          <span class="rounded-full border border-slate-700 px-2.5 py-1 text-xs font-semibold investa-muted">{{ versionBadgeLabel(version) }}</span>
                           <span class="rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-xs font-semibold text-blue-200">{{ versionStatusLabel(version.status) }}</span>
                         </div>
-                        <p class="mt-2 text-sm text-slate-300">{{ versionTypeLabel(version.versionType) }}</p>
-                        <p class="mt-1 text-xs text-slate-500">{{ contractDate(version.activatedAt || version.createdAt) }}</p>
+                        <p class="mt-2 text-sm investa-muted">{{ versionTypeLabel(version.versionType) }}</p>
+                        <p class="mt-1 text-xs investa-meta">{{ contractDate(version.activatedAt || version.createdAt) }}</p>
                       </div>
                       <div class="flex flex-wrap gap-2">
-                        <button type="button" (click)="openContractVersion(version)" class="rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800">
+                        <button type="button" (click)="openContractVersion(version)" class="rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold investa-muted hover:bg-transparent">
                           {{ 'contracts.actions.openVersion' | translate }}
                         </button>
-                        <button type="button" (click)="openContractPreview(version)" class="rounded-lg border border-cyan-500/40 px-3 py-2 text-xs font-semibold text-cyan-200 hover:bg-cyan-500/10">
+                        <button type="button" (click)="openContractPreview(version)" class="rounded-lg border border-emerald-500/40 px-3 py-2 text-xs font-semibold text-current hover:bg-emerald-500/10">
                           {{ 'contracts.actions.preview' | translate }}
                         </button>
-                        <button type="button" (click)="downloadContractPdf(version)" [disabled]="isPdfDownloading(version)" class="rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800 disabled:opacity-50">
+                        <button type="button" (click)="downloadContractPdf(version)" [disabled]="isPdfDownloading(version)" class="rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold investa-muted hover:bg-transparent disabled:opacity-50">
                           {{ isPdfDownloading(version) ? ('contracts.pdf.preparing' | translate) : ('contracts.actions.downloadPdf' | translate) }}
                         </button>
                       </div>
@@ -451,16 +332,16 @@
                 }
               </div>
               @if (selectedVersion()) {
-                <div class="mt-4 rounded-xl bg-slate-900/70 p-4">
-                  <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{{ 'contracts.fields.changesSummary' | translate }}</p>
-                  <p class="mt-2 whitespace-pre-line text-sm text-slate-300">{{ selectedChangesSummary() }}</p>
+                <div class="mt-4 investa-card-soft p-4">
+                  <p class="text-xs font-semibold uppercase tracking-[0.16em] investa-meta">{{ 'contracts.fields.changesSummary' | translate }}</p>
+                  <p class="mt-2 whitespace-pre-line text-sm investa-muted">{{ selectedChangesSummary() }}</p>
                 </div>
               }
             </section>
           } @else {
-            <div class="rounded-2xl border border-dashed border-slate-700 bg-slate-950/50 p-8 text-center">
-              <p class="text-sm font-semibold text-white">{{ 'contracts.empty.selectTitle' | translate }}</p>
-              <p class="mt-2 text-sm text-slate-400">{{ 'contracts.empty.selectHelper' | translate }}</p>
+            <div class="investa-empty p-8">
+              <p class="text-sm font-semibold text-current">{{ 'contracts.empty.selectTitle' | translate }}</p>
+              <p class="mt-2 text-sm investa-meta">{{ 'contracts.empty.selectHelper' | translate }}</p>
             </div>
           }
         </article>
@@ -468,31 +349,31 @@
     }
 
     @if (activeTab() === 'timeline') {
-      <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
-        <h2 class="text-xl font-bold text-white">Milestones Timeline</h2>
-        <p class="mt-2 text-sm text-slate-400">Strategic milestones only. Operational updates are listed in the Updates tab.</p>
+      <section class="investa-card p-6">
+        <h2 class="text-xl font-bold text-current">Milestones Timeline</h2>
+        <p class="mt-2 text-sm investa-meta">Strategic milestones only. Operational updates are listed in the Updates tab.</p>
         @if (timelineSorted().length === 0) {
-          <p class="mt-5 rounded-xl bg-slate-950/50 p-6 text-center text-sm text-slate-400">{{ 'opportunityRoom.milestones.empty' | translate }}</p>
+          <p class="mt-5 investa-card-soft p-6 text-center text-sm investa-meta">{{ 'opportunityRoom.milestones.empty' | translate }}</p>
         } @else {
           <ol class="mt-6 space-y-4">
             @for (event of timelineSorted(); track event.id || $index) {
-              <li class="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
+              <li class="investa-card-soft p-4">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p class="text-sm font-semibold text-white">{{ eventTitle(event) }}</p>
-                    <p class="mt-1 text-xs text-slate-500">{{ eventType(event) }} · {{ eventDate(event) }}</p>
+                    <p class="text-sm font-semibold text-current">{{ eventTitle(event) }}</p>
+                    <p class="mt-1 text-xs investa-meta">{{ eventType(event) }} · {{ eventDate(event) }}</p>
                   </div>
                   <span class="rounded-full px-2.5 py-1 text-xs font-semibold"
                         [class.bg-emerald-500\/10]="event.isPublic === true"
                         [class.text-emerald-300]="event.isPublic === true"
                         [class.bg-amber-500\/10]="event.isPublic === false"
                         [class.text-amber-300]="event.isPublic === false"
-                        [class.bg-slate-800]="event.isPublic === null || event.isPublic === undefined"
-                        [class.text-gray-300]="event.isPublic === null || event.isPublic === undefined">
+                        [class.bg-transparent]="event.isPublic === null || event.isPublic === undefined"
+                        [class.investa-muted]="event.isPublic === null || event.isPublic === undefined">
                     {{ event.isPublic === true ? 'Public' : event.isPublic === false ? 'Private' : 'Room' }}
                   </span>
                 </div>
-                <p class="mt-3 whitespace-pre-line text-sm text-slate-300">{{ event.description || '-' }}</p>
+                <p class="mt-3 whitespace-pre-line text-sm investa-muted">{{ event.description || '-' }}</p>
               </li>
             }
           </ol>
@@ -501,18 +382,18 @@
     }
 
     @if (activeTab() === 'updates') {
-      <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
-        <h2 class="text-xl font-bold text-white">Founder Updates</h2>
-        <p class="mt-2 text-sm text-slate-400">Progress notes, announcements, and operational updates.</p>
+      <section class="investa-card p-6">
+        <h2 class="text-xl font-bold text-current">Founder Updates</h2>
+        <p class="mt-2 text-sm investa-meta">Progress notes, announcements, and operational updates.</p>
         @if (updatesSorted().length === 0) {
-          <p class="mt-5 rounded-xl bg-slate-950/50 p-6 text-center text-sm text-slate-400">No updates yet.</p>
+          <p class="mt-5 investa-card-soft p-6 text-center text-sm investa-meta">No updates yet.</p>
         } @else {
           <div class="mt-6 space-y-4">
             @for (update of updatesSorted(); track update.id || $index) {
-              <article class="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
-                <p class="text-sm font-semibold text-white">{{ eventTitle(update) }}</p>
-                <p class="mt-1 text-xs text-slate-500">{{ eventDate(update) }}</p>
-                <p class="mt-3 whitespace-pre-line text-sm text-slate-300">{{ update.description || '-' }}</p>
+              <article class="investa-card-soft p-4">
+                <p class="text-sm font-semibold text-current">{{ eventTitle(update) }}</p>
+                <p class="mt-1 text-xs investa-meta">{{ eventDate(update) }}</p>
+                <p class="mt-3 whitespace-pre-line text-sm investa-muted">{{ update.description || '-' }}</p>
               </article>
             }
           </div>
@@ -521,27 +402,27 @@
     }
 
     @if (activeTab() === 'documents') {
-      <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
-        <h2 class="text-xl font-bold text-white">Documents</h2>
+      <section class="investa-card p-6">
+        <h2 class="text-xl font-bold text-current">Documents</h2>
         @if (documents().length === 0) {
-          <p class="mt-5 rounded-xl bg-slate-950/50 p-6 text-center text-sm text-slate-400">No documents uploaded yet.</p>
+          <p class="mt-5 investa-card-soft p-6 text-center text-sm investa-meta">No documents uploaded yet.</p>
         } @else {
           <div class="mt-6 space-y-6">
             @for (group of documentGroups(); track group.label) {
               <div>
-                <h3 class="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">{{ group.label }}</h3>
+                <h3 class="text-sm font-semibold uppercase tracking-[0.16em] investa-meta">{{ group.label }}</h3>
                 <div class="mt-3 grid gap-3 lg:grid-cols-2">
                   @for (doc of group.items; track doc.id || doc.fileId || doc.fileName) {
-                    <article class="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
+                    <article class="investa-card-soft p-4">
                       <div class="flex gap-4">
-                        <div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-slate-800 text-xs font-bold text-slate-200">{{ extension(doc) }}</div>
+                        <div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl investa-card-soft text-xs font-bold investa-muted">{{ extension(doc) }}</div>
                         <div class="min-w-0 flex-1">
-                          <h4 class="truncate text-sm font-semibold text-white">{{ fileTitle(doc) }}</h4>
-                          <p class="mt-1 text-xs text-slate-500">{{ fileSize(doc.fileSize) }} · {{ visibility(doc) }} · {{ uploadedDate(doc) }}</p>
-                          <p class="mt-1 text-xs text-slate-500">{{ doc.category || doc.purpose || 'General' }}</p>
+                          <h4 class="truncate text-sm font-semibold text-current">{{ fileTitle(doc) }}</h4>
+                          <p class="mt-1 text-xs investa-meta">{{ fileSize(doc.fileSize) }} · {{ visibility(doc) }} · {{ uploadedDate(doc) }}</p>
+                          <p class="mt-1 text-xs investa-meta">{{ doc.category || doc.purpose || 'General' }}</p>
                           <div class="mt-3 flex gap-3">
-                            <a *ngIf="previewUrl(doc)" [href]="previewUrl(doc)" target="_blank" rel="noopener" class="text-xs font-semibold text-cyan-300 hover:text-cyan-200">Preview</a>
-                            <a *ngIf="downloadUrl(doc)" [href]="downloadUrl(doc)" target="_blank" rel="noopener" class="text-xs font-semibold text-cyan-300 hover:text-cyan-200">Download</a>
+                            <a *ngIf="previewUrl(doc)" [href]="previewUrl(doc)" target="_blank" rel="noopener" class="text-xs font-semibold text-current underline-offset-4 hover:underline">Preview</a>
+                            <a *ngIf="downloadUrl(doc)" [href]="downloadUrl(doc)" target="_blank" rel="noopener" class="text-xs font-semibold text-current underline-offset-4 hover:underline">Download</a>
                           </div>
                         </div>
                       </div>
@@ -556,31 +437,31 @@
     }
 
     @if (activeTab() === 'media') {
-      <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
-        <h2 class="text-xl font-bold text-white">Media</h2>
+      <section class="investa-card p-6">
+        <h2 class="text-xl font-bold text-current">Media</h2>
         @if (media().length === 0) {
-          <p class="mt-5 rounded-xl bg-slate-950/50 p-6 text-center text-sm text-slate-400">No media available yet.</p>
+          <p class="mt-5 investa-card-soft p-6 text-center text-sm investa-meta">No media available yet.</p>
         } @else {
           <div class="mt-6 space-y-6">
             @for (group of mediaGroups(); track group.label) {
               <div>
-                <h3 class="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">{{ group.label }}</h3>
+                <h3 class="text-sm font-semibold uppercase tracking-[0.16em] investa-meta">{{ group.label }}</h3>
                 <div class="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   @for (item of group.items; track item.id || item.fileId || item.fileName) {
-                    <article class="overflow-hidden rounded-xl border border-slate-800 bg-slate-950/50">
+                    <article class="overflow-hidden investa-card-soft">
                       @if (isImage(item) && mediaUrl(item)) {
                         <img [src]="mediaUrl(item)" [alt]="fileTitle(item)" class="h-44 w-full object-cover">
                       } @else {
-                        <div class="flex h-44 items-center justify-center bg-slate-800 text-sm font-semibold text-slate-400">
+                        <div class="flex h-44 items-center justify-center investa-card-soft text-sm font-semibold investa-meta">
                           {{ isVideo(item) ? 'Video' : extension(item) }}
                         </div>
                       }
                       <div class="p-4">
-                        <h4 class="truncate text-sm font-semibold text-white">{{ fileTitle(item) }}</h4>
-                        <p class="mt-1 text-xs text-slate-500">{{ visibility(item) }} · {{ uploadedDate(item) }}</p>
+                        <h4 class="truncate text-sm font-semibold text-current">{{ fileTitle(item) }}</h4>
+                        <p class="mt-1 text-xs investa-meta">{{ visibility(item) }} · {{ uploadedDate(item) }}</p>
                         <div class="mt-3 flex gap-3">
-                          <a *ngIf="previewUrl(item)" [href]="previewUrl(item)" target="_blank" rel="noopener" class="text-xs font-semibold text-cyan-300 hover:text-cyan-200">Preview</a>
-                          <a *ngIf="downloadUrl(item)" [href]="downloadUrl(item)" target="_blank" rel="noopener" class="text-xs font-semibold text-cyan-300 hover:text-cyan-200">Download</a>
+                          <a *ngIf="previewUrl(item)" [href]="previewUrl(item)" target="_blank" rel="noopener" class="text-xs font-semibold text-current underline-offset-4 hover:underline">Preview</a>
+                          <a *ngIf="downloadUrl(item)" [href]="downloadUrl(item)" target="_blank" rel="noopener" class="text-xs font-semibold text-current underline-offset-4 hover:underline">Download</a>
                         </div>
                       </div>
                     </article>
@@ -592,38 +473,42 @@
         }
       </section>
     }
-  }
+
+        </main>
+      </div>
+    }
+  </div>
 </div>
 
 @if (previewModalOpen()) {
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-    <section class="flex max-h-[92vh] w-full max-w-5xl flex-col rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
-      <header class="flex flex-col gap-4 border-b border-slate-800 p-5 md:flex-row md:items-center md:justify-between">
+    <section class="flex max-h-[92vh] w-full max-w-5xl flex-col rounded-2xl investa-modal shadow-2xl">
+      <header class="flex flex-col gap-4 border-b border-neutral-700/40 p-5 md:flex-row md:items-center md:justify-between">
         <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">{{ 'contracts.actions.preview' | translate }}</p>
-          <h2 class="mt-2 text-xl font-bold text-white">{{ selectedContract()?.contract?.contractNumber || ('contracts.investmentAgreement' | translate) }}</h2>
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-current">{{ 'contracts.actions.preview' | translate }}</p>
+          <h2 class="mt-2 text-xl font-bold text-current">{{ selectedContract()?.contract?.contractNumber || ('contracts.investmentAgreement' | translate) }}</h2>
         </div>
         <div class="flex flex-wrap gap-2">
           <button type="button"
                   (click)="printContractPreview()"
                   [disabled]="!previewHtml()"
-                  class="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800 disabled:opacity-50">
+                  class="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold investa-muted hover:bg-transparent disabled:opacity-50">
             {{ 'contracts.actions.print' | translate }}
           </button>
           <button type="button"
                   (click)="downloadContractPdf(selectedVersion())"
                   [disabled]="!selectedVersion() || isPdfDownloading(selectedVersion())"
-                  class="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-bold text-white hover:bg-cyan-500 disabled:opacity-50">
+                  class="investa-btn-primary disabled:opacity-50">
             {{ isPdfDownloading(selectedVersion()) ? ('contracts.pdf.preparing' | translate) : ('contracts.actions.downloadPdf' | translate) }}
           </button>
-          <button type="button" (click)="closeContractPreview()" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-700">
+          <button type="button" (click)="closeContractPreview()" class="investa-btn-secondary">
             {{ 'common.close' | translate }}
           </button>
         </div>
       </header>
       <div class="min-h-0 flex-1 overflow-y-auto bg-white p-6 text-slate-950">
         @if (previewLoading()) {
-          <div class="flex min-h-80 items-center justify-center text-sm font-semibold text-slate-500">{{ 'contracts.preview.loading' | translate }}</div>
+          <div class="flex min-h-80 items-center justify-center text-sm font-semibold investa-meta">{{ 'contracts.preview.loading' | translate }}</div>
         } @else if (previewError()) {
           <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{{ previewError() }}</div>
         } @else if (previewHtml()) {
@@ -636,11 +521,11 @@
 
 @if (reportModalOpen()) {
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-    <section class="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
-      <header class="border-b border-slate-800 p-5">
+    <section class="w-full max-w-lg rounded-2xl investa-modal shadow-2xl">
+      <header class="border-b border-neutral-700/40 p-5">
         <p class="text-xs font-semibold uppercase tracking-[0.18em] text-red-300">{{ 'reports.title' | translate }}</p>
-        <h2 class="mt-2 text-xl font-bold text-white">{{ 'reports.actions.reportProject' | translate }}</h2>
-        <p class="mt-1 text-sm text-slate-400">{{ title() }}</p>
+        <h2 class="mt-2 text-xl font-bold text-current">{{ 'reports.actions.reportProject' | translate }}</h2>
+        <p class="mt-1 text-sm investa-meta">{{ title() }}</p>
       </header>
       <div class="space-y-4 p-5">
         @if (reportSuccess()) {
@@ -648,9 +533,9 @@
             {{ 'reports.success' | translate }}
           </div>
         } @else {
-          <label class="block text-sm font-semibold text-slate-200">
+          <label class="block text-sm font-semibold investa-muted">
             {{ 'reports.reason' | translate }}
-            <select class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+            <select class="mt-2 w-full rounded-lg investa-input"
                     [ngModel]="reportReason()"
                     (ngModelChange)="setReportReason($event)">
               @for (reason of reportReasons; track reason) {
@@ -658,10 +543,10 @@
               }
             </select>
           </label>
-          <label class="block text-sm font-semibold text-slate-200">
+          <label class="block text-sm font-semibold investa-muted">
             {{ 'reports.description' | translate }}
             <textarea rows="4"
-                      class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+                      class="mt-2 w-full rounded-lg investa-input"
                       [placeholder]="'reports.descriptionPlaceholder' | translate"
                       [ngModel]="reportDescription()"
                       (ngModelChange)="setReportDescription($event)"></textarea>
@@ -671,15 +556,15 @@
           }
         }
       </div>
-      <footer class="flex gap-3 border-t border-slate-800 p-5">
-        <button type="button" (click)="closeReportModal()" class="flex-1 rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-700">
+      <footer class="flex gap-3 border-t border-neutral-700/40 p-5">
+        <button type="button" (click)="closeReportModal()" class="flex-1 investa-btn-secondary">
           {{ reportSuccess() ? ('common.close' | translate) : ('reports.cancel' | translate) }}
         </button>
         @if (!reportSuccess()) {
           <button type="button"
                   (click)="submitProjectReport()"
                   [disabled]="reportSubmitting()"
-                  class="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50">
+                  class="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-current hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50">
             {{ reportSubmitting() ? ('reports.submitting' | translate) : ('reports.submit' | translate) }}
           </button>
         }
@@ -690,21 +575,21 @@
 
 @if (updateModalOpen()) {
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-    <section class="w-full max-w-xl rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
-      <h2 class="text-xl font-bold text-white">Add Update</h2>
-      <p class="mt-2 text-sm text-slate-400">Operational communication for participants.</p>
+    <section class="w-full max-w-xl rounded-2xl investa-modal p-6 shadow-2xl">
+      <h2 class="text-xl font-bold text-current">Add Update</h2>
+      <p class="mt-2 text-sm investa-meta">Operational communication for participants.</p>
       <div class="mt-5 space-y-4">
-        <input [ngModel]="updateForm().title" (ngModelChange)="setUpdateTitle($event)" placeholder="Update title" class="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white">
-        <textarea [ngModel]="updateForm().content" (ngModelChange)="setUpdateContent($event)" rows="5" placeholder="Update content" class="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white"></textarea>
-        <label class="flex items-center gap-3 text-sm text-slate-300">
-          <input type="checkbox" [ngModel]="updateForm().isPublic" (ngModelChange)="setUpdateIsPublic($event)" class="rounded border-slate-700 bg-slate-800">
+        <input [ngModel]="updateForm().title" (ngModelChange)="setUpdateTitle($event)" placeholder="Update title" class="w-full rounded-lg investa-input">
+        <textarea [ngModel]="updateForm().content" (ngModelChange)="setUpdateContent($event)" rows="5" placeholder="Update content" class="w-full rounded-lg investa-input"></textarea>
+        <label class="flex items-center gap-3 text-sm investa-muted">
+          <input type="checkbox" [ngModel]="updateForm().isPublic" (ngModelChange)="setUpdateIsPublic($event)" class="rounded border-neutral-400 accent-green-500">
           Public update
         </label>
       </div>
       @if (actionError()) { <p class="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{{ actionError() }}</p> }
       <div class="mt-6 flex justify-end gap-3">
-        <button type="button" (click)="closeActionModals()" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200">Cancel</button>
-        <button type="button" (click)="submitUpdate()" [disabled]="isSubmittingAction()" class="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{{ isSubmittingAction() ? 'Saving...' : 'Add Update' }}</button>
+        <button type="button" (click)="closeActionModals()" class="investa-btn-secondary">Cancel</button>
+        <button type="button" (click)="submitUpdate()" [disabled]="isSubmittingAction()" class="investa-btn-primary disabled:opacity-50">{{ isSubmittingAction() ? 'Saving...' : 'Add Update' }}</button>
       </div>
     </section>
   </div>
@@ -712,21 +597,21 @@
 
 @if (milestoneModalOpen()) {
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-    <section class="w-full max-w-xl rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
-      <h2 class="text-xl font-bold text-white">Add Milestone</h2>
-      <p class="mt-2 text-sm text-slate-400">Strategic project evolution. This creates a real Timeline event.</p>
+    <section class="w-full max-w-xl rounded-2xl investa-modal p-6 shadow-2xl">
+      <h2 class="text-xl font-bold text-current">Add Milestone</h2>
+      <p class="mt-2 text-sm investa-meta">Strategic project evolution. This creates a real Timeline event.</p>
       <div class="mt-5 space-y-4">
-        <input [ngModel]="milestoneForm().title" (ngModelChange)="setMilestoneTitle($event)" placeholder="Milestone title" class="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white">
-        <textarea [ngModel]="milestoneForm().description" (ngModelChange)="setMilestoneDescription($event)" rows="5" placeholder="Milestone description" class="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white"></textarea>
-        <label class="flex items-center gap-3 text-sm text-slate-300">
-          <input type="checkbox" [ngModel]="milestoneForm().isPublic" (ngModelChange)="setMilestoneIsPublic($event)" class="rounded border-slate-700 bg-slate-800">
+        <input [ngModel]="milestoneForm().title" (ngModelChange)="setMilestoneTitle($event)" placeholder="Milestone title" class="w-full rounded-lg investa-input">
+        <textarea [ngModel]="milestoneForm().description" (ngModelChange)="setMilestoneDescription($event)" rows="5" placeholder="Milestone description" class="w-full rounded-lg investa-input"></textarea>
+        <label class="flex items-center gap-3 text-sm investa-muted">
+          <input type="checkbox" [ngModel]="milestoneForm().isPublic" (ngModelChange)="setMilestoneIsPublic($event)" class="rounded border-neutral-400 accent-green-500">
           Public milestone
         </label>
       </div>
       @if (actionError()) { <p class="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{{ actionError() }}</p> }
       <div class="mt-6 flex justify-end gap-3">
-        <button type="button" (click)="closeActionModals()" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200">Cancel</button>
-        <button type="button" (click)="submitMilestone()" [disabled]="isSubmittingAction()" class="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{{ isSubmittingAction() ? 'Saving...' : 'Add Milestone' }}</button>
+        <button type="button" (click)="closeActionModals()" class="investa-btn-secondary">Cancel</button>
+        <button type="button" (click)="submitMilestone()" [disabled]="isSubmittingAction()" class="investa-btn-primary disabled:opacity-50">{{ isSubmittingAction() ? 'Saving...' : 'Add Milestone' }}</button>
       </div>
     </section>
   </div>
@@ -734,17 +619,17 @@
 
 @if (documentModalOpen()) {
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-    <section class="w-full max-w-xl rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
-      <h2 class="text-xl font-bold text-white">Add Document</h2>
-      <p class="mt-2 text-sm text-slate-400">Uploads use Investa FileStore, then the document reference is attached to the Opportunity.</p>
+    <section class="w-full max-w-xl rounded-2xl investa-modal p-6 shadow-2xl">
+      <h2 class="text-xl font-bold text-current">Add Document</h2>
+      <p class="mt-2 text-sm investa-meta">Uploads use Investa FileStore, then the document reference is attached to the Opportunity.</p>
       <div class="mt-5 space-y-4">
-        <input [ngModel]="documentForm().title" (ngModelChange)="setDocumentTitle($event)" placeholder="Document title optional" class="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white">
-        <input type="file" (change)="onDocumentFileSelected($event)" class="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-slate-200">
-        <select [ngModel]="documentForm().visibility" (ngModelChange)="setDocumentVisibility($event)" class="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white">
+        <input [ngModel]="documentForm().title" (ngModelChange)="setDocumentTitle($event)" placeholder="Document title optional" class="w-full rounded-lg investa-input">
+        <input type="file" (change)="onDocumentFileSelected($event)" class="w-full rounded-lg investa-input">
+        <select [ngModel]="documentForm().visibility" (ngModelChange)="setDocumentVisibility($event)" class="w-full rounded-lg investa-input">
           <option value="Private">Private</option>
           <option value="Public">Public</option>
         </select>
-        <select [ngModel]="documentForm().purpose" (ngModelChange)="setDocumentPurpose($event)" class="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white">
+        <select [ngModel]="documentForm().purpose" (ngModelChange)="setDocumentPurpose($event)" class="w-full rounded-lg investa-input">
           <option value="PrivateDocument">Private Document</option>
           <option value="PublicDocument">Public Document</option>
           <option value="FinancialReport">Financial Report</option>
@@ -756,8 +641,8 @@
       </div>
       @if (actionError()) { <p class="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{{ actionError() }}</p> }
       <div class="mt-6 flex justify-end gap-3">
-        <button type="button" (click)="closeActionModals()" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200">Cancel</button>
-        <button type="button" (click)="submitDocument()" [disabled]="isSubmittingAction()" class="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{{ isSubmittingAction() ? 'Uploading...' : 'Add Document' }}</button>
+        <button type="button" (click)="closeActionModals()" class="investa-btn-secondary">Cancel</button>
+        <button type="button" (click)="submitDocument()" [disabled]="isSubmittingAction()" class="investa-btn-primary disabled:opacity-50">{{ isSubmittingAction() ? 'Uploading...' : 'Add Document' }}</button>
       </div>
     </section>
   </div>

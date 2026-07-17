@@ -1,498 +1,261 @@
-<div class="h-[calc(100vh-61px)] bg-slate-950 text-white grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)_360px]">
-  <!-- Conversation List -->
-  <aside class="border-e border-slate-800 bg-slate-900 flex flex-col min-h-0">
-    <div class="p-4 border-b border-slate-800">
-      <div class="flex items-center justify-between gap-3">
-        <div>
-          <h1 class="text-xl font-bold text-white">Conversations</h1>
-          <p class="mt-1 text-xs text-slate-500">Negotiate one Opportunity at a time.</p>
-        </div>
-        <button type="button" (click)="loadConversations()" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-700">Refresh</button>
-      </div>
+<main class="conversation-page" [class.mobile-list]="mobileView() === 'list'" [class.mobile-chat]="mobileView() === 'chat'" [class.mobile-context]="mobileView() === 'context'">
+  <nav class="mobile-switcher" [attr.aria-label]="'conversationWorkspace.mobile.navigation' | translate">
+    <button type="button" [class.active]="mobileView() === 'list'" (click)="setMobileView('list')">{{ 'conversationWorkspace.mobile.list' | translate }}</button>
+    <button type="button" [class.active]="mobileView() === 'chat'" [disabled]="!activeConversation() && !selectedRequest()" (click)="setMobileView('chat')">{{ 'conversationWorkspace.mobile.chat' | translate }}</button>
+    <button type="button" [class.active]="mobileView() === 'context'" [disabled]="!activeConversation()" (click)="setMobileView('context')">{{ 'conversationWorkspace.mobile.context' | translate }}</button>
+  </nav>
 
-      <div class="mt-4 grid grid-cols-3 rounded-xl border border-slate-800 bg-slate-950 p-1 text-xs font-semibold">
-        <button type="button" (click)="setConversationTab('active')" class="rounded-lg px-2 py-2" [class.bg-blue-600]="conversationTab() === 'active'" [class.text-white]="conversationTab() === 'active'" [class.text-slate-400]="conversationTab() !== 'active'">Active</button>
-        <button type="button" (click)="setConversationTab('archived')" class="rounded-lg px-2 py-2" [class.bg-blue-600]="conversationTab() === 'archived'" [class.text-white]="conversationTab() === 'archived'" [class.text-slate-400]="conversationTab() !== 'archived'">Archived</button>
-        <button type="button" (click)="setConversationTab('all')" class="rounded-lg px-2 py-2" [class.bg-blue-600]="conversationTab() === 'all'" [class.text-white]="conversationTab() === 'all'" [class.text-slate-400]="conversationTab() !== 'all'">All</button>
+  <section class="workspace-panel list-panel">
+    <header class="panel-heading">
+      <div>
+        <p class="eyebrow">{{ 'conversationWorkspace.eyebrow' | translate }}</p>
+        <h1>{{ 'conversationWorkspace.title' | translate }}</h1>
       </div>
+    </header>
+
+    <div class="workspace-tabs" role="tablist">
+      <button type="button" role="tab" [class.active]="workspaceTab() === 'incoming'" (click)="setWorkspaceTab('incoming')">
+        {{ 'conversationWorkspace.tabs.incoming' | translate }}
+      </button>
+      <button type="button" role="tab" [class.active]="workspaceTab() === 'outgoing'" (click)="setWorkspaceTab('outgoing')">
+        {{ 'conversationWorkspace.tabs.outgoing' | translate }}
+      </button>
+      <button type="button" role="tab" [class.active]="workspaceTab() === 'conversations'" (click)="setWorkspaceTab('conversations')">
+        {{ 'conversationWorkspace.tabs.conversations' | translate }}
+      </button>
     </div>
 
-    <div class="flex-1 overflow-y-auto">
+    <div class="list-tools">
+      <label class="search-field">
+        <span aria-hidden="true">⌕</span>
+        <input type="search" [value]="searchTerm()" (input)="setSearchTerm($event.target.value)" [placeholder]="'conversationWorkspace.search' | translate">
+      </label>
+      @if (workspaceTab() === 'conversations') {
+        <select [value]="conversationFilter()" (change)="setConversationFilter($event.target.value)" [attr.aria-label]="'conversationWorkspace.filter.label' | translate">
+          <option value="all">{{ 'conversationWorkspace.filter.all' | translate }}</option>
+          <option value="active">{{ 'conversationWorkspace.filter.active' | translate }}</option>
+          <option value="closed">{{ 'conversationWorkspace.filter.closed' | translate }}</option>
+        </select>
+      }
+    </div>
+
+    <div class="conversation-list">
       @if (loading()) {
-        <div class="p-6 text-sm text-slate-400">Loading conversations...</div>
+        <div class="compact-state"><span class="spinner"></span><p>{{ 'conversationWorkspace.loading' | translate }}</p></div>
       } @else if (error()) {
-        <div class="m-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">{{ error() }}</div>
-      } @else {
+        <div class="compact-state compact-state--error"><p>{{ error() }}</p><button type="button" (click)="loadConversations()">{{ 'conversationWorkspace.retry' | translate }}</button></div>
+      } @else if (workspaceTab() === 'conversations') {
         @for (conversation of visibleConversations(); track conversation.id) {
-          <button type="button"
-                  (click)="selectConversation(conversation)"
-                  class="w-full border-b border-slate-800 p-4 text-start hover:bg-slate-800/60 transition-colors"
-                  [class.bg-blue-600/15]="activeConversation()?.id === conversation.id">
-            <div class="flex items-start gap-3">
-              <img [src]="conversation.avatarUrl" [alt]="conversation.counterpartyName" class="h-11 w-11 rounded-xl object-cover">
-              <div class="min-w-0 flex-1">
-                <div class="flex items-start justify-between gap-2">
-                  <div class="min-w-0">
-                    <p class="truncate text-sm font-bold text-white">{{ conversation.opportunityTitle }}</p>
-                    <p class="mt-0.5 truncate text-xs text-slate-400">{{ conversation.counterpartyName }}</p>
-                  </div>
-                  <span class="shrink-0 text-[10px] text-slate-500">{{ formatDate(conversation.lastMessageAt || conversation.createdAt) }}</span>
-                </div>
-                <p class="mt-2 line-clamp-1 text-xs text-slate-500">{{ conversation.lastMessage }}</p>
-                <span class="mt-3 inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold" [class]="statusBadgeClass(conversation.status)">
-                  {{ conversation.status }}
-                </span>
-              </div>
+          <article class="list-card" [class.selected]="activeConversation()?.id === conversation.id">
+            <button type="button" class="list-card__select" (click)="selectConversation(conversation)" [attr.aria-label]="conversation.counterpartyName"></button>
+            <div class="avatar avatar--small">
+              @if (conversation.avatarUrl) { <img [src]="conversation.avatarUrl" [alt]="conversation.counterpartyName"> }
+              @else { <span>{{ initials(conversation.counterpartyName) }}</span> }
             </div>
-          </button>
+            <div class="list-card__body">
+              <div class="list-card__top"><strong>{{ conversation.counterpartyName }}</strong><time>{{ formatTime(conversation.lastMessageAt) }}</time></div>
+              <p class="opportunity-line">{{ conversation.opportunityTitle }}</p>
+              @if (conversation.lastMessage) { <p class="message-preview">{{ conversation.lastMessage }}</p> }
+              <span [class]="statusBadgeClass(conversation.status)">{{ statusLabel(conversation.status) }}</span>
+            </div>
+          </article>
         } @empty {
-          <div class="p-8 text-center text-sm text-slate-500">No conversations found.</div>
+          <div class="compact-state"><p>{{ 'conversationWorkspace.empty.conversations' | translate }}</p></div>
+        }
+      } @else {
+        @for (request of visibleRequests(); track request.id) {
+          <article class="list-card" [class.selected]="selectedRequest()?.id === request.id">
+            <button type="button" class="list-card__select" (click)="selectRequest(request)" [attr.aria-label]="request.counterpartyName"></button>
+            <div class="avatar avatar--small"><span>{{ initials(request.counterpartyName) }}</span></div>
+            <div class="list-card__body">
+              <div class="list-card__top"><strong>{{ request.counterpartyName }}</strong><time>{{ formatDate(request.updatedAt || request.createdAt) }}</time></div>
+              <p class="opportunity-line">{{ request.opportunityTitle }}</p>
+              @if (request.message) { <p class="message-preview">{{ request.message }}</p> }
+              <span class="status-badge" [class.status-badge--success]="request.status === 'accepted'" [class.status-badge--closed]="request.status === 'rejected' || request.status === 'withdrawn'">{{ requestStatusLabel(request.status) }}</span>
+            </div>
+          </article>
+        } @empty {
+          <div class="compact-state"><p>{{ 'conversationWorkspace.empty.requests' | translate }}</p></div>
         }
       }
     </div>
-  </aside>
+  </section>
 
-  <!-- Center Chat -->
-  <main class="flex min-h-0 flex-col bg-slate-950">
+  <section class="workspace-panel chat-panel">
     @if (activeConversation(); as conversation) {
-      <header class="border-b border-slate-800 bg-slate-900/90 px-5 py-3">
-        <div class="flex items-center justify-between gap-3">
-          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Chat</p>
+      <header class="chat-header">
+        <div class="header-actions">
+          <button type="button" class="primary-button" (click)="openOfferBuilder()" [disabled]="isClosed() || offerProcessing()">{{ 'conversationWorkspace.actions.createOffer' | translate }}</button>
           @if (canReportConversationUser(conversation)) {
-            <button type="button"
-                    (click)="openConversationReport(conversation)"
-                    class="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-800">
-              {{ conversationReportLabel(conversation) }}
-            </button>
+            <button type="button" class="secondary-button" (click)="openConversationReport(conversation)">{{ 'conversationWorkspace.actions.report' | translate }}</button>
           }
         </div>
       </header>
 
-      <section class="flex-1 overflow-y-auto p-6">
-        @if (messagesLoading()) {
-          <div class="rounded-xl border border-slate-800 bg-slate-900 p-6 text-center text-sm text-slate-400">Loading messages...</div>
-        } @else if (messagesError()) {
-          <div class="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">{{ messagesError() }}</div>
-        } @else {
-          <div class="space-y-4">
-            @for (message of messages(); track message.id) {
-              <article class="flex w-full" [class.justify-end]="message.isSender" [class.justify-start]="!message.isSender">
-                <div class="max-w-[min(78%,42rem)] rounded-2xl border px-4 py-3 shadow-sm"
-                     [class.rounded-br-md]="message.isSender"
-                     [class.rounded-bl-md]="!message.isSender"
-                     [class.bg-blue-600]="message.isSender"
-                     [class.border-blue-500]="message.isSender"
-                     [class.text-white]="message.isSender"
-                     [class.bg-slate-900]="!message.isSender"
-                     [class.border-slate-800]="!message.isSender"
-                     [class.text-slate-100]="!message.isSender">
-                  <div class="mb-2 flex items-center gap-2 text-xs" [class.justify-end]="message.isSender" [class.text-blue-100]="message.isSender" [class.text-slate-400]="!message.isSender">
-                    <span class="font-semibold">{{ message.senderName }}</span>
-                    @if (message.senderRole) {
-                      <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                            [class.bg-white/15]="message.isSender"
-                            [class.text-blue-50]="message.isSender"
-                            [class.bg-slate-800]="!message.isSender"
-                            [class.text-slate-300]="!message.isSender">
-                        {{ message.senderRole }}
-                      </span>
-                    }
-                    <span class="opacity-75">{{ formatTime(message.sentAt) }}</span>
-                  </div>
-                  <p class="whitespace-pre-wrap break-words text-sm leading-6" dir="auto">{{ message.text }}</p>
-                </div>
-              </article>
-            } @empty {
-              <div class="rounded-xl border border-slate-800 bg-slate-900 p-8 text-center text-sm text-slate-500">
-                No messages yet. Start the negotiation with a clear question or proposal.
-              </div>
-            }
-
-            @for (offer of offers(); track offer.id) {
-              <article class="rounded-2xl border border-blue-500/20 bg-blue-500/10 p-4">
-                <div class="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p class="text-xs font-semibold uppercase tracking-wide text-blue-200">Structured Offer v{{ offer.version }}</p>
-                    <h3 class="mt-1 text-base font-bold text-white">
-                      {{ isAcceptedOffer(offer) ? 'Agreed Terms' : 'Offer Terms' }}
-                    </h3>
-                    <p class="mt-1 text-xs text-slate-400">By {{ offer.createdByName || 'Participant' }} · {{ formatDate(offer.createdAt) }}</p>
-                  </div>
-                  <span class="rounded-full border px-3 py-1 text-xs font-bold"
-                        [class.border-amber-400/40]="offer.status === 1"
-                        [class.bg-amber-400/10]="offer.status === 1"
-                        [class.text-amber-200]="offer.status === 1"
-                        [class.border-blue-400/40]="offer.status === 2"
-                        [class.bg-blue-400/10]="offer.status === 2"
-                        [class.text-blue-200]="offer.status === 2"
-                        [class.border-emerald-400/40]="offer.status === 3"
-                        [class.bg-emerald-400/10]="offer.status === 3"
-                        [class.text-emerald-200]="offer.status === 3"
-                        [class.border-red-400/40]="offer.status === 4 || offer.status === 5"
-                        [class.bg-red-400/10]="offer.status === 4 || offer.status === 5"
-                        [class.text-red-200]="offer.status === 4 || offer.status === 5">
-                    {{ offerStatusLabel(offer.status) }}
-                  </span>
-                </div>
-
-                @if (offer.note) {
-                  <p class="mt-3 rounded-lg bg-slate-950/60 p-3 text-sm text-slate-300">{{ offer.note }}</p>
-                }
-
-                <div class="mt-4 grid gap-3">
-                  @for (leg of offer.legs; track leg.id || leg.legType) {
-                    <div class="rounded-xl border border-slate-700 bg-slate-950/70 p-3 text-sm">
-                      <div class="flex items-center justify-between gap-3">
-                        <span class="font-semibold text-white">{{ offerLegLabel(leg.legType) }}</span>
-                        <span class="text-slate-300">{{ money(leg.amount) }} {{ offer.currency }}</span>
-                      </div>
-                      <div class="mt-2 grid gap-1 text-xs text-slate-400 sm:grid-cols-2">
-                        @if (leg.equityPercentage) { <span>Equity: {{ leg.equityPercentage }}%</span> }
-                        @if (leg.sharesTerms) { <span>Shares: {{ leg.sharesTerms }}</span> }
-                        @if (leg.returnRate) { <span>Return: {{ leg.returnRate }}%</span> }
-                        @if (leg.termMonths) { <span>Term: {{ leg.termMonths }} months</span> }
-                        @if (leg.repaymentModel) { <span>Repayment: {{ leg.repaymentModel }}</span> }
-                        @if (leg.profitSharePercentage) { <span>Profit share: {{ leg.profitSharePercentage }}%</span> }
-                        @if (leg.exitTerms) { <span class="sm:col-span-2">Exit: {{ leg.exitTerms }}</span> }
-                      </div>
-                    </div>
-                  }
-                </div>
-
-                @if (offer.status === 1) {
-                  <div class="mt-4 flex flex-wrap gap-2">
-                    @if (canReceiveOfferAction(offer)) {
-                      <button type="button" (click)="acceptOffer(offer)" [disabled]="offerProcessing()" class="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50">Accept</button>
-                      <button type="button" (click)="rejectOffer(offer)" [disabled]="offerProcessing()" class="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-200 hover:bg-red-500/15 disabled:opacity-50">Reject</button>
-                      <button type="button" (click)="openOfferBuilder(offer)" [disabled]="offerProcessing()" class="rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-sm font-semibold text-blue-200 hover:bg-blue-500/15 disabled:opacity-50">Counter</button>
-                    }
-                    @if (canWithdrawOffer(offer)) {
-                      <button type="button" (click)="withdrawOffer(offer)" [disabled]="offerProcessing()" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-700 disabled:opacity-50">Withdraw</button>
-                    }
-                  </div>
-                }
-              </article>
-            }
-          </div>
-        }
+      <section class="journey-panel" [attr.aria-label]="'conversationWorkspace.journey.title' | translate">
+        <div class="journey-heading">
+          <div><p class="eyebrow">{{ 'conversationWorkspace.journey.eyebrow' | translate }}</p><h2>{{ 'conversationWorkspace.journey.title' | translate }}</h2></div>
+          @if (terminalJourneyStatus()) { <span class="terminal-status">{{ terminalJourneyStatus() }}</span> }
+        </div>
+        <ol class="journey-steps">
+          @for (step of journeySteps(); track step.key) {
+            <li [class.completed]="step.state === 'completed'" [class.current]="step.state === 'current'" [class.future]="step.state === 'future'">
+              <span class="journey-dot">{{ step.state === 'completed' ? '✓' : $index + 1 }}</span>
+              <span class="journey-label">{{ step.label }}</span>
+            </li>
+          }
+        </ol>
       </section>
 
-      <footer class="border-t border-slate-800 bg-slate-900 p-4">
-        <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
-          @if (!isClosed()) {
-            <button type="button"
-                    (click)="openOfferBuilder()"
-                    [disabled]="offerProcessing()"
-                    class="rounded-lg border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-sm font-semibold text-blue-200 hover:bg-blue-500/15 disabled:cursor-not-allowed disabled:opacity-50">
-              Make Offer
-            </button>
-          }
-          @if (canMarkReady()) {
-            <button type="button"
-                    (click)="markReadyToProceed()"
-                    [disabled]="actionProcessing()"
-                    class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50">
-              Ready to Proceed
-            </button>
-          }
-          @if (canCloseDiscussion()) {
-            <button type="button"
-                    (click)="closeDiscussion()"
-                    [disabled]="actionProcessing()"
-                    class="rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">
-              Close Discussion
-            </button>
+      <div class="message-stream">
+        @if (messagesLoading()) {
+          <div class="compact-state"><span class="spinner"></span><p>{{ 'conversationWorkspace.messages.loading' | translate }}</p></div>
+        } @else {
+          <div class="system-event"><span>{{ 'conversationWorkspace.events.started' | translate }} · {{ formatDate(conversation.createdAt) }}</span></div>
+          @for (item of chatItems(); track item.id; let index = $index) {
+            @if (item.kind === 'message') {
+              <article class="message-row" [class.own]="item.message.isSender" [class.grouped]="!isMessageGroupStart(index)">
+                @if (isMessageGroupStart(index)) {
+                  <div class="message-meta"><strong>{{ item.message.isSender ? ('conversationWorkspace.messages.you' | translate) : item.message.senderName }}</strong>@if (item.message.senderRole) { <span>{{ roleLabel(item.message.senderRole) }}</span> }</div>
+                }
+                <div class="message-bubble"><p>{{ item.message.text }}</p><time>{{ formatTime(item.message.sentAt) }}</time></div>
+              </article>
+            } @else {
+            <article class="offer-card" [class.offer-card--accepted]="isAcceptedOffer(item.offer)">
+              <header>
+                <div><p class="eyebrow">{{ 'conversationWorkspace.offers.version' | translate }} {{ item.offer.version }}</p><strong>{{ 'conversationWorkspace.offers.title' | translate }}</strong></div>
+                <span class="status-badge" [class.status-badge--success]="isAcceptedOffer(item.offer)">{{ offerStatusLabel(item.offer.status) }}</span>
+              </header>
+              @if (parentOfferVersion(item.offer); as parentVersion) { <p class="offer-relation">↳ {{ 'conversationWorkspace.offers.counters' | translate }} {{ parentVersion }}</p> }
+              <div class="offer-terms">
+                @for (leg of item.offer.legs; track leg.id || leg.legType) {
+                  <div><span>{{ offerLegLabel(leg.legType) }}</span><strong>{{ money(leg.amount) }}</strong>
+                    @if (leg.equityPercentage) { <small>{{ leg.equityPercentage }}%</small> }
+                    @if (leg.returnRate) { <small>{{ leg.returnRate }}%</small> }
+                    @if (leg.profitSharePercentage) { <small>{{ leg.profitSharePercentage }}%</small> }
+                  </div>
+                }
+              </div>
+              @if (item.offer.note) { <p class="offer-note">{{ item.offer.note }}</p> }
+              <footer><time>{{ formatDate(item.offer.createdAt) }} · {{ formatTime(item.offer.createdAt) }}</time><div>
+                @if (canReceiveOfferAction(item.offer)) {
+                  <button type="button" class="primary-button" (click)="acceptOffer(item.offer)">{{ 'conversationWorkspace.actions.accept' | translate }}</button>
+                  <button type="button" class="secondary-button" (click)="openOfferBuilder(item.offer)">{{ 'conversationWorkspace.actions.counter' | translate }}</button>
+                  <button type="button" class="text-button" (click)="rejectOffer(item.offer)">{{ 'conversationWorkspace.actions.reject' | translate }}</button>
+                } @else if (canWithdrawOffer(item.offer)) {
+                  <button type="button" class="text-button" (click)="withdrawOffer(item.offer)">{{ 'conversationWorkspace.actions.withdraw' | translate }}</button>
+                }
+              </div></footer>
+            </article>
+            }
+          } @empty {
+            <div class="compact-state"><p>{{ 'conversationWorkspace.messages.empty' | translate }}</p></div>
           }
           @if (isClosed()) {
-            <button type="button"
-                    disabled
-                    class="rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-500 opacity-60">
-              Close Discussion
-            </button>
+            <div class="system-event system-event--closed"><span>{{ 'conversationWorkspace.events.closed' | translate }} · {{ formatDate(conversation.closedAt) }}</span></div>
           }
+        }
+      </div>
+
+      @if (messagesError()) { <p class="inline-error">{{ messagesError() }}</p> }
+      <form class="message-composer" (submit)="onMessageSubmit($event)">
+        <input [formControl]="messageControl" [placeholder]="composerHint()" [readonly]="isClosed()">
+        <button type="submit" class="primary-button" [disabled]="!canSendMessage()">{{ sending() ? ('conversationWorkspace.composer.sending' | translate) : ('conversationWorkspace.composer.send' | translate) }}</button>
+      </form>
+    } @else if (selectedRequest(); as request) {
+      <div class="request-detail">
+        <div class="avatar"><span>{{ initials(request.counterpartyName) }}</span></div>
+        <p class="eyebrow">{{ workspaceTab() === 'incoming' ? ('conversationWorkspace.tabs.incoming' | translate) : ('conversationWorkspace.tabs.outgoing' | translate) }}</p>
+        <h2>{{ request.counterpartyName }}</h2>
+        @if (roleLabel(request.counterpartyRole)) { <p>{{ roleLabel(request.counterpartyRole) }}</p> }
+        <h3>{{ request.opportunityTitle }}</h3>
+        @if (request.message) { <blockquote>{{ request.message }}</blockquote> }
+        <span class="status-badge">{{ requestStatusLabel(request.status) }}</span>
+        <div class="request-actions">
+          @if (request.canAccept) { <button type="button" class="primary-button" (click)="acceptRequest(request)" [disabled]="actionProcessing()">{{ 'conversationWorkspace.actions.accept' | translate }}</button> }
+          @if (request.canReject) { <button type="button" class="secondary-button" (click)="rejectRequest(request)" [disabled]="actionProcessing()">{{ 'conversationWorkspace.actions.reject' | translate }}</button> }
         </div>
+      </div>
+    } @else {
+      <div class="empty-workspace"><div class="empty-icon">↔</div><h2>{{ 'chat.empty.noConversationTitle' | translate }}</h2><p>{{ 'chat.empty.noConversationSubtitle' | translate }}</p></div>
+    }
+  </section>
 
-        <div *ngIf="!canSendMessage()" class="mb-3 text-sm text-slate-500">
-          {{ composerHint() }}
-        </div>
-
-        <form (submit)="onMessageSubmit($event)" class="flex items-center gap-3">
-          <input [formControl]="messageControl"
-                 type="text"
-                 [disabled]="isClosed() || actionProcessing()"
-                 [placeholder]="composerHint()"
-                 class="flex-1 rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50">
-          <button type="submit"
-                  [disabled]="!canSendMessage()"
-                  [attr.aria-label]="'Send message'"
-                  title="Send message"
-                  class="inline-flex items-center justify-center rounded-xl bg-blue-600 p-3 text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50">
-            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M22 2L11 13"></path>
-              <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
-            </svg>
-          </button>
-        </form>
-
-        @if (offerBuilderOpen()) {
-          <section class="mt-4 rounded-xl border border-blue-500/20 bg-slate-950 p-4">
-            <div class="flex items-center justify-between gap-3">
-              <h3 class="text-sm font-bold text-white">{{ counteringOfferId() ? ('chat.offerBuilder.counterOffer' | translate) : ('chat.offerBuilder.makeOffer' | translate) }}</h3>
-              <button type="button" (click)="closeOfferBuilder()" class="text-sm font-semibold text-slate-400 hover:text-white">{{ 'common.close' | translate }}</button>
-            </div>
-
-            <div class="mt-4 grid gap-3 md:grid-cols-2">
-              <input [formControl]="offerCurrencyControl" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white" [placeholder]="'chat.offerBuilder.currency' | translate">
-              <input [formControl]="offerNoteControl" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white" [placeholder]="'chat.offerBuilder.offerNote' | translate">
-            </div>
-
-            <div class="mt-4 grid gap-3">
-              <div class="rounded-lg border border-slate-800 bg-slate-900 p-3">
-                <label class="flex items-center gap-2 text-sm font-semibold text-white">
-                  <input type="checkbox" [checked]="offerDrafts[1].enabled" (change)="offerDrafts[1].enabled = $any($event.target).checked">
-                  {{ 'participationBuilder.models.equity' | translate }}
-                </label>
-                @if (offerDrafts[1].enabled) {
-                  <div class="mt-3 grid gap-2 sm:grid-cols-3">
-                    <input type="number" [formControl]="offerDrafts[1].amount" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white" [placeholder]="'chat.offerBuilder.amount' | translate">
-                    <input type="number" [formControl]="offerDrafts[1].equityPercentage!" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white" [placeholder]="'chat.offerBuilder.equityPercentage' | translate">
-                    <input [formControl]="offerDrafts[1].sharesTerms!" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white" [placeholder]="'chat.offerBuilder.shareTerms' | translate">
-                  </div>
-                }
-              </div>
-
-              <div class="rounded-lg border border-slate-800 bg-slate-900 p-3">
-                <label class="flex items-center gap-2 text-sm font-semibold text-white">
-                  <input type="checkbox" [checked]="offerDrafts[2].enabled" (change)="offerDrafts[2].enabled = $any($event.target).checked">
-                  {{ 'participationBuilder.models.loan' | translate }}
-                </label>
-                @if (offerDrafts[2].enabled) {
-                  <div class="mt-3 grid gap-2 sm:grid-cols-4">
-                    <input type="number" [formControl]="offerDrafts[2].amount" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white" [placeholder]="'chat.offerBuilder.amount' | translate">
-                    <input type="number" [formControl]="offerDrafts[2].returnRate!" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white" [placeholder]="'chat.offerBuilder.returnPercentage' | translate">
-                    <input type="number" [formControl]="offerDrafts[2].termMonths!" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white" [placeholder]="'participationBuilder.months' | translate">
-                    <input [formControl]="offerDrafts[2].repaymentModel!" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white" [placeholder]="'participationBuilder.labels.repaymentModel' | translate">
-                  </div>
-                }
-              </div>
-
-              <div class="rounded-lg border border-slate-800 bg-slate-900 p-3">
-                <label class="flex items-center gap-2 text-sm font-semibold text-white">
-                  <input type="checkbox" [checked]="offerDrafts[3].enabled" (change)="offerDrafts[3].enabled = $any($event.target).checked">
-                  {{ 'participationBuilder.models.profitSharing' | translate }}
-                </label>
-                @if (offerDrafts[3].enabled) {
-                  <div class="mt-3 grid gap-2 sm:grid-cols-4">
-                    <input type="number" [formControl]="offerDrafts[3].amount" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white" [placeholder]="'chat.offerBuilder.amount' | translate">
-                    <input type="number" [formControl]="offerDrafts[3].profitSharePercentage!" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white" [placeholder]="'participationBuilder.labels.profitShare' | translate">
-                    <input type="number" [formControl]="offerDrafts[3].termMonths!" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white" [placeholder]="'participationBuilder.months' | translate">
-                    <input [formControl]="offerDrafts[3].exitTerms!" class="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white" [placeholder]="'participationBuilder.labels.exitTerms' | translate">
-                  </div>
-                }
-              </div>
-            </div>
-
-            <button type="button"
-                    (click)="submitOffer()"
-                    [disabled]="offerProcessing()"
-                    class="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50">
-              {{ counteringOfferId() ? ('chat.offerBuilder.sendCounter' | translate) : ('chat.offerBuilder.sendOffer' | translate) }}
-            </button>
+  <aside class="workspace-panel context-panel">
+    @if (activeConversation(); as conversation) {
+      <header class="panel-heading"><div><p class="eyebrow">{{ 'conversationWorkspace.context.eyebrow' | translate }}</p><h2>{{ 'conversationWorkspace.context.title' | translate }}</h2></div></header>
+      <div class="context-scroll">
+        <section class="opportunity-summary">
+          <div class="opportunity-mark">{{ initials(conversation.opportunityTitle) }}</div>
+          <div><h3>{{ conversation.opportunityTitle }}</h3>@if (conversation.shortDescription) { <p>{{ conversation.shortDescription }}</p> }</div>
+        </section>
+        @if (conversation.founderName) {
+          <section class="context-section"><h3>{{ 'conversationWorkspace.context.founder' | translate }}</h3>
+            @if (founderProfileId(conversation); as founderId) { <a class="founder-row" [routerLink]="['/admin/founders', founderId]"><span class="avatar avatar--small">{{ initials(conversation.founderName) }}</span><strong>{{ conversation.founderName }}</strong></a> }
+            @else { <div class="founder-row"><span class="avatar avatar--small">{{ initials(conversation.founderName) }}</span><strong>{{ conversation.founderName }}</strong></div> }
           </section>
         }
-      </footer>
-    } @else {
-      <div class="flex flex-1 items-center justify-center p-8 text-center">
-        <div>
-          <h2 class="text-xl font-bold text-white">{{ 'chat.empty.noConversationTitle' | translate }}</h2>
-          <p class="mt-2 text-sm text-slate-500">{{ 'chat.empty.noConversationSubtitle' | translate }}</p>
+        <section class="context-section"><h3>{{ 'conversationWorkspace.context.details' | translate }}</h3><dl class="detail-rows">
+          <div><dt>{{ 'conversationWorkspace.context.conversationStatus' | translate }}</dt><dd>{{ statusLabel(conversation.status) }}</dd></div>
+          @if (investmentModelLabel(conversation.investmentModel)) { <div><dt>{{ 'conversationWorkspace.context.model' | translate }}</dt><dd>{{ investmentModelLabel(conversation.investmentModel) }}</dd></div> }
+          @if (conversation.fundingTarget) { <div><dt>{{ 'conversationWorkspace.context.target' | translate }}</dt><dd>{{ money(conversation.fundingTarget) }}</dd></div> }
+          @if (conversation.minimumParticipation) { <div><dt>{{ 'conversationWorkspace.context.minimum' | translate }}</dt><dd>{{ money(conversation.minimumParticipation) }}</dd></div> }
+          <div><dt>{{ 'conversationWorkspace.context.participation' | translate }}</dt><dd>{{ participationSummary() }}</dd></div>
+        </dl></section>
+        <section class="context-section"><h3>{{ 'conversationWorkspace.context.readiness' | translate }}</h3><div class="readiness-row"><span>{{ 'conversationWorkspace.roles.founder' | translate }}</span><strong [class.ready]="conversation.founderReady">{{ (conversation.founderReady ? 'conversationWorkspace.status.readyShort' : 'conversationWorkspace.status.notReady') | translate }}</strong></div><div class="readiness-row"><span>{{ 'conversationWorkspace.roles.investor' | translate }}</span><strong [class.ready]="conversation.investorReady">{{ (conversation.investorReady ? 'conversationWorkspace.status.readyShort' : 'conversationWorkspace.status.notReady') | translate }}</strong></div><div class="readiness-row"><span>{{ 'conversationWorkspace.context.yourReadyState' | translate }}</span><strong [class.ready]="isCurrentUserReady()">{{ (isCurrentUserReady() ? 'conversationWorkspace.status.readyShort' : 'conversationWorkspace.status.notReady') | translate }}</strong></div>@if (canMarkReady()) { <button type="button" class="secondary-button context-ready-action" (click)="markReadyToProceed()" [disabled]="actionProcessing()">{{ 'conversationWorkspace.actions.ready' | translate }}</button> }</section>
+        @if (isClosed()) { <section class="closed-note"><strong>{{ 'conversationWorkspace.events.closed' | translate }}</strong>@if (conversation.closeReason) { <p>{{ conversation.closeReason }}</p> }</section> }
+        <div class="context-actions">
+          @if (conversation.opportunityId) { <a class="secondary-button" [routerLink]="['/admin/investments', conversation.opportunityId]">{{ 'conversationWorkspace.actions.viewOpportunity' | translate }}</a> }
+          @if (canCreateParticipationRequest()) { <button type="button" class="primary-button" (click)="openParticipationBuilder()">{{ 'conversationWorkspace.actions.participate' | translate }}</button> }
+          @if (projectRoomUnlocked() && conversation.opportunityId) { <a class="primary-button primary-button--green" [routerLink]="['/admin/opportunities', conversation.opportunityId, 'room']">{{ 'conversationWorkspace.actions.openRoom' | translate }}</a> }
+          @if (canCloseDiscussion()) { <button type="button" class="secondary-button context-danger-action" (click)="closeDiscussion()" [disabled]="actionProcessing()">{{ 'conversationWorkspace.actions.close' | translate }}</button> }
+          @if (isClosed()) { <button type="button" class="secondary-button context-danger-action" (click)="removeClosedConversation(conversation)" [disabled]="actionProcessing()">{{ 'conversationWorkspace.actions.remove' | translate }}</button> }
         </div>
       </div>
-    }
-  </main>
-
-  @if (reportModalOpen() && activeConversation(); as conversation) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <section class="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
-        <header class="border-b border-slate-800 p-5">
-          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-red-300">{{ 'reports.title' | translate }}</p>
-          <h2 class="mt-2 text-xl font-bold text-white">{{ conversationReportLabel(conversation) }}</h2>
-          <p class="mt-1 text-sm text-slate-400">{{ conversationReportTargetName(conversation) }}</p>
-        </header>
-        <div class="space-y-4 p-5">
-          @if (reportSuccess()) {
-            <div class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">
-              {{ 'reports.success' | translate }}
-            </div>
-          } @else {
-            <label class="block text-sm font-semibold text-slate-200">
-              {{ 'reports.reason' | translate }}
-              <select class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white"
-                      [ngModel]="reportReason()"
-                      (ngModelChange)="setReportReason($event)">
-                @for (reason of reportReasons; track reason) {
-                  <option [value]="reason">{{ reportReasonLabel(reason) }}</option>
-                }
-              </select>
-            </label>
-            <label class="block text-sm font-semibold text-slate-200">
-              {{ 'reports.description' | translate }}
-              <textarea rows="4"
-                        class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white"
-                        [placeholder]="'reports.descriptionPlaceholder' | translate"
-                        [ngModel]="reportDescription()"
-                        (ngModelChange)="setReportDescription($event)"></textarea>
-            </label>
-            @if (reportError()) {
-              <div class="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-100">{{ reportError() }}</div>
-            }
-          }
-        </div>
-        <footer class="flex gap-3 border-t border-slate-800 p-5">
-          <button type="button" (click)="closeReportModal()" class="flex-1 rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-700">
-            {{ reportSuccess() ? ('common.close' | translate) : ('reports.cancel' | translate) }}
-          </button>
-          @if (!reportSuccess()) {
-            <button type="button"
-                    (click)="submitConversationReport()"
-                    [disabled]="reportSubmitting()"
-                    class="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50">
-              {{ reportSubmitting() ? ('reports.submitting' | translate) : ('reports.submit' | translate) }}
-            </button>
-          }
-        </footer>
-      </section>
-    </div>
-  }
-
-  <!-- Right Context -->
-  <aside class="min-h-0 border-s border-slate-800 bg-slate-900 flex flex-col">
-    @if (activeConversation(); as conversation) {
-      <div class="border-b border-slate-800 p-5">
-        <h2 class="text-lg font-bold text-white">Conversation Context</h2>
-        <p class="mt-1 text-sm text-slate-500">Who you are talking to, which Opportunity this is about, and what happens next.</p>
+    } @else if (selectedRequest(); as request) {
+      <header class="panel-heading"><div><p class="eyebrow">{{ 'conversationWorkspace.context.requestEyebrow' | translate }}</p><h2>{{ 'conversationWorkspace.context.requestTitle' | translate }}</h2></div></header>
+      <div class="context-scroll">
+        <section class="opportunity-summary"><div class="opportunity-mark">{{ initials(request.opportunityTitle) }}</div><div><h3>{{ request.opportunityTitle }}</h3></div></section>
+        <section class="context-section"><h3>{{ 'conversationWorkspace.context.participant' | translate }}</h3><div class="founder-row"><span class="avatar avatar--small">{{ initials(request.counterpartyName) }}</span><div><strong>{{ request.counterpartyName }}</strong>@if (roleLabel(request.counterpartyRole)) { <small>{{ roleLabel(request.counterpartyRole) }}</small> }</div></div></section>
+        <section class="context-section"><h3>{{ 'conversationWorkspace.context.requestState' | translate }}</h3><dl class="detail-rows"><div><dt>{{ 'conversationWorkspace.context.direction' | translate }}</dt><dd>{{ (request.direction === 'incoming' ? 'conversationWorkspace.tabs.incoming' : 'conversationWorkspace.tabs.outgoing') | translate }}</dd></div><div><dt>{{ 'conversationWorkspace.context.statusLabel' | translate }}</dt><dd>{{ requestStatusLabel(request.status) }}</dd></div></dl></section>
+        @if (request.canWithdraw) { <div class="context-actions"><button type="button" class="secondary-button context-danger-action" (click)="withdrawRequest(request)" [disabled]="actionProcessing()">{{ 'conversationWorkspace.actions.withdraw' | translate }}</button></div> }
       </div>
-
-      <div class="flex-1 overflow-y-auto p-5 space-y-4">
-        <section class="rounded-xl border border-slate-800 bg-slate-950 p-4">
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Counterparty</p>
-          <p class="mt-2 text-sm font-semibold text-white">{{ conversation.counterpartyName }}</p>
-          <p class="mt-1 text-sm text-slate-400">{{ conversation.counterpartyRole || (conversation.founderName ? 'Founder' : 'Investor') }}</p>
-        </section>
-
-        <section class="rounded-xl border border-slate-800 bg-slate-950 p-4">
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Opportunity</p>
-          <p class="mt-2 text-sm font-semibold text-white">{{ conversation.opportunityTitle }}</p>
-          <p class="mt-2 text-sm leading-6 text-slate-400">{{ conversation.shortDescription || 'Conversation context for this Opportunity.' }}</p>
-          <a *ngIf="conversation.opportunityId"
-             [routerLink]="['/admin/investments', conversation.opportunityId]"
-             class="mt-3 inline-flex rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-700">
-            View Opportunity
-          </a>
-        </section>
-
-        <section class="rounded-xl border border-slate-800 bg-slate-950 p-4">
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Current Relationship Stage</p>
-          <p class="mt-2 text-sm leading-6 text-slate-200">{{ stageSummary() }}</p>
-          @if (isClosed()) {
-            <div class="mt-3 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm">
-              <p class="font-semibold text-red-200">Closed by {{ closedByLabel(conversation) }}</p>
-              <p class="mt-1 text-red-100/80">Reason: {{ conversation.closeReason || 'No reason provided.' }}</p>
-              @if (conversation.closedAt) {
-                <p class="mt-1 text-xs text-red-100/60">{{ formatDate(conversation.closedAt) }}</p>
-              }
-            </div>
-          }
-        </section>
-
-        <section class="rounded-xl border border-slate-800 bg-slate-950 p-4">
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Readiness</p>
-          <div class="mt-3 space-y-2 text-sm">
-            <div class="flex items-center justify-between gap-3">
-              <span class="text-slate-400">Founder</span>
-              <span class="font-semibold" [class.text-emerald-300]="conversation.founderReady" [class.text-slate-300]="!conversation.founderReady">{{ conversation.founderReady ? 'Ready' : 'Not Ready' }}</span>
-            </div>
-            <div class="flex items-center justify-between gap-3">
-              <span class="text-slate-400">Investor</span>
-              <span class="font-semibold" [class.text-emerald-300]="conversation.investorReady" [class.text-slate-300]="!conversation.investorReady">{{ conversation.investorReady ? 'Ready' : 'Not Ready' }}</span>
-            </div>
-          </div>
-        </section>
-
-        <section class="rounded-xl border border-slate-800 bg-slate-950 p-4">
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Participation Status</p>
-          <p class="mt-2 text-sm leading-6 text-slate-200">{{ participationSummary() }}</p>
-          @if (canCreateParticipationRequest()) {
-            <button type="button"
-                    (click)="openParticipationBuilder()"
-                    class="mt-3 w-full rounded-lg bg-blue-600 px-3 py-2 text-sm font-bold text-white hover:bg-blue-500">
-              {{ bothReady() ? 'Create Participation Request' : 'Create Participation Request' }}
-            </button>
-          } @else if (participationSummary().toLowerCase().includes('pending')) {
-            <p class="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm font-semibold text-amber-200">Participation Request Pending</p>
-          } @else if (projectRoomUnlocked() && conversation.opportunityId) {
-            <a [routerLink]="['/admin/opportunities', conversation.opportunityId, 'room']"
-               class="mt-3 inline-flex w-full justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-emerald-200 hover:bg-emerald-500/15">
-              Open Project Room
-            </a>
-          }
-        </section>
-
-        <section class="rounded-xl border border-slate-800 bg-slate-950 p-4">
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Next Step</p>
-          <p class="mt-2 text-sm leading-6 text-slate-200">{{ nextStep() }}</p>
-          @if (isClosed()) {
-            <button type="button"
-                    (click)="removeClosedConversation(conversation)"
-                    [disabled]="actionProcessing()"
-                    class="mt-3 w-full rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-200 hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-50">
-              Remove from My List
-            </button>
-          }
-        </section>
-
-        <section class="rounded-xl border border-slate-800 bg-slate-950 p-4">
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Project Room</p>
-          @if (projectRoomUnlocked() && conversation.opportunityId) {
-            <a [routerLink]="['/admin/opportunities', conversation.opportunityId, 'room']"
-               class="mt-3 inline-flex rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-emerald-200 hover:bg-emerald-500/15">
-              Open Project Room
-            </a>
-          } @else {
-            <p class="mt-2 text-sm text-slate-500">Project Room is available after founder approval.</p>
-          }
-        </section>
-
-        <section class="rounded-xl border border-slate-800 bg-slate-950 p-4">
-          <h3 class="text-sm font-bold text-white">Negotiation Timeline</h3>
-          <ol class="mt-4 space-y-4">
-            @for (event of timeline(); track event.label) {
-              <li class="flex gap-3">
-                <span class="mt-1 h-3 w-3 shrink-0 rounded-full" [class.bg-emerald-400]="event.active" [class.bg-slate-700]="!event.active"></span>
-                <div>
-                  <p class="text-sm font-semibold" [class.text-white]="event.active" [class.text-slate-500]="!event.active">{{ event.label }}</p>
-                  @if (event.date) {
-                    <p class="mt-1 text-xs text-slate-500">{{ formatDate(event.date) }}</p>
-                  }
-                </div>
-              </li>
-            }
-          </ol>
-        </section>
-      </div>
-    } @else {
-      <div class="p-5 text-sm text-slate-500">Select a conversation to see its context.</div>
-    }
+    } @else { <div class="compact-state"><p>{{ 'conversationWorkspace.context.empty' | translate }}</p></div> }
   </aside>
-</div>
+</main>
+
+@if (offerBuilderOpen()) {
+  <div class="modal-backdrop" (click)="closeOfferBuilder()">
+    <section class="modal-card offer-builder" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <header><div><p class="eyebrow">{{ counteringOfferId() ? ('chat.offerBuilder.counterOffer' | translate) : ('chat.offerBuilder.makeOffer' | translate) }}</p><h2>{{ 'conversationWorkspace.offers.terms' | translate }}</h2></div><button type="button" class="icon-button" (click)="closeOfferBuilder()">×</button></header>
+      <div class="builder-grid">
+        @for (type of offerLegTypes; track type) {
+          <section class="leg-editor" [class.enabled]="offerDrafts[type].enabled">
+            <label class="check-row"><input type="checkbox" [checked]="offerDrafts[type].enabled" (change)="setOfferLegEnabled(type, $event.target.checked)"><strong>{{ offerLegLabel(type) }}</strong></label>
+            @if (offerDrafts[type].enabled) {
+              <label>{{ 'chat.offerBuilder.amount' | translate }}<input type="number" min="0" [formControl]="offerDrafts[type].amount"></label>
+              @if (type === 1) { <label>{{ 'chat.offerBuilder.equityPercentage' | translate }}<input type="number" min="0" max="100" [formControl]="offerDrafts[1].equityPercentage!"></label> }
+              @if (type === 2) { <label>{{ 'chat.offerBuilder.returnPercentage' | translate }}<input type="number" min="0" [formControl]="offerDrafts[2].returnRate!"></label> }
+              @if (type === 3) { <label>{{ 'conversationWorkspace.offers.profitPercentage' | translate }}<input type="number" min="0" max="100" [formControl]="offerDrafts[3].profitSharePercentage!"></label> }
+            }
+          </section>
+        }
+      </div>
+      <label>{{ 'chat.offerBuilder.offerNote' | translate }}<textarea rows="3" [formControl]="offerNoteControl"></textarea></label>
+      <footer><button type="button" class="secondary-button" (click)="closeOfferBuilder()">{{ 'conversationWorkspace.actions.cancel' | translate }}</button><button type="button" class="primary-button" (click)="submitOffer()" [disabled]="offerProcessing()">{{ counteringOfferId() ? ('chat.offerBuilder.sendCounter' | translate) : ('chat.offerBuilder.sendOffer' | translate) }}</button></footer>
+    </section>
+  </div>
+}
+
+@if (reportModalOpen() && activeConversation(); as conversation) {
+  <div class="modal-backdrop" (click)="closeReportModal()"><section class="modal-card report-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true"><header><div><p class="eyebrow">{{ conversationReportLabel(conversation) }}</p><h2>{{ conversationReportTargetName(conversation) }}</h2></div><button type="button" class="icon-button" (click)="closeReportModal()">×</button></header>
+    @if (reportSuccess()) { <div class="success-note">{{ 'reports.success' | translate }}</div> }
+    @else { <label>{{ 'reports.reason' | translate }}<select [value]="reportReason()" (change)="setReportReason($event.target.value)">@for (reason of reportReasons; track reason) { <option [value]="reason">{{ reportReasonLabel(reason) }}</option> }</select></label><label>{{ 'reports.description' | translate }}<textarea rows="4" [value]="reportDescription()" (input)="setReportDescription($event.target.value)"></textarea></label>@if (reportError()) { <p class="inline-error">{{ reportError() }}</p> }<footer><button type="button" class="secondary-button" (click)="closeReportModal()">{{ 'conversationWorkspace.actions.cancel' | translate }}</button><button type="button" class="primary-button" (click)="submitConversationReport()" [disabled]="reportSubmitting()">{{ reportSubmitting() ? ('reports.submitting' | translate) : ('reports.submit' | translate) }}</button></footer> }
+  </section></div>
+}
 
 @if (participationBuilderOpen() && activeConversation(); as conversation) {
-  <app-participation-builder
-    [opportunityId]="conversation.opportunityId!"
-    [opportunityTitle]="conversation.opportunityTitle"
-    source="Conversation"
-    [conversationId]="conversation.id"
-    (closed)="closeParticipationBuilder()"
-    (submitted)="onParticipationSubmitted()">
-  </app-participation-builder>
+  @if (conversation.opportunityId; as opportunityId) {
+    <app-participation-builder [opportunityId]="opportunityId" [opportunityTitle]="conversation.opportunityTitle" source="Conversation" [conversationId]="conversation.id" (closed)="closeParticipationBuilder()" (submitted)="onParticipationSubmitted()"></app-participation-builder>
+  }
 }

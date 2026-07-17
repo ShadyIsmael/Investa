@@ -1,83 +1,76 @@
-import { Component, ChangeDetectionStrategy, inject, signal, computed } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ProfileService, PublicProfile } from '../../../services/profile.service';
-import { Opportunity, OpportunityService } from '../../../services/opportunity.service';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FileStoreService } from '../../../services/file-store.service';
-import { TranslatePipe } from '../../../pipes/translate.pipe';
 import { LanguageService } from '../../../services/language.service';
+import { Opportunity, OpportunityService } from '../../../services/opportunity.service';
+import { ProfileService, PublicProfile } from '../../../services/profile.service';
 import { ReportReasonCode, ReportService } from '../../../services/report.service';
-
-type FounderOpportunity = Opportunity & Record<string, any>;
+import { TranslatePipe } from '../../../pipes/translate.pipe';
 
 @Component({
   standalone: true,
   selector: 'app-founder-profile',
   templateUrl: './founder-profile.component.html',
+  styleUrls: ['./founder-profile.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, RouterLink, TranslatePipe]
 })
 export class FounderProfileComponent {
-  private route = inject(ActivatedRoute);
-  private profileService = inject(ProfileService);
-  private opportunityService = inject(OpportunityService);
-  private fileStoreService = inject(FileStoreService);
-  private reportService = inject(ReportService);
-  private languageService = inject(LanguageService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly profileService = inject(ProfileService);
+  private readonly opportunityService = inject(OpportunityService);
+  private readonly fileStoreService = inject(FileStoreService);
+  private readonly reportService = inject(ReportService);
+  readonly languageService = inject(LanguageService);
 
-  founderId = signal<string>('');
-  profile = signal<PublicProfile | null>(null);
-  opportunities = signal<FounderOpportunity[]>([]);
-  loading = signal(true);
-  error = signal(false);
-  reportModalOpen = signal(false);
-  reportSubmitting = signal(false);
-  reportSuccess = signal(false);
-  reportError = signal<string | null>(null);
-  reportReason = signal<ReportReasonCode>('Spam');
-  reportDescription = signal('');
-  reportReasons: ReportReasonCode[] = ['Spam', 'Abuse', 'FraudConcern', 'InappropriateContent', 'Other'];
+  readonly founderId = signal('');
+  readonly profile = signal<PublicProfile | null>(null);
+  readonly opportunities = signal<Opportunity[]>([]);
+  readonly loading = signal(true);
+  readonly error = signal(false);
+  readonly avatarFailed = signal(false);
+  readonly reportModalOpen = signal(false);
+  readonly reportSubmitting = signal(false);
+  readonly reportSuccess = signal(false);
+  readonly reportError = signal<string | null>(null);
+  readonly reportReason = signal<ReportReasonCode>('Spam');
+  readonly reportDescription = signal('');
+  readonly reportReasons: ReportReasonCode[] = ['Spam', 'Abuse', 'FraudConcern', 'InappropriateContent', 'Other'];
 
-  /** Active investments by this founder */
-  founderInvestments = computed<FounderOpportunity[]>(() => {
-    const id = this.founderId();
-    if (!id) return [];
-    return this.opportunities().filter(inv => String(inv.founderId || inv.founder?.id || inv.founder?.userId || '') === id);
-  });
-
-  founderStats = computed(() => {
-    const investments = this.founderInvestments();
-    const totalRaised = investments.reduce((sum, investment) => {
-      const target = Number(investment.fundingTarget ?? 0);
-      const progress = Number(investment.fundingProgressPercent ?? 0);
-      return sum + (target > 0 ? target * (progress / 100) : 0);
-    }, 0);
-    const activeProjects = investments.filter(investment => String(investment.status || '').toLowerCase().includes('active')).length;
-    const fundedProjects = investments.filter(investment => String(investment.status || '').toLowerCase().includes('funded')).length;
-
+  readonly isOwner = computed(() => this.profileService.profile()?.userId === this.founderId());
+  readonly founderOpportunities = computed(() => this.opportunities().filter(item => this.opportunityFounderId(item) === this.founderId()));
+  readonly stats = computed(() => {
+    const projects = this.founderOpportunities();
     return {
-      totalProjects: investments.length,
-      activeProjects,
-      fundedProjects,
-      totalRaised
+      total: projects.length,
+      active: projects.filter(item => this.normalizedStatus(item.status) === 'active').length,
+      funded: projects.filter(item => this.normalizedStatus(item.status) === 'funded').length
     };
   });
 
   constructor() {
-    this.load();
+    void this.load();
   }
 
   private async load(): Promise<void> {
-    const id = this.route.snapshot.paramMap.get('id') ?? '';
+    const id = (this.route.snapshot.paramMap.get('id') ?? '').trim();
     this.founderId.set(id);
-    if (!id) { this.loading.set(false); this.error.set(true); return; }
+    if (!id || id === 'undefined' || id === 'null') {
+      this.error.set(true);
+      this.loading.set(false);
+      return;
+    }
 
     try {
-      this.opportunities.set(await this.opportunityService.getPublicOpportunities());
-      const p = await this.profileService.getPublicProfile(id);
-      this.profile.set(p);
-      if (!p) this.error.set(true);
+      const [profile, opportunities] = await Promise.all([
+        this.profileService.getPublicProfile(id),
+        this.opportunityService.getPublicOpportunities()
+      ]);
+      this.profile.set(profile);
+      this.opportunities.set(opportunities);
+      this.error.set(!profile);
     } catch {
       this.error.set(true);
     } finally {
@@ -85,46 +78,59 @@ export class FounderProfileComponent {
     }
   }
 
-  resolveUrl(url?: string | null): string {
-    if (!url) return '';
-    if (url.startsWith('http')) return url;
-    return this.fileStoreService.getPublicUrl(url);
-  }
-
   get displayName(): string {
-    const p = this.profile();
-    return p?.fullName || [p?.firstName, p?.lastName].filter(Boolean).join(' ') || '—';
+    const profile = this.profile();
+    return this.clean(profile?.displayName) || this.clean(profile?.fullName) ||
+      [profile?.firstName, profile?.lastName].map(value => this.clean(value)).filter(Boolean).join(' ') ||
+      this.t('userProfile.member');
   }
 
   get avatarInitials(): string {
-    const p = this.profile();
-    const fullName = this.displayName;
-    const words = fullName.split(/\s+/).filter(word => word.length > 0);
-
-    if (words.length === 0 || fullName === '—') {
-      return 'F';
-    }
-
-    if (words.length === 1) {
-      return words[0].charAt(0).toUpperCase();
-    }
-
-    return `${words[0].charAt(0)}${words[1].charAt(0)}`.toUpperCase();
+    return this.displayName.split(/\s+/u).filter(Boolean).slice(0, 2).map(word => word.charAt(0)).join('').toUpperCase() || 'U';
   }
 
-  getInvestmentImage(inv: FounderOpportunity): string {
-    const cover = inv.coverImageUrl;
-    if (cover) return this.resolveUrl(cover);
-    return '';
+  avatarUrl(value?: string | null): string {
+    if (!value || this.avatarFailed()) return '';
+    return value.startsWith('http') ? value : this.fileStoreService.getPublicUrl(value);
   }
 
-  fundingPercent(inv: FounderOpportunity): number {
-    const pct = Number(inv.fundingProgressPercent ?? 0);
-    return Number.isFinite(pct) ? Math.min(Math.max(pct, 0), 100) : 0;
+  opportunityImage(item: Opportunity): string {
+    const value = this.clean(item.coverImageUrl);
+    return value ? (value.startsWith('http') ? value : this.fileStoreService.getPublicUrl(value)) : '';
+  }
+
+  location(profile: PublicProfile): string {
+    return this.clean(profile.location) || [profile.city, profile.country].map(value => this.clean(value)).filter(Boolean).join(', ');
+  }
+
+  roleLabel(value?: string | null): string {
+    return this.enumLabel('roles', value, 'member');
+  }
+
+  verificationLabel(value?: string | null): string {
+    return this.enumLabel('verification', value, 'none');
+  }
+
+  accountLabel(value?: string | null): string {
+    return this.enumLabel('account', value, 'inactive');
+  }
+
+  opportunityStatusLabel(value?: string | number | null): string {
+    return this.enumLabel('opportunityStatus', value, 'unknown');
+  }
+
+  westernNumber(value: number): string {
+    return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(Number.isFinite(value) ? value : 0);
+  }
+
+  westernDate(value?: string | null): string {
+    if (!value) return '';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? '' : new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric' }).format(date);
   }
 
   openUserReport(): void {
-    if (!this.profile()?.userId) return;
+    if (!this.profile()?.userId || this.isOwner()) return;
     this.reportReason.set('Spam');
     this.reportDescription.set('');
     this.reportError.set(null);
@@ -139,29 +145,17 @@ export class FounderProfileComponent {
     this.reportSuccess.set(false);
   }
 
-  setReportReason(reason: string): void {
-    this.reportReason.set(reason as ReportReasonCode);
-  }
-
-  setReportDescription(description: string): void {
-    this.reportDescription.set(description);
-  }
-
   async submitUserReport(): Promise<void> {
-    const target = this.profile();
-    if (!target?.userId || this.reportSubmitting()) return;
-
+    const targetId = this.profile()?.userId;
+    if (!targetId || this.reportSubmitting()) return;
     try {
       this.reportSubmitting.set(true);
       this.reportError.set(null);
       await this.reportService.createReport({
-        targetType: 'User',
-        targetId: target.userId,
-        reasonCode: this.reportReason(),
-        description: this.reportDescription().trim() || null
+        targetType: 'User', targetId, reasonCode: this.reportReason(), description: this.reportDescription().trim() || null
       });
       this.reportSuccess.set(true);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.reportError.set(this.reportErrorMessage(error));
     } finally {
       this.reportSubmitting.set(false);
@@ -172,12 +166,34 @@ export class FounderProfileComponent {
     return this.t(`reports.reasons.${reason}`);
   }
 
+  private opportunityFounderId(item: Opportunity): string {
+    return String(item.founderId ?? item.founder?.userId ?? item.founder?.id ?? '');
+  }
+
+  private normalizedStatus(value: string | number | null | undefined): string {
+    return String(value ?? '').trim().toLowerCase().replace(/[\s_-]+/gu, '');
+  }
+
+  private enumLabel(group: string, value: string | number | null | undefined, fallback: string): string {
+    const normalized = this.normalizedStatus(value) || fallback;
+    const key = `userProfile.enums.${group}.${normalized}`;
+    const translated = this.t(key);
+    return translated === key ? this.t(`userProfile.enums.${group}.${fallback}`) : translated;
+  }
+
+  private clean(value?: string | null): string {
+    const result = value?.trim() ?? '';
+    return result === 'null' || result === 'undefined' ? '' : result;
+  }
+
   private t(path: string): string {
     return this.languageService.translate(path);
   }
 
-  private reportErrorMessage(error: any): string {
-    const raw = String(error?.error?.message || error?.message || '').toLowerCase();
+  private reportErrorMessage(error: unknown): string {
+    const record = typeof error === 'object' && error !== null ? error as Record<string, unknown> : null;
+    const nested = record && typeof record['error'] === 'object' && record['error'] !== null ? record['error'] as Record<string, unknown> : null;
+    const raw = String(nested?.['message'] ?? record?.['message'] ?? '').toLowerCase();
     if (raw.includes('duplicate') || raw.includes('pending')) return this.t('reports.errors.duplicatePending');
     if (raw.includes('invalid') || raw.includes('target')) return this.t('reports.errors.invalidTarget');
     if (raw.includes('self')) return this.t('reports.errors.selfReport');

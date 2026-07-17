@@ -193,10 +193,12 @@ export class InvestmentPreviewComponent {
     }
   }
 
-  openFounderProfile(investment: OpportunityView): void {
-    if (!investment?.founderId) return;
+  openFounderProfile(source: OpportunityView | string | null | undefined, event?: Event): void {
+    event?.stopPropagation();
+    const founderId = typeof source === 'string' ? source : source?.founderId;
+    if (!founderId || founderId === 'undefined' || founderId === 'null') return;
     try {
-      this.router.navigate(['/admin/founders', investment.founderId]);
+      this.router.navigate(['/admin/founders', founderId]);
     } catch (err) {
       console.error('Navigation error:', err);
       this.notificationService.showToast({ title: 'Navigation error', message: 'Unable to open founder profile', type: 'error' });
@@ -383,30 +385,30 @@ export class InvestmentPreviewComponent {
     switch (statusStr) {
       case '1':
       case 'draft':
-        return 'Draft';
+        return 'investments.status.draft';
       case '5':
       case 'published':
       case 'active':
       case '4':
       case 'approved':
-        return 'Active';
+        return 'investments.status.active';
       case '6':
       case 'funding':
-        return 'Funding';
+        return 'investments.status.funding';
       case '7':
       case 'fullyfunded':
-        return 'Fully Funded';
+        return 'investments.status.fullyFunded';
       case '8':
       case 'inprogress':
-        return 'In Progress';
+        return 'investments.status.inProgress';
       case '9':
       case 'completed':
-        return 'Completed';
+        return 'investments.status.completed';
       case '10':
       case 'archived':
-        return 'Archived';
+        return 'investments.status.archived';
       default:
-        return statusStr || 'Active';
+        return statusStr ? `investments.status.${statusStr}` : 'investments.status.active';
     }
   }
 

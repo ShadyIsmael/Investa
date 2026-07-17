@@ -24,7 +24,7 @@ namespace Investa.Infrastructure.Persistence;
 
 /// </summary>
 
-public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, ApplicationIdentityRole, Guid>
+public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, ApplicationIdentityRole, Guid>
 
 {
 
@@ -313,6 +313,17 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
     public DbSet<InvestmentLearnMore> InvestmentLearnMores { get; set; }
 
+    // Company operating finance. Deliberately separate from platform wallets and investments.
+    public DbSet<FinanceAccount> FinanceAccounts { get; set; }
+    public DbSet<Supplier> Suppliers { get; set; }
+    public DbSet<IncomeCategory> IncomeCategories { get; set; }
+    public DbSet<ExpenseCategory> ExpenseCategories { get; set; }
+    public DbSet<FinanceTransaction> FinanceTransactions { get; set; }
+    public DbSet<FinanceTransactionLine> FinanceTransactionLines { get; set; }
+    public DbSet<FinanceAttachment> FinanceAttachments { get; set; }
+    public DbSet<FinanceAuditEvent> FinanceAuditEvents { get; set; }
+    public DbSet<FinanceReconciliation> FinanceReconciliations { get; set; }
+
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -320,6 +331,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
     {
 
         base.OnModelCreating(modelBuilder);
+
+        ConfigureCompanyFinance(modelBuilder);
 
 
 
@@ -1758,11 +1771,26 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
 
         // Role configuration (Group-Bound Role Architecture)
 
+        modelBuilder.HasSequence<long>("RoleCodeSequence");
+
         modelBuilder.Entity<Investa.Domain.Entities.Security.Role>(r =>
 
         {
 
             r.HasKey(x => x.Id);
+
+            r.Property(x => x.RoleNumber)
+             .HasDefaultValueSql("NEXT VALUE FOR [RoleCodeSequence]")
+             .ValueGeneratedOnAdd();
+
+            r.Property(x => x.RoleCode)
+             .HasMaxLength(32)
+             .HasComputedColumnSql("'ROL-' + CASE WHEN LEN(CONVERT(varchar(20), [RoleNumber])) < 6 THEN REPLICATE('0', 6 - LEN(CONVERT(varchar(20), [RoleNumber]))) ELSE '' END + CONVERT(varchar(20), [RoleNumber])", stored: true);
+
+            r.Property(x => x.NameEn).HasMaxLength(256).IsRequired();
+            r.Property(x => x.NameAr).HasMaxLength(256).IsRequired();
+            r.Property(x => x.DescriptionEn).HasMaxLength(500);
+            r.Property(x => x.DescriptionAr).HasMaxLength(500);
 
             r.Property(x => x.Name).HasMaxLength(256).IsRequired();
 
@@ -1773,6 +1801,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationIdentityUser, A
             r.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
 
             r.HasIndex(x => x.NormalizedName).IsUnique();
+
+            r.HasIndex(x => x.RoleCode).IsUnique();
 
             r.HasIndex(x => new { x.GroupId, x.Name }).IsUnique(); // Unique role name per group
 

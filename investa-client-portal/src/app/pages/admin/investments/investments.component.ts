@@ -631,6 +631,13 @@ export class InvestmentsComponent {
     }
   }
 
+  openFounderProfile(founderId: string | null | undefined, event: Event): void {
+    event.stopPropagation();
+    const id = founderId?.trim();
+    if (!id || id === 'undefined' || id === 'null') return;
+    void this.router.navigate(['/admin/founders', id]);
+  }
+
   /**
    * Refresh investments from API
    */

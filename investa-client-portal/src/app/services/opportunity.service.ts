@@ -62,28 +62,33 @@ export interface OpportunityLookup {
 
 export interface OpportunityMedia {
   id?: number | string;
+  opportunityId?: number | string;
   fileId?: string | null;
   fileKey?: string | null;
   fileName?: string | null;
   originalFileName?: string | null;
   fileExtension?: string | null;
+  fileType?: string | null;
   mimeType?: string | null;
   fileSize?: number | null;
   category?: string | null;
   previewUrl?: string | null;
   fileUrl?: string | null;
   thumbnailUrl?: string | null;
-  purpose?: string | null;
+  purpose?: string | number | null;
   isPublic?: boolean | null;
   sortOrder?: number | null;
   caption?: string | null;
   mediaType?: string | number | null;
   isCover?: boolean | null;
   isPrimary?: boolean | null;
+  createdByUserId?: string | null;
+  createdAt?: string | null;
 }
 
 export interface OpportunityDocument {
   id?: number | string;
+  opportunityId?: number | string;
   fileId?: string | null;
   fileKey?: string | null;
   title?: string | null;
@@ -91,21 +96,25 @@ export interface OpportunityDocument {
   fileName?: string | null;
   originalFileName?: string | null;
   fileExtension?: string | null;
+  documentType?: string | null;
   mimeType?: string | null;
   fileSize?: number | null;
   category?: string | null;
   previewUrl?: string | null;
   thumbnailUrl?: string | null;
   fileUrl?: string | null;
-  purpose?: string | null;
-  visibility?: 'Public' | 'Private' | string | null;
+  purpose?: string | number | null;
+  visibility?: 'Public' | 'Private' | string | number | null;
   searchTags?: string | null;
   description?: string | null;
   isPublic?: boolean | null;
+  createdByUserId?: string | null;
+  createdAt?: string | null;
 }
 
 export interface OpportunityEvent {
   id?: number | string;
+  opportunityId?: number | string;
   title?: string | null;
   description?: string | null;
   eventDate?: string | null;
@@ -113,7 +122,10 @@ export interface OpportunityEvent {
   createdAt?: string | null;
   eventType?: string | null;
   type?: string | null;
+  oldValue?: string | null;
+  newValue?: string | null;
   isPublic?: boolean | null;
+  createdByUserId?: string | null;
 }
 
 export interface OpportunityMilestone {
@@ -230,6 +242,7 @@ export interface OpportunityRoom {
 export interface Opportunity {
   id: number | string;
   founderId?: string | null;
+  legacyInvestmentId?: number | null;
   investmentId?: number | null;
   title?: string | null;
   shortDescription?: string | null;
@@ -250,6 +263,7 @@ export interface Opportunity {
   maximumInvestmentAmount?: number | null;
   expectedDuration?: string | number | null;
   expectedDurationMonths?: string | number | null;
+  currency?: string | null;
   equityOfferedPercentage?: number | null;
   totalShares?: number | null;
   offeredShares?: number | null;
@@ -294,13 +308,19 @@ export interface Opportunity {
   hasMedia?: boolean | null;
   hasDocuments?: boolean | null;
   founderSummary?: string | null;
-  status?: string | null;
+  status?: string | number | null;
   createdAt?: string | null;
   tags?: Array<string | OpportunityLookup>;
   latestPublicUpdate?: string | null;
   fundingUsage?: string | null;
   risks?: string | null;
   exitStrategy?: string | null;
+  media?: OpportunityMedia[];
+  documents?: OpportunityDocument[];
+  events?: OpportunityEvent[];
+  isLockedForEditing?: boolean | null;
+  firstInvestorJoinedAt?: string | null;
+  updatedAt?: string | null;
 }
 
 export interface OpportunityFilters {
@@ -331,6 +351,10 @@ export interface OpportunityUpsert {
   maximumInvestmentAmount?: number | null;
   expectedDuration?: string | number | null;
   expectedDurationMonths?: string | number | null;
+  currency?: string | null;
+  sharePrice?: number | null;
+  totalShares?: number | null;
+  offeredShares?: number | null;
   profitSharePercentage?: number | null;
   profitSharingPayoutFrequency?: string | null;
   profitSharingContractStartDate?: string | null;
@@ -342,8 +366,6 @@ export interface OpportunityUpsert {
   coverImageUrl?: string | null;
   useOfFunds?: string | null;
   fundingUsage?: string | null;
-  risks?: string | null;
-  exitStrategy?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -505,6 +527,10 @@ export class OpportunityService {
       minimumInvestmentAmount: payload.minimumInvestmentAmount ?? payload.minimumInvestment ?? null,
       maximumInvestmentAmount: payload.maximumInvestmentAmount ?? payload.maximumInvestment ?? null,
       expectedDurationMonths: payload.expectedDurationMonths ?? payload.expectedDuration ?? null,
+      currency: payload.currency ?? null,
+      sharePrice: payload.sharePrice ?? null,
+      totalShares: payload.totalShares ?? null,
+      offeredShares: payload.offeredShares ?? null,
       profitSharePercentage: payload.profitSharePercentage ?? null,
       profitSharingPayoutFrequency: payload.profitSharingPayoutFrequency ?? null,
       profitSharingContractStartDate: payload.profitSharingContractStartDate ?? null,

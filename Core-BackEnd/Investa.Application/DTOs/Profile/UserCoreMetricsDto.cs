@@ -9,6 +9,5 @@ public class UserCoreMetricsDto
     public string? Role { get; set; }
     public string? ClientType { get; set; } // Investor, Founder, Both
     public int CredibilityScore { get; set; }
-    public decimal WalletBalance { get; set; }
     public decimal CurrentCredibilityScore { get; set; }
 }

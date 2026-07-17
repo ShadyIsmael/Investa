@@ -1,621 +1,397 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
-import { roleService } from '@/services/roleService';
-import { groupService } from '@/services/groupService';
-import { userService } from '@/services/userService';
-import { RoleWithGroup, Group, Permission, User } from '@/types';
-import PermissionControl from '@/components/common/PermissionControl';
 import { useTranslation } from 'react-i18next';
+import PermissionControl from '@/components/common/PermissionControl';
+import { RoleUser, roleService } from '@/services/roleService';
+import { Group, Permission, RoleWithGroup, User } from '@/types';
+
+const PAGE_SIZE = 10;
+
+const safeError = (error: unknown, fallback: string) =>
+  error instanceof Error && error.message && !error.message.includes('[object Object]') ? error.message : fallback;
 
 export const Roles: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const [roles, setRoles] = useState<RoleWithGroup[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [groupFilter, setGroupFilter] = useState<number | ''>('');
-  const [showModal, setShowModal] = useState(false);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const { t } = useTranslation();
-  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+  const [statusFilter, setStatusFilter] = useState<'active' | 'inactive' | ''>('');
+  const [page, setPage] = useState(1);
+  const [roleUserCounts, setRoleUserCounts] = useState<Record<string, number>>({});
+
+  const [formOpen, setFormOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<RoleWithGroup | null>(null);
-  
-  // Details modal state
-  const [detailsRole, setDetailsRole] = useState<RoleWithGroup | null>(null);
-  const [rolePermissions, setRolePermissions] = useState<Permission[]>([]);
-  const [allPermissions, setAllPermissions] = useState<string[]>([]);
-  const [selectedPermissionIds, setSelectedPermissionIds] = useState<number[]>([]);
-  const [roleUsers, setRoleUsers] = useState<User[]>([]);
-  const [availableUsers, setAvailableUsers] = useState<User[]>([]);
-  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-  const [assignedUsersSearch, setAssignedUsersSearch] = useState('');
-  
-  // Form state
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
+  const [form, setForm] = useState({
+    nameEn: '',
+    nameAr: '',
+    descriptionEn: '',
+    descriptionAr: '',
     groupId: '' as number | '',
+    isActive: true,
   });
   const [formError, setFormError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [savingRole, setSavingRole] = useState(false);
+  const [deletingRoleId, setDeletingRoleId] = useState<string | null>(null);
 
-  // Debounced search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      loadRoles();
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search, groupFilter]);
+  const [detailsRole, setDetailsRole] = useState<RoleWithGroup | null>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [allPermissions, setAllPermissions] = useState<Permission[]>([]);
+  const [selectedPermissionIds, setSelectedPermissionIds] = useState<number[]>([]);
+  const [permissionSearch, setPermissionSearch] = useState('');
+  const [savingPermissions, setSavingPermissions] = useState(false);
+  const [roleUsers, setRoleUsers] = useState<RoleUser[]>([]);
+  const [availableUsers, setAvailableUsers] = useState<User[]>([]);
+  const [userSearch, setUserSearch] = useState('');
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [savingUsers, setSavingUsers] = useState(false);
+  const [refreshNotice, setRefreshNotice] = useState(false);
 
-  const loadRoles = async () => {
+  const refreshRoles = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
-      const allRoles = await roleService.getAllRoles();
-      let filtered = allRoles;
-      
-      if (search) {
-        const q = search.toLowerCase();
-        filtered = filtered.filter(
-          r => r.name.toLowerCase().includes(q) || 
-               r.description?.toLowerCase().includes(q) ||
-               r.groupName?.toLowerCase().includes(q)
-        );
-      }
-      
-      if (groupFilter) {
-        filtered = filtered.filter(r => r.groupId === Number(groupFilter));
-      }
-      
-      setRoles(filtered);
+      const [roleData, groupData] = await Promise.all([
+        roleService.getAllRoles(),
+        roleService.getGroups(),
+      ]);
+      setRoles(roleData);
+      setGroups(groupData);
+      setRoleUserCounts({});
+      void Promise.allSettled(roleData.map(async role => ({
+        id: String(role.id),
+        count: (await roleService.getRoleUsers(String(role.id))).length,
+      }))).then(results => {
+        const counts: Record<string, number> = {};
+        results.forEach(result => {
+          if (result.status === 'fulfilled') counts[result.value.id] = result.value.count;
+        });
+        setRoleUserCounts(counts);
+      });
     } catch (error) {
-      console.error('Failed to load roles:', error);
-      toast.error('Failed to load roles');
+      setLoadError(safeError(error, t('rolesAdmin.errors.loadRoles')));
     } finally {
       setLoading(false);
     }
+  }, [t]);
+
+  useEffect(() => { void refreshRoles(); }, [refreshRoles]);
+  useEffect(() => { setPage(1); }, [search, groupFilter, statusFilter]);
+
+  const roleName = useCallback((role: RoleWithGroup) => {
+    const primary = i18n.language.startsWith('ar') ? role.nameAr : role.nameEn;
+    const fallback = i18n.language.startsWith('ar') ? role.nameEn : role.nameAr;
+    return primary?.trim() || fallback?.trim() || '—';
+  }, [i18n.language]);
+
+  const filteredRoles = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase();
+    return roles.filter(role => {
+      const matchesSearch = !query || [role.roleCode, role.nameEn, role.nameAr, role.groupName]
+        .some(value => String(value ?? '').toLocaleLowerCase().includes(query));
+      const matchesStatus = statusFilter === '' || role.isActive === (statusFilter === 'active');
+      return matchesSearch && matchesStatus && (groupFilter === '' || role.groupId === groupFilter);
+    });
+  }, [roles, search, groupFilter, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRoles.length / PAGE_SIZE));
+  const visibleRoles = filteredRoles.slice((Math.min(page, totalPages) - 1) * PAGE_SIZE, Math.min(page, totalPages) * PAGE_SIZE);
+
+  const openCreate = () => {
+    setEditingRole(null);
+    setForm({ nameEn: '', nameAr: '', descriptionEn: '', descriptionAr: '', groupId: '', isActive: true });
+    setFormError(null);
+    setFormOpen(true);
   };
 
-  const loadGroups = async () => {
+  const openEdit = (role: RoleWithGroup) => {
+    setEditingRole(role);
+    setForm({
+      nameEn: role.nameEn,
+      nameAr: role.nameAr,
+      descriptionEn: role.descriptionEn ?? '',
+      descriptionAr: role.descriptionAr ?? '',
+      groupId: role.groupId,
+      isActive: role.isActive,
+    });
+    setFormError(null);
+    setFormOpen(true);
+  };
+
+  const submitRole = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const nameEn = form.nameEn.trim();
+    const nameAr = form.nameAr.trim();
+    if (!nameEn || !nameAr || form.groupId === '') {
+      setFormError(t('rolesAdmin.errors.requiredFields'));
+      return;
+    }
+
+    setSavingRole(true);
+    setFormError(null);
     try {
-      const data = await groupService.getGroupsList(1, 100);
-      setGroups(data.items);
+      const payload = {
+        nameEn,
+        nameAr,
+        descriptionEn: form.descriptionEn.trim() || undefined,
+        descriptionAr: form.descriptionAr.trim() || undefined,
+        groupId: Number(form.groupId),
+      };
+      if (editingRole) {
+        await roleService.updateRole(String(editingRole.id), { ...payload, isActive: form.isActive });
+        toast.success(t('rolesAdmin.messages.updated'));
+        setFormOpen(false);
+      } else {
+        const created = await roleService.createRole(payload);
+        const createdRole = {
+          ...created,
+          groupName: created.groupName || groups.find(group => group.id === created.groupId)?.name || '',
+        } as RoleWithGroup;
+        setEditingRole(createdRole);
+        toast.success(t('rolesAdmin.messages.createdWithCode', { code: created.roleCode }));
+      }
+      await refreshRoles();
     } catch (error) {
-      console.error('Failed to load groups:', error);
+      setFormError(safeError(error, t('rolesAdmin.errors.saveRole')));
+    } finally {
+      setSavingRole(false);
     }
   };
 
-  const loadAllPermissions = async () => {
+  const deleteRole = async (role: RoleWithGroup) => {
+    if (!window.confirm(t('rolesAdmin.confirmDelete', { name: roleName(role) }))) return;
+    setDeletingRoleId(String(role.id));
     try {
-      const perms = await groupService.getAllPermissions();
-      setAllPermissions(perms);
+      await roleService.deleteRole(String(role.id));
+      toast.success(t('rolesAdmin.messages.deleted'));
+      await refreshRoles();
     } catch (error) {
-      console.error('Failed to load permissions:', error);
+      toast.error(safeError(error, t('rolesAdmin.errors.deleteRole')));
+    } finally {
+      setDeletingRoleId(null);
     }
   };
 
-  const loadAvailableUsers = async () => {
-    try {
-      const data = await userService.getUsers({ page: 1, pageSize: 1000 });
-      setAvailableUsers(data.items);
-    } catch (error) {
-      console.error('Failed to load users:', error);
-    }
-  };
-
-  useEffect(() => {
-    loadRoles();
-    loadGroups();
+  const loadRoleDetails = useCallback(async (roleId: string) => {
+    const [role, permissions, assignedPermissions, users, orgUsers] = await Promise.all([
+      roleService.getRoleById(roleId),
+      roleService.getAllPermissions(),
+      roleService.getRolePermissions(roleId),
+      roleService.getRoleUsers(roleId),
+      roleService.getOrgUsers(),
+    ]);
+    setDetailsRole(role);
+    setAllPermissions(permissions);
+    setSelectedPermissionIds(assignedPermissions.map(permission => Number(permission.id)));
+    setRoleUsers(users);
+    setRoleUserCounts(current => ({ ...current, [roleId]: users.length }));
+    setAvailableUsers(orgUsers);
   }, []);
 
-  const openCreateModal = () => {
-    setModalMode('create');
-    setFormData({ name: '', description: '', groupId: '' });
-    setShowModal(true);
-  };
-
-  const openEditModal = (role: RoleWithGroup) => {
-    setModalMode('edit');
-    setEditingRole(role);
-    setFormData({
-      name: role.name,
-      description: role.description || '',
-      groupId: role.groupId ?? '',
-    });
-    setShowModal(true);
-  };
-
-  const openDetailsModal = async (role: RoleWithGroup) => {
+  const openDetails = async (role: RoleWithGroup) => {
+    setDetailsRole(role);
+    setDetailsLoading(true);
+    setRefreshNotice(false);
+    setPermissionSearch('');
+    setUserSearch('');
+    setSelectedUserIds([]);
     try {
-      setDetailsRole(role);
-      setShowDetailsModal(true);
-
-      // Load permissions and users for this role
-      const [perms, users] = await Promise.all([
-        roleService.getRolePermissions(String(role.id)),
-        roleService.getRoleUsers(String(role.id)),
-      ]);
-
-      setRolePermissions(Array.isArray(perms) ? perms : []);
-      setRoleUsers(Array.isArray(users) ? users : []);
-
-      // Set selected permission ids if available
-      if (Array.isArray(perms)) {
-        const ids = perms.map((p: any) => Number(p.id)).filter((n: number) => !Number.isNaN(n));
-        setSelectedPermissionIds(ids as number[]);
-      } else {
-        setSelectedPermissionIds([]);
-      }
-
-      // Load available users for assignment
-      await loadAvailableUsers();
-    } catch (err) {
-      console.error('Failed to open details modal:', err);
-      toast.error('Failed to load role details');
-      setShowDetailsModal(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError(null);
-
-    const name = (formData.name || '').trim();
-    if (!name) {
-      setFormError('Role name is required');
-      return;
-    }
-
-    if (formData.groupId === '') {
-      setFormError('Group is required');
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      // Pre-submit uniqueness check within the selected group
-      const groupIdNum = Number(formData.groupId);
-      const existingRoles = await roleService.getRolesByGroup(groupIdNum);
-      const duplicate = existingRoles.some(r => r.name?.toLowerCase() === name.toLowerCase() && (modalMode === 'create' || r.id !== editingRole?.id));
-      if (duplicate) {
-        setFormError('A role with this name already exists in the selected group');
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (modalMode === 'create') {
-        // Optimistic UI: insert a temporary role immediately
-        const tempId = `temp-${Date.now()}`;
-        const groupObj = groups.find(g => g.id === groupIdNum);
-        const tempRole: RoleWithGroup = {
-          id: tempId,
-          name,
-          description: formData.description || null,
-          groupId: groupIdNum,
-          groupName: groupObj?.name || `Group ${groupIdNum}`,
-          isActive: true,
-          createdAt: new Date().toISOString(),
-        } as RoleWithGroup;
-
-        // Optimistic UI: add temp role to list
-        setRoles(prev => [tempRole, ...prev]);
-
-        try {
-          const created = await roleService.createRole({ name, description: formData.description || undefined, groupId: groupIdNum });
-          if (created) {
-            setRoles(prev => prev.map(r => (r.id === tempId ? created : r)));
-            toast.success('Role created');
-          }
-        } catch (err) {
-          console.error('Failed to create role:', err);
-          toast.error('Failed to create role');
-        }
-
-        setIsSubmitting(false);
-        setShowModal(false);
-        return;
-
-    }
-    } catch (error: any) {
-      console.error('Failed to submit role:', error);
-      toast.error(error.message || 'Failed to submit role');
+      await loadRoleDetails(String(role.id));
+    } catch (error) {
+      toast.error(safeError(error, t('rolesAdmin.errors.loadDetails')));
+      setDetailsRole(null);
     } finally {
-      setIsSubmitting(false);
+      setDetailsLoading(false);
     }
   };
 
-  const handleAssignUsers = async () => {
-      if (!detailsRole || selectedUserIds.length === 0) {
-        toast.error('Please select at least one user');
-        return;
-      }
+  const permissionLabel = (permission: Permission) => t(
+    `rolesAdmin.permissionLabels.${permission.key.replaceAll('.', '_')}`,
+    { defaultValue: permission.name || permission.key },
+  );
 
-      try {
-        await roleService.assignUsers(String(detailsRole.id), {
-          userIds: selectedUserIds,
-        });
-        toast.success(`Assigned ${selectedUserIds.length} user(s) to role`);
+  const groupedPermissions = useMemo(() => {
+    const query = permissionSearch.trim().toLocaleLowerCase();
+    const groupsMap = new Map<string, Permission[]>();
+    allPermissions
+      .filter(permission => !query || `${permission.key} ${permission.name ?? ''}`.toLocaleLowerCase().includes(query))
+      .forEach(permission => {
+        const module = permission.key.split('.')[0] || t('rolesAdmin.otherModule');
+        groupsMap.set(module, [...(groupsMap.get(module) ?? []), permission]);
+      });
+    return [...groupsMap.entries()].sort(([a], [b]) => a.localeCompare(b));
+  }, [allPermissions, permissionSearch, t, i18n.language]);
 
-        // Reload users
-        const users = await roleService.getRoleUsers(String(detailsRole.id));
-        setRoleUsers(users);
-        setSelectedUserIds([]);
-      } catch (error: any) {
-        console.error('Failed to assign users:', error);
-        toast.error(error.message || 'Failed to assign users');
-      }
-    };
-
-  const handleRemoveUser = async (userId: string, userName: string) => {
-    if (!detailsRole) return;
-    
-    if (!confirm(`Remove "${userName}" from this role?`)) {
-      return;
-    }
-    
+  const savePermissions = async () => {
+    if (!detailsRole || !detailsRole.isActive) return;
+    setSavingPermissions(true);
     try {
-      await roleService.removeUserFromRole(String(detailsRole.id), userId);
-      toast.success('User removed from role');
-      
-      // Reload users
-      const users = await roleService.getRoleUsers(String(detailsRole.id));
-      setRoleUsers(users);
-    } catch (error: any) {
-      console.error('Failed to remove user:', error);
-      toast.error(error.message || 'Failed to remove user');
+      const ids = [...new Set(selectedPermissionIds)].filter(id => Number.isInteger(id) && id > 0);
+      await roleService.assignPermissions(String(detailsRole.id), { permissionIds: ids });
+      await loadRoleDetails(String(detailsRole.id));
+      setRefreshNotice(true);
+      toast.success(t('rolesAdmin.messages.permissionsSaved'));
+    } catch (error) {
+      toast.error(safeError(error, t('rolesAdmin.errors.savePermissions')));
+    } finally {
+      setSavingPermissions(false);
     }
   };
 
-  const togglePermission = (permId: number) => {
-    setSelectedPermissionIds(prev =>
-      prev.includes(permId) ? prev.filter(id => id !== permId) : [...prev, permId]
-    );
+  const assignedIds = useMemo(() => new Set(roleUsers.map(user => user.id)), [roleUsers]);
+  const matchingAvailableUsers = useMemo(() => {
+    const query = userSearch.trim().toLocaleLowerCase();
+    return availableUsers.filter(user => !assignedIds.has(user.id) && (!query || `${user.name ?? ''} ${user.email ?? ''}`.toLocaleLowerCase().includes(query)));
+  }, [availableUsers, assignedIds, userSearch]);
+
+  const assignUsers = async () => {
+    if (!detailsRole || !detailsRole.isActive || selectedUserIds.length === 0) return;
+    setSavingUsers(true);
+    try {
+      await roleService.assignUsers(String(detailsRole.id), { userIds: selectedUserIds });
+      await loadRoleDetails(String(detailsRole.id));
+      setSelectedUserIds([]);
+      setRefreshNotice(true);
+      toast.success(t('rolesAdmin.messages.usersAssigned'));
+    } catch (error) {
+      toast.error(safeError(error, t('rolesAdmin.errors.assignUsers')));
+    } finally {
+      setSavingUsers(false);
+    }
+  };
+
+  const removeUser = async (user: RoleUser) => {
+    if (!detailsRole || !window.confirm(t('rolesAdmin.confirmRemoveUser', { name: user.name || user.email || t('rolesAdmin.user') }))) return;
+    setSavingUsers(true);
+    try {
+      await roleService.removeUserFromRole(String(detailsRole.id), user.id);
+      await loadRoleDetails(String(detailsRole.id));
+      setRefreshNotice(true);
+      toast.success(t('rolesAdmin.messages.userRemoved'));
+    } catch (error) {
+      toast.error(safeError(error, t('rolesAdmin.errors.removeUser')));
+    } finally {
+      setSavingUsers(false);
+    }
   };
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+    <div className="p-4 md:p-6 space-y-4" dir={i18n.dir()}>
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Roles Management</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Manage roles and their permissions within groups
-          </p>
+          <h1 className="text-xl font-bold text-text">{t('pages.rolesManagement')}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t('pages.rolesManagementDescription')}</p>
         </div>
-        <PermissionControl permissions={['Role.Create']}>
-          <button
-            onClick={openCreateModal}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-          >
-            + Create Role
+        <PermissionControl permission="Role.Manage">
+          <button onClick={openCreate} className="shrink-0 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:opacity-90">
+            {t('rolesAdmin.createRole')}
           </button>
         </PermissionControl>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input
-            type="text"
-            placeholder="Search roles..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-          />
-          <select
-            value={groupFilter}
-            onChange={(e) => setGroupFilter(e.target.value ? Number(e.target.value) : '')}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-          >
-            <option value="">All Groups</option>
-            {groups.map(g => (
-              <option key={g.id} value={g.id}>{g.name}</option>
-            ))}
-          </select>
+      <div className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-surface p-3 md:grid-cols-[minmax(0,1fr)_220px_180px]">
+        <input value={search} onChange={event => setSearch(event.target.value)} placeholder={t('rolesAdmin.searchRoles')} className="h-10 rounded-lg border border-border bg-background px-3 text-sm text-text outline-none focus:border-primary" />
+        <select value={groupFilter} onChange={event => setGroupFilter(event.target.value ? Number(event.target.value) : '')} className="h-10 rounded-lg border border-border bg-background px-3 text-sm text-text">
+          <option value="">{t('rolesAdmin.allGroups')}</option>
+          {groups.map(group => <option key={group.id} value={group.id}>{group.name}</option>)}
+        </select>
+        <select value={statusFilter} onChange={event => setStatusFilter(event.target.value as 'active' | 'inactive' | '')} className="h-10 rounded-lg border border-border bg-background px-3 text-sm text-text">
+          <option value="">{t('rolesAdmin.allStatuses')}</option>
+          <option value="active">{t('rolesAdmin.active')}</option>
+          <option value="inactive">{t('rolesAdmin.inactive')}</option>
+        </select>
+      </div>
+
+      <div className="flex min-h-[480px] flex-col overflow-hidden rounded-xl border border-border bg-surface">
+        <div className="min-h-0 flex-1 overflow-auto">
+          {loading ? <div className="grid min-h-[390px] place-items-center text-sm text-muted-foreground">{t('rolesAdmin.loading')}</div>
+            : loadError ? <div className="grid min-h-[390px] place-items-center p-6 text-center"><div><p className="text-sm text-danger">{loadError}</p><button onClick={() => void refreshRoles()} className="mt-3 rounded-lg border border-border px-3 py-2 text-sm text-text">{t('rolesAdmin.retry')}</button></div></div>
+            : visibleRoles.length === 0 ? <div className="grid min-h-[390px] place-items-center text-sm text-muted-foreground">{t('rolesAdmin.noRoles')}</div>
+            : <table className="w-full min-w-[780px] text-sm">
+              <thead className="sticky top-0 z-10 bg-muted/90 text-xs uppercase text-muted-foreground backdrop-blur">
+                <tr>{['roleCode', 'roleName', 'group', 'status', 'assignedUsersCount', 'actions'].map(key => <th key={key} className="px-4 py-3 text-start font-semibold">{t(`rolesAdmin.${key}`)}</th>)}</tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {visibleRoles.map(role => <tr key={role.id} className="h-14 hover:bg-muted/40">
+                  <td className="px-4 font-mono text-xs text-muted-foreground">{role.roleCode || '—'}</td>
+                  <td className="px-4 font-semibold text-text"><span className="block max-w-[240px] truncate" title={roleName(role)}>{roleName(role)}</span></td>
+                  <td className="px-4 text-muted-foreground">{role.groupName || '—'}</td>
+                  <td className="px-4"><span className={role.isActive ? 'rounded-full bg-success/10 px-2 py-1 text-xs font-semibold text-success' : 'rounded-full bg-muted px-2 py-1 text-xs font-semibold text-muted-foreground'}>{t(role.isActive ? 'rolesAdmin.active' : 'rolesAdmin.inactive')}</span></td>
+                  <td className="px-4 text-muted-foreground tabular-nums">{roleUserCounts[String(role.id)] ?? '—'}</td>
+                  <td className="px-4"><div className="flex items-center gap-3">
+                    <button onClick={() => void openDetails(role)} className="font-medium text-primary">{t('rolesAdmin.view')}</button>
+                    <PermissionControl permission="Role.Manage"><button onClick={() => openEdit(role)} className="font-medium text-text">{t('rolesAdmin.edit')}</button></PermissionControl>
+                    <PermissionControl permission="Role.Manage"><button disabled={deletingRoleId === String(role.id)} onClick={() => void deleteRole(role)} className="font-medium text-danger disabled:opacity-50">{t('rolesAdmin.deactivate')}</button></PermissionControl>
+                  </div></td>
+                </tr>)}
+              </tbody>
+            </table>}
+        </div>
+        <div className="mt-auto flex items-center justify-between border-t border-border px-4 py-3 text-sm text-muted-foreground">
+          <span>{t('rolesAdmin.results', { count: filteredRoles.length })}</span>
+          <div className="flex items-center gap-2">
+            <button disabled={page <= 1} onClick={() => setPage(value => Math.max(1, value - 1))} className="rounded border border-border px-3 py-1.5 disabled:opacity-40">{t('rolesAdmin.previous')}</button>
+            <span className="tabular-nums">{Math.min(page, totalPages)} / {totalPages}</span>
+            <button disabled={page >= totalPages} onClick={() => setPage(value => Math.min(totalPages, value + 1))} className="rounded border border-border px-3 py-1.5 disabled:opacity-40">{t('rolesAdmin.next')}</button>
+          </div>
         </div>
       </div>
 
-      {/* Roles Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-        {loading ? (
-          <div className="p-8 text-center text-gray-500 dark:text-gray-400">Loading roles...</div>
-        ) : roles.length === 0 ? (
-          <div className="p-8 text-center text-gray-500 dark:text-gray-400">No roles found</div>
-        ) : (
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-900">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Role Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Group
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Description
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Created
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {roles.map((role) => (
-                <tr key={role.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {role.name}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      {role.groupName || `Group ${role.groupId}`}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate">
-                      {role.description || '-'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs rounded ${
-                      role.isActive
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                    }`}>
-                      {role.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                    {new Date(role.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => openDetailsModal(role)}
-                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                      >
-                        View
-                      </button>
-                      <PermissionControl permissions={['Role.Edit']}>
-                        <button
-                          onClick={() => openEditModal(role)}
-                          className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
-                        >
-                          Edit
-                        </button>
-                      </PermissionControl>
-                      <PermissionControl permissions={['Role.Delete']}>
-                        <button
-                        onClick={() => handleDelete(String(role.id), role.name)}
-                          className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                        >
-                          Delete
-                        </button>
-                      </PermissionControl>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* Create/Edit Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">
-              {modalMode === 'create' ? 'Create Role' : 'Edit Role'}
-            </h2>
-            <form onSubmit={handleSubmit}>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Role Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    placeholder="e.g., Finance Manager"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Group *
-                  </label>
-                  <select
-                    value={formData.groupId}
-                    onChange={(e) => setFormData({ ...formData, groupId: e.target.value === '' ? '' : Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    required
-                  >
-                    <option value="">Select a group</option>
-                    {groups.map(g => (
-                      <option key={g.id} value={g.id}>{g.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    rows={3}
-                    placeholder="Role description..."
-                  />
-                </div>
-              </div>
-              {formError && (
-                <div className="text-sm text-red-600 dark:text-red-400 mb-2">{formError}</div>
-              )}
-              <div className="flex justify-end gap-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className={`px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 ${isSubmitting ? 'opacity-60 pointer-events-none' : ''}`}
-                >
-                  {modalMode === 'create' ? 'Create' : 'Update'}
-                </button>
-              </div>
-            </form>
-          </div>
+      {formOpen && <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" onMouseDown={event => { if (event.target === event.currentTarget) setFormOpen(false); }}>
+        <div className="w-full max-w-2xl rounded-xl border border-border bg-surface p-5 shadow-2xl">
+          <h2 className="text-lg font-bold text-text">{editingRole ? t('rolesAdmin.editRole') : t('rolesAdmin.createRole')}</h2>
+          <form onSubmit={submitRole} className="mt-4 space-y-4">
+            {editingRole && <label className="block text-sm font-medium text-text">{t('rolesAdmin.roleCode')}<input value={editingRole.roleCode || ''} readOnly className="mt-1 h-10 w-full rounded-lg border border-border bg-muted px-3 font-mono text-xs text-muted-foreground" /></label>}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block text-sm font-medium text-text">{t('rolesAdmin.nameEn')} *<input autoFocus value={form.nameEn} onChange={event => setForm({ ...form, nameEn: event.target.value })} dir="ltr" className="mt-1 h-10 w-full rounded-lg border border-border bg-background px-3 text-text" /></label>
+              <label className="block text-sm font-medium text-text">{t('rolesAdmin.nameAr')} *<input value={form.nameAr} onChange={event => setForm({ ...form, nameAr: event.target.value })} dir="rtl" className="mt-1 h-10 w-full rounded-lg border border-border bg-background px-3 text-text" /></label>
+            </div>
+            <label className="block text-sm font-medium text-text">{t('rolesAdmin.group')} *<select value={form.groupId} onChange={event => setForm({ ...form, groupId: event.target.value ? Number(event.target.value) : '' })} className="mt-1 h-10 w-full rounded-lg border border-border bg-background px-3 text-text"><option value="">{t('rolesAdmin.selectGroup')}</option>{groups.map(group => <option key={group.id} value={group.id}>{group.name}</option>)}</select></label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block text-sm font-medium text-text">{t('rolesAdmin.descriptionEn')}<textarea value={form.descriptionEn} onChange={event => setForm({ ...form, descriptionEn: event.target.value })} rows={3} dir="ltr" className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-text" /></label>
+              <label className="block text-sm font-medium text-text">{t('rolesAdmin.descriptionAr')}<textarea value={form.descriptionAr} onChange={event => setForm({ ...form, descriptionAr: event.target.value })} rows={3} dir="rtl" className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-text" /></label>
+            </div>
+            <label className="flex items-center gap-2 text-sm font-medium text-text"><input type="checkbox" checked={form.isActive} disabled={!editingRole} onChange={event => setForm({ ...form, isActive: event.target.checked })} />{t('rolesAdmin.activeStatus')}</label>
+            {formError && <p className="text-sm text-danger">{formError}</p>}
+            <div className="flex justify-end gap-2"><button type="button" onClick={() => setFormOpen(false)} className="rounded-lg border border-border px-4 py-2 text-sm text-text">{t('rolesAdmin.cancel')}</button><button disabled={savingRole} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{savingRole ? t('rolesAdmin.saving') : t('rolesAdmin.save')}</button></div>
+          </form>
         </div>
-      )}
+      </div>}
 
-      {/* Details Modal */}
-      {showDetailsModal && detailsRole && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-3xl my-8">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                  {detailsRole.name}
-                </h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {detailsRole.groupName} • Created {new Date(detailsRole.createdAt).toLocaleDateString()}
-                </p>
+      {detailsRole && <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 p-4 md:p-8" onMouseDown={event => { if (event.target === event.currentTarget) setDetailsRole(null); }}>
+        <div className="mx-auto w-full max-w-5xl rounded-xl border border-border bg-surface p-5 shadow-2xl">
+          <div className="flex items-start justify-between gap-4 border-b border-border pb-4"><div><h2 className="text-lg font-bold text-text">{roleName(detailsRole)}</h2><p className="text-sm text-muted-foreground">{detailsRole.groupName || '—'} · <span className="font-mono text-xs">{detailsRole.roleCode || '—'}</span></p></div><button onClick={() => setDetailsRole(null)} className="rounded-lg border border-border px-3 py-1.5 text-sm text-text">{t('rolesAdmin.close')}</button></div>
+          {refreshNotice && <div className="mt-4 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-text">{t('rolesAdmin.permissionRefreshNotice')}</div>}
+          {!detailsRole.isActive && <div className="mt-4 rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">{t('rolesAdmin.inactiveRoleExplanation')}</div>}
+          {detailsLoading ? <div className="grid min-h-[360px] place-items-center text-sm text-muted-foreground">{t('rolesAdmin.loadingDetails')}</div> : <>
+          <dl className="mt-5 grid gap-3 rounded-lg border border-border bg-background p-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+            <div><dt className="text-xs text-muted-foreground">{t('rolesAdmin.roleCode')}</dt><dd className="mt-1 font-mono text-text">{detailsRole.roleCode || '—'}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">{t('rolesAdmin.group')}</dt><dd className="mt-1 text-text">{detailsRole.groupName || '—'}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">{t('rolesAdmin.status')}</dt><dd className="mt-1 text-text">{t(detailsRole.isActive ? 'rolesAdmin.active' : 'rolesAdmin.inactive')}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">{t('rolesAdmin.nameEn')}</dt><dd className="mt-1 text-text" dir="ltr">{detailsRole.nameEn || '—'}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">{t('rolesAdmin.nameAr')}</dt><dd className="mt-1 text-text" dir="rtl">{detailsRole.nameAr || '—'}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">{t('rolesAdmin.descriptionEn')}</dt><dd className="mt-1 text-text" dir="ltr">{detailsRole.descriptionEn || '—'}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">{t('rolesAdmin.descriptionAr')}</dt><dd className="mt-1 text-text" dir="rtl">{detailsRole.descriptionAr || '—'}</dd></div>
+          </dl>
+          <div className="mt-5 grid gap-6 lg:grid-cols-2">
+            <section><div className="flex items-center justify-between"><h3 className="font-semibold text-text">{t('rolesAdmin.permissions')}</h3><span className="text-xs text-muted-foreground">{selectedPermissionIds.length}</span></div>
+              <input value={permissionSearch} onChange={event => setPermissionSearch(event.target.value)} placeholder={t('rolesAdmin.searchPermissions')} className="mt-3 h-9 w-full rounded-lg border border-border bg-background px-3 text-sm text-text" />
+              <div className="mt-3 h-[390px] overflow-y-auto rounded-lg border border-border p-3">
+                {groupedPermissions.length === 0 ? <p className="text-sm text-muted-foreground">{t('rolesAdmin.noPermissions')}</p> : groupedPermissions.map(([module, permissions]) => <div key={module} className="mb-4 last:mb-0"><h4 className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">{t(`rolesAdmin.modules.${module}`, { defaultValue: module })}</h4><div className="space-y-1">{permissions.map(permission => <label key={permission.id} className="flex items-start gap-2 rounded-lg p-2 hover:bg-muted/50"><input type="checkbox" disabled={!detailsRole.isActive} checked={selectedPermissionIds.includes(Number(permission.id))} onChange={() => setSelectedPermissionIds(ids => ids.includes(Number(permission.id)) ? ids.filter(id => id !== Number(permission.id)) : [...ids, Number(permission.id)])} className="mt-1" /><span className="min-w-0"><span className="block text-sm font-medium text-text">{permissionLabel(permission)}</span><span className="block font-mono text-xs text-muted-foreground">{permission.key}</span></span></label>)}</div></div>)}
               </div>
-              <button
-                onClick={() => setShowDetailsModal(false)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                ✕
-              </button>
-            </div>
-
-            {detailsRole.description && (
-              <p className="text-gray-700 dark:text-gray-300 mb-6">{detailsRole.description}</p>
-            )}
-
-            {/* Permissions Section */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">
-                Permissions
-              </h3>
-              <div className="border border-gray-300 dark:border-gray-600 rounded p-4 max-h-64 overflow-y-auto">
-                {allPermissions.length === 0 ? (
-                  <p className="text-gray-500 dark:text-gray-400">Loading permissions...</p>
-                ) : (
-                  <div className="grid grid-cols-2 gap-2">
-                    {allPermissions.map((perm, idx) => (
-                      <label key={idx} className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={rolePermissions.some(p => p.key === perm)}
-                          onChange={() => {
-                            // Toggle mock permission (in real scenario, find permissionId)
-                            const mockPermId = idx + 1;
-                            togglePermission(mockPermId);
-                          }}
-                          className="rounded"
-                        />
-                        <span className="text-gray-700 dark:text-gray-300">{perm}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <PermissionControl permissions={['Role.Manage']}>
-                <button
-                  onClick={handleSavePermissions}
-                  className="mt-3 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                >
-                  Save Permissions
-                </button>
-              </PermissionControl>
-            </div>
-
-            {/* Users Section */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">
-                Assigned Users ({roleUsers.length})
-              </h3>
-              <div className="border border-gray-300 dark:border-gray-600 rounded p-4 max-h-48 overflow-y-auto mb-3">
-                {roleUsers.length === 0 ? (
-                  <p className="text-gray-500 dark:text-gray-400">No users assigned</p>
-                ) : (
-                  <div className="space-y-2">
-                    {roleUsers.map((user: any) => (
-                      <div key={user.id} className="flex justify-between items-center">
-                        <span className="text-sm text-gray-700 dark:text-gray-300">
-                          {user.name || user.email}
-                        </span>
-                        <PermissionControl permissions={['Role.Manage']}>
-                          <button
-                            onClick={() => handleRemoveUser(user.id, user.name || user.email)}
-                            className="text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                          >
-                            Remove
-                          </button>
-                        </PermissionControl>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              
-              <PermissionControl permissions={['Role.Manage']}>
-                <div className="flex gap-2">
-                  <select
-                    multiple
-                    value={selectedUserIds}
-                    onChange={(e) => {
-                      const selected = Array.from(e.target.selectedOptions, (opt: HTMLOptionElement) => opt.value);
-                      setSelectedUserIds(selected);
-                    }}
-                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    size={4}
-                  >
-                    {availableUsers.map(user => (
-                      <option key={user.id} value={user.id}>
-                        {user.name} ({user.email})
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={handleAssignUsers}
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                  >
-                    Assign Users
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Hold Ctrl/Cmd to select multiple users
-                </p>
-              </PermissionControl>
-            </div>
-
-            <div className="flex justify-end">
-              <button
-                onClick={() => setShowDetailsModal(false)}
-                className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
-              >
-                Close
-              </button>
-            </div>
-          </div>
+              <PermissionControl permission="Role.Manage"><button disabled={savingPermissions || !detailsRole.isActive} onClick={() => void savePermissions()} className="mt-3 w-full rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{savingPermissions ? t('rolesAdmin.saving') : t('rolesAdmin.savePermissions')}</button></PermissionControl>
+            </section>
+            <section><div className="flex items-center justify-between"><h3 className="font-semibold text-text">{t('rolesAdmin.assignedUsers')}</h3><span className="text-xs text-muted-foreground">{roleUsers.length}</span></div>
+              <div className="mt-3 max-h-44 overflow-y-auto rounded-lg border border-border"><div className="divide-y divide-border">{roleUsers.length === 0 ? <p className="p-3 text-sm text-muted-foreground">{t('rolesAdmin.noAssignedUsers')}</p> : roleUsers.map(user => <div key={user.id} className="flex items-center justify-between gap-3 p-3"><div className="min-w-0"><p className="truncate text-sm font-medium text-text">{user.name || user.email || '—'}</p><p className="truncate text-xs text-muted-foreground">{user.email || '—'}</p></div><PermissionControl permission="Role.Manage"><button disabled={savingUsers} onClick={() => void removeUser(user)} className="text-xs font-medium text-danger disabled:opacity-50">{t('rolesAdmin.remove')}</button></PermissionControl></div>)}</div></div>
+              <h4 className="mt-5 text-sm font-semibold text-text">{t('rolesAdmin.addUsers')}</h4><input disabled={!detailsRole.isActive} value={userSearch} onChange={event => setUserSearch(event.target.value)} placeholder={t('rolesAdmin.searchOrgUsers')} className="mt-3 h-9 w-full rounded-lg border border-border bg-background px-3 text-sm text-text disabled:bg-muted disabled:opacity-60" />
+              <div className="mt-3 h-52 overflow-y-auto rounded-lg border border-border p-2">{matchingAvailableUsers.length === 0 ? <p className="p-2 text-sm text-muted-foreground">{t('rolesAdmin.noAvailableUsers')}</p> : matchingAvailableUsers.map(user => <label key={user.id} className="flex items-center gap-2 rounded-lg p-2 hover:bg-muted/50"><input type="checkbox" disabled={!detailsRole.isActive} checked={selectedUserIds.includes(user.id)} onChange={() => setSelectedUserIds(ids => ids.includes(user.id) ? ids.filter(id => id !== user.id) : [...ids, user.id])} /><span className="min-w-0"><span className="block truncate text-sm font-medium text-text">{user.name || user.email || '—'}</span><span className="block truncate text-xs text-muted-foreground">{user.email || '—'}</span></span></label>)}</div>
+              <PermissionControl permission="Role.Manage"><button disabled={savingUsers || !detailsRole.isActive || selectedUserIds.length === 0} onClick={() => void assignUsers()} className="mt-3 w-full rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{savingUsers ? t('rolesAdmin.saving') : t('rolesAdmin.assignSelected')}</button></PermissionControl>
+            </section>
+          </div></>}
         </div>
-      )}
+      </div>}
     </div>
   );
 };

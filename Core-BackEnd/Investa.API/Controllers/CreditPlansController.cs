@@ -3,6 +3,7 @@ using Investa.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using Investa.Domain.Entities.Enums;
 
 namespace Investa.API.Controllers;
 
@@ -13,11 +14,13 @@ public class CreditPlansController : ControllerBase
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<CreditPlansController> _logger;
+    private readonly IWalletService _walletService;
 
-    public CreditPlansController(IUnitOfWork unitOfWork, ILogger<CreditPlansController> logger)
+    public CreditPlansController(IUnitOfWork unitOfWork, ILogger<CreditPlansController> logger, IWalletService walletService)
     {
         _unitOfWork = unitOfWork;
         _logger = logger;
+        _walletService = walletService;
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -147,7 +150,7 @@ public class CreditPlansController : ControllerBase
     // ──────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Purchase a credit plan. Adds plan credits to the buyer's WalletBalance
+    /// Purchase a credit plan. Adds plan credits to the platform CREDIT wallet
     /// and persists a CreditPlanPurchase record with a unique reference number.
     /// </summary>
     [HttpPost("{id:int}/purchase")]
@@ -188,11 +191,16 @@ public class CreditPlansController : ControllerBase
 
         await _unitOfWork.Repository<CreditPlanPurchase>().AddAsync(purchase);
 
-        // Increase wallet balance
-        user.WalletBalance += plan.Credits;
-        await _unitOfWork.Repository<AuthUser>().UpdateAsync(user);
-
-        await _unitOfWork.SaveChangesAsync();
+        // Credit the authoritative platform CREDIT ledger. CreditAsync updates
+        // Wallet.CurrentBalance and records the immutable transaction atomically.
+        var walletTransaction = await _walletService.CreditAsync(
+            userId,
+            plan.Credits,
+            WalletReason.Purchase,
+            ReferenceType.Wallet,
+            reference,
+            $"Credit plan purchase: {plan.Name}",
+            userId);
 
         _logger.LogInformation("User {UserId} purchased plan '{PlanName}' (ref {Ref})", userId, plan.Name, reference);
 
@@ -201,7 +209,7 @@ public class CreditPlansController : ControllerBase
             referenceNumber = reference,
             planName        = plan.Name,
             creditsAdded    = plan.Credits,
-            newBalance      = user.WalletBalance,
+            newBalance      = walletTransaction.BalanceAfter,
         });
     }
 

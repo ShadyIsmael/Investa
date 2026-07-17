@@ -1,1162 +1,173 @@
-<section class="container mx-auto px-6 py-8">
+<main class="requests-page">
+  <div class="requests-shell">
+    <header class="page-header panel-card">
+      <div class="title-block">
+        <p class="eyebrow">{{ 'requests.workspace.eyebrow' | translate }}</p>
+        <h1>{{ 'requests.title' | translate }}</h1>
+        <p>{{ 'requests.workspace.subtitle' | translate }}</p>
+      </div>
+      <div class="header-counts" aria-label="Request totals">
+        <div><span>{{ 'requests.incoming' | translate }}</span><strong>{{ incomingCount() }}</strong></div>
+        <div><span>{{ 'requests.outgoing' | translate }}</span><strong>{{ outgoingCount() }}</strong></div>
+      </div>
+    </header>
 
-
-
-  <!-- Page Header -->
-
-  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-
-    <div>
-
-      <h1 class="text-3xl font-bold text-white">{{ 'requests.title' | translate }}</h1>
-
-      <p class="text-sm text-gray-400 mt-1">
-
-        @if (tab() === 'incoming') {
-
-          {{ incomingCount() }} {{ 'requests.incoming' | translate | lowercase }}
-
-        } @else {
-
-          {{ outgoingCount() }} {{ 'requests.outgoing' | translate | lowercase }}
-
-        }
-
-      </p>
-
-    </div>
-
-
-
-    <!-- Tab toggle -->
-
-    <div class="flex items-center gap-1 p-1 bg-slate-800/60 border border-slate-700/50 rounded-xl">
-
-      <button (click)="switchTab('incoming')"
-
-              class="relative flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all"
-
-              [class.bg-blue-600]="tab() === 'incoming'"
-
-              [class.text-white]="tab() === 'incoming'"
-
-              [class.text-gray-400]="tab() !== 'incoming'"
-
-              [class.hover:text-white]="tab() !== 'incoming'">
-
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-
-          <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
-
-        </svg>
-
+    <nav class="direction-tabs panel-card" role="tablist">
+      <button type="button" role="tab" [attr.aria-selected]="tab() === 'incoming'" [class.active]="tab() === 'incoming'" (click)="switchTab('incoming')">
+        <span class="tab-icon" aria-hidden="true">↙</span>
         {{ 'requests.incoming' | translate }}
-
-        @if (incomingCount() > 0) {
-
-          <span class="ms-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold"
-
-                [class.bg-white/20]="tab() === 'incoming'"
-
-                [class.bg-slate-700]="tab() !== 'incoming'"
-
-                [class.text-white]="true">{{ incomingCount() }}</span>
-
-        }
-
+        <span class="count-badge">{{ incomingCount() }}</span>
       </button>
-
-      <button (click)="switchTab('outgoing')"
-
-              class="relative flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all"
-
-              [class.bg-blue-600]="tab() === 'outgoing'"
-
-              [class.text-white]="tab() === 'outgoing'"
-
-              [class.text-gray-400]="tab() !== 'outgoing'"
-
-              [class.hover:text-white]="tab() !== 'outgoing'">
-
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-
-          <path stroke-linecap="round" stroke-linejoin="round" d="M21 10H11a8 8 0 00-8 8v2m18-10l-6 6m6-6l-6-6"/>
-
-        </svg>
-
+      <button type="button" role="tab" [attr.aria-selected]="tab() === 'outgoing'" [class.active]="tab() === 'outgoing'" (click)="switchTab('outgoing')">
+        <span class="tab-icon" aria-hidden="true">↗</span>
         {{ 'requests.outgoing' | translate }}
-
-        @if (outgoingCount() > 0) {
-
-          <span class="ms-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold"
-
-                [class.bg-white/20]="tab() === 'outgoing'"
-
-                [class.bg-slate-700]="tab() !== 'outgoing'"
-
-                [class.text-white]="true">{{ outgoingCount() }}</span>
-
-        }
-
+        <span class="count-badge">{{ outgoingCount() }}</span>
       </button>
+    </nav>
 
-    </div>
-
-
-
-
-  </div>
-
-
-
-  <!-- Filter Toolbar -->
-
-  <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-4 mb-6">
-
-    <div class="flex flex-wrap items-center gap-4">
-
-      <!-- Status Filter -->
-
-      <div class="flex items-center gap-2">
-
-        <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide">{{ 'requests.filters.status' | translate }}</label>
-
-        <select (change)="setStatusFilter($any($event.target).value)"
-
-                [value]="statusFilter()"
-
-                class="bg-slate-900/80 border border-slate-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/50">
-
+    <section class="filter-bar panel-card" [attr.aria-label]="'requests.workspace.filtersLabel' | translate">
+      <label class="search-control">
+        <span aria-hidden="true">⌕</span>
+        <input type="search" [value]="searchTerm()" (input)="setSearchTerm($event.target.value)" [placeholder]="'requests.workspace.search' | translate">
+      </label>
+      <label>
+        <span>{{ 'requests.filters.status' | translate }}</span>
+        <select [value]="statusFilter()" (change)="setStatusFilter($event.target.value)">
           <option value="all">{{ 'requests.filters.all' | translate }}</option>
-
           <option value="pending">{{ 'requests.filters.pending' | translate }}</option>
-
           <option value="accepted">{{ 'requests.filters.accepted' | translate }}</option>
-
           <option value="rejected">{{ 'requests.filters.rejected' | translate }}</option>
-
         </select>
-
-      </div>
-
-
-
-      <!-- Type Filter -->
-
-      <div class="flex items-center gap-2">
-
-        <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide">{{ 'requests.filters.type' | translate }}</label>
-
-        <select (change)="setTypeFilter($any($event.target).value)"
-
-                [value]="typeFilter()"
-
-                class="bg-slate-900/80 border border-slate-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/50">
-
+      </label>
+      <label>
+        <span>{{ 'requests.filters.type' | translate }}</span>
+        <select [value]="typeFilter()" (change)="setTypeFilter($event.target.value)">
           <option value="all">{{ 'requests.filters.all' | translate }}</option>
-
           <option value="conversation">{{ 'requests.filters.conversation' | translate }}</option>
-
           <option value="participation">{{ 'requests.filters.participation' | translate }}</option>
-
         </select>
-
-      </div>
-
-
-
-      <!-- Date Filter -->
-
-      <div class="flex items-center gap-2">
-
-        <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide">{{ 'requests.filters.date' | translate }}</label>
-
-        <select (change)="setDateFilter($any($event.target).value)"
-
-                [value]="dateFilter()"
-
-                class="bg-slate-900/80 border border-slate-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/50">
-
+      </label>
+      <label>
+        <span>{{ 'requests.filters.date' | translate }}</span>
+        <select [value]="dateFilter()" (change)="setDateFilter($event.target.value)">
           <option value="all">{{ 'requests.filters.allTime' | translate }}</option>
-
           <option value="today">{{ 'requests.filters.today' | translate }}</option>
-
           <option value="7days">{{ 'requests.filters.last7Days' | translate }}</option>
-
           <option value="30days">{{ 'requests.filters.last30Days' | translate }}</option>
-
         </select>
-
-      </div>
-
-
-
-      <!-- Results Count -->
-
-      <div class="ml-auto text-sm text-gray-400">
-
-        {{ 'requests.filters.showing' | translate }} {{ displayRange() }} {{ 'requests.filters.of' | translate }} {{ filteredRequests().length }} {{ 'requests.filters.requests' | translate | lowercase }}
-
-      </div>
-
-    </div>
-
-  </div>
-
-
-
-  <div class="mb-6 grid grid-cols-1 gap-3 md:grid-cols-2">
-    <div class="rounded-xl border border-slate-700/60 bg-slate-900/50 p-4">
-      <div class="flex items-center justify-between gap-3">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{ 'requests.sections.conversationRequests' | translate }}</p>
-          <p class="mt-1 text-sm text-slate-500">{{ 'requests.sections.conversationHelper' | translate }}</p>
-        </div>
-        <span class="rounded-full border border-blue-500/30 bg-blue-500/15 px-3 py-1 text-sm font-bold text-blue-200">{{ currentConversationCount() }}</span>
-      </div>
-    </div>
-    <div class="rounded-xl border border-slate-700/60 bg-slate-900/50 p-4">
-      <div class="flex items-center justify-between gap-3">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{ 'requests.sections.participationRequests' | translate }}</p>
-          <p class="mt-1 text-sm text-slate-500">{{ 'requests.sections.participationHelper' | translate }}</p>
-        </div>
-        <span class="rounded-full border border-purple-500/30 bg-purple-500/15 px-3 py-1 text-sm font-bold text-purple-200">{{ currentParticipationCount() }}</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── INCOMING (Founder Requests) ── -->
-
-  @if (tab() === 'incoming') {
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 animate-fade-in">
-
-      @for (request of paginatedRequests(); track request.id) {
-
-        @if (shouldShowSectionHeader(request, $index)) {
-
-          <div class="col-span-full mt-2 flex items-center justify-between border-b border-slate-800 pb-2">
-
-            <h2 class="text-sm font-bold uppercase tracking-wide text-slate-300">{{ getSectionTitle(request) }}</h2>
-
-            <span class="text-xs font-semibold text-slate-500">{{ getSectionCount(request) }} {{ 'requests.filters.requests' | translate | lowercase }}</span>
-
-          </div>
-
-        }
-        <article class="relative bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-2xl overflow-hidden hover:border-slate-600/60 hover:shadow-xl hover:shadow-black/30 transition-all duration-200 group">
-
-
-
-          <!-- Status accent strip -->
-
-          <div class="absolute top-0 inset-x-0 h-1 rounded-t-2xl"
-
-               [class.bg-amber-500]="isPendingRequest(request)"
-
-               [class.bg-green-500]="request.status === 'Accepted' || request.status === 'Partner'"
-
-               [class.bg-red-500]="request.status === 'Declined' || request.status === 'Rejected'"></div>
-
-
-
-          <div class="p-5">
-
-            <!-- Investor Header -->
-
-            <div class="flex items-start gap-4 mb-4">
-
-              <!-- Investor Avatar -->
-
-              <div class="relative flex-shrink-0">
-
-                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-slate-600 flex items-center justify-center ring-2 ring-slate-700 group-hover:ring-slate-500 transition-all">
-
-                  <svg class="w-7 h-7 text-blue-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-
-                  </svg>
-
-                </div>
-
-              </div>
-
-
-
-              <div class="flex-1 min-w-0">
-
-                <!-- Investor Name + Badges -->
-
-                <div class="flex items-start justify-between gap-2 mb-1">
-
-                  <div class="flex-1 min-w-0">
-
-                    <h3 class="text-white font-bold text-base truncate">{{ getCounterpartyName(request) }}</h3>
-
-                    <div class="flex flex-wrap items-center gap-2 mt-1.5">
-
-                      <!-- Credibility Score Badge -->
-
-                      <span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-
-                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-
-                        </svg>
-
-                        {{ getCredibilityScore(request) }}
-
-                      </span>
-
-                      <!-- Trust Level Badge -->
-
-                      <span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-
-                        </svg>
-
-                        {{ getTrustLevel(request) }}
-
-                      </span>
-
-                    </div>
-
-                  </div>
-
-                  <!-- Status Badge -->
-
-                  <span class="flex-shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border"
-
-                        [class.bg-amber-500/15]="isPendingRequest(request)"
-
-                        [class.text-amber-300]="isPendingRequest(request)"
-
-                        [class.border-amber-500/30]="isPendingRequest(request)"
-
-                        [class.bg-green-500/15]="request.status === 'Accepted' || request.status === 'Partner'"
-
-                        [class.text-green-300]="request.status === 'Accepted' || request.status === 'Partner'"
-
-                        [class.border-green-500/30]="request.status === 'Accepted' || request.status === 'Partner'"
-
-                        [class.bg-red-500/15]="request.status === 'Declined' || request.status === 'Rejected'"
-
-                        [class.text-red-300]="request.status === 'Declined' || request.status === 'Rejected'"
-
-                        [class.border-red-500/30]="request.status === 'Declined' || request.status === 'Rejected'">
-
-                    <span class="w-1.5 h-1.5 rounded-full"
-
-                          [class.bg-amber-400]="isPendingRequest(request)"
-
-                          [class.bg-green-400]="request.status === 'Accepted' || request.status === 'Partner'"
-
-                          [class.bg-red-400]="request.status === 'Declined' || request.status === 'Rejected'"></span>
-
-                    {{ getStatusDisplay(request) }}
-
-                  </span>
-
-                </div>
-
-              </div>
-
-            </div>
-
-
-
-            <!-- Project Info -->
-
-            <div class="bg-slate-800/50 rounded-xl p-3 mb-3">
-
-              <div class="flex items-center gap-2 mb-2">
-
-                <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-
-                </svg>
-
-                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">{{ 'requests.opportunityLabel' | translate }}</span>
-
-              </div>
-
-              <h4 class="text-white font-semibold text-sm mb-1">{{ request.projectName }}</h4>
-
-              <p class="text-xs leading-5 text-slate-400 mt-2">{{ getDirectionCopy(request) }}</p>
-
-            </div>
-
-
-
-            <!-- Request Type Badge -->
-
-            <div class="flex items-center gap-2 mb-3">
-
-              <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1 rounded-lg border"
-
-                    [ngClass]="getRequestTypeBadgeClass(request)">
-
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
-
-                </svg>
-
-                {{ getRequestTypeDisplay(request) }}
-
-              </span>
-
-              <span class="text-xs text-gray-500">
-
-                <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-
-                </svg>
-
-                {{ getTimeAgo(request.createdAt) }}
-
-              </span>
-
-              <span class="text-xs text-gray-600 ml-auto">{{ getExactDateTime(request.createdAt) }}</span>
-
-            </div>
-
-
-
-            <!-- Investment Interest Metadata -->
-
-            @if (hasParticipationMetadata(request)) {
-
-              <div class="bg-purple-500/10 border border-purple-500/30 rounded-xl p-3 mb-3">
-
-                <div class="flex items-center gap-2 mb-2">
-
-                  <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-
-                  </svg>
-
-                  <span class="text-xs font-semibold text-purple-300 uppercase tracking-wide">Opportunity Details</span>
-
-                </div>
-
-                @if (isLoanRequest(request)) {
-                  <div class="mb-3 inline-flex rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-[11px] font-bold text-blue-200">
-                    Investment Model: Loan
-                  </div>
-                  <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Contribution Amount</p>
-                      <p class="text-white font-bold text-sm">{{ getRequestCurrency(request) }} {{ getLoanContributionAmount(request) | number:'1.2-2' }}</p>
-                    </div>
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Return Rate</p>
-                      <p class="text-white font-bold text-sm">{{ getLoanReturnRate(request) }}</p>
-                    </div>
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Term</p>
-                      <p class="text-white font-bold text-sm">{{ getLoanTerm(request) }}</p>
-                    </div>
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Repayment</p>
-                      <p class="text-white font-bold text-sm">{{ getLoanRepaymentModel(request) }}</p>
-                    </div>
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Expected Return</p>
-                      <p class="text-white font-bold text-sm">{{ getRequestCurrency(request) }} {{ getLoanExpectedReturn(request) | number:'1.2-2' }}</p>
-                    </div>
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Total Repayment</p>
-                      <p class="text-white font-bold text-sm">{{ getRequestCurrency(request) }} {{ getLoanExpectedTotalRepayment(request) | number:'1.2-2' }}</p>
-                    </div>
-                  </div>
-                } @else if (isProfitSharingRequest(request)) {
-                  <div class="mb-3 inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-200">
-                    Investment Model: Profit Sharing
-                  </div>
-                  <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Contribution Amount</p>
-                      <p class="text-white font-bold text-sm">{{ getRequestCurrency(request) }} {{ getProfitSharingContributionAmount(request) | number:'1.2-2' }}</p>
-                    </div>
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Profit Share %</p>
-                      <p class="text-white font-bold text-sm">{{ getProfitSharePercentage(request) }}</p>
-                    </div>
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Duration / Term</p>
-                      <p class="text-white font-bold text-sm">{{ getProfitSharingTerm(request) }}</p>
-                    </div>
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Exit Terms</p>
-                      <p class="text-white font-bold text-sm">{{ getProfitSharingExitTerms(request) }}</p>
-                    </div>
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Expected Profit</p>
-                      <p class="text-white font-bold text-sm">{{ formatOptionalMoney(request, getProfitSharingExpectedProfit(request)) }}</p>
-                    </div>
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Expected Payout</p>
-                      <p class="text-white font-bold text-sm">{{ formatOptionalMoney(request, getProfitSharingExpectedTotalPayout(request)) }}</p>
-                    </div>
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Opportunity Payout</p>
-                      <p class="text-white font-bold text-sm">{{ formatOptionalMoney(request, getProfitSharingOpportunityTotalPayout(request)) }}</p>
-                    </div>
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Contract Period</p>
-                      <p class="text-white font-bold text-sm">{{ getProfitSharingContractPeriod(request) }}</p>
-                    </div>
-                  </div>
-                } @else {
-                <div class="mb-3 inline-flex rounded-full border border-purple-500/30 bg-purple-500/10 px-2.5 py-1 text-[11px] font-bold text-purple-200">
-                  Investment Model: Equity
-                </div>
-                <div class="grid grid-cols-3 gap-3">
-
-                  <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-
-                    <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Shares</p>
-
-                    <p class="text-white font-bold text-sm">{{ getSharesRequested(request) | number }}</p>
-
-                  </div>
-
-                  <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-
-                    <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Price</p>
-
-                    <p class="text-white font-bold text-sm">{{ getRequestCurrency(request) }} {{ getSharePrice(request) | number:'1.2-2' }}</p>
-
-                  </div>
-
-                  <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-
-                    <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Total</p>
-
-                    <p class="text-white font-bold text-sm">{{ getRequestCurrency(request) }} {{ getTotalValue(request) | number:'1.2-2' }}</p>
-
-                  </div>
-
-                </div>
-                }
-
-              </div>
-
-            }
-
-
-
-            <!-- Action buttons -->
-
-            @if (canShowAcceptReject(request)) {
-
-              <div class="flex gap-3 pt-3 border-t border-slate-800">
-
-                <button (click)="accept(request)"
-
-                        class="flex-1 flex items-center justify-center gap-2 bg-emerald-600/90 hover:bg-emerald-600 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
-
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-
-                  {{ getPrimaryActionLabel(request) }}
-
-                </button>
-
-                <button (click)="decline(request)"
-
-                        class="flex-1 flex items-center justify-center gap-2 bg-slate-800 hover:bg-red-500/20 border border-slate-700 hover:border-red-500/40 text-gray-300 hover:text-red-400 text-sm font-semibold px-4 py-2.5 rounded-xl transition-all">
-
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-
-                  {{ request.requestType === OpportunityRequestKind.Conversation ? ('requests.actions.rejectChat' | translate) : ('requests.actions.rejectParticipation' | translate) }}
-
-                </button>
-
-              </div>
-
-            }
-
-            @if (canShowWithdraw(request)) {
-              <div class="flex gap-3 pt-3 border-t border-slate-800">
-                <button (click)="withdraw(request)"
-                        class="flex-1 flex items-center justify-center gap-2 bg-slate-800 hover:bg-red-500/20 border border-slate-700 hover:border-red-500/40 text-gray-400 hover:text-red-400 text-sm font-semibold px-4 py-2.5 rounded-xl transition-all">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                  {{ 'requests.actions.withdraw' | translate }}
-                </button>
-              </div>
-            }
-
-          </div>
-
-        </article>
-
-      } @empty {
-
-        <div class="col-span-full flex flex-col items-center justify-center py-24 text-center animate-fade-in">
-
-          <div class="w-16 h-16 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center mb-4">
-
-            <svg class="w-7 h-7 text-gray-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
-
-            </svg>
-
-          </div>
-
-          <p class="text-lg font-semibold text-white mb-1">{{ getEmptyTitle() }}</p>
-
-          <p class="text-sm text-gray-500">{{ getEmptySubtitle() }}</p>
-
-        </div>
-
-      }
-
-    </div>
-
-
-
-    <!-- Pagination -->
-
-    @if (totalPages() > 1) {
-
-      <div class="flex items-center justify-center gap-2 mt-8">
-
-        <button (click)="previousPage()"
-
-                [disabled]="currentPage() === 1"
-
-                class="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-
-          Previous
-
-        </button>
-
-        @for (page of [totalPages()]; track page) {
-
-          @if (page <= 7 || page === totalPages() || (page >= currentPage() - 2 && page <= currentPage() + 2)) {
-
-            <button (click)="goToPage(page)"
-
-                    [class.bg-blue-600]="currentPage() === page"
-
-                    [class.text-white]="currentPage() === page"
-
-                    [class.bg-slate-800]="currentPage() !== page"
-
-                    [class.text-gray-400]="currentPage() !== page"
-
-                    [class.hover:bg-slate-700]="currentPage() !== page"
-
-                    class="px-4 py-2 border border-slate-700 rounded-lg text-sm transition-all">
-
-              {{ page }}
-
-            </button>
-
-          } @else if (page === currentPage() + 3 || page === currentPage() - 3) {
-
-            <span class="text-gray-500">...</span>
-
+      </label>
+      <p class="results-copy">{{ 'requests.filters.showing' | translate }} {{ displayRange() }} {{ 'requests.filters.of' | translate }} {{ filteredRequests().length }}</p>
+    </section>
+
+    <section class="type-overview">
+      <article class="type-summary conversation-summary panel-card">
+        <div class="summary-icon" aria-hidden="true">↔</div>
+        <div><h2>{{ 'requests.sections.conversationRequests' | translate }}</h2><p>{{ 'requests.sections.conversationHelper' | translate }}</p></div>
+        <strong>{{ currentConversationCount() }}</strong>
+      </article>
+      <article class="type-summary participation-summary panel-card">
+        <div class="summary-icon" aria-hidden="true">✓</div>
+        <div><h2>{{ 'requests.sections.participationRequests' | translate }}</h2><p>{{ 'requests.sections.participationHelper' | translate }}</p></div>
+        <strong>{{ currentParticipationCount() }}</strong>
+      </article>
+    </section>
+
+    @if (loading()) {
+      <section class="state-card panel-card"><span class="spinner"></span><h2>{{ 'requests.states.loading' | translate }}</h2></section>
+    } @else if (loadError()) {
+      <section class="state-card state-card--error panel-card"><span class="state-icon">!</span><h2>{{ loadError() }}</h2><button type="button" class="secondary-button" (click)="refresh()">{{ 'requests.states.retry' | translate }}</button></section>
+    } @else {
+      <section class="request-sections">
+        @for (request of paginatedRequests(); track request.id) {
+          @if (shouldShowSectionHeader(request, $index)) {
+            <header class="section-heading">
+              <div><h2>{{ getSectionTitle(request) }}</h2><p>{{ isConversationRequest(request) ? ('requests.sections.conversationHelper' | translate) : ('requests.sections.participationHelper' | translate) }}</p></div>
+              <span>{{ getSectionCount(request) }}</span>
+            </header>
           }
 
-        }
-
-        <button (click)="nextPage()"
-
-                [disabled]="currentPage() === totalPages()"
-
-                class="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-
-          Next
-
-        </button>
-
-      </div>
-
-    }
-
-  }
-
-
-
-  <!-- ── OUTGOING (Investor Requests) ── -->
-
-  @if (tab() === 'outgoing') {
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 animate-fade-in">
-
-      @for (request of paginatedRequests(); track request.id) {
-
-        @if (shouldShowSectionHeader(request, $index)) {
-
-          <div class="col-span-full mt-2 flex items-center justify-between border-b border-slate-800 pb-2">
-
-            <h2 class="text-sm font-bold uppercase tracking-wide text-slate-300">{{ getSectionTitle(request) }}</h2>
-
-            <span class="text-xs font-semibold text-slate-500">{{ getSectionCount(request) }} {{ 'requests.filters.requests' | translate | lowercase }}</span>
-
-          </div>
-
-        }
-        <article class="relative bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-2xl overflow-hidden hover:border-slate-600/60 hover:shadow-xl hover:shadow-black/30 transition-all duration-200 group">
-
-
-
-          <!-- Status accent strip -->
-
-          <div class="absolute top-0 inset-x-0 h-1 rounded-t-2xl"
-
-               [class.bg-amber-500]="isPendingRequest(request)"
-
-               [class.bg-green-500]="request.status === 'Accepted' || request.status === 'Partner'"
-
-               [class.bg-red-500]="request.status === 'Declined' || request.status === 'Rejected'"></div>
-
-
-
-          <div class="p-5">
-
-            <!-- Founder Header -->
-
-            <div class="flex items-start gap-4 mb-4">
-
-              <!-- Founder Avatar -->
-
-              <div class="relative flex-shrink-0">
-
-                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500/20 to-red-500/20 border border-slate-600 flex items-center justify-center ring-2 ring-slate-700 group-hover:ring-slate-500 transition-all">
-
-                  <svg class="w-7 h-7 text-orange-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-
-                  </svg>
-
+          <article class="request-card panel-card" [class.request-card--conversation]="isConversationRequest(request)" [class.request-card--participation]="!isConversationRequest(request)">
+            <div class="status-rail" [class.pending]="statusTone(request) === 'pending'" [class.success]="statusTone(request) === 'success'" [class.danger]="statusTone(request) === 'danger'"></div>
+            <header class="request-header">
+              <div class="person-block">
+                <div class="avatar">{{ initials(getCounterpartyName(request)) }}</div>
+                <div>
+                  <p class="direction-label">{{ request.direction === 'incoming' ? ('requests.from' | translate) : ('requests.to' | translate) }}</p>
+                  <h3>{{ getCounterpartyName(request) }}</h3>
+                  <time>{{ getExactDateTime(request.createdAt) }}</time>
                 </div>
-
               </div>
-
-
-
-              <div class="flex-1 min-w-0">
-
-                <!-- Founder Name + Badges -->
-
-                <div class="flex items-start justify-between gap-2 mb-1">
-
-                  <div class="flex-1 min-w-0">
-
-                    <h3 class="text-white font-bold text-base truncate">{{ getCounterpartyName(request) }}</h3>
-
-                    <div class="flex flex-wrap items-center gap-2 mt-1.5">
-
-                      <!-- Founder Score Badge -->
-
-                      <span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-
-                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-
-                        </svg>
-
-                        {{ getFounderScore(request) }}
-
-                      </span>
-
-                      <!-- Trust Level Badge -->
-
-                      <span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-
-                        </svg>
-
-                        {{ getTrustLevel(request) }}
-
-                      </span>
-
-                    </div>
-
-                  </div>
-
-                  <!-- Status Badge -->
-
-                  <span class="flex-shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border"
-
-                        [class.bg-amber-500/15]="isPendingRequest(request)"
-
-                        [class.text-amber-300]="isPendingRequest(request)"
-
-                        [class.border-amber-500/30]="isPendingRequest(request)"
-
-                        [class.bg-green-500/15]="request.status === 'Accepted' || request.status === 'Partner'"
-
-                        [class.text-green-300]="request.status === 'Accepted' || request.status === 'Partner'"
-
-                        [class.border-green-500/30]="request.status === 'Accepted' || request.status === 'Partner'"
-
-                        [class.bg-red-500/15]="request.status === 'Declined' || request.status === 'Rejected'"
-
-                        [class.text-red-300]="request.status === 'Declined' || request.status === 'Rejected'"
-
-                        [class.border-red-500/30]="request.status === 'Declined' || request.status === 'Rejected'">
-
-                    <span class="w-1.5 h-1.5 rounded-full"
-
-                          [class.bg-amber-400]="isPendingRequest(request)"
-
-                          [class.bg-green-400]="request.status === 'Accepted' || request.status === 'Partner'"
-
-                          [class.bg-red-400]="request.status === 'Declined' || request.status === 'Rejected'"></span>
-
-                    {{ getStatusDisplay(request) }}
-
-                  </span>
-
-                </div>
-
+              <div class="badges">
+                <span class="type-badge" [class.participation]="!isConversationRequest(request)">{{ getRequestTypeDisplay(request) }}</span>
+                <span class="status-badge" [class.pending]="statusTone(request) === 'pending'" [class.success]="statusTone(request) === 'success'" [class.danger]="statusTone(request) === 'danger'">{{ getStatusDisplay(request) }}</span>
               </div>
+            </header>
 
-            </div>
+            <section class="opportunity-row">
+              @if (request.projectImageUrl) {
+                <img [src]="resolveImageUrl(request.projectImageUrl)" [alt]="request.projectName">
+              } @else {
+                <div class="opportunity-mark">{{ initials(request.projectName) }}</div>
+              }
+              <div><span>{{ 'requests.opportunityLabelShort' | translate }}</span><strong>{{ request.projectName }}</strong>@if (request.businessName) { <small>{{ request.businessName }}</small> }</div>
+            </section>
 
-
-
-            <!-- Project Info -->
-
-            <div class="bg-slate-800/50 rounded-xl p-3 mb-3">
-
-              <div class="flex items-center gap-2 mb-2">
-
-                <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-
-                </svg>
-
-                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Opportunity</span>
-
-              </div>
-
-              <h4 class="text-white font-semibold text-sm mb-1">{{ request.projectName }}</h4>
-              <p class="text-xs leading-5 text-slate-400 mt-2">{{ getDirectionCopy(request) }}</p>
-
-            </div>
-
-
-
-            <!-- Request Type Badge -->
-
-            <div class="flex items-center gap-2 mb-3">
-
-              <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1 rounded-lg border"
-
-                    [ngClass]="getRequestTypeBadgeClass(request)">
-
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
-
-                </svg>
-
-                {{ getRequestTypeDisplay(request) }}
-
-              </span>
-
-              <span class="text-xs text-gray-500">
-
-                <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-
-                </svg>
-
-                {{ getTimeAgo(request.createdAt) }}
-
-              </span>
-
-              <span class="text-xs text-gray-600 ml-auto">{{ getExactDateTime(request.createdAt) }}</span>
-
-            </div>
-
-
-
-            <!-- Investment Interest Metadata -->
+            <p class="direction-copy">{{ getDirectionCopy(request) }}</p>
+            @if (request.shortDescription) { <p class="request-message">{{ request.shortDescription }}</p> }
 
             @if (hasParticipationMetadata(request)) {
-
-              <div class="bg-purple-500/10 border border-purple-500/30 rounded-xl p-3 mb-3">
-
-                <div class="flex items-center gap-2 mb-2">
-
-                  <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-
-                  </svg>
-
-                  <span class="text-xs font-semibold text-purple-300 uppercase tracking-wide">Opportunity Details</span>
-
-                </div>
-
-                @if (isLoanRequest(request)) {
-                  <div class="mb-3 inline-flex rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-[11px] font-bold text-blue-200">
-                    Investment Model: Loan
-                  </div>
-                  <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Contribution Amount</p>
-                      <p class="text-white font-bold text-sm">{{ getRequestCurrency(request) }} {{ getLoanContributionAmount(request) | number:'1.2-2' }}</p>
-                    </div>
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Return Rate</p>
-                      <p class="text-white font-bold text-sm">{{ getLoanReturnRate(request) }}</p>
-                    </div>
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Term</p>
-                      <p class="text-white font-bold text-sm">{{ getLoanTerm(request) }}</p>
-                    </div>
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Repayment</p>
-                      <p class="text-white font-bold text-sm">{{ getLoanRepaymentModel(request) }}</p>
-                    </div>
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Expected Return</p>
-                      <p class="text-white font-bold text-sm">{{ getRequestCurrency(request) }} {{ getLoanExpectedReturn(request) | number:'1.2-2' }}</p>
-                    </div>
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Total Repayment</p>
-                      <p class="text-white font-bold text-sm">{{ getRequestCurrency(request) }} {{ getLoanExpectedTotalRepayment(request) | number:'1.2-2' }}</p>
-                    </div>
-                  </div>
-                } @else if (isProfitSharingRequest(request)) {
-                  <div class="mb-3 inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-200">
-                    Investment Model: Profit Sharing
-                  </div>
-                  <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Contribution Amount</p>
-                      <p class="text-white font-bold text-sm">{{ getRequestCurrency(request) }} {{ getProfitSharingContributionAmount(request) | number:'1.2-2' }}</p>
-                    </div>
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Profit Share %</p>
-                      <p class="text-white font-bold text-sm">{{ getProfitSharePercentage(request) }}</p>
-                    </div>
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Duration / Term</p>
-                      <p class="text-white font-bold text-sm">{{ getProfitSharingTerm(request) }}</p>
-                    </div>
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Exit Terms</p>
-                      <p class="text-white font-bold text-sm">{{ getProfitSharingExitTerms(request) }}</p>
-                    </div>
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Expected Profit</p>
-                      <p class="text-white font-bold text-sm">{{ formatOptionalMoney(request, getProfitSharingExpectedProfit(request)) }}</p>
-                    </div>
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Expected Payout</p>
-                      <p class="text-white font-bold text-sm">{{ formatOptionalMoney(request, getProfitSharingExpectedTotalPayout(request)) }}</p>
-                    </div>
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Opportunity Payout</p>
-                      <p class="text-white font-bold text-sm">{{ formatOptionalMoney(request, getProfitSharingOpportunityTotalPayout(request)) }}</p>
-                    </div>
-                    <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-                      <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Contract Period</p>
-                      <p class="text-white font-bold text-sm">{{ getProfitSharingContractPeriod(request) }}</p>
-                    </div>
-                  </div>
-                } @else {
-                <div class="mb-3 inline-flex rounded-full border border-purple-500/30 bg-purple-500/10 px-2.5 py-1 text-[11px] font-bold text-purple-200">
-                  Investment Model: Equity
-                </div>
-                <div class="grid grid-cols-3 gap-3">
-
-                  <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-
-                    <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Shares</p>
-
-                    <p class="text-white font-bold text-sm">{{ getSharesRequested(request) | number }}</p>
-
-                  </div>
-
-                  <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-
-                    <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Price</p>
-
-                    <p class="text-white font-bold text-sm">{{ getRequestCurrency(request) }} {{ getSharePrice(request) | number:'1.2-2' }}</p>
-
-                  </div>
-
-                  <div class="bg-slate-800/50 rounded-lg p-2 text-center">
-
-                    <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Total</p>
-
-                    <p class="text-white font-bold text-sm">{{ getRequestCurrency(request) }} {{ getTotalValue(request) | number:'1.2-2' }}</p>
-
-                  </div>
-
-                </div>
-                }
-
-              </div>
-
+              <section class="terms-panel">
+                <header><span>{{ 'requests.workspace.submittedTerms' | translate }}</span><strong>{{ getInvestmentModelDisplay(request) }}</strong></header>
+                <dl class="terms-grid">
+                  @if (isLoanRequest(request)) {
+                    <div><dt>{{ 'requests.values.contribution' | translate }}</dt><dd>{{ formatOptionalMoney(request, getLoanContributionAmount(request)) }}</dd></div>
+                    <div><dt>{{ 'requests.values.returnRate' | translate }}</dt><dd>{{ getLoanReturnRate(request) }}</dd></div>
+                    <div><dt>{{ 'requests.values.term' | translate }}</dt><dd>{{ getLoanTerm(request) }}</dd></div>
+                    <div><dt>{{ 'requests.values.repayment' | translate }}</dt><dd>{{ getLoanRepaymentModel(request) }}</dd></div>
+                    @if (getLoanExpectedTotalRepayment(request) > 0) { <div><dt>{{ 'requests.values.totalRepayment' | translate }}</dt><dd>{{ formatOptionalMoney(request, getLoanExpectedTotalRepayment(request)) }}</dd></div> }
+                  } @else if (isProfitSharingRequest(request)) {
+                    <div><dt>{{ 'requests.values.contribution' | translate }}</dt><dd>{{ formatOptionalMoney(request, getProfitSharingContributionAmount(request)) }}</dd></div>
+                    <div><dt>{{ 'requests.values.profitShare' | translate }}</dt><dd>{{ getProfitSharePercentage(request) }}</dd></div>
+                    <div><dt>{{ 'requests.values.term' | translate }}</dt><dd>{{ getProfitSharingTerm(request) }}</dd></div>
+                    @if (getProfitSharingExpectedTotalPayout(request); as payout) { <div><dt>{{ 'requests.values.expectedPayout' | translate }}</dt><dd>{{ formatOptionalMoney(request, payout) }}</dd></div> }
+                  } @else {
+                    @if (getSharesRequested(request) > 0) { <div><dt>{{ 'requests.values.shares' | translate }}</dt><dd>{{ getSharesRequested(request) }}</dd></div> }
+                    @if (getSharePrice(request) > 0) { <div><dt>{{ 'requests.values.sharePrice' | translate }}</dt><dd>{{ formatOptionalMoney(request, getSharePrice(request)) }}</dd></div> }
+                    @if (getTotalValue(request) > 0) { <div><dt>{{ 'requests.values.totalValue' | translate }}</dt><dd>{{ formatOptionalMoney(request, getTotalValue(request)) }}</dd></div> }
+                  }
+                </dl>
+              </section>
             }
 
-
-
-            <!-- Timeline Progress -->
-
-            <div class="flex items-center gap-2 mb-3">
-
-              <div class="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-
-                <div class="h-full rounded-full transition-all duration-500"
-
-                     [class.bg-amber-500]="isPendingRequest(request)"
-
-                     [class.bg-green-500]="request.status === 'Accepted' || request.status === 'Partner'"
-
-                     [class.bg-red-500]="request.status === 'Declined' || request.status === 'Rejected'"
-
-                     [style.width.%]="getProgressPercentage(request)"></div>
-
-              </div>
-
-              <span class="text-[10px] text-gray-500">{{ getProgressLabel(request) }}</span>
-
+            <div class="request-progress">
+              <div><span>{{ getProgressLabel(request) }}</span><strong>{{ getProgressPercentage(request) }}%</strong></div>
+              <div class="progress-track"><span [style.width.%]="getProgressPercentage(request)" [class.danger]="statusTone(request) === 'danger'"></span></div>
             </div>
 
-
-
-            <!-- Withdraw button -->
-
-            @if (canShowWithdraw(request)) {
-
-              <div class="flex gap-3 pt-3 border-t border-slate-800">
-
-                <button (click)="withdraw(request)"
-
-                        class="flex-1 flex items-center justify-center gap-2 bg-slate-800 hover:bg-red-500/20 border border-slate-700 hover:border-red-500/40 text-gray-400 hover:text-red-400 text-sm font-semibold px-4 py-2.5 rounded-xl transition-all">
-
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-
-                  {{ 'requests.actions.withdrawRequest' | translate }}
-
-                </button>
-
-              </div>
-
+            @if (canShowAcceptReject(request) || canShowWithdraw(request)) {
+              <footer class="request-actions">
+                @if (canShowAcceptReject(request)) {
+                  <button type="button" class="primary-button" (click)="accept(request)">{{ getPrimaryActionLabel(request) }}</button>
+                  <button type="button" class="secondary-button danger-button" (click)="decline(request)">{{ isConversationRequest(request) ? ('requests.actions.rejectChat' | translate) : ('requests.actions.rejectParticipation' | translate) }}</button>
+                }
+                @if (canShowWithdraw(request)) {
+                  <button type="button" class="secondary-button" (click)="withdraw(request)">{{ 'requests.actions.withdrawRequest' | translate }}</button>
+                }
+              </footer>
             }
-
-          </div>
-
-        </article>
-
-      } @empty {
-
-        <div class="col-span-full flex flex-col items-center justify-center py-24 text-center animate-fade-in">
-
-          <div class="w-16 h-16 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center mb-4">
-
-            <svg class="w-7 h-7 text-gray-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-
-              <path stroke-linecap="round" stroke-linejoin="round" d="M21 10H11a8 8 0 00-8 8v2m18-10l-6 6m6-6l-6-6"/>
-
-            </svg>
-
-          </div>
-
-          <p class="text-lg font-semibold text-white mb-1">{{ getEmptyTitle() }}</p>
-
-          <p class="text-sm text-gray-500">{{ getEmptySubtitle() }}</p>
-
-        </div>
-
-      }
-
-    </div>
-
-
-
-    <!-- Pagination -->
-
-    @if (totalPages() > 1) {
-
-      <div class="flex items-center justify-center gap-2 mt-8">
-
-        <button (click)="previousPage()"
-
-                [disabled]="currentPage() === 1"
-
-                class="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-
-          Previous
-
-        </button>
-
-        @for (page of [totalPages()]; track page) {
-
-          @if (page <= 7 || page === totalPages() || (page >= currentPage() - 2 && page <= currentPage() + 2)) {
-
-            <button (click)="goToPage(page)"
-
-                    [class.bg-blue-600]="currentPage() === page"
-
-                    [class.text-white]="currentPage() === page"
-
-                    [class.bg-slate-800]="currentPage() !== page"
-
-                    [class.text-gray-400]="currentPage() !== page"
-
-                    [class.hover:bg-slate-700]="currentPage() !== page"
-
-                    class="px-4 py-2 border border-slate-700 rounded-lg text-sm transition-all">
-
-              {{ page }}
-
-            </button>
-
-          } @else if (page === currentPage() + 3 || page === currentPage() - 3) {
-
-            <span class="text-gray-500">...</span>
-
-          }
-
+          </article>
+        } @empty {
+          <section class="state-card panel-card"><span class="state-icon">↔</span><h2>{{ getEmptyTitle() }}</h2><p>{{ getEmptySubtitle() }}</p></section>
         }
+      </section>
 
-        <button (click)="nextPage()"
-
-                [disabled]="currentPage() === totalPages()"
-
-                class="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-
-          Next
-
-        </button>
-
-      </div>
-
+      @if (totalPages() > 1) {
+        <nav class="pagination panel-card" [attr.aria-label]="'requests.workspace.pagination' | translate">
+          <button type="button" class="secondary-button" (click)="previousPage()" [disabled]="currentPage() === 1">{{ 'requests.workspace.previous' | translate }}</button>
+          <span>{{ 'requests.workspace.page' | translate }} {{ currentPage() }} / {{ totalPages() }}</span>
+          <button type="button" class="secondary-button" (click)="nextPage()" [disabled]="currentPage() === totalPages()">{{ 'requests.workspace.next' | translate }}</button>
+        </nav>
+      }
     }
-
-  }
-
-
-
-</section>
-
-
+  </div>
+</main>

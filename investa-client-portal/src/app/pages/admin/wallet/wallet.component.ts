@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { Wallet, WalletService, WalletTransaction } from '../../../services/wallet.service';
+import { walletDirectionKey, walletReasonKey, walletReferenceTypeKey, Wallet, WalletService, WalletTransaction } from '../../../services/wallet.service';
 import { LanguageService } from '../../../services/language.service';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
 
@@ -19,7 +19,7 @@ export class WalletComponent {
   private languageService = inject(LanguageService);
 
   wallet = signal<Wallet | null>(null);
-  balance = signal<number>(0);
+  balance = this.walletService.balance;
   transactions = signal<WalletTransaction[]>([]);
   isLoading = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
@@ -45,10 +45,9 @@ export class WalletComponent {
 
       const view = await this.walletService.loadCurrentUserWallet();
       this.wallet.set(view.wallet);
-      this.balance.set(view.balance ?? view.wallet.currentBalance ?? 0);
       this.transactions.set(view.transactions);
-    } catch (error: any) {
-      this.errorMessage.set(error?.message || this.t('wallet.errors.loadFailed'));
+    } catch (error: unknown) {
+      this.errorMessage.set(this.errorText(error));
       this.wallet.set(null);
       this.transactions.set([]);
     } finally {
@@ -57,14 +56,14 @@ export class WalletComponent {
   }
 
   formatNumber(value: number | null | undefined): string {
-    return new Intl.NumberFormat(this.languageService.language() === 'ar' ? 'ar-EG' : 'en-US', { maximumFractionDigits: 2 }).format(value ?? 0);
+    return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value ?? 0);
   }
 
   formatDate(value: string | null | undefined): string {
     if (!value) return '-';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
-    return new Intl.DateTimeFormat(this.languageService.language() === 'ar' ? 'ar-EG' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+    return new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
   }
 
   displayValue(value: string | number | null | undefined): string {
@@ -73,8 +72,7 @@ export class WalletComponent {
   }
 
   directionTone(direction: string | number): string {
-    const text = String(direction).toLowerCase();
-    return text.includes('credit') || text === '0'
+    return walletDirectionKey(direction) === 'credit'
       ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25'
       : 'bg-red-500/15 text-red-300 border-red-500/25';
   }
@@ -85,5 +83,22 @@ export class WalletComponent {
 
   t(path: string): string {
     return this.languageService.translate(path);
+  }
+
+  directionLabel(value: string | number): string {
+    return this.t(`wallet.enums.direction.${walletDirectionKey(value)}`);
+  }
+
+  reasonLabel(value: string | number): string {
+    return this.t(`wallet.enums.reason.${walletReasonKey(value)}`);
+  }
+
+  referenceTypeLabel(value: string | number): string {
+    return this.t(`wallet.enums.referenceType.${walletReferenceTypeKey(value)}`);
+  }
+
+  private errorText(error: unknown): string {
+    const record = typeof error === 'object' && error !== null ? error as Record<string, unknown> : null;
+    return typeof record?.['message'] === 'string' ? record['message'] : this.t('wallet.errors.loadFailed');
   }
 }

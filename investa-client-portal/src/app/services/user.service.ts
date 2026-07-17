@@ -5,6 +5,7 @@ import { API_BASE } from '../config/api.token';
 import { UserRoles } from '../config/constants';
 import { ProfileService, UserProfile } from './profile.service';
 import { AuthService } from './auth.service';
+import { WalletService } from './wallet.service';
 
 /**
  * User Service
@@ -19,7 +20,6 @@ export interface User {
   email: string;
   phoneNumber: string;
   role: string; // All external users are 'Client' type
-  credits: number;
   profileImageUrl?: string;
 }
 
@@ -30,12 +30,13 @@ export class UserService {
   private http = inject(HttpClient);
   private profileService = inject(ProfileService);
   private authService = inject(AuthService);
+  private walletService = inject(WalletService);
 
   private currentUser = signal<User | null>(null);
   private initialized = false;
 
   user = computed(() => this.currentUser());
-  credits = computed(() => this.currentUser()?.credits ?? 0);
+  credits = this.walletService.balance;
 
   constructor(@Inject(API_BASE) private apiBase: string) {
   }
@@ -61,6 +62,12 @@ export class UserService {
       const profile = await this.profileService.loadMyProfile();
       if (profile) {
         this.setUserFromProfile(profile);
+        try {
+          await this.walletService.loadBalance();
+        } catch (error) {
+          console.error('Failed to load platform CREDIT balance:', error);
+          this.walletService.setBalance(0);
+        }
       }
     } catch (error) {
       // If profile load fails, clear auth state
@@ -82,7 +89,6 @@ export class UserService {
       email: profile.contactInfo?.email || profile.coreMetrics?.email || '',
       phoneNumber: profile.contactInfo?.phone1 || '',
       role: UserRoles.CLIENT, // All external users are Client type
-      credits: profile.coreMetrics?.walletBalance ?? 0,
       profileImageUrl: profile.basicInfo?.avatarUrl || undefined
     };
     this.currentUser.set(user);
@@ -92,7 +98,17 @@ export class UserService {
    * Reload user profile from API
    */
   async refreshUser(): Promise<void> {
-    await this.initializeUser();
+    if (!this.authService.isAuthenticated()) {
+      this.currentUser.set(null);
+      this.walletService.setBalance(0);
+      return;
+    }
+
+    const [profile] = await Promise.all([
+      this.profileService.loadMyProfile(),
+      this.walletService.loadBalance()
+    ]);
+    if (profile) this.setUserFromProfile(profile);
   }
 
   /**
@@ -100,10 +116,7 @@ export class UserService {
    * For actual credit transactions, use deductCredits or addCredits which call the API
    */
   private updateCredits(newAmount: number): void {
-    this.currentUser.update(user => user ? {
-      ...user,
-      credits: newAmount
-    } : null);
+    this.walletService.setBalance(newAmount);
   }
 
   /**
@@ -113,14 +126,14 @@ export class UserService {
    * @throws Error if insufficient credits
    */
   deductCredits(amount: number): number {
-    const current = this.currentUser();
-    if (!current) {
+    if (!this.currentUser()) {
       throw new Error('User not loaded');
     }
-    if (current.credits < amount) {
+    const currentBalance = this.credits();
+    if (currentBalance < amount) {
       throw new Error('Insufficient credits');
     }
-    const newBalance = current.credits - amount;
+    const newBalance = currentBalance - amount;
     this.updateCredits(newBalance);
     return newBalance;
   }
@@ -130,11 +143,10 @@ export class UserService {
    * Backend API handles actual credit addition with audit trail
    */
   addCredits(amount: number): number {
-    const current = this.currentUser();
-    if (!current) {
+    if (!this.currentUser()) {
       throw new Error('User not loaded');
     }
-    const newBalance = current.credits + amount;
+    const newBalance = this.credits() + amount;
     this.updateCredits(newBalance);
     return newBalance;
   }
@@ -159,5 +171,6 @@ export class UserService {
    */
   clear(): void {
     this.currentUser.set(null);
+    this.walletService.setBalance(0);
   }
 }

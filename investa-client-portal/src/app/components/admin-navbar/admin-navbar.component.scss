@@ -254,7 +254,7 @@
 .icon-badge {
   position: absolute;
   top: -0.1875rem;
-  right: -0.1875rem;
+  inset-inline-end: -0.1875rem;
   min-width: 1rem;
   height: 1rem;
   display: flex;
@@ -270,23 +270,36 @@
   box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
 }
 
+.notification-menu-anchor {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
 .notifications-dropdown {
   position: absolute;
+  z-index: 1080;
   top: calc(100% + 0.75rem);
-  right: 0;
-  width: 24rem;
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+  box-sizing: border-box;
+  inline-size: 24rem;
+  max-inline-size: calc(100vw - 1.5rem);
   background: linear-gradient(180deg, rgba(30, 41, 59, 0.98) 0%, rgba(15, 23, 42, 0.98) 100%);
   border: 1px solid rgba(71, 85, 105, 0.5);
   border-radius: 1rem;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
   overflow: hidden;
   backdrop-filter: blur(20px);
+  text-align: start;
 }
 
 .notifications-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
   padding: 1rem 1.25rem;
   border-bottom: 1px solid rgba(71, 85, 105, 0.3);
   background: rgba(0, 0, 0, 0.2);
@@ -296,6 +309,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
 
   h3 {
     font-size: 0.9375rem;
@@ -318,12 +332,15 @@
 }
 
 .mark-read-btn {
+  flex: 0 1 auto;
   padding: 0.375rem 0.75rem;
   background: transparent;
   border: none;
   color: #3b82f6;
   font-size: 0.75rem;
   font-weight: 600;
+  text-align: end;
+  white-space: normal;
   cursor: pointer;
   transition: color 0.2s ease;
 
@@ -418,6 +435,7 @@
   font-weight: 600;
   color: #ffffff;
   margin: 0 0 0.25rem 0;
+  overflow-wrap: anywhere;
 }
 
 .notification-message {
@@ -425,6 +443,8 @@
   color: #94a3b8;
   margin: 0 0 0.25rem 0;
   line-height: 1.4;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .notification-time {
@@ -463,6 +483,7 @@
   font-size: 0.875rem;
   color: #64748b;
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .notifications-footer {
@@ -502,6 +523,12 @@
 }
 
 // User Menu
+.user-menu-anchor {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
 .user-menu-btn {
   display: flex;
   align-items: center;
@@ -541,15 +568,20 @@
 
 .user-dropdown {
   position: absolute;
+  z-index: 1080;
   top: calc(100% + 0.75rem);
-  right: 0;
-  width: 16rem;
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+  box-sizing: border-box;
+  inline-size: 16rem;
+  max-inline-size: calc(100vw - 1.5rem);
   background: linear-gradient(180deg, rgba(30, 41, 59, 0.98) 0%, rgba(15, 23, 42, 0.98) 100%);
   border: 1px solid rgba(71, 85, 105, 0.5);
   border-radius: 1rem;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
   overflow: hidden;
   backdrop-filter: blur(20px);
+  text-align: start;
 }
 
 .user-dropdown-header {
@@ -585,20 +617,33 @@
 
 .dropdown-user-info {
   display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
   flex-direction: column;
+  text-align: start;
 }
 
 .dropdown-user-name {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
   font-size: 0.875rem;
   font-weight: 600;
   color: #ffffff;
   line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dropdown-user-email {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
   font-size: 0.75rem;
   color: #94a3b8;
   line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .user-dropdown-divider {
@@ -609,11 +654,15 @@
 
 .dropdown-item {
   display: flex;
+  width: 100%;
   align-items: center;
   gap: 0.75rem;
   padding: 0.875rem 1.25rem;
+  border: 0;
   color: #e2e8f0;
+  background: transparent;
   text-decoration: none;
+  text-align: start;
   font-size: 0.875rem;
   font-weight: 500;
   transition: all 0.2s ease;
@@ -637,6 +686,13 @@
   width: 1.125rem;
   height: 1.125rem;
   flex-shrink: 0;
+}
+
+.premium-navbar[dir='rtl'] {
+  .see-all-btn svg,
+  .dropdown-item-danger .dropdown-item-icon {
+    transform: scaleX(-1);
+  }
 }
 
 // Responsive adjustments
@@ -667,5 +723,173 @@
 
   .navbar-right {
     gap: 0.5rem;
+  }
+}
+
+:host-context(body.investa-theme-light) {
+  .premium-navbar {
+    background: rgba(255, 255, 255, 0.94);
+    border-bottom-color: var(--investa-border, #dedede);
+    box-shadow: 0 1px 2px rgba(21, 22, 25, 0.05);
+  }
+
+  .logo-icon {
+    color: var(--investa-accent, #22c532);
+    filter: none;
+  }
+
+  .logo-text {
+    color: var(--investa-text-primary, #212225);
+    background: none;
+    -webkit-text-fill-color: currentColor;
+  }
+
+  .nav-link {
+    color: var(--investa-text-secondary, #66686b);
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+
+    &:hover {
+      color: var(--investa-text-primary, #212225);
+      background: var(--investa-surface-2, #f7f7f7);
+      border-color: var(--investa-border, #dedede);
+    }
+
+    &.nav-link-active {
+      color: var(--investa-text-primary, #212225);
+      background: var(--investa-surface-2, #f7f7f7);
+      border-color: var(--investa-border, #dedede);
+      box-shadow: inset 0 -3px 0 var(--investa-accent, #22c532);
+    }
+
+    &.nav-link-secondary {
+      color: var(--investa-text-muted, #7b7d80);
+
+      &:hover {
+        color: var(--investa-text-primary, #212225);
+      }
+    }
+  }
+
+  .nav-divider {
+    background: var(--investa-border, #dedede);
+  }
+
+  .search-container,
+  .icon-btn {
+    background: var(--investa-surface-2, #f7f7f7);
+    border-color: var(--investa-border, #dedede);
+    color: var(--investa-text-secondary, #66686b);
+
+    &:hover {
+      background: var(--investa-surface, #ffffff);
+      border-color: var(--investa-border-strong, #cfcfcf);
+      color: var(--investa-text-primary, #212225);
+    }
+  }
+
+  .search-container:focus-within {
+    background: var(--investa-surface, #ffffff);
+    border-color: var(--investa-accent, #22c532);
+    box-shadow: 0 0 0 3px rgba(34, 197, 50, 0.14);
+  }
+
+  .search-icon,
+  .search-shortcut {
+    color: var(--investa-text-muted, #7b7d80);
+  }
+
+  .search-input {
+    color: var(--investa-text-primary, #212225);
+
+    &::placeholder {
+      color: var(--investa-text-muted, #7b7d80);
+    }
+  }
+
+  .search-shortcut {
+    background: var(--investa-surface, #ffffff);
+    border-color: var(--investa-border, #dedede);
+  }
+
+  .icon-badge {
+    border-color: var(--investa-surface, #ffffff);
+  }
+
+  .notifications-dropdown,
+  .user-dropdown {
+    background: var(--investa-surface, #ffffff);
+    border-color: var(--investa-border, #dedede);
+    box-shadow: 0 18px 38px rgba(21, 22, 25, 0.12);
+  }
+
+  .notifications-header,
+  .notifications-footer,
+  .user-dropdown-header {
+    background: var(--investa-surface-2, #f7f7f7);
+    border-color: var(--investa-border, #dedede);
+  }
+
+  .notifications-title h3,
+  .notification-title,
+  .dropdown-user-name {
+    color: var(--investa-text-primary, #212225);
+  }
+
+  .notification-message,
+  .notification-time,
+  .notifications-empty p,
+  .dropdown-user-email {
+    color: var(--investa-text-secondary, #66686b);
+  }
+
+  .notifications-count,
+  .see-all-btn,
+  .mark-read-btn {
+    color: var(--investa-brand-700, #158322);
+  }
+
+  .notifications-count {
+    background: var(--investa-brand-50, rgba(34, 197, 50, 0.1));
+    border-color: var(--investa-brand-200, rgba(34, 197, 50, 0.22));
+  }
+
+  .notification-item {
+    border-color: var(--investa-border, #dedede);
+
+    &:hover,
+    &.notification-item-unread {
+      background: var(--investa-surface-2, #f7f7f7);
+    }
+  }
+
+  .notification-indicator {
+    background: var(--investa-accent, #22c532);
+    box-shadow: 0 0 8px rgba(34, 197, 50, 0.35);
+  }
+
+  .user-avatar,
+  .dropdown-avatar {
+    border-color: var(--investa-border, #dedede);
+  }
+
+  .user-avatar-initials,
+  .dropdown-avatar-initials {
+    background: var(--investa-primary, #212225);
+    border-color: var(--investa-border, #dedede);
+  }
+
+  .user-dropdown-divider {
+    background: var(--investa-border, #dedede);
+  }
+
+  .dropdown-item {
+    color: var(--investa-text-secondary, #66686b);
+
+    &:hover {
+      background: var(--investa-surface-2, #f7f7f7);
+      color: var(--investa-text-primary, #212225);
+    }
   }
 }

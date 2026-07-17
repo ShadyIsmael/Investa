@@ -1,0 +1,212 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 580" fill="none">
+  <defs>
+    <!-- Glow gradients -->
+    <radialGradient id="glow1" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#22c532" stop-opacity="0.15"/>
+      <stop offset="60%" stop-color="#22c532" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#22c532" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#22c532" stop-opacity="0.1"/>
+      <stop offset="70%" stop-color="#22c532" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="#22c532" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow3" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#22c532" stop-opacity="0.08"/>
+      <stop offset="60%" stop-color="#22c532" stop-opacity="0.03"/>
+      <stop offset="100%" stop-color="#22c532" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Phone frame gradients -->
+    <linearGradient id="phoneBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2C2C2E"/>
+      <stop offset="100%" stop-color="#1C1C1E"/>
+    </linearGradient>
+    <linearGradient id="screenDark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0F1418"/>
+      <stop offset="100%" stop-color="#151B20"/>
+    </linearGradient>
+
+    <!-- Center phone screen content gradients -->
+    <linearGradient id="cardGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1B2329"/>
+      <stop offset="100%" stop-color="#151B20"/>
+    </linearGradient>
+    <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(34,197,50,0.25)"/>
+      <stop offset="100%" stop-color="rgba(34,197,50,0)"/>
+    </linearGradient>
+
+    <!-- Side phone screen gradients -->
+    <linearGradient id="screenLeft" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0F1418"/>
+      <stop offset="100%" stop-color="#1a2028"/>
+    </linearGradient>
+    <linearGradient id="screenRight" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0F1418"/>
+      <stop offset="100%" stop-color="#1a2028"/>
+    </linearGradient>
+
+    <!-- Phone shadows -->
+    <filter id="phoneShadow" x="-20%" y="-10%" width="140%" height="130%">
+      <feDropShadow dx="0" dy="12" stdDeviation="24" flood-color="rgba(0,0,0,0.4)"/>
+    </filter>
+    <filter id="phoneShadowCenter" x="-20%" y="-10%" width="140%" height="130%">
+      <feDropShadow dx="0" dy="16" stdDeviation="32" flood-color="rgba(0,0,0,0.5)"/>
+    </filter>
+  </defs>
+
+  <!-- Background glow circles -->
+  <circle cx="320" cy="320" r="280" fill="url(#glow1)"/>
+  <circle cx="440" cy="200" r="180" fill="url(#glow2)"/>
+  <circle cx="200" cy="400" r="160" fill="url(#glow3)"/>
+
+  <!-- ==================== LEFT PHONE (behind, tilted) ==================== -->
+  <g transform="translate(70, 55) rotate(-6, 140, 280)" filter="url(#phoneShadow)">
+    <!-- Body -->
+    <rect x="4" y="0" width="196" height="404" rx="28" fill="url(#phoneBody)" stroke="#3A3A3C" stroke-width="1"/>
+    <!-- Screen -->
+    <rect x="7" y="10" width="186" height="384" rx="22" fill="url(#screenLeft)"/>
+    <!-- Notch -->
+    <rect x="76" y="10" width="50" height="18" rx="9" fill="#0F1418"/>
+    <!-- Status bar dots -->
+    <circle cx="24" cy="34" r="3" fill="#B7C0C7" opacity="0.3"/>
+    <circle cx="34" cy="34" r="3" fill="#B7C0C7" opacity="0.3"/>
+    <!-- Opportunity list UI -->
+    <rect x="20" y="50" width="60" height="14" rx="4" fill="#22c532" opacity="0.12"/>
+    <rect x="20" y="68" width="100" height="6" rx="3" fill="#B7C0C7" opacity="0.25"/>
+    <!-- Card 1 -->
+    <rect x="16" y="90" width="166" height="56" rx="10" fill="url(#cardGrad)" stroke="#2A333A" stroke-width="0.5"/>
+    <rect x="28" y="104" width="80" height="6" rx="3" fill="#F5F7F8" opacity="0.5"/>
+    <rect x="28" y="116" width="50" height="5" rx="2.5" fill="#87929A" opacity="0.3"/>
+    <rect x="140" y="106" width="30" height="6" rx="3" fill="#22c532" opacity="0.5"/>
+    <!-- Card 2 -->
+    <rect x="16" y="154" width="166" height="56" rx="10" fill="url(#cardGrad)" stroke="#2A333A" stroke-width="0.5"/>
+    <rect x="28" y="168" width="70" height="6" rx="3" fill="#F5F7F8" opacity="0.5"/>
+    <rect x="28" y="180" width="45" height="5" rx="2.5" fill="#87929A" opacity="0.3"/>
+    <rect x="140" y="170" width="25" height="6" rx="3" fill="#3B82F6" opacity="0.5"/>
+    <!-- Card 3 -->
+    <rect x="16" y="218" width="166" height="56" rx="10" fill="url(#cardGrad)" stroke="#2A333A" stroke-width="0.5"/>
+    <rect x="28" y="232" width="90" height="6" rx="3" fill="#F5F7F8" opacity="0.5"/>
+    <rect x="28" y="244" width="55" height="5" rx="2.5" fill="#87929A" opacity="0.3"/>
+    <rect x="140" y="234" width="28" height="6" rx="3" fill="#A855F7" opacity="0.5"/>
+    <!-- Bottom tab bar -->
+    <rect x="16" y="290" width="166" height="1" rx="0.5" fill="#2A333A" opacity="0.4"/>
+    <rect x="24" y="304" width="24" height="2" rx="1" fill="#22c532" opacity="0.8"/>
+    <rect x="58" y="304" width="24" height="2" rx="1" fill="#B7C0C7" opacity="0.2"/>
+    <rect x="92" y="304" width="24" height="2" rx="1" fill="#B7C0C7" opacity="0.2"/>
+    <rect x="126" y="304" width="24" height="2" rx="1" fill="#B7C0C7" opacity="0.2"/>
+    <!-- Home indicator -->
+    <rect x="64" y="378" width="66" height="3" rx="1.5" fill="#2A333A"/>
+  </g>
+
+  <!-- ==================== RIGHT PHONE (behind, tilted opposite) ==================== -->
+  <g transform="translate(382, 45) rotate(5, 140, 280)" filter="url(#phoneShadow)">
+    <rect x="4" y="0" width="196" height="404" rx="28" fill="url(#phoneBody)" stroke="#3A3A3C" stroke-width="1"/>
+    <rect x="7" y="10" width="186" height="384" rx="22" fill="url(#screenRight)"/>
+    <rect x="76" y="10" width="50" height="18" rx="9" fill="#0F1418"/>
+    <!-- Status indicators -->
+    <rect x="20" y="28" width="16" height="8" rx="2" fill="#22c532" opacity="0.2"/>
+    <rect x="22" y="30" width="12" height="4" rx="1" fill="#22c532"/>
+    <!-- Chat UI -->
+    <rect x="16" y="50" width="50" height="12" rx="4" fill="#22c532" opacity="0.12"/>
+    <!-- Chat bubble 1 (received) -->
+    <rect x="16" y="76" width="120" height="32" rx="8" fill="url(#cardGrad)" stroke="#2A333A" stroke-width="0.5"/>
+    <rect x="28" y="86" width="70" height="4" rx="2" fill="#F5F7F8" opacity="0.4"/>
+    <rect x="28" y="94" width="50" height="3" rx="1.5" fill="#87929A" opacity="0.25"/>
+    <!-- Chat bubble 2 (sent) -->
+    <rect x="60" y="118" width="120" height="32" rx="8" fill="rgba(34,197,50,0.1)" stroke="rgba(34,197,50,0.2)" stroke-width="0.5"/>
+    <rect x="72" y="128" width="60" height="4" rx="2" fill="#F5F7F8" opacity="0.5"/>
+    <rect x="72" y="136" width="40" height="3" rx="1.5" fill="#B7C0C7" opacity="0.3"/>
+    <!-- Chat bubble 3 (received) -->
+    <rect x="16" y="160" width="110" height="32" rx="8" fill="url(#cardGrad)" stroke="#2A333A" stroke-width="0.5"/>
+    <rect x="28" y="170" width="65" height="4" rx="2" fill="#F5F7F8" opacity="0.4"/>
+    <rect x="28" y="178" width="45" height="3" rx="1.5" fill="#87929A" opacity="0.25"/>
+    <!-- Input bar -->
+    <rect x="16" y="210" width="166" height="36" rx="10" fill="url(#cardGrad)" stroke="#2A333A" stroke-width="0.5"/>
+    <rect x="28" y="224" width="100" height="5" rx="2.5" fill="#87929A" opacity="0.3"/>
+    <circle cx="162" cy="228" r="10" fill="#22c532" opacity="0.8"/>
+    <!-- Home indicator -->
+    <rect x="64" y="378" width="66" height="3" rx="1.5" fill="#2A333A"/>
+  </g>
+
+  <!-- ==================== CENTER PHONE (front, largest) ==================== -->
+  <g transform="translate(190, 75)" filter="url(#phoneShadowCenter)">
+    <!-- Body -->
+    <rect x="4" y="0" width="252" height="504" rx="36" fill="url(#phoneBody)" stroke="#3A3A3C" stroke-width="1"/>
+    <!-- Screen -->
+    <rect x="8" y="10" width="240" height="484" rx="28" fill="url(#screenDark)"/>
+    <!-- Notch / dynamic island -->
+    <rect x="88" y="10" width="72" height="24" rx="12" fill="#0F1418"/>
+    <circle cx="124" cy="22" r="4" fill="#1C1C1E" opacity="0.5"/>
+
+    <!-- Status bar -->
+    <rect x="20" y="40" width="36" height="5" rx="2.5" fill="#B7C0C7" opacity="0.35"/>
+    <rect x="216" y="42" width="16" height="4" rx="2" fill="#22c532"/>
+    <rect x="200" y="42" width="12" height="4" rx="2" fill="#B7C0C7" opacity="0.25"/>
+
+    <!-- Page title -->
+    <rect x="20" y="60" width="80" height="22" rx="6" fill="rgba(34,197,50,0.12)"/>
+    <rect x="28" y="67" width="64" height="6" rx="3" fill="#22c532" opacity="0.7"/>
+    <circle cx="220" cy="71" r="10" fill="url(#cardGrad)" stroke="#2A333A" stroke-width="0.5"/>
+    <circle cx="220" cy="71" r="4" fill="#22c532" opacity="0.7"/>
+
+    <!-- Portfolio Balance Card -->
+    <rect x="16" y="96" width="212" height="96" rx="14" fill="url(#cardGrad)" stroke="#2A333A" stroke-width="1"/>
+    <rect x="30" y="110" width="72" height="7" rx="3.5" fill="#87929A" opacity="0.5"/>
+    <rect x="30" y="124" width="110" height="20" rx="4" fill="#F5F7F8" opacity="0.9"/>
+    <rect x="30" y="152" width="50" height="6" rx="3" fill="#22c532" opacity="0.6"/>
+    <rect x="88" y="152" width="30" height="6" rx="3" fill="#22c532" opacity="0.35"/>
+
+    <!-- Sparkline chart -->
+    <path d="M30 184 C50 170, 70 176, 90 162 C100 156, 110 158, 120 148 C135 134, 150 140, 170 128 C185 120, 195 124, 210 116" stroke="#22c532" stroke-width="2" fill="none" opacity="0.7"/>
+    <path d="M30 184 C50 170, 70 176, 90 162 C100 156, 110 158, 120 148 C135 134, 150 140, 170 128 C185 120, 195 124, 210 116 L210 210 L30 210 Z" fill="url(#chartGrad)" opacity="0.15"/>
+
+    <!-- Section label -->
+    <rect x="16" y="218" width="60" height="6" rx="3" fill="#B7C0C7" opacity="0.4"/>
+
+    <!-- Investment item 1 -->
+    <rect x="16" y="236" width="212" height="46" rx="10" fill="url(#cardGrad)" stroke="#2A333A" stroke-width="0.5"/>
+    <circle cx="40" cy="259" r="13" fill="rgba(34,197,50,0.12)"/>
+    <circle cx="40" cy="259" r="6" fill="#22c532" opacity="0.5"/>
+    <rect x="62" y="250" width="80" height="7" rx="3.5" fill="#F5F7F8" opacity="0.7"/>
+    <rect x="62" y="262" width="55" height="5" rx="2.5" fill="#87929A" opacity="0.4"/>
+    <rect x="186" y="252" width="30" height="6" rx="3" fill="#22c532" opacity="0.6"/>
+
+    <!-- Investment item 2 -->
+    <rect x="16" y="288" width="212" height="46" rx="10" fill="url(#cardGrad)" stroke="#2A333A" stroke-width="0.5"/>
+    <circle cx="40" cy="311" r="13" fill="rgba(59,130,246,0.12)"/>
+    <circle cx="40" cy="311" r="6" fill="#3B82F6" opacity="0.5"/>
+    <rect x="62" y="302" width="75" height="7" rx="3.5" fill="#F5F7F8" opacity="0.7"/>
+    <rect x="62" y="314" width="50" height="5" rx="2.5" fill="#87929A" opacity="0.4"/>
+    <rect x="186" y="304" width="28" height="6" rx="3" fill="#22c532" opacity="0.45"/>
+
+    <!-- Investment item 3 -->
+    <rect x="16" y="340" width="212" height="46" rx="10" fill="url(#cardGrad)" stroke="#2A333A" stroke-width="0.5"/>
+    <circle cx="40" cy="363" r="13" fill="rgba(168,85,247,0.12)"/>
+    <circle cx="40" cy="363" r="6" fill="#A855F7" opacity="0.5"/>
+    <rect x="62" y="354" width="90" height="7" rx="3.5" fill="#F5F7F8" opacity="0.7"/>
+    <rect x="62" y="366" width="45" height="5" rx="2.5" fill="#87929A" opacity="0.4"/>
+    <rect x="186" y="356" width="24" height="6" rx="3" fill="#22c532" opacity="0.5"/>
+
+    <!-- Bottom tab bar -->
+    <rect x="16" y="402" width="212" height="1.5" rx="0.75" fill="#2A333A" opacity="0.4"/>
+    <rect x="28" y="418" width="36" height="24" rx="7" fill="rgba(34,197,50,0.1)"/>
+    <rect x="34" y="425" width="24" height="3" rx="1.5" fill="#22c532"/>
+    <rect x="34" y="432" width="24" height="2" rx="1" fill="#22c532" opacity="0.35"/>
+    <rect x="80" y="425" width="24" height="3" rx="1.5" fill="#B7C0C7" opacity="0.2"/>
+    <rect x="80" y="432" width="24" height="2" rx="1" fill="#B7C0C7" opacity="0.15"/>
+    <rect x="132" y="425" width="24" height="3" rx="1.5" fill="#B7C0C7" opacity="0.2"/>
+    <rect x="132" y="432" width="24" height="2" rx="1" fill="#B7C0C7" opacity="0.15"/>
+    <rect x="184" y="425" width="24" height="3" rx="1.5" fill="#B7C0C7" opacity="0.2"/>
+    <rect x="184" y="432" width="24" height="2" rx="1" fill="#B7C0C7" opacity="0.15"/>
+
+    <!-- Home indicator -->
+    <rect x="84" y="470" width="84" height="4" rx="2" fill="#2A333A"/>
+
+    <!-- Side buttons -->
+    <rect x="0" y="120" width="2" height="40" rx="1" fill="#3A3A3C"/>
+    <rect x="0" y="170" width="2" height="50" rx="1" fill="#3A3A3C"/>
+    <rect x="254" y="150" width="2" height="70" rx="1" fill="#3A3A3C"/>
+  </g>
+</svg>

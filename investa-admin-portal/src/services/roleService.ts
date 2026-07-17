@@ -1,273 +1,85 @@
 import { api } from '@/api/api';
-import { Role, RoleWithGroup, RoleCreateDto, AssignPermissionsDto, AssignUsersDto, Permission } from '@/types';
+import { AssignPermissionsDto, AssignUsersDto, Group, PaginatedUsers, Permission, Role, RoleCreateDto, RoleUpdateDto, RoleWithGroup, User } from '@/types';
 
-const ROLES_KEY = 'investa:mock:roles';
+export interface RoleUser {
+  id: string;
+  name: string;
+  email: string | null;
+}
 
-// Mock data seeding
-const seedMockRoles = () => {
-  if (!localStorage.getItem(ROLES_KEY)) {
-    const mockRoles: RoleWithGroup[] = [
-      {
-        id: 'role-guid-admin-1',
-        name: 'System Admin',
-        description: 'Full system access',
-        groupId: 1,
-        groupName: 'Administration',
-        isActive: true,
-        createdAt: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString()
-      },
-      {
-        id: 'role-guid-editor-1',
-        name: 'Finance Editor',
-        description: 'Edit finance data',
-        groupId: 2,
-        groupName: 'Finance',
-        isActive: true,
-        createdAt: new Date(Date.now() - 200 * 24 * 60 * 60 * 1000).toISOString()
-      },
-      {
-        id: 'role-guid-editor-2',
-        name: 'Finance Manager',
-        description: 'Manage finance operations',
-        groupId: 2,
-        groupName: 'Finance',
-        isActive: true,
-        createdAt: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString()
-      },
-      {
-        id: 'role-guid-viewer-1',
-        name: 'Support Viewer',
-        description: 'Read-only support access',
-        groupId: 3,
-        groupName: 'Support',
-        isActive: true,
-        createdAt: new Date(Date.now() - 150 * 24 * 60 * 60 * 1000).toISOString()
-      },
-      {
-        id: 'role-guid-viewer-2',
-        name: 'Marketing Viewer',
-        description: 'View marketing data',
-        groupId: 4,
-        groupName: 'Marketing',
-        isActive: true,
-        createdAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
-      },
-    ];
-    localStorage.setItem(ROLES_KEY, JSON.stringify(mockRoles));
-  }
-};
-
-seedMockRoles();
-
-const readMockRoles = (): RoleWithGroup[] => {
-  try {
-    const data = localStorage.getItem(ROLES_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-};
-
-const writeMockRoles = (roles: RoleWithGroup[]) => {
-  localStorage.setItem(ROLES_KEY, JSON.stringify(roles));
+const asArray = <T>(value: T[] | { data?: T[] } | null | undefined): T[] => {
+  if (Array.isArray(value)) return value;
+  return Array.isArray(value?.data) ? value.data : [];
 };
 
 export const roleService = {
-  /**
-   * Get all roles in the system.
-   * Endpoint: GET /api/v1/admin/roles
-   */
   async getAllRoles(): Promise<RoleWithGroup[]> {
-    try {
-      const res = await api.get<RoleWithGroup[]>('/api/v1/admin/roles');
-      return res ?? [];
-    } catch (err) {
-      console.warn('Backend get all roles API unavailable, using mock', err);
-      return readMockRoles();
-    }
+    return asArray(await api.get<RoleWithGroup[]>('/api/v1/admin/roles'));
   },
 
-  /**
-   * Get roles by group ID.
-   * Endpoint: GET /api/v1/admin/groups/{groupId}/roles
-   */
+  async getGroups(): Promise<Group[]> {
+    const response = await api.get<{ items: Group[] }>('/api/v1/admin/groups/list?page=1&pageSize=100');
+    return Array.isArray(response?.items) ? response.items : [];
+  },
+
   async getRolesByGroup(groupId: number): Promise<Role[]> {
-    try {
-      const res = await api.get<Role[]>(`/api/v1/admin/groups/${groupId}/roles`);
-      return res ?? [];
-    } catch (err) {
-      console.warn('Backend get roles by group API unavailable, using mock', err);
-      const allRoles = readMockRoles();
-      return allRoles.filter(r => r.groupId === groupId);
-    }
+    return asArray(await api.get<Role[]>(`/api/v1/admin/groups/${groupId}/roles`));
   },
 
-  /**
-   * Get single role by ID.
-   * Endpoint: GET /api/v1/admin/roles/{roleId}
-   */
-  async getRoleById(roleId: string): Promise<RoleWithGroup | null> {
-    try {
-      const res = await api.get<RoleWithGroup>(`/api/v1/admin/roles/${roleId}`);
-      return res ?? null;
-    } catch (err) {
-      console.warn('Backend get role by ID API unavailable, using mock', err);
-      const roles = readMockRoles();
-      return roles.find(r => r.id === roleId) || null;
-    }
+  async getRoleById(roleId: string): Promise<RoleWithGroup> {
+    return await api.get<RoleWithGroup>(`/api/v1/admin/roles/${roleId}`);
   },
 
-  /**
-   * Create a new role.
-   * Endpoint: POST /api/v1/admin/roles
-   */
-  async createRole(payload: RoleCreateDto): Promise<RoleWithGroup | null> {
-    try {
-      const res = await api.post<RoleWithGroup>('/api/v1/admin/roles', payload);
-      return res ?? null;
-    } catch (err) {
-      console.warn('Backend create role API unavailable, using mock', err);
-      const roles = readMockRoles();
-      
-      const newRole: RoleWithGroup = {
-        id: `role-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        name: payload.name,
-        description: payload.description || null,
-        groupId: payload.groupId,
-        groupName: `Group ${payload.groupId}`, // In real scenario, fetch from groups
-        isActive: true,
-        createdAt: new Date().toISOString()
-      };
-      
-      roles.push(newRole);
-      writeMockRoles(roles);
-      
-      return newRole;
-    }
+  async createRole(payload: RoleCreateDto): Promise<Role> {
+    return await api.post<Role>('/api/v1/admin/roles', payload);
   },
 
-  /**
-   * Assign permissions to a role (replaces existing permissions).
-   * Endpoint: POST /api/v1/admin/roles/{roleId}/permissions
-   */
-  async assignPermissions(roleId: string, payload: AssignPermissionsDto): Promise<void> {
-    try {
-      await api.post(`/api/v1/admin/roles/${roleId}/permissions`, payload);
-    } catch (err) {
-      console.warn('Backend assign permissions API unavailable, mock acknowledged', err);
-      // Mock: just acknowledge (no-op in mock since we don't track role permissions in mock)
-    }
+  async updateRole(roleId: string, payload: RoleUpdateDto): Promise<Role> {
+    return await api.put<Role>(`/api/v1/admin/roles/${roleId}`, payload);
   },
 
-  /**
-   * Assign users to a role.
-   * Endpoint: POST /api/v1/admin/roles/{roleId}/users
-   */
-  async assignUsers(roleId: string, payload: AssignUsersDto): Promise<void> {
-    try {
-      await api.post(`/api/v1/admin/roles/${roleId}/users`, payload);
-    } catch (err) {
-      console.warn('Backend assign users to role API unavailable, mock acknowledged', err);
-      // Mock: just acknowledge (no-op in mock)
-    }
-  },
-
-  /**
-   * Remove a user from a role.
-   * Endpoint: DELETE /api/v1/admin/roles/{roleId}/users/{userId}
-   */
-  async removeUserFromRole(roleId: string, userId: string): Promise<void> {
-    try {
-      await api.delete(`/api/v1/admin/roles/${roleId}/users/${userId}`);
-    } catch (err) {
-      console.warn('Backend remove user from role API unavailable, mock acknowledged', err);
-      // Mock: just acknowledge (no-op in mock)
-    }
-  },
-
-  /**
-   * Update a role.
-   * Endpoint: PUT /api/v1/admin/roles/{roleId}
-   */
-  async updateRole(roleId: string, payload: Partial<RoleCreateDto>): Promise<void> {
-    try {
-      await api.put(`/api/v1/admin/roles/${roleId}`, payload);
-    } catch (err) {
-      console.warn('Backend update role API unavailable, using mock', err);
-      const roles = readMockRoles();
-      const idx = roles.findIndex(r => r.id === roleId);
-      
-      if (idx !== -1) {
-        roles[idx] = {
-          ...roles[idx],
-          name: payload.name || roles[idx].name,
-          description: payload.description !== undefined ? payload.description : roles[idx].description,
-          groupId: payload.groupId || roles[idx].groupId,
-        };
-        writeMockRoles(roles);
-      } else {
-        throw new Error('Role not found');
-      }
-    }
-  },
-
-  /**
-   * Delete a role.
-   * Endpoint: DELETE /api/v1/admin/roles/{roleId}
-   */
   async deleteRole(roleId: string): Promise<void> {
-    try {
-      await api.delete(`/api/v1/admin/roles/${roleId}`);
-    } catch (err) {
-      console.warn('Backend delete role API unavailable, using mock', err);
-      const roles = readMockRoles();
-      const filtered = roles.filter(r => r.id !== roleId);
-      
-      if (filtered.length === roles.length) {
-        throw new Error('Role not found');
-      }
-      
-      writeMockRoles(filtered);
-    }
+    await api.delete(`/api/v1/admin/roles/${roleId}`);
   },
 
-  /**
-   * Get permissions assigned to a role.
-   * Endpoint: GET /api/v1/admin/roles/{roleId}/permissions
-   */
+  async getAllPermissions(): Promise<Permission[]> {
+    const permissions = asArray(await api.get<Permission[]>('/api/v1/admin/permissions'));
+    return permissions.filter(permission => Number.isInteger(Number(permission.id)) && Number(permission.id) > 0);
+  },
+
   async getRolePermissions(roleId: string): Promise<Permission[]> {
-    // If this looks like a locally-created mock role id, avoid backend call and return mock
-    if (typeof roleId === 'string' && (roleId.startsWith('role-') || roleId.startsWith('temp-'))) {
-      console.debug('Using mock permissions for local role id', roleId);
-      return [];
-    }
-
-    try {
-      const res = await api.get<Permission[]>(`/api/v1/admin/roles/${roleId}/permissions`);
-      return res ?? [];
-    } catch (err) {
-      console.warn('Backend get role permissions API unavailable, using mock', err);
-      return [];
-    }
+    return asArray(await api.get<Permission[]>(`/api/v1/admin/roles/${roleId}/permissions`));
   },
 
-  /**
-   * Get users assigned to a role.
-   * Endpoint: GET /api/v1/admin/roles/{roleId}/users
-   */
-  async getRoleUsers(roleId: string): Promise<any[]> {
-    // Avoid backend calls for local/mock role ids
-    if (typeof roleId === 'string' && (roleId.startsWith('role-') || roleId.startsWith('temp-'))) {
-      console.debug('Using mock users for local role id', roleId);
-      return [];
+  async assignPermissions(roleId: string, payload: AssignPermissionsDto): Promise<void> {
+    await api.post(`/api/v1/admin/roles/${roleId}/permissions`, payload);
+  },
+
+  async getRoleUsers(roleId: string): Promise<RoleUser[]> {
+    return asArray(await api.get<RoleUser[]>(`/api/v1/admin/roles/${roleId}/users`));
+  },
+
+  async assignUsers(roleId: string, payload: AssignUsersDto): Promise<void> {
+    await api.post(`/api/v1/admin/roles/${roleId}/users`, payload);
+  },
+
+  async removeUserFromRole(roleId: string, userId: string): Promise<void> {
+    await api.delete(`/api/v1/admin/roles/${roleId}/users/${userId}`);
+  },
+
+  async getOrgUsers(): Promise<User[]> {
+    const users: User[] = [];
+    let page = 1;
+    const pageSize = 100;
+
+    while (true) {
+      const response = await api.get<PaginatedUsers>(`/api/v1/admin/users/list?page=${page}&pageSize=${pageSize}`);
+      const items = Array.isArray(response?.items) ? response.items : [];
+      users.push(...items);
+      if (users.length >= Number(response?.total ?? 0) || items.length < pageSize) break;
+      page += 1;
     }
 
-    try {
-      const res = await api.get<any[]>(`/api/v1/admin/roles/${roleId}/users`);
-      return res ?? [];
-    } catch (err) {
-      console.warn('Backend get role users API unavailable, using mock', err);
-      return [];
-    }
-  }
+    return users;
+  },
 };

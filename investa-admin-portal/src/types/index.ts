@@ -90,14 +90,29 @@ export interface GroupUpdateDto {
 }
 
 export interface Role {
-  id: string | number; // GUID or temporary numeric id when creating
+  id: string;
+  roleCode: string;
+  nameEn: string;
+  nameAr: string;
+  descriptionEn: string | null;
+  descriptionAr: string | null;
+  groupId: number;
+  groupName?: string;
+  isActive: boolean;
+  createdAt: string;
+  members?: string[]; // user IDs (GUIDs)
+}
+
+/** Compatibility model for the legacy combined Groups/Roles screen. */
+export interface LegacyRole {
+  id: string | number;
   name: string;
   description: string | null;
   groupId: number | null;
   groupName?: string;
   isActive: boolean;
-  createdAt: string; // ISO 8601 datetime
-  members?: string[]; // user IDs (GUIDs)
+  createdAt: string;
+  members?: string[];
 }
 
 export interface RoleWithGroup extends Role {
@@ -112,9 +127,15 @@ export interface PaginatedRoles {
 }
 
 export interface RoleCreateDto {
-  name: string;
-  description?: string;
+  nameEn: string;
+  nameAr: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
   groupId: number;
+}
+
+export interface RoleUpdateDto extends RoleCreateDto {
+  isActive: boolean;
 }
 
 export interface AssignPermissionsDto {
@@ -128,8 +149,9 @@ export interface AssignUsersDto {
 export interface Permission {
   id: number;
   key: string; // e.g., "clients.view", "invoices.create"
-  resource: string; // e.g., "clients", "invoices"
-  action: string; // e.g., "view", "create"
+  name?: string;
+  resource?: string; // e.g., "clients", "invoices"
+  action?: string; // e.g., "view", "create"
   description: string | null;
   createdAt: string;
 }

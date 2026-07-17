@@ -20,6 +20,7 @@ using Investa.API.Authorization;
 using Investa.Application.Common;
 using Investa.Application.Interfaces;
 using Investa.Application.Services;
+using Investa.Application.Services.Finance;
 using Investa.Infrastructure.Persistence;
 using Investa.Infrastructure.Services;
 using Investa.Infrastructure.Repositories;
@@ -100,6 +101,9 @@ try
         builder.Services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(connectionString, sqlOptions =>
             {
+                // Production/local database is SQL Server 2014 (compatibility level 120).
+                // Prevent EF from translating captured primitive collections through OPENJSON.
+                sqlOptions.UseCompatibilityLevel(120);
                 sqlOptions.CommandTimeout(30);
                 sqlOptions.EnableRetryOnFailure(
                     maxRetryCount: 3,
@@ -341,6 +345,7 @@ try
 
     // === DEVELOPMENT IDENTITY RESEED (repair-only) ===
     builder.Services.AddDevIdentityReseed();
+    builder.Services.AddScoped<FinancePermissionBackfillService>();
 
     // === DEVELOPMENT OPPORTUNITY SEED (repair-only) ===
     if (builder.Environment.IsDevelopment())
@@ -384,6 +389,13 @@ try
         {
             await backfillContext.Database.MigrateAsync();
         }
+
+        var financePermissionBackfill = scope.ServiceProvider.GetRequiredService<FinancePermissionBackfillService>();
+        var addedFinancePermissions = await financePermissionBackfill.BackfillAsync();
+        logger.LogInformation(
+            "Company Finance permission backfill added {Count} keys: {Keys}",
+            addedFinancePermissions.Count,
+            string.Join(", ", addedFinancePermissions));
 
         var backfill = scope.ServiceProvider.GetRequiredService<InvestmentOpportunityBackfillService>();
         var result = await backfill.BackfillAsync();
@@ -570,13 +582,17 @@ finally
 /// </summary>
 static void RegisterApplicationServices(IServiceCollection services)
 {
+    services.AddHttpContextAccessor();
+    services.AddScoped<ICurrentUserContext, Investa.API.Services.HttpCurrentUserContext>();
     // === INFRASTRUCTURE LAYER ===
     // Unit of Work & Repository Pattern (Scoped - per request)
     services.AddScoped<IUnitOfWork, UnitOfWork>();
     services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+    services.AddScoped<IEffectivePermissionService, EffectivePermissionService>();
     
     // Specialized repositories with complex query support
     services.AddScoped<IInvestmentRepository, InvestmentRepository>();
+    services.AddScoped<IFinanceRepository, FinanceRepository>();
 
     // === APPLICATION LAYER - Business Services (Scoped - per request) ===
     services.AddScoped<IProfileService, ProfileService>();
@@ -605,6 +621,12 @@ static void RegisterApplicationServices(IServiceCollection services)
     services.AddScoped<OpportunityRoomDemoDataBackfillService>();
     services.AddScoped<IChatService, ChatService>();
     services.AddScoped<IGroupService, GroupService>();
+    services.AddScoped<IFinanceValidationService, FinanceValidationService>();
+    services.AddScoped<IFinanceAccountingService, FinanceAccountingService>();
+    services.AddScoped<IFinanceTransactionService, FinanceTransactionService>();
+    services.AddScoped<IFinanceMasterDataService, FinanceMasterDataService>();
+    services.AddScoped<IFinanceOverviewService, FinanceOverviewService>();
+    services.AddScoped<IFinanceReconciliationService, FinanceReconciliationService>();
 
     // === INFRASTRUCTURE LAYER - External Services ===
     // Security Services (Scoped - stateful per request)

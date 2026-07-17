@@ -67,11 +67,6 @@ export const routes: Routes = [
         pathMatch: 'full'
       },
       {
-        path: 'opportunities/new',
-        redirectTo: 'investments/new',
-        pathMatch: 'full'
-      },
-      {
         path: 'opportunities/:id/edit',
         loadComponent: () => import('./pages/admin/opportunities/opportunity-editor.component').then(m => m.OpportunityEditorComponent),
         canActivate: [founderOnlyGuard],
@@ -99,15 +94,9 @@ export const routes: Routes = [
       },
       { 
         path: 'investments/new', 
-        loadComponent: () => import('./pages/admin/submit-investment/submit-investment.component').then(m => m.SubmitInvestmentComponent),
+        loadComponent: () => import('./pages/admin/opportunities/opportunity-editor.component').then(m => m.OpportunityEditorComponent),
         canActivate: [founderOnlyGuard],
         title: 'Create Opportunity - Investa'
-      },
-      { 
-        path: 'investments/:id/edit', 
-        loadComponent: () => import('./pages/admin/submit-investment/submit-investment.component').then(m => m.SubmitInvestmentComponent),
-        canActivate: [founderOnlyGuard],
-        title: 'Edit Opportunity - Investa'
       },
       {
         path: 'investments/:id/media',

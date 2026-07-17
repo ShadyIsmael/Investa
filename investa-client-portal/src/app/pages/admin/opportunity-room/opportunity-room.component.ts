@@ -52,6 +52,7 @@ const RECENT_ACTIVITY_LIMIT = 5;
   selector: 'app-opportunity-room',
   imports: [CommonModule, FormsModule, RouterLink, TranslatePipe],
   templateUrl: './opportunity-room.component.html',
+  styleUrl: './opportunity-room.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class OpportunityRoomComponent {
@@ -588,7 +589,8 @@ export class OpportunityRoomComponent {
   }
 
   status(): string {
-    return this.overview().status || '-';
+    const key = this.statusKey();
+    return key ? this.t(key) : '-';
   }
 
   stage(): string {
@@ -609,8 +611,21 @@ export class OpportunityRoomComponent {
   }
 
   statusKey(): string {
-    const status = this.overview().status || '';
-    return status ? `investments.status.${status.toLowerCase()}` : '';
+    const status = String(this.overview().status ?? '').trim().toLowerCase().replace(/[\s_-]+/g, '');
+    const keys: Record<string, string> = {
+      '1': 'draft', draft: 'draft',
+      '2': 'underReview', underreview: 'underReview',
+      '3': 'rejected', rejected: 'rejected',
+      '4': 'approved', approved: 'approved',
+      '5': 'published', published: 'published',
+      '6': 'funding', funding: 'funding',
+      '7': 'fullyFunded', fullyfunded: 'fullyFunded',
+      '8': 'inProgress', inprogress: 'inProgress',
+      '9': 'completed', completed: 'completed',
+      '10': 'archived', archived: 'archived'
+    };
+    const key = keys[status];
+    return key ? `opportunityRoom.statuses.${key}` : '';
   }
 
   stageKey(): string {
@@ -651,6 +666,13 @@ export class OpportunityRoomComponent {
     if (founder?.summary) return founder.summary;
     if (founder?.displayName || founder?.fullName || founder?.name) return founder.displayName || founder.fullName || founder.name || '';
     return '-';
+  }
+
+  founderProfileId(): string {
+    const overview = this.overview();
+    const id = overview.founderId ?? overview.founder?.userId ?? overview.founder?.id;
+    const value = String(id ?? '').trim();
+    return value === 'undefined' || value === 'null' ? '' : value;
   }
 
   roomRole(): string {
@@ -849,10 +871,10 @@ export class OpportunityRoomComponent {
   }
 
   activityKindClass(kind: ActivityFeedItem['kind']): string {
-    if (kind === 'milestone') return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200';
-    if (kind === 'update') return 'border-blue-500/30 bg-blue-500/10 text-blue-200';
-    if (kind === 'document') return 'border-amber-500/30 bg-amber-500/10 text-amber-200';
-    return 'border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-200';
+    if (kind === 'milestone') return 'investa-badge-accent';
+    if (kind === 'update') return '';
+    if (kind === 'document') return 'bg-amber-500/10 text-amber-700 border-amber-500/30 dark:text-amber-200';
+    return '';
   }
 
   participationAccessText(): string {

@@ -77,6 +77,8 @@ export const Icon: React.FC<{ name: string; className?: string }> = ({ name, cla
       return <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth} d="M6 18L18 6M6 6l12 12" /></svg>;
     case 'headset':
       return <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth} d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-3.536 5 5 0 015-5c.916 0 1.766.25 2.49.682m-2.49 4.318L5.636 5.636m0 12.728L3 21m2.636-2.636l2.829-2.829m0 0a5 5 0 017.072 0m-7.072 0l-2.829 2.829" /></svg>;
+    case 'clipboard-check':
+      return <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>;
     case 'cloud-done':
       return <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth} d="M20 16.58A5 5 0 0018 7h-1.26A8 8 0 104 16.25" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={strokeWidth} d="M16 16l-2-2m0 0l-2 2m2-2v6" /></svg>;
     case 'cloud-off':

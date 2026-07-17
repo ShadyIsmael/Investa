@@ -109,8 +109,13 @@ public class ProfileService : IProfileService
             profile.Country = profileDto.BasicInfo.Country;
             profile.Nationality = profileDto.BasicInfo.Nationality;
             profile.CompanyName = profileDto.BasicInfo.CompanyName;
+            profile.BusinessRole = profileDto.BasicInfo.JobTitle;
             profile.Bio = profileDto.BasicInfo.Bio;
             profile.AvatarUrl = profileDto.BasicInfo.AvatarUrl;
+
+            var clientProfile = await _unitOfWork.Repository<Client>().GetSingleAsync(c => c.UserId == userId);
+            if (clientProfile != null)
+                clientProfile.WebsiteUrl = profileDto.BasicInfo.WebsiteUrl;
         }
 
         // Update contact info
@@ -249,6 +254,7 @@ public class ProfileService : IProfileService
         if (client != null)
         {
             dto.BasicInfo.Score = client.Score;
+            dto.BasicInfo.WebsiteUrl = client.WebsiteUrl;
             // TODO: `client.Credit` is legacy and should not be used for visible balance.
             // Keep it for backward compatibility elsewhere.
         }

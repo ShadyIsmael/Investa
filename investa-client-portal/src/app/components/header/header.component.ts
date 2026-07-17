@@ -7,26 +7,10 @@ import { UiService } from '../../services/ui.service';
 import { AuthService } from '../../services/auth.service';
 import { UserService } from '../../services/user.service';
 import { FileStoreService } from '../../services/file-store.service';
+import { SettingsService } from '../../services/settings.service';
+import { ThemePreference } from '../../models/settings.model';
 import { DOCUMENT } from '@angular/common';
 
-/**
- * HeaderComponent
- *
- * Main navigation bar displayed on public pages.
- * Features:
- * - Responsive single-line layout
- * - Navigation links (Home, About, Services, Blog, Contact)
- * - Language toggle functionality
- * - Login/Signup action buttons (when not authenticated)
- * - My Office button (when authenticated)
- * - User account icon with lightweight menu (when authenticated)
- *
- * Uses Tailwind CSS for styling with dark theme (slate-900).
- * Navigation automatically scrolls on mobile devices (overflow-x-auto).
- *
- * @example
- * <app-header></app-header>
- */
 @Component({
   standalone: true,
   selector: 'app-header',
@@ -41,42 +25,32 @@ export class HeaderComponent {
   private authService = inject(AuthService);
   private userService = inject(UserService);
   private fileStoreService = inject(FileStoreService);
+  private settingsService = inject(SettingsService);
   private router = inject(Router);
   private document = inject(DOCUMENT);
 
-  /** Navigation links displayed in header */
   navLinks = signal([
-    { label: 'Home', href: null, routerLink: '/' },
-    { label: 'About', href: null, routerLink: '/about' },
-    { label: 'Services', href: null, routerLink: '/services' },
-    { label: 'Blog', href: null, routerLink: '/blog' },
-    { label: 'Contact', href: null, routerLink: '/contact' },
-    { label: 'Requests', href: null, routerLink: '/admin/requests' }
+    { label: 'Explore Opportunities', key: 'explore', routerLink: '/admin/investments' },
+    { label: 'How It Works', key: 'how', routerLink: '/about' },
   ]);
 
-  /** User menu state */
+  isMobileMenuOpen = signal(false);
   isUserMenuOpen = signal(false);
 
-  /** User menu items */
   userMenuItems = signal([
     { label: 'Profile', routerLink: '/admin/profile' },
     { label: 'Settings', routerLink: '/admin/settings' },
     { label: 'Logout', action: 'logout' }
   ]);
 
-  /** Computed authentication state */
   isAuthenticated = this.authService.isAuthenticated;
-
-  /** Computed user data */
   user = this.userService.user;
 
-  /** Computed user display name */
   userDisplayName = computed(() => {
     const currentUser = this.user();
     return currentUser?.name || 'User';
   });
 
-  /** Computed user initials (first letter of first name + first letter of last name) */
   userInitials = computed(() => {
     const name = this.userDisplayName();
     const parts = name.trim().split(' ');
@@ -86,7 +60,6 @@ export class HeaderComponent {
     return name.slice(0, 2).toUpperCase();
   });
 
-  /** Computed user avatar URL */
   userAvatarUrl = computed(() => {
     const currentUser = this.user();
     if (currentUser?.profileImageUrl) {
@@ -95,16 +68,20 @@ export class HeaderComponent {
     return null;
   });
 
-  /** Signal to track if image failed to load */
   imageLoadFailed = signal(false);
 
+  isDarkTheme = computed(() => {
+    const pref = this.settingsService.theme();
+    if (pref === ThemePreference.Dark) return true;
+    if (pref === ThemePreference.Light) return false;
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? true;
+  });
+
   constructor() {
-    // Add click-outside listener to close user menu
     this.document.addEventListener('click', this.onClickOutside.bind(this));
   }
 
   ngOnDestroy() {
-    // Remove click-outside listener
     this.document.removeEventListener('click', this.onClickOutside.bind(this));
   }
 
@@ -118,54 +95,50 @@ export class HeaderComponent {
     }
   }
 
-  /**
-   * Opens the role selection modal for authentication
-   * @param event Click event to prevent default behavior
-   */
+  toggleMobileMenu() {
+    this.isMobileMenuOpen.update(v => !v);
+  }
+
+  closeMobileMenu() {
+    this.isMobileMenuOpen.set(false);
+  }
+
   openLoginModal(event: Event) {
     event.preventDefault();
     this.uiService.openRoleSelectModal();
   }
 
-  /**
-   * Toggles the application language between supported locales
-   * @param event Click event to prevent default behavior
-   */
   toggleLanguage(event: Event) {
     event.preventDefault();
     this.languageService.toggleLanguage();
   }
 
-  /**
-   * Navigates to user dashboard (My Office)
-   */
+  toggleTheme(event: Event) {
+    event.preventDefault();
+    const current = this.settingsService.theme();
+    if (current === ThemePreference.Dark) {
+      this.settingsService.setTheme(ThemePreference.Light);
+    } else {
+      this.settingsService.setTheme(ThemePreference.Dark);
+    }
+  }
+
   navigateToMyOffice() {
     this.router.navigate(['/admin/dashboard']);
   }
 
-  /**
-   * Toggles the user menu
-   */
   toggleUserMenu(event: Event) {
     event.preventDefault();
     event.stopPropagation();
     this.isUserMenuOpen.update(open => !open);
   }
 
-  /**
-   * Closes the user menu
-   */
   closeUserMenu() {
     this.isUserMenuOpen.set(false);
   }
 
-  /**
-   * Handles user menu item clicks
-   * @param item Menu item to handle
-   */
   handleUserMenuItemClick(item: any) {
     this.closeUserMenu();
-
     if (item.action === 'logout') {
       this.authService.logout();
       this.router.navigate(['/']);
@@ -174,9 +147,6 @@ export class HeaderComponent {
     }
   }
 
-  /**
-   * Handles image load error - switches to initials avatar
-   */
   onImageError() {
     this.imageLoadFailed.set(true);
   }

@@ -1,13 +1,229 @@
-@use 'variables' as *;
-@use 'mixins' as *;
+.hero-section {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  background: var(--investa-bg);
+}
 
-:host { display:block; }
+.hero-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  width: min(100%, 1280px);
+  margin-inline: auto;
+  padding: 100px 32px 80px;
+  position: relative;
+  z-index: 1;
+}
 
-.hero {
-  @include flex-center;
-  padding: $spacing-12 0;
-  text-align: center;
+.hero-grid {
+  display: grid;
+  grid-template-columns: 45fr 55fr;
+  gap: 40px;
+  align-items: center;
+  width: 100%;
+}
 
-  &__title { @include heading('xl'); color: $color-text-primary; }
-  &__subtitle { color: $color-text-secondary; }
+.hero-content {
+  max-width: 540px;
+}
+
+.hero-headline {
+  font-size: clamp(2.25rem, 5vw, 3.75rem);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  color: var(--investa-text-primary);
+  margin: 0 0 20px;
+}
+
+:host-context([dir="rtl"]) .hero-headline {
+  line-height: 1.25;
+}
+
+.hero-word-accent {
+  color: var(--investa-accent);
+}
+
+.hero-subtitle {
+  font-size: clamp(0.9375rem, 1.3vw, 1.0625rem);
+  line-height: 1.7;
+  color: var(--investa-text-secondary);
+  margin: 0 0 36px;
+  max-width: 440px;
+}
+
+:host-context([dir="rtl"]) .hero-subtitle {
+  line-height: 1.8;
+}
+
+.hero-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.hero-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 50px;
+  padding: 0 28px;
+  background: var(--investa-accent);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  border: none;
+  border-radius: 12px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.hero-btn-primary:hover {
+  background: var(--investa-accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(34, 197, 50, 0.35);
+}
+
+.hero-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 50px;
+  padding: 0 28px;
+  background: transparent;
+  color: var(--investa-text-secondary);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  border: 1.5px solid var(--investa-border);
+  border-radius: 12px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.hero-btn-secondary:hover {
+  color: var(--investa-text-primary);
+  background: var(--investa-surface-2);
+  border-color: var(--investa-border-strong);
+  transform: translateY(-2px);
+}
+
+.hero-btn-arrow {
+  transition: transform 160ms ease;
+}
+
+.hero-btn-primary:hover .hero-btn-arrow {
+  transform: translateX(3px);
+}
+
+:host-context([dir="rtl"]) .hero-btn-primary:hover .hero-btn-arrow {
+  transform: translateX(-3px);
+}
+
+.hero-visual {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.hero-phones-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-phones-glow {
+  position: absolute;
+  width: 120%;
+  height: 120%;
+  background: radial-gradient(ellipse at center, rgba(34, 197, 50, 0.08), transparent 60%);
+  pointer-events: none;
+}
+
+.hero-phones-img {
+  width: 100%;
+  max-width: 560px;
+  height: auto;
+  display: block;
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 1024px) {
+  .hero-container {
+    padding: 90px 24px 60px;
+  }
+
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .hero-content {
+    max-width: 100%;
+    text-align: center;
+  }
+
+  .hero-headline {
+    font-size: clamp(2rem, 5vw, 2.75rem);
+  }
+
+  .hero-subtitle {
+    max-width: 100%;
+    margin-inline: auto;
+  }
+
+  .hero-ctas {
+    justify-content: center;
+  }
+
+  .hero-visual {
+    order: -1;
+  }
+
+  .hero-phones-img {
+    max-width: 400px;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-container {
+    padding: 80px 16px 50px;
+  }
+
+  .hero-grid {
+    gap: 28px;
+  }
+
+  .hero-headline {
+    font-size: clamp(1.75rem, 7vw, 2.25rem);
+  }
+
+  .hero-ctas {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hero-btn-primary,
+  .hero-btn-secondary {
+    justify-content: center;
+  }
+
+  .hero-phones-img {
+    max-width: 300px;
+  }
+}
+
+:host-context(body.investa-theme-light) .hero-section {
+  background: linear-gradient(180deg, #edf0f2 0%, #ffffff 100%);
+}
+
+:host-context(body.investa-theme-light) .hero-phones-glow {
+  background: radial-gradient(ellipse at center, rgba(34, 197, 50, 0.06), transparent 60%);
 }

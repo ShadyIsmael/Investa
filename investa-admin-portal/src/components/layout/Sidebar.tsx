@@ -51,11 +51,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const inner = (
       <div
         className={[
-          'relative flex items-center justify-between gap-2.5 w-full px-3 py-2.5 rounded-xl text-sm transition-all duration-200 group',
+          'relative flex items-center justify-between gap-2 w-full px-2.5 py-2 rounded-lg text-[13px] transition-all duration-200 group',
           isActive  ? 'bg-primary/10 text-primary font-semibold' : '',
           isParent && !hasChildren ? 'text-foreground font-medium' : '',
           !isActive && !isParent   ? 'text-muted-foreground hover:text-foreground hover:bg-secondary/70 font-medium' : '',
-          isSubItem ? 'ps-5 text-[13px] py-2' : '',
+          isSubItem ? 'ps-5 text-xs py-1.5' : '',
           isCollapsed ? '!px-2 justify-center' : '',
         ].join(' ')}
       >
@@ -120,7 +120,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         ].join(' ')}
       >
         {/* Brand */}
-        <div className={['h-16 flex items-center border-b border-border px-4 flex-shrink-0', isCollapsed ? 'justify-center' : 'gap-3'].join(' ')}>
+        <div className={['h-14 flex items-center border-b border-border px-3 flex-shrink-0', isCollapsed ? 'justify-center' : 'gap-2.5'].join(' ')}>
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm shadow-sky-500/30">
             <Icon name="trending-up" className="w-5 h-5 text-white" />
           </div>
@@ -133,9 +133,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Nav list */}
-        <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
+        <nav className="flex-1 overflow-y-auto p-2.5 space-y-0.5">
           {!isCollapsed && (
-            <p className="text-[9px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground/60 px-3 pt-3 pb-2">
+            <p className="text-[9px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground/60 px-2.5 pt-2 pb-1.5">
               {t('nav.mainMenu', { defaultValue: 'Main Menu' })}
             </p>
           )}
@@ -143,11 +143,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </nav>
 
 
-        <div className="p-3 border-t border-border">
+        <div className="p-2.5 border-t border-border">
           <button
             onClick={toggleCollapse}
             title={isCollapsed ? t('nav.expandSidebar', { defaultValue: 'Expand sidebar' }) : t('nav.collapseSidebar', { defaultValue: 'Collapse sidebar' })}
-            className="w-full flex items-center justify-center gap-2 p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-all text-xs font-medium"
+            className="w-full flex items-center justify-center gap-2 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-all text-xs font-medium"
           >
             <Icon name={isCollapsed ? 'chevron-right' : 'chevron-left'} className="w-4 h-4" />
             {!isCollapsed && <span>{t(isCollapsed ? 'nav.expand' : 'nav.collapse', { defaultValue: isCollapsed ? 'Expand' : 'Collapse' })}</span>}

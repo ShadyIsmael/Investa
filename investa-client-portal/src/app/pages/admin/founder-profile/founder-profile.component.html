@@ -1,345 +1,147 @@
-<div class="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-900">
-
-  <!-- Sticky nav bar -->
-  <div class="sticky top-0 z-40 border-b border-slate-800/50 bg-slate-950/80 backdrop-blur-md">
-    <div class="container mx-auto px-6 py-4 flex items-center gap-3">
-      <a routerLink="/admin/investments"
-         class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm">
-        <svg class="w-4 h-4 rtl:rotate-180" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
-        </svg>
-        {{ 'investmentPreview.backButton' | translate }}
-      </a>
-      <span class="text-slate-600">/</span>
-      <span class="text-sm text-gray-400">{{ 'founderProfile.title' | translate }}</span>
-    </div>
-  </div>
-
-  <div class="container mx-auto px-4 sm:px-6 py-8 max-w-5xl">
-
-    <!-- Loading -->
+<main class="user-profile-page" [attr.dir]="languageService.direction()">
+  <div class="profile-shell">
     @if (loading()) {
-      <div class="flex flex-col items-center justify-center py-32 gap-4">
-        <div class="w-12 h-12 rounded-full border-4 border-blue-500/30 border-t-blue-500 animate-spin"></div>
-        <p class="text-gray-500 text-sm">{{ 'common.loading' | translate }}</p>
-      </div>
-    }
-
-    <!-- Error / not found -->
-    @else if (error() || !profile()) {
-      <div class="flex flex-col items-center justify-center py-32 text-center">
-        <div class="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center mb-4">
-          <svg class="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
-          </svg>
+      <section class="state-card" aria-live="polite">
+        <span class="profile-spinner" aria-hidden="true"></span>
+        <p>{{ 'userProfile.loading' | translate }}</p>
+      </section>
+    } @else if (error() || !profile()) {
+      <section class="state-card">
+        <div class="state-icon" aria-hidden="true">!</div>
+        <h1>{{ 'founderProfile.notFound' | translate }}</h1>
+        <p>{{ 'founderProfile.notFoundSubtitle' | translate }}</p>
+        <a routerLink="/admin/investments" class="primary-action">{{ 'userProfile.browseOpportunities' | translate }}</a>
+      </section>
+    } @else if (profile(); as person) {
+      <header class="profile-header profile-card">
+        <div class="avatar-wrap">
+          @if (avatarUrl(person.avatarUrl)) {
+            <img [src]="avatarUrl(person.avatarUrl)" [alt]="displayName" (error)="avatarFailed.set(true)">
+          } @else {
+            <span aria-hidden="true">{{ avatarInitials }}</span>
+          }
         </div>
-        <h2 class="text-lg font-semibold text-white">{{ 'founderProfile.notFound' | translate }}</h2>
-        <p class="text-sm text-gray-500 mt-1">{{ 'founderProfile.notFoundSubtitle' | translate }}</p>
-      </div>
-    }
 
-    <!-- Profile loaded -->
-    @else if (profile(); as p) {
-      @let stats = founderStats();
-      @let avatarUrl = resolveUrl(p.avatarUrl);
-
-      <div class="space-y-6">
-        <!-- Hero -->
-        <section class="relative overflow-hidden rounded-[2rem] border border-slate-800 bg-slate-900/80 shadow-2xl shadow-slate-950/40">
-          <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.18),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(168,85,247,0.12),_transparent_30%)]"></div>
-          <div class="relative p-6 sm:p-8 lg:p-10">
-            <div class="flex flex-col items-center text-center gap-6">
-              <div class="relative">
-                @if (avatarUrl) {
-                  <img [src]="avatarUrl" [alt]="displayName"
-                       class="w-32 h-32 sm:w-36 sm:h-36 rounded-[1.75rem] object-cover ring-4 ring-slate-900 shadow-xl shadow-slate-950/50">
-                } @else {
-                  <div class="w-32 h-32 sm:w-36 sm:h-36 rounded-[1.75rem] bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-600 text-white text-4xl sm:text-5xl font-bold flex items-center justify-center ring-4 ring-slate-900 shadow-xl shadow-slate-950/50">
-                    {{ avatarInitials }}
-                  </div>
-                }
-                @if (p.isKycVerified) {
-                  <span class="absolute -bottom-1 -end-1 w-8 h-8 rounded-full bg-emerald-500 border-2 border-slate-900 flex items-center justify-center shadow-lg shadow-emerald-500/20" [title]="'founderProfile.kycVerified' | translate">
-                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-                  </span>
-                }
-              </div>
-
-              <div class="max-w-3xl space-y-4">
-                <div class="space-y-2">
-                  <div class="flex flex-wrap items-center justify-center gap-2">
-                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/25">
-                      {{ 'founderProfile.title' | translate }}
-                    </span>
-                    @if (p.role) {
-                      <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-200 border border-slate-700">
-                        {{ p.role }}
-                      </span>
-                    }
-                    @if (p.companyName) {
-                      <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-200 border border-slate-700">
-                        {{ p.companyName }}
-                      </span>
-                    }
-                    @if (p.country) {
-                      <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-200 border border-slate-700">
-                        <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
-                        {{ p.country }}
-                      </span>
-                    }
-                  </div>
-
-                  <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white">{{ displayName }}</h1>
-                  @if (p.bio) {
-                    <p class="max-w-2xl mx-auto text-sm sm:text-base text-gray-300 leading-relaxed">{{ p.bio }}</p>
-                  }
-                </div>
-
-                <div class="flex flex-wrap items-center justify-center gap-3">
-                  <div class="inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-                    Verified profile
-                  </div>
-                  <div class="inline-flex items-center gap-2 rounded-full border border-amber-500/25 bg-amber-500/10 px-4 py-2 text-sm text-amber-300">
-                    <span class="text-white font-semibold">{{ p.credibilityScore }}</span>
-                    credibility score
-                  </div>
-                </div>
-
-                @if (p.linkedInUrl || p.facebookUrl) {
-                  <div class="flex items-center justify-center gap-3 pt-1">
-                    @if (p.linkedInUrl) {
-                      <a [href]="p.linkedInUrl" target="_blank" rel="noopener noreferrer"
-                         class="w-11 h-11 rounded-2xl bg-slate-800/90 border border-slate-700 hover:border-blue-500/50 hover:bg-slate-700 flex items-center justify-center text-gray-400 hover:text-blue-400 transition-colors">
-                        <svg class="w-4.5 h-4.5" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
-                      </a>
-                    }
-                    @if (p.facebookUrl) {
-                      <a [href]="p.facebookUrl" target="_blank" rel="noopener noreferrer"
-                         class="w-11 h-11 rounded-2xl bg-slate-800/90 border border-slate-700 hover:border-blue-500/50 hover:bg-slate-700 flex items-center justify-center text-gray-400 hover:text-blue-400 transition-colors">
-                        <svg class="w-4.5 h-4.5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-                      </a>
-                    }
-                  </div>
-                }
-                <button type="button"
-                        (click)="openUserReport()"
-                        class="text-xs font-semibold text-slate-400 underline-offset-4 hover:text-slate-200 hover:underline">
-                  {{ 'reports.actions.reportUser' | translate }}
-                </button>
-              </div>
+        <div class="identity-block">
+          <div class="identity-title">
+            <div>
+              <h1>{{ displayName }}</h1>
+              <p class="role-line">
+                {{ roleLabel(person.role) }}
+                @if (person.jobTitle) { <span>· {{ person.jobTitle }}</span> }
+              </p>
             </div>
-          </div>
-        </section>
-
-        <!-- Quick stats -->
-        <section class="grid grid-cols-2 xl:grid-cols-4 gap-4">
-          <div class="rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-sm p-4">
-            <p class="text-xs uppercase tracking-[0.2em] text-gray-500">Opportunities</p>
-            <p class="mt-2 text-2xl font-bold text-white">{{ stats.totalProjects }}</p>
-          </div>
-          <div class="rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-sm p-4">
-            <p class="text-xs uppercase tracking-[0.2em] text-gray-500">Active</p>
-            <p class="mt-2 text-2xl font-bold text-emerald-300">{{ stats.activeProjects }}</p>
-          </div>
-          <div class="rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-sm p-4">
-            <p class="text-xs uppercase tracking-[0.2em] text-gray-500">Funded</p>
-            <p class="mt-2 text-2xl font-bold text-amber-300">{{ stats.fundedProjects }}</p>
-          </div>
-          <div class="rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-sm p-4">
-            <p class="text-xs uppercase tracking-[0.2em] text-gray-500">Raised</p>
-            <p class="mt-2 text-2xl font-bold text-white">${{ stats.totalRaised | number:'1.0-0' }}</p>
-          </div>
-        </section>
-
-        <!-- Content -->
-        <section class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-6 items-start">
-          <div class="space-y-6">
-            <div class="rounded-[2rem] border border-slate-800 bg-slate-900/80 backdrop-blur-sm p-6 sm:p-7">
-              <div class="flex items-center justify-between gap-3 mb-5">
-                <div>
-                  <p class="text-xs uppercase tracking-[0.2em] text-gray-500">Overview</p>
-                  <h2 class="text-xl font-bold text-white mt-1">Founder details</h2>
-                </div>
-                <span class="inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-xs text-slate-300">
-                  <span class="w-2 h-2 rounded-full bg-blue-400"></span>
-                  Public profile
-                </span>
-              </div>
-
-              <div class="grid gap-4 sm:grid-cols-2">
-                <div class="rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
-                  <p class="text-xs uppercase tracking-[0.2em] text-gray-500">Role</p>
-                  <p class="mt-2 text-sm text-white">{{ p.role || 'Founder' }}</p>
-                </div>
-                <div class="rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
-                  <p class="text-xs uppercase tracking-[0.2em] text-gray-500">Company</p>
-                  <p class="mt-2 text-sm text-white">{{ p.companyName || '—' }}</p>
-                </div>
-                <div class="rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
-                  <p class="text-xs uppercase tracking-[0.2em] text-gray-500">Country</p>
-                  <p class="mt-2 text-sm text-white">{{ p.country || '—' }}</p>
-                </div>
-                <div class="rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
-                  <p class="text-xs uppercase tracking-[0.2em] text-gray-500">KYC</p>
-                  <p class="mt-2 text-sm text-white">{{ p.isKycVerified ? 'Verified' : 'Not verified' }}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <aside class="space-y-4">
-            <div class="rounded-[2rem] border border-slate-800 bg-slate-900/80 backdrop-blur-sm p-6">
-              <div class="flex items-center justify-between mb-5">
-                <div>
-                  <p class="text-xs uppercase tracking-[0.2em] text-gray-500">Portfolio</p>
-                  <h2 class="text-xl font-bold text-white mt-1">Opportunities</h2>
-                </div>
-                @if (founderInvestments().length > 0) {
-                  <span class="text-xs font-semibold text-gray-500 bg-slate-800 px-2.5 py-1 rounded-full">
-                    {{ founderInvestments().length }}
-                  </span>
-                }
-              </div>
-
-              @if (founderInvestments().length === 0) {
-                <div class="flex flex-col items-center justify-center py-16 rounded-2xl border border-dashed border-slate-700 bg-slate-950/40 text-center">
-                  <svg class="w-10 h-10 text-gray-600 mb-3" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z"/>
-                  </svg>
-                  <p class="text-sm text-gray-500">{{ 'founderProfile.noProjects' | translate }}</p>
-                </div>
+            <div class="header-actions">
+              @if (isOwner()) {
+                <a routerLink="/admin/profile" class="primary-action">{{ 'userProfile.editProfile' | translate }}</a>
+              } @else {
+                <button type="button" class="quiet-action" (click)="openUserReport()">{{ 'reports.actions.reportUser' | translate }}</button>
               }
-
-              <div class="space-y-3">
-                @for (inv of founderInvestments(); track inv.id) {
-                  <a [routerLink]="['/admin/investments', inv.id]"
-                     class="group block overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/60 hover:border-slate-700 transition-colors">
-                    <div class="h-1.5 bg-gradient-to-r"
-                         [class.from-blue-500]="inv.status !== 'Funded'"
-                         [class.to-violet-500]="inv.status !== 'Funded'"
-                         [class.from-emerald-500]="inv.status === 'Funded'"
-                         [class.to-emerald-400]="inv.status === 'Funded'"></div>
-                    <div class="p-4">
-                      <div class="flex gap-4">
-                        <div class="flex-shrink-0 w-24 h-24 rounded-2xl overflow-hidden bg-slate-800 border border-slate-700">
-                          @if (getInvestmentImage(inv)) {
-                            <img [src]="getInvestmentImage(inv)" [alt]="inv.title || 'Opportunity'" class="w-full h-full object-cover">
-                          } @else {
-                            <div class="w-full h-full bg-gradient-to-br from-blue-500/20 to-violet-500/20 flex items-center justify-center">
-                              <svg class="w-8 h-8 text-blue-400/60" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/></svg>
-                            </div>
-                          }
-                        </div>
-
-                        <div class="min-w-0 flex-1">
-                          <div class="flex items-start justify-between gap-2">
-                            <h3 class="text-base font-semibold text-white group-hover:text-blue-300 transition-colors truncate">{{ inv.title || 'Untitled Opportunity' }}</h3>
-                            <span class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
-                                  [class.bg-emerald-500/15]="inv.status === 'Active'"
-                                  [class.text-emerald-300]="inv.status === 'Active'"
-                                  [class.border]="true"
-                                  [class.border-emerald-500/25]="inv.status === 'Active'"
-                                  [class.bg-blue-500/15]="inv.status === 'Draft'"
-                                  [class.text-blue-300]="inv.status === 'Draft'"
-                                  [class.border-blue-500/25]="inv.status === 'Draft'"
-                                  [class.bg-amber-500/15]="inv.status === 'Funded'"
-                                  [class.text-amber-300]="inv.status === 'Funded'"
-                                  [class.border-amber-500/25]="inv.status === 'Funded'"
-                                  [class.bg-slate-700]="inv.status === 'Closed'"
-                                  [class.text-gray-400]="inv.status === 'Closed'"
-                                  [class.border-slate-600]="inv.status === 'Closed'">
-                              <span class="w-1.5 h-1.5 rounded-full"
-                                    [class.bg-emerald-400]="inv.status === 'Active'"
-                                    [class.bg-blue-400]="inv.status === 'Draft'"
-                                    [class.bg-amber-400]="inv.status === 'Funded'"
-                                    [class.bg-gray-500]="inv.status === 'Closed'"></span>
-                              {{ inv.status }}
-                            </span>
-                          </div>
-
-                          <p class="mt-1 text-xs text-gray-500 line-clamp-2">{{ inv.shortDescription || inv.description || '-' }}</p>
-
-                          @let fp = fundingPercent(inv);
-                          <div class="mt-3 space-y-2">
-                            <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                              <div class="h-1.5 rounded-full transition-all"
-                                   [class.bg-gradient-to-r]="true"
-                                   [class.from-blue-500]="fp < 75"
-                                   [class.to-violet-500]="fp < 75"
-                                   [class.from-emerald-500]="fp >= 75"
-                                   [class.to-emerald-400]="fp >= 75"
-                                   [style.width.%]="fp"></div>
-                            </div>
-                            <div class="flex items-center justify-between text-[11px] text-gray-500">
-                              <span>{{ inv.fundedAmount == null ? '—' : (inv.fundedAmount | number:'1.0-0') }} {{ 'investmentPreview.amountRaised' | translate }}</span>
-                              <span class="font-semibold" [class.text-emerald-400]="fp >= 75" [class.text-blue-400]="fp < 75">{{ fp | number:'1.0-0' }}%</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </a>
-                }
-              </div>
             </div>
-          </aside>
-        </section>
+          </div>
+
+          <div class="header-meta">
+            @if (person.companyName) { <span>{{ person.companyName }}</span> }
+            @if (location(person)) { <span>{{ location(person) }}</span> }
+            <span class="status-badge status-badge--green">{{ accountLabel(person.accountStatus) }}</span>
+            <span class="status-badge">{{ verificationLabel(person.verificationStatus) }}</span>
+          </div>
+        </div>
+      </header>
+
+      <section class="stats-grid" aria-label="Profile statistics">
+        <article class="stat-card profile-card">
+          <span>{{ 'userProfile.stats.opportunities' | translate }}</span>
+          <strong>{{ westernNumber(stats().total) }}</strong>
+        </article>
+        <article class="stat-card profile-card">
+          <span>{{ 'userProfile.stats.active' | translate }}</span>
+          <strong>{{ westernNumber(stats().active) }}</strong>
+        </article>
+        <article class="stat-card profile-card">
+          <span>{{ 'userProfile.stats.funded' | translate }}</span>
+          <strong>{{ westernNumber(stats().funded) }}</strong>
+        </article>
+        <article class="stat-card profile-card">
+          <span>{{ 'userProfile.stats.credibility' | translate }}</span>
+          <strong>{{ westernNumber(person.credibilityScore) }}</strong>
+        </article>
+      </section>
+
+      <div class="content-grid">
+        <div class="main-column">
+          @if (person.bio) {
+            <section class="profile-card section-card">
+              <div class="section-heading"><h2>{{ 'userProfile.sections.about' | translate }}</h2></div>
+              <p class="bio-copy">{{ person.bio }}</p>
+            </section>
+          }
+
+          @if (person.companyName || person.jobTitle || person.websiteUrl || person.linkedInUrl || westernDate(person.createdAt)) {
+            <section class="profile-card section-card">
+              <div class="section-heading"><h2>{{ 'userProfile.sections.professional' | translate }}</h2></div>
+              <dl class="detail-grid">
+                @if (person.jobTitle) { <div><dt>{{ 'userProfile.fields.jobTitle' | translate }}</dt><dd>{{ person.jobTitle }}</dd></div> }
+                @if (person.companyName) { <div><dt>{{ 'userProfile.fields.company' | translate }}</dt><dd>{{ person.companyName }}</dd></div> }
+                @if (person.websiteUrl) { <div><dt>{{ 'userProfile.fields.website' | translate }}</dt><dd><a [href]="person.websiteUrl" target="_blank" rel="noopener noreferrer">{{ person.websiteUrl }}</a></dd></div> }
+                @if (person.linkedInUrl) { <div><dt>{{ 'userProfile.fields.linkedin' | translate }}</dt><dd><a [href]="person.linkedInUrl" target="_blank" rel="noopener noreferrer">{{ 'userProfile.openLinkedIn' | translate }}</a></dd></div> }
+                @if (westernDate(person.createdAt)) { <div><dt>{{ 'userProfile.fields.memberSince' | translate }}</dt><dd>{{ westernDate(person.createdAt) }}</dd></div> }
+              </dl>
+            </section>
+          }
+        </div>
+
+        <aside class="profile-card section-card opportunities-card">
+          <div class="section-heading">
+            <h2>{{ 'userProfile.sections.opportunities' | translate }}</h2>
+            @if (founderOpportunities().length) { <span class="count-badge">{{ westernNumber(founderOpportunities().length) }}</span> }
+          </div>
+          @if (founderOpportunities().length === 0) {
+            <p class="empty-copy">{{ 'founderProfile.noProjects' | translate }}</p>
+          } @else {
+            <div class="opportunity-list">
+              @for (item of founderOpportunities(); track item.id) {
+                <a class="opportunity-row" [routerLink]="['/admin/investments', item.id]">
+                  <div class="opportunity-thumb">
+                    @if (opportunityImage(item)) { <img [src]="opportunityImage(item)" [alt]="item.title || ('userProfile.opportunity' | translate)"> }
+                    @else { <span aria-hidden="true">↗</span> }
+                  </div>
+                  <div class="opportunity-copy">
+                    <h3>{{ item.title || ('userProfile.opportunity' | translate) }}</h3>
+                    @if (item.shortDescription || item.description) { <p>{{ item.shortDescription || item.description }}</p> }
+                    <span class="status-badge status-badge--green">{{ opportunityStatusLabel(item.status) }}</span>
+                  </div>
+                </a>
+              }
+            </div>
+          }
+        </aside>
       </div>
     }
   </div>
 
-  @if (reportModalOpen() && profile(); as targetProfile) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <section class="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
-        <header class="border-b border-slate-800 p-5">
-          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-red-300">{{ 'reports.title' | translate }}</p>
-          <h2 class="mt-2 text-xl font-bold text-white">{{ 'reports.sendReport' | translate }}</h2>
-          <p class="mt-1 text-sm text-slate-400">{{ displayName }}</p>
-        </header>
-        <div class="space-y-4 p-5">
-          @if (reportSuccess()) {
-            <div class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">
-              {{ 'reports.success' | translate }}
-            </div>
-          } @else {
-            <label class="block text-sm font-semibold text-slate-200">
-              {{ 'reports.reason' | translate }}
-              <select class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white"
-                      [ngModel]="reportReason()"
-                      (ngModelChange)="setReportReason($event)">
-                @for (reason of reportReasons; track reason) {
-                  <option [value]="reason">{{ reportReasonLabel(reason) }}</option>
-                }
-              </select>
-            </label>
-            <label class="block text-sm font-semibold text-slate-200">
-              {{ 'reports.description' | translate }}
-              <textarea rows="4"
-                        class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white"
-                        [placeholder]="'reports.descriptionPlaceholder' | translate"
-                        [ngModel]="reportDescription()"
-                        (ngModelChange)="setReportDescription($event)"></textarea>
-            </label>
-            @if (reportError()) {
-              <div class="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-100">{{ reportError() }}</div>
-            }
-          }
-        </div>
-        <footer class="flex gap-3 border-t border-slate-800 p-5">
-          <button type="button" (click)="closeReportModal()" class="flex-1 rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-700">
-            {{ reportSuccess() ? ('common.close' | translate) : ('reports.cancel' | translate) }}
-          </button>
-          @if (!reportSuccess()) {
-            <button type="button"
-                    (click)="submitUserReport()"
-                    [disabled]="reportSubmitting()"
-                    class="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50">
-              {{ reportSubmitting() ? ('reports.submitting' | translate) : ('reports.submit' | translate) }}
-            </button>
-          }
+  @if (reportModalOpen() && profile()) {
+    <div class="modal-backdrop" role="presentation">
+      <section class="report-modal" role="dialog" aria-modal="true" [attr.aria-label]="'reports.sendReport' | translate">
+        <header><h2>{{ 'reports.sendReport' | translate }}</h2><p>{{ displayName }}</p></header>
+        @if (reportSuccess()) {
+          <p class="success-message">{{ 'reports.success' | translate }}</p>
+        } @else {
+          <label>{{ 'reports.reason' | translate }}
+            <select [ngModel]="reportReason()" (ngModelChange)="reportReason.set($event)">
+              @for (reason of reportReasons; track reason) { <option [value]="reason">{{ reportReasonLabel(reason) }}</option> }
+            </select>
+          </label>
+          <label>{{ 'reports.description' | translate }}
+            <textarea rows="4" [ngModel]="reportDescription()" (ngModelChange)="reportDescription.set($event)" [placeholder]="'reports.descriptionPlaceholder' | translate"></textarea>
+          </label>
+          @if (reportError()) { <p class="error-message">{{ reportError() }}</p> }
+        }
+        <footer>
+          <button type="button" class="quiet-action" (click)="closeReportModal()">{{ reportSuccess() ? ('common.close' | translate) : ('reports.cancel' | translate) }}</button>
+          @if (!reportSuccess()) { <button type="button" class="primary-action" [disabled]="reportSubmitting()" (click)="submitUserReport()">{{ reportSubmitting() ? ('reports.submitting' | translate) : ('reports.submit' | translate) }}</button> }
         </footer>
       </section>
     </div>
   }
-</div>
+</main>

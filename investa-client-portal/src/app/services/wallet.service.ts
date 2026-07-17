@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@angular/core';
+import { Inject, Injectable, signal } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE } from '../config/api.token';
@@ -54,6 +54,9 @@ export interface PaidActionQuote {
 
 @Injectable({ providedIn: 'root' })
 export class WalletService {
+  private readonly _balance = signal(0);
+  readonly balance = this._balance.asReadonly();
+
   constructor(
     private http: HttpClient,
     @Inject(API_BASE) private apiBase: string
@@ -62,7 +65,7 @@ export class WalletService {
   async loadCurrentUserWallet(): Promise<WalletView> {
     const [wallet, balance, transactions] = await Promise.all([
       this.getWallet(),
-      this.getBalance(),
+      this.loadBalance(),
       this.getTransactions()
     ]);
 
@@ -99,7 +102,7 @@ export class WalletService {
     }
   }
 
-  private async getBalance(): Promise<number> {
+  async loadBalance(): Promise<number> {
     try {
       const raw = await firstValueFrom(
         this.http.get<ApiResponse<number> | number>(
@@ -108,10 +111,16 @@ export class WalletService {
         )
       );
 
-      return this.extractData<number>(raw, 'Failed to load wallet balance.') ?? 0;
+      const balance = this.extractData<number>(raw, 'Failed to load wallet balance.') ?? 0;
+      this._balance.set(balance);
+      return balance;
     } catch (error) {
       throw this.toWalletError(error, 'Failed to load wallet balance.');
     }
+  }
+
+  setBalance(balance: number): void {
+    this._balance.set(Number.isFinite(balance) ? balance : 0);
   }
 
   private async getTransactions(): Promise<WalletTransaction[]> {
@@ -159,16 +168,54 @@ export class WalletService {
     }
   }
 
-  private toWalletError(error: any, fallbackMessage: string): Error {
-    if (error?.status === 401) {
+  private toWalletError(error: unknown, fallbackMessage: string): Error {
+    const record = typeof error === 'object' && error !== null ? error as Record<string, unknown> : null;
+    const status = typeof record?.['status'] === 'number' ? record['status'] : null;
+    if (status === 401) {
       return new Error('You must be signed in to view your wallet.');
     }
 
-    if (error?.status === 403) {
+    if (status === 403) {
       return new Error('Your account is not allowed to view this wallet.');
     }
 
-    const apiMessage = error?.error?.message || error?.message;
+    const nested = typeof record?.['error'] === 'object' && record['error'] !== null
+      ? record['error'] as Record<string, unknown>
+      : null;
+    const apiMessage = typeof nested?.['message'] === 'string'
+      ? nested['message']
+      : typeof record?.['message'] === 'string' ? record['message'] : '';
     return new Error(apiMessage || fallbackMessage);
   }
+}
+
+const WALLET_REASON_KEYS: Record<string, string> = {
+  '1': 'purchase', '2': 'bonus', '3': 'refund', '4': 'adminadjustmentcredit',
+  '10': 'investment', '11': 'publishopportunity', '12': 'featuredopportunity',
+  '13': 'subscription', '14': 'adminadjustmentdebit', '15': 'platformservicefee'
+};
+
+const WALLET_REFERENCE_KEYS: Record<string, string> = {
+  '0': 'none', '1': 'investment', '2': 'opportunity', '3': 'subscription',
+  '4': 'wallet', '5': 'admin', '6': 'system', '7': 'conversationrequest',
+  '8': 'conversation', '9': 'opportunityjoinrequest'
+};
+
+function normalizeWalletEnum(value: string | number): string {
+  return String(value).trim().toLowerCase().replace(/[\s_-]+/gu, '');
+}
+
+export function walletDirectionKey(value: string | number): string {
+  const normalized = normalizeWalletEnum(value);
+  return normalized === '1' ? 'credit' : normalized === '2' ? 'debit' : normalized;
+}
+
+export function walletReasonKey(value: string | number): string {
+  const normalized = normalizeWalletEnum(value);
+  return WALLET_REASON_KEYS[normalized] ?? normalized;
+}
+
+export function walletReferenceTypeKey(value: string | number): string {
+  const normalized = normalizeWalletEnum(value);
+  return WALLET_REFERENCE_KEYS[normalized] ?? normalized;
 }

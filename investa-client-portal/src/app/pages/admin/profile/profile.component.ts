@@ -4,11 +4,15 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormControl, FormGroup, Validators, AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
-import { ProfileService, CreditTransaction } from '../../../services/profile.service';
+import { ProfileService } from '../../../services/profile.service';
 import { ApiErrorResponse } from '../../../models/api-response.model';
 import { LanguageService } from '../../../services/language.service';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { FileStoreService } from '../../../services/file-store.service';
+import { MyParticipation, Opportunity, OpportunityService } from '../../../services/opportunity.service';
+import { SettingsService } from '../../../services/settings.service';
+import { DashboardDensity, DefaultInvestmentTypePreference, ThemePreference } from '../../../models/settings.model';
+import { walletReasonKey, WalletService, WalletTransaction } from '../../../services/wallet.service';
 
 export const passwordMatchValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
   const password = control.get('newPassword');
@@ -31,13 +35,16 @@ type ActiveSection =
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, TranslatePipe]
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, TranslatePipe]
 })
 export class ProfileComponent {
   @ViewChild('avatarInput') avatarInput!: ElementRef<HTMLInputElement>;
   @ViewChild('nationalIdInput') nationalIdInput!: ElementRef<HTMLInputElement>;
 
   activeSection = signal<ActiveSection>('personal');
+  editMode = signal(false);
+  myOpportunities = signal<Opportunity[]>([]);
+  myParticipations = signal<MyParticipation[]>([]);
 
   nationalIdFileName = signal<string | null>(null);
   nationalIdImageUrl = signal<string | null>(null);
@@ -60,6 +67,8 @@ export class ProfileComponent {
   private languageService = inject(LanguageService);
   private router = inject(Router);
   private fileStoreService = inject(FileStoreService);
+  private opportunityService = inject(OpportunityService);
+  private walletService = inject(WalletService);
 
   private t(path: string): string {
     return this.languageService.translate(path);
@@ -80,19 +89,21 @@ export class ProfileComponent {
   });
 
   avatarUrl = computed(() => {
-    if (this.pendingAvatarUrl()) return this.pendingAvatarUrl()!;
+    if (this.pendingAvatarUrl()) return this.resolveMediaUrl(this.pendingAvatarUrl());
     const p = this.profileService.profile();
-    if (p?.basicInfo?.avatarUrl) return p.basicInfo.avatarUrl;
-    const seed = (p?.basicInfo?.firstName || 'user').replace(/\s+/g, '') || 'user';
-    return `https://picsum.photos/seed/${seed}/200/200`;
+    if (p?.basicInfo?.avatarUrl) return this.resolveMediaUrl(p.basicInfo.avatarUrl);
+    return '';
   });
+
+  avatarInitials = computed(() => this.fullName().split(/\s+/u).filter(Boolean).slice(0, 2).map(word => word.charAt(0)).join('').toUpperCase() || 'U');
+
+  roleLabel = computed(() => this.enumLabel('roles', this.profileService.profile()?.coreMetrics?.clientType || this.profileService.profile()?.coreMetrics?.role, 'member'));
+  verificationLabel = computed(() => this.enumLabel('verification', this.profileService.profile()?.basicInfo?.verificationStatus, 'none'));
 
   isLoading = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
 
-  // Phase 1 score/credibility UI removed for Profile V2.
-  // Template references currentScorePts() and credit history; keep minimal score placeholder.
-  currentScorePts = computed(() => 0);
+  currentScorePts = this.walletService.balance;
 
   reputationScore = computed<number | null>(() => {
     const profile = this.profileService.profile();
@@ -106,10 +117,10 @@ export class ProfileComponent {
     return null;
   });
 
-  creditHistory = signal<CreditTransaction[]>([]);
+  creditHistory = signal<WalletTransaction[]>([]);
   limitedCreditHistory = computed(() => this.creditHistory().slice(0, 5));
-
-  currentLanguage = computed<'ar' | 'en'>(() => this.languageService.language());
+  limitedOpportunities = computed(() => this.myOpportunities().slice(0, 5));
+  limitedParticipations = computed(() => this.myParticipations().slice(0, 5));
 
   profileSnapshot = signal<string>('');
 
@@ -125,6 +136,8 @@ export class ProfileComponent {
     nationalId: new FormControl(''),
     nationalIdCopy: new FormControl<File | null>(null),
     companyName: new FormControl(''),
+    jobTitle: new FormControl(''),
+    websiteUrl: new FormControl(''),
     companyEmail: new FormControl(''),
     companyAddress: new FormControl(''),
     hrLetterCopy: new FormControl<File | null>(null),
@@ -173,6 +186,16 @@ export class ProfileComponent {
     marketNews: new FormControl(true),
   });
 
+  private settingsService = inject(SettingsService);
+  settings = this.settingsService.settings;
+  themeOptions = [ThemePreference.System, ThemePreference.Light, ThemePreference.Dark];
+  densityOptions = [DashboardDensity.Comfortable, DashboardDensity.Compact];
+  investmentTypeOptions = [
+    DefaultInvestmentTypePreference.Any,
+    DefaultInvestmentTypePreference.Founding,
+    DefaultInvestmentTypePreference.Equity
+  ];
+
   dobCalendarOpen = signal(false);
   dobCalendarMonth = signal<number>(new Date().getMonth());
   dobCalendarYear = signal<number>(new Date().getFullYear());
@@ -200,6 +223,8 @@ export class ProfileComponent {
       lastName: formValues.lastName ?? '',
       nationalId: formValues.nationalId ?? '',
       companyName: formValues.companyName ?? '',
+      jobTitle: formValues.jobTitle ?? '',
+      websiteUrl: formValues.websiteUrl ?? '',
       companyEmail: formValues.companyEmail ?? '',
       companyAddress: formValues.companyAddress ?? '',
       hrLetterFileName: this.hrLetterFileName() ?? '',
@@ -213,6 +238,21 @@ export class ProfileComponent {
     } catch {
       return false;
     }
+  });
+
+  isCommunicationChanged = computed(() => {
+    const values = this.communicationFormValues();
+    const current = {
+      email: values.email ?? '',
+      address: values.address ?? '',
+      city: values.city ?? '',
+      state: values.state ?? '',
+      businessAddress: values.businessAddress ?? '',
+      businessLocationSearch: values.businessLocationSearch ?? '',
+      businessLat: values.businessLat ?? null,
+      businessLng: values.businessLng ?? null
+    };
+    return JSON.stringify(current) !== this.communicationSnapshot();
   });
 
   toggleDobCalendar(): void {
@@ -302,7 +342,7 @@ export class ProfileComponent {
 
   scrollToTop(): void {
     try {
-      window.scrollTo({ top: 0, behavior: 'instant' as any });
+      window.scrollTo({ top: 0, behavior: 'auto' });
     } catch {
       try {
         window.scrollTo(0, 0);
@@ -311,8 +351,6 @@ export class ProfileComponent {
   }
 
   constructor() {
-    (this as any).getCountryLabel = this.getCountryLabel.bind(this);
-
     this.profileForm.get('nationalId')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.isNationalIdVerified.set(false);
     });
@@ -346,8 +384,8 @@ export class ProfileComponent {
 
   async loadCreditHistory(): Promise<void> {
     try {
-      const history = await this.profileService.getCreditHistory();
-      this.creditHistory.set(history);
+      const view = await this.walletService.loadCurrentUserWallet();
+      this.creditHistory.set(view.transactions);
     } catch {
       // non-critical
     }
@@ -417,6 +455,8 @@ export class ProfileComponent {
       country: p?.basicInfo?.country ?? '',
       nationalId: p?.identityCompliance?.documentNumber ?? '',
       companyName: p?.basicInfo?.companyName ?? '',
+      jobTitle: p?.basicInfo?.jobTitle ?? '',
+      websiteUrl: p?.basicInfo?.websiteUrl ?? '',
       companyEmail: p?.contactInfo?.companyEmail ?? '',
       companyAddress: p?.contactInfo?.companyAddress ?? '',
       hrLetterFileName: p?.identityCompliance?.hrLetterFileName ?? '',
@@ -466,6 +506,8 @@ export class ProfileComponent {
         country: p?.basicInfo?.country ?? '',
         nationalId: p?.identityCompliance?.documentNumber ?? '',
         companyName: p?.basicInfo?.companyName ?? '',
+        jobTitle: p?.basicInfo?.jobTitle ?? '',
+        websiteUrl: p?.basicInfo?.websiteUrl ?? '',
         companyEmail: p?.contactInfo?.companyEmail ?? '',
         companyAddress: p?.contactInfo?.companyAddress ?? '',
         bio: p?.basicInfo?.bio ?? '',
@@ -505,8 +547,7 @@ export class ProfileComponent {
       if (!p) {
         this.errorMessage.set(this.t('profile.errors.notFound'));
       } else {
-        await this.loadCreditHistory();
-        await this.loadNationalIdFiles();
+        await Promise.all([this.loadCreditHistory(), this.loadNationalIdFiles(), this.loadActivity()]);
       }
     } catch {
       this.errorMessage.set(this.t('profile.errors.loadFailed'));
@@ -514,6 +555,47 @@ export class ProfileComponent {
     } finally {
       this.isLoading.set(false);
     }
+  }
+
+  private async loadActivity(): Promise<void> {
+    const [opportunities, participations] = await Promise.all([
+      this.opportunityService.getMyOpportunities().catch(() => []),
+      this.opportunityService.getMyParticipations().catch(() => [])
+    ]);
+    this.myOpportunities.set(opportunities);
+    this.myParticipations.set(participations);
+  }
+
+  westernNumber(value: number | null | undefined): string {
+    return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(Number.isFinite(Number(value)) ? Number(value) : 0);
+  }
+
+  westernDate(value?: string | null): string {
+    if (!value) return '';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? '' : new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric' }).format(date);
+  }
+
+  enumLabel(group: string, value: string | number | null | undefined, fallback: string): string {
+    const normalized = String(value ?? '').trim().toLowerCase().replace(/[\s_-]+/gu, '') || fallback;
+    const key = `userProfile.enums.${group}.${normalized}`;
+    const translated = this.t(key);
+    return translated === key ? this.t(`userProfile.enums.${group}.${fallback}`) : translated;
+  }
+
+  walletTransactionTitle(transaction: WalletTransaction): string {
+    if (transaction.description?.trim()) return transaction.description.trim();
+    const reason = walletReasonKey(transaction.reason);
+    return this.t(`wallet.enums.reason.${reason}`);
+  }
+
+  isWalletCredit(transaction: WalletTransaction): boolean {
+    const direction = String(transaction.direction).trim().toLowerCase();
+    return direction === 'credit' || direction === '1';
+  }
+
+  signedWalletAmount(transaction: WalletTransaction): number {
+    return this.isWalletCredit(transaction) ? transaction.creditAmount : -transaction.creditAmount;
   }
 
   loadProfileNotificationPreferences(): void {
@@ -545,6 +627,14 @@ export class ProfileComponent {
     this.scrollToTop();
   }
 
+  setTheme(theme: ThemePreference): void {
+    this.settingsService.setTheme(theme);
+  }
+
+  setPersonalization(partial: Partial<ReturnType<typeof this.settings>['personalization']>): void {
+    this.settingsService.setPersonalization({ ...this.settings().personalization, ...partial });
+  }
+
   viewAllTransactions() {
     this.router.navigate(['/admin/transactions']);
   }
@@ -563,6 +653,17 @@ export class ProfileComponent {
 
   onAvatarClick(): void {
     this.avatarInput.nativeElement.click();
+  }
+
+  cancelEdit(): void {
+    const profile = this.profileService.profile();
+    if (profile) this.syncProfileToForms(profile);
+    this.editMode.set(false);
+  }
+
+  private resolveMediaUrl(value: string | null): string {
+    if (!value) return '';
+    return value.startsWith('http') || value.startsWith('data:') ? value : this.fileStoreService.getPublicUrl(value);
   }
 
   async onAvatarFileSelected(event: Event): Promise<void> {
@@ -602,10 +703,10 @@ export class ProfileComponent {
         message: this.t('profile.toasts.avatarUpdatedMessage'),
         type: 'success'
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       this.notificationService.showToast({
         title: this.t('profile.toasts.avatarUploadFailedTitle'),
-        message: e?.message || this.t('profile.toasts.avatarUploadFailedMessage'),
+        message: this.errorMessageFrom(e, 'profile.toasts.avatarUploadFailedMessage'),
         type: 'error'
       });
     } finally {
@@ -705,6 +806,8 @@ export class ProfileComponent {
         const p = this.profileService.profile();
         if (p) this.initializeSnapshots(p);
         this.profileForm.markAsPristine();
+        this.communicationForm.markAsPristine();
+        this.editMode.set(false);
 
         this.notificationService.showToast({
           title: this.t('profile.toasts.savedTitle'),
@@ -712,9 +815,8 @@ export class ProfileComponent {
           type: 'success'
         });
       }
-    } catch (e: any) {
-      const apiErr = (e as any)?.error as ApiErrorResponse | undefined;
-      const message = apiErr?.message || e?.message || this.t('profile.toasts.saveFailedMessage');
+    } catch (e: unknown) {
+      const message = this.errorMessageFrom(e, 'profile.toasts.saveFailedMessage');
       this.errorMessage.set(message);
       this.notificationService.showToast({ title: this.t('profile.toasts.saveFailedTitle'), message, type: 'error' });
     } finally {
@@ -745,9 +847,8 @@ export class ProfileComponent {
         message: this.t('profile.toasts.passwordOtpSentMessage') || 'An OTP was sent to your mobile phone.',
         type: 'success'
       });
-    } catch (e: any) {
-      const apiErr = (e as any)?.error as ApiErrorResponse | undefined;
-      const message = apiErr?.message || e?.message || this.t('profile.toasts.passwordSendOtpFailedMessage') || 'Failed to send OTP. Please try again.';
+    } catch (e: unknown) {
+      const message = this.errorMessageFrom(e, 'profile.toasts.passwordSendOtpFailedMessage');
       this.notificationService.showToast({
         title: this.t('profile.toasts.passwordSendOtpFailedTitle') || 'OTP send failed',
         message,
@@ -806,9 +907,8 @@ export class ProfileComponent {
         message: this.t('profile.toasts.passwordChangedMessage') || 'Your password was updated successfully.',
         type: 'success'
       });
-    } catch (e: any) {
-      const apiErr = (e as any)?.error as ApiErrorResponse | undefined;
-      const message = apiErr?.message || e?.message || this.t('profile.toasts.passwordChangeFailedMessage') || 'Failed to change password. Please try again.';
+    } catch (e: unknown) {
+      const message = this.errorMessageFrom(e, 'profile.toasts.passwordChangeFailedMessage');
       this.notificationService.showToast({
         title: this.t('profile.toasts.passwordChangeFailedTitle') || 'Password change failed',
         message,
@@ -855,6 +955,8 @@ export class ProfileComponent {
         nationality: this.profileForm.get('nationality')?.value ?? null,
         country: this.profileForm.get('country')?.value ?? null,
         companyName: this.profileForm.get('companyName')?.value ?? existing.basicInfo?.companyName ?? null,
+        jobTitle: this.profileForm.get('jobTitle')?.value ?? existing.basicInfo?.jobTitle ?? null,
+        websiteUrl: this.profileForm.get('websiteUrl')?.value ?? existing.basicInfo?.websiteUrl ?? null,
         bio: this.profileForm.get('bio')?.value ?? '',
         linkedInUrl: this.profileForm.get('linkedinUrl')?.value ?? '',
         facebookUrl: this.profileForm.get('facebookUrl')?.value ?? '',
@@ -894,6 +996,41 @@ export class ProfileComponent {
     documentBackImageUrl: string | null
   ): string | null {
     return existingIdentityCompliance?.verificationStatus ?? null;
+  }
+
+  onHrLetterChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    this.hrLetterFileName.set(file.name);
+    this.profileForm.patchValue({ hrLetterCopy: file });
+    this.profileForm.get('hrLetterCopy')?.markAsDirty();
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.ngZone.run(() => this.hrLetterBase64.set(typeof reader.result === 'string' ? reader.result : null));
+    };
+    reader.onerror = () => {
+      this.ngZone.run(() => {
+        this.hrLetterBase64.set(null);
+        this.notificationService.showToast({
+          title: this.t('profile.toasts.uploadFailedTitle'),
+          message: this.t('profile.toasts.uploadFailedMessage'),
+          type: 'error'
+        });
+      });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  private errorMessageFrom(error: unknown, fallbackKey: string): string {
+    const record = typeof error === 'object' && error !== null ? error as Record<string, unknown> : null;
+    const nested = record && typeof record['error'] === 'object' && record['error'] !== null
+      ? record['error'] as ApiErrorResponse
+      : null;
+    const direct = typeof record?.['message'] === 'string' ? record['message'] : '';
+    return nested?.message || direct || this.t(fallbackKey);
   }
 }
 

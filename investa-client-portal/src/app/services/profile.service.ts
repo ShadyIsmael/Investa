@@ -2,7 +2,7 @@ import { Injectable, Inject, signal } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE } from '../config/api.token';
-import { ApiResponse, ApiErrorResponse } from '../models/api-response.model';
+import { ApiErrorResponse } from '../models/api-response.model';
 
 export interface BasicInfo {
   firstName?: string | null;
@@ -18,6 +18,9 @@ export interface BasicInfo {
   nationality?: string | null;
   country?: string | null;
   companyName?: string | null;
+  jobTitle?: string | null;
+  websiteUrl?: string | null;
+  verificationStatus?: string | null;
   isKycVerified?: boolean;
   kycCompletionPercentage?: number;
 }
@@ -28,6 +31,7 @@ export interface ContactInfo {
   email?: string | null;
   workAddress?: string | null;
   city?: string | null;
+  country?: string | null;
   address?: string | null;
   linkedInUrl?: string | null;
   facebookUrl?: string | null;
@@ -40,7 +44,6 @@ export interface CoreMetrics {
   role?: string | null;
   clientType?: string | null;
   credibilityScore?: number | null;
-  walletBalance?: number | null;
   currentCredibilityScore?: number | null;
 }
 
@@ -55,16 +58,6 @@ export interface IdentityCompliance {
   deviceMacAddress?: string | null;
 }
 
-export interface CreditTransaction {
-  id: number;
-  userId: string;
-  amount: number;
-  justificationAr: string;
-  justificationEn: string;
-  createdAt: string;
-  adminId?: string | null;
-  adminName?: string | null;
-}
 
 export interface UserProfile {
   userId: string;
@@ -72,12 +65,16 @@ export interface UserProfile {
   basicInfo?: BasicInfo | null;
   contactInfo?: ContactInfo | null;
   identityCompliance?: IdentityCompliance | null;
+  auditUsage?: {
+    lastLoginDate?: string | null;
+  } | null;
   createdAt?: string;
   updatedAt?: string;
 }
 
 export interface PublicProfile {
   userId: string;
+  displayName?: string | null;
   fullName?: string | null;
   firstName?: string | null;
   lastName?: string | null;
@@ -85,12 +82,22 @@ export interface PublicProfile {
   avatarUrl?: string | null;
   companyName?: string | null;
   country?: string | null;
-  nationality?: string | null;
-  isKycVerified: boolean;
+  city?: string | null;
+  location?: string | null;
+  jobTitle?: string | null;
+  websiteUrl?: string | null;
+  verificationStatus: string;
+  accountStatus: string;
   credibilityScore: number;
   role?: string | null;
   linkedInUrl?: string | null;
-  facebookUrl?: string | null;
+  createdAt?: string | null;
+}
+
+interface ApiEnvelope<T> {
+  success?: boolean;
+  message?: string;
+  data?: T;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -105,8 +112,8 @@ export class ProfileService {
       const url = `${this.apiBase}/api/profile/${encodeURIComponent(userId)}/public`;
       const token = this.getAccessTokenFromLocalStorage();
       const options = token ? { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) } : undefined;
-      const raw = await firstValueFrom(this.http.get<any>(url, options));
-      return this.extractData<PublicProfile>(raw) ?? (raw as PublicProfile) ?? null;
+      const raw = await firstValueFrom(this.http.get<unknown>(url, options));
+      return this.extractData<PublicProfile>(raw);
     } catch {
       return null;
     }
@@ -118,7 +125,7 @@ export class ProfileService {
       console.debug('[ProfileService] loadMyProfile: GET', url);
       const token = this.getAccessTokenFromLocalStorage();
       const options = token ? { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) } : undefined;
-      const raw = await firstValueFrom(this.http.get<any>(url, options));
+      const raw = await firstValueFrom(this.http.get<unknown>(url, options));
       const resp = this.extractData<UserProfile>(raw);
       console.debug('[ProfileService] loadMyProfile: response', resp || raw);
       if (resp) {
@@ -135,7 +142,7 @@ export class ProfileService {
       }
       this._profile.set(null);
       return null;
-    } catch (err: any) {
+    } catch (err: unknown) {
       this._profile.set(null);
       throw err;
     }
@@ -147,7 +154,7 @@ export class ProfileService {
       console.debug('[ProfileService] startKyc: POST', url);
       const token = this.getAccessTokenFromLocalStorage();
       const options = token ? { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) } : undefined;
-      const raw = await firstValueFrom(this.http.post<any>(url, {}, options));
+      const raw = await firstValueFrom(this.http.post<unknown>(url, {}, options));
       const resp = this.extractData<UserProfile>(raw);
       console.debug('[ProfileService] startKyc: response', resp || raw);
       if (resp) {
@@ -160,7 +167,7 @@ export class ProfileService {
         return resp;
       }
       return null;
-    } catch (err: any) {
+    } catch (err: unknown) {
       throw err;
     }
   }
@@ -172,11 +179,12 @@ export class ProfileService {
       console.debug('[ProfileService] sendPasswordChangeOtp: POST', url, payload);
       const token = this.getAccessTokenFromLocalStorage();
       const options = token ? { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) } : undefined;
-      const raw = await firstValueFrom(this.http.post<any>(url, payload, options));
-      if (raw && (raw as any).success === false) {
-        throw new Error((raw as any).message || 'OTP request failed');
+      const raw = await firstValueFrom(this.http.post<unknown>(url, payload, options));
+      const envelope = this.asEnvelope(raw);
+      if (envelope?.success === false) {
+        throw new Error(envelope.message || 'OTP request failed');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[ProfileService] sendPasswordChangeOtp failed', err);
       throw err;
     }
@@ -189,11 +197,12 @@ export class ProfileService {
       console.debug('[ProfileService] confirmPasswordChange: POST', url, payload);
       const token = this.getAccessTokenFromLocalStorage();
       const options = token ? { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) } : undefined;
-      const raw = await firstValueFrom(this.http.post<any>(url, payload, options));
-      if (raw && (raw as any).success === false) {
-        throw new Error((raw as any).message || 'Password change failed');
+      const raw = await firstValueFrom(this.http.post<unknown>(url, payload, options));
+      const envelope = this.asEnvelope(raw);
+      if (envelope?.success === false) {
+        throw new Error(envelope.message || 'Password change failed');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[ProfileService] confirmPasswordChange failed', err);
       throw err;
     }
@@ -215,6 +224,8 @@ export class ProfileService {
           bio: profile.basicInfo?.bio ?? null,
           avatarUrl: profile.basicInfo?.avatarUrl ?? null,
           companyName: profile.basicInfo?.companyName ?? null,
+          jobTitle: profile.basicInfo?.jobTitle ?? null,
+          websiteUrl: profile.basicInfo?.websiteUrl ?? null,
           linkedInUrl: profile.basicInfo?.linkedInUrl ?? null,
           facebookUrl: profile.basicInfo?.facebookUrl ?? null
         },
@@ -248,10 +259,11 @@ export class ProfileService {
 
       const token = this.getAccessTokenFromLocalStorage();
       const options = token ? { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) } : undefined;
-      const raw = await firstValueFrom(this.http.put<any>(url, cleanedPayload, options));
-      if (raw && (raw as any).success === false) {
+      const raw = await firstValueFrom(this.http.put<unknown>(url, cleanedPayload, options));
+      const envelope = this.asEnvelope(raw);
+      if (envelope?.success === false) {
         console.error('[ProfileService] updateMyProfile: API returned success=false', raw);
-        throw new Error((raw as any).message || 'API returned an error');
+        throw new Error(envelope.message || 'API returned an error');
       }
       const resp = this.extractData<UserProfile>(raw);
       console.debug('[ProfileService] updateMyProfile: response', resp || raw);
@@ -265,13 +277,14 @@ export class ProfileService {
         return resp;
       }
       return null;
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Log detailed error info for debugging and include structured API error if present
       try {
-        const apiErr = (err as any)?.error as ApiErrorResponse | undefined;
+        const errorRecord = this.asRecord(err);
+        const apiErr = errorRecord?.['error'] as ApiErrorResponse | undefined;
         console.error('Failed to update profile', {
-          message: err?.message,
-          status: (err as any)?.status,
+          message: errorRecord?.['message'],
+          status: errorRecord?.['status'],
           apiMessage: apiErr?.message,
           apiCode: apiErr?.code,
           apiErrors: apiErr?.errors,
@@ -284,45 +297,39 @@ export class ProfileService {
     }
   }
 
-  async getCreditHistory(): Promise<CreditTransaction[]> {
-    try {
-      const url = `${this.apiBase}/api/profile/me/credits`;
-      console.debug('[ProfileService] getCreditHistory: GET', url);
-      const token = this.getAccessTokenFromLocalStorage();
-      const options = token ? { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) } : undefined;
-      const raw = await firstValueFrom(this.http.get<any>(url, options));
-      const resp = this.extractData<CreditTransaction[]>(raw);
-      console.debug('[ProfileService] getCreditHistory: response', resp || raw);
-      return resp || [];
-    } catch (err: any) {
-      console.error('Failed to fetch credit history', err);
-      throw err;
-    }
-  }
-
-  private extractData<T>(raw: any): T | null {
+  private extractData<T>(raw: unknown): T | null {
     if (!raw) return null;
-    // If backend returns ApiResponse<T> wrapper, extract .data
-    if ((raw as ApiResponse<T>).data !== undefined) {
-      return (raw as ApiResponse<T>).data;
+    const envelope = this.asEnvelope<T>(raw);
+    if (envelope && envelope.data !== undefined) {
+      return envelope.data;
     }
     // Otherwise assume raw is the payload
     return raw as T;
   }
 
-  private removeNulls(obj: any): any {
+  private removeNulls(obj: unknown): unknown {
     if (obj === null || obj === undefined) return obj;
     if (Array.isArray(obj)) return obj.map(v => this.removeNulls(v)).filter(v => v !== undefined && v !== null);
     if (typeof obj !== 'object') return obj;
-    const out: any = {};
-    Object.keys(obj).forEach(key => {
-      const val = obj[key];
+    const record = obj as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    Object.keys(record).forEach(key => {
+      const val = record[key];
       if (val === null || val === undefined) return;
       const cleaned = this.removeNulls(val);
       if (cleaned === null || cleaned === undefined) return;
       out[key] = cleaned;
     });
     return out;
+  }
+
+  private asEnvelope<T = unknown>(value: unknown): ApiEnvelope<T> | null {
+    const record = this.asRecord(value);
+    return record ? record as ApiEnvelope<T> : null;
+  }
+
+  private asRecord(value: unknown): Record<string, unknown> | null {
+    return typeof value === 'object' && value !== null ? value as Record<string, unknown> : null;
   }
 
   /**

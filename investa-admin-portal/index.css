@@ -29,7 +29,9 @@
     --border:                 214 32% 91%;
     --input:                  214 32% 91%;
     --ring:                   245 80% 60%;
-    --radius:                 0.75rem;
+    --radius:                 0.625rem;
+    --control-height:         2.25rem;
+    --table-row-height:       2.75rem;
 
     --bg:             hsl(210 40% 98%);
     --surface:        hsl(0 0% 100%);
@@ -94,7 +96,7 @@
 
   body {
     margin: 0;
-    font-size: 0.88rem; /* More compact base font for a tighter theme */
+    font-size: 0.84rem;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     transition: background-color .25s ease, color .25s ease;
@@ -106,9 +108,9 @@
     background: hsl(var(--card));
     color: hsl(var(--card-foreground));
     border: 1px solid hsl(var(--border));
-    border-radius: calc(var(--radius) + 8px);
+    border-radius: calc(var(--radius) + 4px);
     box-shadow: var(--shadow-md);
-    padding: 1.5rem;
+    padding: 1rem;
   }
   .btn-primary {
     display: inline-flex;
@@ -116,8 +118,9 @@
     align-items: center;
     background: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
-    padding: .625rem 1rem;
-    border-radius: calc(var(--radius) + 2px);
+    min-height: var(--control-height);
+    padding: .5rem .75rem;
+    border-radius: var(--radius);
     font-weight: 600;
     letter-spacing: 0.01em;
     border: none;
@@ -130,8 +133,9 @@
   .input-field {
     background: hsl(var(--card));
     border: 1px solid hsl(var(--border));
-    padding: .625rem 1rem;
-    border-radius: calc(var(--radius) + 2px);
+    min-height: var(--control-height);
+    padding: .5rem .75rem;
+    border-radius: var(--radius);
     color: hsl(var(--foreground));
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
@@ -144,12 +148,56 @@
     display: inline-flex;
     align-items: center;
     gap: .25rem;
-    padding: .25rem .75rem;
+    padding: .1875rem .5625rem;
     border-radius: 9999px;
     background: hsl(var(--primary) / 0.1);
     color: hsl(var(--primary));
     font-weight: 600;
     font-size: 0.75rem;
+  }
+  .money-in-toolbar input,
+  .money-in-toolbar select {
+    min-height: var(--control-height);
+    width: 100%;
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    background-color: hsl(var(--card));
+    color: hsl(var(--foreground));
+    padding: .5rem .75rem;
+    font-size: .75rem;
+    outline: none;
+  }
+  .money-in-toolbar input::placeholder { color: hsl(var(--muted-foreground)); }
+  .money-in-toolbar input:focus,
+  .money-in-toolbar select:focus { border-color: hsl(var(--ring)); box-shadow: 0 0 0 2px hsl(var(--ring) / .15); }
+  .money-in-toolbar select option { background-color: hsl(var(--card)); color: hsl(var(--foreground)); }
+  .money-in-toolbar button:disabled { cursor: not-allowed; opacity: .5; }
+  .admin-data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  .admin-data-table th {
+    padding: .625rem .875rem !important;
+    font-size: .6875rem;
+    line-height: 1rem;
+  }
+  .admin-data-table td {
+    min-height: var(--table-row-height);
+    padding: .5625rem .875rem !important;
+    line-height: 1.25rem;
+  }
+  .admin-table-viewport {
+    min-height: 20rem;
+    max-height: calc(100vh - 20rem);
+    overflow: auto;
+  }
+  .admin-table-footer {
+    min-height: 3rem;
+  }
+  .admin-modal-panel {
+    border-radius: var(--radius);
+    padding: 1.25rem;
   }
   .bg-surface   { background: hsl(var(--card)) !important; }
   .border-themed { border-color: hsl(var(--border)) !important; }

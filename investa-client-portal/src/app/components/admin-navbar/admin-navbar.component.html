@@ -121,7 +121,7 @@
 
     <!-- Notifications + User -->
     <div class="navbar-right">
-      <div class="relative" (clickOutside)="isNotificationsOpen.set(false)">
+      <div class="notification-menu-anchor" (clickOutside)="isNotificationsOpen.set(false)">
         <button (click)="toggleNotifications()" type="button" class="icon-btn notification-btn">
           <svg class="icon-btn-icon" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path
@@ -229,7 +229,7 @@
       </button>
 
       <!-- User Avatar -->
-      <div class="relative" (clickOutside)="isUserMenuOpen.set(false)">
+      <div class="user-menu-anchor" (clickOutside)="isUserMenuOpen.set(false)">
         <button (click)="toggleUserMenu()" type="button" class="user-menu-btn">
           @if (hasProfileImage()) {
             <img class="user-avatar" [src]="avatarUrl()" alt="" />

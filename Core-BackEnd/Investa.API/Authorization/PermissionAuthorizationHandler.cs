@@ -13,11 +13,11 @@ namespace Investa.API.Authorization;
 /// </summary>
 public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionRequirement>
 {
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IEffectivePermissionService _effectivePermissionService;
 
-    public PermissionAuthorizationHandler(IUnitOfWork unitOfWork)
+    public PermissionAuthorizationHandler(IEffectivePermissionService effectivePermissionService)
     {
-        _unitOfWork = unitOfWork;
+        _effectivePermissionService = effectivePermissionService;
     }
 
     protected override async Task HandleRequirementAsync(
@@ -36,6 +36,14 @@ public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionReq
             return;
         }
 
+        // Preserve the existing Identity Admin role's authoritative wildcard access,
+        // including when evaluating a token issued before permission claims were added.
+        if (context.User.IsInRole("Admin"))
+        {
+            context.Succeed(requirement);
+            return;
+        }
+
         // 2) Fallback: resolve permissions from DB using user's id
         var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                           ?? context.User.FindFirst("id")?.Value;
@@ -46,63 +54,16 @@ public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionReq
             return;
         }
 
-        try
+        var effectivePermissions = await _effectivePermissionService.ResolveAsync(userId);
+        if (PermissionMatches(
+                effectivePermissions.PermissionKeys.ToHashSet(StringComparer.OrdinalIgnoreCase),
+                requirement.Permission))
         {
-            // Get user roles
-            var userRoles = await _unitOfWork.Repository<Investa.Domain.Entities.Security.UserRole>()
-                .FindAsync(ur => ur.UserId == userId);
-
-            var roleIds = userRoles.Select(ur => ur.RoleId).Distinct().ToList();
-
-            if (roleIds.Count == 0)
-            {
-                return;
-            }
-
-            // Role-based permissions
-            var rolePerms = await _unitOfWork.Repository<Investa.Domain.Entities.Security.RolePermission>()
-                .FindAsync(rp => roleIds.Contains(rp.RoleId));
-
-            var permIds = rolePerms.Select(rp => rp.PermissionId).Distinct().ToList();
-
-            // Group-level permissions (via roles' groups)
-            var roles = await _unitOfWork.Repository<Investa.Domain.Entities.Security.Role>()
-                .FindAsync(r => roleIds.Contains(r.Id));
-
-            var groupIds = roles.Select(r => r.GroupId).Distinct().ToList();
-            var groupPermIds = new List<int>();
-            if (groupIds.Count > 0)
-            {
-                var gps = await _unitOfWork.Repository<Investa.Domain.Entities.GroupPermission>()
-                    .FindAsync(gp => groupIds.Contains(gp.GroupId));
-                groupPermIds.AddRange(gps.Select(gp => gp.PermissionId));
-            }
-
-            var allPermIds = permIds.Union(groupPermIds).Distinct().ToList();
-
-            var permissions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            if (allPermIds.Count > 0)
-            {
-                var perms = await _unitOfWork.Repository<Investa.Domain.Entities.Permission>()
-                    .FindAsync(p => allPermIds.Contains(p.Id));
-                foreach (var p in perms)
-                {
-                    if (!string.IsNullOrWhiteSpace(p.Key)) permissions.Add(p.Key);
-                }
-            }
-
-            if (PermissionMatches(permissions, requirement.Permission))
-            {
-                context.Succeed(requirement);
-            }
-        }
-        catch
-        {
-            // Swallow DB errors - authorization will simply fail
+            context.Succeed(requirement);
         }
     }
 
-    private bool PermissionMatches(ISet<string> userPermissions, string required)
+    private static bool PermissionMatches(ISet<string> userPermissions, string required)
     {
         if (userPermissions.Contains(required)) return true;
 

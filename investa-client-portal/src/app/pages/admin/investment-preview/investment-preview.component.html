@@ -1,8 +1,8 @@
-<div class="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-900">
-  <!-- Header with Navigation -->
-  <div class="sticky top-0 z-40 border-b border-slate-800/50 bg-slate-950/80 backdrop-blur-md">
-    <div class="container mx-auto px-6 py-4">
-      <a routerLink="/admin/investments" class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
+<div class="investment-preview-page">
+  <!-- Compact route header -->
+  <div class="investment-preview-routebar">
+    <div class="investment-preview-routebar-inner">
+      <a routerLink="/admin/investments" class="investment-preview-routebar-link">
         <svg class="w-5 h-5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
         {{ 'investmentPreview.backButton' | translate }}
       </a>
@@ -11,354 +11,184 @@
 
   @if (investment(); as inv) {
     @if (publicOpportunity(); as opp) {
-      <div class="animate-fade-in">
-        <!-- Draft Banner for Founder -->
+      <div class="public-opportunity animate-fade-in">
         @if (isFounder() && isDraft()) {
-          <div class="bg-amber-500/10 border-b border-amber-500/30">
-            <div class="container mx-auto px-6 py-4">
-              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div class="flex items-center gap-3">
-                  <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-sm font-semibold">
-                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
-                    Draft Status
-                  </span>
-                  <p class="text-amber-200 text-sm">This opportunity is not visible to the public yet. Publish it to make it available to investors.</p>
-                </div>
-                <div class="flex items-center gap-3">
-                  <button type="button"
-                          (click)="editOpportunity()"
-                          class="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-semibold text-sm transition-colors">
-                    Edit
-                  </button>
-                  <button type="button"
-                          (click)="publishOpportunity()"
-                          [disabled]="engagementProcessing()"
-                          class="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                    {{ engagementProcessing() ? 'Publishing...' : 'Publish' }}
-                  </button>
-                </div>
+          <div class="public-draft-banner">
+            <div class="public-shell public-draft-inner">
+              <div>
+                <strong>{{ 'investmentPreview.public.draftOpportunity' | translate }}</strong>
+                <span>{{ 'investmentPreview.public.draftNotVisible' | translate }}</span>
+              </div>
+              <div class="public-actions-row">
+                <button type="button" (click)="editOpportunity()" class="investa-btn-secondary">{{ 'investmentPreview.public.edit' | translate }}</button>
+                <button type="button" (click)="publishOpportunity()" [disabled]="engagementProcessing()" class="investa-btn-primary">
+                  {{ engagementProcessing() ? ('investmentPreview.public.publishing' | translate) : ('investmentPreview.public.publish' | translate) }}
+                </button>
               </div>
             </div>
           </div>
         }
 
-        <!-- Public Opportunity Hero -->
-        <div class="relative min-h-[460px] bg-slate-900 overflow-hidden">
-          @if (getOpportunityCoverUrl(opp)) {
-            <img [src]="getOpportunityCoverUrl(opp)" [alt]="opp.title || 'Opportunity cover'" class="absolute inset-0 w-full h-full object-cover opacity-35">
+        <div class="public-shell public-topbar">
+          <a routerLink="/admin/investments" class="public-back-link">
+            <svg class="h-4 w-4 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+            {{ 'investmentPreview.backButton' | translate }}
+          </a>
+          @if (!isFounder()) {
+            <button type="button" (click)="openOpportunityReport(opp)" class="investa-btn-ghost">
+              {{ 'reports.actions.reportOpportunity' | translate }}
+            </button>
           }
-          <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-slate-950/20"></div>
-          <div class="relative container mx-auto px-6 py-16 flex min-h-[460px] items-end">
-            <div class="max-w-4xl">
-              <div class="flex flex-wrap items-center gap-2 mb-5">
-                @if (opp.category || opp.categoryName) {
-                  <span class="px-3 py-1 rounded-full bg-white/10 border border-white/15 text-sm font-semibold text-white">{{ opp.category ? getOpportunityLabel(opp.category) : opp.categoryName }}</span>
-                }
-                <span class="px-3 py-1 rounded-full text-sm font-semibold border" [ngClass]="getInvestmentTypeBadgeClass(inv.investmentType)">
-                  {{ getOpportunityInvestmentModelLabel(opp) }}
-                </span>
-                @if (opp.projectStage) {
-                  <span class="px-3 py-1 rounded-full bg-blue-500/15 border border-blue-500/25 text-sm font-semibold text-blue-200">{{ opp.projectStage }}</span>
-                }
-                <span class="px-3 py-1 rounded-full text-sm font-semibold border"
-                      [ngClass]="{
-                        'bg-slate-600/30 text-gray-300 border-slate-600/30': getOpportunityStatus(opp) === 'Draft',
-                        'bg-emerald-500/15 border border-emerald-500/25 text-emerald-200': getOpportunityStatus(opp) !== 'Draft'
-                      }">
-                  {{ getOpportunityStatus(opp) }}
-                </span>
-                @if (!isFounder()) {
-                  <button type="button"
-                          (click)="openOpportunityReport(opp)"
-                          class="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-sm font-semibold text-slate-200 transition-colors hover:bg-white/10">
-                    {{ 'reports.actions.reportOpportunity' | translate }}
-                  </button>
-                }
-              </div>
-              <h1 class="text-4xl md:text-6xl font-bold text-white tracking-tight mb-5">{{ opp.title }}</h1>
-              <p class="text-lg md:text-xl text-slate-200 max-w-3xl leading-8">{{ opp.shortDescription || opp.description }}</p>
-              <div class="mt-6 flex flex-wrap items-center gap-3 text-sm text-slate-300">
-                <span>Founder: <span class="font-semibold text-white">{{ getFounderName(opp) }}</span></span>
-                @if (opp.createdAt) {
-                  <span class="hidden sm:inline text-slate-600">|</span>
-                  <span>Published {{ opp.createdAt | date:'MMM d, yyyy' }}</span>
-                }
-              </div>
-            </div>
-          </div>
         </div>
 
-        <div class="container mx-auto px-6 py-10">
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <main class="lg:col-span-2 space-y-8">
-              <!-- Funding Summary -->
-              <section class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-                <div class="flex items-center justify-between gap-4 mb-6">
-                  <h2 class="text-2xl font-bold text-white">Funding Summary</h2>
-                  @if (opp.fundingGoal || opp.fundingGoalName) {
-                    <span class="px-3 py-1 rounded-full bg-slate-700/60 text-slate-200 text-sm">{{ opp.fundingGoal ? getOpportunityLabel(opp.fundingGoal) : opp.fundingGoalName }}</span>
+        <div class="public-shell public-layout">
+          <main class="public-main">
+            <section class="public-hero">
+              @if (getOpportunityCoverUrl(opp)) {
+                <img [src]="getOpportunityCoverUrl(opp)" [alt]="opp.title || ('investmentPreview.public.opportunityCover' | translate)" class="public-hero-image">
+              }
+              <div class="public-hero-overlay"></div>
+              <div class="public-hero-content">
+                <div class="public-badges">
+                  @if (opp.category || opp.categoryName) {
+                    <span class="public-badge public-badge-green">{{ opp.category ? getOpportunityLabel(opp.category) : opp.categoryName }}</span>
                   }
+                  <span class="public-badge">{{ getOpportunityInvestmentModelLabel(opp) }}</span>
+                  @if (opp.projectStage) { <span class="public-badge">{{ opp.projectStage }}</span> }
                 </div>
-                @let progress = getOpportunityFundingProgress(opp);
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                  <div class="rounded-lg bg-slate-900/50 border border-slate-700/60 p-4">
-                    <p class="text-sm text-slate-400 mb-1">Funding Target</p>
-                    <p class="text-2xl font-bold text-white">{{ opp.fundingTarget || 0 | number:'1.0-0' }} USD</p>
-                  </div>
-                  <div class="rounded-lg bg-slate-900/50 border border-slate-700/60 p-4">
-                    <p class="text-sm text-slate-400 mb-1">Minimum Participation</p>
-                    <p class="text-2xl font-bold text-white">{{ opp.minimumInvestmentAmount || opp.minimumInvestment || 0 | number:'1.0-0' }} USD</p>
-                  </div>
-                  <div class="rounded-lg bg-slate-900/50 border border-slate-700/60 p-4">
-                    <p class="text-sm text-slate-400 mb-1">Funding Progress</p>
-                    <p class="text-2xl font-bold text-emerald-300">{{ progress | number:'1.0-0' }}%</p>
-                  </div>
-                </div>
-                <div class="w-full h-3 rounded-full bg-slate-700/60 overflow-hidden mb-5">
-                  <div class="h-full bg-gradient-to-r from-emerald-500 to-cyan-400" [style.width]="progress + '%'"></div>
-                </div>
-                @if (getUseOfFunds(opp)) {
-                  <div class="rounded-lg bg-blue-500/10 border border-blue-500/20 p-4">
-                    <p class="text-sm font-semibold text-blue-200 mb-1">Use of Funds</p>
-                    <p class="text-slate-200 leading-7 whitespace-pre-line">{{ getUseOfFunds(opp) }}</p>
-                  </div>
-                }
-              </section>
-
-              <!-- Investment Model -->
-              <section class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-                <h2 class="text-2xl font-bold text-white mb-2">Investment Model</h2>
-                <p class="text-sm text-slate-400 mb-5">How participation in this Opportunity is structured.</p>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div class="rounded-lg bg-slate-900/50 border border-slate-700/60 p-4">
-                    <p class="text-sm font-semibold text-slate-400 mb-2">Expected Return Summary</p>
-                    <p class="text-slate-100 leading-7">{{ opp.expectedReturnSummary || 'Expected return details will be shared by the founder.' }}</p>
-                  </div>
-                  <div class="rounded-lg bg-slate-900/50 border border-slate-700/60 p-4">
-                    <p class="text-sm font-semibold text-slate-400 mb-2">Public Participation Terms</p>
-                    <p class="text-slate-100 leading-7">{{ opp.publicInvestmentTermsSummary || 'Public participation terms are not available yet.' }}</p>
-                  </div>
-                </div>
-                <div class="mt-4 rounded-lg bg-slate-900/50 border border-slate-700/60 p-4">
-                  <p class="text-sm font-semibold text-slate-400 mb-3">{{ getOpportunityInvestmentModelLabel(opp) }} Summary</p>
-                  @if (isEquity(inv)) {
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-                      <span class="text-slate-300">Share price: <strong class="text-white">{{ inv.sharePrice || 0 | number:'1.0-2' }} {{ inv.currency || 'USD' }}</strong></span>
-                      <span class="text-slate-300">Total shares: <strong class="text-white">{{ inv.totalShares || 0 | number }}</strong></span>
-                      <span class="text-slate-300">Available shares: <strong class="text-white">{{ inv.availableShares || 0 | number }}</strong></span>
-                    </div>
-                  } @else if (isLoan(inv)) {
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-                      <span class="text-slate-300">Return rate: <strong class="text-white">{{ inv.expectedROI || 0 }}%</strong></span>
-                      <span class="text-slate-300">Duration: <strong class="text-white">{{ inv.durationMonths || 0 }} months</strong></span>
-                      <span class="text-slate-300">Frequency: <strong class="text-white">{{ inv.payoutFrequency || 'Not specified' }}</strong></span>
-                    </div>
-                  } @else {
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-                      <span class="text-slate-300">Profit share: <strong class="text-white">{{ inv.profitPercentage || inv.expectedROI || 0 }}%</strong></span>
-                      <span class="text-slate-300">Duration: <strong class="text-white">{{ inv.durationMonths || 0 }} months</strong></span>
-                      <span class="text-slate-300">Frequency: <strong class="text-white">{{ inv.payoutFrequency || 'Not specified' }}</strong></span>
-                    </div>
-                  }
-                </div>
-              </section>
-
-              <!-- Story -->
-              <section class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-                <h2 class="text-2xl font-bold text-white mb-4">Story</h2>
-                <p class="text-slate-200 leading-8 whitespace-pre-line">{{ opp.fullDescription || opp.description || 'The founder has not added a full story yet.' }}</p>
-              </section>
-
-              <!-- Founder -->
-              <section class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-                <h2 class="text-2xl font-bold text-white mb-4">Founder</h2>
-                <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-                  @if (founderAvatar(inv)) {
-                    <img [src]="founderAvatar(inv)"
-                         [alt]="getFounderName(opp) + ' profile image'"
-                         (error)="onFounderAvatarError(getFounderId(opp))"
-                         class="h-16 w-16 rounded-full object-cover border border-slate-600">
-                  } @else {
-                    <div class="h-16 w-16 rounded-full bg-slate-700 border border-slate-600 flex items-center justify-center text-xl font-bold text-slate-200">
-                      {{ getFounderName(opp).charAt(0) }}
-                    </div>
-                  }
-                  <div>
-                    <p class="text-xl font-bold text-white">{{ getFounderName(opp) }}</p>
-                    @if (opp.founder?.businessRole || opp.founderSummary) {
-                      <p class="text-slate-300 mt-1">{{ opp.founder?.businessRole || opp.founderSummary }}</p>
-                    } @else {
-                      <p class="text-slate-400 mt-1">Founder profile details will appear here when available.</p>
-                    }
-                  </div>
-                </div>
-              </section>
-
-              <!-- Timeline Preview -->
-              <section class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-                <div class="mb-5">
-                  <h2 class="text-2xl font-bold text-white">Timeline</h2>
-                  <p class="text-sm text-slate-400 mt-1">Strategic milestones in the Opportunity lifecycle.</p>
-                </div>
-                @if (getTimelineEvents(opp).length > 0) {
-                  <div class="relative border-l border-slate-700/80 pl-5 space-y-5">
-                    @for (event of getTimelineEvents(opp); track event.id || $index) {
-                      <div class="relative">
-                        <span class="absolute -left-[1.7rem] top-1.5 h-3 w-3 rounded-full bg-emerald-400 ring-4 ring-slate-900"></span>
-                        <p class="font-semibold text-white">{{ event.title || event.eventType || event.type || 'Milestone' }}</p>
-                        @if (event.description) {
-                          <p class="text-slate-300 mt-1 leading-6">{{ event.description }}</p>
-                        }
-                        @if (getEventDate(event)) {
-                          <p class="text-xs text-slate-500 mt-2">{{ getEventDate(event) | date:'MMM d, yyyy' }}</p>
-                        }
-                      </div>
-                    }
-                  </div>
-                } @else {
-                  <p class="text-slate-400">No strategic milestones have been published yet.</p>
-                }
-              </section>
-
-              <!-- Updates Preview -->
-              <section class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-                <div class="mb-5">
-                  <h2 class="text-2xl font-bold text-white">Updates</h2>
-                  <p class="text-sm text-slate-400 mt-1">Operational announcements and progress notes from the Founder.</p>
-                </div>
-                @if (getUpdateEvents(opp).length > 0) {
-                  <div class="space-y-4">
-                    @for (event of getUpdateEvents(opp); track event.id || $index) {
-                      <article class="rounded-lg bg-slate-900/50 border border-slate-700/60 p-4">
-                        <div class="flex items-start justify-between gap-4">
-                          <div>
-                            <p class="font-semibold text-white">{{ event.title || event.type || 'Update' }}</p>
-                            @if (event.description) {
-                              <p class="text-slate-300 mt-1 leading-6">{{ event.description }}</p>
-                            }
-                          </div>
-                          @if (getEventDate(event)) {
-                            <span class="text-xs text-slate-500 whitespace-nowrap">{{ getEventDate(event) | date:'MMM d, yyyy' }}</span>
-                          }
-                        </div>
-                      </article>
-                    }
-                  </div>
-                } @else {
-                  <p class="text-slate-400">No operational updates have been published yet.</p>
-                }
-              </section>
-
-              <!-- Public Media -->
-              <section class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-                <h2 class="text-2xl font-bold text-white mb-5">Public Media</h2>
-                @if (getOpportunityPitchVideo(opp); as pitchVideo) {
-                  <a [href]="getOpportunityFileUrl(pitchVideo)" target="_blank" rel="noopener noreferrer" class="mb-4 flex items-center gap-3 rounded-lg bg-blue-500/10 border border-blue-500/20 p-4 text-blue-200 hover:bg-blue-500/15">
-                    <span class="font-semibold">Watch pitch video</span>
-                  </a>
-                }
-                @if (getOpportunityGallery(opp).length > 0) {
-                  <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    @for (img of getOpportunityGallery(opp); track img.id; let i = $index) {
-                      <button type="button" (click)="openLightbox(getOpportunityFileUrl(img))" class="aspect-video rounded-lg overflow-hidden border border-slate-700/70">
-                        <img [src]="getOpportunityFileUrl(img)" [alt]="img.caption || ('Public media ' + (i + 1))" class="w-full h-full object-cover">
-                      </button>
-                    }
-                  </div>
-                } @else if (!getOpportunityPitchVideo(opp)) {
-                  <p class="text-slate-400">No public media has been added yet.</p>
-                }
-              </section>
-
-              <!-- Public Documents -->
-              <section class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
-                <h2 class="text-2xl font-bold text-white mb-2">Public Documents</h2>
-                <p class="text-sm text-slate-400 mb-5">Documents the Founder has made available before Project Room access.</p>
-                @if (getOpportunityDocuments(opp).length > 0) {
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    @for (doc of getOpportunityDocuments(opp); track doc.id || $index) {
-                      <a [href]="getOpportunityFileUrl(doc) || null" target="_blank" rel="noopener noreferrer"
-                         class="block rounded-lg bg-slate-900/50 border border-slate-700/60 p-4 hover:bg-slate-900/80">
-                        <p class="text-sm font-semibold text-white truncate">{{ doc.fileName || doc.title || doc.name || 'Document' }}</p>
-                        <p class="text-xs text-slate-500 mt-1">{{ doc.fileExtension || doc.purpose || 'Public document' }}</p>
-                      </a>
-                    }
-                  </div>
-                } @else {
-                  <p class="text-slate-400">No public documents have been added yet.</p>
-                }
-              </section>
-            </main>
-
-            <!-- Quick Actions / Short Links -->
-            <aside class="lg:col-span-1">
-              <div class="sticky top-24 space-y-4">
-                <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
-                  <p class="text-sm text-slate-400 mb-1">Founder</p>
-                  <p class="font-bold text-white">{{ getFounderName(opp) }}</p>
-                  @if (opp.founder?.businessRole || opp.founderSummary) {
-                    <p class="text-sm text-slate-400 mt-1">{{ opp.founder?.businessRole || opp.founderSummary }}</p>
-                  }
-                </div>
-
-                <div id="relationship-state" class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
-                  <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Your Relationship</p>
-                  <div class="mt-3 rounded-lg border p-3" [ngClass]="getRelationshipToneClass(relationshipState().tone)">
-                    <p class="text-sm font-bold">{{ relationshipState().title }}</p>
-                    <p class="mt-1 text-sm leading-6 opacity-90">{{ relationshipState().description }}</p>
-                  </div>
-                  <p class="mt-3 text-sm leading-6 text-slate-400">{{ relationshipState().progress }}</p>
-                  <div class="mt-4 space-y-3">
-                    @if (showRequestChatButton()) {
-                      <button type="button"
-                              (click)="requestChat(opp)"
-                              [disabled]="engagementProcessing() || !getPublicOpportunityId(opp)"
-                              class="w-full bg-slate-700 hover:bg-slate-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                        {{ engagementProcessing() ? 'Requesting...' : relationshipState().primaryLabel }}
-                      </button>
-                    }
-
-                    @if (showOpenChatButton()) {
-                      <button type="button"
-                              (click)="openChat()"
-                              class="w-full bg-blue-500/10 hover:bg-blue-500/15 text-blue-200 font-bold py-3 px-6 rounded-lg border border-blue-500/25 hover:border-blue-500/45 transition-all">
-                        {{ relationshipState().primaryLabel }}
-                      </button>
-                    }
-
-                    @if (showParticipateButton()) {
-                      <button type="button"
-                              (click)="openParticipationBuilder()"
-                              class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold py-3 px-6 rounded-lg transition-all">
-                        Participate
-                      </button>
-                    }
-
-                    @if (showProjectRoomButton() && getPublicOpportunityId(opp); as roomOpportunityId) {
-                      <a [routerLink]="['/admin/opportunities', roomOpportunityId, 'room']"
-                         class="w-full bg-emerald-500/10 hover:bg-emerald-500/15 text-emerald-200 font-bold py-3 px-6 rounded-lg border border-emerald-500/25 hover:border-emerald-500/45 transition-all flex items-center justify-center gap-2">
-                        {{ relationshipState().primaryLabel }}
-                      </a>
-                    }
-
-                    @if (canEndDiscussion()) {
-                      <button type="button"
-                              (click)="endDiscussion()"
-                              class="w-full bg-slate-900 hover:bg-slate-800 text-slate-300 font-semibold py-3 px-6 rounded-lg border border-slate-700 transition-colors">
-                        Close Discussion
-                      </button>
-                    }
-                  </div>
-                  @if (relationshipState().primaryAction === 'none') {
-                    <p class="mt-4 rounded-lg bg-slate-900/70 border border-slate-700/60 p-3 text-xs leading-5 text-slate-400">
-                      No direct action is available from this page right now.
-                    </p>
-                  }
-                  <p class="mt-4 text-xs leading-5 text-slate-500">Chat is for negotiation. Project Room unlocks only after final Participation approval.</p>
+                <h1>{{ opp.title }}</h1>
+                <p>{{ opp.shortDescription || opp.description }}</p>
+                <button type="button" class="public-founder" (click)="openFounderProfile(opp.founderId || opp.founder?.id, $event)">
+                  <span class="public-founder-avatar">{{ getFounderName(opp).charAt(0) }}</span>
+                  <span>{{ 'investmentPreview.public.by' | translate }} <strong>{{ getFounderName(opp) }}</strong></span>
+                </button>
+                <div class="public-hero-meta">
+                  @if (opp.fundingGoal || opp.fundingGoalName) { <span>{{ opp.fundingGoal ? getOpportunityLabel(opp.fundingGoal) : opp.fundingGoalName }}</span> }
+                  @if (opp.createdAt) { <span>{{ opp.createdAt | date:'MMM d, yyyy' }}</span> }
+                  <span>{{ getOpportunityStatus(opp) | translate }}</span>
                 </div>
               </div>
-            </aside>
-          </div>
+            </section>
+
+            <nav class="public-section-nav" aria-label="Opportunity sections">
+              <a href="#overview">{{ 'investmentPreview.public.overview' | translate }}</a>
+              <a href="#terms">{{ 'investmentPreview.public.investmentTerms' | translate }}</a>
+              <a href="#updates">{{ 'investmentPreview.public.updates' | translate }} <span>{{ getUpdateEvents(opp).length }}</span></a>
+              <a href="#documents">{{ 'investmentPreview.public.documents' | translate }} <span>{{ getOpportunityDocuments(opp).length }}</span></a>
+              <a href="#media">{{ 'investmentPreview.public.media' | translate }} <span>{{ getOpportunityGallery(opp).length }}</span></a>
+            </nav>
+
+            <section id="overview" class="public-content-grid">
+              <article class="public-card public-card-wide">
+                <div class="public-section-heading">
+                  <div><span>{{ 'investmentPreview.public.opportunityOverview' | translate }}</span><h2>{{ 'investmentPreview.public.aboutThisOpportunity' | translate }}</h2></div>
+                </div>
+                <p class="public-body-copy">{{ opp.description || opp.shortDescription || ('investmentPreview.public.opportunityInfoPlaceholder' | translate) }}</p>
+                <div class="public-highlights">
+                  @if (opp.category || opp.categoryName) { <div><strong>{{ opp.category ? getOpportunityLabel(opp.category) : opp.categoryName }}</strong><span>{{ 'investmentPreview.public.businessCategory' | translate }}</span></div> }
+                  @if (opp.projectStage) { <div><strong>{{ opp.projectStage }}</strong><span>{{ 'investmentPreview.public.projectStage' | translate }}</span></div> }
+                  <div><strong>{{ getOpportunityInvestmentModelLabel(opp) }}</strong><span>{{ 'investmentPreview.public.investmentModel' | translate }}</span></div>
+                </div>
+              </article>
+
+              <article class="public-card">
+                <div class="public-section-heading"><div><span>{{ 'investmentPreview.public.capitalAllocation' | translate }}</span><h2>{{ 'investmentPreview.public.useOfFunds' | translate }}</h2></div></div>
+                <p class="public-body-copy compact">{{ getUseOfFunds(opp) || ('investmentPreview.public.useOfFundsPlaceholder' | translate) }}</p>
+              </article>
+            </section>
+
+            <section id="terms" class="public-card">
+              <div class="public-section-heading">
+                <div><span>{{ 'investmentPreview.public.participationStructure' | translate }}</span><h2>{{ 'investmentPreview.public.investmentTerms' | translate }}</h2></div>
+                <span class="public-badge public-badge-green">{{ getOpportunityInvestmentModelLabel(opp) }}</span>
+              </div>
+              <div class="public-terms-grid">
+                <div><span>{{ 'investmentPreview.public.minimumParticipation' | translate }}</span><strong>{{ opp.minimumInvestmentAmount || opp.minimumInvestment || 0 | number:'1.0-0' }} {{ 'investmentPreview.public.usd' | translate }}</strong></div>
+                <div><span>{{ 'investmentPreview.public.expectedReturn' | translate }}</span><strong>{{ opp.expectedReturnSummary || ('investmentPreview.public.toBeConfirmed' | translate) }}</strong></div>
+                <div class="public-term-wide"><span>{{ 'investmentPreview.public.publicTerms' | translate }}</span><strong>{{ opp.publicInvestmentTermsSummary || ('investmentPreview.public.termsPlaceholder' | translate) }}</strong></div>
+              </div>
+            </section>
+
+            <section id="updates" class="public-card">
+              <div class="public-section-heading"><div><span>{{ 'investmentPreview.public.founderActivity' | translate }}</span><h2>{{ 'investmentPreview.public.recentUpdates' | translate }}</h2></div></div>
+              @if (getUpdateEvents(opp).length > 0) {
+                <div class="public-list">
+                  @for (event of getUpdateEvents(opp).slice(0, 4); track event.id || $index) {
+                    <article class="public-list-row">
+                      <span class="public-list-icon">↗</span>
+                      <div><strong>{{ event.title || event.type || ('investmentPreview.public.update' | translate) }}</strong><p>{{ event.description || ('investmentPreview.public.updatePlaceholder' | translate) }}</p></div>
+                      @if (getEventDate(event)) { <time>{{ getEventDate(event) | date:'MMM d, yyyy' }}</time> }
+                    </article>
+                  }
+                </div>
+              } @else { <p class="public-empty">{{ 'investmentPreview.public.noUpdates' | translate }}</p> }
+            </section>
+
+            <div class="public-two-column">
+              <section id="documents" class="public-card">
+                <div class="public-section-heading"><div><span>{{ 'investmentPreview.public.dueDiligence' | translate }}</span><h2>{{ 'investmentPreview.public.documents' | translate }}</h2></div></div>
+                @if (getOpportunityDocuments(opp).length > 0) {
+                  <div class="public-file-list">
+                    @for (doc of getOpportunityDocuments(opp).slice(0, 5); track doc.id || $index) {
+                      <a [href]="getOpportunityFileUrl(doc) || null" target="_blank" rel="noopener noreferrer" class="public-file-row">
+                        <span class="public-file-icon">{{ 'investmentPreview.public.pdf' | translate }}</span>
+                        <span><strong>{{ doc.fileName || doc.title || doc.name || ('investmentPreview.public.document' | translate) }}</strong><small>{{ doc.fileExtension || doc.purpose || ('investmentPreview.public.publicDocument' | translate) }}</small></span>
+                        <span aria-hidden="true">→</span>
+                      </a>
+                    }
+                  </div>
+                } @else { <p class="public-empty">{{ 'investmentPreview.public.noPublicDocuments' | translate }}</p> }
+              </section>
+
+              <section id="media" class="public-card">
+                <div class="public-section-heading"><div><span>{{ 'investmentPreview.public.visualLibrary' | translate }}</span><h2>{{ 'investmentPreview.public.media' | translate }}</h2></div></div>
+                @if (getOpportunityGallery(opp).length > 0) {
+                  <div class="public-media-grid">
+                    @for (img of getOpportunityGallery(opp).slice(0, 4); track img.id; let i = $index) {
+                      <button type="button" (click)="openLightbox(getOpportunityFileUrl(img))"><img [src]="getOpportunityFileUrl(img)" [alt]="img.caption || (('investmentPreview.public.publicMedia' | translate) + ' ' + (i + 1))"></button>
+                    }
+                  </div>
+                } @else { <p class="public-empty">{{ 'investmentPreview.public.noPublicMedia' | translate }}</p> }
+              </section>
+            </div>
+          </main>
+
+          <aside class="public-investment-panel">
+            @let progress = getOpportunityFundingProgress(opp);
+            <section class="public-summary-card">
+              <div class="public-summary-heading"><span>{{ 'investmentPreview.public.investmentSummary' | translate }}</span><span>{{ progress | number:'1.0-0' }}%</span></div>
+              <div class="public-summary-numbers">
+                <div><span>{{ 'investmentPreview.public.funded' | translate }}</span><strong>{{ opp.fundedAmount || 0 | number:'1.0-0' }} {{ 'investmentPreview.public.usd' | translate }}</strong></div>
+                <div><span>{{ 'investmentPreview.public.target' | translate }}</span><strong>{{ opp.fundingTarget || 0 | number:'1.0-0' }} {{ 'investmentPreview.public.usd' | translate }}</strong></div>
+              </div>
+              <div class="public-progress"><span [style.width.%]="progress"></span></div>
+              <div class="public-summary-grid">
+                <div><span>{{ 'investmentPreview.public.minimumParticipation' | translate }}</span><strong>{{ opp.minimumInvestmentAmount || opp.minimumInvestment || 0 | number:'1.0-0' }} {{ 'investmentPreview.public.usd' | translate }}</strong></div>
+                <div><span>{{ 'investmentPreview.public.investmentModel' | translate }}</span><strong>{{ getOpportunityInvestmentModelLabel(opp) }}</strong></div>
+                <div><span>{{ 'investmentPreview.public.approvedParticipants' | translate }}</span><strong>{{ opp.approvedParticipantCount || 0 }}</strong></div>
+                <div><span>{{ 'investmentPreview.public.status' | translate }}</span><strong>{{ getOpportunityStatus(opp) | translate }}</strong></div>
+              </div>
+            </section>
+
+            <section id="relationship-state" class="public-relationship-card">
+              <div class="public-relationship-heading"><span>{{ 'investmentPreview.public.yourParticipation' | translate }}</span><span class="public-badge public-badge-green">{{ relationshipState().title }}</span></div>
+              <p>{{ relationshipState().description }}</p>
+              <div class="public-relationship-actions">
+                @if (showRequestChatButton()) {
+                  <button type="button" (click)="requestChat(opp)" [disabled]="engagementProcessing() || !getPublicOpportunityId(opp)" class="investa-btn-primary">{{ engagementProcessing() ? ('investmentPreview.public.requesting' | translate) : relationshipState().primaryLabel }}</button>
+                }
+                @if (showOpenChatButton()) { <button type="button" (click)="openChat()" class="investa-btn-primary">{{ relationshipState().primaryLabel }}</button> }
+                @if (showParticipateButton()) { <button type="button" (click)="openParticipationBuilder()" class="investa-btn-primary">{{ 'investmentPreview.public.participate' | translate }}</button> }
+                @if (showProjectRoomButton() && getPublicOpportunityId(opp); as roomOpportunityId) {
+                  <a [routerLink]="['/admin/opportunities', roomOpportunityId, 'room']" class="investa-btn-primary">{{ relationshipState().primaryLabel }}</a>
+                }
+                @if (canEndDiscussion()) { <button type="button" (click)="endDiscussion()" class="investa-btn-secondary">{{ 'investmentPreview.public.closeDiscussion' | translate }}</button> }
+              </div>
+              <small>{{ 'investmentPreview.public.chatHistoryNote' | translate }}</small>
+            </section>
+
+            <button type="button" class="investa-btn-secondary public-full-button">{{ 'investmentPreview.public.viewTermSheet' | translate }}</button>
+          </aside>
         </div>
       </div>
     } @else {

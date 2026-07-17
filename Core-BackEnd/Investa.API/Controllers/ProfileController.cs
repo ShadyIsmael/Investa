@@ -496,25 +496,41 @@ public class ProfileController : ControllerBase
 
         try
         {
-            var profile = await _profileService.GetUserProfileAsync(userId);
-            if (profile == null)
+            var user = await _unitOfWork.Repository<AuthUser>()
+                .GetSingleAsync(candidate => candidate.Id == userId, candidate => candidate.Profile, candidate => candidate.Client);
+            if (user?.Profile == null)
                 return NotFound(new { message = "Profile not found." });
 
-            // Return only public-safe fields — no contact info, KYC docs, or financial data
-            var publicProfile = new
-            {
-                userId = profile.UserId,
-                fullName = profile.BasicInfo?.FullName,
-                firstName = profile.BasicInfo?.FirstName,
-                lastName = profile.BasicInfo?.LastName,
-                bio = profile.BasicInfo?.Bio,
-                avatarUrl = profile.BasicInfo?.AvatarUrl,
-                companyName = profile.BasicInfo?.CompanyName,
-                country = profile.BasicInfo?.Country,
-                nationality = profile.BasicInfo?.Nationality,
+            var profile = user.Profile;
+            var displayName = !string.IsNullOrWhiteSpace(profile.FullName)
+                ? profile.FullName
+                : !string.IsNullOrWhiteSpace(user.Name)
+                    ? user.Name
+                    : string.Join(' ', new[] { profile.FirstName, profile.LastName }.Where(value => !string.IsNullOrWhiteSpace(value)));
+            var location = string.Join(", ", new[] { profile.City, profile.Country }.Where(value => !string.IsNullOrWhiteSpace(value)));
 
-                linkedInUrl = profile.ContactInfo?.LinkedInUrl,
-                facebookUrl = profile.ContactInfo?.FacebookUrl,
+            // Explicit public projection: no email, phone, KYC documents, wallet, or audit fields.
+            var publicProfile = new PublicUserProfileDto
+            {
+                UserId = user.Id,
+                DisplayName = displayName,
+                FullName = profile.FullName,
+                FirstName = profile.FirstName,
+                LastName = profile.LastName,
+                AvatarUrl = profile.AvatarUrl,
+                Bio = profile.Bio,
+                CompanyName = profile.CompanyName,
+                JobTitle = profile.BusinessRole,
+                Country = profile.Country,
+                City = profile.City,
+                Location = location,
+                WebsiteUrl = user.Client?.WebsiteUrl,
+                LinkedInUrl = profile.LinkedInUrl,
+                Role = user.ClientType.ToString(),
+                VerificationStatus = profile.VerificationStatus.ToString(),
+                AccountStatus = user.Status ? "Active" : "Inactive",
+                CredibilityScore = user.CredibilityScore,
+                CreatedAt = profile.CreatedAt
             };
 
             _logger.LogInformation("Public profile requested for user {UserId}", userId);

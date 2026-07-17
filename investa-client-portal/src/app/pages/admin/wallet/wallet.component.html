@@ -78,14 +78,14 @@
               <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-300">{{ formatDate(transaction.createdAt) }}</td>
               <td class="px-4 py-4 whitespace-nowrap">
                 <span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold" [class]="directionTone(transaction.direction)">
-                  {{ displayValue(transaction.direction) }}
+                  {{ directionLabel(transaction.direction) }}
                 </span>
               </td>
-              <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-300">{{ displayValue(transaction.reason) }}</td>
+              <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-300">{{ reasonLabel(transaction.reason) }}</td>
               <td class="px-4 py-4 whitespace-nowrap text-right text-sm font-semibold text-white">{{ formatNumber(transaction.creditAmount) }}</td>
               <td class="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-300">{{ formatNumber(transaction.balanceBefore) }}</td>
               <td class="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-300">{{ formatNumber(transaction.balanceAfter) }}</td>
-              <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-300">{{ displayValue(transaction.referenceType) }}</td>
+              <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-300">{{ referenceTypeLabel(transaction.referenceType) }}</td>
               <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-400">{{ displayValue(transaction.referenceId) }}</td>
               <td class="px-4 py-4 min-w-64 text-sm text-gray-300">{{ displayValue(transaction.description) }}</td>
             </tr>

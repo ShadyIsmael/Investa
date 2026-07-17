@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 using Investa.API.Resources;
+using System.ComponentModel.DataAnnotations;
 
 namespace Investa.API.Controllers.Admin;
 
@@ -34,30 +35,38 @@ public class RolesAdminController : ControllerBase
         _localizer = localizer;
     }
 
+    private static string? NormalizeOptional(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static RoleResponseDto ToDto(Role role, string groupName) => new()
+    {
+        Id = role.Id,
+        RoleCode = role.RoleCode,
+        NameEn = role.NameEn,
+        NameAr = role.NameAr,
+        DescriptionEn = role.DescriptionEn,
+        DescriptionAr = role.DescriptionAr,
+        GroupId = role.GroupId,
+        GroupName = groupName,
+        IsActive = role.IsActive,
+        CreatedAt = role.CreatedAt
+    };
+
     // ──────────────────────────────── Roles ───────────────────────────────
 
-    /// <summary>Get all active roles with their group names.</summary>
+    /// <summary>Get all roles with their group names.</summary>
     [HttpGet("roles")]
     public async Task<IActionResult> GetAllRoles()
     {
         try
         {
-            var roles = await _unitOfWork.Repository<Role>().FindAsync(r => r.IsActive);
+            var roles = await _unitOfWork.Repository<Role>().GetAllAsync();
             var groupIds = roles.Select(r => r.GroupId).Distinct().ToList();
 
-            var allGroups = await _unitOfWork.Repository<Group>().FindAsync(g => g.IsActive);
+            var allGroups = await _unitOfWork.Repository<Group>().GetAllAsync();
             var groupDict = allGroups.Where(g => groupIds.Contains(g.Id)).ToDictionary(g => g.Id);
 
-            var dtos = roles.Select(r => new RoleWithGroupDto
-            {
-                Id = r.Id,
-                Name = r.Name,
-                Description = r.Description,
-                GroupId = r.GroupId,
-                GroupName = groupDict.TryGetValue(r.GroupId, out var grp) ? grp.Name : "Unknown",
-                IsActive = r.IsActive,
-                CreatedAt = r.CreatedAt
-            }).ToList();
+            var dtos = roles.Select(r => ToDto(r, groupDict.TryGetValue(r.GroupId, out var grp) ? grp.Name : "Unknown")).ToList();
 
             return Ok(dtos);
         }
@@ -68,24 +77,18 @@ public class RolesAdminController : ControllerBase
         }
     }
 
-    /// <summary>Get all active roles belonging to a specific group.</summary>
+    /// <summary>Get all roles belonging to a specific group.</summary>
     [HttpGet("groups/{groupId:int}/roles")]
     public async Task<IActionResult> GetRolesByGroup(int groupId)
     {
         try
         {
             var roles = await _unitOfWork.Repository<Role>()
-                .FindAsync(r => r.GroupId == groupId && r.IsActive);
+                .FindAsync(r => r.GroupId == groupId);
 
-            var dtos = roles.Select(r => new RoleDto
-            {
-                Id = r.Id,
-                Name = r.Name,
-                Description = r.Description,
-                GroupId = r.GroupId,
-                IsActive = r.IsActive,
-                CreatedAt = r.CreatedAt
-            }).ToList();
+            var group = (await _unitOfWork.Repository<Group>().FindAsync(g => g.Id == groupId)).FirstOrDefault();
+
+            var dtos = roles.Select(r => ToDto(r, group?.Name ?? "Unknown")).ToList();
 
             return Ok(dtos);
         }
@@ -110,16 +113,7 @@ public class RolesAdminController : ControllerBase
             var group = (await _unitOfWork.Repository<Group>().FindAsync(g => g.Id == role.GroupId))
                 .FirstOrDefault();
 
-            return Ok(new RoleWithGroupDto
-            {
-                Id = role.Id,
-                Name = role.Name,
-                Description = role.Description,
-                GroupId = role.GroupId,
-                GroupName = group?.Name ?? "Unknown",
-                IsActive = role.IsActive,
-                CreatedAt = role.CreatedAt
-            });
+            return Ok(ToDto(role, group?.Name ?? "Unknown"));
         }
         catch (Exception ex)
         {
@@ -135,8 +129,8 @@ public class RolesAdminController : ControllerBase
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(dto.Name))
-                return BadRequest(_localizer["RoleNameRequired"].Value);
+            if (string.IsNullOrWhiteSpace(dto.NameEn) || string.IsNullOrWhiteSpace(dto.NameAr))
+                return BadRequest(new { code = "ROLE_NAMES_REQUIRED", message = "English and Arabic role names are required." });
 
             if (dto.GroupId <= 0)
                 return BadRequest(_localizer["GroupIdRequired"].Value);
@@ -149,18 +143,22 @@ public class RolesAdminController : ControllerBase
                 return BadRequest(string.Format(_localizer["GroupNotFoundOrInactive"].Value, dto.GroupId));
 
             var duplicate = (await _unitOfWork.Repository<Role>()
-                .FindAsync(r => r.GroupId == dto.GroupId && r.NormalizedName == dto.Name.ToUpperInvariant()))
+                .FindAsync(r => r.GroupId == dto.GroupId && r.NormalizedName == dto.NameEn.Trim().ToUpperInvariant()))
                 .FirstOrDefault();
 
             if (duplicate != null)
-                return BadRequest(string.Format(_localizer["RoleAlreadyExistsInGroup"].Value, dto.Name));
+                return BadRequest(string.Format(_localizer["RoleAlreadyExistsInGroup"].Value, dto.NameEn));
 
             var role = new Role
             {
                 Id = Guid.NewGuid(),
-                Name = dto.Name,
-                NormalizedName = dto.Name.ToUpperInvariant(),
-                Description = dto.Description,
+                NameEn = dto.NameEn.Trim(),
+                NameAr = dto.NameAr.Trim(),
+                DescriptionEn = NormalizeOptional(dto.DescriptionEn),
+                DescriptionAr = NormalizeOptional(dto.DescriptionAr),
+                Name = dto.NameEn.Trim(),
+                NormalizedName = dto.NameEn.Trim().ToUpperInvariant(),
+                Description = NormalizeOptional(dto.DescriptionEn),
                 GroupId = dto.GroupId,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
@@ -169,15 +167,7 @@ public class RolesAdminController : ControllerBase
             await _unitOfWork.Repository<Role>().AddAsync(role);
             await _unitOfWork.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetRoleById), new { roleId = role.Id }, new RoleDto
-            {
-                Id = role.Id,
-                Name = role.Name,
-                Description = role.Description,
-                GroupId = role.GroupId,
-                IsActive = role.IsActive,
-                CreatedAt = role.CreatedAt
-            });
+            return CreatedAtAction(nameof(GetRoleById), new { roleId = role.Id }, ToDto(role, group.Name));
         }
         catch (Exception ex)
         {
@@ -193,30 +183,32 @@ public class RolesAdminController : ControllerBase
     {
         try
         {
-            var role = (await _unitOfWork.Repository<Role>().FindAsync(r => r.Id == roleId && r.IsActive))
+            var role = (await _unitOfWork.Repository<Role>().FindAsync(r => r.Id == roleId))
                 .FirstOrDefault();
 
             if (role == null) return NotFound();
 
-            if (!string.IsNullOrWhiteSpace(dto.Name))
-            {
-                // Check for duplicate name in same group (excluding current role)
-                var newGroupId = dto.GroupId > 0 ? dto.GroupId : role.GroupId;
-                var duplicate = (await _unitOfWork.Repository<Role>()
-                    .FindAsync(r => r.GroupId == newGroupId
-                                 && r.NormalizedName == dto.Name.ToUpperInvariant()
-                                 && r.Id != roleId))
-                    .FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(dto.NameEn) || string.IsNullOrWhiteSpace(dto.NameAr))
+                return BadRequest(new { code = "ROLE_NAMES_REQUIRED", message = "English and Arabic role names are required." });
 
-                if (duplicate != null)
-                    return BadRequest(string.Format(_localizer["RoleAlreadyExistsInGroup"].Value, dto.Name));
+            var newGroupId = dto.GroupId > 0 ? dto.GroupId : role.GroupId;
+            var duplicate = (await _unitOfWork.Repository<Role>()
+                .FindAsync(r => r.GroupId == newGroupId
+                             && r.NormalizedName == dto.NameEn.Trim().ToUpperInvariant()
+                             && r.Id != roleId))
+                .FirstOrDefault();
 
-                role.Name = dto.Name;
-                role.NormalizedName = dto.Name.ToUpperInvariant();
-            }
+            if (duplicate != null)
+                return BadRequest(string.Format(_localizer["RoleAlreadyExistsInGroup"].Value, dto.NameEn));
 
-            if (dto.Description != null)
-                role.Description = dto.Description;
+            role.NameEn = dto.NameEn.Trim();
+            role.NameAr = dto.NameAr.Trim();
+            role.DescriptionEn = NormalizeOptional(dto.DescriptionEn);
+            role.DescriptionAr = NormalizeOptional(dto.DescriptionAr);
+            role.Name = role.NameEn;
+            role.NormalizedName = role.NameEn.ToUpperInvariant();
+            role.Description = role.DescriptionEn;
+            role.IsActive = dto.IsActive;
 
             if (dto.GroupId > 0)
             {
@@ -233,15 +225,8 @@ public class RolesAdminController : ControllerBase
             role.ModifiedAt = DateTime.UtcNow;
             await _unitOfWork.SaveChangesAsync();
 
-            return Ok(new RoleDto
-            {
-                Id = role.Id,
-                Name = role.Name,
-                Description = role.Description,
-                GroupId = role.GroupId,
-                IsActive = role.IsActive,
-                CreatedAt = role.CreatedAt
-            });
+            var responseGroup = (await _unitOfWork.Repository<Group>().FindAsync(g => g.Id == role.GroupId)).First();
+            return Ok(ToDto(role, responseGroup.Name));
         }
         catch (Exception ex)
         {
@@ -397,7 +382,7 @@ public class RolesAdminController : ControllerBase
     {
         try
         {
-            var role = (await _unitOfWork.Repository<Role>().FindAsync(r => r.Id == roleId)).FirstOrDefault();
+            var role = (await _unitOfWork.Repository<Role>().FindAsync(r => r.Id == roleId && r.IsActive)).FirstOrDefault();
             if (role == null) return NotFound(_localizer["RoleNotFound"].Value);
 
             foreach (var uid in dto.UserIds.Distinct())
@@ -460,21 +445,14 @@ public class RolesAdminController : ControllerBase
 
 // ─────────────────────────────────── DTOs ────────────────────────────────────
 
-public class RoleDto
+public class RoleResponseDto
 {
     public Guid Id { get; set; }
-    public string Name { get; set; } = null!;
-    public string? Description { get; set; }
-    public int GroupId { get; set; }
-    public bool IsActive { get; set; }
-    public DateTime CreatedAt { get; set; }
-}
-
-public class RoleWithGroupDto
-{
-    public Guid Id { get; set; }
-    public string Name { get; set; } = null!;
-    public string? Description { get; set; }
+    public string RoleCode { get; set; } = null!;
+    public string NameEn { get; set; } = null!;
+    public string NameAr { get; set; } = null!;
+    public string? DescriptionEn { get; set; }
+    public string? DescriptionAr { get; set; }
     public int GroupId { get; set; }
     public string GroupName { get; set; } = null!;
     public bool IsActive { get; set; }
@@ -483,15 +461,28 @@ public class RoleWithGroupDto
 
 public class CreateRoleDto
 {
-    public string Name { get; set; } = null!;
-    public string? Description { get; set; }
+    [Required, StringLength(256)]
+    public string NameEn { get; set; } = null!;
+    [Required, StringLength(256)]
+    public string NameAr { get; set; } = null!;
+    [StringLength(500)]
+    public string? DescriptionEn { get; set; }
+    [StringLength(500)]
+    public string? DescriptionAr { get; set; }
     public int GroupId { get; set; }
 }
 
 public class UpdateRoleDto
 {
-    public string? Name { get; set; }
-    public string? Description { get; set; }
+    [Required, StringLength(256)]
+    public string NameEn { get; set; } = null!;
+    [Required, StringLength(256)]
+    public string NameAr { get; set; } = null!;
+    [StringLength(500)]
+    public string? DescriptionEn { get; set; }
+    [StringLength(500)]
+    public string? DescriptionAr { get; set; }
+    public bool IsActive { get; set; } = true;
     /// <summary>Set to a valid GroupId to move role to a different group; 0 = keep current group.</summary>
     public int GroupId { get; set; }
 }

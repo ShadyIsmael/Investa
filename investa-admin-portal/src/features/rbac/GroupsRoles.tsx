@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { groupService } from '@/services/groupService';
-import type { Group, Role } from '@/types';
+import type { Group, LegacyRole as Role } from '@/types';
 import { userService } from '@/services/userService';
 import { User } from '@/types';
 import { Icon } from '@/components/common/Icons';

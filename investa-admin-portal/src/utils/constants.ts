@@ -20,35 +20,25 @@ export const NAV_ITEMS: NavItem[] = [
       { id: 'roles', label: 'Roles', labelKey: 'nav.roles', iconName: 'handshake', path: '/roles', permissions: ['Role.Manage'] }
     ]
   },
-  { 
-    id: 'finance', 
-    label: 'Finance', 
-    labelKey: 'nav.finance',
-    iconName: 'cash', 
-    path: '/finance',
-    permissions: ['Finance.View', 'Finance.Manage'],
-    children: [
-      { id: 'coa', label: 'Chart of Accounts', labelKey: 'nav.chartOfAccounts', iconName: 'grid', path: '/finance/coa', permissions: ['Account.View'] },
-      { id: 'billing', label: 'Invoicing & Billing', labelKey: 'nav.invoicingBilling', iconName: 'credit-card', path: '/finance/billing', permissions: ['Billing.View', 'Invoice.Manage'] },
-      { id: 'journals', label: 'Journal Entries', labelKey: 'nav.journalEntries', iconName: 'activity', path: '/finance/journals', permissions: ['Journal.View', 'Journal.Create'] },
-      { id: 'cashflow', label: 'Cash Flow Management', labelKey: 'nav.cashFlowManagement', iconName: 'revenue', path: '/finance/cashflow', permissions: ['CashFlow.View'] },
-      { id: 'bankrec', label: 'Bank Reconciliation', labelKey: 'nav.bankReconciliation', iconName: 'shield-check', path: '/finance/bankrec', permissions: ['BankRec.View', 'BankRec.Manage'] },
-    ]
-  },
-  { 
-    id: 'reporting', 
-    label: 'Financial Reporting', 
-    labelKey: 'nav.financialReporting',
-    iconName: 'chart', 
-    path: '/reporting',
-    permissions: ['Report.View'],
-    children: [
-      { id: 'pl', label: 'Profit & Loss', labelKey: 'nav.profitLoss', iconName: 'activity', path: '/reporting/pl', permissions: ['Report.View'] },
-      { id: 'balancesheet', label: 'Balance Sheet', labelKey: 'nav.balanceSheet', iconName: 'grid', path: '/reporting/balancesheet', permissions: ['Report.View'] },
-      { id: 'aging', label: 'Aging Report', labelKey: 'nav.agingReport', iconName: 'chart', path: '/reporting/aging', permissions: ['Report.View'] },
-    ]
-  },
   { id: 'audit', label: 'Audit Trail', labelKey: 'nav.auditTrail', iconName: 'shield-check', path: '/audit', permissions: ['Audit.View'] },
+  {
+    id: 'company-finance', label: 'Company Finance', labelKey: 'nav.companyFinance', iconName: 'cash', path: '/company-finance', permissions: ['Finance.View'],
+    children: [
+      { id: 'company-finance-overview', label: 'Overview', labelKey: 'companyFinance.nav.overview', iconName: 'grid', path: '/company-finance', permissions: ['Finance.View'] },
+      { id: 'company-finance-money-in', label: 'Money In', labelKey: 'companyFinance.nav.moneyIn', iconName: 'revenue', path: '/company-finance/money-in', permissions: ['Finance.View'] },
+      { id: 'company-finance-money-out', label: 'Money Out', labelKey: 'companyFinance.nav.moneyOut', iconName: 'cash', path: '/company-finance/money-out', permissions: ['Finance.View'] },
+      { id: 'company-finance-founder-payments', label: 'Founder Payments', labelKey: 'companyFinance.nav.founderPayments', iconName: 'handshake', path: '/company-finance/founder-payments', permissions: ['Finance.View'] },
+      { id: 'company-finance-accounts', label: 'Accounts', labelKey: 'companyFinance.nav.accounts', iconName: 'briefcase', path: '/company-finance/accounts', permissions: ['Finance.View'] },
+      { id: 'company-finance-suppliers', label: 'Suppliers', labelKey: 'companyFinance.nav.suppliers', iconName: 'users', path: '/company-finance/suppliers', permissions: ['Finance.View'] },
+      { id: 'company-finance-subscriptions', label: 'Subscriptions', labelKey: 'companyFinance.nav.subscriptions', iconName: 'credit-card', path: '/company-finance/subscriptions', permissions: ['Finance.View'] },
+      { id: 'company-finance-assets', label: 'Company Assets', labelKey: 'companyFinance.nav.assets', iconName: 'grid', path: '/company-finance/assets', permissions: ['Finance.View'] },
+      { id: 'company-finance-documents', label: 'Documents', labelKey: 'companyFinance.nav.documents', iconName: 'terminal', path: '/company-finance/documents', permissions: ['Finance.View'] },
+      { id: 'company-finance-reports', label: 'Reports', labelKey: 'companyFinance.nav.reports', iconName: 'chart', path: '/company-finance/reports', permissions: ['Finance.View'] },
+      { id: 'company-finance-reconciliation', label: 'Reconciliation', labelKey: 'companyFinance.nav.reconciliation', iconName: 'shuffle', path: '/company-finance/reconciliations', permissions: ['Finance.View'] },
+      { id: 'company-finance-review-queue', label: 'Review Queue', labelKey: 'companyFinance.nav.reviewQueue', iconName: 'clipboard-check', path: '/company-finance/review-queue', permissions: ['Finance.Review', 'Finance.Confirm'] },
+      { id: 'company-finance-settings', label: 'Settings', labelKey: 'companyFinance.nav.settings', iconName: 'settings', path: '/company-finance/settings', permissions: ['Finance.View'] },
+    ],
+  },
   { id: 'analytics', label: 'Advanced Analytics', labelKey: 'nav.advancedAnalytics', iconName: 'sparkles', path: '/analytics', permissions: ['Analytics.View'] },
   {
     id: 'operations',

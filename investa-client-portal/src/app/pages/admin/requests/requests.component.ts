@@ -63,6 +63,9 @@ export class RequestsComponent {
   typeFilter = signal<string>('all');
 
   dateFilter = signal<string>('all');
+  searchTerm = signal('');
+  loading = signal(false);
+  loadError = signal<string | null>(null);
 
 
 
@@ -94,6 +97,15 @@ export class RequestsComponent {
 
 
     return requests.filter(request => {
+      const query = this.searchTerm().trim().toLocaleLowerCase('en');
+      if (query && ![
+        request.projectName,
+        request.counterpartName,
+        request.senderName,
+        request.receiverName,
+        request.businessName
+      ].filter((value): value is string => !!value).some(value => value.toLocaleLowerCase('en').includes(query))) return false;
+
 
       // Status filter
 
@@ -195,8 +207,15 @@ export class RequestsComponent {
 
 
   async refresh() {
-
-    await this.requestsService.refreshRequests();
+    try {
+      this.loading.set(true);
+      this.loadError.set(null);
+      await this.requestsService.refreshRequests();
+    } catch {
+      this.loadError.set(this.t('requests.states.loadError', 'Unable to load requests.'));
+    } finally {
+      this.loading.set(false);
+    }
 
   }
 
@@ -291,6 +310,11 @@ export class RequestsComponent {
 
     this.currentPage.set(1);
 
+  }
+
+  setSearchTerm(value: string) {
+    this.searchTerm.set(value);
+    this.currentPage.set(1);
   }
 
 
@@ -438,27 +462,9 @@ export class RequestsComponent {
    */
 
   getRequestTypeBadgeClass(request: OpportunityRequest): string {
-
-    if (!request.requestType) return 'bg-slate-500/15 text-slate-300 border-slate-500/30';
-
-
-
-    switch (request.requestType) {
-
-      case OpportunityRequestKind.Conversation:
-
-        return 'bg-blue-500/15 text-blue-300 border-blue-500/30';
-
-      case OpportunityRequestKind.Participation:
-        if (this.isLoanRequest(request)) return 'bg-blue-500/15 text-blue-300 border-blue-500/30';
-        if (this.isProfitSharingRequest(request)) return 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30';
-        return 'bg-purple-500/15 text-purple-300 border-purple-500/30';
-
-      default:
-
-        return 'bg-slate-500/15 text-slate-300 border-slate-500/30';
-
-    }
+    return request.requestType === OpportunityRequestKind.Participation
+      ? 'request-type-badge participation'
+      : 'request-type-badge conversation';
 
   }
 
@@ -536,19 +542,20 @@ export class RequestsComponent {
   getLoanReturnRate(request: OpportunityRequest): string {
     const snapshot = request.loanTermsSnapshot;
     const rate = snapshot?.returnRateSnapshot;
-    if (rate === null || rate === undefined) return 'Unavailable';
-    const suffix = snapshot?.returnRateTypeSnapshot ? ` ${snapshot.returnRateTypeSnapshot}` : '';
+    if (rate === null || rate === undefined) return this.unavailableLabel();
+    const suffix = snapshot?.returnRateTypeSnapshot ? ` ${this.localizedTermValue(snapshot.returnRateTypeSnapshot)}` : '';
     return `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 }).format(rate)}%${suffix}`;
   }
 
   getLoanTerm(request: OpportunityRequest): string {
     const snapshot = request.loanTermsSnapshot;
-    if (!snapshot?.termValueSnapshot) return 'Unavailable';
-    return `${snapshot.termValueSnapshot} ${snapshot.termUnitSnapshot || ''}`.trim();
+    if (!snapshot?.termValueSnapshot) return this.unavailableLabel();
+    return `${snapshot.termValueSnapshot} ${snapshot.termUnitSnapshot ? this.localizedTermValue(snapshot.termUnitSnapshot) : ''}`.trim();
   }
 
   getLoanRepaymentModel(request: OpportunityRequest): string {
-    return request.loanTermsSnapshot?.repaymentModelSnapshot || 'Unavailable';
+    const value = request.loanTermsSnapshot?.repaymentModelSnapshot;
+    return value ? this.localizedTermValue(value) : this.unavailableLabel();
   }
 
   getLoanExpectedReturn(request: OpportunityRequest): number {
@@ -574,22 +581,22 @@ export class RequestsComponent {
       ?? request.profitSharingTermsSnapshot?.proposedSharePercentage
       ?? request.requestMetadata?.termsSnapshot?.ProfitSharePercentageSnapshot
       ?? request.requestMetadata?.termsSnapshot?.ProposedSharePercentage;
-    if (percentage === null || percentage === undefined) return 'Unavailable';
+    if (percentage === null || percentage === undefined) return this.unavailableLabel();
     return `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 }).format(Number(percentage))}%`;
   }
 
   getProfitSharingTerm(request: OpportunityRequest): string {
     const snapshot = request.profitSharingTermsSnapshot;
     const term = snapshot?.termValueSnapshot ?? snapshot?.expectedDurationMonthsSnapshot;
-    if (!term) return 'Unavailable';
-    return `${term} ${snapshot?.termUnitSnapshot || 'Months'}`.trim();
+    if (!term) return this.unavailableLabel();
+    return `${term} ${this.localizedTermValue(snapshot?.termUnitSnapshot || 'Months')}`.trim();
   }
 
   getProfitSharingExitTerms(request: OpportunityRequest): string {
     return request.profitSharingTermsSnapshot?.exitTermsSnapshot
       ?? request.requestMetadata?.termsSnapshot?.ExitTermsSnapshot
       ?? request.requestMetadata?.termsSnapshot?.ExitTerms
-      ?? 'Unavailable';
+      ?? this.unavailableLabel();
   }
 
   getProfitSharingExpectedProfit(request: OpportunityRequest): number | null {
@@ -614,9 +621,12 @@ export class RequestsComponent {
   getProfitSharingContractPeriod(request: OpportunityRequest): string {
     const start = this.formatSnapshotDate(request.profitSharingTermsSnapshot?.contractStartDate ?? request.requestMetadata?.termsSnapshot?.ContractStartDate);
     const end = this.formatSnapshotDate(request.profitSharingTermsSnapshot?.contractEndDate ?? request.requestMetadata?.termsSnapshot?.ContractEndDate);
-    if (start === 'Unavailable' && end === 'Unavailable') return 'Unavailable';
-    if (start !== 'Unavailable' && end !== 'Unavailable') return `${start} - ${end}`;
-    return start !== 'Unavailable' ? `Starts ${start}` : `Ends ${end}`;
+    const unavailable = this.unavailableLabel();
+    if (start === unavailable && end === unavailable) return unavailable;
+    if (start !== unavailable && end !== unavailable) return `${start} - ${end}`;
+    return start !== unavailable
+      ? this.t('requests.values.starts', 'Starts {date}').replace('{date}', start)
+      : this.t('requests.values.ends', 'Ends {date}').replace('{date}', end);
   }
 
   private requestTypeOrder(request: OpportunityRequest): number {
@@ -624,7 +634,7 @@ export class RequestsComponent {
   }
 
   formatOptionalMoney(request: OpportunityRequest, value: number | null): string {
-    if (value === null || value === undefined) return 'Unavailable';
+    if (value === null || value === undefined) return this.unavailableLabel();
     return `${this.getRequestCurrency(request)} ${new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
@@ -632,9 +642,10 @@ export class RequestsComponent {
   }
 
   private formatSnapshotDate(value: unknown): string {
-    if (!value) return 'Unavailable';
+    if (!value) return this.unavailableLabel();
     const date = new Date(String(value));
-    return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString();
+    const locale = this.languageService.language() === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB';
+    return Number.isNaN(date.getTime()) ? this.unavailableLabel() : new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
   }
 
 
@@ -760,8 +771,7 @@ export class RequestsComponent {
         return this.t('requests.status.withdrawn', 'Withdrawn');
 
       default:
-
-        return status;
+        return this.t('requests.status.closed', 'Closed');
 
     }
 
@@ -830,25 +840,47 @@ export class RequestsComponent {
    */
 
   getExactDateTime(date: Date): string {
-
     const d = new Date(date);
+    if (Number.isNaN(d.getTime())) return this.unavailableLabel();
+    const locale = this.languageService.language() === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB';
+    return new Intl.DateTimeFormat(locale, {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }).format(d);
 
-    const day = d.getDate();
+  }
 
-    const month = d.toLocaleString('en-US', { month: 'short' });
+  initials(name?: string): string {
+    return (name || '').trim().split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || '—';
+  }
 
-    const year = d.getFullYear();
+  isConversationRequest(request: OpportunityRequest): boolean {
+    return request.requestType === OpportunityRequestKind.Conversation;
+  }
 
-    const hours = d.getHours();
+  statusTone(request: OpportunityRequest): 'pending' | 'success' | 'danger' | 'neutral' {
+    if (request.status === 'Accepted' || request.status === 'Partner') return 'success';
+    if (request.status === 'Declined' || request.status === 'Rejected' || request.status === 'Withdrawn' || request.status === 'Cancelled') return 'danger';
+    if (this.isPendingRequest(request) || request.status === 'Negotiating') return 'pending';
+    return 'neutral';
+  }
 
-    const minutes = d.getMinutes().toString().padStart(2, '0');
+  private unavailableLabel(): string {
+    return this.t('requests.values.unavailable', 'Unavailable');
+  }
 
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-
-    const displayHours = hours % 12 || 12;
-
-    return `${day} ${month} ${year}, ${displayHours}:${minutes} ${ampm}`;
-
+  private localizedTermValue(value: string): string {
+    const key = value.trim().toLowerCase().replace(/[\s_-]+/g, '');
+    const known: Record<string, string> = {
+      month: 'month', months: 'months', year: 'year', years: 'years',
+      monthly: 'monthly', quarterly: 'quarterly', annually: 'annually', bullet: 'bullet',
+      fixed: 'fixed', variable: 'variable', simple: 'simple', compound: 'compound'
+    };
+    return known[key] ? this.t(`requests.values.${known[key]}`, value) : value;
   }
 
 

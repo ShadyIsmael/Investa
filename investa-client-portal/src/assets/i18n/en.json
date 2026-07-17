@@ -52,7 +52,11 @@
       "services": "Services",
       "blog": "Blog",
       "contact": "Contact",
-      "requests": "Requests"
+      "requests": "Requests",
+      "explore": "Explore Opportunities",
+      "how": "How It Works",
+      "founders": "For Founders",
+      "investors": "For Investors"
     },
     "login": "Login",
     "signup": "Sign Up"
@@ -138,7 +142,6 @@
     "myProjects": "My Opportunities",
     "createProject": "Create Opportunity",
     "searchPlaceholder": "Search opportunities...",
-    "submitInvestment": "Create Opportunity",
     "communication": "Communication",
     "requests": "Requests",
     "returnHome": "Go Home",
@@ -198,11 +201,10 @@
     "button": "Create Your Account"
   },
   "hero": {
-    "title_part1": "Smart Investing,",
-    "title_part2": "Powered by AI",
-    "description": "Join the future of investment with our AI-powered platform. Make data-driven decisions, automate your trading, and maximize your returns.",
-    "getStartedButton": "Get Started",
-    "watchDemoButton": "Watch Demo"
+    "title": "Smart Investing, Powered by AI",
+    "subtitle": "Join the future of investment with our AI-powered platform. Make data-driven decisions and maximize your returns.",
+    "primaryCta": "Explore Opportunities",
+    "secondaryCta": "List Your Project"
   },
   "features": {
     "title": "Why Choose Investa?",
@@ -322,7 +324,7 @@
   },
   "investments": {
     "title": "Discover Opportunities",
-    "target": "Funding Target",
+    "target": "Target",
     "myProjectsTitle": "My Participations",
     "noParticipationsTitle": "No participations yet",
     "noParticipationsSubtitle": "Approved participations will appear here.",
@@ -352,7 +354,6 @@
     "funding": "Funding",
     "fundingProgress": "Funding Progress",
     "funded": "Funded",
-    "target": "Target",
     "remaining": "Remaining",
     "approvedParticipants": "Approved Participants",
     "yourApprovedContribution": "Your Approved Contribution",
@@ -608,59 +609,6 @@
       "emptyCta": "Explore Opportunities"
     }
   },
-  "submitInvestment": {
-    "title": "Create Opportunity",
-    "editTitle": "Edit Opportunity",
-    "subtitle": "Launch your fundraising campaign and connect with investors",
-    "step": {
-      "businessDetails": "Opportunity Details",
-      "financialStructure": "Financial Structure",
-      "reviewSubmit": "Review & Submit"
-    },
-    "tellInvestors": "Tell investors about your venture",
-    "labels": {
-      "businessName": "Opportunity Title",
-      "description": "Description",
-      "businessCategory": "Category",
-      "businessStage": "Business Stage",
-      "projectPhase": "Opportunity Phase",
-      "milestone": "Current Milestone",
-      "teamMembers": "Team Members",
-      "coverImage": "Cover Image",
-      "imageGallery": "Image Gallery",
-      "pitchVideoUrl": "Pitch Video URL"
-    },
-    "actions": {
-      "uploadCover": "Upload Cover",
-      "remove": "Remove",
-      "addTeamMember": "Add Team Member",
-      "addImage": "Add",
-      "continue": "Continue",
-      "submit": "Submit Opportunity",
-      "save": "Save Changes",
-      "cancel": "Cancel",
-      "back": "Back to Opportunities"
-    },
-    "placeholders": {
-      "businessName": "Enter your opportunity title",
-      "description": "Describe the opportunity, the problem you're solving, and your unique value proposition...",
-      "milestoneExample": "e.g., MVP Launch, Series A, Product Market Fit",
-      "teamUserId": "Mobile number (required)",
-      "teamName": "Display name (optional)",
-      "teamRole": "Role",
-      "duration": "Opportunity duration",
-      "expectedProfit": "Expected profit %",
-      "pricePerShare": "Price per share",
-      "numberOfShares": "Number of shares for this round",
-      "valuationCap": "Company valuation cap",
-      "amountInvesting": "Amount you're investing",
-      "minPerInvestor": "Optional minimum per investor",
-      "maxPerInvestor": "Optional maximum per investor",
-      "expectedReturn": "Expected return percentage",
-      "coverImageUrlExample": "https://example.com/image.jpg",
-      "pitchVideoUrl": "https://youtube.com/watch?v=..."
-    }
-  },
   "chat": {
     "altTextYou": "You",
     "startAudioCall": "Start audio call",
@@ -693,6 +641,158 @@
       "readyFailed": "Could not mark ready to proceed.",
       "closeFailed": "Could not close discussion.",
       "removeFailed": "Could not remove this conversation from your list."
+    }
+  },
+  "conversationWorkspace": {
+    "eyebrow": "Negotiation workspace",
+    "title": "Conversations",
+    "loading": "Loading conversations...",
+    "retry": "Retry",
+    "search": "Search conversations",
+    "tabs": {
+      "incoming": "Incoming",
+      "outgoing": "Outgoing",
+      "conversations": "Conversations"
+    },
+    "filter": {
+      "label": "Filter conversations",
+      "all": "All",
+      "active": "Active",
+      "closed": "Closed"
+    },
+    "empty": {
+      "conversations": "No conversations match this view.",
+      "requests": "No requests match this view."
+    },
+    "mobile": {
+      "navigation": "Conversation workspace views",
+      "list": "List",
+      "chat": "Chat",
+      "context": "Context"
+    },
+    "messages": {
+      "loading": "Loading messages...",
+      "empty": "No messages yet. Start the negotiation when you are ready.",
+      "you": "You"
+    },
+    "composer": {
+      "select": "Select a conversation to begin.",
+      "closed": "This discussion is closed and read-only.",
+      "placeholder": "Write a negotiation message...",
+      "send": "Send",
+      "sending": "Sending..."
+    },
+    "actions": {
+      "ready": "Ready",
+      "more": "More actions",
+      "makeOffer": "Make offer",
+      "createOffer": "Create Offer",
+      "report": "Report",
+      "close": "Close discussion",
+      "remove": "Remove from my list",
+      "accept": "Accept",
+      "reject": "Reject",
+      "withdraw": "Withdraw",
+      "counter": "Counter",
+      "cancel": "Cancel",
+      "viewOpportunity": "View opportunity",
+      "participate": "Participate",
+      "openRoom": "Open Project Room"
+    },
+    "status": {
+      "founderAccepted": "Founder accepted",
+      "inProgress": "Negotiation in progress",
+      "declined": "Declined by founder",
+      "withdrawn": "Withdrawn",
+      "ready": "Ready for participation",
+      "participationCreated": "Participation created",
+      "participationApproved": "Participation approved",
+      "participationRejected": "Participation rejected",
+      "closed": "Discussion closed",
+      "youReady": "You are ready",
+      "readyShort": "Ready",
+      "notReady": "Not ready",
+      "unavailable": "Unavailable"
+    },
+    "requestStatus": {
+      "pending": "Pending",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "withdrawn": "Withdrawn"
+    },
+    "roles": {
+      "founder": "Founder",
+      "investor": "Investor"
+    },
+    "events": {
+      "started": "Conversation started",
+      "closed": "Conversation closed"
+    },
+    "offers": {
+      "title": "Negotiation offer",
+      "version": "Offer",
+      "counters": "Counters offer",
+      "terms": "Offer terms",
+      "profitPercentage": "Profit share %"
+    },
+    "offerStatus": {
+      "pending": "Pending",
+      "countered": "Countered",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "withdrawn": "Withdrawn"
+    },
+    "offerTypes": {
+      "equity": "Equity",
+      "loan": "Loan",
+      "profitSharing": "Profit sharing"
+    },
+    "context": {
+      "eyebrow": "Opportunity",
+      "title": "Context",
+      "founder": "Founder",
+      "details": "Investment details",
+      "model": "Investment model",
+      "target": "Funding target",
+      "minimum": "Minimum participation",
+      "participation": "Participation",
+      "readiness": "Readiness",
+      "yourReadyState": "Your state",
+      "conversationStatus": "Conversation status",
+      "requestEyebrow": "Conversation request",
+      "requestTitle": "Request context",
+      "participant": "Participant",
+      "requestState": "Request state",
+      "direction": "Direction",
+      "statusLabel": "Status",
+      "empty": "Select a conversation to view its opportunity context."
+    },
+    "journey": {
+      "eyebrow": "Progress",
+      "title": "Conversation journey",
+      "requested": "Conversation requested",
+      "accepted": "Request accepted",
+      "negotiation": "Negotiation",
+      "offerSent": "Offer sent",
+      "offerAccepted": "Offer accepted",
+      "founderReady": "Founder ready",
+      "investorReady": "Investor ready",
+      "participationRequest": "Participation request",
+      "participationApproved": "Participation approved",
+      "projectRoomUnlocked": "Project Room unlocked",
+      "terminalParticipationRejected": "Participation rejected",
+      "terminalDeclined": "Request declined",
+      "terminalWithdrawn": "Conversation withdrawn",
+      "terminalClosed": "Conversation closed"
+    },
+    "participation": {
+      "approved": "Approved",
+      "pending": "Pending approval",
+      "rejected": "Rejected",
+      "notCreated": "Not yet created"
+    },
+    "errors": {
+      "requestAction": "The conversation request could not be updated."
     }
   },
   "profile": {
@@ -777,8 +877,11 @@
     "tabs": {
       "editProfile": "Edit Profile",
       "communicationInfo": "Communication Info",
+      "investment": "Activity",
+      "personalization": "Personalization",
       "security": "Security",
       "notifications": "Notifications",
+      "credit": "Wallet Management",
       "score": "Reputation"
     },
     "password": {
@@ -838,6 +941,8 @@
       "avatarUpdatedMessage": "Your profile picture has been updated successfully.",
       "avatarUploadFailedTitle": "Upload Failed",
       "avatarUploadFailedMessage": "Failed to upload profile picture. Please try again.",
+      "uploadFailedTitle": "Upload Failed",
+      "uploadFailedMessage": "Failed to upload the document. Please try again.",
       "invalidFileTypeTitle": "Invalid File Type",
       "invalidFileTypeMessage": "Please select a JPEG, PNG, WebP, or GIF image."
     },
@@ -878,7 +983,17 @@
       "chargeNow": "Charge Now"
     },
     "credibilityHistory": "Credit Score History",
-    "viewAll": "View All Transactions"
+    "viewAll": "View All Transactions",
+    "ownerSettings": "Profile and account settings",
+    "identityDocuments": "Identity Documents",
+    "creditManagement": {
+      "title": "Wallet Management"
+    },
+    "openAllSettings": "Open all account settings",
+    "openNotifications": "Open Notification Center",
+    "viewWallet": "View Wallet",
+    "activityEmpty": "No opportunity or participation activity yet.",
+    "viewAllParticipations": "View All"
   },
   "transactions": {
     "total": "Total Transactions",
@@ -922,6 +1037,43 @@
     "backToDashboard": "Back to Dashboard",
     "title": "Settings",
     "subtitle": "Adjust your preferences and account settings.",
+    "eyebrow": "Account preferences",
+    "sectionEyebrow": "Settings section",
+    "navigationLabel": "Settings sections",
+    "sections": {
+      "appearance": {
+        "description": "Choose how Investa looks across your account."
+      },
+      "localization": {
+        "description": "Set your interface language and preferred display currency."
+      },
+      "notifications": {
+        "description": "Choose which account updates you want to receive."
+      },
+      "privacy": {
+        "description": "Control the profile and performance information you share."
+      },
+      "personalization": {
+        "description": "Tune the dashboard layout and investment preferences."
+      },
+      "support": {
+        "description": "Set your support availability and service hours."
+      },
+      "security": {
+        "description": "Manage the inactivity timeout for your signed-in session."
+      },
+      "wallet": {
+        "description": "Review your current platform credit and credit actions."
+      }
+    },
+    "actions": {
+      "save": "Save changes",
+      "saved": "Changes saved successfully.",
+      "saveError": "Changes could not be saved. Please try again.",
+      "unsaved": "Unsaved changes",
+      "upToDate": "All changes saved",
+      "retry": "Retry"
+    },
     "appearance": {
       "title": "Appearance",
       "theme": {
@@ -952,7 +1104,9 @@
       }
     },
     "privacy": {
-      "title": "Privacy"
+      "title": "Privacy",
+      "showPublicProfile": "Show public profile",
+      "sharePortfolioPerformance": "Share portfolio performance"
     },
     "personalization": {
       "title": "Personalization",
@@ -989,15 +1143,64 @@
     "wallet": {
       "title": "Wallet",
       "balance": "Balance",
+      "availableCredit": "Available platform credit",
+      "loading": "Loading platform credit…",
+      "loadError": "Platform credit is currently unavailable.",
       "amount": "Amount",
       "addButton": "Add Funds"
     },
     "notifications": {
-      "title": "Notification Settings"
+      "title": "Notification Settings",
+      "email": "Email notifications",
+      "push": "Push notifications",
+      "sms": "SMS notifications"
     }
   },
   "requests": {
     "title": "Requests",
+    "workspace": {
+      "eyebrow": "Request workspace",
+      "subtitle": "Review conversation and participation requests in one compact workspace.",
+      "filtersLabel": "Request filters",
+      "search": "Search by person or opportunity",
+      "submittedTerms": "Submitted terms",
+      "pagination": "Request pages",
+      "previous": "Previous",
+      "next": "Next",
+      "page": "Page"
+    },
+    "states": {
+      "loading": "Loading requests...",
+      "loadError": "Unable to load requests.",
+      "retry": "Retry"
+    },
+    "values": {
+      "unavailable": "Unavailable",
+      "contribution": "Contribution",
+      "returnRate": "Return rate",
+      "term": "Term",
+      "repayment": "Repayment",
+      "totalRepayment": "Total repayment",
+      "profitShare": "Profit share",
+      "expectedPayout": "Expected payout",
+      "shares": "Shares",
+      "sharePrice": "Share price",
+      "totalValue": "Total value",
+      "starts": "Starts {date}",
+      "ends": "Ends {date}",
+      "month": "month",
+      "months": "months",
+      "year": "year",
+      "years": "years",
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "annually": "Annually",
+      "bullet": "Bullet",
+      "fixed": "Fixed",
+      "variable": "Variable",
+      "simple": "Simple",
+      "compound": "Compound"
+    },
     "opportunityLabel": "Opportunity Details",
     "opportunityLabelShort": "Opportunity",
     "incoming": "Incoming",
@@ -1042,7 +1245,8 @@
       "chatAccepted": "Chat accepted",
       "participationApproved": "Participation approved",
       "declined": "Declined",
-      "withdrawn": "Withdrawn"
+      "withdrawn": "Withdrawn",
+      "closed": "Closed"
     },
     "direction": {
       "incomingConversation": "This Investor wants to start a conversation about your Opportunity.",
@@ -1234,6 +1438,60 @@
         "learnMoreOpens": "Learn More Opens",
         "requestsReceived": "Requests Received"
       }
+    },
+    "public": {
+      "draftOpportunity": "Draft opportunity",
+      "draftNotVisible": "This opportunity is not visible to investors yet.",
+      "edit": "Edit",
+      "publishing": "Publishing...",
+      "publish": "Publish",
+      "opportunityCover": "Opportunity cover",
+      "by": "By",
+      "overview": "Overview",
+      "investmentTerms": "Investment Terms",
+      "updates": "Updates",
+      "documents": "Documents",
+      "media": "Media",
+      "opportunityOverview": "Opportunity overview",
+      "aboutThisOpportunity": "About this opportunity",
+      "opportunityInfoPlaceholder": "Opportunity information will be added by the founder.",
+      "businessCategory": "Business category",
+      "projectStage": "Project stage",
+      "investmentModel": "Investment model",
+      "capitalAllocation": "Capital allocation",
+      "useOfFunds": "Use of funds",
+      "useOfFundsPlaceholder": "The founder has not published a use-of-funds summary yet.",
+      "participationStructure": "Participation structure",
+      "minimumParticipation": "Minimum participation",
+      "usd": "USD",
+      "expectedReturn": "Expected return",
+      "toBeConfirmed": "To be confirmed",
+      "publicTerms": "Public terms",
+      "termsPlaceholder": "Terms will be shared by the founder.",
+      "founderActivity": "Founder activity",
+      "recentUpdates": "Recent updates",
+      "update": "Update",
+      "updatePlaceholder": "A new update was published.",
+      "noUpdates": "No updates have been published yet.",
+      "dueDiligence": "Due diligence",
+      "pdf": "PDF",
+      "document": "Document",
+      "publicDocument": "Public document",
+      "noPublicDocuments": "No public documents are available.",
+      "visualLibrary": "Visual library",
+      "publicMedia": "Public media",
+      "noPublicMedia": "No public media is available.",
+      "investmentSummary": "Investment summary",
+      "funded": "Funded",
+      "target": "Target",
+      "approvedParticipants": "Approved participants",
+      "status": "Status",
+      "yourParticipation": "Your participation",
+      "requesting": "Requesting...",
+      "participate": "Participate",
+      "closeDiscussion": "Close discussion",
+      "chatHistoryNote": "Chat history remains available for negotiation context.",
+      "viewTermSheet": "View term sheet"
     }
   },
   "founderProfile": {
@@ -1243,6 +1501,79 @@
     "kycVerified": "KYC Verified",
     "notFound": "Founder Not Found",
     "notFoundSubtitle": "This profile may not exist or is not available."
+  },
+  "userProfile": {
+    "loading": "Loading profile...",
+    "member": "Investa member",
+    "editProfile": "Edit profile",
+    "ownerOnly": "Visible only to you",
+    "uploading": "Uploading...",
+    "browseOpportunities": "Browse opportunities",
+    "openLinkedIn": "Open LinkedIn",
+    "opportunity": "Opportunity",
+    "notAvailable": "Not available",
+    "sections": {
+      "about": "About",
+      "contact": "Contact",
+      "professional": "Professional info",
+      "opportunities": "Opportunities",
+      "participation": "Participation & activity"
+    },
+    "fields": {
+      "jobTitle": "Job title",
+      "company": "Company",
+      "website": "Website",
+      "linkedin": "LinkedIn",
+      "memberSince": "Member since"
+    },
+    "stats": {
+      "opportunities": "Opportunities",
+      "active": "Active",
+      "funded": "Funded",
+      "credibility": "Credibility",
+      "participations": "Participations"
+    },
+    "empty": {
+      "opportunities": "No opportunities to show.",
+      "participations": "No participation activity to show."
+    },
+    "enums": {
+      "roles": {
+        "founder": "Founder",
+        "investor": "Investor",
+        "both": "Founder & investor",
+        "member": "Member"
+      },
+      "verification": {
+        "verified": "Verified",
+        "pending": "Verification pending",
+        "none": "Not verified",
+        "rejected": "Verification rejected"
+      },
+      "account": {
+        "active": "Active account",
+        "inactive": "Inactive account",
+        "suspended": "Suspended account"
+      },
+      "opportunityStatus": {
+        "active": "Active",
+        "published": "Published",
+        "funded": "Funded",
+        "closed": "Closed",
+        "draft": "Draft",
+        "unknown": "Status unavailable"
+      },
+      "participationStatus": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "interested": "Interested",
+        "active": "Active",
+        "completed": "Completed",
+        "cancelled": "Cancelled",
+        "unknown": "Status unavailable"
+      }
+    }
   },
   "wallet": {
     "title": "Platform CREDIT Wallet",
@@ -1271,6 +1602,40 @@
       "referenceType": "Reference Type",
       "referenceId": "Reference ID",
       "description": "Description"
+    },
+    "enums": {
+      "direction": {
+        "credit": "Credit",
+        "debit": "Debit"
+      },
+      "reason": {
+        "purchase": "Credit purchase",
+        "bonus": "Bonus",
+        "refund": "Refund",
+        "adminadjustmentcredit": "Admin credit adjustment",
+        "investment": "Participation",
+        "publishopportunity": "Publish opportunity",
+        "featuredopportunity": "Feature opportunity",
+        "subscription": "Subscription",
+        "adminadjustmentdebit": "Admin debit adjustment",
+        "platformservicefee": "Platform service fee"
+      },
+      "referenceType": {
+        "none": "No reference",
+        "investment": "Participation",
+        "opportunity": "Opportunity",
+        "subscription": "Subscription",
+        "wallet": "Wallet",
+        "admin": "Administration",
+        "system": "System",
+        "conversationrequest": "Conversation request",
+        "conversation": "Conversation",
+        "opportunityjoinrequest": "Participation request"
+      }
+    },
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next"
     },
     "errors": {
       "loadFailed": "Failed to load wallet."
@@ -1444,7 +1809,248 @@
     "savedTitle": "Draft Saved",
     "savedMessage": "Opportunity draft saved.",
     "saveFailureTitle": "Save Failed",
-    "saveFailureMessage": "Unable to save the Opportunity. Please try again."
+    "saveFailureMessage": "Unable to save the opportunity. Please try again.",
+    "eyebrow": "Founder workspace",
+    "createTitle": "Create opportunity",
+    "editTitle": "Edit opportunity",
+    "subtitle": "Build and review your opportunity using the existing publishing workflow.",
+    "loading": "Loading opportunity editor…",
+    "stepperLabel": "Opportunity creation steps",
+    "stepCount": "Step {current} of {total}",
+    "steps": {
+      "details": {
+        "title": "Basic information",
+        "short": "Story and classification",
+        "description": "Add the opportunity identity, story, category, stage, and tags."
+      },
+      "funding": {
+        "title": "Funding and terms",
+        "short": "Goal and investment model",
+        "description": "Configure funding limits and only the terms relevant to the selected model."
+      },
+      "media": {
+        "title": "Media and documents",
+        "short": "Public and private files",
+        "description": "Add cover media, gallery assets, videos, and opportunity documents."
+      },
+      "review": {
+        "title": "Final review",
+        "short": "Review and publish",
+        "description": "Review the values that will be sent before saving the draft or publishing."
+      }
+    },
+    "fields": {
+      "title": "Opportunity title",
+      "shortDescription": "Short description",
+      "story": "Full story",
+      "category": "Category",
+      "projectStage": "Opportunity stage",
+      "tags": "Tags",
+      "investmentModel": "Investment model",
+      "fundingGoal": "Funding goal",
+      "fundingTarget": "Funding target",
+      "minimumInvestment": "Minimum investment",
+      "maximumInvestment": "Maximum investment",
+      "expectedDuration": "Expected duration (months)",
+      "currency": "Currency",
+      "sharePrice": "Share price",
+      "totalShares": "Total shares",
+      "offeredShares": "Offered shares",
+      "equityOffered": "Equity offered",
+      "interestRate": "Interest rate",
+      "repaymentFrequency": "Repayment frequency",
+      "finalRepaymentDate": "Final repayment date",
+      "profitSharePercentage": "Profit share percentage",
+      "payoutFrequency": "Payout frequency",
+      "contractStartDate": "Contract start date",
+      "contractEndDate": "Contract end date",
+      "exitTerms": "Exit terms",
+      "useOfFunds": "Use of funds",
+      "risks": "Risks",
+      "exitStrategy": "Exit strategy",
+      "coverImageUrl": "Cover image URL"
+    },
+    "placeholders": {
+      "title": "Enter a concise opportunity title",
+      "shortDescription": "Summarize the opportunity",
+      "story": "Tell investors the full opportunity story",
+      "category": "Select a category",
+      "projectStage": "Enter the current stage",
+      "investmentModel": "Select an investment model",
+      "fundingGoal": "Select a funding goal",
+      "fundingTarget": "0.00",
+      "minimumInvestment": "0.00",
+      "maximumInvestment": "Optional",
+      "expectedDurationMonths": "Number of months",
+      "repaymentFrequency": "Enter repayment frequency",
+      "selectPayoutFrequency": "Select payout frequency",
+      "exitTerms": "Describe the profit-sharing exit terms",
+      "coverImageUrl": "https://"
+    },
+    "currencies": {
+      "USD": "US Dollar",
+      "EUR": "Euro",
+      "SAR": "Saudi Riyal",
+      "EGP": "Egyptian Pound"
+    },
+    "models": {
+      "equity": "Equity",
+      "loan": "Loan",
+      "profitSharing": "Profit Sharing",
+      "equityTerms": "Equity terms",
+      "loanTerms": "Loan terms",
+      "profitSharingTerms": "Profit Sharing terms"
+    },
+    "projectStages": {
+      "1": "Idea",
+      "2": "MVP",
+      "3": "Startup",
+      "4": "Scaling",
+      "5": "Established"
+    },
+    "lookups": {
+      "categories": {
+        "1": "Technology",
+        "2": "Food & Beverage",
+        "3": "Healthcare",
+        "4": "Education",
+        "5": "Retail",
+        "6": "Manufacturing",
+        "7": "Agriculture",
+        "8": "Real Estate",
+        "9": "Tourism",
+        "10": "Transportation",
+        "11": "Energy",
+        "12": "Fashion",
+        "13": "Media",
+        "14": "Gaming",
+        "15": "FinTech",
+        "16": "AI"
+      },
+      "tags": {
+        "1": "AI",
+        "2": "Export",
+        "3": "Green",
+        "4": "Women-led",
+        "5": "Franchise",
+        "6": "B2B",
+        "7": "B2C",
+        "8": "SaaS",
+        "9": "Mobile App",
+        "10": "Local Business",
+        "11": "High Growth",
+        "12": "Low Entry Ticket"
+      },
+      "fundingGoals": {
+        "1": "Launch New Business",
+        "2": "Expand Existing Business",
+        "3": "Buy Equipment",
+        "4": "Marketing",
+        "5": "Working Capital",
+        "6": "Open New Branch",
+        "7": "Research & Development",
+        "8": "Inventory Purchase",
+        "9": "Hiring",
+        "10": "Acquisition"
+      }
+    },
+    "payoutFrequencies": {
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "semiAnnually": "Semi-annually",
+      "annually": "Annually",
+      "atMaturity": "At maturity",
+      "unknown": "Not available"
+    },
+    "help": {
+      "profitSharing": "Provide a payout frequency and either an expected duration or valid contract dates.",
+      "equityPercentage": "Calculated automatically from offered shares and total shares."
+    },
+    "advanced": {
+      "title": "Advanced optional details",
+      "description": "Add use-of-funds, risk, and exit strategy details when available."
+    },
+    "media": {
+      "types": {
+        "cover": "Cover image",
+        "gallery": "Gallery images",
+        "video": "Videos",
+        "publicDocument": "Public documents",
+        "privateDocument": "Private documents",
+        "document": "Document"
+      },
+      "publicHelp": "Public: visible before an investor joins.",
+      "privateHelp": "Private: visible only after approved participation.",
+      "pending": "Pending files",
+      "pendingHelp": "The draft is saved before FileStore metadata is attached.",
+      "uploaded": "Uploaded files",
+      "unknownType": "Unknown file type",
+      "existingMedia": "Existing media",
+      "existingDocuments": "Existing documents",
+      "existingTimeline": "Existing timeline entries",
+      "unnamedMedia": "Unnamed media",
+      "unnamedDocument": "Unnamed document",
+      "untitledEvent": "Untitled timeline entry"
+    },
+    "actions": {
+      "back": "Back",
+      "next": "Next",
+      "saveDraft": "Save draft",
+      "savingDraft": "Saving draft…",
+      "chooseFiles": "Choose files",
+      "saveAndUpload": "Save draft and upload",
+      "uploading": "Uploading…",
+      "remove": "Remove"
+    },
+    "summary": {
+      "eyebrow": "Live summary",
+      "title": "Opportunity snapshot",
+      "help": "This summary updates from the values entered in the wizard."
+    },
+    "review": {
+      "opportunity": "Opportunity",
+      "untitled": "Untitled opportunity",
+      "notAvailable": "Not available",
+      "details": "Funding summary",
+      "modelTerms": "Investment terms",
+      "additional": "Additional information"
+    },
+    "empty": {
+      "noTags": "No tags are currently available."
+    },
+    "validation": {
+      "titleRequired": "Title is required.",
+      "shortDescriptionRequired": "Short description must contain between 20 and 300 characters.",
+      "projectStageRequired": "Opportunity stage is required.",
+      "investmentModelRequired": "Investment model is required.",
+      "fundingTargetPositive": "Funding target must be greater than zero.",
+      "minimumInvestmentPositive": "Minimum investment must be greater than zero.",
+      "equityRequired": "Equity offered percentage is required.",
+      "equityConfigurationRequired": "Currency, share price, total shares, and offered shares are required.",
+      "minimumShareAligned": "Minimum investment must be divisible by the share price.",
+      "loanDurationRequired": "Loan duration is required.",
+      "interestRateRequired": "Interest rate is required.",
+      "repaymentFrequencyRequired": "Repayment frequency is required.",
+      "finalRepaymentDateRequired": "Final repayment date is required.",
+      "finalRepaymentDateFuture": "Final repayment date must be in the future.",
+      "profitShareRequired": "Profit share percentage is required.",
+      "payoutFrequencyRequired": "Payout frequency is required.",
+      "durationOrDatesRequired": "Enter an expected duration or both contract dates.",
+      "endAfterStart": "Contract end date must be after the start date.",
+      "useOfFundsRequired": "Use of funds must contain between 30 and 2,000 characters.",
+      "categoryRequired": "Select a category before publishing.",
+      "fundingGoalRequired": "Select a funding goal before publishing.",
+      "reviewInvalid": "Complete the required fields before publishing."
+    },
+    "errors": {
+      "load": "Unable to load the opportunity editor."
+    },
+    "upload": {
+      "successTitle": "Files uploaded",
+      "successMessage": "Files were uploaded and attached to the opportunity.",
+      "failureTitle": "Upload failed",
+      "failureMessage": "Unable to upload the selected files."
+    }
   },
   "contracts": {
     "title": "Contracts & Agreements",
@@ -1558,6 +2164,18 @@
   "opportunityRoom": {
     "title": "Project Room",
     "loading": "Loading project room...",
+    "statuses": {
+      "draft": "Draft",
+      "underReview": "Under review",
+      "rejected": "Rejected",
+      "approved": "Approved",
+      "published": "Published",
+      "funding": "Funding",
+      "fullyFunded": "Fully funded",
+      "inProgress": "In progress",
+      "completed": "Completed",
+      "archived": "Archived"
+    },
     "role": {
       "founder": "Founder",
       "approvedInvestor": "Approved Investor",
@@ -1583,7 +2201,7 @@
     },
     "stats": {
       "participation": "Participation",
-      "permissions": "Private files: {privateFiles} \u00B7 Downloads: {downloads}",
+      "permissions": "Private files: {privateFiles} · Downloads: {downloads}",
       "termsSnapshot": "Your Terms Snapshot",
       "investmentModel": "{model} model",
       "minimumParticipation": "Minimum participation",

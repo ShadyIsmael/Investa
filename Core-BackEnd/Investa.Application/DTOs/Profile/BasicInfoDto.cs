@@ -17,6 +17,9 @@ public class BasicInfoDto
     public string? CompanyName { get; set; }
     public string? Bio { get; set; }
     public string? AvatarUrl { get; set; }
+    public string? JobTitle { get; set; }
+    public string? WebsiteUrl { get; set; }
+    public string? VerificationStatus { get; set; }
     public decimal Score { get; set; }
     public decimal Credit { get; set; }
 }

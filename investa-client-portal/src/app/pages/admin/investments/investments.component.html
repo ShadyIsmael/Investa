@@ -212,7 +212,7 @@
 
           <!-- ── Header: Founder + Quick Actions ── -->
           <div class="flex items-start justify-between px-5 pt-4 pb-3">
-            <div class="flex items-center gap-3 flex-1 min-w-0">
+            <button type="button" class="flex items-center gap-3 flex-1 min-w-0 text-start" (click)="openFounderProfile(investment.founderId, $event)" [disabled]="!investment.founderId">
               <!-- Avatar with live-dot for Active -->
               <div class="relative flex-shrink-0">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-md overflow-hidden">
@@ -233,7 +233,7 @@
                 <p class="text-sm font-semibold text-white truncate leading-tight">{{ investment.founderDisplay || 'Unknown' }}</p>
                 <p class="text-xs text-gray-400 truncate mt-0.5">{{ investment.businessRole || investment.businessCategoryName || '&nbsp;' }}</p>
               </div>
-            </div>
+            </button>
             <!-- Micro-actions: favorite + share -->
             <div class="flex items-center gap-0.5 flex-shrink-0 ms-2 -mt-0.5">
               <button (click)="toggleFavorite(investment); $event.stopPropagation()"

@@ -9,11 +9,6 @@ import { SupportRequests } from '@/features/support/SupportRequests';
 import SupportAdmin from '@/features/support/SupportAdmin';
 import SupportDashboard from '@/features/support/SupportDashboard';
 import ChatView from '@/features/support/ChatView';
-import { ChartOfAccounts } from '@/features/finance/ChartOfAccounts';
-import { InvoicingBilling } from '@/features/finance/InvoicingBilling';
-import { JournalEntries } from '@/features/finance/JournalEntries';
-import { CashFlowManagement } from '@/features/finance/CashFlowManagement';
-import { BankReconciliation } from '@/features/finance/BankReconciliation';
 import { CreditSetup } from '@/features/finance/CreditSetup';
 import { ApiTester } from '@/components/common/ApiTester';
 import SystemConfiguration from '@/features/config/SystemConfiguration';
@@ -35,6 +30,18 @@ import PricingManagement from '@/features/operations/PricingManagement';
 import NotificationBroadcasts from '@/features/operations/NotificationBroadcasts';
 import OpportunityLookupPage from '@/features/operations/OpportunityLookupPage';
 import ModerationReports from '@/features/operations/ModerationReports';
+import { CompanyFinanceShell } from '@/features/company-finance/CompanyFinanceShell';
+import { CompanyFinancePage } from '@/features/company-finance/CompanyFinancePage';
+import { FinanceAccountsPage } from '@/features/company-finance/FinanceAccountsPage';
+import { FinanceSuppliersPage } from '@/features/company-finance/FinanceSuppliersPage';
+import { FinanceCategoriesSettingsPage } from '@/features/company-finance/FinanceCategoriesSettingsPage';
+import { FinanceMoneyInPage } from '@/features/company-finance/FinanceMoneyInPage';
+import { FinanceMoneyInCreatePage } from '@/features/company-finance/FinanceMoneyInCreatePage';
+import { FinanceMoneyOutPage } from '@/features/company-finance/FinanceMoneyOutPage';
+import { FinanceMoneyOutCreatePage } from '@/features/company-finance/FinanceMoneyOutCreatePage';
+import { FinanceOverviewPage } from '@/features/company-finance/FinanceOverviewPage';
+import { FinanceReviewQueuePage } from '@/features/company-finance/FinanceReviewQueuePage';
+import { FinanceReconciliationPage } from '@/features/company-finance/FinanceReconciliationPage';
 
 const ComingSoon = ({ title, subtitle }: { title: string; subtitle: string }) => {
     const navigate = useNavigate();
@@ -192,14 +199,42 @@ const AppContent: React.FC = () => {
                                     <Route path="/operations/pricing" element={<PricingManagement />} />
                                     <Route path="/operations/notifications" element={<NotificationBroadcasts />} />
                                     <Route path="/operations/reports" element={<ModerationReports />} />
+                                    <Route path="/company-finance" element={<CompanyFinanceShell />}>
+                                        <Route index element={<FinanceOverviewPage />} />
+                                        <Route path="overview" element={<FinanceOverviewPage />} />
+                                        <Route path="money-in" element={<FinanceMoneyInPage />} />
+                                        <Route path="money-in/new" element={<FinanceMoneyInCreatePage />} />
+                                        <Route path="money-in/:transactionId/edit" element={<FinanceMoneyInCreatePage />} />
+                                        <Route path="money-out" element={<FinanceMoneyOutPage />} />
+                                        <Route path="money-out/new" element={<FinanceMoneyOutCreatePage />} />
+                                        <Route path="money-out/:transactionId/edit" element={<FinanceMoneyOutCreatePage />} />
+                                        <Route path="founder-payments" element={<CompanyFinancePage page="founderPayments" />} />
+                                        <Route path="accounts" element={<FinanceAccountsPage />} />
+                                        <Route path="suppliers" element={<FinanceSuppliersPage />} />
+                                        <Route path="subscriptions" element={<CompanyFinancePage page="subscriptions" />} />
+                                        <Route path="assets" element={<CompanyFinancePage page="assets" />} />
+                                        <Route path="documents" element={<CompanyFinancePage page="documents" />} />
+                                        <Route path="reports" element={<CompanyFinancePage page="reports" />} />
+                                        <Route path="reconciliations" element={<FinanceReconciliationPage />} />
+                                        <Route path="review-queue" element={<FinanceReviewQueuePage />} />
+                                        <Route path="settings" element={<FinanceCategoriesSettingsPage />} />
+                                    </Route>
+                                    <Route path="/admin/company-finance" element={<CompanyFinanceShell />}>
+                                        <Route path="overview" element={<FinanceOverviewPage />} />
+                                        <Route path="money-in" element={<FinanceMoneyInPage />} />
+                                        <Route path="money-in/new" element={<FinanceMoneyInCreatePage />} />
+                                        <Route path="money-in/:transactionId/edit" element={<FinanceMoneyInCreatePage />} />
+                                        <Route path="money-out" element={<FinanceMoneyOutPage />} />
+                                        <Route path="money-out/new" element={<FinanceMoneyOutCreatePage />} />
+                                        <Route path="money-out/:transactionId/edit" element={<FinanceMoneyOutCreatePage />} />
+                                        <Route path="reconciliations" element={<FinanceReconciliationPage />} />
+                                        <Route path="review-queue" element={<FinanceReviewQueuePage />} />
+                                    </Route>
                                     <Route path="/reference-data/opportunity-categories" element={<OpportunityLookupPage kind="categories" title="Opportunity Categories" description="Read-only visibility into configured opportunity categories." />} />
                                     <Route path="/reference-data/opportunity-tags" element={<OpportunityLookupPage kind="tags" title="Opportunity Tags" description="Read-only visibility into configured opportunity tags." showSortOrder={false} />} />
                                     <Route path="/reference-data/funding-goals" element={<OpportunityLookupPage kind="funding-goals" title="Funding Goals" description="Read-only visibility into configured funding goals." />} />
-                                    <Route path="/coa" element={<ChartOfAccounts />} />
-                                    <Route path="/billing" element={<InvoicingBilling />} />
-                                    <Route path="/journals" element={<JournalEntries />} />
-                                    <Route path="/cashflow" element={<CashFlowManagement />} />
-                                    <Route path="/bankrec" element={<BankReconciliation />} />
+                                    <Route path="/finance/*" element={<Navigate to="/company-finance" replace />} />
+                                    <Route path="/reporting/*" element={<Navigate to="/company-finance/reports" replace />} />
                                     <Route path="/profile" element={<MyProfile user={currentUser} onProfileUpdated={handleProfileUpdated} />} />
                                     <Route path="/credit" element={<CreditSetup />} />
                                     <Route path="/config/credit" element={<CreditSetup />} />
