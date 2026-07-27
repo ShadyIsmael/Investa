@@ -43,6 +43,9 @@ class FCMService {
   Stream<String> get onTokenRefresh => _tokenStreamController.stream;
 
   String? _currentToken;
+  
+  /// Track if FCM has been initialized
+  bool _isInitialized = false;
 
   FCMService({
     required this.logger,
@@ -50,8 +53,17 @@ class FCMService {
     required this.networkConfig,
   });
 
+  /// CRITICAL FIX: Better initialization tracking
+  bool get isInitialized => _isInitialized;
+
   /// Initialize FCM and local notifications
   Future<void> initialize() async {
+    // Prevent double initialization
+    if (_isInitialized) {
+      logger.info('[FCM]', 'FCM already initialized, skipping...');
+      return;
+    }
+
     try {
       logger.info('[FCM]', 'Initializing Firebase Cloud Messaging...');
 
@@ -70,6 +82,7 @@ class FCMService {
         logger.info('[FCM]', 'Provisional notification permission granted');
       } else {
         logger.warning('[FCM]', 'Notification permission denied');
+        _isInitialized = true;
         return;
       }
 
@@ -99,9 +112,12 @@ class FCMService {
         _handleMessageOpenedApp(initialMessage);
       }
 
+      _isInitialized = true;
       logger.info('[FCM]', 'FCM initialization completed successfully');
     } catch (e, stackTrace) {
       logger.error('[FCM]', 'Failed to initialize FCM: $e', stackTrace);
+      _isInitialized = false;
+      rethrow;
     }
   }
 
@@ -314,6 +330,10 @@ class FCMService {
 
   /// Manually refresh token
   Future<void> refreshToken() async {
+    if (!_isInitialized) {
+      logger.warning('[FCM]', 'FCM not initialized, cannot refresh token');
+      return;
+    }
     await _getAndSyncToken();
   }
 
@@ -337,9 +357,11 @@ class FCMService {
     }
   }
 
-  /// Dispose resources
+  /// CRITICAL FIX: Dispose resources to prevent memory leaks
   void dispose() {
+    logger.info('[FCM]', 'Disposing FCM service resources');
     _messageStreamController.close();
     _tokenStreamController.close();
+    _isInitialized = false;
   }
 }
