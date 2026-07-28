@@ -11,10 +11,20 @@ public class CreditPlan
     [Required, MaxLength(100)]
     public string Name { get; set; } = string.Empty;
 
+    [Required, MaxLength(50)] public string Code { get; set; } = string.Empty;
+    [Required, MaxLength(100)] public string NameAr { get; set; } = string.Empty;
+
     public int Credits { get; set; }
 
     [Column(TypeName = "decimal(18,2)")]
     public decimal Price { get; set; }
+
+    [Required, MaxLength(3)] public string Currency { get; set; } = "EGP";
+    public int BonusCredits { get; set; }
+    public DateTime? ActiveFrom { get; set; }
+    public DateTime? ActiveUntil { get; set; }
+    public int DisplayOrder { get; set; }
+    public bool IsFeatured { get; set; }
 
     /// <summary>monthly | yearly | one-time</summary>
     [MaxLength(20)]

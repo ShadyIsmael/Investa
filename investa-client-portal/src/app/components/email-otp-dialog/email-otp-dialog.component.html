@@ -1,0 +1,20 @@
+<section class="otp-dialog" [dir]="ar ? 'rtl' : 'ltr'">
+  <h2 mat-dialog-title>{{ ar ? 'تأكيد البريد الإلكتروني' : 'Verify your email' }}</h2>
+  <mat-dialog-content>
+    <p>{{ ar ? 'أرسلنا رمز تأكيد مكونًا من 6 أرقام إلى ' : 'We sent a 6-digit verification code to ' }}<strong>{{ maskedEmail }}</strong>.</p>
+    <input #otpInput autofocus inputmode="numeric" autocomplete="one-time-code" maxlength="6"
+      [value]="otp" (input)="onInput($any($event.target).value)" (paste)="$event.stopPropagation()"
+      [attr.aria-label]="ar ? 'رمز التأكيد' : 'Verification code'">
+    @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+    @if (seconds() > 0) {
+      <p class="timer">{{ ar ? 'يمكنك إعادة الإرسال خلال ' : 'Resend available in ' }}{{ seconds() }}{{ ar ? ' ثانية' : 's' }}</p>
+    } @else {
+      <button type="button" class="link" (click)="resend()" [disabled]="submitting()">{{ ar ? 'إعادة إرسال الرمز' : 'Resend code' }}</button>
+    }
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button type="button" class="verify" (click)="verify()" [disabled]="otp.length !== 6 || submitting()">
+      {{ ar ? 'تأكيد' : 'Verify' }}
+    </button>
+  </mat-dialog-actions>
+</section>

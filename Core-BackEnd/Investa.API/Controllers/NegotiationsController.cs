@@ -20,7 +20,7 @@ public class NegotiationsController : BaseApiController
 
     [HttpGet("opportunities/{id:int}/viewer-state")]
     [ProducesResponseType(typeof(ApiResponse<OpportunityViewerStateDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetOpportunityViewerState(int id, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetOpportunityViewerState(int id, [FromQuery] Guid? conversationId, CancellationToken cancellationToken)
     {
         var userId = ResolveUserIdFromClaims();
         if (userId == null)
@@ -28,7 +28,7 @@ public class NegotiationsController : BaseApiController
 
         try
         {
-            var state = await _negotiationService.GetOpportunityViewerStateAsync(userId.Value, id, cancellationToken);
+            var state = await _negotiationService.GetOpportunityViewerStateAsync(userId.Value, id, conversationId, cancellationToken);
             return SuccessResponse(state);
         }
         catch (BusinessValidationException ex)
@@ -147,6 +147,24 @@ public class NegotiationsController : BaseApiController
         {
             var message = await _negotiationService.SendMessageAsync(userId.Value, id, request, cancellationToken);
             return SuccessResponse(message, "Message sent successfully", 201);
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
+    [HttpPatch("conversations/{id:guid}/messages/read")]
+    public async Task<IActionResult> MarkMessagesRead(Guid id, CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null)
+            return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            var updatedCount = await _negotiationService.MarkMessagesReadAsync(userId.Value, id, cancellationToken);
+            return SuccessResponse(new { updatedCount }, "Conversation messages marked as read");
         }
         catch (BusinessValidationException ex)
         {
@@ -337,7 +355,7 @@ public class NegotiationsController : BaseApiController
     }
 
     [HttpPost("conversations/{id:guid}/offers/{offerId:int}/accept")]
-    [ProducesResponseType(typeof(ApiResponse<NegotiationOfferDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<AcceptOfferResultDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> AcceptOffer(Guid id, int offerId, CancellationToken cancellationToken)
     {
         var userId = ResolveUserIdFromClaims();
@@ -346,8 +364,8 @@ public class NegotiationsController : BaseApiController
 
         try
         {
-            var offer = await _negotiationService.AcceptOfferAsync(userId.Value, id, offerId, cancellationToken);
-            return SuccessResponse(offer, "Negotiation offer accepted successfully");
+            var result = await _negotiationService.AcceptOfferAsync(userId.Value, id, offerId, cancellationToken);
+            return SuccessResponse(result, "Negotiation offer accepted successfully");
         }
         catch (BusinessValidationException ex)
         {

@@ -98,31 +98,39 @@
     "errorGeneric": "Login failed",
     "invalidCredentials": "Invalid phone number or password"
   },
+
+  "signupOtp": {
+    "title": "Verify Your Phone",
+    "subtitle": "Enter the 6-digit verification code sent to your phone.",
+    "otpLabel": "Verification Code",
+    "otpPlaceholder": "Enter 6-digit code",
+    "verifyButton": "Verify & Create Account",
+    "verifying": "Verifying..."
+  },
   "signup": {
     "title": "Create your account",
-    "subtitle": "Sign up to access the Investa platform.",
+    "subtitle": "Sign up to access the FOPX One platform.",
+    "accountCreated": "Account created successfully. Please log in.",
     "mobileLabel": "Mobile Number",
     "mobilePlaceholder": "Enter your mobile number",
     "firstNameLabel": "First Name",
     "firstNamePlaceholder": "Enter your first name",
     "lastNameLabel": "Last Name",
     "lastNamePlaceholder": "Enter your last name",
-    "emailLabel": "Email",
-    "optional": "optional",
-    "emailPlaceholder": "Enter your email address",
     "passwordLabel": "Password",
     "passwordPlaceholder": "Create a secure password",
     "confirmPasswordLabel": "Confirm Password",
     "confirmPasswordPlaceholder": "Re-enter your password",
     "passwordMismatch": "Passwords do not match",
     "signUpButton": "Sign Up",
+    "signingUp": "Creating account...",
     "alreadyHaveAccount": "Already have an account?",
     "signIn": "Sign In"
   },
   "roleSelect": {
     "close": "Close",
     "title": "Choose Your Role",
-    "subtitle": "Select your path to get started with Investa. Are you here to find opportunities or to create them?",
+    "subtitle": "Select your path to get started with FOPX One. Are you here to find opportunities or to create them?",
     "investor": {
       "title": "Investor",
       "description": "I am looking to discover and fund promising new ventures.",
@@ -135,7 +143,7 @@
     }
   },
   "adminNav": {
-    "panel": "Investa Panel",
+    "panel": "FOPX One Panel",
     "dashboard": "Dashboard",
     "investments": "Discover Opportunities",
     "myParticipations": "My Participations",
@@ -179,7 +187,7 @@
   "uspPlaceholder": "ما الذي يجعل مشروعك فريدًا وأفضل من المنافسين؟",
   "about": {
     "title": "Building the Future of Investment, Together.",
-    "description": "Investa is more than a platform; it’s a curated ecosystem where innovation meets capital. We unite ambitious founders, savvy investors, and skilled co-founders in a trusted environment, making it easier than ever to discover, fund, and build the next generation of groundbreaking ventures.",
+    "description": "FOPX One is more than a platform; it’s a curated ecosystem where innovation meets capital. We unite ambitious founders, savvy investors, and skilled co-founders in a trusted environment, making it easier than ever to discover, fund, and build the next generation of groundbreaking ventures.",
     "pillars": {
       "discover": {
         "title": "Discover Vetted Opportunities",
@@ -207,7 +215,7 @@
     "secondaryCta": "List Your Project"
   },
   "features": {
-    "title": "Why Choose Investa?",
+    "title": "Why Choose FOPX One?",
     "subtitle": "Cutting-edge technology meets intuitive design.",
     "realTime": {
       "title": "Real-Time Market Data",
@@ -224,8 +232,8 @@
   },
   "testimonials": {
     "title": "What Our Users Say",
-    "subtitle": "Real stories from investors who trust Investa.",
-    "sarah": "Investa has completely transformed my approach to the markets. The AI insights are incredibly accurate and have saved me countless hours of research.",
+    "subtitle": "Real stories from investors who trust FOPX One.",
+    "sarah": "FOPX One has completely transformed my approach to the markets. The AI insights are incredibly accurate and have saved me countless hours of research.",
     "sarahName": "Sarah J.",
     "sarahTitle": "Day Trader",
     "michael": "As a long-term investor, the portfolio optimization tool is a game-changer. It helps me stay diversified and manage risk effectively. Highly recommended!",
@@ -246,7 +254,7 @@
     },
     "post2": {
       "title": "Our 2024 Tech Stack: Building a Resilient Platform",
-      "excerpt": "A deep dive into the infrastructure that powers Investa's real-time data processing and AI engines.",
+      "excerpt": "A deep dive into the infrastructure that powers FOPX One's real-time data processing and AI engines.",
       "category": "Technology"
     },
     "post3": {
@@ -320,7 +328,7 @@
       "terms": "Terms",
       "risk": "Risk Disclosure"
     },
-    "copyright": "Investa. All rights reserved."
+    "copyright": "FOPX One. All rights reserved."
   },
   "investments": {
     "title": "Discover Opportunities",
@@ -398,6 +406,7 @@
     "score": "Score",
     "share": "Share",
     "addToFavorites": "Add to Favorites",
+    "removeFromFavorites": "Remove from Favorites",
     "engage": "Engage",
     "noResultsTitle": "No opportunities found",
     "noResultsSubtitle": "No assets match the current filter. Try a different category or search term.",
@@ -503,7 +512,9 @@
     "createInvestment": "Create Opportunity",
     "editProject": "Edit Opportunity",
     "viewPublicPage": "View Public Page",
-    "postUpdate": "Post Update",
+    "publicPageDraftHelper": "Publish this opportunity before opening its public page.",
+    "openProjectRoom": "Open Project Room",
+    "approvedInvestors": { "title": "Investors", "loading": "Loading approved investors", "emptyTitle": "No approved investors yet", "emptyHelper": "Approved investors will appear here.", "showMore": "Show {{count}} more investors" },
     "recentActivity": "Recent Activity",
     "selectProjectTitle": "Select an Opportunity",
     "selectProjectSubtitle": "Choose which opportunity you want to view.",
@@ -529,16 +540,33 @@
     "unavailable": "Unavailable",
     "creditUnit": "CREDIT",
     "opportunityFallback": "Opportunity",
+    "partnerFallback": "FOPX One Partner",
+    "cashFlow": { "eyebrow": "Approved participations", "title": "Expected Cash Flow", "loading": "Loading expected cash flow...", "thisMonth": "Expected income this month", "nextPayment": "Next scheduled payment", "nextTwelveMonths": "Expected next 12 months", "totalInterest": "Total expected return", "received": "Actual received", "remainingPrincipal": "Scheduled capital return", "overdue": "Actual overdue amount", "expectedInterest": "Expected return", "principal": "Scheduled capital return", "actualReceived": "Actual received", "actualUnavailable": "Actual payment tracking is not yet available. Amounts shown here are expected or scheduled values, not payment transactions.", "actualUnavailableShort": "Not available", "chartLabel": "Monthly expected returns and scheduled capital repayments", "empty": "Expected payments will appear after a Loan or Profit Sharing participation is approved.", "unavailable": "Expected cash-flow data is currently unavailable." },
+    "welcomeBack": "Welcome back",
+    "unreadNotifications": "Unread notifications",
+    "growth": {
+      "eyebrow": "Platform progress", "title": "Your Growth on FOPX One",
+      "approvedValue": "Approved Participation Value",
+      "approvedHelper": "The sum of approved participation requests. This is not realized profit or current portfolio value.",
+      "chartLabel": "Cumulative approved participation value over time",
+      "emptyTitle": "Growth history is not available yet", "emptyHelper": "Your growth will appear here after your first approved participation."
+    },
+    "beforeNow": { "title": "When you joined → Now", "joined": "When you joined", "now": "Now", "missingBaseline": "A historical reputation baseline is not provided by the current API." },
+    "nextAchievement": { "title": "Next Achievement", "profile": "Complete your profile", "remaining": "remaining", "continue": "Continue profile" },
     "performance": {
       "eyebrow": "Approved participations only",
       "title": "Investment Performance",
-      "totalInvested": "Total Invested",
-      "currentValue": "Current Value",
+      "totalInvested": "Total Approved Participation",
+      "currentValue": "Portfolio Fair Value",
       "realizedEarnings": "Realized Earnings",
-      "expectedEarnings": "Expected Earnings",
+      "expectedEarnings": "Expected Net Return",
       "totalReturn": "Total Return",
       "returnRate": "Return Rate",
-      "helper": "Totals use approved participation requests only. Current value and realized earnings appear when backend valuation or payout data is available."
+      "helper": "Totals use approved participation requests only. Current value and realized earnings appear when backend valuation or payout data is available.",
+      "totalInvestedHint": "Total value of all your approved participation requests across all investment models",
+      "expectedEarningsHint": "Projected net profit based on the terms of your approved participations",
+      "currentValueHint": "Estimated fair market value of your portfolio — available when portfolio valuation data is provided",
+      "realizedEarningsHint": "Actual cash profits already received from completed participation payouts"
     },
     "wallet": {
       "eyebrow": "Platform wallet",
@@ -591,7 +619,8 @@
       "locked": "Locked",
       "teaser": "Unlock richer portfolio analytics and insight previews. Recommendations stay hidden until your subscription is active.",
       "cta": "Manage subscription",
-      "subscribedHelper": "Premium insights are available for subscribed investors."
+      "subscribedHelper": "Premium insights are available for subscribed investors.",
+      "unavailable": "Subscription entitlement is unavailable because the client API does not expose plan status."
     },
     "activity": {
       "participationCompleted": "Participation completed",
@@ -607,6 +636,52 @@
       "emptyTitle": "No favorites yet",
       "emptyHelper": "Save opportunities you want to revisit and they will appear here.",
       "emptyCta": "Explore Opportunities"
+    },
+    "createdOn": "Created on",
+    "investorsAndEngagements": "Investors & Engagements",
+    "latestInvestor": "Latest investor",
+    "manageRequests": "Manage Requests",
+    "noRecentActivity": "No recent activity",
+    "pendingConversations": "Pending conversations",
+    "pendingParticipations": "Pending participations",
+    "projectExecution": "Project Execution",
+    "recentProjectActivity": "Recent Project Activity",
+    "milestonesProgress": "Progress",
+    "overdue": "Overdue",
+    "nextMilestone": "Next Milestone",
+    "latestDocument": "Latest Document",
+    "latestUpdate": "Latest Update",
+    "interestRate": "Interest Rate",
+    "repaymentFrequency": "Repayment Frequency",
+    "finalRepaymentDate": "Final Repayment Date",
+    "paymentsSchedule": "Payments Schedule",
+    "approvedContributions": "Approved Contributions by Participation Model",
+    "projectInvestmentModel": "Project model",
+    "nextPaymentDue": "Next Payment Due",
+    "noPayments": "No payment data",
+    "loading": "Loading...",
+    "errors": {
+      "approvedInvestors": "Approved investors could not be loaded. Please retry.",
+      "projectRoom": "Project execution data could not be loaded. Please retry."
+    },
+    "enums": {
+      "status": {
+        "published": "Published",
+        "draft": "Draft",
+        "closed": "Closed"
+      },
+      "investmentModel": {
+        "loans": "Loan Investment",
+        "loaninvestment": "Loan Investment",
+        "equity": "Equity Investment",
+        "profitsharing": "Profit Sharing"
+      },
+      "frequency": {
+        "monthly": "Monthly",
+        "quarterly": "Quarterly",
+        "semiannual": "Semi-Annual",
+        "annual": "Annual"
+      }
     }
   },
   "chat": {
@@ -1022,6 +1097,42 @@
     "successTitle": "Purchase Successful!",
     "successMessage": "Credits have been added to your account"
   },
+  "errors": {
+    "toastTitle": "Error",
+    "unknown": "An unexpected error occurred. Please try again.",
+    "validationSummary": "Please fix the highlighted fields and try again.",
+    "unauthorized": "Your session has expired. Please log in again.",
+    "forbidden": "You do not have permission to perform this action.",
+    "notFound": "The requested resource was not found.",
+    "conflict": "This action conflicts with the current state. Please refresh and try again.",
+    "businessRule": "This action could not be completed due to a business rule.",
+    "serverError": "A server error occurred. Please try again later.",
+    "timeout": "The request timed out. Please check your connection and try again.",
+    "offline": "You appear to be offline. Please check your internet connection.",
+    "required": "{field} is required.",
+    "minLength": "{field} must be at least {min} characters.",
+    "maxLength": "{field} must be at most {max} characters.",
+    "invalidFormat": "{field} has an invalid format.",
+    "invalidEmail": "Please enter a valid email address.",
+    "invalidPhone": "Please enter a valid phone number.",
+    "invalidOtp": "The verification code you entered is invalid or expired.",
+    "duplicate": "{field} already exists."
+  },
+  "fields": {
+    "phoneNumber": "Phone Number",
+    "password": "Password",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "email": "Email",
+    "otpCode": "Verification Code",
+    "verificationSessionId": "Verification Session",
+    "shortDescription": "Short Description",
+    "longDescription": "Description",
+    "targetAmount": "Target Amount",
+    "minimumInvestment": "Minimum Investment",
+    "companyName": "Company Name",
+    "businessCategory": "Business Category"
+  },
   "apiSwitcher": {
     "apiLabel": "API:",
     "change": "Change",
@@ -1042,7 +1153,7 @@
     "navigationLabel": "Settings sections",
     "sections": {
       "appearance": {
-        "description": "Choose how Investa looks across your account."
+        "description": "Choose how FOPX One looks across your account."
       },
       "localization": {
         "description": "Set your interface language and preferred display currency."
@@ -1269,7 +1380,9 @@
     },
     "fallbacks": {
       "opportunity": "Opportunity",
-      "participant": "Participant"
+      "participant": "Participant",
+      "investor": "Investor",
+      "founder": "Founder"
     },
     "filters": {
       "status": "Status",
@@ -1303,6 +1416,7 @@
     }
   },
   "investmentPreview": {
+    "cashFlow": { "eyebrow": "Approved Loan participation", "title": "Expected Payment Schedule", "loading": "Loading expected payment schedule...", "error": "The expected payment schedule is currently unavailable.", "approvedAmount": "Approved amount", "annualRate": "Annual interest rate", "duration": "Duration", "months": "months", "frequency": "Repayment frequency", "principalRule": "Scheduled principal repayment", "remainingPrincipal": "Scheduled remaining principal", "received": "Actual received", "monthlyAverage": "Average expected monthly income", "disclaimer": "Average expected monthly income is informational. Payments follow the agreed schedule and may not occur monthly.", "actualUnavailable": "Actual payment tracking and transaction history are not yet available. No payment status is inferred from unavailable data.", "actualUnavailableShort": "Not available", "rowsPerPage": "Rows per page", "showing": "Showing", "of": "of", "previous": "Previous page", "next": "Next page", "dueDate": "Scheduled due date", "interest": "Expected interest", "principal": "Scheduled principal", "expectedTotal": "Expected total payment", "actualPaid": "Actual paid", "statusLabel": "Schedule status", "status": { "Upcoming": "Upcoming", "Due": "Due", "Paid": "Paid", "PartiallyPaid": "Partially paid", "Overdue": "Overdue", "Cancelled": "Cancelled" }, "frequencyValue": { "Monthly": "Monthly", "Quarterly": "Quarterly", "SemiAnnual": "Semiannual", "Annual": "Annual" }, "principalValue": { "AtMaturity": "At maturity" } },
     "backButton": "Back to Opportunities",
     "investmentType": "Investment Model",
     "industry": "Industry",
@@ -1450,6 +1564,15 @@
       "overview": "Overview",
       "investmentTerms": "Investment Terms",
       "updates": "Updates",
+      "projectActivity": "Project Activity",
+      "verifiedActivity": "Verified project activity",
+      "viewMore": "View More",
+      "loading": "Loading...",
+      "previous": "Previous",
+      "next": "Next",
+      "pageOf": "Page {{current}} of {{total}}",
+      "noProjectActivity": "No project updates yet",
+      "projectActivityFallback": "Project activity",
       "documents": "Documents",
       "media": "Media",
       "opportunityOverview": "Opportunity overview",
@@ -1504,7 +1627,7 @@
   },
   "userProfile": {
     "loading": "Loading profile...",
-    "member": "Investa member",
+    "member": "FOPX One member",
     "editProfile": "Edit profile",
     "ownerOnly": "Visible only to you",
     "uploading": "Uploading...",
@@ -1699,7 +1822,6 @@
       "participationSummary": "Participation summary"
     },
     "validation": {
-      "unsupportedModel": "Participation is not available for this investment model yet.",
       "sharesGreaterThanZero": "Number of shares must be greater than zero.",
       "minimumShares": "Minimum participation is {count} shares.",
       "maximumShares": "You can select up to {count} shares.",
@@ -1712,7 +1834,8 @@
     },
     "errors": {
       "loadFailed": "Unable to load participation form.",
-      "submitFailed": "Unable to submit participation request."
+      "submitFailed": "Unable to submit participation request.",
+      "invalidModel": "The opportunity returned an invalid investment model. Please refresh and try again."
     }
   },
   "common": {
@@ -1882,6 +2005,7 @@
       "minimumInvestment": "0.00",
       "maximumInvestment": "Optional",
       "expectedDurationMonths": "Number of months",
+      "currency": "Select a currency",
       "repaymentFrequency": "Enter repayment frequency",
       "selectPayoutFrequency": "Select payout frequency",
       "exitTerms": "Describe the profit-sharing exit terms",
@@ -1892,6 +2016,11 @@
       "EUR": "Euro",
       "SAR": "Saudi Riyal",
       "EGP": "Egyptian Pound"
+    },
+    "repaymentFrequencies": {
+      "Monthly": "Monthly",
+      "Quarterly": "Quarterly",
+      "Annual": "Annual"
     },
     "models": {
       "equity": "Equity",
@@ -2052,19 +2181,40 @@
       "failureMessage": "Unable to upload the selected files."
     }
   },
+  "projectActivity": {
+    "title": "Project Activity Timeline",
+    "subtitle": "Verified material activity generated automatically from completed platform actions.",
+    "empty": "No material project activity has been recorded yet.",
+    "verified": "Verified activity",
+    "actor": { "System": "System", "Founder": "Founder", "Admin": "Admin" },
+    "types": {
+      "ParticipationApproved": { "title": "Investor participation approved", "description": "An investor participation was approved." },
+      "FundingProgressReached": { "title": "Funding reached {progressPercent}%", "description": "The project reached a verified funding milestone." },
+      "ProjectStatusChanged": { "title": "Project status changed", "description": "Project status changed from {previousStatus} to {currentStatus}." },
+      "MilestoneCreated": { "title": "Milestone created", "description": "{milestoneTitle}: {milestoneDescription}" },
+      "MilestoneCompleted": { "title": "Milestone completed", "description": "{milestoneTitle}: {milestoneDescription}" },
+      "MilestoneDelayed": { "title": "Milestone delayed", "description": "{milestoneTitle}: {milestoneDescription}" },
+      "MilestoneUpdated": { "title": "Milestone updated", "description": "{milestoneTitle}: {milestoneDescription}" },
+      "InvestorDocumentPublished": { "title": "Investor document published", "description": "{documentName} is now available to authorized investors." },
+      "ContractActivated": { "title": "Investment contract activated", "description": "Contract version {versionNumber} was activated." },
+      "FundingCompleted": { "title": "Funding completed", "description": "The project reached its funding target." }
+    }
+  },
   "contracts": {
     "title": "Contracts & Agreements",
     "investmentAgreement": "Investment Agreement",
     "room": {
       "founderListHelper": "Founder view includes all authorized contracts for this Opportunity.",
-      "investorListHelper": "Investor view includes only contracts where you are a named party."
+      "investorListHelper": "Investor view includes only contracts where you are a named party.",
+      "contractsWithInvestor": "Contracts with this investor"
     },
     "actions": {
       "refresh": "Refresh",
       "preview": "Preview Contract",
       "downloadPdf": "Download PDF",
       "openVersion": "Open Version",
-      "print": "Print"
+      "print": "Print",
+      "email": "Email Contract"
     },
     "fields": {
       "investmentModel": "Investment Model",
@@ -2103,6 +2253,10 @@
     },
     "pdf": {
       "preparing": "Preparing official PDF..."
+    },
+    "email": {
+      "sending": "Emailing contract...",
+      "success": "Contract sent successfully. Please check your email."
     },
     "status": {
       "0": "Active",
@@ -2158,6 +2312,8 @@
       "accessDenied": "You do not have access to this contract.",
       "notFound": "Contract was not found.",
       "pdfGenerating": "The official PDF is still being generated. Please try again shortly.",
+      "emailNotVerified": "Please verify your email address before sending the contract.",
+      "emailFailed": "Unable to email the contract. Please try again.",
       "generic": "Unable to load contract information. Please try again."
     }
   },
@@ -2240,10 +2396,13 @@
       "timeline": "Timeline",
       "documents": "Documents",
       "media": "Media",
-      "updates": "Updates"
+      "updates": "Updates",
+      "contracts": "Contract",
+      "payments": "Payments"
     },
     "overview": {
       "title": "Project Overview",
+      "status": "Status",
       "useOfFunds": "Use of Funds",
       "expectedReturn": "Expected Return",
       "publicTerms": "Public Investment Terms"
@@ -2268,7 +2427,7 @@
     },
     "documents": {
       "title": "Documents",
-      "empty": "No documents uploaded yet.",
+      "empty": "No documents have been added yet.",
       "preview": "Preview",
       "download": "Download",
       "general": "General"
@@ -2303,7 +2462,7 @@
       },
       "addDocument": {
         "title": "Add Document",
-        "subtitle": "Uploads use Investa FileStore, then the document reference is attached to the Opportunity.",
+        "subtitle": "Uploads use FOPX One FileStore, then the document reference is attached to the Opportunity.",
         "titlePlaceholder": "Document title (optional)",
         "visibilityPrivate": "Private",
         "visibilityPublic": "Public",
@@ -2359,6 +2518,96 @@
     },
     "publicUpdate": {
       "empty": "No public update summary yet."
+    },
+    "stage": {
+      "idea": "Idea",
+      "mvp": "MVP",
+      "startup": "Startup",
+      "scaling": "Scaling",
+      "established": "Established"
+    },
+    "payments": {
+      "title": "Payments",
+      "subtitle": "Record off-platform payment declarations for approved investors",
+      "refresh": "Refresh",
+      "empty": {
+        "title": "No investors",
+        "helper": "No approved investors to show payment data for."
+      },
+      "totalPaid": "Total declared",
+      "totalOutstanding": "Outstanding",
+      "overdueAmount": "Overdue",
+      "nextDueDate": "Next due",
+      "unpaidInstallments": "Unpaid installments",
+      "investorPayments": "Investor payment detail",
+      "participation": "Participation",
+      "dueDate": "Due date",
+      "scheduled": "Scheduled",
+      "paid": "Declared",
+      "remaining": "Remaining",
+      "paymentDate": "Declaration date",
+      "reference": "Reference",
+      "expectedInterest": "Interest",
+      "expectedPrincipal": "Principal",
+      "expectedTotal": "Total",
+      "statusLabel": "Status",
+      "noSchedule": "This investment model does not generate a scheduled payment plan. Off-platform payment declarations are not applicable.",
+      "history": "Declaration History",
+      "reversed": "Reversed",
+      "reversalReason": "Reason",
+      "allocated": "Allocated to",
+      "installment": "Installment",
+      "noPayments": "No payment declarations recorded yet.",
+      "recordPayment": "Record Off-Platform Payment",
+      "confirmPayment": "Record Off-Platform Payment",
+      "recordPaymentModalTitle": "Record Off-Platform Payment",
+      "confirmPaymentModalTitle": "Record Off-Platform Payment",
+      "disclaimer": "This information is recorded by the Founder for tracking and transparency only. FOPX One does not collect, transfer, hold, or guarantee funds, and this declaration is not bank-issued proof of payment.",
+      "disclaimerShort": "Off-platform declaration only. Not bank-issued proof of payment.",
+      "amount": "Amount",
+      "notes": "Notes",
+      "cancel": "Cancel",
+      "submit": "Record Off-Platform Payment",
+      "confirm": "Record Off-Platform Payment",
+      "recordSuccess": "Off-platform payment declaration recorded.",
+      "confirmSuccess": "Off-platform payment declaration recorded.",
+      "remainingAmount": "Remaining amount",
+      "dueDate": "Due date",
+      "totalDue": "Total scheduled",
+      "alreadyConfirmed": "Previously declared",
+      "perInvestorConfirm": "Record Current Installment Payment",
+      "perInvestorConfirmHelper": "Record the earliest unpaid installment for this investor",
+      "maxAmountHelper": "Maximum is the remaining balance for this installment.",
+      "bulkConfirm": "Record This Month\u2019s Payment Declarations",
+      "bulkConfirmReview": "Review Monthly Payment Declarations",
+      "bulkConfirmInvestors": "Investors",
+      "bulkConfirmInstallments": "Installments",
+      "bulkConfirmTotal": "Total amount to declare",
+      "bulkConfirmDetail": "Declaration details",
+      "bulkConfirmSubmit": "Record Payment Declarations",
+      "bulkConfirmSuccess": "Monthly payment declarations recorded successfully.",
+      "bulkConfirmEmpty": "No unpaid installments due this month.",
+      "bulkConfirmEmptyHelper": "All installments for this month have been fully declared.",
+      "recordPaymentForSelected": "Record Off-Platform Payment",
+      "reverse": "Reverse",
+      "reversePaymentModalTitle": "Reverse Payment",
+      "reverseModalHelper": "This action will mark the payment as reversed. The allocated amounts will no longer count toward the installment totals.",
+      "reversalReasonLabel": "Reversal Reason",
+      "reverseSubmit": "Reverse",
+      "reverseSuccess": "Payment reversed successfully.",
+      "selectInvestor": "Select an investor",
+      "selectInvestorHelper": "Choose an investor from the list to view their payment schedule.",
+      "status": {
+        "Overdue": "Overdue",
+        "Outstanding": "Outstanding",
+        "Paid": "Founder Reported as Paid",
+        "PartiallyPaid": "Founder Reported Partial Payment",
+        "NoPaymentSchedule": "No scheduled payments"
+      }
     }
+  },
+  "creditPurchase": {
+    "back": "Back to wallet", "eyebrow": "Platform-service credits", "title": "Buy CREDIT", "subtitle": "Choose an active package published by FOPX One Pricing.", "balance": "Current balance", "serviceOnly": "CREDIT pays only for platform services. It is not investment money and cannot be withdrawn.", "retry": "Retry", "loading": "Loading packages and purchase history…", "error": "Credit purchasing is currently unavailable.", "packages": "Credit packages", "noPackages": "No active Credit packages are currently available.", "featured": "Featured", "bonus": "Bonus CREDIT", "review": "Review order", "package": "Package", "credits": "Purchased CREDIT", "total": "Total", "buy": "Buy Credits", "creating": "Creating secure order…", "verificationNote": "Credits are added only after the payment provider is verified by FOPX One. A browser redirect never credits your wallet.", "selectPrompt": "Select a package to review the order.", "history": "Purchase history", "refresh": "Refresh", "noOrders": "No Credit purchases yet.", "reference": "Order reference", "totalCredits": "Total CREDIT", "amount": "Price", "statusLabel": "Payment status", "date": "Created", "details": "Details", "receipt": "Order receipt", "paidAt": "Paid at", "close": "Close", "providerUnavailable": "The payment provider is not configured yet. This order remains Pending and no Credits have been added.", "receiptNote": "This order record is a receipt only after its payment status is Paid.",
+    "status": { "Pending": "Pending", "Processing": "Processing", "Paid": "Paid", "Failed": "Failed", "Cancelled": "Cancelled", "Expired": "Expired", "Refunded": "Refunded" }
   }
 }

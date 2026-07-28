@@ -81,6 +81,10 @@ export class WalletComponent {
     this.router.navigate(['/admin/profile']);
   }
 
+  buyCredits(): void {
+    this.router.navigate(['/admin/credit-charge']);
+  }
+
   t(path: string): string {
     return this.languageService.translate(path);
   }

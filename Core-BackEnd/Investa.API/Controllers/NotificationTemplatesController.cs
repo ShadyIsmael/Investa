@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Investa.Application.DTOs;
+using Investa.Application.Interfaces;
 using Investa.Domain.Entities;
 using Investa.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -18,11 +19,16 @@ namespace Investa.API.Controllers
     {
         private readonly ApplicationDbContext _db;
         private readonly ILogger<NotificationTemplatesController> _logger;
+        private readonly IUserNotificationService _userNotificationService;
 
-        public NotificationTemplatesController(ApplicationDbContext db, ILogger<NotificationTemplatesController> logger)
+        public NotificationTemplatesController(
+            ApplicationDbContext db,
+            ILogger<NotificationTemplatesController> logger,
+            IUserNotificationService userNotificationService)
         {
             _db = db;
             _logger = logger;
+            _userNotificationService = userNotificationService;
         }
 
         private string? GetUserId() => User.FindFirstValue("sub") ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -146,20 +152,14 @@ namespace Investa.API.Controllers
             var title = Substitute(template.TitleTemplate, dto.Variables);
             var body  = Substitute(template.BodyTemplate, dto.Variables);
 
-            var notification = new UserNotification
-            {
-                UserId = dto.UserId,
-                TemplateId = template.Id,
-                Title = title,
-                Body = body,
-                Type = template.Type,
-                Icon = template.Icon,
-                ActionUrl = dto.ActionUrl,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            _db.UserNotifications.Add(notification);
-            await _db.SaveChangesAsync();
+            var notification = await _userNotificationService.CreateAsync(
+                dto.UserId,
+                title,
+                body,
+                template.Type,
+                dto.ActionUrl,
+                template.Icon,
+                template.Id);
 
             _logger.LogInformation("Sent in-app notification from template '{Key}' to user {UserId}", dto.TemplateKey, dto.UserId);
             return Ok(new { success = true, notificationId = notification.Id });

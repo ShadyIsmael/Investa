@@ -85,6 +85,7 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.BasicInfo, opt => opt.MapFrom(src => src.Profile))
             .ForMember(dest => dest.ContactInfo, opt => opt.MapFrom(src => src.Profile))
             .ForMember(dest => dest.AuditUsage, opt => opt.MapFrom(src => src.Profile))
+            .ForMember(dest => dest.ProfileCompletionPercentage, opt => opt.MapFrom(src => src.ProfileCompletionPercentage))
             .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.Profile != null ? src.Profile.CreatedAt : default))
             .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.Profile != null ? src.Profile.UpdatedAt : default));
     }

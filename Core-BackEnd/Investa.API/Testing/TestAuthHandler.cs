@@ -17,8 +17,11 @@ public class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
+        const string seededUserId = "11111111-1111-1111-1111-111111111111";
+
         var claims = new[] {
-            new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
+            new Claim("sub", seededUserId),
+            new Claim(ClaimTypes.NameIdentifier, seededUserId),
             new Claim(ClaimTypes.Name, "integration-test"),
             new Claim(ClaimTypes.Role, "Admin")
         };

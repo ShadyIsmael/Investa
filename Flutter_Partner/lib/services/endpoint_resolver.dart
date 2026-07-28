@@ -1,7 +1,6 @@
 import 'dart:io' show InternetAddress;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_partner/services/config.dart';
 import 'secure_storage.dart';
 
 class EndpointResolver {
@@ -15,10 +14,6 @@ class EndpointResolver {
       const String.fromEnvironment('API_BASE_URL', defaultValue: ''),
       dotenv.env['API_BASE_URL']));
 
-  /// Normalise candidates: deduplicate and strip trailing slashes.
-  /// Also adds a lowercase variant of the host when the configured name is
-  /// mixed-case (e.g. DESKTOP-DIH7CQH → desktop-dih7cqh) because some
-  /// Android DNS resolvers only accept lowercase hostnames.
   static List<String> _expandCandidates(List<String> candidates) {
     final out = <String>[];
     final seen = <String>{};
@@ -31,7 +26,6 @@ class EndpointResolver {
       if (norm.isEmpty) continue;
       if (seen.add(norm)) out.add(norm);
 
-      // Add lowercase host variant (some Android DNS resolvers require lowercase)
       try {
         final u = Uri.parse(norm);
         final host = u.host;
@@ -48,35 +42,12 @@ class EndpointResolver {
     return out;
   }
 
-  late final List<String> signalrCandidates = _buildSignalrCandidates(
-      const String.fromEnvironment('SIGNALR_HUB_URL', defaultValue: ''),
-      dotenv.env['SIGNALR_HUB_URL']);
-
-  static List<String> _buildSignalrCandidates(
-      String compileTime, String? fromDot) {
-    final parsed = _parseList(compileTime, fromDot);
-    if (parsed.isNotEmpty) return parsed;
-
-    // No explicit SIGNALR_HUB_URL configured — fall back to discovery using
-    // the configured base host name. Provide two candidates so we can try
-    // machine name first, then the .local mDNS variant.
-    final host = Env.baseHostName;
-    if (host.isEmpty) return <String>[];
-    final primary = 'http://$host:5000/hubs/chat';
-    final secondary = 'http://$host.local:5000/hubs/chat';
-    return [primary, secondary];
-  }
-
   int _selectedIndex = 0;
   bool _loaded = false;
 
-  /// Call at app startup to load persisted selection index if present.
-  /// Also applies any user-saved custom URL (set via the login screen) and
-  /// attempts to resolve configured hostnames to IPs.
   Future<void> init() async {
     if (_loaded) return;
 
-    // 1. Apply user-saved custom URL first — highest priority candidate.
     try {
       final custom = await SecureStorage().read(_customApiKey);
       if (custom != null && custom.isNotEmpty) {
@@ -86,7 +57,6 @@ class EndpointResolver {
       }
     } catch (_) {}
 
-    // 2. Try to resolve hostname → IP for remaining hostname candidates.
     await _prependResolvedIpCandidates();
 
     try {
@@ -94,26 +64,14 @@ class EndpointResolver {
       if (txt != null && txt.isNotEmpty) {
         final idx = int.tryParse(txt);
         if (idx != null && idx >= 0 && idx < apiCandidates.length) {
-          // If signalrCandidates is populated, ensure the index is valid for
-          // both lists so API and SignalR remain aligned.
-          if (signalrCandidates.isEmpty || idx < signalrCandidates.length) {
-            _selectedIndex = idx;
-          }
+          _selectedIndex = idx;
         }
       }
     } catch (_) {}
     _loaded = true;
   }
 
-  /// For every hostname-based candidate, attempt a DNS lookup. On success,
-  /// prepend an IP-based URL so it becomes the first (highest-priority) option.
-  ///
-  /// Android does not support NetBIOS name resolution, but it does support mDNS.
-  /// Windows 10+ broadcasts via mDNS, so `hostname.local` resolves on Android.
-  /// We therefore try both the plain hostname AND the `.local` variant, take
-  /// the first address that resolves, and prepend it as the primary candidate.
   Future<void> _prependResolvedIpCandidates() async {
-    if (kIsWeb) return;
     final toInsert = <String>[];
     final seen = <String>{...apiCandidates};
     final ipRegex = RegExp(r'^\d+\.\d+\.\d+\.\d+$');
@@ -124,7 +82,6 @@ class EndpointResolver {
         final host = uri.host;
         if (host.isEmpty || ipRegex.hasMatch(host)) continue;
 
-        // Build the list of names to try: plain host first, then .local variant
         final namesToTry = [host];
         if (!host.toLowerCase().endsWith('.local')) {
           namesToTry.add('${host.toLowerCase()}.local');
@@ -140,9 +97,8 @@ class EndpointResolver {
                 if (seen.add(ipUrl)) toInsert.add(ipUrl);
               }
             }
-            if (toInsert.isNotEmpty) break; // resolved — no need to try .local
+            if (toInsert.isNotEmpty) break;
           } catch (_) {
-            // Try next name variant
           }
         }
       } catch (_) {}
@@ -165,7 +121,6 @@ class EndpointResolver {
   }
 
   List<String> get apiBaseUrls => apiCandidates;
-  List<String> get signalrHubUrls => signalrCandidates;
 
   String get selectedApiBaseUrl {
     if (apiCandidates.isEmpty) return '';
@@ -175,29 +130,16 @@ class EndpointResolver {
     return apiCandidates[_selectedIndex];
   }
 
-  String get selectedSignalRHubUrl {
-    if (signalrCandidates.isEmpty) return '';
-    if (_selectedIndex >= 0 && _selectedIndex < signalrCandidates.length) {
-      return signalrCandidates[_selectedIndex];
-    }
-    // If indices don't line up, prefer first signalr candidate
-    return signalrCandidates.first;
-  }
-
   int get selectedIndex => _selectedIndex;
 
   Future<void> setSelectedIndex(int idx) async {
     if (idx < 0 || idx >= apiCandidates.length) return;
-    // Keep API and SignalR aligned when SignalR candidates are provided
-    if (signalrCandidates.isNotEmpty && idx >= signalrCandidates.length) return;
     _selectedIndex = idx;
     try {
       await SecureStorage().write(_storageKey, idx.toString());
     } catch (_) {}
   }
 
-  /// Saves a user-entered server URL (e.g. an IP address typed on the login
-  /// screen) and immediately makes it the active primary endpoint.
   Future<void> setCustomApiUrl(String url) async {
     final norm = url.trim().replaceAll(RegExp(r'/+\s*$'), '');
     if (norm.isEmpty) return;
@@ -208,7 +150,6 @@ class EndpointResolver {
     if (seen.add(norm)) {
       apiCandidates.insert(0, norm);
     } else {
-      // Already in list — move to front
       apiCandidates.remove(norm);
       apiCandidates.insert(0, norm);
     }

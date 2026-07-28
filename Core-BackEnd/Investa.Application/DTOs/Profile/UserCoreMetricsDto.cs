@@ -10,4 +10,6 @@ public class UserCoreMetricsDto
     public string? ClientType { get; set; } // Investor, Founder, Both
     public int CredibilityScore { get; set; }
     public decimal CurrentCredibilityScore { get; set; }
+    public bool IsEmailVerified { get; set; }
+    public DateTime? EmailVerifiedAtUtc { get; set; }
 }

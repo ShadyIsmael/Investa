@@ -1,15 +1,29 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Subscription } from 'rxjs';
 import { API_BASE } from '../../../config/api.token';
 import { ParticipationBuilderComponent } from '../../../components/participation-builder/participation-builder.component';
 import { PaidActionCode, WalletService } from '../../../services/wallet.service';
 import { LanguageService } from '../../../services/language.service';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
 import { ReportReasonCode, ReportService } from '../../../services/report.service';
+import { FirebaseClientService, RealtimeEvent } from '../../../services/firebase-client.service';
+import { NotificationService } from '../../../services/notification.service';
+import {
+  SavedConversationMessage,
+  updateConversationPreview,
+  upsertAuthoritativeMessage
+} from './conversation-realtime.reducer';
+import { buildConversationTimeline, ConversationTimelineItem } from './conversation-timeline.reducer';
+import { scrollToLatest } from './chat-scroll.util';
+import {
+  normalizeOfferStatus,
+  offerConversationId,
+  offerRealtimeAction
+} from './conversation-offer-realtime.util';
 
 type NegotiationStatus =
   | 'Founder Accepted'
@@ -50,6 +64,7 @@ interface NegotiationConversation {
   participationRequestId?: string | null;
   lastMessage?: string;
   lastMessageAt?: string | Date | null;
+  unreadCount?: number;
   createdAt?: string | Date | null;
   closedAt?: string | Date | null;
   closedByUserId?: string | number | null;
@@ -111,6 +126,7 @@ type JsonRecord = Record<string, unknown>;
 
 interface NegotiationMessage {
   id: string;
+  conversationId?: string;
   senderId?: string;
   senderName: string;
   senderRole: string;
@@ -148,6 +164,7 @@ interface NegotiationOffer {
   conversationId: string;
   createdByUserId?: string | number | null;
   createdByName?: string;
+  createdByRole?: string;
   version: number;
   parentOfferId?: number | null;
   status: OfferStatus;
@@ -157,9 +174,7 @@ interface NegotiationOffer {
   legs: NegotiationOfferLeg[];
 }
 
-type ChatTimelineItem =
-  | { kind: 'message'; id: string; date: string | Date; message: NegotiationMessage }
-  | { kind: 'offer'; id: string; date: string | Date; offer: NegotiationOffer };
+type ChatTimelineItem = ConversationTimelineItem<NegotiationMessage, NegotiationOffer>;
 
 interface OfferLegDraft {
   enabled: boolean;
@@ -181,13 +196,36 @@ interface OfferLegDraft {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, ParticipationBuilderComponent, TranslatePipe]
 })
-export class ChatComponent implements OnInit {
+export class ChatComponent implements OnInit, OnDestroy {
+  private messageStream?: ElementRef<HTMLElement>;
+  private messageStreamObserver?: MutationObserver;
+
+  @ViewChild('messageStream')
+  set messageStreamElement(element: ElementRef<HTMLElement> | undefined) {
+    this.messageStreamObserver?.disconnect();
+    this.messageStream = element;
+    if (!element) return;
+
+    this.messageStreamObserver = new MutationObserver(() => this.scheduleScrollToLatest());
+    this.messageStreamObserver.observe(element.nativeElement, {
+      childList: true,
+      subtree: true
+    });
+    this.scheduleScrollToLatest();
+  }
   private http = inject(HttpClient);
   private apiBase = inject(API_BASE);
   private route = inject(ActivatedRoute);
   private walletService = inject(WalletService);
   private languageService = inject(LanguageService);
   private reportService = inject(ReportService);
+  private firebaseClient = inject(FirebaseClientService);
+  private notificationService = inject(NotificationService);
+  private presenceTimer: ReturnType<typeof setInterval> | null = null;
+  private presentConversationId: string | null = null;
+  private readonly realtimeSubscriptions = new Subscription();
+  private readonly receivedMessageIds = new Set<string>();
+  private scrollFrame: number | null = null;
 
   conversations = signal<NegotiationConversation[]>([]);
   requests = signal<ConversationRequest[]>([]);
@@ -277,9 +315,10 @@ export class ChatComponent implements OnInit {
   });
 
   chatItems = computed<ChatTimelineItem[]>(() => {
-    const messageItems: ChatTimelineItem[] = this.messages().map(message => ({ kind: 'message', id: `message-${message.id}`, date: message.sentAt, message }));
-    const offerItems: ChatTimelineItem[] = this.offers().map(offer => ({ kind: 'offer', id: `offer-${offer.id}`, date: offer.createdAt || new Date(0), offer }));
-    return [...messageItems, ...offerItems].sort((left, right) => new Date(left.date).getTime() - new Date(right.date).getTime());
+    const conversationId = this.selectedConversation()?.id;
+    return conversationId
+      ? buildConversationTimeline(conversationId, this.messages(), this.offers())
+      : [];
   });
 
   private selectionWatcher = effect(() => {
@@ -291,7 +330,7 @@ export class ChatComponent implements OnInit {
     if (!visibleIds.has(selected.id)) {
       this.clearSelection();
     }
-  }, { allowSignalWrites: true });
+  });
 
   activeConversation = computed(() => {
     const selected = this.selectedConversation();
@@ -332,7 +371,22 @@ export class ChatComponent implements OnInit {
   nextStep = computed(() => this.buildNextStep(this.activeConversation()));
 
   async ngOnInit(): Promise<void> {
+    this.realtimeSubscriptions.add(
+      this.firebaseClient.onRealtimeEvent.subscribe(event => this.handleRealtimeEvent(event))
+    );
+    this.realtimeSubscriptions.add(
+      this.firebaseClient.hasRealtimeConnectionChange.subscribe(connected => {
+        if (connected) void this.refreshAfterRealtimeReconnect();
+      })
+    );
     await this.loadConversations();
+  }
+
+  ngOnDestroy(): void {
+    this.realtimeSubscriptions.unsubscribe();
+    this.messageStreamObserver?.disconnect();
+    if (this.scrollFrame !== null) cancelAnimationFrame(this.scrollFrame);
+    void this.leaveConversationPresence();
   }
 
   async loadConversations(): Promise<void> {
@@ -369,15 +423,26 @@ export class ChatComponent implements OnInit {
   }
 
   async selectConversation(conversation: NegotiationConversation): Promise<void> {
+    if (this.presentConversationId !== conversation.id) {
+      await this.leaveConversationPresence();
+    }
     this.selectedRequest.set(null);
-    this.selectedConversation.set(conversation);
+    const selected = { ...conversation, unreadCount: 0 };
+    this.selectedConversation.set(selected);
+    this.messages.set([]);
+    this.offers.set([]);
+    this.messagesError.set(null);
+    this.receivedMessageIds.clear();
+    this.conversations.update(items => items.map(item => item.id === selected.id ? selected : item));
     this.mobileView.set('chat');
+    await this.startConversationPresence(conversation.id);
     await this.loadViewerState(conversation);
     await this.loadMessages(conversation.id);
     await this.loadOffers(conversation.id);
   }
 
   selectRequest(request: ConversationRequest): void {
+    void this.leaveConversationPresence();
     this.selectedConversation.set(null);
     this.selectedRequest.set(request);
     this.messages.set([]);
@@ -453,14 +518,16 @@ export class ChatComponent implements OnInit {
   async loadViewerState(conversation: NegotiationConversation): Promise<void> {
     if (!conversation.opportunityId) return;
     try {
-      const raw = await this.get<unknown>(`/api/v1/opportunities/${encodeURIComponent(String(conversation.opportunityId))}/viewer-state`);
+      const raw = await this.get<unknown>(
+        `/api/v1/opportunities/${encodeURIComponent(String(conversation.opportunityId))}/viewer-state?conversationId=${encodeURIComponent(conversation.id)}`
+      );
       const wrapped = this.asRecord(raw);
       const state = this.mapViewerState(wrapped['data'] ?? raw);
-      this.viewerStates.update(items => ({ ...items, [String(conversation.opportunityId)]: state }));
+      this.viewerStates.update(items => ({ ...items, [conversation.id]: state }));
     } catch {
       this.viewerStates.update(items => {
         const next = { ...items };
-        delete next[String(conversation.opportunityId)];
+        delete next[conversation.id];
         return next;
       });
     }
@@ -471,10 +538,18 @@ export class ChatComponent implements OnInit {
       this.messagesLoading.set(true);
       this.messagesError.set(null);
       const raw = await this.get<unknown>(`/api/v1/conversations/${encodeURIComponent(conversationId)}/messages`);
+      if (this.selectedConversation()?.id !== conversationId) return;
       const conversation = this.conversations().find(item => item.id === conversationId) || this.selectedConversation();
       const messages = this.extractArray(raw).map(row => this.mapMessage(row, conversation));
       messages.sort((a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime());
       this.messages.set(messages);
+      this.scheduleScrollToLatest();
+      messages.forEach(message => this.receivedMessageIds.add(message.id));
+      await this.patch(`/api/v1/conversations/${encodeURIComponent(conversationId)}/messages/read`, {});
+      if (this.selectedConversation()?.id === conversationId) {
+        this.conversations.update(items => items.map(item => item.id === conversationId ? { ...item, unreadCount: 0 } : item));
+        await this.notificationService.loadNotifications();
+      }
     } catch (error) {
       this.messagesError.set(this.errorMessage(error, 'Unable to load messages.'));
       this.messages.set([]);
@@ -486,7 +561,9 @@ export class ChatComponent implements OnInit {
   async loadOffers(conversationId: string): Promise<void> {
     try {
       const raw = await this.get<unknown>(`/api/v1/conversations/${encodeURIComponent(conversationId)}/offers`);
-      this.offers.set(this.extractArray(raw).map(row => this.mapOffer(row)));
+      if (this.selectedConversation()?.id !== conversationId) return;
+      const conversation = this.conversations().find(item => item.id === conversationId) || this.selectedConversation();
+      this.offers.set(this.extractArray(raw).map(row => this.mapOffer(row, conversation)));
     } catch (error) {
       this.messagesError.set(this.errorMessage(error, 'Unable to load structured offers.'));
       this.offers.set([]);
@@ -503,15 +580,50 @@ export class ChatComponent implements OnInit {
     const conversation = this.activeConversation();
     if (!text || !conversation || this.isReadOnly(conversation) || this.sending()) return;
 
+    const clientMessageId = crypto.randomUUID();
+    const currentUserId = this.resolveCurrentUserId(conversation);
+    const optimisticMessage = this.mapMessage({
+      id: clientMessageId,
+      senderId: currentUserId,
+      message: text,
+      sentAt: new Date().toISOString()
+    }, conversation);
+
+    this.receivedMessageIds.add(clientMessageId);
+    this.messages.update(items => upsertAuthoritativeMessage(items, optimisticMessage).items);
+    this.scheduleScrollToLatest();
+    this.conversations.update(items => updateConversationPreview(
+      items,
+      {
+        messageId: clientMessageId,
+        conversationId: conversation.id,
+        senderUserId: String(currentUserId ?? ''),
+        body: text,
+        createdAt: optimisticMessage.sentAt
+      },
+      String(currentUserId ?? ''),
+      conversation.id,
+      true
+    ));
+    this.messageControl.setValue('');
+
     try {
       this.sending.set(true);
       this.messagesError.set(null);
-      const raw = await this.post<unknown>(`/api/v1/conversations/${encodeURIComponent(conversation.id)}/messages`, { message: text });
+      const raw = await this.post<unknown>(
+        `/api/v1/conversations/${encodeURIComponent(conversation.id)}/messages`,
+        { message: text, clientMessageId }
+      );
       const wrapped = this.asRecord(raw);
-      this.messages.update(items => [...items, this.mapMessage(wrapped['data'] ?? raw, conversation)]);
-      this.messageControl.setValue('');
+      const saved = this.mapMessage(wrapped['data'] ?? raw, conversation);
+      this.messages.update(items => upsertAuthoritativeMessage(items, saved).items);
+      this.scheduleScrollToLatest();
+      this.updatePreviewFromMessage(saved, conversation.id, false);
       this.updateConversationStatus(conversation.id, 'Negotiation in Progress');
     } catch (error) {
+      this.receivedMessageIds.delete(clientMessageId);
+      this.messages.update(items => items.filter(item => item.id !== clientMessageId));
+      this.messageControl.setValue(text);
       this.messagesError.set(this.errorMessage(error, this.t('chat.errors.messageFailed')));
     } finally {
       this.sending.set(false);
@@ -835,6 +947,7 @@ export class ChatComponent implements OnInit {
       participationRequestId: this.optionalString(row['participationRequestId']),
       lastMessage: this.optionalString(row['lastMessage']),
       lastMessageAt: this.dateValue(row['lastMessageAt'] ?? row['updatedAt'] ?? row['createdAt']),
+      unreadCount: this.numberValue(row['unreadCount']) ?? 0,
       createdAt: this.dateValue(row['createdAt']),
       closedAt: this.dateValue(row['closedAt']),
       closedByUserId: this.idValue(row['closedByUserId']),
@@ -871,6 +984,7 @@ export class ChatComponent implements OnInit {
     );
     return {
       id: this.stringValue(row['id'] ?? row['messageId']),
+      conversationId: this.optionalString(row['conversationId']) || conversation?.id,
       senderId: senderId === null || senderId === undefined ? undefined : String(senderId),
       senderName: this.optionalString(row['senderName']) || senderIdentity.name,
       senderRole: this.normalizeRole(row['senderRole'] ?? senderIdentity.role),
@@ -880,13 +994,15 @@ export class ChatComponent implements OnInit {
     };
   }
 
-  private mapOffer(value: unknown): NegotiationOffer {
+  private mapOffer(value: unknown, conversation: NegotiationConversation | null = this.activeConversation()): NegotiationOffer {
     const row = this.asRecord(value);
+    const actor = this.resolveSenderIdentity(row['createdByUserId'], conversation);
     return {
       id: Number(row['id']),
       conversationId: this.stringValue(row['conversationId']),
       createdByUserId: this.idValue(row['createdByUserId']),
-      createdByName: this.optionalString(row['createdByName']),
+      createdByName: this.optionalString(row['createdByName']) || actor.name,
+      createdByRole: this.normalizeRole(row['createdByRole'] ?? actor.role),
       version: Number(row['version'] ?? 1),
       parentOfferId: this.numberValue(row['parentOfferId']),
       status: this.offerStatusValue(row['status']),
@@ -1002,8 +1118,22 @@ export class ChatComponent implements OnInit {
       this.offerProcessing.set(true);
       this.messagesError.set(null);
       const raw = await this.post<unknown>(`/api/v1/conversations/${encodeURIComponent(conversation.id)}/offers/${offer.id}/${action}`, {});
-      const updated = this.mapOffer(this.asRecord(raw)['data'] ?? raw);
-      this.offers.update(items => items.map(item => item.id === updated.id ? updated : item));
+      const wrapped = this.asRecord(raw)['data'] ?? raw;
+      if (action === 'accept') {
+        const record = this.asRecord(wrapped);
+        const updated = this.mapOffer(record['offer'] ?? wrapped);
+        this.offers.update(items => items.map(item => item.id === updated.id ? updated : item));
+        const participationRequestId = record['participationRequestId'];
+        if (participationRequestId) {
+          this.conversations.update(items => items.map(item =>
+            item.id === conversation.id ? { ...item, participationRequestId: String(participationRequestId) } : item
+          ));
+        }
+        await this.loadConversations();
+      } else {
+        const updated = this.mapOffer(wrapped);
+        this.offers.update(items => items.map(item => item.id === updated.id ? updated : item));
+      }
     } catch (error) {
       this.messagesError.set(this.errorMessage(error, `Offer could not be ${action === 'accept' ? 'accepted' : action === 'reject' ? 'rejected' : 'withdrawn'}.`));
     } finally {
@@ -1108,8 +1238,7 @@ export class ChatComponent implements OnInit {
       || participation === 'rejected'
       || this.statusAtLeast(conversation.status, ['Participation Created', 'Participation Approved', 'Participation Rejected']);
     const participationApproved = participation === 'approved'
-      || conversation.status === 'Participation Approved'
-      || this.projectRoomUnlocked();
+      || conversation.status === 'Participation Approved';
     const negotiationStarted = this.messages().length > 0
       || offerSent
       || !!conversation.founderReady
@@ -1127,11 +1256,10 @@ export class ChatComponent implements OnInit {
     if (conversation.investorReady) completed.add('investorReady');
     if (participationRequested) completed.add('participationRequest');
     if (participationApproved) completed.add('participationApproved');
-    if (this.projectRoomUnlocked()) completed.add('projectRoomUnlocked');
+    if (participationApproved) completed.add('projectRoomUnlocked');
 
     let currentKey = 'accepted';
-    if (this.projectRoomUnlocked()) currentKey = 'projectRoomUnlocked';
-    else if (participationApproved) currentKey = 'projectRoomUnlocked';
+    if (participationApproved) currentKey = 'projectRoomUnlocked';
     else if (participationRequested) currentKey = 'participationApproved';
     else if (conversation.founderReady && conversation.investorReady) currentKey = 'participationRequest';
     else if (conversation.founderReady) currentKey = 'investorReady';
@@ -1214,8 +1342,8 @@ export class ChatComponent implements OnInit {
   }
 
   private activeViewerState(): ViewerState | null {
-    const opportunityId = this.activeConversation()?.opportunityId;
-    return opportunityId ? this.viewerStates()[String(opportunityId)] ?? null : null;
+    const conversationId = this.activeConversation()?.id;
+    return conversationId ? this.viewerStates()[conversationId] ?? null : null;
   }
 
   private buildNextStep(conversation: NegotiationConversation | null): string {
@@ -1268,7 +1396,7 @@ export class ChatComponent implements OnInit {
   }
 
   private currentUserLooksInvestor(conversation: NegotiationConversation): boolean {
-    return !!conversation.investorName || !conversation.founderName;
+    return this.sameId(this.resolveCurrentUserId(conversation), conversation.investorUserId);
   }
 
   private replaceConversation(updated: NegotiationConversation): void {
@@ -1287,6 +1415,149 @@ export class ChatComponent implements OnInit {
 
   private async post<T>(path: string, body: unknown): Promise<T> {
     return firstValueFrom(this.http.post<T>(`${this.apiBase}${path}`, body, this.getHttpOptions()));
+  }
+
+  private async startConversationPresence(conversationId: string): Promise<void> {
+    this.presentConversationId = conversationId;
+    const heartbeat = () => firstValueFrom(
+      this.http.put<void>(
+        `${this.apiBase}/api/v1/conversations/${conversationId}/presence`,
+        {},
+        this.getHttpOptions()
+      )
+    ).catch(() => undefined);
+    await heartbeat();
+    this.presenceTimer = setInterval(() => void heartbeat(), 30_000);
+  }
+
+  private handleRealtimeEvent(event: RealtimeEvent): void {
+    const changedOffersConversationId = offerConversationId(event);
+    if (changedOffersConversationId) {
+      if (offerRealtimeAction(event) === 'accepted') {
+        void this.loadConversations();
+        return;
+      }
+      if (this.selectedConversation()?.id === changedOffersConversationId) {
+        void this.loadOffers(changedOffersConversationId);
+      }
+      return;
+    }
+
+    if (event.type !== 'ConversationMessageSaved' || !event.data) return;
+
+    const data = event.data;
+    const saved: SavedConversationMessage = {
+      messageId: this.stringValue(data['messageId'] ?? event.entityId),
+      conversationId: this.stringValue(data['conversationId']),
+      senderUserId: this.stringValue(data['senderUserId']),
+      body: this.stringValue(data['body']),
+      createdAt: this.dateValue(data['createdAt']) ?? new Date(event.createdAt)
+    };
+    if (!saved.messageId || !saved.conversationId || !saved.senderUserId) return;
+
+    const firstReceipt = !this.receivedMessageIds.has(saved.messageId);
+    this.receivedMessageIds.add(saved.messageId);
+    const conversation = this.conversations().find(item => item.id === saved.conversationId);
+    if (!conversation) {
+      void this.loadConversations();
+      return;
+    }
+
+    if (this.selectedConversation()?.id === saved.conversationId) {
+      const message = this.mapMessage({
+        id: saved.messageId,
+        conversationId: saved.conversationId,
+        senderId: saved.senderUserId,
+        senderName: data['senderName'],
+        senderRole: data['senderRole'],
+        message: saved.body,
+        sentAt: saved.createdAt
+      }, conversation);
+      this.messages.update(items => upsertAuthoritativeMessage(items, message).items);
+      this.scheduleScrollToLatest();
+    }
+
+    this.updatePreviewFromSavedMessage(saved, firstReceipt);
+  }
+
+  private updatePreviewFromMessage(
+    message: NegotiationMessage,
+    conversationId: string,
+    inserted: boolean
+  ): void {
+    this.updatePreviewFromSavedMessage({
+      messageId: message.id,
+      conversationId,
+      senderUserId: String(message.senderId ?? ''),
+      body: message.text,
+      createdAt: message.sentAt
+    }, inserted);
+  }
+
+  private updatePreviewFromSavedMessage(
+    saved: SavedConversationMessage,
+    inserted: boolean
+  ): void {
+    const currentConversation = this.conversations().find(item => item.id === saved.conversationId) ?? null;
+    const currentUserId = this.resolveCurrentUserId(currentConversation);
+    this.conversations.update(items => updateConversationPreview(
+      items,
+      saved,
+      currentUserId === null ? null : String(currentUserId),
+      this.presentConversationId,
+      inserted
+    ));
+
+    const selected = this.selectedConversation();
+    if (selected?.id === saved.conversationId) {
+      this.selectedConversation.set({
+        ...selected,
+        lastMessage: saved.body,
+        lastMessageAt: saved.createdAt,
+        unreadCount: 0
+      });
+    }
+  }
+
+  private async refreshAfterRealtimeReconnect(): Promise<void> {
+    const selectedId = this.selectedConversation()?.id;
+    await this.loadConversations();
+    if (selectedId && this.selectedConversation()?.id === selectedId) {
+      await Promise.all([
+        this.loadMessages(selectedId),
+        this.loadOffers(selectedId)
+      ]);
+    }
+  }
+
+  private async patch<T>(path: string, body: unknown): Promise<T> {
+    return await firstValueFrom(this.http.patch<T>(`${this.apiBase}${path}`, body, this.getHttpOptions()));
+  }
+
+  private async leaveConversationPresence(): Promise<void> {
+    if (this.presenceTimer) {
+      clearInterval(this.presenceTimer);
+      this.presenceTimer = null;
+    }
+    const conversationId = this.presentConversationId;
+    this.presentConversationId = null;
+    if (!conversationId) return;
+    await firstValueFrom(
+      this.http.delete<void>(
+        `${this.apiBase}/api/v1/conversations/${conversationId}/presence`,
+        this.getHttpOptions()
+      )
+    ).catch(() => undefined);
+  }
+
+  private scheduleScrollToLatest(): void {
+    if (this.scrollFrame !== null) cancelAnimationFrame(this.scrollFrame);
+    this.scrollFrame = requestAnimationFrame(() => {
+      this.scrollFrame = requestAnimationFrame(() => {
+        this.scrollFrame = null;
+        scrollToLatest(this.messageStream?.nativeElement);
+      });
+    });
   }
 
   private extractArray(raw: unknown): unknown[] {
@@ -1363,6 +1634,7 @@ export class ChatComponent implements OnInit {
   }
 
   private clearSelection(): void {
+    void this.leaveConversationPresence();
     this.selectedConversation.set(null);
     this.selectedRequest.set(null);
     this.messages.set([]);
@@ -1396,8 +1668,7 @@ export class ChatComponent implements OnInit {
   }
 
   private offerStatusValue(value: unknown): OfferStatus {
-    const status = Number(value);
-    return status >= 1 && status <= 5 ? status as OfferStatus : 1;
+    return normalizeOfferStatus(value);
   }
 
   private offerLegTypeValue(value: unknown): OfferLegType {

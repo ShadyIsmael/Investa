@@ -49,6 +49,27 @@ public class InvestmentContractsController : BaseApiController
         catch (BusinessValidationException ex) { return ContractError(ex); }
     }
 
+    [HttpPost("{contractId:int}/versions/{versionNumber:int}/email")]
+    public async Task<IActionResult> Email(
+        int contractId,
+        int versionNumber,
+        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+        CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserId();
+        if (userId == null) return ErrorResponse("Unable to resolve authenticated user", 401);
+        var operationId = Guid.TryParse(idempotencyKey, out var parsed) ? parsed : Guid.NewGuid();
+        var language = Request.GetTypedHeaders().AcceptLanguage?
+            .Select(x => x.Value.Value)
+            .FirstOrDefault(x => x.StartsWith("ar", StringComparison.OrdinalIgnoreCase)) != null ? "ar" : "en";
+        try
+        {
+            return SuccessResponse(await _service.EmailContractAsync(
+                userId.Value, contractId, versionNumber, language, operationId, cancellationToken));
+        }
+        catch (BusinessValidationException ex) { return ContractError(ex); }
+    }
+
     private async Task<IActionResult> ExecuteAsync<T>(Func<Guid, Task<T>> action)
     {
         var userId = ResolveUserId();

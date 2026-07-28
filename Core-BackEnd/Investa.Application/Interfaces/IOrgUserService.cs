@@ -37,15 +37,45 @@ public interface IOrgUserService
     /// <summary>
     /// Updates an existing organizational user.
     /// </summary>
-    Task<OrgUserAdminDto?> UpdateOrgUserAsync(Guid userId, UpdateOrgUserDto dto);
+    Task<OrgUserAdminDto?> UpdateOrgUserAsync(Guid userId, UpdateOrgUserDto dto, Guid? currentUserId = null);
 
     /// <summary>
     /// Deletes an organizational user.
     /// </summary>
-    Task<bool> DeleteOrgUserAsync(Guid userId);
+    Task<bool> DeleteOrgUserAsync(Guid userId, Guid? currentUserId = null);
 
     /// <summary>
     /// Updates the status of multiple organizational users.
     /// </summary>
     Task<bool> BulkUpdateStatusAsync(List<Guid> userIds, bool isActive);
+
+    /// <summary>
+    /// Gets detailed information about a specific organizational user.
+    /// </summary>
+    Task<OrgUserDetailDto?> GetOrgUserByIdAsync(Guid userId);
+
+    /// <summary>
+    /// Locks an organizational user account.
+    /// </summary>
+    Task<bool> LockOrgUserAsync(Guid userId, Guid? currentUserId, string? reason = null);
+
+    /// <summary>
+    /// Unlocks an organizational user account.
+    /// </summary>
+    Task<bool> UnlockOrgUserAsync(Guid userId, Guid? currentUserId, string? reason = null);
+
+    /// <summary>
+    /// Resets the password for an organizational user.
+    /// </summary>
+    Task<bool> ResetPasswordAsync(Guid userId, string newPassword);
+
+    /// <summary>
+    /// Sends an invitation to an organizational user.
+    /// </summary>
+    Task<bool> InviteOrgUserAsync(Guid userId, string? message = null);
+
+    /// <summary>
+    /// Gets the audit log entries for an organizational user.
+    /// </summary>
+    Task<List<AuditLogEntryDto>> GetUserAuditLogAsync(Guid userId, int page = 1, int pageSize = 20);
 }

@@ -94,7 +94,7 @@ export class ParticipationBuilderComponent implements OnChanges {
   validationMessage(): string | null {
     if (this.isLoan()) return this.loanValidationMessage();
     if (this.isProfitSharing()) return this.profitSharingValidationMessage();
-    if (!this.isEquity()) return this.t('participationBuilder.validation.unsupportedModel');
+    if (!this.isEquity()) return this.t('participationBuilder.errors.invalidModel');
     const form = this.form();
     if (!form) return null;
     const shares = this.selectedShares();
@@ -200,7 +200,9 @@ export class ParticipationBuilderComponent implements OnChanges {
   }
 
   isEquity(): boolean {
-    return this.modelKey() === 'equity' || this.modelKey() === '1';
+    return this.modelKey() === 'equity'
+      || this.modelKey() === 'equityinvestment'
+      || this.modelKey() === '1';
   }
 
   isLoan(): boolean {
@@ -211,6 +213,7 @@ export class ParticipationBuilderComponent implements OnChanges {
     const key = this.modelKey();
     return key === 'capitalcontributionprofitsharing'
       || key === 'profitsharing'
+      || key === 'profitsharinginvestment'
       || key === 'profitshare'
       || key === '2';
   }

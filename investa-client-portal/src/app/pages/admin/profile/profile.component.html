@@ -94,7 +94,13 @@
                 </div></div>
 
                 <div class="form-section" [formGroup]="communicationForm"><h3>{{ 'profile.communication.title' | translate }}</h3><div class="form-grid">
-                  <label>{{ 'profile.communication.email' | translate }}<input type="email" formControlName="email" autocomplete="email"></label>
+                  <label>{{ 'profile.communication.email' | translate }}<span class="input-action"><input type="email" formControlName="email" autocomplete="email">
+                    @if (profileService.profile()?.coreMetrics?.isEmailVerified && communicationForm.get('email')?.value?.toLowerCase() === profileService.profile()?.coreMetrics?.email?.toLowerCase()) {
+                      <span class="verified-email">{{ isRtl() ? 'تم التأكيد' : 'Verified' }}</span>
+                    } @else {
+                      <button type="button" class="quiet-action" (click)="verifyEmail()" [disabled]="communicationForm.get('email')?.invalid || !communicationForm.get('email')?.value || isLoading()">{{ isRtl() ? 'تأكيد البريد' : 'Verify' }}</button>
+                    }
+                  </span></label>
                   <label>{{ 'profile.communication.mobile' | translate }}<input formControlName="mobile" autocomplete="tel"></label>
                   <label>{{ 'profile.communication.address' | translate }}<input formControlName="address" autocomplete="street-address"></label>
                   <label>{{ 'profile.communication.city' | translate }}<input formControlName="city" autocomplete="address-level2"></label>

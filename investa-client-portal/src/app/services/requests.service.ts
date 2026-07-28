@@ -127,6 +127,8 @@ export class RequestsService {
       const founderIncomingJoinRequests = this.extractArray(founderIncomingJoinRaw).map(row => this.mapJoinRequest(row, 'incoming'));
       const investorOutgoingJoinRequests = this.extractArray(investorOutgoingJoinRaw).map(row => this.mapJoinRequest(row, 'outgoing'));
       const joinRequests = [...founderIncomingJoinRequests, ...investorOutgoingJoinRequests];
+      await this.hydrateConversationCounterpartyNames(conversationRequests);
+      await this.hydrateParticipationCounterpartyNames(joinRequests);
       const all = [...conversationRequests, ...joinRequests].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
       this._incoming.set(all.filter(request => request.direction === 'incoming'));
@@ -176,7 +178,9 @@ export class RequestsService {
       direction: this.normalizeDirection(data.direction, directionFallback),
       projectName: data.opportunityTitle || this.t('requests.fallbacks.opportunity'),
       projectImageUrl: '',
-      counterpartName: data.counterpartyFullName || data.counterpartyName || data.investorDisplayName || data.investorFullName || data.investorName || data.founderFullName || data.founderName || this.t('requests.fallbacks.participant'),
+      counterpartName: directionFallback === 'incoming'
+        ? data.investorDisplayName || data.investorFullName || data.investorName || data.counterpartyFullName || data.counterpartyName || this.t('requests.fallbacks.investor')
+        : data.founderFullName || data.founderName || data.counterpartyFullName || data.counterpartyName || this.t('requests.fallbacks.founder'),
       senderName: data.requesterFullName || data.requesterName || data.investorDisplayName || data.investorFullName || data.investorName,
       receiverName: data.recipientFullName || data.recipientName || data.founderFullName || data.founderName,
       status: this.normalizeStatus(data.status),
@@ -198,6 +202,132 @@ export class RequestsService {
       canReject: data.canReject,
       requestMetadata: { ...data, termsSnapshot: terms }
     };
+  }
+
+  private async hydrateConversationCounterpartyNames(requests: OpportunityRequest[]): Promise<void> {
+    await Promise.all(requests.map(async request => {
+      const currentName = request.direction === 'incoming' ? request.senderName : request.receiverName;
+      const fallback = request.direction === 'incoming'
+        ? this.t('requests.fallbacks.investor')
+        : this.t('requests.fallbacks.founder');
+      if (this.isRealCounterpartyName(currentName, fallback)) {
+        request.counterpartName = currentName!.trim();
+        return;
+      }
+
+      const counterpartyId = request.direction === 'incoming' ? request.investorId : request.founderId;
+      const resolvedName = await this.loadPublicUserName(counterpartyId);
+      if (!resolvedName) return;
+      request.counterpartName = resolvedName;
+      if (request.direction === 'incoming') request.senderName = resolvedName;
+      else request.receiverName = resolvedName;
+    }));
+  }
+
+  private async hydrateParticipationCounterpartyNames(requests: OpportunityRequest[]): Promise<void> {
+    await Promise.all(requests.map(async request => {
+      const fallback = request.direction === 'incoming'
+        ? this.t('requests.fallbacks.investor')
+        : this.t('requests.fallbacks.founder');
+      const currentName = request.direction === 'incoming' ? request.senderName : request.receiverName;
+      const hasCounterpartyId = request.direction === 'incoming' ? !!request.investorId : !!request.founderId;
+      if (this.isRealCounterpartyName(currentName, fallback) && hasCounterpartyId) {
+        request.counterpartName = currentName!.trim();
+        return;
+      }
+
+      const founderIdentity = request.direction === 'outgoing'
+        ? await this.loadOpportunityFounderIdentity(request.opportunityId, request.founderId)
+        : null;
+      const resolvedName = request.direction === 'incoming'
+        ? await this.loadPublicUserName(request.investorId)
+        : founderIdentity?.name ?? null;
+
+      if (!resolvedName) return;
+      request.counterpartName = resolvedName;
+      if (request.direction === 'incoming') request.senderName = resolvedName;
+      else {
+        request.receiverName = resolvedName;
+        request.founderId = founderIdentity?.userId ?? request.founderId;
+      }
+    }));
+  }
+
+  private async loadPublicUserName(userId: string | number | undefined): Promise<string | null> {
+    if (!userId) return null;
+    try {
+      const raw = await firstValueFrom(this.http.get<any>(
+        `${this.apiBase}/api/profile/${encodeURIComponent(String(userId))}/public`,
+        this.authService.getAuthorizedJsonOptions()
+      ));
+      const profile = raw?.data ?? raw;
+      return this.firstNonEmpty(
+        profile?.displayName,
+        profile?.fullName,
+        this.joinName(profile?.firstName, profile?.lastName)
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  private async loadOpportunityFounderIdentity(
+    opportunityId: number | undefined,
+    founderId: string | number | undefined
+  ): Promise<{ name: string; userId?: string | number } | null> {
+    const profileName = await this.loadPublicUserName(founderId);
+    if (profileName) return { name: profileName, userId: founderId };
+    if (!opportunityId) return null;
+
+    try {
+      const raw = await firstValueFrom(this.http.get<any>(
+        `${this.apiBase}/api/v1/public/opportunities/${encodeURIComponent(String(opportunityId))}`,
+        this.authService.getAuthorizedJsonOptions()
+      ));
+      const opportunity = raw?.data ?? raw;
+      const founder = opportunity?.founder ?? opportunity?.founderSummary ?? {};
+      const name = this.firstNonEmpty(
+        founder?.displayName,
+        founder?.fullName,
+        founder?.name,
+        opportunity?.founderDisplayName,
+        opportunity?.founderName
+      );
+      if (!name) return null;
+      return {
+        name,
+        userId: founder?.id ?? founder?.userId ?? opportunity?.founderId ?? founderId
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private isRealCounterpartyName(value: unknown, translatedFallback: string): boolean {
+    const normalized = String(value ?? '').trim().toLowerCase();
+    if (!normalized) return false;
+    return ![
+      'participant',
+      'investor',
+      'founder',
+      'مشارك',
+      'المشارك',
+      'المستثمر',
+      'المؤسس',
+      translatedFallback.trim().toLowerCase()
+    ].includes(normalized);
+  }
+
+  private joinName(firstName: unknown, lastName: unknown): string {
+    return [firstName, lastName].map(value => String(value ?? '').trim()).filter(Boolean).join(' ');
+  }
+
+  private firstNonEmpty(...values: unknown[]): string | null {
+    for (const value of values) {
+      const text = String(value ?? '').trim();
+      if (text && this.isRealCounterpartyName(text, '')) return text;
+    }
+    return null;
   }
 
   private parseTermsSnapshot(value: unknown): Record<string, any> {

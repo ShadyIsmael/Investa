@@ -1,0 +1,8 @@
+.otp-dialog { width: min(28rem, 88vw); color: var(--text-primary, #152238); }
+mat-dialog-content { display: grid; gap: 1rem; }
+input { font: 700 1.75rem/1 monospace; letter-spacing: .65rem; text-align: center; padding: 1rem; border: 1px solid var(--border-color, #ccd4df); border-radius: .75rem; background: var(--surface, #fff); color: inherit; }
+.error { color: #c62828; margin: 0; }
+.timer { color: var(--text-secondary, #64748b); }
+.link { border: 0; background: transparent; color: var(--primary-color, #1e3a5f); cursor: pointer; }
+.verify { border: 0; border-radius: .65rem; padding: .75rem 1.5rem; color: white; background: var(--primary-color, #1e3a5f); }
+button:disabled { opacity: .55; cursor: default; }

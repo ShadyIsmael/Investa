@@ -4,7 +4,7 @@ import 'package:logger/logger.dart' as logger_pkg;
 /// Centralized logging service for the Investa app.
 ///
 /// Features:
-/// - Tagged logging with prefixes like [SignalR], [API], [Firebase]
+/// - Tagged logging with prefixes like [API], [Firebase]
 /// - Different log levels (debug, info, warning, error)
 /// - Pretty printing in debug mode
 /// - File logging in release mode (optional)

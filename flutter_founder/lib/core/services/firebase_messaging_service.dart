@@ -11,7 +11,7 @@ import '../../services/app_logger.dart';
 /// - Foreground message handling
 /// - Background message handling
 /// - Notification tap handling with deep linking
-/// - Deduplication with SignalR events
+/// - Deduplication of duplicate events
 /// - FCM token management
 class FirebaseMessagingService {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
@@ -27,7 +27,7 @@ class FirebaseMessagingService {
   Stream<RemoteMessage> get onMessage => _messageController.stream;
   Stream<String> get onTokenRefresh => _tokenController.stream;
 
-  // Track recent notifications to avoid duplicates with SignalR
+  // Track recent notifications to avoid duplicates
   final Set<String> _recentNotifications = {};
   static const _deduplicationWindow = Duration(seconds: 5);
 

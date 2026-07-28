@@ -100,6 +100,10 @@ public class AuthUser
     /// <summary>Email address has been verified.</summary>
     public bool IsEmailVerified { get; set; } = false;
 
+    public DateTime? EmailVerifiedAtUtc { get; set; }
+
+    public DateTime? WelcomeEmailSentAtUtc { get; set; }
+
     /// <summary>
     /// Comma-separated risk flags (e.g., "repeated_failures,report_flag").
     /// Used by fraud/compliance checks.

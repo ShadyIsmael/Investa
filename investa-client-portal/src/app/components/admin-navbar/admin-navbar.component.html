@@ -151,7 +151,11 @@
 
             <ul class="notifications-list">
               @for (notification of recentNotifications(); track notification.id) {
-                <li class="notification-item" [class.notification-item-unread]="!notification.read">
+                <li class="notification-item"
+                    [class.notification-item-unread]="!notification.read"
+                    [class.pointer-events-none]="isOpeningNotification(notification.id)"
+                    [attr.aria-busy]="isOpeningNotification(notification.id)"
+                    (click)="openNotification(notification)">
                   <div class="notification-icon-wrapper">
                     @if (notification.type === 'info') {
                       <div class="notification-type-icon notification-type-info">
@@ -232,7 +236,7 @@
       <div class="user-menu-anchor" (clickOutside)="isUserMenuOpen.set(false)">
         <button (click)="toggleUserMenu()" type="button" class="user-menu-btn">
           @if (hasProfileImage()) {
-            <img class="user-avatar" [src]="avatarUrl()" alt="" />
+            <img class="user-avatar" [src]="avatarUrl()" alt="" (error)="onAvatarError()" />
           } @else {
             <div class="user-avatar-initials">{{ userInitials() }}</div>
           }
@@ -242,7 +246,7 @@
           <div class="user-dropdown">
             <div class="user-dropdown-header">
               @if (hasProfileImage()) {
-                <img class="dropdown-avatar" [src]="avatarUrl()" alt="" />
+                <img class="dropdown-avatar" [src]="avatarUrl()" alt="" (error)="onAvatarError()" />
               } @else {
                 <div class="dropdown-avatar-initials">{{ userInitials() }}</div>
               }

@@ -72,8 +72,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
         conversations: s.conversations.map(c => c.id === convId ? { ...c, unreadCount: 0 } : c)
       }));
 
-      // Notify server via SignalR (provider listens to this window event and will invoke the hub)
-      try { window.dispatchEvent(new CustomEvent('investa:signalr:mark-as-read', { detail: { conversationId: convId } })); } catch (e) { /* ignore */ }
     } catch (e) {
       console.warn('markAsRead failed', e);
       throw e;

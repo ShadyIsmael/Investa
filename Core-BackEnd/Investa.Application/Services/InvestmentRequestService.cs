@@ -26,9 +26,11 @@ public class InvestmentRequestService : IInvestmentRequestService
 
 {
 
-    private readonly IUnitOfWork _unitOfWork;
+private readonly IUnitOfWork _unitOfWork;
 
     private readonly ICreditService _creditService;
+
+    private readonly IClientInteractionChargingPolicy _chargingPolicy;
 
     private readonly INotificationService _notificationService;
 
@@ -38,13 +40,19 @@ public class InvestmentRequestService : IInvestmentRequestService
 
     private readonly ILogger<InvestmentRequestService> _logger;
 
+    private readonly IUserNotificationService _userNotificationService;
+
+    private readonly IRealtimeEventPublisher _realtimeEventPublisher;
+
 
 
     public InvestmentRequestService(
 
         IUnitOfWork unitOfWork, 
 
-        ICreditService creditService, 
+        ICreditService creditService,
+
+        IClientInteractionChargingPolicy chargingPolicy,
 
         INotificationService notificationService,
 
@@ -52,13 +60,19 @@ public class InvestmentRequestService : IInvestmentRequestService
 
         IMapper mapper,
 
-        ILogger<InvestmentRequestService> logger)
+        ILogger<InvestmentRequestService> logger,
+
+        IUserNotificationService userNotificationService,
+
+        IRealtimeEventPublisher realtimeEventPublisher)
 
     {
 
-        _unitOfWork = unitOfWork;
+_unitOfWork = unitOfWork;
 
         _creditService = creditService;
+
+        _chargingPolicy = chargingPolicy;
 
         _notificationService = notificationService;
 
@@ -67,6 +81,10 @@ public class InvestmentRequestService : IInvestmentRequestService
         _mapper = mapper;
 
         _logger = logger;
+
+        _userNotificationService = userNotificationService;
+
+        _realtimeEventPublisher = realtimeEventPublisher;
 
     }
 
@@ -164,7 +182,7 @@ public class InvestmentRequestService : IInvestmentRequestService
 
         var availableCredit = client?.Credit ?? user?.WalletBalance ?? 0m;
 
-        if (availableCredit < dto.Amount)
+        if (_chargingPolicy.IsEnabled && availableCredit < dto.Amount)
 
         {
 
@@ -188,7 +206,8 @@ public class InvestmentRequestService : IInvestmentRequestService
 
             _logger.LogInformation("Deducting {Amount} credits from investor {InvestorId}", dto.Amount, investorId);
 
-            await _creditService.CreateTransactionAsync(investorId, -dto.Amount, "debit", descriptionEn);
+            if (_chargingPolicy.IsEnabled)
+                await _creditService.CreateTransactionAsync(investorId, -dto.Amount, "debit", descriptionEn);
 
             _logger.LogInformation("Credits deducted successfully for investor {InvestorId}", investorId);
 
@@ -1184,7 +1203,33 @@ public class InvestmentRequestService : IInvestmentRequestService
 
         }
 
+        // Notify the founder that the investor withdrew
+        try
 
+        {
+
+            var inv = await _unitOfWork.Repository<Investment>().GetByIdAsync(request.InvestmentId);
+            var investmentName = inv?.BusinessName ?? "Investment";
+
+            await _userNotificationService.CreateAsync(
+                request.FounderId.ToString(),
+                "Investment Request Withdrawn",
+                $"An investor withdrew their request to invest in {investmentName}",
+                "warning",
+                $"/admin/investments/{request.InvestmentId}/requests");
+
+            await _realtimeEventPublisher.PublishToUserAsync(
+                request.FounderId,
+                "RequestWithdrawn",
+                Guid.NewGuid());
+        }
+
+        catch (Exception ex)
+
+        {
+
+            _logger.LogWarning(ex, "Non-blocking notification failure after withdrawal for request {RequestId}", requestId);
+        }
 
         var dto = _mapper.Map<InvestmentRequestDto>(request);
 

@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FOPX One Email Design System - Preview</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f0f2f5;
+      color: #1f2937;
+      padding: 40px 24px;
+    }
+    .header {
+      max-width: 1200px;
+      margin: 0 auto 40px;
+      text-align: center;
+    }
+    .header h1 {
+      font-size: 32px;
+      font-weight: 700;
+      color: #1E3A5F;
+      letter-spacing: -0.5px;
+      margin-bottom: 4px;
+    }
+    .header h1 span { color: #C8A84E; font-weight: 300; }
+    .header p {
+      font-size: 16px;
+      color: #6b7280;
+      margin-bottom: 24px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge-design { background: #e8f0fe; color: #1E3A5F; margin-bottom: 16px; }
+    .tabs {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+    }
+    .tab {
+      padding: 8px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      color: #6b7280;
+      transition: all 0.2s;
+    }
+    .tab:hover, .tab.active { border-color: #1E3A5F; color: #1E3A5F; background: #e8f0fe; }
+    .lang-toggle {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      margin-bottom: 32px;
+    }
+    .lang-btn {
+      padding: 6px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      color: #6b7280;
+      transition: all 0.2s;
+    }
+    .lang-btn.active { border-color: #C8A84E; color: #8B7332; background: #FDF6E3; }
+    .gallery {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 24px;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+      transition: box-shadow 0.2s;
+    }
+    .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+    .card-header {
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1f2937;
+    }
+    .card-lang {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #9ca3af;
+      background: #f3f4f6;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .card-preview {
+      position: relative;
+      width: 100%;
+      height: 500px;
+      overflow: hidden;
+      background: #f4f6f9;
+    }
+    .card-preview iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      transform-origin: 0 0;
+    }
+    .card-footer {
+      padding: 10px 16px;
+      border-top: 1px solid #f3f4f6;
+    }
+    .card-footer a {
+      font-size: 13px;
+      color: #1E3A5F;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .card-footer a:hover { text-decoration: underline; }
+    .card-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-left: 6px;
+    }
+    .tag-default { background: #e8f0fe; color: #1E3A5F; }
+    .tag-verification { background: #eff6ff; color: #2563eb; }
+    .tag-security { background: #f5f3ff; color: #7c3aed; }
+    .tag-transaction { background: #f0fdf4; color: #059669; }
+    .empty-state {
+      display: none;
+      text-align: center;
+      padding: 60px 20px;
+      color: #9ca3af;
+      grid-column: 1 / -1;
+    }
+    .empty-state.visible { display: block; }
+    .responsive-hint {
+      text-align: center;
+      margin-top: 32px;
+      font-size: 13px;
+      color: #9ca3af;
+    }
+    @media (max-width: 600px) {
+      body { padding: 20px 12px; }
+      .gallery { grid-template-columns: 1fr; }
+      .card-preview { height: 400px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="badge badge-design">Design System Preview</div>
+    <h1>FOPX <span>One</span></h1>
+    <p>Unified Email Design System &mdash; Premium Enterprise Communications</p>
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-filter="all">All</button>
+      <button class="tab" data-filter="default">Default</button>
+      <button class="tab" data-filter="verification">Verification</button>
+      <button class="tab" data-filter="security">Security</button>
+      <button class="tab" data-filter="transaction">Transaction</button>
+    </div>
+    <div class="lang-toggle" id="langToggle">
+      <button class="lang-btn active" data-lang="en">EN</button>
+      <button class="lang-btn" data-lang="ar">AR</button>
+    </div>
+  </div>
+
+  <div class="gallery" id="gallery"></div>
+
+  <div class="responsive-hint">These are email client-compatible templates. Resize your browser or use dev tools to test responsive behavior (mobile &lt; 600px).</div>
+
+  <script>
+    const templates = [
+      { id: 'default', name: 'Default Notification', en: '../DesignSystem/default.en.html', ar: '../DesignSystem/default.ar.html', tag: 'tag-default' },
+      { id: 'verification', name: 'Verification', en: '../DesignSystem/verification.en.html', ar: '../DesignSystem/verification.ar.html', tag: 'tag-verification' },
+      { id: 'security', name: 'Security Alert', en: '../DesignSystem/security.en.html', ar: '../DesignSystem/security.ar.html', tag: 'tag-security' },
+      { id: 'transaction', name: 'Transaction Confirmation', en: '../DesignSystem/transaction.en.html', ar: '../DesignSystem/transaction.ar.html', tag: 'tag-transaction' }
+    ];
+
+    let currentLang = 'en';
+    let currentFilter = 'all';
+
+    function render() {
+      const gallery = document.getElementById('gallery');
+      const visible = templates.filter(t => currentFilter === 'all' || t.id === currentFilter);
+      if (visible.length === 0) {
+        gallery.innerHTML = '<div class="empty-state visible">No templates match the selected filter.</div>';
+        return;
+      }
+      gallery.innerHTML = visible.map(t => {
+        const langA = currentLang === 'en' ? 'EN' : 'AR';
+        const url = t[currentLang];
+        return `
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">${t.name} <span class="card-tag ${t.tag}">${t.id}</span></span>
+              <span class="card-lang">${langA}</span>
+            </div>
+            <div class="card-preview">
+              <iframe src="${url}" loading="lazy" onload="this.style.opacity='1'" style="opacity:0;transition:opacity 0.3s;"></iframe>
+            </div>
+            <div class="card-footer">
+              <a href="${url}" target="_blank">Open in new tab &rarr;</a>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    document.getElementById('tabs').addEventListener('click', e => {
+      const btn = e.target.closest('.tab');
+      if (!btn) return;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.dataset.filter;
+      render();
+    });
+
+    document.getElementById('langToggle').addEventListener('click', e => {
+      const btn = e.target.closest('.lang-btn');
+      if (!btn) return;
+      document.querySelectorAll('.lang-btn').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      currentLang = btn.dataset.lang;
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>

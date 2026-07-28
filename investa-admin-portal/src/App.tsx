@@ -42,6 +42,7 @@ import { FinanceMoneyOutCreatePage } from '@/features/company-finance/FinanceMon
 import { FinanceOverviewPage } from '@/features/company-finance/FinanceOverviewPage';
 import { FinanceReviewQueuePage } from '@/features/company-finance/FinanceReviewQueuePage';
 import { FinanceReconciliationPage } from '@/features/company-finance/FinanceReconciliationPage';
+import { AdminUserReviewQueue } from '@/features/admin-users/AdminUserReviewQueue';
 
 const ComingSoon = ({ title, subtitle }: { title: string; subtitle: string }) => {
     const navigate = useNavigate();
@@ -241,6 +242,7 @@ const AppContent: React.FC = () => {
                                     <Route path="/apitester" element={<ApiTester />} />
                                     <Route path="/system-config" element={<SystemConfiguration />} />
                                     <Route path="/config/notification-templates" element={<NotificationTemplates />} />
+                                    <Route path="admin-users/approval" element={<AdminUserReviewQueue />} />
                                 </Routes>
                             </MainLayout>
                         </ProtectedRoute>

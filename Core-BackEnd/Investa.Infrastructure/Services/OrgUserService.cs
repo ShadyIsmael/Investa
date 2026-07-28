@@ -13,6 +13,7 @@ using Investa.Infrastructure.Identity;
 using Investa.Domain.Entities;
 using Investa.Domain.Entities.Enums;
 using Investa.Domain.Entities.Security;
+using static Investa.Domain.Entities.Security.AuditSeverity;
 
 namespace Investa.Infrastructure.Services;
 
@@ -25,17 +26,22 @@ public class OrgUserService : IOrgUserService
     private readonly IUnitOfWork _unitOfWork;
     private readonly UserManager<ApplicationIdentityUser> _userManager;
     private readonly ILogger<OrgUserService> _logger;
+    private readonly IEffectivePermissionService _effectivePermissionService;
+
+    private static readonly string[] ProtectedEmails = { "admin@investa.com" };
 
     public OrgUserService(
         ApplicationDbContext db,
         IUnitOfWork unitOfWork,
         UserManager<ApplicationIdentityUser> userManager,
-        ILogger<OrgUserService> logger)
+        ILogger<OrgUserService> logger,
+        IEffectivePermissionService effectivePermissionService)
     {
         _db = db;
         _unitOfWork = unitOfWork;
         _userManager = userManager;
         _logger = logger;
+        _effectivePermissionService = effectivePermissionService;
     }
 
     public async Task<(int total, List<OrgUserBasicDto> items)> GetOrgUsersAsync(int page, int pageSize)
@@ -274,7 +280,7 @@ public class OrgUserService : IOrgUserService
         });
     }
 
-    public async Task<OrgUserAdminDto?> UpdateOrgUserAsync(Guid userId, UpdateOrgUserDto dto)
+    public async Task<OrgUserAdminDto?> UpdateOrgUserAsync(Guid userId, UpdateOrgUserDto dto, Guid? currentUserId = null)
     {
         return await _db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
@@ -287,6 +293,14 @@ public class OrgUserService : IOrgUserService
                     return null;
                 if (authUser.UserType != UserType.OrgUser)
                     throw Validation("ORG_USER_REQUIRED", "Only organizational users can be updated by this endpoint.");
+
+                if (dto.Status == false)
+                {
+                    if (currentUserId == userId)
+                        throw Validation("SELF_DEACTIVATE", "You cannot deactivate your own account.");
+                    if (IsProtectedUser(authUser))
+                        throw Validation("PROTECTED_USER", "This user is protected and cannot be deactivated.");
+                }
 
                 var profile = await _db.UserProfiles.SingleOrDefaultAsync(x => x.UserId == userId);
                 var firstName = dto.FirstName != null
@@ -370,7 +384,7 @@ public class OrgUserService : IOrgUserService
         });
     }
 
-    public async Task<bool> DeleteOrgUserAsync(Guid userId)
+    public async Task<bool> DeleteOrgUserAsync(Guid userId, Guid? currentUserId = null)
     {
         return await _db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
@@ -382,6 +396,11 @@ public class OrgUserService : IOrgUserService
                     return false;
                 if (authUser.UserType != UserType.OrgUser)
                     throw Validation("ORG_USER_REQUIRED", "Client users cannot be deleted by this endpoint.");
+
+                if (currentUserId == userId)
+                    throw Validation("SELF_DELETE", "You cannot delete your own account.");
+                if (IsProtectedUser(authUser))
+                    throw Validation("PROTECTED_USER", "This user is protected and cannot be deleted.");
 
                 // Preserve the identity row and all maker/checker, audit, role, and group references.
                 authUser.Status = false;
@@ -528,5 +547,265 @@ public class OrgUserService : IOrgUserService
             _logger.LogError(ex, "Failed to bulk update user status");
             return false;
         }
+    }
+
+    public async Task<OrgUserDetailDto?> GetOrgUserByIdAsync(Guid userId)
+    {
+        try
+        {
+            var authUser = await _db.AuthUsers
+                .Include(x => x.UserSessions)
+                .FirstOrDefaultAsync(x => x.Id == userId && x.UserType == UserType.OrgUser);
+
+            if (authUser == null)
+                return null;
+
+            var profile = await _db.UserProfiles.FirstOrDefaultAsync(x => x.UserId == userId);
+            var identityUser = await _userManager.FindByIdAsync(userId.ToString());
+
+            var isLocked = false;
+            DateTime? lockoutEnd = null;
+            if (identityUser != null)
+            {
+                isLocked = await _userManager.IsLockedOutAsync(identityUser);
+                lockoutEnd = identityUser.LockoutEnd?.UtcDateTime;
+            }
+
+            var roleInfo = await (from ur in _db.UserRoles
+                                  join role in _db.Roles on ur.RoleId equals role.Id
+                                  join groupEntity in _db.Groups on role.GroupId equals groupEntity.Id
+                                  where ur.UserId == userId && role.IsActive
+                                  orderby ur.AssignedAt
+                                  select new { role.Id, RoleName = role.Name, GroupId = groupEntity.Id, GroupName = groupEntity.Name })
+                .FirstOrDefaultAsync();
+
+            var allRoles = await (from ur in _db.UserRoles
+                                  join role in _db.Roles on ur.RoleId equals role.Id
+                                  where ur.UserId == userId && role.IsActive
+                                  select role.Name)
+                .ToListAsync();
+
+            var allGroups = await (from ur in _db.UserRoles
+                                   join role in _db.Roles on ur.RoleId equals role.Id
+                                   join groupEntity in _db.Groups on role.GroupId equals groupEntity.Id
+                                   where ur.UserId == userId && role.IsActive
+                                   select groupEntity.Name)
+                .Distinct()
+                .ToListAsync();
+
+            var lastSession = authUser.UserSessions
+                .Where(s => !s.IsRevoked)
+                .OrderByDescending(s => s.LastUsedAt ?? s.CreatedAt)
+                .Select(s => s.LastUsedAt ?? s.CreatedAt)
+                .FirstOrDefault();
+
+            var effectivePermissions = await _effectivePermissionService.ResolveAsync(userId);
+
+            return new OrgUserDetailDto
+            {
+                Id = authUser.Id,
+                FirstName = profile?.FirstName ?? string.Empty,
+                LastName = profile?.LastName ?? string.Empty,
+                Name = profile?.FullName ?? authUser.Name,
+                Email = authUser.Email,
+                PhoneNumber = profile?.Phone1,
+                Role = roleInfo?.RoleName ?? authUser.UserType.ToString(),
+                RoleId = roleInfo?.Id,
+                GroupName = roleInfo?.GroupName,
+                GroupId = roleInfo?.GroupId,
+                RoleName = roleInfo?.RoleName,
+                Status = authUser.Status ? "Active" : "Inactive",
+                IsLocked = isLocked,
+                LockoutEnd = lockoutEnd,
+                LastLogin = profile?.LastLoginDate ?? lastSession,
+                CreatedAt = authUser.CreatedAt,
+                UpdatedAt = profile?.UpdatedAt,
+                Avatar = profile?.AvatarUrl,
+                Groups = allGroups,
+                Roles = allRoles,
+                EffectivePermissions = effectivePermissions.PermissionKeys.ToList()
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving user details for {UserId}", userId);
+            throw;
+        }
+    }
+
+    public async Task<bool> LockOrgUserAsync(Guid userId, Guid? currentUserId, string? reason = null)
+    {
+        try
+        {
+            var authUser = await _db.AuthUsers.FirstOrDefaultAsync(x => x.Id == userId && x.UserType == UserType.OrgUser);
+            if (authUser == null)
+                return false;
+
+            var identityUser = await _userManager.FindByIdAsync(userId.ToString());
+            if (identityUser == null)
+                return false;
+
+            if (currentUserId == userId)
+                throw Validation("SELF_LOCK", "You cannot lock your own account.");
+            if (IsProtectedUser(authUser))
+                throw Validation("PROTECTED_USER", "This user is protected and cannot be locked.");
+
+            await _userManager.SetLockoutEndDateAsync(identityUser, DateTimeOffset.MaxValue);
+
+            if (!identityUser.LockoutEnabled)
+            {
+                identityUser.LockoutEnabled = true;
+                await _userManager.UpdateAsync(identityUser);
+            }
+
+            await LogAuditAsync(currentUserId, "OrgUser", userId.ToString(), "Lock", reason, Warning);
+            _logger.LogInformation("Organizational user {UserId} locked by {CurrentUserId}", userId, currentUserId);
+            return true;
+        }
+        catch (Exception ex) when (ex is not OrgUserValidationException)
+        {
+            _logger.LogError(ex, "Error locking user {UserId}", userId);
+            throw;
+        }
+    }
+
+    public async Task<bool> UnlockOrgUserAsync(Guid userId, Guid? currentUserId, string? reason = null)
+    {
+        try
+        {
+            var authUser = await _db.AuthUsers.FirstOrDefaultAsync(x => x.Id == userId && x.UserType == UserType.OrgUser);
+            if (authUser == null)
+                return false;
+
+            var identityUser = await _userManager.FindByIdAsync(userId.ToString());
+            if (identityUser == null)
+                return false;
+
+            await _userManager.SetLockoutEndDateAsync(identityUser, null);
+            await _userManager.ResetAccessFailedCountAsync(identityUser);
+
+            await LogAuditAsync(currentUserId, "OrgUser", userId.ToString(), "Unlock", reason, Information);
+            _logger.LogInformation("Organizational user {UserId} unlocked by {CurrentUserId}", userId, currentUserId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error unlocking user {UserId}", userId);
+            throw;
+        }
+    }
+
+    public async Task<bool> ResetPasswordAsync(Guid userId, string newPassword)
+    {
+        try
+        {
+            var authUser = await _db.AuthUsers.FirstOrDefaultAsync(x => x.Id == userId && x.UserType == UserType.OrgUser);
+            if (authUser == null)
+                return false;
+
+            var identityUser = await _userManager.FindByIdAsync(userId.ToString());
+            if (identityUser == null)
+                return false;
+
+            if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
+                throw Validation("PASSWORD_TOO_SHORT", "Password must be at least 6 characters long.");
+
+            var removeResult = await _userManager.RemovePasswordAsync(identityUser);
+            EnsureIdentitySucceeded(removeResult, "PASSWORD_REMOVE_FAILED", "Failed to remove existing password.");
+
+            var addResult = await _userManager.AddPasswordAsync(identityUser, newPassword);
+            EnsureIdentitySucceeded(addResult, "PASSWORD_RESET_FAILED", "Failed to set new password.");
+
+            await LogAuditAsync(null, "OrgUser", userId.ToString(), "ResetPassword", "Password reset performed", Critical);
+            _logger.LogInformation("Password reset for organizational user {UserId}", userId);
+            return true;
+        }
+        catch (Exception ex) when (ex is not OrgUserValidationException)
+        {
+            _logger.LogError(ex, "Error resetting password for user {UserId}", userId);
+            throw;
+        }
+    }
+
+    public async Task<bool> InviteOrgUserAsync(Guid userId, string? message = null)
+    {
+        try
+        {
+            var authUser = await _db.AuthUsers.FirstOrDefaultAsync(x => x.Id == userId && x.UserType == UserType.OrgUser);
+            if (authUser == null)
+                return false;
+
+            var identityUser = await _userManager.FindByIdAsync(userId.ToString());
+            if (identityUser != null && identityUser.Email != null)
+            {
+                var token = await _userManager.GeneratePasswordResetTokenAsync(identityUser);
+                _logger.LogInformation("Invite token generated for user {UserId}: {Token}", userId, token);
+            }
+
+            await LogAuditAsync(null, "OrgUser", userId.ToString(), "Invite", message ?? "Invitation sent", Information);
+            _logger.LogInformation("Invitation sent to organizational user {UserId}", userId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error inviting user {UserId}", userId);
+            throw;
+        }
+    }
+
+    public async Task<List<AuditLogEntryDto>> GetUserAuditLogAsync(Guid userId, int page = 1, int pageSize = 20)
+    {
+        try
+        {
+            var query = _db.AuditLogs
+                .Where(x => x.EntityType == "OrgUser" && x.EntityId == userId.ToString())
+                .OrderByDescending(x => x.Timestamp);
+
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new AuditLogEntryDto
+                {
+                    Id = x.Id,
+                    Action = x.Action,
+                    Changes = x.Changes,
+                    PerformedBy = x.UserName,
+                    Timestamp = x.Timestamp
+                })
+                .ToListAsync();
+
+            return items;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving audit log for user {UserId}", userId);
+            throw;
+        }
+    }
+
+    private async Task LogAuditAsync(Guid? currentUserId, string entityType, string entityId, string action, string? changes = null, AuditSeverity severity = AuditSeverity.Information)
+    {
+        var userName = currentUserId.HasValue
+            ? (await _db.AuthUsers.FindAsync(currentUserId.Value))?.Name ?? "Unknown"
+            : "System";
+        _db.AuditLogs.Add(new AuditLog
+        {
+            UserId = currentUserId,
+            UserName = userName,
+            EntityType = entityType,
+            EntityId = entityId,
+            Action = action,
+            Changes = changes,
+            Timestamp = DateTime.UtcNow,
+            Severity = severity
+        });
+        await _db.SaveChangesAsync();
+    }
+
+    private static bool IsProtectedUser(AuthUser? authUser)
+    {
+        if (authUser == null)
+            return false;
+        return ProtectedEmails.Contains(authUser.Email, StringComparer.OrdinalIgnoreCase);
     }
 }

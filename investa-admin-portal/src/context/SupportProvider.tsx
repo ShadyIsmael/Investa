@@ -1,6 +1,6 @@
 /**
  * SupportProvider
- * Exposes high-level support state (SignalR connection status, host info)
+ * Exposes high-level support state (connection status, host info)
  */
 import React, { createContext, useContext, useMemo, useState, useCallback } from 'react';
 
@@ -16,7 +16,7 @@ interface SupportContextValue {
 const SupportContext = createContext<SupportContextValue | undefined>(undefined);
 
 export const SupportProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // SignalR has been removed; provide a lightweight, no-op provider to preserve API
+  // No-op provider to preserve API
   const [connectionStatus, setConnectionStatus] = useState<SupportConnectionStatus>('Disconnected');
 
   const host = useMemo(() => {

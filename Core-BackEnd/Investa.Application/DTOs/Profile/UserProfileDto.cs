@@ -30,6 +30,13 @@ public class UserProfileDto
     /// </summary>
     public AuditUsageDto? AuditUsage { get; set; }
 
+    /// <summary>
+    /// Profile completion percentage (0-100) calculated server-side
+    /// based on required profile fields. Authoritative value used by
+    /// trust system and dashboard.
+    /// </summary>
+    public int ProfileCompletionPercentage { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

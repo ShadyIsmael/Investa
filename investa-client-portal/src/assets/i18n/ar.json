@@ -98,31 +98,38 @@
     "errorGeneric": "فشل تسجيل الدخول",
     "invalidCredentials": "رقم الجوال أو كلمة المرور غير صحيحة"
   },
+  "signupOtp": {
+    "title": "تحقق من هاتفك",
+    "subtitle": "أدخل رمز التحقق المكون من 6 أرقام المرسل إلى هاتفك.",
+    "otpLabel": "رمز التحقق",
+    "otpPlaceholder": "أدخل الرمز المكون من 6 أرقام",
+    "verifyButton": "تحقق وأنشئ الحساب",
+    "verifying": "جارٍ التحقق..."
+  },
   "signup": {
     "title": "إنشاء حسابك",
-    "subtitle": "سجل للوصول إلى منصة إنفستا.",
+    "subtitle": "سجل للوصول إلى منصة FOPX One.",
+    "accountCreated": "تم إنشاء الحساب بنجاح. يرجى تسجيل الدخول.",
     "mobileLabel": "رقم الجوال",
     "mobilePlaceholder": "أدخل رقم جوالك",
     "firstNameLabel": "الاسم الأول",
     "firstNamePlaceholder": "أدخل اسمك الأول",
     "lastNameLabel": "اسم العائلة",
     "lastNamePlaceholder": "أدخل اسم العائلة",
-    "emailLabel": "البريد الإلكتروني",
-    "optional": "اختياري",
-    "emailPlaceholder": "أدخل بريدك الإلكتروني",
     "passwordLabel": "كلمة المرور",
     "passwordPlaceholder": "أنشئ كلمة مرور قوية",
     "confirmPasswordLabel": "تأكيد كلمة المرور",
     "confirmPasswordPlaceholder": "أعد إدخال كلمة المرور",
     "passwordMismatch": "كلمات المرور غير متطابقة",
     "signUpButton": "سجل",
+    "signingUp": "جارٍ إنشاء الحساب...",
     "alreadyHaveAccount": "هل لديك حساب بالفعل؟",
     "signIn": "تسجيل الدخول"
   },
   "roleSelect": {
     "close": "إغلاق",
     "title": "اختر دورك",
-    "subtitle": "اختر المسار الذي يناسبك للبدء مع إنفستا. هل أنت هنا لاكتشاف الفرص أم لبناء مشروعك؟",
+    "subtitle": "اختر المسار الذي يناسبك للبدء مع FOPX One. هل أنت هنا لاكتشاف الفرص أم لبناء مشروعك؟",
     "investor": {
       "title": "مستثمر",
       "description": "أرغب في اكتشاف الفرص الاستثمارية الواعدة وتمويل المشاريع ذات الإمكانات العالية.",
@@ -135,7 +142,7 @@
     }
   },
   "adminNav": {
-    "panel": "لوحة إنفستا",
+    "panel": "لوحة FOPX One",
     "dashboard": "لوحة التحكم",
     "investments": "تصفح الفرص",
     "myParticipations": "مشاركاتي",
@@ -175,7 +182,7 @@
   "uspPlaceholder": "ما الذي يجعل مشروعك فريدًا وأفضل من المنافسين؟",
   "about": {
     "title": "نبني مستقبل الاستثمار، معًا.",
-    "description": "إنفستا أكثر من مجرد منصة؛ إنها نظام بيئي منسق يجمع الابتكار برأس المال. نُوَفِّر فرصًا للمؤسسين الطموحين والمستثمرين الماهرين للعمل معًا في بيئة موثوقة لتسهيل اكتشاف وتمويل وبناء الجيل القادم من المشاريع الرائدة.",
+    "description": "FOPX One أكثر من مجرد منصة؛ إنها نظام بيئي منسق يجمع الابتكار برأس المال. نُوَفِّر فرصًا للمؤسسين الطموحين والمستثمرين الماهرين للعمل معًا في بيئة موثوقة لتسهيل اكتشاف وتمويل وبناء الجيل القادم من المشاريع الرائدة.",
     "pillars": {
       "discover": {
         "title": "اكتشف فرصًا موثوقة",
@@ -203,7 +210,7 @@
     "secondaryCta": "أدرج مشروعك"
   },
   "features": {
-    "title": "لماذا تختار إنفستا؟",
+    "title": "لماذا تختار FOPX One؟",
     "subtitle": "تقنية متطورة تلتقي بتصميم بديهي.",
     "realTime": {
       "title": "بيانات السوق في الوقت الفعلي",
@@ -220,8 +227,8 @@
   },
   "testimonials": {
     "title": "ماذا يقول مستخدمونا",
-    "subtitle": "قصص حقيقية من مستثمرين يثقون في إنفستا.",
-    "sarah": "غيّرت إنفستا نهجي في التعامل مع الأسواق؛ رؤى الذكاء الاصطناعي دقيقة للغاية وقد وفرت عليّ ساعات من البحث.",
+    "subtitle": "قصص حقيقية من مستثمرين يثقون في FOPX One.",
+    "sarah": "غيّرت FOPX One نهجي في التعامل مع الأسواق؛ رؤى الذكاء الاصطناعي دقيقة للغاية وقد وفرت عليّ ساعات من البحث.",
     "sarahName": "سارة ج.",
     "sarahTitle": "متداولة يومية",
     "michael": "كخبير استثمارات طويل الأجل، أداة تحسين المحفظة غيّرت قواعد اللعبة؛ تساعدني على البقاء متنوعًا وإدارة المخاطر بفعالية. أوصي بها بشدة!",
@@ -316,7 +323,7 @@
       "terms": "الشروط",
       "risk": "الإفصاح عن المخاطر"
     },
-    "copyright": "إنفستا. جميع الحقوق محفوظة."
+    "copyright": "FOPX One. جميع الحقوق محفوظة."
   },
   "investments": {
     "title": "تصفح الفرص",
@@ -395,6 +402,7 @@
     "score": "التقييم",
     "share": "مشاركة",
     "addToFavorites": "إضافة إلى المفضلة",
+    "removeFromFavorites": "إزالة من المفضلة",
     "engage": "تواصل",
     "noResultsTitle": "لا توجد فرص مطابقة",
     "noResultsSubtitle": "لا توجد فرص تطابق الفلاتر الحالية. جرب فئة أو كلمة بحث مختلفة.",
@@ -462,6 +470,7 @@
     }
   },
   "investmentPreview": {
+    "cashFlow": { "eyebrow": "مشاركة قرض معتمدة", "title": "جدول الدفعات المتوقعة", "loading": "جارٍ تحميل جدول الدفعات المتوقعة...", "error": "جدول الدفعات المتوقعة غير متاح حاليًا.", "approvedAmount": "المبلغ المعتمد", "annualRate": "معدل الفائدة السنوي", "duration": "المدة", "months": "شهرًا", "frequency": "دورية السداد", "principalRule": "سداد أصل المبلغ المجدول", "remainingPrincipal": "أصل المبلغ المتبقي حسب الجدول", "received": "المبلغ المستلم فعليًا", "monthlyAverage": "متوسط الدخل الشهري المتوقع", "disclaimer": "متوسط الدخل الشهري المتوقع قيمة إرشادية. تتبع الدفعات الجدول المتفق عليه وقد لا تُدفع شهريًا.", "actualUnavailable": "تتبع الدفعات الفعلية وسجل المعاملات غير متاحين بعد. لا يتم استنتاج حالة الدفع من بيانات غير متاحة.", "actualUnavailableShort": "غير متاح", "rowsPerPage": "عدد الصفوف في الصفحة", "showing": "عرض", "of": "من", "previous": "الصفحة السابقة", "next": "الصفحة التالية", "dueDate": "تاريخ الاستحقاق المجدول", "interest": "الفائدة المتوقعة", "principal": "أصل المبلغ المجدول", "expectedTotal": "إجمالي الدفعة المتوقعة", "actualPaid": "المدفوع فعليًا", "statusLabel": "حالة الجدول", "status": { "Upcoming": "قادمة", "Due": "مستحقة", "Paid": "مدفوعة", "PartiallyPaid": "مدفوعة جزئيًا", "Overdue": "متأخرة", "Cancelled": "ملغاة" }, "frequencyValue": { "Monthly": "شهري", "Quarterly": "ربع سنوي", "SemiAnnual": "نصف سنوي", "Annual": "سنوي" }, "principalValue": { "AtMaturity": "عند الاستحقاق" } },
     "backButton": "العودة إلى الفرص",
     "investmentType": "نوع الاستثمار",
     "industry": "المجال",
@@ -609,6 +618,15 @@
       "overview": "نظرة عامة",
       "investmentTerms": "شروط الاستثمار",
       "updates": "التحديثات",
+      "projectActivity": "نشاط المشروع",
+      "verifiedActivity": "نشاط المشروع الموثق",
+      "viewMore": "عرض المزيد",
+      "loading": "جاري التحميل...",
+      "previous": "السابق",
+      "next": "التالي",
+      "pageOf": "الصفحة {{current}} من {{total}}",
+      "noProjectActivity": "لا توجد تحديثات للمشروع حتى الآن",
+      "projectActivityFallback": "نشاط المشروع",
       "documents": "المستندات",
       "media": "الوسائط",
       "opportunityOverview": "نظرة عامة على الفرصة",
@@ -663,7 +681,7 @@
   },
   "userProfile": {
     "loading": "جارٍ تحميل الملف الشخصي...",
-    "member": "عضو في إنفستا",
+    "member": "عضو في FOPX One",
     "editProfile": "تعديل الملف الشخصي",
     "ownerOnly": "مرئي لك فقط",
     "uploading": "جارٍ الرفع...",
@@ -773,7 +791,9 @@
     "createInvestment": "إنشاء فرصة",
     "editProject": "تعديل المشروع",
     "viewPublicPage": "عرض الصفحة العامة",
-    "postUpdate": "نشر تحديث",
+    "publicPageDraftHelper": "انشر هذه الفرصة أولاً قبل فتح صفحتها العامة.",
+    "openProjectRoom": "فتح غرفة المشروع",
+    "approvedInvestors": { "title": "المستثمرون", "loading": "جارٍ تحميل المستثمرين المعتمدين", "emptyTitle": "لا يوجد مستثمرون معتمدون بعد", "emptyHelper": "سيظهر المستثمرون المعتمدون هنا.", "showMore": "عرض {{count}} مستثمرين إضافيين" },
     "recentActivity": "النشاط الأخير",
     "selectProjectTitle": "اختر مشروعًا",
     "selectProjectSubtitle": "اختر مشروعًا لعرض لوحة التحكم الخاصة به.",
@@ -799,16 +819,33 @@
     "unavailable": "غير متاح",
     "creditUnit": "CREDIT",
     "opportunityFallback": "فرصة",
+    "partnerFallback": "شريك FOPX One",
+    "cashFlow": { "eyebrow": "المشاركات المعتمدة", "title": "التدفقات النقدية المتوقعة", "loading": "جارٍ تحميل التدفقات النقدية المتوقعة...", "thisMonth": "الدخل المتوقع هذا الشهر", "nextPayment": "الدفعة المجدولة التالية", "nextTwelveMonths": "المتوقع خلال الأشهر الـ12 القادمة", "totalInterest": "إجمالي العائد المتوقع", "received": "المبلغ المستلم فعليًا", "remainingPrincipal": "رأس المال المجدول استرداده", "overdue": "المبلغ المتأخر فعليًا", "expectedInterest": "العائد المتوقع", "principal": "استرداد رأس المال المجدول", "actualReceived": "المستلم فعليًا", "actualUnavailable": "تتبع الدفعات الفعلية غير متاح بعد. القيم المعروضة متوقعة أو مجدولة وليست معاملات دفع.", "actualUnavailableShort": "غير متاح", "chartLabel": "العوائد المتوقعة واسترداد رأس المال المجدول شهريًا", "empty": "ستظهر الدفعات المتوقعة بعد اعتماد مشاركة قرض أو مشاركة أرباح.", "unavailable": "بيانات التدفقات النقدية المتوقعة غير متاحة حاليًا." },
+    "welcomeBack": "مرحبًا بعودتك",
+    "unreadNotifications": "إشعارات غير مقروءة",
+    "growth": {
+      "eyebrow": "تقدمك على المنصة", "title": "نموك على FOPX One",
+      "approvedValue": "قيمة المشاركات المعتمدة",
+      "approvedHelper": "إجمالي طلبات المشاركة المعتمدة، وليس أرباحًا محققة أو قيمة حالية للمحفظة.",
+      "chartLabel": "القيمة التراكمية للمشاركات المعتمدة عبر الزمن",
+      "emptyTitle": "سجل النمو غير متاح بعد", "emptyHelper": "سيظهر نموك هنا بعد أول مشاركة معتمدة."
+    },
+    "beforeNow": { "title": "عند انضمامك ← الآن", "joined": "عند انضمامك", "now": "الآن", "missingBaseline": "واجهة البيانات الحالية لا توفر خط أساس تاريخيًا للسمعة." },
+    "nextAchievement": { "title": "إنجازك التالي", "profile": "أكمل ملفك الشخصي", "remaining": "متبقي", "continue": "متابعة الملف الشخصي" },
     "performance": {
       "eyebrow": "المشاركات المعتمدة فقط",
       "title": "أداء الاستثمار",
-      "totalInvested": "إجمالي المستثمر",
-      "currentValue": "القيمة الحالية",
+      "totalInvested": "إجمالي قيمة المشاركات المعتمدة",
+      "currentValue": "القيمة السوقية العادلة للمحفظة",
       "realizedEarnings": "الأرباح المحققة",
-      "expectedEarnings": "الأرباح المتوقعة",
+      "expectedEarnings": "صافي العائد المتوقع",
       "totalReturn": "إجمالي العائد",
       "returnRate": "معدل العائد",
-      "helper": "تعتمد الإجماليات على طلبات المشاركة المعتمدة فقط. تظهر القيمة الحالية والأرباح المحققة عند توفر بيانات التقييم أو المدفوعات من الخادم."
+      "helper": "تعتمد الإجماليات على طلبات المشاركة المعتمدة فقط. تظهر القيمة الحالية والأرباح المحققة عند توفر بيانات التقييم أو المدفوعات من الخادم.",
+      "totalInvestedHint": "إجمالي قيمة جميع طلبات المشاركة المعتمدة عبر نماذج الاستثمار المختلفة",
+      "expectedEarningsHint": "صافي الربح المتوقع بناءً على شروط المشاركات المعتمدة",
+      "currentValueHint": "القيمة السوقية العادلة المقدرة للمحفظة — تظهر عند توفر بيانات تقييم المحفظة",
+      "realizedEarningsHint": "الأرباح النقدية الفعلية المستلمة بالفعل من دفعات المشاركات المكتملة"
     },
     "wallet": {
       "eyebrow": "محفظة المنصة",
@@ -861,7 +898,8 @@
       "locked": "مقفل",
       "teaser": "افتح تحليلات أعمق للمحفظة ولمحات من الرؤى. تبقى التوصيات مخفية حتى يصبح اشتراكك فعالا.",
       "cta": "إدارة الاشتراك",
-      "subscribedHelper": "رؤى الاستثمار المميزة متاحة للمستثمرين المشتركين."
+      "subscribedHelper": "رؤى الاستثمار المميزة متاحة للمستثمرين المشتركين.",
+      "unavailable": "بيانات الاشتراك غير متاحة لأن واجهة العميل لا توفر حالة الخطة."
     },
     "activity": {
       "participationCompleted": "تمت المشاركة",
@@ -877,6 +915,52 @@
       "emptyTitle": "لا توجد مفضلات بعد",
       "emptyHelper": "احفظ الفرص التي تريد العودة إليها لتظهر هنا.",
       "emptyCta": "استكشاف الفرص"
+    },
+    "createdOn": "أنشئ في",
+    "investorsAndEngagements": "المستثمرون والتفاعلات",
+    "latestInvestor": "آخر مستثمر",
+    "manageRequests": "إدارة الطلبات",
+    "noRecentActivity": "لا يوجد نشاط حديث",
+    "pendingConversations": "محادثات معلقة",
+    "pendingParticipations": "المشاركات المعلقة",
+    "projectExecution": "تنفيذ المشروع",
+    "recentProjectActivity": "نشاط المشروع الأخير",
+    "milestonesProgress": "التقدم",
+    "overdue": "متأخر",
+    "nextMilestone": "المرحلة التالية",
+    "latestDocument": "آخر مستند",
+    "latestUpdate": "آخر تحديث",
+    "interestRate": "معدل الفائدة",
+    "repaymentFrequency": "دورية السداد",
+    "finalRepaymentDate": "تاريخ السداد النهائي",
+    "paymentsSchedule": "جدول الدفعات",
+    "approvedContributions": "المساهمات المعتمدة حسب نموذج المشاركة",
+    "projectInvestmentModel": "نموذج المشروع",
+    "nextPaymentDue": "الدفعة القادمة",
+    "noPayments": "لا توجد دفعات",
+    "loading": "جارٍ التحميل...",
+    "errors": {
+      "approvedInvestors": "تعذر تحميل المستثمرين المعتمدين. يرجى المحاولة مرة أخرى.",
+      "projectRoom": "تعذر تحميل بيانات تنفيذ المشروع. يرجى المحاولة مرة أخرى."
+    },
+    "enums": {
+      "status": {
+        "published": "منشور",
+        "draft": "مسودة",
+        "closed": "مغلق"
+      },
+      "investmentModel": {
+        "loans": "استثمار قرض",
+        "loaninvestment": "استثمار قرض",
+        "equity": "استثمار أسهم",
+        "profitsharing": "مشاركة أرباح"
+      },
+      "frequency": {
+        "monthly": "شهري",
+        "quarterly": "ربع سنوي",
+        "semiannual": "نصف سنوي",
+        "annual": "سنوي"
+      }
     }
   },
   "chat": {
@@ -1292,6 +1376,42 @@
     "successTitle": "تم الشراء بنجاح!",
     "successMessage": "تمت إضافة الأرصدة إلى حسابك"
   },
+  "errors": {
+    "toastTitle": "خطأ",
+    "unknown": "حدث خطأ غير متوقع. حاول مرة أخرى.",
+    "validationSummary": "يرجى تصحيح الحقول المظللة والمحاولة مرة أخرى.",
+    "unauthorized": "انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى.",
+    "forbidden": "ليس لديك صلاحية لتنفيذ هذا الإجراء.",
+    "notFound": "لم يتم العثور على المورد المطلوب.",
+    "conflict": "يتعارض هذا الإجراء مع الحالة الحالية. يرجى التحديث والمحاولة مرة أخرى.",
+    "businessRule": "تعذر إكمال هذا الإجراء بسبب قاعدة عمل.",
+    "serverError": "حدث خطأ في الخادم. حاول مرة أخرى لاحقًا.",
+    "timeout": "انتهت مهلة الطلب. يرجى التحقق من اتصالك والمحاولة مرة أخرى.",
+    "offline": "يبدو أنك غير متصل بالإنترنت. يرجى التحقق من اتصالك.",
+    "required": "{field} مطلوب.",
+    "minLength": "يجب أن يكون {field} على الأقل {min} أحرف.",
+    "maxLength": "يجب ألا يتجاوز {field} {max} أحرف.",
+    "invalidFormat": "تنسيق {field} غير صحيح.",
+    "invalidEmail": "يرجى إدخال بريد إلكتروني صحيح.",
+    "invalidPhone": "يرجى إدخال رقم هاتف صحيح.",
+    "invalidOtp": "رمز التحقق الذي أدخلته غير صحيح أو منتهي الصلاحية.",
+    "duplicate": "{field} موجود بالفعل."
+  },
+  "fields": {
+    "phoneNumber": "رقم الهاتف",
+    "password": "كلمة المرور",
+    "firstName": "الاسم الأول",
+    "lastName": "اسم العائلة",
+    "email": "البريد الإلكتروني",
+    "otpCode": "رمز التحقق",
+    "verificationSessionId": "جلسة التحقق",
+    "shortDescription": "الوصف المختصر",
+    "longDescription": "الوصف",
+    "targetAmount": "المبلغ المستهدف",
+    "minimumInvestment": "الحد الأدنى للاستثمار",
+    "companyName": "اسم الشركة",
+    "businessCategory": "فئة النشاط التجاري"
+  },
   "apiSwitcher": {
     "apiLabel": "واجهة برمجية:",
     "change": "تغيير",
@@ -1312,7 +1432,7 @@
     "navigationLabel": "أقسام الإعدادات",
     "sections": {
       "appearance": {
-        "description": "اختر مظهر إنفستا في جميع أجزاء حسابك."
+        "description": "اختر مظهر FOPX One في جميع أجزاء حسابك."
       },
       "localization": {
         "description": "حدد لغة الواجهة وعملة العرض المفضلة لديك."
@@ -1569,7 +1689,9 @@
     },
     "fallbacks": {
       "opportunity": "فرصة",
-      "participant": "مشارك"
+      "participant": "مشارك",
+      "investor": "المستثمر",
+      "founder": "المؤسس"
     }
   },
   "common": {
@@ -1740,7 +1862,6 @@
       "participationSummary": "ملخص المشاركة"
     },
     "validation": {
-      "unsupportedModel": "هذا النموذج غير مدعوم للمشاركة من هذه الشاشة.",
       "sharesGreaterThanZero": "عدد الأسهم يجب أن يكون أكبر من صفر.",
       "minimumShares": "الحد الأدنى للمشاركة {count} سهم.",
       "maximumShares": "الحد الأقصى {count} سهم.",
@@ -1753,7 +1874,8 @@
     },
     "errors": {
       "loadFailed": "فشل تحميل نموذج المشاركة.",
-      "submitFailed": "فشل إرسال طلب المشاركة."
+      "submitFailed": "فشل إرسال طلب المشاركة.",
+      "invalidModel": "أعادت الفرصة نموذج استثمار غير صالح. يرجى تحديث الصفحة والمحاولة مرة أخرى."
     }
   },
   "reports": {
@@ -1877,6 +1999,11 @@
       "SAR": "ريال سعودي",
       "EGP": "جنيه مصري"
     },
+    "repaymentFrequencies": {
+      "Monthly": "شهريًا",
+      "Quarterly": "ربع سنوي",
+      "Annual": "سنويًا"
+    },
     "placeholders": {
       "title": "أدخل عنوانًا موجزًا للفرصة",
       "shortDescription": "لخص الفرصة",
@@ -1889,6 +2016,7 @@
       "minimumInvestment": "0.00",
       "maximumInvestment": "اختياري",
       "expectedDurationMonths": "عدد الأشهر",
+      "currency": "اختر العملة",
       "repaymentFrequency": "أدخل دورية السداد",
       "selectPayoutFrequency": "اختر دورية التوزيع",
       "exitTerms": "صف شروط التخارج من مشاركة الأرباح",
@@ -2053,113 +2181,140 @@
       "failureMessage": "تعذر رفع الملفات المحددة."
     }
   },
+  "projectActivity": {
+    "title": "سجل نشاط المشروع",
+    "subtitle": "نشاط جوهري موثّق يُنشأ تلقائيًا من إجراءات المنصة المكتملة.",
+    "empty": "لم يُسجل أي نشاط جوهري للمشروع بعد.",
+    "verified": "نشاط موثّق",
+    "actor": { "System": "النظام", "Founder": "المؤسس", "Admin": "الإدارة" },
+    "types": {
+      "ParticipationApproved": { "title": "اعتماد مشاركة مستثمر", "description": "تم اعتماد مشاركة استثمارية." },
+      "FundingProgressReached": { "title": "بلغ التمويل {progressPercent}%", "description": "بلغ المشروع مرحلة تمويل موثّقة." },
+      "ProjectStatusChanged": { "title": "تغيرت حالة المشروع", "description": "تغيرت حالة المشروع من {previousStatus} إلى {currentStatus}." },
+      "MilestoneCreated": { "title": "إنشاء مرحلة رئيسية", "description": "{milestoneTitle}: {milestoneDescription}" },
+      "MilestoneCompleted": { "title": "اكتمال مرحلة رئيسية", "description": "{milestoneTitle}: {milestoneDescription}" },
+      "MilestoneDelayed": { "title": "تأخر مرحلة رئيسية", "description": "{milestoneTitle}: {milestoneDescription}" },
+      "MilestoneUpdated": { "title": "تحديث مرحلة رئيسية", "description": "{milestoneTitle}: {milestoneDescription}" },
+      "InvestorDocumentPublished": { "title": "نشر مستند للمستثمرين", "description": "أصبح المستند {documentName} متاحًا للمستثمرين المصرح لهم." },
+      "ContractActivated": { "title": "تفعيل عقد الاستثمار", "description": "تم تفعيل إصدار العقد رقم {versionNumber}." },
+      "FundingCompleted": { "title": "اكتمال التمويل", "description": "بلغ المشروع مستهدفه التمويلي." }
+    }
+  },
   "contracts": {
-    "title": "?????? ???????????",
-    "investmentAgreement": "??????? ???????",
+    "title": "العقود والاتفاقيات",
+    "investmentAgreement": "اتفاقية الاستثمار",
     "room": {
-      "founderListHelper": "??? ?????? ???? ?? ?????? ?????? ??? ???? ??????.",
-      "investorListHelper": "??? ???????? ???? ??? ?????? ???? ???? ????? ???? ????."
+      "founderListHelper": "تتضمن قائمة المؤسس جميع العقود المصرح بها لهذه الفرصة.",
+      "investorListHelper": "تتضمن قائمة المستثمر العقود التي يكون طرفًا فيها فقط.",
+      "contractsWithInvestor": "العقود مع هذا المستثمر"
     },
     "actions": {
-      "refresh": "?????",
-      "preview": "?????? ?????",
-      "downloadPdf": "????? PDF",
-      "openVersion": "??? ???????",
-      "print": "?????"
+      "refresh": "تحديث",
+      "preview": "معاينة العقد",
+      "downloadPdf": "تنزيل PDF",
+      "openVersion": "فتح الإصدار",
+      "print": "طباعة",
+      "email": "إرسال العقد بالبريد الإلكتروني"
     },
     "fields": {
-      "investmentModel": "????? ?????????",
-      "contractNumber": "??? ?????",
-      "currentVersion": "??????? ??????",
-      "status": "??????",
-      "latestAgreementDate": "????? ??? ???????",
-      "versionCount": "??? ?????????",
-      "founder": "??????",
-      "investor": "????????",
-      "opportunity": "??????",
-      "effectiveDate": "????? ???????",
-      "sourceParticipation": "???? ??? ????????",
-      "acceptedOffer": "???? ????? ???????",
-      "pdfStatus": "???? PDF",
-      "changesSummary": "???? ?????????"
+      "investmentModel": "نموذج الاستثمار",
+      "contractNumber": "رقم العقد",
+      "currentVersion": "الإصدار الحالي",
+      "status": "الحالة",
+      "latestAgreementDate": "تاريخ آخر اتفاقية",
+      "versionCount": "عدد الإصدارات",
+      "founder": "المؤسس",
+      "investor": "المستثمر",
+      "opportunity": "الفرصة",
+      "effectiveDate": "تاريخ السريان",
+      "sourceParticipation": "مرجع المشاركة المصدرية",
+      "acceptedOffer": "مرجع العرض المقبول",
+      "pdfStatus": "حالة PDF",
+      "changesSummary": "ملخص التغييرات"
     },
     "sections": {
-      "agreedTerms": "???? ?????? ?????? ?????",
-      "versionHistory": "????????? ???????"
+      "agreedTerms": "ملخص الشروط المتفق عليها",
+      "versionHistory": "الإصدارات السابقة"
     },
     "badges": {
-      "current": "??????? ??????",
-      "previous": "????? ????"
+      "current": "الإصدار الحالي",
+      "previous": "إصدار سابق"
     },
     "empty": {
-      "title": "?? ???? ???? ???",
-      "helper": "????? ????? ???????? ??? ???????? ??? ??? ????????.",
-      "selectTitle": "???? ?????",
-      "selectHelper": "???? ????? ?? ??????? ???? ???????? ???? ?????????.",
-      "noTerms": "?? ???? ???? ???? ?????? ?????? ?????.",
-      "noChangesSummary": "?? ???? ???? ??????? ???? ???? ???????."
+      "title": "لا توجد عقود بعد",
+      "helper": "سيظهر العقد تلقائيًا بعد اعتماد المشاركة.",
+      "selectTitle": "اختر عقدًا",
+      "selectHelper": "اختر عقدًا من القائمة لعرض تفاصيله وسجل إصداراته.",
+      "noTerms": "لا يتوفر ملخص للشروط المتفق عليها.",
+      "noChangesSummary": "لا يتوفر ملخص للتغييرات في هذا الإصدار."
     },
     "preview": {
-      "loading": "???? ????? ?????? ?????..."
+      "loading": "جارٍ تحميل معاينة العقد..."
     },
     "pdf": {
-      "preparing": "???? ????? ???? PDF ???????..."
+      "preparing": "جارٍ إعداد ملف PDF الرسمي..."
+    },
+    "email": {
+      "sending": "جارٍ إرسال العقد...",
+      "success": "تم إرسال العقد بنجاح. يرجى مراجعة بريدك الإلكتروني."
     },
     "status": {
-      "0": "???",
-      "1": "?????",
-      "Active": "???",
-      "Terminated": "?????",
-      "unknown": "??? ?????"
+      "0": "نشط",
+      "1": "منتهي",
+      "Active": "نشط",
+      "Terminated": "منتهي",
+      "unknown": "غير معروف"
     },
     "versionTypes": {
-      "0": "??????? ?????",
-      "1": "??????? ?????",
-      "2": "???? ??? ??????",
-      "3": "????? ????",
-      "4": "????? ????? ???",
-      "5": "????? ?????? ?????",
-      "6": "?????",
-      "7": "???? ????",
-      "8": "?????",
-      "InitialAgreement": "??????? ?????",
-      "AdditionalInvestment": "??????? ?????",
-      "AdditionalSharePurchase": "???? ??? ??????",
-      "TermsAmendment": "????? ????",
-      "LoanRestructuring": "????? ????? ???",
-      "ProfitSharingAmendment": "????? ?????? ?????",
-      "Extension": "?????",
-      "PartialExit": "???? ????",
-      "Termination": "?????",
-      "unknown": "??? ?????"
+      "0": "الاتفاقية الأولية",
+      "1": "استثمار إضافي",
+      "2": "شراء أسهم إضافية",
+      "3": "تعديل الشروط",
+      "4": "إعادة هيكلة القرض",
+      "5": "تعديل مشاركة الأرباح",
+      "6": "تمديد",
+      "7": "تخارج جزئي",
+      "8": "إنهاء",
+      "InitialAgreement": "الاتفاقية الأولية",
+      "AdditionalInvestment": "استثمار إضافي",
+      "AdditionalSharePurchase": "شراء أسهم إضافية",
+      "TermsAmendment": "تعديل الشروط",
+      "LoanRestructuring": "إعادة هيكلة القرض",
+      "ProfitSharingAmendment": "تعديل مشاركة الأرباح",
+      "Extension": "تمديد",
+      "PartialExit": "تخارج جزئي",
+      "Termination": "إنهاء",
+      "unknown": "غير معروف"
     },
     "versionStatus": {
-      "0": "???",
-      "1": "?? ????????",
-      "2": "?????",
-      "3": "????",
-      "Active": "???",
-      "Superseded": "?? ????????",
-      "Terminated": "?????",
-      "Cancelled": "????",
-      "unknown": "??? ?????"
+      "0": "نشط",
+      "1": "تم استبداله",
+      "2": "منتهي",
+      "3": "ملغى",
+      "Active": "نشط",
+      "Superseded": "تم استبداله",
+      "Terminated": "منتهي",
+      "Cancelled": "ملغى",
+      "unknown": "غير معروف"
     },
     "pdfStatus": {
-      "0": "?? ??? ??????",
-      "1": "???? ???????",
-      "2": "????",
-      "3": "???",
-      "NotGenerated": "?? ??? ??????",
-      "Generating": "???? ???????",
-      "Ready": "????",
-      "Failed": "???",
-      "unknown": "??? ?????"
+      "0": "لم يتم إنشاؤه",
+      "1": "جارٍ الإنشاء",
+      "2": "جاهز",
+      "3": "فشل",
+      "NotGenerated": "لم يتم إنشاؤه",
+      "Generating": "جارٍ الإنشاء",
+      "Ready": "جاهز",
+      "Failed": "فشل",
+      "unknown": "غير معروف"
     },
     "errors": {
-      "accessDenied": "??? ???? ?????? ???? ??? ?????.",
-      "notFound": "?? ??? ?????? ??? ?????.",
-      "pdfGenerating": "???? PDF ??????? ?? ???? ??? ???????. ????? ???????? ??? ????.",
-      "generic": "???? ????? ?????? ?????. ????? ???????? ??? ????."
+      "accessDenied": "ليس لديك صلاحية الوصول إلى هذا العقد.",
+      "notFound": "لم يتم العثور على العقد.",
+      "pdfGenerating": "لا يزال ملف PDF الرسمي قيد الإنشاء. يرجى المحاولة مرة أخرى بعد قليل.",
+      "emailNotVerified": "يرجى توثيق بريدك الإلكتروني قبل إرسال العقد.",
+      "emailFailed": "تعذر إرسال العقد بالبريد الإلكتروني. يرجى المحاولة مرة أخرى.",
+      "generic": "تعذر تحميل معلومات العقد. يرجى المحاولة مرة أخرى."
     }
   },
   "opportunityRoom": {
@@ -2241,10 +2396,13 @@
       "timeline": "الجدول الزمني",
       "documents": "المستندات",
       "media": "الوسائط",
-      "updates": "التحديثات"
+      "updates": "التحديثات",
+      "contracts": "العقد",
+      "payments": "المدفوعات"
     },
     "overview": {
       "title": "نظرة عامة على المشروع",
+      "status": "الحالة",
       "useOfFunds": "استخدام الأموال",
       "expectedReturn": "العائد المتوقع",
       "publicTerms": "شروط الاستثمار العامة"
@@ -2269,7 +2427,7 @@
     },
     "documents": {
       "title": "المستندات",
-      "empty": "لم يتم رفع مستندات بعد.",
+      "empty": "لم تتم إضافة أي مستندات بعد.",
       "preview": "معاينة",
       "download": "تنزيل",
       "general": "عام"
@@ -2304,7 +2462,7 @@
       },
       "addDocument": {
         "title": "إضافة مستند",
-        "subtitle": "يتم الرفع عبر Investa FileStore، ثم يتم إرفاق المستند بالفرصة.",
+        "subtitle": "يتم الرفع عبر FOPX One، ثم يتم إرفاق المستند بالفرصة.",
         "titlePlaceholder": "عنوان المستند (اختياري)",
         "visibilityPrivate": "خاص",
         "visibilityPublic": "عام",
@@ -2360,6 +2518,96 @@
     },
     "publicUpdate": {
       "empty": "لا يوجد ملخص تحديث عام بعد."
+    },
+    "stage": {
+      "idea": "فكرة",
+      "mvp": "منتج أولي قابل للاستخدام",
+      "startup": "شركة ناشئة",
+      "scaling": "مرحلة التوسع",
+      "established": "منشأة مستقرة"
+    },
+    "payments": {
+      "title": "المدفوعات",
+      "subtitle": "تسجيل إفادات سداد خارج المنصة للمستثمرين المعتمدين",
+      "refresh": "تحديث",
+      "empty": {
+        "title": "لا يوجد مستثمرون",
+        "helper": "لا يوجد مستثمرون معتمدون لعرض بيانات المدفوعات لهم."
+      },
+      "totalPaid": "الإجمالي المُفاد به",
+      "totalOutstanding": "المستحق",
+      "overdueAmount": "المتأخر",
+      "nextDueDate": "الاستحقاق القادم",
+      "unpaidInstallments": "الأقساط غير المسددة",
+      "investorPayments": "تفاصيل إفادات سداد المستثمر",
+      "participation": "مشاركة",
+      "dueDate": "تاريخ الاستحقاق",
+      "scheduled": "المستحق",
+      "paid": "المُفاد به",
+      "remaining": "المتبقي",
+      "paymentDate": "تاريخ الإفادة",
+      "reference": "المرجع",
+      "expectedInterest": "الفائدة",
+      "expectedPrincipal": "أصل الدين",
+      "expectedTotal": "الإجمالي",
+      "statusLabel": "الحالة",
+      "noSchedule": "نموذج الاستثمار هذا لا يُنشئ جدول سداد مجدولاً. إفادات السداد خارج المنصة غير قابلة للتطبيق.",
+      "history": "سجل الإفادات",
+      "reversed": "ملغي",
+      "reversalReason": "السبب",
+      "allocated": "موزعة على",
+      "installment": "قسط",
+      "noPayments": "لم يتم تسجيل أي إفادات سداد بعد.",
+      "recordPayment": "تسجيل سداد خارج المنصة",
+      "recordPaymentModalTitle": "تسجيل سداد خارج المنصة",
+      "confirmPayment": "تسجيل سداد خارج المنصة",
+      "confirmPaymentModalTitle": "تسجيل سداد خارج المنصة",
+      "disclaimer": "هذه البيانات مسجلة بواسطة المؤسس لأغراض المتابعة والشفافية فقط. لا تقوم FOPX One بتحصيل أو تحويل أو الاحتفاظ بأي أموال، ولا تمثل هذه الإفادة إثباتًا مصرفيًا للسداد.",
+      "disclaimerShort": "إفادة خارج المنصة فقط. ليست إثباتًا مصرفيًا للسداد.",
+      "amount": "المبلغ",
+      "notes": "ملاحظات",
+      "cancel": "إلغاء",
+      "submit": "تسجيل سداد خارج المنصة",
+      "confirm": "تسجيل سداد خارج المنصة",
+      "recordSuccess": "تم تسجيل إفادة سداد خارج المنصة بنجاح.",
+      "confirmSuccess": "تم تسجيل إفادة سداد خارج المنصة بنجاح.",
+      "remainingAmount": "المبلغ المتبقي",
+      "dueDate": "تاريخ الاستحقاق",
+      "totalDue": "الإجمالي المجدول",
+      "alreadyConfirmed": "المُفاد به سابقاً",
+      "perInvestorConfirm": "تسجيل سداد الدفعة الحالية",
+      "perInvestorConfirmHelper": "تسجيل إفادة السداد لأقرب قسط غير مسدد لهذا المستثمر",
+      "maxAmountHelper": "الحد الأقصى هو الرصيد المتبقي لهذا القسط.",
+      "bulkConfirm": "تسجيل إفادة سداد دفعات هذا الشهر",
+      "bulkConfirmReview": "مراجعة إفادات السداد الشهرية",
+      "bulkConfirmInvestors": "المستثمرون",
+      "bulkConfirmInstallments": "الأقساط",
+      "bulkConfirmTotal": "إجمالي المبلغ المطلوب الإفادة به",
+      "bulkConfirmDetail": "تفاصيل الإفادات",
+      "bulkConfirmSubmit": "تسجيل إفادات السداد",
+      "bulkConfirmSuccess": "تم تسجيل إفادات السداد الشهرية بنجاح.",
+      "bulkConfirmEmpty": "لا توجد أقساط غير مسددة مستحقة هذا الشهر.",
+      "bulkConfirmEmptyHelper": "تمت الإفادة عن جميع أقساط هذا الشهر بالكامل.",
+      "recordPaymentForSelected": "تسجيل افاده سداد المستحقات",
+      "reverse": "إلغاء الدفعة",
+      "reversePaymentModalTitle": "إلغاء دفعة",
+      "reverseModalHelper": "سيؤدي هذا الإجراء إلى وضع علامة على الدفعة كملغية. لن تُحتسب المبالغ الموزعة في إجمالي الأقساط بعد الآن.",
+      "reversalReasonLabel": "سبب الإلغاء",
+      "reverseSubmit": "إلغاء",
+      "reverseSuccess": "تم إلغاء الدفعة بنجاح.",
+      "selectInvestor": "اختر مستثمراً",
+      "selectInvestorHelper": "اختر مستثمراً من القائمة لعرض جدول سداده.",
+      "status": {
+        "Overdue": "متأخر",
+        "Outstanding": "مستحق",
+        "Paid": "أفاد المؤسس بالسداد",
+        "PartiallyPaid": "أفاد المؤسس بسداد جزئي",
+        "NoPaymentSchedule": "لا توجد دفعات مجدولة"
+      }
     }
+  },
+  "creditPurchase": {
+    "back": "العودة إلى المحفظة", "eyebrow": "أرصدة خدمات المنصة", "title": "شراء CREDIT", "subtitle": "اختر باقة نشطة منشورة من تسعير FOPX One.", "balance": "الرصيد الحالي", "serviceOnly": "يُستخدم CREDIT لخدمات المنصة فقط، وليس أموالاً استثمارية ولا يمكن سحبه.", "retry": "إعادة المحاولة", "loading": "جارٍ تحميل الباقات وسجل المشتريات…", "error": "شراء الأرصدة غير متاح حالياً.", "packages": "باقات الأرصدة", "noPackages": "لا توجد باقات أرصدة نشطة حالياً.", "featured": "مميزة", "bonus": "CREDIT إضافي", "review": "مراجعة الطلب", "package": "الباقة", "credits": "CREDIT المشتَرى", "total": "الإجمالي", "buy": "شراء أرصدة", "creating": "جارٍ إنشاء طلب آمن…", "verificationNote": "تُضاف الأرصدة فقط بعد تحقق FOPX One من مزود الدفع. إعادة التوجيه في المتصفح لا تضيف رصيداً.", "selectPrompt": "اختر باقة لمراجعة الطلب.", "history": "سجل المشتريات", "refresh": "تحديث", "noOrders": "لا توجد مشتريات أرصدة بعد.", "reference": "مرجع الطلب", "totalCredits": "إجمالي CREDIT", "amount": "السعر", "statusLabel": "حالة الدفع", "date": "تاريخ الإنشاء", "details": "التفاصيل", "receipt": "إيصال الطلب", "paidAt": "تاريخ الدفع", "close": "إغلاق", "providerUnavailable": "مزود الدفع غير مهيأ حالياً. سيظل الطلب معلقاً ولم تتم إضافة أي أرصدة.", "receiptNote": "يُعد سجل الطلب إيصالاً فقط عندما تكون حالة الدفع مدفوعاً.",
+    "status": { "Pending": "معلق", "Processing": "قيد المعالجة", "Paid": "مدفوع", "Failed": "فشل", "Cancelled": "ملغي", "Expired": "منتهي", "Refunded": "مسترد" }
   }
 }

@@ -10,7 +10,6 @@ public sealed record OpportunityRoomDemoDataBackfillResult(
     int Scanned,
     int OpportunitiesPopulated,
     int TimelineEventsCreated,
-    int DocumentsCreated,
     int MediaCreated,
     int JoinRequestsCreated,
     int Skipped);
@@ -45,7 +44,6 @@ public class OpportunityRoomDemoDataBackfillService
             .ToListAsync(cancellationToken);
 
         var timelineEventsCreated = 0;
-        var documentsCreated = 0;
         var mediaCreated = 0;
         var joinRequestsCreated = 0;
         var populated = 0;
@@ -63,13 +61,6 @@ public class OpportunityRoomDemoDataBackfillService
                 changed = true;
             }
 
-            if (!opportunity.Documents.Any(d => d.FileKey != null && d.FileKey.StartsWith($"{DemoFileKeyPrefix}/{opportunity.Id}/", StringComparison.OrdinalIgnoreCase)))
-            {
-                var documents = BuildDocuments(opportunity);
-                _context.OpportunityDocuments.AddRange(documents);
-                documentsCreated += documents.Count;
-                changed = true;
-            }
 
             var timeline = BuildTimeline(opportunity);
             var missingTimeline = timeline
@@ -99,11 +90,10 @@ public class OpportunityRoomDemoDataBackfillService
             await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation(
-            "Opportunity room demo data backfill completed. Scanned={Scanned}, Populated={Populated}, TimelineEventsCreated={TimelineEventsCreated}, DocumentsCreated={DocumentsCreated}, MediaCreated={MediaCreated}, JoinRequestsCreated={JoinRequestsCreated}, Skipped={Skipped}.",
+            "Opportunity room demo data backfill completed. Scanned={Scanned}, Populated={Populated}, TimelineEventsCreated={TimelineEventsCreated}, MediaCreated={MediaCreated}, JoinRequestsCreated={JoinRequestsCreated}, Skipped={Skipped}.",
             opportunities.Count,
             populated,
             timelineEventsCreated,
-            documentsCreated,
             mediaCreated,
             joinRequestsCreated,
             skipped);
@@ -112,7 +102,6 @@ public class OpportunityRoomDemoDataBackfillService
             opportunities.Count,
             populated,
             timelineEventsCreated,
-            documentsCreated,
             mediaCreated,
             joinRequestsCreated,
             skipped);
@@ -175,63 +164,7 @@ public class OpportunityRoomDemoDataBackfillService
         };
     }
 
-    private static List<OpportunityDocument> BuildDocuments(Opportunity opportunity)
-    {
-        var baseDate = StableBaseDate(opportunity);
 
-        return new List<OpportunityDocument>
-        {
-            Document(opportunity, "executive-summary", "Executive Summary.pdf", "pdf", "application/pdf", 512_000, OpportunityFilePurpose.PublicDocument, OpportunityDocumentVisibility.Public, "PublicDocument", "OpportunityPublicDocument", "executive summary,public,overview", baseDate.AddDays(-17)),
-            Document(opportunity, "business-overview", "Business Overview.pdf", "pdf", "application/pdf", 748_000, OpportunityFilePurpose.PublicDocument, OpportunityDocumentVisibility.Public, "PublicDocument", "OpportunityPublicDocument", "business overview,public,founder", baseDate.AddDays(-16)),
-            Document(opportunity, "pitch-deck", "Pitch Deck.pdf", "pdf", "application/pdf", 1_840_000, OpportunityFilePurpose.PublicDocument, OpportunityDocumentVisibility.Public, "PublicDocument", "Presentation", "pitch deck,public,presentation", baseDate.AddDays(-15)),
-            Document(opportunity, "financial-model", "Financial Model.xlsx", "xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 923_000, OpportunityFilePurpose.FinancialReport, OpportunityDocumentVisibility.Private, "FinancialReport", "FinancialReport", "financial model,private,forecast", baseDate.AddDays(-10)),
-            Document(opportunity, "revenue-forecast", "Revenue Forecast.xlsx", "xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 694_000, OpportunityFilePurpose.FinancialReport, OpportunityDocumentVisibility.Private, "FinancialReport", "FinancialReport", "revenue forecast,private,financials", baseDate.AddDays(-9)),
-            Document(opportunity, "founder-agreement", "Founder Agreement.pdf", "pdf", "application/pdf", 431_000, OpportunityFilePurpose.Contract, OpportunityDocumentVisibility.Private, "Contract", "Contract", "founder agreement,private,contract", baseDate.AddDays(-8)),
-            Document(opportunity, "shareholder-agreement", "Shareholder Agreement.pdf", "pdf", "application/pdf", 612_000, OpportunityFilePurpose.Contract, OpportunityDocumentVisibility.Private, "Contract", "Contract", "shareholder agreement,private,contract", baseDate.AddDays(-7)),
-            Document(opportunity, "budget-breakdown", "Budget Breakdown.xlsx", "xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 558_000, OpportunityFilePurpose.PrivateDocument, OpportunityDocumentVisibility.Private, "PrivateDocument", "Spreadsheet", "budget breakdown,private,use of funds", baseDate.AddDays(-6)),
-            Document(opportunity, "internal-planning", "Internal Planning.pdf", "pdf", "application/pdf", 477_000, OpportunityFilePurpose.InternalFile, OpportunityDocumentVisibility.Private, "InternalFile", "General", "internal planning,private,operations", baseDate.AddDays(-5)),
-            Document(opportunity, "legal-summary", "Legal Summary.pdf", "pdf", "application/pdf", 389_000, OpportunityFilePurpose.Legal, OpportunityDocumentVisibility.Private, "Legal", "Legal", "legal,private,due diligence", baseDate.AddDays(-4))
-        };
-    }
-
-    private static OpportunityDocument Document(
-        Opportunity opportunity,
-        string key,
-        string fileName,
-        string extension,
-        string mimeType,
-        long size,
-        OpportunityFilePurpose purpose,
-        OpportunityDocumentVisibility visibility,
-        string documentType,
-        string category,
-        string searchTags,
-        DateTime createdAt)
-    {
-        var fileKey = $"{DemoFileKeyPrefix}/{opportunity.Id}/documents/{key}.{extension}";
-        var url = $"https://cdn.investa.demo/{fileKey}";
-
-        return new OpportunityDocument
-        {
-            OpportunityId = opportunity.Id,
-            FileId = $"demo-doc-{opportunity.Id}-{key}",
-            FileKey = fileKey,
-            FileName = fileName,
-            FileExtension = extension,
-            MimeType = mimeType,
-            FileSize = size,
-            FileUrl = url,
-            PreviewUrl = url,
-            ThumbnailUrl = extension == "pdf" ? $"https://cdn.investa.demo/{DemoFileKeyPrefix}/{opportunity.Id}/documents/{key}-thumb.jpg" : null,
-            DocumentType = documentType,
-            Visibility = visibility,
-            Purpose = purpose,
-            Category = category,
-            SearchTags = searchTags,
-            CreatedByUserId = opportunity.FounderId,
-            CreatedAt = createdAt
-        };
-    }
 
     private static List<OpportunityEvent> BuildTimeline(Opportunity opportunity)
     {

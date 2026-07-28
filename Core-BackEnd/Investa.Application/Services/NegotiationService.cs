@@ -5,6 +5,7 @@ using Investa.Application.Interfaces;
 using Investa.Domain.Entities;
 using Investa.Domain.Entities.Chat;
 using Investa.Domain.Entities.Enums;
+using Microsoft.Extensions.Logging;
 
 namespace Investa.Application.Services;
 
@@ -21,15 +22,34 @@ public class NegotiationService : INegotiationService
     private readonly IUnitOfWork _uow;
     private readonly IPaidActionService _paidActionService;
     private readonly IReputationService _reputationService;
+    private readonly IUserNotificationService _userNotificationService;
+    private readonly IRealtimeEventPublisher _realtimeEventPublisher;
+    private readonly IConversationPresenceService _conversationPresence;
+    private readonly ILogger<NegotiationService> _logger;
 
-    public NegotiationService(IUnitOfWork uow, IPaidActionService paidActionService, IReputationService reputationService)
+    public NegotiationService(
+        IUnitOfWork uow,
+        IPaidActionService paidActionService,
+        IReputationService reputationService,
+        IUserNotificationService userNotificationService,
+        IRealtimeEventPublisher realtimeEventPublisher,
+        IConversationPresenceService conversationPresence,
+        ILogger<NegotiationService> logger)
     {
         _uow = uow;
         _paidActionService = paidActionService;
         _reputationService = reputationService;
+        _userNotificationService = userNotificationService;
+        _realtimeEventPublisher = realtimeEventPublisher;
+        _conversationPresence = conversationPresence;
+        _logger = logger;
     }
 
-    public async Task<OpportunityViewerStateDto> GetOpportunityViewerStateAsync(Guid userId, int opportunityId, CancellationToken cancellationToken = default)
+    public async Task<OpportunityViewerStateDto> GetOpportunityViewerStateAsync(
+        Guid userId,
+        int opportunityId,
+        Guid? conversationId = null,
+        CancellationToken cancellationToken = default)
     {
         await ValidateClientAsync(userId, "Only authenticated clients can view opportunity state.");
         var opportunity = await GetOpportunityAsync(opportunityId);
@@ -44,7 +64,11 @@ public class NegotiationService : INegotiationService
             .OrderByDescending(c => c.UpdatedAt ?? c.CreatedAt)
             .ToList();
 
-        var conversation = conversations.FirstOrDefault();
+        var conversation = conversationId.HasValue
+            ? conversations.FirstOrDefault(candidate => candidate.Id == conversationId.Value)
+            : conversations.FirstOrDefault();
+        if (conversationId.HasValue && conversation == null)
+            throw new BusinessValidationException("CONVERSATION_NOT_FOUND", "Conversation was not found for this opportunity.");
         var conversationRequests = await _uow.Repository<ConversationRequest>().FindAsync(r =>
             r.OpportunityId == opportunityId
             && (r.RequesterUserId == userId || r.RecipientUserId == userId));
@@ -54,12 +78,12 @@ public class NegotiationService : INegotiationService
             .FirstOrDefault();
         var participationRequest = conversation?.ParticipationRequest;
 
-        if (participationRequest == null)
+        if (participationRequest == null && conversation == null && !isFounder)
         {
             var requestCandidates = await _uow.Repository<OpportunityJoinRequest>().FindAsync(r =>
                 r.OpportunityId == opportunityId
-                && (isFounder || r.InvestorId == userId)
-                && (isFounder ? r.IsVisibleToFounder : r.IsVisibleToInvestor));
+                && r.InvestorId == userId
+                && r.IsVisibleToInvestor);
 
             participationRequest = requestCandidates
                 .OrderByDescending(r => r.UpdatedAt)
@@ -67,7 +91,7 @@ public class NegotiationService : INegotiationService
         }
 
         var participationStatus = participationRequest?.Status;
-        var isApprovedParticipant = !isFounder && participationStatus == OpportunityJoinRequestStatus.Approved;
+        var hasApprovedParticipation = participationStatus == OpportunityJoinRequestStatus.Approved;
         var canContinueConversation = conversation != null && CanContinue(conversation);
         var hasActiveConversation = conversation is { IsActive: true };
         var hasActiveParticipation = participationStatus is OpportunityJoinRequestStatus.Pending or OpportunityJoinRequestStatus.Approved;
@@ -100,8 +124,8 @@ public class NegotiationService : INegotiationService
             HasPendingParticipationRequest = participationStatus == OpportunityJoinRequestStatus.Pending,
             CanApproveParticipation = isFounder && participationStatus == OpportunityJoinRequestStatus.Pending,
             CanRejectParticipation = isFounder && participationStatus == OpportunityJoinRequestStatus.Pending,
-            ProjectRoomUnlocked = isFounder || isApprovedParticipant,
-            CanOpenProjectRoom = isFounder || isApprovedParticipant
+            ProjectRoomUnlocked = hasApprovedParticipation,
+            CanOpenProjectRoom = hasApprovedParticipation
         };
     }
 
@@ -178,6 +202,19 @@ public class NegotiationService : INegotiationService
             }
         }, cancellationToken);
 
+        var requesterUser = await _uow.Repository<AuthUser>().GetByIdAsync(investorId);
+        var requesterName = requesterUser?.Profile?.FullName ?? requesterUser?.Name ?? "A user";
+        await _userNotificationService.CreateEventAsync(new NotificationEventCreation(
+            conversationRequest.RecipientUserId,
+            "ConversationRequestCreated",
+            conversationRequest.Id.ToString(),
+            "New conversation request",
+            $"{requesterName} sent a conversation request for {opportunity.Title}.",
+            "info",
+            "/admin/requests",
+            investorId,
+            opportunity.Id), cancellationToken);
+
         return await GetConversationRequestSummaryAsync(conversationRequest.Id, investorId);
     }
 
@@ -188,7 +225,9 @@ public class NegotiationService : INegotiationService
             r => r.RequesterUserId == userId || r.RecipientUserId == userId,
             r => r.Opportunity!,
             r => r.Requester!,
-            r => r.Recipient!);
+            r => r.Requester!.Profile!,
+            r => r.Recipient!,
+            r => r.Recipient!.Profile!);
 
         return requests
             .OrderByDescending(r => r.UpdatedAt ?? r.RespondedAt ?? r.CreatedAt)
@@ -207,9 +246,21 @@ public class NegotiationService : INegotiationService
             c => c.Investor!,
             c => c.ParticipationRequest!);
 
+        var conversationIds = conversations.Select(c => c.Id).ToList();
+        var unreadMessages = conversationIds.Count == 0
+            ? Array.Empty<ChatMessage>()
+            : (await _uow.Repository<ChatMessage>().FindAsync(
+                message => message.ConversationId.HasValue
+                           && conversationIds.Contains(message.ConversationId.Value)
+                           && message.SenderUserId != userId
+                           && !message.IsRead)).ToArray();
+        var unreadCounts = unreadMessages
+            .GroupBy(message => message.ConversationId!.Value)
+            .ToDictionary(group => group.Key, group => group.Count());
+
         return conversations
             .OrderByDescending(c => c.UpdatedAt ?? c.CreatedAt)
-            .Select(c => ToConversationDto(c, userId))
+            .Select(c => ToConversationDto(c, userId, unreadCounts.GetValueOrDefault(c.Id)))
             .ToList();
     }
 
@@ -223,12 +274,35 @@ public class NegotiationService : INegotiationService
 
     public async Task<IReadOnlyList<NegotiationMessageDto>> GetMessagesAsync(Guid userId, Guid conversationId, CancellationToken cancellationToken = default)
     {
-        await GetAuthorizedConversationAsync(userId, conversationId);
+        var conversation = await GetAuthorizedConversationAsync(userId, conversationId);
         var messages = await _uow.Repository<ChatMessage>().FindAsync(m => m.ConversationId == conversationId);
         return messages
             .OrderBy(m => m.Timestamp)
-            .Select(ToMessageDto)
+            .ThenBy(m => m.Id)
+            .Select(message => ToMessageDto(message, conversation))
             .ToList();
+    }
+
+    public async Task<int> MarkMessagesReadAsync(Guid userId, Guid conversationId, CancellationToken cancellationToken = default)
+    {
+        await GetAuthorizedConversationAsync(userId, conversationId);
+        var unreadMessages = await _uow.Repository<ChatMessage>().FindAsync(
+            message => message.ConversationId == conversationId
+                       && message.SenderUserId != userId
+                       && !message.IsRead);
+
+        var updatedCount = 0;
+        foreach (var message in unreadMessages)
+        {
+            message.IsRead = true;
+            await _uow.Repository<ChatMessage>().UpdateAsync(message);
+            updatedCount++;
+        }
+
+        if (updatedCount > 0)
+            await _uow.SaveChangesAsync();
+
+        return updatedCount;
     }
 
     public async Task<NegotiationMessageDto> SendMessageAsync(Guid userId, Guid conversationId, SendNegotiationMessageRequest request, CancellationToken cancellationToken = default)
@@ -238,11 +312,109 @@ public class NegotiationService : INegotiationService
             throw new BusinessValidationException("CONVERSATION_READ_ONLY", "This conversation is read-only.");
 
         var now = DateTime.UtcNow;
-        var message = await AddMessageAsync(conversation.Id, userId, request.Message.Trim(), now);
-        conversation.UpdatedAt = now;
-        await _uow.Repository<Conversation>().UpdateAsync(conversation);
-        await _uow.SaveChangesAsync();
-        return ToMessageDto(message);
+        var message = request.ClientMessageId.HasValue
+            ? await _uow.Repository<ChatMessage>().GetByIdAsync(request.ClientMessageId.Value)
+            : null;
+        var isNewMessage = message == null;
+
+        if (message != null
+            && (message.ConversationId != conversationId || message.SenderUserId != userId))
+        {
+            throw new BusinessValidationException(
+                "CLIENT_MESSAGE_ID_CONFLICT",
+                "The client message identifier is already used by another message.");
+        }
+
+        if (isNewMessage)
+        {
+            message = await AddMessageAsync(
+                conversation.Id,
+                userId,
+                request.Message.Trim(),
+                now,
+                request.ClientMessageId);
+            conversation.UpdatedAt = now;
+            await _uow.Repository<Conversation>().UpdateAsync(conversation);
+            await _uow.SaveChangesAsync();
+        }
+
+        var participantIds = (await _uow.Repository<ConversationParticipant>().FindAsync(
+                participant => participant.ConversationId == conversationId))
+            .Select(participant => participant.UserId)
+            .Append(userId)
+            .Where(participantId => participantId != Guid.Empty)
+            .Distinct()
+            .ToList();
+        var recipientId = participantIds
+            .Where(participantId => participantId != userId)
+            .Cast<Guid?>()
+            .FirstOrDefault();
+
+        var savedMessage = ToMessageDto(message!, conversation);
+        var realtimeData = new Dictionary<string, object?>
+        {
+            ["messageId"] = savedMessage.Id.ToString("D"),
+            ["conversationId"] = savedMessage.ConversationId.ToString("D"),
+            ["senderUserId"] = savedMessage.SenderId.ToString("D"),
+            ["senderName"] = savedMessage.SenderName,
+            ["senderRole"] = savedMessage.SenderRole,
+            ["body"] = savedMessage.Message,
+            ["createdAt"] = savedMessage.SentAt,
+            ["isRead"] = message!.IsRead
+        };
+
+        try
+        {
+            foreach (var realtimeRecipient in participantIds)
+            {
+                await _realtimeEventPublisher.PublishToUserAsync(
+                    realtimeRecipient,
+                    "ConversationMessageSaved",
+                    savedMessage.Id,
+                    realtimeData,
+                    cancellationToken);
+            }
+            _logger.LogDebug(
+                "Published message {MessageId} to conversation {ConversationId} participants {ParticipantIds}",
+                savedMessage.Id,
+                conversationId,
+                participantIds);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Message {MessageId} was saved but realtime publication failed for conversation {ConversationId}",
+                savedMessage.Id,
+                conversationId);
+        }
+
+        if (isNewMessage
+            && recipientId.HasValue
+            && !_conversationPresence.IsActive(recipientId.Value, conversationId))
+        {
+            var senderName = conversation.FounderId == userId
+                ? conversation.Founder?.Profile?.FullName ?? conversation.Founder?.Name ?? "Founder"
+                : conversation.Investor?.Profile?.FullName ?? conversation.Investor?.Name ?? "Investor";
+            await _userNotificationService.CreateEventAsync(new NotificationEventCreation(
+                recipientId.Value,
+                "NewConversationMessage",
+                message.Id.ToString(),
+                $"New message from {senderName}",
+                BuildSafeMessagePreview(request.Message),
+                "info",
+                $"/admin/chat?conversationId={conversationId:D}",
+                userId,
+                conversation.OpportunityId));
+        }
+        return savedMessage;
+    }
+
+    private static string BuildSafeMessagePreview(string value)
+    {
+        var plain = System.Text.RegularExpressions.Regex.Replace(value, "<[^>]+>", " ");
+        plain = System.Text.RegularExpressions.Regex.Replace(plain, @"\s+", " ").Trim();
+        return plain.Length <= 120 ? plain : $"{plain[..117]}...";
     }
 
     public async Task<NegotiationConversationRequestDto> AcceptConversationRequestAsync(Guid founderId, Guid requestId, CancellationToken cancellationToken = default)
@@ -301,6 +473,17 @@ public class NegotiationService : INegotiationService
             "AcceptConversationRequest",
             "ConversationRequest",
             conversationRequest.Id.ToString());
+
+        await _userNotificationService.CreateEventAsync(new NotificationEventCreation(
+            conversationRequest.RequesterUserId,
+            "ConversationRequestApproved",
+            conversationRequest.Id.ToString(),
+            "Conversation request accepted",
+            $"Your conversation request for {conversationRequest.Opportunity?.Title ?? "Opportunity"} was accepted.",
+            "success",
+            $"/admin/chat?conversationId={existingConversation.Id}",
+            founderId,
+            conversationRequest.OpportunityId), cancellationToken);
         return await GetConversationRequestSummaryAsync(conversationRequest.Id, founderId);
     }
 
@@ -317,12 +500,28 @@ public class NegotiationService : INegotiationService
         conversationRequest.UpdatedAt = now;
         await _uow.Repository<ConversationRequest>().UpdateAsync(conversationRequest);
         await _uow.SaveChangesAsync();
+
+        await _userNotificationService.CreateEventAsync(new NotificationEventCreation(
+            conversationRequest.RequesterUserId,
+            "ConversationRequestRejected",
+            conversationRequest.Id.ToString(),
+            "Conversation request rejected",
+            $"Your conversation request for {conversationRequest.Opportunity?.Title ?? "Opportunity"} was rejected.",
+            "warning",
+            "/admin/requests",
+            founderId,
+            conversationRequest.OpportunityId), cancellationToken);
         return await GetConversationRequestSummaryAsync(conversationRequest.Id, founderId);
     }
 
     public async Task<NegotiationConversationRequestDto> WithdrawConversationRequestAsync(Guid investorId, Guid requestId, CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("[TRACE] WithdrawConversationRequestAsync ENTERED — investorId={InvestorId}, requestId={RequestId}", investorId, requestId);
+
         var conversationRequest = await GetAuthorizedConversationRequestAsync(investorId, requestId);
+        _logger.LogInformation("[TRACE] Request loaded — Id={Id}, RecipientUserId={RecipientUserId}, RequesterUserId={RequesterUserId}, Status={Status}", 
+            conversationRequest.Id, conversationRequest.RecipientUserId, conversationRequest.RequesterUserId, conversationRequest.Status);
+
         EnsureRequester(conversationRequest, investorId);
         if (conversationRequest.Status != ConversationRequestStatus.Pending)
             throw new BusinessValidationException("INVALID_CONVERSATION_REQUEST_STATUS", "Only pending conversation requests can be withdrawn.");
@@ -333,6 +532,22 @@ public class NegotiationService : INegotiationService
         conversationRequest.UpdatedAt = now;
         await _uow.Repository<ConversationRequest>().UpdateAsync(conversationRequest);
         await _uow.SaveChangesAsync();
+        _logger.LogInformation("[TRACE] Status saved as Withdrawn for request {RequestId}", conversationRequest.Id);
+
+        var requesterName = conversationRequest.Requester?.Profile?.FullName
+                            ?? conversationRequest.Requester?.Name
+                            ?? "A user";
+        await _userNotificationService.CreateEventAsync(new NotificationEventCreation(
+            conversationRequest.RecipientUserId,
+            "ConversationRequestWithdrawn",
+            conversationRequest.Id.ToString(),
+            "Conversation request withdrawn",
+            $"{requesterName} withdrew the conversation request for {conversationRequest.Opportunity?.Title ?? "Opportunity"}.",
+            "info",
+            "/admin/requests",
+            investorId,
+            conversationRequest.OpportunityId), cancellationToken);
+
         return await GetConversationRequestSummaryAsync(conversationRequest.Id, investorId);
     }
 
@@ -447,7 +662,20 @@ public class NegotiationService : INegotiationService
             }
         }, cancellationToken);
 
-        return await GetOfferDtoAsync(userId, conversationId, offer.Id);
+        var offerDto = await GetOfferDtoAsync(userId, conversationId, offer.Id);
+        await PublishOfferChangedAsync(
+            conversation,
+            userId,
+            offerDto,
+            "Created",
+            cancellationToken);
+        await NotifyOfferRecipientIfAwayAsync(
+            conversation,
+            userId,
+            offerDto,
+            isCounterOffer: false,
+            cancellationToken);
+        return offerDto;
     }
 
     public async Task<NegotiationOfferDto> CounterOfferAsync(Guid userId, Guid conversationId, int offerId, CreateNegotiationOfferRequest request, CancellationToken cancellationToken = default)
@@ -495,10 +723,23 @@ public class NegotiationService : INegotiationService
             }
         }, cancellationToken);
 
-        return await GetOfferDtoAsync(userId, conversationId, counter.Id);
+        var counterDto = await GetOfferDtoAsync(userId, conversationId, counter.Id);
+        await PublishOfferChangedAsync(
+            conversation,
+            userId,
+            counterDto,
+            "Countered",
+            cancellationToken);
+        await NotifyOfferRecipientIfAwayAsync(
+            conversation,
+            userId,
+            counterDto,
+            isCounterOffer: true,
+            cancellationToken);
+        return counterDto;
     }
 
-    public async Task<NegotiationOfferDto> AcceptOfferAsync(Guid userId, Guid conversationId, int offerId, CancellationToken cancellationToken = default)
+    public async Task<AcceptOfferResultDto> AcceptOfferAsync(Guid userId, Guid conversationId, int offerId, CancellationToken cancellationToken = default)
     {
         var conversation = await GetAuthorizedActiveConversationAsync(userId, conversationId);
         var offer = await GetAuthorizedOfferAsync(userId, conversationId, offerId);
@@ -509,18 +750,164 @@ public class NegotiationService : INegotiationService
         if (offer.CreatedByUserId == userId)
             throw new BusinessValidationException("OFFER_ACCEPT_FORBIDDEN", "Offer creator cannot accept their own offer.");
 
-        offer.Status = NegotiationOfferStatus.Accepted;
-        conversation.UpdatedAt = DateTime.UtcNow;
-        await _uow.Repository<NegotiationOffer>().UpdateAsync(offer);
-        await _uow.Repository<Conversation>().UpdateAsync(conversation);
-        await _uow.SaveChangesAsync();
-        await ApplyReputationActivitySafeAsync(
-            userId,
-            "AcceptStructuredOffer",
-            "NegotiationOffer",
-            offer.Id.ToString());
+        // Idempotency: if participation was already created for this conversation, return existing result
+        if (conversation.ParticipationRequestId.HasValue
+            && conversation.ParticipationRequest?.Status == OpportunityJoinRequestStatus.Approved)
+        {
+            offer.Status = NegotiationOfferStatus.Accepted;
+            await _uow.Repository<NegotiationOffer>().UpdateAsync(offer);
+            await _uow.SaveChangesAsync();
 
-        return await GetOfferDtoAsync(userId, conversationId, offer.Id);
+            var existingResult = new AcceptOfferResultDto
+            {
+                Offer = ToOfferDto(offer),
+                ParticipationRequestId = conversation.ParticipationRequestId.Value
+            };
+            await PublishOfferChangedAsync(
+                conversation,
+                userId,
+                existingResult.Offer,
+                "Accepted",
+                cancellationToken);
+            return existingResult;
+        }
+
+        var opportunity = conversation.Opportunity!;
+        var isFirstInvestor = !opportunity.FirstInvestorJoinedAt.HasValue;
+        AcceptOfferResultDto result = null!;
+
+        await _uow.ExecuteWithStrategyAsync(async () =>
+        {
+            await _uow.BeginTransactionAsync();
+            try
+            {
+
+                // Serialize offer legs as immutable JSON terms snapshot
+                var termsJson = JsonSerializer.Serialize(offer.Legs.Select(l => new
+                {
+                    l.LegType,
+                    l.Amount,
+                    l.EquityPercentage,
+                    l.SharesTerms,
+                    l.ReturnRate,
+                    l.TermMonths,
+                    l.RepaymentModel,
+                    l.ProfitSharePercentage,
+                    l.ExitTerms
+                }));
+
+                var totalAmount = offer.Legs.Sum(l => l.Amount);
+
+                // Create approved OpportunityJoinRequest
+                var joinRequest = new OpportunityJoinRequest
+                {
+                    OpportunityId = opportunity.Id,
+                    InvestorId = conversation.InvestorId!.Value,
+                    RequestType = OpportunityJoinRequestType.InvestmentParticipation,
+                    RequestedAmount = totalAmount,
+                    CalculatedTotalAmount = totalAmount,
+                    TermsSnapshotJson = termsJson,
+                    Status = OpportunityJoinRequestStatus.Approved,
+                    SourceConversationId = conversationId,
+                    AcceptedOfferId = offer.Id,
+                    IsVisibleToFounder = true,
+                    IsVisibleToInvestor = true
+                };
+
+                await _uow.Repository<OpportunityJoinRequest>().AddAsync(joinRequest);
+                await _uow.SaveChangesAsync(); // obtain Id within transaction
+
+                // Link participation on conversation
+                conversation.ParticipationRequestId = joinRequest.Id;
+                conversation.Status = ConversationStatus.ParticipationCreated;
+                conversation.UpdatedAt = DateTime.UtcNow;
+
+                // Mark offer as accepted
+                offer.Status = NegotiationOfferStatus.Accepted;
+
+                await _uow.Repository<Conversation>().UpdateAsync(conversation);
+                await _uow.Repository<NegotiationOffer>().UpdateAsync(offer);
+
+                // Lock opportunity for first investor
+                if (isFirstInvestor)
+                {
+                    opportunity.FirstInvestorJoinedAt = DateTime.UtcNow;
+                    opportunity.IsLockedForEditing = true;
+                    await _uow.Repository<Opportunity>().UpdateAsync(opportunity);
+                }
+
+                // Log opportunity events
+                var investorName = conversation.Investor?.Profile?.FullName ?? conversation.Investor?.Name ?? "Investor";
+
+                await _uow.Repository<OpportunityEvent>().AddAsync(new OpportunityEvent
+                {
+                    OpportunityId = opportunity.Id,
+                    EventType = "NegotiationOfferAccepted",
+                    Title = $"Offer #{offer.Id} Accepted",
+                    Description = $"Investor {investorName} accepted negotiation offer #{offer.Id} for {totalAmount:F2}",
+                    NewValue = offer.Id.ToString(),
+                    CreatedByUserId = userId,
+                    IsPublic = false
+                });
+
+                await _uow.Repository<OpportunityEvent>().AddAsync(new OpportunityEvent
+                {
+                    OpportunityId = opportunity.Id,
+                    EventType = "InvestmentParticipationCreated",
+                    Title = "Investment Participation Created",
+                    Description = $"Investment participation of {totalAmount:F2} created from accepted offer #{offer.Id}",
+                    NewValue = totalAmount.ToString("F2"),
+                    CreatedByUserId = userId,
+                    IsPublic = true
+                });
+
+                await _uow.SaveChangesAsync();
+                await _uow.CommitTransactionAsync();
+
+                result = new AcceptOfferResultDto
+                {
+                    Offer = ToOfferDto(offer),
+                    ParticipationRequestId = joinRequest.Id
+                };
+            }
+            catch
+            {
+                await _uow.RollbackTransactionAsync();
+                throw;
+            }
+        }, cancellationToken);
+
+        // Reputation activities (non-authoritative; outside transaction)
+        await ApplyReputationActivitySafeAsync(userId, "AcceptStructuredOffer", "NegotiationOffer", offer.Id.ToString());
+
+        if (isFirstInvestor)
+        {
+            await ApplyReputationActivitySafeAsync(userId, "FirstInvestment", "Opportunity", opportunity.Id.ToString());
+        }
+
+        var outcomeRecipients = new[] { conversation.FounderId, conversation.InvestorId }
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Distinct()
+            .Select(recipientId => new NotificationEventCreation(
+                recipientId,
+                "ParticipationApprovedFromAcceptedOffer",
+                offer.Id.ToString(),
+                "Participation approved",
+                $"Participation in {opportunity.Title} has been approved based on the accepted offer.",
+                "success",
+                $"/admin/opportunities/{opportunity.Id}/room",
+                userId,
+                opportunity.Id));
+        await _userNotificationService.CreateEventRangeAsync(outcomeRecipients, cancellationToken);
+        await PublishOfferChangedAsync(
+            conversation,
+            userId,
+            result.Offer,
+            "Accepted",
+            cancellationToken);
+
+        return result;
     }
 
     private async Task ApplyReputationActivitySafeAsync(Guid userId, string activityCode, string referenceType, string referenceId)
@@ -552,7 +939,14 @@ public class NegotiationService : INegotiationService
         await _uow.Repository<Conversation>().UpdateAsync(conversation);
         await _uow.SaveChangesAsync();
 
-        return await GetOfferDtoAsync(userId, conversationId, offer.Id);
+        var rejectedOfferDto = await GetOfferDtoAsync(userId, conversationId, offer.Id);
+        await PublishOfferChangedAsync(
+            conversation,
+            userId,
+            rejectedOfferDto,
+            "Rejected",
+            cancellationToken);
+        return rejectedOfferDto;
     }
 
     public async Task<NegotiationOfferDto> WithdrawOfferAsync(Guid userId, Guid conversationId, int offerId, CancellationToken cancellationToken = default)
@@ -572,7 +966,14 @@ public class NegotiationService : INegotiationService
         await _uow.Repository<Conversation>().UpdateAsync(conversation);
         await _uow.SaveChangesAsync();
 
-        return await GetOfferDtoAsync(userId, conversationId, offer.Id);
+        var withdrawnOfferDto = await GetOfferDtoAsync(userId, conversationId, offer.Id);
+        await PublishOfferChangedAsync(
+            conversation,
+            userId,
+            withdrawnOfferDto,
+            "Withdrawn",
+            cancellationToken);
+        return withdrawnOfferDto;
     }
 
     private async Task<Conversation> GetAuthorizedActiveConversationAsync(Guid userId, Guid conversationId)
@@ -612,6 +1013,94 @@ public class NegotiationService : INegotiationService
     {
         var offer = await GetAuthorizedOfferAsync(userId, conversationId, offerId);
         return ToOfferDto(offer);
+    }
+
+    private async Task PublishOfferChangedAsync(
+        Conversation conversation,
+        Guid actorUserId,
+        NegotiationOfferDto offer,
+        string action,
+        CancellationToken cancellationToken)
+    {
+        var recipientId = conversation.FounderId == actorUserId
+            ? conversation.InvestorId
+            : conversation.FounderId;
+        if (!recipientId.HasValue || recipientId.Value == Guid.Empty)
+            return;
+
+        var data = new Dictionary<string, object?>
+        {
+            ["conversationId"] = conversation.Id.ToString("D"),
+            ["offerId"] = offer.Id,
+            ["parentOfferId"] = offer.ParentOfferId,
+            ["version"] = offer.Version,
+            ["status"] = offer.Status.ToString(),
+            ["action"] = action,
+            ["actorUserId"] = actorUserId.ToString("D")
+        };
+
+        try
+        {
+            await _realtimeEventPublisher.PublishToUserAsync(
+                recipientId.Value,
+                "ConversationOffersChanged",
+                conversation.Id,
+                data,
+                cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Offer {OfferId} was saved but realtime publication failed for conversation {ConversationId}",
+                offer.Id,
+                conversation.Id);
+        }
+    }
+
+    private async Task NotifyOfferRecipientIfAwayAsync(
+        Conversation conversation,
+        Guid actorUserId,
+        NegotiationOfferDto offer,
+        bool isCounterOffer,
+        CancellationToken cancellationToken)
+    {
+        var recipientId = conversation.FounderId == actorUserId
+            ? conversation.InvestorId
+            : conversation.FounderId;
+        if (!recipientId.HasValue
+            || recipientId.Value == Guid.Empty
+            || _conversationPresence.IsActive(recipientId.Value, conversation.Id))
+            return;
+
+        var actorName = conversation.FounderId == actorUserId
+            ? conversation.Founder?.Profile?.FullName ?? conversation.Founder?.Name ?? "Founder"
+            : conversation.Investor?.Profile?.FullName ?? conversation.Investor?.Name ?? "Investor";
+        var opportunityTitle = conversation.Opportunity?.Title ?? conversation.Category ?? "opportunity";
+
+        try
+        {
+            await _userNotificationService.CreateEventAsync(new NotificationEventCreation(
+                recipientId.Value,
+                isCounterOffer ? "NegotiationCounterOfferReceived" : "NegotiationOfferReceived",
+                offer.Id.ToString(),
+                isCounterOffer
+                    ? $"Counter offer from {actorName}"
+                    : $"New offer from {actorName}",
+                $"A formal offer was sent for {opportunityTitle}.",
+                "info",
+                $"/admin/chat?conversationId={conversation.Id:D}",
+                actorUserId,
+                conversation.OpportunityId), cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Offer {OfferId} was saved but recipient notification failed for conversation {ConversationId}",
+                offer.Id,
+                conversation.Id);
+        }
     }
 
     private async Task EnsureNoActiveOfferAsync(Guid conversationId)
@@ -723,11 +1212,16 @@ public class NegotiationService : INegotiationService
         });
     }
 
-    private async Task<ChatMessage> AddMessageAsync(Guid conversationId, Guid senderId, string text, DateTime now)
+    private async Task<ChatMessage> AddMessageAsync(
+        Guid conversationId,
+        Guid senderId,
+        string text,
+        DateTime now,
+        Guid? clientMessageId = null)
     {
         var message = new ChatMessage
         {
-            Id = Guid.NewGuid(),
+            Id = clientMessageId ?? Guid.NewGuid(),
             ConversationId = conversationId,
             SenderId = senderId.ToString(),
             SenderUserId = senderId,
@@ -768,7 +1262,9 @@ public class NegotiationService : INegotiationService
             r => r.Id == requestId,
             r => r.Opportunity!,
             r => r.Requester!,
+            r => r.Requester!.Profile!,
             r => r.Recipient!,
+            r => r.Recipient!.Profile!,
             r => r.AcceptedConversation!);
 
         if (conversationRequest == null)
@@ -936,7 +1432,7 @@ public class NegotiationService : INegotiationService
         };
     }
 
-    private static NegotiationConversationDto ToConversationDto(Conversation conversation, Guid viewerUserId)
+    private static NegotiationConversationDto ToConversationDto(Conversation conversation, Guid viewerUserId, int unreadCount = 0)
     {
         var participationStatus = conversation.ParticipationRequest?.Status;
         var requester = ToUserSummary(conversation.Investor, conversation.InvestorId, "Investor");
@@ -985,7 +1481,8 @@ public class NegotiationService : INegotiationService
             CloseReason = conversation.CloseReason,
             ClosedAt = conversation.ClosedAt,
             CreatedAt = conversation.CreatedAt,
-            UpdatedAt = conversation.UpdatedAt
+            UpdatedAt = conversation.UpdatedAt,
+            UnreadCount = unreadCount
         };
     }
 
@@ -1028,18 +1525,39 @@ public class NegotiationService : INegotiationService
         Role = role
     };
 
-    private static NegotiationMessageDto ToMessageDto(ChatMessage message) => new()
+    private static NegotiationMessageDto ToMessageDto(ChatMessage message, Conversation conversation)
     {
-        Id = message.Id,
-        ConversationId = message.ConversationId ?? Guid.Empty,
-        SenderId = message.SenderUserId ?? (Guid.TryParse(message.SenderId, out var senderId) ? senderId : Guid.Empty),
-        Message = message.IsDeleted ? string.Empty : message.MessageText,
-        SentAt = message.Timestamp,
-        IsEdited = message.IsEdited,
-        EditedAt = message.EditedAt,
-        IsDeleted = message.IsDeleted,
-        Attachments = message.AttachmentsJson
-    };
+        var sender = ResolveMessageSender(message, conversation);
+        return new NegotiationMessageDto
+        {
+            Id = message.Id,
+            ConversationId = message.ConversationId ?? Guid.Empty,
+            SenderId = message.SenderUserId ?? (Guid.TryParse(message.SenderId, out var senderId) ? senderId : Guid.Empty),
+            SenderName = sender.Name,
+            SenderRole = sender.Role,
+            Message = message.IsDeleted ? string.Empty : message.MessageText,
+            SentAt = message.Timestamp,
+            IsEdited = message.IsEdited,
+            EditedAt = message.EditedAt,
+            IsDeleted = message.IsDeleted,
+            Attachments = message.AttachmentsJson,
+            IsRead = message.IsRead
+        };
+    }
+
+    private static NegotiationUserSummaryDto ResolveMessageSender(ChatMessage message, Conversation conversation)
+    {
+        var senderId = message.SenderUserId
+            ?? (Guid.TryParse(message.SenderId, out var parsedSenderId) ? parsedSenderId : Guid.Empty);
+
+        if (senderId == conversation.FounderId)
+            return ToUserSummary(conversation.Founder, conversation.FounderId, "Founder");
+
+        if (senderId == conversation.InvestorId)
+            return ToUserSummary(conversation.Investor, conversation.InvestorId, "Investor");
+
+        return ToUserSummary(null, senderId, "Participant");
+    }
 
     private static string ToStatusText(ConversationStatus status, OpportunityJoinRequestStatus? participationStatus)
     {

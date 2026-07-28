@@ -831,6 +831,23 @@ export class RequestsComponent {
     return request.receiverName || request.counterpartName || 'Founder';
   }
 
+  getCounterpartyUserId(request: OpportunityRequest): string | number | null {
+    const id = request.direction === 'incoming' ? request.investorId : request.founderId;
+    if (id === null || id === undefined) return null;
+    const normalized = String(id).trim();
+    return normalized && normalized !== 'undefined' && normalized !== 'null' ? id : null;
+  }
+
+  canOpenCounterpartyProfile(request: OpportunityRequest): boolean {
+    return this.getCounterpartyUserId(request) !== null;
+  }
+
+  openCounterpartyProfile(request: OpportunityRequest): void {
+    const userId = this.getCounterpartyUserId(request);
+    if (userId === null) return;
+    void this.router.navigate(['/admin/founders', String(userId)]);
+  }
+
 
 
   /**

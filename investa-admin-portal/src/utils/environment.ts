@@ -28,20 +28,6 @@ export function getDynamicBaseUrl(): string {
 }
 
 /**
- * Gets the dynamic SignalR Hub URL
- * Uses window.location.hostname to avoid hardcoded IPs
- */
-export function getDynamicHubUrl(hubPath: string = '/chathub'): string {
-  // Check for environment variable first
-  const envUrl = import.meta.env.VITE_HUB_URL;
-  if (envUrl) {
-    return envUrl.replace(/\/+$/, '') + hubPath;
-  }
-
-  return hubPath;
-}
-
-/**
  * Storage utility with error handling
  */
 export const storage = {

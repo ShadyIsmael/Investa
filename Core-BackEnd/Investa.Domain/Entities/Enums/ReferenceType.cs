@@ -27,5 +27,6 @@ public enum ReferenceType
     /// <summary>Linked to a negotiation conversation.</summary>
     Conversation = 8,
     /// <summary>Linked to an opportunity participation/join request.</summary>
-    OpportunityJoinRequest = 9
+    OpportunityJoinRequest = 9,
+    CreditPurchase = 10
 }

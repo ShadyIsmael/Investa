@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Investa.Application.DTOs;
+using Investa.Application.Interfaces;
 using Investa.Domain.Entities;
 using Investa.Domain.Entities.Enums;
 using Investa.Infrastructure.Persistence;
@@ -14,11 +15,16 @@ public class NotificationsController : BaseApiController
 {
     private readonly ApplicationDbContext _db;
     private readonly ILogger<NotificationsController> _logger;
+    private readonly IUserNotificationService _userNotificationService;
 
-    public NotificationsController(ApplicationDbContext db, ILogger<NotificationsController> logger)
+    public NotificationsController(
+        ApplicationDbContext db,
+        ILogger<NotificationsController> logger,
+        IUserNotificationService userNotificationService)
     {
         _db = db;
         _logger = logger;
+        _userNotificationService = userNotificationService;
     }
 
     [HttpPost("broadcast")]
@@ -54,23 +60,16 @@ public class NotificationsController : BaseApiController
         _db.Notifications.Add(notification);
         await _db.SaveChangesAsync(cancellationToken);
 
-        var userNotifications = recipients.Select(userId => new UserNotification
-        {
-            NotificationId = notification.Id,
-            UserId = userId.ToString(),
-            Title = notification.Title,
-            Body = notification.Body,
-            Type = notification.Type,
-            Icon = notification.Icon,
-            ActionUrl = notification.ActionUrl,
-            IsRead = false,
-            CreatedAt = now
-        }).ToList();
+        var creations = recipients.Select(userId => new UserNotificationCreation(
+            userId.ToString(),
+            notification.Title,
+            notification.Body,
+            notification.Type,
+            notification.ActionUrl,
+            notification.Icon
+        ) with { NotificationId = notification.Id });
 
-        if (userNotifications.Count > 0)
-            _db.UserNotifications.AddRange(userNotifications);
-
-        await _db.SaveChangesAsync(cancellationToken);
+        var userNotifications = await _userNotificationService.CreateRangeAsync(creations, cancellationToken);
 
         _logger.LogInformation(
             "Notification broadcast created. NotificationId={NotificationId} Audience={Audience} RecipientCount={RecipientCount}",
@@ -195,10 +194,20 @@ public class NotificationsController : BaseApiController
             return ErrorResponse("Unable to resolve authenticated user", 401);
 
         var userIdText = userId.Value.ToString();
-        var count = await _db.UserNotifications
-            .CountAsync(n => n.UserId == userIdText && !n.IsRead, cancellationToken);
+        var unread = _db.UserNotifications
+            .AsNoTracking()
+            .Where(n => n.UserId == userIdText && !n.IsRead);
+        var notificationCount = await unread.CountAsync(n => n.ActionUrl == null || !n.ActionUrl.StartsWith("/admin/chat"), cancellationToken);
+        var messageCount = await _db.ChatMessages
+            .AsNoTracking()
+            .Where(message => !message.IsRead
+                              && message.SenderUserId != userId.Value
+                              && message.Conversation != null
+                              && ((message.Conversation.FounderId == userId.Value && message.Conversation.IsVisibleToFounder)
+                                  || (message.Conversation.InvestorId == userId.Value && message.Conversation.IsVisibleToInvestor)))
+            .CountAsync(cancellationToken);
 
-        return SuccessResponse(new { unreadCount = count });
+        return SuccessResponse(new { unreadCount = messageCount + notificationCount, notificationCount, messageCount });
     }
 
     [HttpPatch("me/{id:long}/read")]

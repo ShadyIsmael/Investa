@@ -1,8 +1,9 @@
 :host { display:block; }
+.contract-preview-frame { display:block; width:100%; min-height:min(74vh, 980px); border:0; background:#eef1f4; }
 .room-workspace { min-height:100vh; background:var(--investa-bg); color:var(--investa-text-primary); padding:18px 0 36px; }
 .room-shell { width:min(1380px, calc(100% - 32px)); margin-inline:auto; }
 .room-back-link { display:inline-flex; align-items:center; min-height:34px; margin-bottom:8px; color:var(--investa-text-secondary); font-size:.75rem; font-weight:700; }
-.room-header { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:16px 18px; border-radius:15px; }
+.room-header { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:16px 18px; }
 .room-identity { display:flex; align-items:center; min-width:0; gap:12px; }
 .room-thumbnail { width:58px; height:44px; flex:0 0 auto; display:grid; place-items:center; border-radius:9px; background:linear-gradient(135deg, var(--investa-primary), #394047); color:#fff; font-size:1.15rem; font-weight:900; }
 .room-title-block { min-width:0; }
@@ -16,7 +17,7 @@
 .room-header-meta span,.room-header-meta strong { display:block; }
 .room-header-meta span { color:var(--investa-text-muted); font-size:.6rem; }
 .room-header-meta strong { margin-top:3px; color:var(--investa-text-primary); font-size:.75rem; }
-.room-metrics { display:grid; grid-template-columns:repeat(4, minmax(110px,1fr)) minmax(210px,1.35fr); gap:0; margin-top:10px; padding:0; overflow:hidden; border-radius:13px; }
+.room-metrics { display:grid; grid-template-columns:repeat(4, minmax(110px,1fr)) minmax(210px,1.35fr); gap:0; margin-top:10px; }
 .room-metrics > div { min-width:0; padding:13px 15px; border-inline-start:1px solid var(--investa-border); }
 .room-metrics > div:first-child { border-inline-start:0; }
 .room-metrics span,.room-metrics strong { display:block; }
@@ -28,7 +29,7 @@
 .room-progress i { display:block; height:100%; border-radius:inherit; background:var(--investa-accent); }
 .room-success { margin-top:10px; padding:9px 12px; border-radius:9px; border:1px solid rgba(34,197,50,.25); background:rgba(34,197,50,.09); color:var(--investa-text-primary); font-size:.72rem; }
 .room-workspace-grid { display:grid; grid-template-columns:150px minmax(0,1fr); gap:12px; margin-top:12px; align-items:start; }
-.room-navigation { position:sticky; top:70px; padding:6px; border-radius:13px; }
+.room-navigation { position:sticky; top:70px; padding:6px; }
 .room-navigation nav { display:flex; flex-direction:column; gap:3px; }
 .room-navigation button { display:grid; grid-template-columns:22px minmax(0,1fr) auto; align-items:center; min-height:38px; padding:7px 9px; border-radius:9px; color:var(--investa-text-secondary); font-size:.7rem; font-weight:750; text-align:start; transition:background .16s ease,color .16s ease; }
 .room-navigation button:hover { background:var(--investa-surface-soft); color:var(--investa-text-primary); }
@@ -44,8 +45,6 @@
 .room-founder-actions .investa-btn-secondary { min-height:34px; padding:7px 10px; font-size:.67rem; }
 .room-founder-actions .disabled { pointer-events:none; opacity:.45; }
 .room-content > section { margin:0; }
-.room-content .investa-card { border-radius:13px; box-shadow:var(--investa-shadow-sm); }
-.room-content .investa-card.p-6 { padding:16px; }
 .room-content .investa-card-soft { border-radius:10px; }
 .room-content .investa-card-soft.p-4,.room-content .investa-card-soft.p-5 { padding:12px; }
 .room-content h2.text-xl { font-size:1rem; }
@@ -67,6 +66,14 @@
 .room-error p { margin-top:8px; color:var(--investa-text-secondary); font-size:.8rem; }
 .room-error > div { display:flex; justify-content:center; gap:8px; margin-top:16px; }
 @keyframes pulse { 50% { opacity:.6; } }
+
+.room-payments-table { width:100%; border-collapse:collapse; font-size:.72rem; }
+.room-payments-table th,.room-payments-table td { padding:8px 10px; text-align:start; border-bottom:1px solid var(--investa-border); }
+.room-payments-table th { font-size:.6rem; font-weight:800; text-transform:uppercase; letter-spacing:.1em; color:var(--investa-text-muted); }
+.room-payments-table td { font-weight:600; color:var(--investa-text-primary); }
+.room-payments-table tbody tr:last-child td { border-bottom:0; }
+.room-payments-table tbody tr:hover { background:var(--investa-surface-soft); }
+.room-payments-ref { max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
 @media (max-width: 980px) {
   .room-header { align-items:flex-start; }

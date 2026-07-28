@@ -53,7 +53,15 @@
               @else { <span>{{ initials(conversation.counterpartyName) }}</span> }
             </div>
             <div class="list-card__body">
-              <div class="list-card__top"><strong>{{ conversation.counterpartyName }}</strong><time>{{ formatTime(conversation.lastMessageAt) }}</time></div>
+              <div class="list-card__top">
+                <strong>{{ conversation.counterpartyName }}</strong>
+                <span class="list-card__activity">
+                  <time>{{ formatTime(conversation.lastMessageAt) }}</time>
+                  @if ((conversation.unreadCount ?? 0) > 0) {
+                    <span class="unread-badge" [attr.aria-label]="'notifications.unread' | translate">{{ conversation.unreadCount }}</span>
+                  }
+                </span>
+              </div>
               <p class="opportunity-line">{{ conversation.opportunityTitle }}</p>
               @if (conversation.lastMessage) { <p class="message-preview">{{ conversation.lastMessage }}</p> }
               <span [class]="statusBadgeClass(conversation.status)">{{ statusLabel(conversation.status) }}</span>
@@ -107,7 +115,7 @@
         </ol>
       </section>
 
-      <div class="message-stream">
+      <div #messageStream class="message-stream">
         @if (messagesLoading()) {
           <div class="compact-state"><span class="spinner"></span><p>{{ 'conversationWorkspace.messages.loading' | translate }}</p></div>
         } @else {
@@ -115,15 +123,29 @@
           @for (item of chatItems(); track item.id; let index = $index) {
             @if (item.kind === 'message') {
               <article class="message-row" [class.own]="item.message.isSender" [class.grouped]="!isMessageGroupStart(index)">
-                @if (isMessageGroupStart(index)) {
-                  <div class="message-meta"><strong>{{ item.message.isSender ? ('conversationWorkspace.messages.you' | translate) : item.message.senderName }}</strong>@if (item.message.senderRole) { <span>{{ roleLabel(item.message.senderRole) }}</span> }</div>
+                @if (!item.message.isSender) {
+                  <span class="avatar avatar--message">{{ initials(item.message.senderName) }}</span>
                 }
-                <div class="message-bubble"><p>{{ item.message.text }}</p><time>{{ formatTime(item.message.sentAt) }}</time></div>
+                <div class="message-content">
+                  @if (isMessageGroupStart(index)) {
+                    <div class="message-meta"><strong>{{ item.message.isSender ? ('conversationWorkspace.messages.you' | translate) : item.message.senderName }}</strong>@if (item.message.senderRole) { <span>{{ roleLabel(item.message.senderRole) }}</span> }</div>
+                  }
+                  <div class="message-bubble"><p>{{ item.message.text }}</p><time>{{ formatTime(item.message.sentAt) }}</time></div>
+                </div>
+                @if (item.message.isSender) {
+                  <span class="avatar avatar--message">{{ initials(item.message.senderName) }}</span>
+                }
               </article>
             } @else {
             <article class="offer-card" [class.offer-card--accepted]="isAcceptedOffer(item.offer)">
               <header>
-                <div><p class="eyebrow">{{ 'conversationWorkspace.offers.version' | translate }} {{ item.offer.version }}</p><strong>{{ 'conversationWorkspace.offers.title' | translate }}</strong></div>
+                <div>
+                  <p class="eyebrow">{{ 'conversationWorkspace.offers.version' | translate }} {{ item.offer.version }}</p>
+                  <strong>{{ 'conversationWorkspace.offers.title' | translate }}</strong>
+                  @if (item.offer.createdByName) {
+                    <p class="offer-relation">{{ item.offer.createdByName }}@if (item.offer.createdByRole) { · {{ roleLabel(item.offer.createdByRole) }} }</p>
+                  }
+                </div>
                 <span class="status-badge" [class.status-badge--success]="isAcceptedOffer(item.offer)">{{ offerStatusLabel(item.offer.status) }}</span>
               </header>
               @if (parentOfferVersion(item.offer); as parentVersion) { <p class="offer-relation">↳ {{ 'conversationWorkspace.offers.counters' | translate }} {{ parentVersion }}</p> }

@@ -125,4 +125,17 @@ public static class ApplicationConstants
         /// </summary>
         public const string Client = "Client";
     }
+
+    /// <summary>
+    /// Brand name constants used across the application.
+    /// Centralizes brand references for easy rebranding.
+    /// </summary>
+    public static class Brand
+    {
+        /// <summary>Display name of the platform shown to users.</summary>
+        public const string Name = "FOPX One";
+
+        /// <summary>Sender name used in outbound emails.</summary>
+        public const string EmailSenderName = "FOPX One";
+    }
 }

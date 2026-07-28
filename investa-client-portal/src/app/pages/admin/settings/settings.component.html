@@ -5,14 +5,14 @@
       {{ 'settings.backToDashboard' | translate }}
     </a>
 
-    <header class="settings-header settings-card">
+    <header class="settings-header investa-panel">
       <p class="eyebrow">{{ 'settings.eyebrow' | translate }}</p>
       <h1>{{ 'settings.title' | translate }}</h1>
       <p>{{ 'settings.subtitle' | translate }}</p>
     </header>
 
     <div class="settings-workspace">
-      <aside class="settings-nav settings-card" [attr.aria-label]="'settings.navigationLabel' | translate">
+      <aside class="settings-nav investa-panel" [attr.aria-label]="'settings.navigationLabel' | translate">
         <nav>
           @for (item of menuItems; track item.id) {
             <button type="button" (click)="selectSection(item.id)" [class.active]="activeSection === item.id">
@@ -23,7 +23,7 @@
         </nav>
       </aside>
 
-      <section class="settings-panel settings-card">
+      <section class="settings-panel investa-panel">
         <header class="section-header">
           <p class="eyebrow">{{ 'settings.sectionEyebrow' | translate }}</p>
           <h2>{{ ('settings.' + activeSection + '.title') | translate }}</h2>
@@ -72,9 +72,62 @@
             @case ('notifications') {
               <div class="toggle-list">
                 <label class="toggle-row"><span>{{ 'settings.notifications.email' | translate }}</span><span class="switch-control"><input type="checkbox" [checked]="draft().notifications.email" (change)="setNotificationFromEvent('email', $event)"><span class="switch-track"><span></span></span></span></label>
-                <label class="toggle-row"><span>{{ 'settings.notifications.push' | translate }}</span><span class="switch-control"><input type="checkbox" [checked]="draft().notifications.push" (change)="setNotificationFromEvent('push', $event)"><span class="switch-track"><span></span></span></span></label>
                 <label class="toggle-row"><span>{{ 'settings.notifications.sms' | translate }}</span><span class="switch-control"><input type="checkbox" [checked]="draft().notifications.sms" (change)="setNotificationFromEvent('sms', $event)"><span class="switch-track"><span></span></span></span></label>
               </div>
+
+              <hr class="settings-divider">
+
+              <div class="setting-group">
+                <label>{{ 'settings.notifications.browserPush' | translate }}</label>
+                <p class="setting-hint">{{ 'settings.notifications.browserPushHint' | translate }}</p>
+                <div class="fcm-status">
+                  @if (!fcmEnabled() && !fcmService.permissionGranted) {
+                    <span class="fcm-permission-badge fcm-denied">
+                      {{ 'settings.notifications.permissionNotGranted' | translate }}
+                    </span>
+                  } @else if (fcmService.permissionGranted && !fcmEnabled()) {
+                    <span class="fcm-permission-badge fcm-granted">
+                      {{ 'settings.notifications.permissionGranted' | translate }}
+                    </span>
+                  } @else if (fcmEnabled()) {
+                    <span class="fcm-permission-badge fcm-active">
+                      {{ 'settings.notifications.pushActive' | translate }}
+                    </span>
+                  }
+                </div>
+
+                @if (!fcmEnabled()) {
+                  <button type="button" class="primary-button" [disabled]="fcmLoading()" (click)="enableFcm()">
+                    {{ (fcmLoading() ? 'settings.notifications.enabling' : 'settings.notifications.enablePush') | translate }}
+                  </button>
+                } @else {
+                  <button type="button" class="secondary-button" [disabled]="fcmLoading()" (click)="disableFcm()">
+                    {{ (fcmLoading() ? 'settings.notifications.disabling' : 'settings.notifications.disablePush') | translate }}
+                  </button>
+                }
+              </div>
+
+              @if (fcmDevices().length > 0) {
+                <div class="device-list">
+                  <label>{{ 'settings.notifications.registeredDevices' | translate }}</label>
+                  @for (device of fcmDevices(); track device.id) {
+                    <div class="device-row">
+                      <span class="device-info">
+                        <strong>{{ device.browser || 'Browser' }}</strong>
+                        @if (device.platform) { <span>{{ device.platform }}</span> }
+                        @if (device.lastUsedAt) { <small>{{ 'settings.notifications.lastUsed' | translate }}: {{ device.lastUsedAt }}</small> }
+                      </span>
+                      @if (device.isActive) {
+                        <button type="button" class="small-button" [disabled]="fcmLoading()" (click)="deactivateDevice(device.id)">
+                          {{ 'settings.notifications.disableDevice' | translate }}
+                        </button>
+                      } @else {
+                        <span class="inactive-badge">{{ 'settings.notifications.inactive' | translate }}</span>
+                      }
+                    </div>
+                  }
+                </div>
+              }
             }
             @case ('privacy') {
               <div class="toggle-list">

@@ -14,6 +14,8 @@ public class SendNegotiationMessageRequest
     [Required]
     [StringLength(4000, MinimumLength = 1)]
     public string Message { get; set; } = string.Empty;
+
+    public Guid? ClientMessageId { get; set; }
 }
 
 public class RejectNegotiationRequest
@@ -130,6 +132,7 @@ public class NegotiationConversationDto
     public DateTime? ClosedAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
+    public int UnreadCount { get; set; }
 }
 
 public class NegotiationConversationRequestDto
@@ -195,12 +198,21 @@ public class NegotiationMessageDto
     public Guid Id { get; set; }
     public Guid ConversationId { get; set; }
     public Guid SenderId { get; set; }
+    public string SenderName { get; set; } = string.Empty;
+    public string SenderRole { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
     public DateTime SentAt { get; set; }
     public bool IsEdited { get; set; }
     public DateTime? EditedAt { get; set; }
     public bool IsDeleted { get; set; }
     public string? Attachments { get; set; }
+    public bool IsRead { get; set; }
+}
+
+public class AcceptOfferResultDto
+{
+    public NegotiationOfferDto Offer { get; set; } = null!;
+    public int ParticipationRequestId { get; set; }
 }
 
 public class OpportunitySummaryForNegotiationDto

@@ -261,6 +261,7 @@ public class OpportunityDto
     public int Id { get; set; }
     public Guid FounderId { get; set; }
     public int? LegacyInvestmentId { get; set; }
+    public bool Favorited { get; set; }
     public FounderSummaryDto Founder { get; set; } = new();
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
@@ -312,6 +313,21 @@ public class OpportunityDetailDto : OpportunityDto
     public IReadOnlyList<OpportunityMediaDto> Media { get; set; } = Array.Empty<OpportunityMediaDto>();
     public IReadOnlyList<OpportunityDocumentDto> Documents { get; set; } = Array.Empty<OpportunityDocumentDto>();
     public IReadOnlyList<OpportunityEventDto> Events { get; set; } = Array.Empty<OpportunityEventDto>();
+    public IReadOnlyList<ProjectActivityTimelineDto> RecentProjectActivity { get; set; } = Array.Empty<ProjectActivityTimelineDto>();
+    public int ProjectActivityTotalCount { get; set; }
+}
+
+public class PublicProjectActivityPageDto
+{
+    public IReadOnlyList<ProjectActivityTimelineDto> Items { get; set; } = Array.Empty<ProjectActivityTimelineDto>();
+    public int Total { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+}
+
+public sealed class SetOpportunityFavoriteRequest
+{
+    public bool Favorited { get; set; }
 }
 
 public class OpportunityRoomDto
@@ -319,10 +335,24 @@ public class OpportunityRoomDto
     public OpportunityRoomOverviewDto Overview { get; set; } = new();
     public IReadOnlyList<OpportunityRoomMediaGroupDto> MediaLibrary { get; set; } = Array.Empty<OpportunityRoomMediaGroupDto>();
     public IReadOnlyList<OpportunityRoomDocumentGroupDto> DocumentsLibrary { get; set; } = Array.Empty<OpportunityRoomDocumentGroupDto>();
-    public IReadOnlyList<OpportunityEventDto> Timeline { get; set; } = Array.Empty<OpportunityEventDto>();
+    public IReadOnlyList<ProjectActivityTimelineDto> Timeline { get; set; } = Array.Empty<ProjectActivityTimelineDto>();
     public IReadOnlyList<OpportunityMilestoneDto> Milestones { get; set; } = Array.Empty<OpportunityMilestoneDto>();
     public OpportunityMilestoneDto? LatestMilestone { get; set; }
     public OpportunityRoomParticipantContextDto ParticipantContext { get; set; } = new();
+}
+
+public class ProjectActivityTimelineDto
+{
+    public int Id { get; set; }
+    public int OpportunityId { get; set; }
+    public string EventType { get; set; } = string.Empty;
+    public string TitleKey { get; set; } = string.Empty;
+    public string DescriptionKey { get; set; } = string.Empty;
+    public string ActorType { get; set; } = "System";
+    public DateTime OccurredAt { get; set; }
+    public string? RelatedEntityType { get; set; }
+    public string? RelatedEntityId { get; set; }
+    public IReadOnlyDictionary<string, string?> Metadata { get; set; } = new Dictionary<string, string?>();
 }
 
 public class OpportunityRoomOverviewDto
@@ -599,6 +629,8 @@ public class OpportunityJoinRequestDto
     public string OpportunityTitle { get; set; } = string.Empty;
     public Guid InvestorId { get; set; }
     public string InvestorName { get; set; } = string.Empty;
+    public Guid FounderId { get; set; }
+    public string FounderName { get; set; } = string.Empty;
     public OpportunityJoinRequestType RequestType { get; set; }
     public decimal? RequestedAmount { get; set; }
     public decimal? CalculatedTotalAmount { get; set; }
@@ -608,6 +640,25 @@ public class OpportunityJoinRequestDto
     public DateTime CreatedAt { get; set; }
     public DateTime? ReviewedAt { get; set; }
     public string? RejectionReason { get; set; }
+}
+
+public sealed class ApprovedInvestorDto
+{
+    public Guid UserId { get; set; }
+    public string DisplayName { get; set; } = string.Empty;
+    public string? AvatarUrl { get; set; }
+    public DateTime ApprovedAt { get; set; }
+    public decimal TotalApprovedContribution { get; set; }
+    public IReadOnlyList<ApprovedParticipationSummaryDto> Participations { get; set; } = [];
+}
+
+public sealed class ApprovedParticipationSummaryDto
+{
+    public int ParticipationRequestId { get; set; }
+    public string InvestmentModel { get; set; } = string.Empty;
+    public decimal ApprovedContribution { get; set; }
+    public string? Currency { get; set; }
+    public DateTime ApprovedAt { get; set; }
 }
 
 public class FounderIncomingJoinRequestDto

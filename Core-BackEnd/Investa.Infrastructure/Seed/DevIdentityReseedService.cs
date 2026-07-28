@@ -47,31 +47,14 @@ public class DevIdentityReseedService
         var adminPassword = configuration["Admin:Password"] ?? "P@ssw0rd";
         var adminDisplayName = configuration["Admin:Name"] ?? "Platform Admin";
         var normalizedEmail = adminEmail.ToUpperInvariant();
-        var normalizedUserName = adminEmail.Replace("@", "_").Replace(".", "_").ToUpperInvariant();
+        var normalizedUserName = AdminPhoneNumber;
 
-        var identityIds = await _context.Users
-            .Where(u => u.NormalizedEmail == normalizedEmail || u.Email == adminEmail)
-            .Select(u => u.Id)
-            .ToListAsync();
+        var existingIdentityUser = await _userManager.FindByEmailAsync(adminEmail);
+        var existingAuthUser = await _context.AuthUsers
+            .FirstOrDefaultAsync(u => u.Email == adminEmail && u.UserType == UserType.OrgUser);
 
-        var domainIds = await _context.AuthUsers
-            .Where(u => u.Email == adminEmail && u.UserType == UserType.OrgUser)
-            .Select(u => u.Id)
-            .ToListAsync();
-
-        var idsToClean = identityIds.Concat(domainIds).Distinct().ToList();
-
-        var removedUserRoles = 0;
-        var removedUserClaims = 0;
-        var removedUserLogins = 0;
-        var removedUserTokens = 0;
-        var removedIdentityUsers = 0;
-        var removedDomainUserRoles = 0;
-        var removedDomainUserGroups = 0;
-        var removedDomainUserSessions = 0;
-        var removedRefreshTokens = 0;
-        var removedDomainUserTokens = 0;
-        var removedAuthUsers = 0;
+        var resetOccurred = false;
+        var resetMessageParts = new List<string>();
 
         var executionStrategy = _context.Database.CreateExecutionStrategy();
         await executionStrategy.ExecuteAsync(async () =>
@@ -79,116 +62,167 @@ public class DevIdentityReseedService
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-            foreach (var userId in idsToClean)
-            {
-                removedUserRoles += await _context.Database.ExecuteSqlInterpolatedAsync(
-                    $"DELETE FROM [AspNetUserRoles] WHERE [UserId] = {userId}");
-                removedUserClaims += await _context.Database.ExecuteSqlInterpolatedAsync(
-                    $"DELETE FROM [AspNetUserClaims] WHERE [UserId] = {userId}");
-                removedUserLogins += await _context.Database.ExecuteSqlInterpolatedAsync(
-                    $"DELETE FROM [AspNetUserLogins] WHERE [UserId] = {userId}");
-                removedUserTokens += await _context.Database.ExecuteSqlInterpolatedAsync(
-                    $"DELETE FROM [AspNetUserTokens] WHERE [UserId] = {userId}");
-                removedIdentityUsers += await _context.Database.ExecuteSqlInterpolatedAsync(
-                    $"DELETE FROM [AspNetUsers] WHERE [Id] = {userId} AND ([NormalizedEmail] = {normalizedEmail} OR [Email] = {adminEmail})");
-
-                removedDomainUserRoles += await _context.Database.ExecuteSqlInterpolatedAsync(
-                    $"DELETE FROM [UserRoles] WHERE [UserId] = {userId}");
-                removedDomainUserGroups += await _context.Database.ExecuteSqlInterpolatedAsync(
-                    $"DELETE FROM [UserGroups] WHERE [UserId] = {userId}");
-                removedDomainUserSessions += await _context.Database.ExecuteSqlInterpolatedAsync(
-                    $"DELETE FROM [UserSessions] WHERE [UserId] = {userId}");
-                removedRefreshTokens += await _context.Database.ExecuteSqlInterpolatedAsync(
-                    $"DELETE FROM [RefreshTokens] WHERE [AuthUserId] = {userId}");
-                removedDomainUserTokens += await _context.Database.ExecuteSqlInterpolatedAsync(
-                    $"DELETE FROM [UserTokens] WHERE [UserId] = {userId}");
-            }
-
-            foreach (var domainId in domainIds)
-            {
-                try
+                if (existingIdentityUser == null && existingAuthUser != null)
                 {
-                    removedAuthUsers += await _context.Database.ExecuteSqlInterpolatedAsync(
-                        $"DELETE FROM [AuthUsers] WHERE [Id] = {domainId} AND [Email] = {adminEmail} AND [UserType] = {nameof(UserType.OrgUser)}");
+                    existingIdentityUser = new ApplicationIdentityUser
+                    {
+                        Id = existingAuthUser.Id,
+                        UserName = adminEmail.Replace("@", "_").Replace(".", "_"),
+                        NormalizedUserName = normalizedUserName,
+                        Email = adminEmail,
+                        NormalizedEmail = normalizedEmail,
+                        EmailConfirmed = true,
+                        PhoneNumber = AdminPhoneNumber,
+                        PhoneNumberConfirmed = true,
+                        SecurityStamp = Guid.NewGuid().ToString("N"),
+                        ConcurrencyStamp = Guid.NewGuid().ToString("N"),
+                        LockoutEnabled = false,
+                        AccessFailedCount = 0
+                    };
+
+                    var createIdentityResult = await _userManager.CreateAsync(existingIdentityUser, adminPassword);
+                    if (!createIdentityResult.Succeeded)
+                        throw new InvalidOperationException($"Failed to create missing admin Identity user: {string.Join("; ", createIdentityResult.Errors.Select(e => e.Description))}");
+
+                    resetOccurred = true;
+                    resetMessageParts.Add("IdentityRecordCreatedWithExistingId");
                 }
-                catch (Exception ex)
+
+                if (existingAuthUser == null && existingIdentityUser != null)
                 {
-                    _logger.LogWarning(ex, "[DEV-ADMIN-RESET] Skipped AuthUser delete for {UserId}; unexpected related data may exist.", domainId);
+                    existingAuthUser = new AuthUser
+                    {
+                        Id = existingIdentityUser.Id,
+                        Name = adminDisplayName,
+                        Email = adminEmail,
+                        UserType = UserType.OrgUser,
+                        Status = true,
+                        IsEmailVerified = true,
+                        IsPhoneVerified = true,
+                        CreatedAt = DateTime.UtcNow,
+                        TrustLevel = TrustLevel.TrustedActive,
+                        VerificationTrustScore = 100,
+                        ProfileCompletionPercentage = 100,
+                        FirebaseUid = AdminPhoneNumber
+                    };
+                    existingAuthUser.PasswordHash = new PasswordHasher<AuthUser>().HashPassword(existingAuthUser, adminPassword);
+                    _context.AuthUsers.Add(existingAuthUser);
+                    resetOccurred = true;
+                    resetMessageParts.Add("AuthRecordCreatedWithExistingId");
                 }
-            }
 
-            if (!await _roleManager.RoleExistsAsync(AdminRoleName))
-            {
-                var roleResult = await _roleManager.CreateAsync(new ApplicationIdentityRole
+                if (existingIdentityUser == null && existingAuthUser == null)
                 {
-                    Name = AdminRoleName,
-                    NormalizedName = AdminRoleName.ToUpperInvariant()
-                });
+                    resetOccurred = true;
+                    if (!await _roleManager.RoleExistsAsync(AdminRoleName))
+                    {
+                        var roleResult = await _roleManager.CreateAsync(new ApplicationIdentityRole
+                        {
+                            Name = AdminRoleName,
+                            NormalizedName = AdminRoleName.ToUpperInvariant()
+                        });
 
-                if (!roleResult.Succeeded)
-                    throw new InvalidOperationException($"Failed to create Admin role: {string.Join("; ", roleResult.Errors.Select(e => e.Description))}");
-            }
+                        if (!roleResult.Succeeded)
+                            throw new InvalidOperationException($"Failed to create Admin role: {string.Join("; ", roleResult.Errors.Select(e => e.Description))}");
+                    }
 
-            var identityUser = new ApplicationIdentityUser
-            {
-                Id = Guid.NewGuid(),
-                UserName = adminEmail.Replace("@", "_").Replace(".", "_"),
-                NormalizedUserName = normalizedUserName,
-                Email = adminEmail,
-                NormalizedEmail = normalizedEmail,
-                EmailConfirmed = true,
-                PhoneNumber = AdminPhoneNumber,
-                PhoneNumberConfirmed = true,
-                SecurityStamp = Guid.NewGuid().ToString("N"),
-                ConcurrencyStamp = Guid.NewGuid().ToString("N"),
-                LockoutEnabled = false,
-                AccessFailedCount = 0
-            };
+                    existingIdentityUser = new ApplicationIdentityUser
+                    {
+                        Id = Guid.NewGuid(),
+                        UserName = adminEmail.Replace("@", "_").Replace(".", "_"),
+                        NormalizedUserName = normalizedUserName,
+                        Email = adminEmail,
+                        NormalizedEmail = normalizedEmail,
+                        EmailConfirmed = true,
+                        PhoneNumber = AdminPhoneNumber,
+                        PhoneNumberConfirmed = true,
+                        SecurityStamp = Guid.NewGuid().ToString("N"),
+                        ConcurrencyStamp = Guid.NewGuid().ToString("N"),
+                        LockoutEnabled = false,
+                        AccessFailedCount = 0
+                    };
 
-            var createUserResult = await _userManager.CreateAsync(identityUser, adminPassword);
-            if (!createUserResult.Succeeded)
-                throw new InvalidOperationException($"Failed to recreate admin Identity user: {string.Join("; ", createUserResult.Errors.Select(e => e.Description))}");
+                    var createUserResult = await _userManager.CreateAsync(existingIdentityUser, adminPassword);
+                    if (!createUserResult.Succeeded)
+                        throw new InvalidOperationException($"Failed to create admin Identity user: {string.Join("; ", createUserResult.Errors.Select(e => e.Description))}");
 
-            var addRoleResult = await _userManager.AddToRoleAsync(identityUser, AdminRoleName);
-            if (!addRoleResult.Succeeded)
-                throw new InvalidOperationException($"Failed to assign Admin role: {string.Join("; ", addRoleResult.Errors.Select(e => e.Description))}");
+                    var addRoleResult = await _userManager.AddToRoleAsync(existingIdentityUser, AdminRoleName);
+                    if (!addRoleResult.Succeeded)
+                        throw new InvalidOperationException($"Failed to assign Admin role: {string.Join("; ", addRoleResult.Errors.Select(e => e.Description))}");
 
-            var authUser = new AuthUser
-            {
-                Id = identityUser.Id,
-                Name = adminDisplayName,
-                Email = adminEmail,
-                UserType = UserType.OrgUser,
-                Status = true,
-                IsEmailVerified = true,
-                IsPhoneVerified = true,
-                CreatedAt = DateTime.UtcNow,
-                TrustLevel = TrustLevel.TrustedActive,
-                VerificationTrustScore = 100,
-                ProfileCompletionPercentage = 100
-            };
-            authUser.PasswordHash = new PasswordHasher<AuthUser>().HashPassword(authUser, adminPassword);
+                    existingAuthUser = new AuthUser
+                    {
+                        Id = existingIdentityUser.Id,
+                        Name = adminDisplayName,
+                        Email = adminEmail,
+                        UserType = UserType.OrgUser,
+                        Status = true,
+                        IsEmailVerified = true,
+                        IsPhoneVerified = true,
+                        CreatedAt = DateTime.UtcNow,
+                        TrustLevel = TrustLevel.TrustedActive,
+                        VerificationTrustScore = 100,
+                        ProfileCompletionPercentage = 100
+                    };
+                    existingAuthUser.PasswordHash = new PasswordHasher<AuthUser>().HashPassword(existingAuthUser, adminPassword);
 
-            _context.AuthUsers.Add(authUser);
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
+                    _context.AuthUsers.Add(existingAuthUser);
+                }
+                else
+                {
+                    var passwordHash = new PasswordHasher<AuthUser>().HashPassword(existingAuthUser, adminPassword);
+                    if (existingAuthUser.PasswordHash != passwordHash)
+                    {
+                        existingAuthUser.PasswordHash = passwordHash;
+                        resetOccurred = true;
+                        resetMessageParts.Add("PasswordChanged");
+                    }
+                    if (existingAuthUser.Name != adminDisplayName)
+                    {
+                        existingAuthUser.Name = adminDisplayName;
+                        resetOccurred = true;
+                        resetMessageParts.Add("NameUpdated");
+                    }
+                    if (string.IsNullOrEmpty(existingAuthUser.FirebaseUid))
+                    {
+                        existingAuthUser.FirebaseUid = AdminPhoneNumber;
+                        resetOccurred = true;
+                        resetMessageParts.Add("FirebaseUidSet");
+                    }
+                    if (existingIdentityUser.UserName != AdminPhoneNumber)
+                    {
+                        existingIdentityUser.UserName = AdminPhoneNumber;
+                        existingIdentityUser.NormalizedUserName = AdminPhoneNumber;
+                        existingIdentityUser.PhoneNumber = AdminPhoneNumber;
+                        existingIdentityUser.PhoneNumberConfirmed = true;
+                        resetOccurred = true;
+                        resetMessageParts.Add("UserNameSetToPhone");
+                    }
+                    if (!await _userManager.IsInRoleAsync(existingIdentityUser, AdminRoleName))
+                    {
+                        resetOccurred = true;
+                        resetMessageParts.Add("RoleRestored");
+                    }
+                }
 
-            _logger.LogInformation(
-                "[DEV-ADMIN-RESET] Removed AspNetUserRoles={AspNetUserRoles}, AspNetUserClaims={AspNetUserClaims}, AspNetUserLogins={AspNetUserLogins}, AspNetUserTokens={AspNetUserTokens}, AspNetUsers={AspNetUsers}, UserRoles={UserRoles}, UserGroups={UserGroups}, UserSessions={UserSessions}, RefreshTokens={RefreshTokens}, UserTokens={UserTokens}, AuthUsers={AuthUsers}. Recreated AdminRole=1 AspNetUsers=1 AspNetUserRoles=1 AuthUsers=1 Email={Email} Phone={Phone} UserId={UserId}",
-                removedUserRoles,
-                removedUserClaims,
-                removedUserLogins,
-                removedUserTokens,
-                removedIdentityUsers,
-                removedDomainUserRoles,
-                removedDomainUserGroups,
-                removedDomainUserSessions,
-                removedRefreshTokens,
-                removedDomainUserTokens,
-                removedAuthUsers,
-                adminEmail,
-                AdminPhoneNumber,
-                identityUser.Id);
+                if (!await _userManager.IsInRoleAsync(existingIdentityUser, AdminRoleName))
+                {
+                    var addRoleResult = await _userManager.AddToRoleAsync(existingIdentityUser, AdminRoleName);
+                    if (!addRoleResult.Succeeded)
+                        throw new InvalidOperationException($"Failed to assign Admin role: {string.Join("; ", addRoleResult.Errors.Select(e => e.Description))}");
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                if (resetOccurred || resetMessageParts.Any())
+                {
+                    _logger.LogInformation(
+                        "[DEV-ADMIN-RESET] Admin user ({AdminEmail}) {Details} - UserId: {UserId}",
+                        adminEmail,
+                        string.Join(", ", resetMessageParts),
+                        existingAuthUser.Id);
+                }
             }
             catch (Exception ex)
             {

@@ -107,6 +107,52 @@ public class OpportunitiesController : BaseApiController
         }
     }
 
+    [HttpGet("favorites")]
+    public async Task<IActionResult> GetFavorites(CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null) return ErrorResponse("Unable to resolve authenticated user", 401);
+        try { return SuccessResponse(await _opportunityService.GetFavoriteOpportunitiesAsync(userId.Value, cancellationToken)); }
+        catch (BusinessValidationException ex) { return ToBusinessError(ex); }
+    }
+
+    [HttpGet("{id:int}/favorite")]
+    public async Task<IActionResult> GetFavoriteStatus(int id, CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null) return ErrorResponse("Unable to resolve authenticated user", 401);
+        try { return SuccessResponse(new { opportunityId = id, favorited = await _opportunityService.IsFavoriteAsync(userId.Value, id, cancellationToken) }); }
+        catch (BusinessValidationException ex) { return ToBusinessError(ex); }
+    }
+
+    [HttpPut("{id:int}/favorite")]
+    public async Task<IActionResult> SetFavorite(int id, [FromBody] SetOpportunityFavoriteRequest request, CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null) return ErrorResponse("Unable to resolve authenticated user", 401);
+        try { return SuccessResponse(new { opportunityId = id, favorited = await _opportunityService.SetFavoriteAsync(userId.Value, id, request.Favorited, cancellationToken) }); }
+        catch (BusinessValidationException ex) { return ToBusinessError(ex); }
+    }
+
+    [HttpGet("investor-cash-flow/summary")]
+    public async Task<IActionResult> GetInvestorCashFlowSummary(CancellationToken cancellationToken) => await CashFlowResponse(id => _opportunityService.GetInvestorCashFlowSummaryAsync(id, cancellationToken));
+
+    [HttpGet("investor-cash-flow/monthly")]
+    public async Task<IActionResult> GetInvestorMonthlyCashFlow(CancellationToken cancellationToken) => await CashFlowResponse(id => _opportunityService.GetInvestorMonthlyCashFlowAsync(id, cancellationToken));
+
+    [HttpGet("investor-cash-flow/upcoming")]
+    public async Task<IActionResult> GetUpcomingPayments(CancellationToken cancellationToken) => await CashFlowResponse(id => _opportunityService.GetUpcomingPaymentsAsync(id, cancellationToken));
+
+    [HttpGet("participations/{requestId:int}/payment-schedule")]
+    public async Task<IActionResult> GetParticipationPaymentSchedule(int requestId, CancellationToken cancellationToken) => await CashFlowResponse(id => _opportunityService.GetParticipationPaymentScheduleAsync(id, requestId, cancellationToken));
+
+    private async Task<IActionResult> CashFlowResponse<T>(Func<Guid, Task<T>> action)
+    {
+        var userId = ResolveUserIdFromClaims(); if (userId == null) return ErrorResponse("Unable to resolve authenticated user", 401);
+        try { return SuccessResponse(await action(userId.Value)); }
+        catch (BusinessValidationException ex) { return ToBusinessError(ex); }
+    }
+
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(ApiResponse<OpportunityDetailDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Get(int id, CancellationToken cancellationToken)
@@ -139,6 +185,149 @@ public class OpportunitiesController : BaseApiController
         {
             var opportunity = await _opportunityService.GetProjectRoomAsync(userId.Value, id, cancellationToken);
             return SuccessResponse(opportunity);
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
+    [HttpGet("{id:int}/approved-investors")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ApprovedInvestorDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetApprovedInvestors(int id, CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null)
+            return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            return SuccessResponse(await _opportunityService.GetApprovedInvestorsAsync(userId.Value, id, cancellationToken));
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
+    [HttpGet("{id:int}/payments")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<InvestorPaymentSummaryDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPayments(int id, CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null)
+            return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            return SuccessResponse(await _opportunityService.GetOpportunityPaymentsAsync(userId.Value, id, cancellationToken));
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
+    [HttpGet("{id:int}/payments/investors/{investorId:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<InvestorPaymentDetailDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetInvestorPaymentDetails(int id, Guid investorId, CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null)
+            return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            return SuccessResponse(await _opportunityService.GetInvestorPaymentDetailsAsync(userId.Value, id, investorId, cancellationToken));
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
+    [HttpPost("{id:int}/payments")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(ApiResponse<PaymentTransactionDetailDto>), StatusCodes.Status201Created)]
+    public async Task<IActionResult> RecordPayment(int id, [FromBody] RecordPaymentRequest request, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return ErrorResponse("Invalid request", 400, ModelState);
+
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null)
+            return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            var result = await _opportunityService.RecordPaymentAsync(userId.Value, id, request, cancellationToken);
+            return SuccessResponse(result, "Payment recorded successfully", 201);
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
+    [HttpPost("{id:int}/payments/reverse")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(ApiResponse<PaymentTransactionDetailDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ReversePayment(int id, [FromBody] ReversePaymentRequest request, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return ErrorResponse("Invalid request", 400, ModelState);
+
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null)
+            return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            var result = await _opportunityService.ReversePaymentAsync(userId.Value, id, request, cancellationToken);
+            return SuccessResponse(result, "Payment reversed successfully");
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
+    [HttpGet("{id:int}/payments/monthly-unpaid")]
+    [Authorize]
+    [ProducesResponseType(typeof(ApiResponse<MonthlyBulkConfirmPreviewDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMonthlyUnpaidInstallments(int id, [FromQuery] int? year, [FromQuery] int? month, CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null)
+            return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            var result = await _opportunityService.GetMonthlyUnpaidInstallmentsAsync(userId.Value, id, year, month, cancellationToken);
+            return SuccessResponse(result);
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
+    [HttpPost("{id:int}/payments/bulk-confirm-monthly")]
+    [Authorize]
+    [ProducesResponseType(typeof(ApiResponse<BulkConfirmMonthlyResultDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> BulkConfirmMonthlyPayments(int id, [FromBody] BulkConfirmMonthlyRequest request, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return ErrorResponse("Invalid request", 400, ModelState);
+
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null)
+            return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            var result = await _opportunityService.BulkConfirmMonthlyPaymentsAsync(userId.Value, id, request, cancellationToken);
+            return SuccessResponse(result, "Monthly payments confirmed successfully");
         }
         catch (BusinessValidationException ex)
         {
@@ -401,6 +590,7 @@ public class OpportunitiesController : BaseApiController
             "OPPORTUNITY_NOT_FOUND" => 404,
             "PROJECT_ROOM_FORBIDDEN" => 403,
             "FOUNDER_ACCESS_REQUIRED" => 403,
+            "DUPLICATE_PAYMENT_REFERENCE" or "DUPLICATE_PAYMENT" or "PAYMENT_ALREADY_REVERSED" or "NO_UNPAID_INSTALLMENTS" => 409,
             _ => 400
         };
         return ErrorResponse(ex.Message, statusCode);

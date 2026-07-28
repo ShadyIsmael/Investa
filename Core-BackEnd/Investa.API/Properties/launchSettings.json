@@ -17,7 +17,9 @@
       "applicationUrl": "http://0.0.0.0:5235",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "ASPNETCORE_URLS": "http://0.0.0.0:5235"
+        "ASPNETCORE_URLS": "http://0.0.0.0:5235",
+        "Firebase__Enabled": "true",
+        "GOOGLE_APPLICATION_CREDENTIALS": "C:\\Secrets\\Firebase\\fopx-3fb91-firebase-adminsdk-fbsvc-9f59adda1d.json"
       }
     },
     "Staging": {
@@ -46,7 +48,9 @@
       "launchBrowser": true,
       "launchUrl": "swagger",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Firebase__Enabled": "true",
+        "GOOGLE_APPLICATION_CREDENTIALS": "C:\\Secrets\\Firebase\\fopx-3fb91-firebase-adminsdk-fbsvc-9f59adda1d.json"
       }
     }
   }

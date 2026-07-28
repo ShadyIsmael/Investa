@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'dart:async';
 import '../error/failures.dart';
 import '../services/logger_service.dart';
 import '../services/secure_storage_service.dart';
@@ -10,12 +11,15 @@ import 'network_config.dart';
 /// - Automatic token injection
 /// - Error handling and transformation to Failures
 /// - Request/Response logging
-/// - Retry logic for failed requests
+/// - Token refresh with lock to prevent race conditions
 class NetworkClient {
   final Dio dio;
   final NetworkConfig networkConfig;
   final SecureStorageService secureStorage;
   final LoggerService logger;
+
+  /// Lock for token refresh to prevent concurrent refresh attempts
+  Completer<bool>? _tokenRefreshCompleter;
 
   NetworkClient({
     required this.dio,
@@ -54,9 +58,9 @@ class NetworkClient {
 
           // Handle token refresh on 401
           if (error.response?.statusCode == 401) {
-            final refreshed = await _refreshToken();
+            final refreshed = await _refreshTokenWithLock();
             if (refreshed) {
-              // Retry the request
+              // Retry the request with new token
               final options = error.requestOptions;
               final token = await secureStorage.read('auth_token');
               options.headers['Authorization'] = 'Bearer $token';
@@ -76,16 +80,56 @@ class NetworkClient {
     );
   }
 
+  /// Refresh token with lock to prevent concurrent requests
+  ///
+  /// If a refresh is already in progress, waits for it to complete.
+  /// Otherwise, acquires lock and performs refresh.
+  Future<bool> _refreshTokenWithLock() async {
+    // If refresh is already in progress, wait for it
+    if (_tokenRefreshCompleter != null) {
+      try {
+        logger.debug('[API]', 'Token refresh in progress, waiting...');
+        return await _tokenRefreshCompleter!.future;
+      } catch (e) {
+        logger.error('[API]', 'Waiting for token refresh failed: $e');
+        return false;
+      }
+    }
+
+    // Acquire lock
+    _tokenRefreshCompleter = Completer<bool>();
+
+    try {
+      final success = await _refreshToken();
+      _tokenRefreshCompleter!.complete(success);
+      return success;
+    } catch (e, s) {
+      logger.error('[API]', 'Token refresh exception: $e', s);
+      _tokenRefreshCompleter!.completeError(e);
+      return false;
+    } finally {
+      // Release lock
+      _tokenRefreshCompleter = null;
+    }
+  }
+
   Future<bool> _refreshToken() async {
     try {
       final refreshToken = await secureStorage.read('refresh_token');
       if (refreshToken == null || refreshToken.isEmpty) {
+        logger.warning('[API]', 'No refresh token available');
         return false;
       }
+
+      logger.info('[API]', 'Attempting to refresh token...');
 
       final response = await dio.post(
         '${networkConfig.baseUrl}/api/v1/Auth/refresh-token',
         data: {'refreshToken': refreshToken},
+        options: Options(
+          // Don't apply interceptors to avoid infinite loops
+          validateStatus: (_) => true,
+        ),
       );
 
       if (response.statusCode == 200) {
@@ -94,6 +138,7 @@ class NetworkClient {
 
         if (newToken != null) {
           await secureStorage.write('auth_token', newToken);
+          logger.info('[API]', 'Token refreshed successfully');
         }
         if (newRefreshToken != null) {
           await secureStorage.write('refresh_token', newRefreshToken);
@@ -102,9 +147,11 @@ class NetworkClient {
         return true;
       }
 
+      logger.warning('[API]',
+          'Token refresh failed with status: ${response.statusCode}');
       return false;
     } catch (e) {
-      logger.error('[API]', 'Token refresh failed: $e');
+      logger.error('[API]', 'Token refresh exception: $e');
       return false;
     }
   }

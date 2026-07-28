@@ -398,7 +398,7 @@ public class InvestmentService : IInvestmentService
     {
         var favorites = await _unitOfWork.Repository<InvestmentFavorite>()
             .GetAllAsync();
-        return favorites.Where(f => f.InvestorId == investorId).Select(f => f.InvestmentId);
+        return favorites.Where(f => f.InvestorId == investorId && f.InvestmentId.HasValue).Select(f => f.InvestmentId!.Value);
     }
 
     public async Task<bool> ToggleFavoriteAsync(Guid investorId, int investmentId, bool favorited)

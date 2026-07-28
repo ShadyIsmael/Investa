@@ -619,7 +619,7 @@
 .public-section-nav span { display:inline-grid; min-width:18px; height:18px; place-items:center; border-radius:6px; background:var(--investa-surface-soft); font-size:.625rem; }
 .public-section-nav a:first-child span { background:rgba(255,255,255,.14); }
 
-.public-card { border:1px solid var(--investa-border); border-radius:15px; background:var(--investa-surface); padding:18px; box-shadow:var(--investa-shadow-sm); }
+
 .public-content-grid { display:grid; grid-template-columns:minmax(0, 1.6fr) minmax(260px, .8fr); gap:14px; }
 .public-card-wide { min-width:0; }
 .public-two-column { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
@@ -660,7 +660,7 @@
 .public-empty { padding:18px; border-radius:10px; background:var(--investa-surface-soft); color:var(--investa-text-muted); font-size:.75rem; text-align:center; }
 
 .public-investment-panel { position:sticky; top:72px; display:flex; flex-direction:column; gap:12px; }
-.public-summary-card,.public-relationship-card { border:1px solid var(--investa-border); border-radius:15px; background:var(--investa-surface); padding:17px; box-shadow:var(--investa-shadow-sm); }
+
 .public-summary-heading,.public-relationship-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:.75rem; font-weight:800; color:var(--investa-text-primary); }
 .public-summary-numbers { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
 .public-summary-numbers div:last-child { text-align:end; }
@@ -676,6 +676,29 @@
 .public-relationship-actions .investa-btn-primary,.public-relationship-actions .investa-btn-secondary { width:100%; min-height:40px; }
 .public-relationship-card small { display:block; margin-top:11px; color:var(--investa-text-muted); font-size:.625rem; line-height:1.45; }
 .public-full-button { width:100%; }
+.payment-terms { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.payment-terms div { padding:12px; border:1px solid var(--investa-border); border-radius:10px; background:var(--investa-surface-soft); }
+.payment-terms span,.payment-terms strong { display:block; }
+.payment-terms span { color:var(--investa-text-muted); font-size:.68rem; }
+.payment-terms strong { margin-top:4px; color:var(--investa-text-primary); font-size:.82rem; direction:ltr; unicode-bidi:isolate; }
+.payment-disclaimer { margin:14px 0; color:var(--investa-text-secondary); font-size:.72rem; }
+.payment-tracking-notice { margin:0 0 14px; padding:10px 12px; border:1px solid var(--investa-border); border-radius:10px; background:var(--investa-surface-soft); color:var(--investa-text-secondary); font-size:.72rem; line-height:1.55; }
+.payment-table-wrap { overflow-x:auto; }
+.payment-table { width:100%; min-width:720px; border-collapse:collapse; color:var(--investa-text-primary); font-size:.73rem; }
+.payment-table th,.payment-table td { padding:10px; border-bottom:1px solid var(--investa-border); text-align:start; white-space:nowrap; }
+.payment-table th { color:var(--investa-text-muted); font-size:.65rem; text-transform:uppercase; }
+.payment-status { display:inline-flex; padding:3px 8px; border-radius:999px; background:var(--investa-surface-soft); color:var(--investa-text-secondary); font-weight:700; }
+.payment-status[data-status='Paid'] { background:rgba(34,197,94,.14); color:#22c55e; }
+.payment-status[data-status='Overdue'] { background:rgba(239,68,68,.14); color:#ef4444; }
+.payment-status[data-status='Due'],.payment-status[data-status='PartiallyPaid'] { background:rgba(245,158,11,.14); color:#d97706; }
+.payment-pagination { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding-top:14px; color:var(--investa-text-secondary); font-size:.7rem; }
+.payment-pagination label,.payment-pagination-actions { display:flex; align-items:center; gap:8px; }
+.payment-pagination select,.payment-pagination-actions button { min-height:32px; border:1px solid var(--investa-border); border-radius:8px; background:var(--investa-surface-soft); color:var(--investa-text-primary); }
+.payment-pagination select { padding-inline:8px 24px; }
+.payment-pagination-actions button { min-width:32px; cursor:pointer; font-size:1rem; }
+.payment-pagination-actions button:disabled { cursor:not-allowed; opacity:.45; }
+:host-context([dir='rtl']) .payment-schedule-card { direction:rtl; text-align:right; }
+:host-context([dir='rtl']) .payment-table th,:host-context([dir='rtl']) .payment-table td { text-align:right; }
 
 :host-context(body.investa-theme-light) {
   .public-hero h1 { color:#ffffff; text-shadow:0 2px 8px rgba(0,0,0,.55); }
@@ -705,9 +728,10 @@
   .public-highlights { grid-template-columns:1fr; }
   .public-terms-grid { grid-template-columns:1fr; }
   .public-term-wide { grid-column:auto; }
-  .public-card { padding:15px; }
+  .investa-panel { padding:15px; }
   .public-list-row { grid-template-columns:30px minmax(0,1fr); }
   .public-list-row time { grid-column:2; }
   .public-draft-inner { align-items:flex-start; padding-block:10px; }
   .public-draft-inner div:first-child { align-items:flex-start; flex-direction:column; gap:2px; }
+  .payment-terms { grid-template-columns:1fr; }
 }

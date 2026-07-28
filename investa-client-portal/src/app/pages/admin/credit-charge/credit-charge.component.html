@@ -1,180 +1,74 @@
-<div class="container mx-auto p-6 lg:p-8 max-w-6xl">
-  <!-- Header -->
-  <div class="flex items-center justify-between mb-8">
+<main class="credit-page" [attr.dir]="language.direction()">
+  <header class="page-header">
+    <button type="button" class="back" (click)="goBack()">‹ <span>{{ 'creditPurchase.back' | translate }}</span></button>
     <div>
-      <button (click)="goBack()" class="text-gray-400 hover:text-white mb-4 flex items-center gap-2 transition-colors">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-        </svg>
-        <span>Back</span>
-      </button>
-      <h1 class="text-3xl font-bold text-white">Charge Credits</h1>
-      <p class="text-gray-400 mt-2">Purchase credits to unlock investment opportunities and features</p>
+      <p class="eyebrow">{{ 'creditPurchase.eyebrow' | translate }}</p>
+      <h1>{{ 'creditPurchase.title' | translate }}</h1>
+      <p>{{ 'creditPurchase.subtitle' | translate }}</p>
     </div>
-    <div class="bg-slate-800/50 rounded-xl p-4 text-center">
-      <p class="text-sm text-gray-400">Current Balance</p>
-      <p class="text-3xl font-bold text-blue-400 mt-1">{{ currentCredits() }}</p>
-      <p class="text-xs text-gray-500 mt-1">Credits</p>
-    </div>
-  </div>
+    <aside class="balance"><span>{{ 'creditPurchase.balance' | translate }}</span><strong>{{ formatNumber(currentBalance()) }}</strong><small>CREDIT</small></aside>
+  </header>
 
-  <!-- Error Message -->
-  <div *ngIf="errorMessage()" class="mb-6 p-4 rounded-lg bg-red-800/20 border border-red-800 text-red-300">
-    <div class="flex items-start gap-3">
-      <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-      </svg>
-      <p>{{ errorMessage() }}</p>
-    </div>
-  </div>
+  <p class="service-note">{{ 'creditPurchase.serviceOnly' | translate }}</p>
+  @if (error()) { <div class="alert alert--error">{{ error() }} <button type="button" (click)="load()">{{ 'creditPurchase.retry' | translate }}</button></div> }
 
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-    <!-- Left Column: Admin Credit Plans -->
-    <div class="lg:col-span-2">
-      <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl p-6">
-        <h2 class="text-xl font-bold text-white mb-6">Select a Plan</h2>
-
-        <!-- No plans available -->
-        <div *ngIf="plansLoading()" class="text-center py-12">
-          <svg class="animate-spin w-8 h-8 mx-auto text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <p class="text-gray-400 mt-3">Loading plans...</p>
-        </div>
-
-        <div *ngIf="!plansLoading() && adminPlans().length === 0" class="text-center py-12">
-          <svg class="w-14 h-14 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
-          </svg>
-          <p class="text-gray-400">No plans available at the moment. Please check back later.</p>
-        </div>
-
-        <div *ngIf="!plansLoading()" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div *ngFor="let plan of adminPlans()"
-               (click)="selectPlan(plan.id)"
-               [class]="'relative cursor-pointer rounded-xl p-6 border-2 transition-all hover:shadow-lg ' +
-                        (selectedPlanId() === plan.id
-                          ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/20'
-                          : 'border-slate-700 bg-slate-800/50 hover:border-slate-600')">
-
-            <!-- Selected indicator -->
-            <div *ngIf="selectedPlanId() === plan.id"
-                 class="absolute top-3 right-3 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-              <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
-              </svg>
-            </div>
-
-            <!-- Billing period badge -->
-            <span class="inline-block mb-4 px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-slate-700 text-gray-300">
-              {{ BILLING_LABELS[plan.billingPeriod] }}
-            </span>
-
-            <h3 class="text-lg font-bold text-white mb-1">{{ plan.name }}</h3>
-
-            <div class="flex items-end gap-1 mt-3 mb-3">
-              <span class="text-3xl font-black" [class]="selectedPlanId() === plan.id ? 'text-blue-400' : 'text-white'">
-                {{ plan.price.toLocaleString() }}
-              </span>
-              <span class="text-gray-400 mb-1 text-sm">EGP</span>
-            </div>
-
-            <div class="flex items-center gap-2 px-3 py-2 bg-slate-700/50 rounded-lg">
-              <svg class="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-              <span class="text-sm font-semibold text-gray-200">{{ plan.credits.toLocaleString() }} Credits</span>
-            </div>
-
-            <p class="text-xs text-gray-500 mt-2">{{ (plan.price / plan.credits).toFixed(2) }} EGP / credit</p>
+  @if (loading()) {
+    <div class="state">{{ 'creditPurchase.loading' | translate }}</div>
+  } @else {
+    <section class="purchase-grid">
+      <div class="panel">
+        <h2>{{ 'creditPurchase.packages' | translate }}</h2>
+        @if (packages().length === 0) {
+          <div class="state">{{ 'creditPurchase.noPackages' | translate }}</div>
+        } @else {
+          <div class="package-grid">
+            @for (item of packages(); track item.id) {
+              <button type="button" class="package" [class.package--selected]="selectedPackageId() === item.id" (click)="selectPackage(item.id)">
+                @if (item.isFeatured) { <span class="featured">{{ 'creditPurchase.featured' | translate }}</span> }
+                <strong>{{ packageName(item) }}</strong>
+                <span class="price">{{ formatMoney(item.price, item.currency) }}</span>
+                <span>{{ formatNumber(item.credits) }} CREDIT</span>
+                @if (item.bonusCredits > 0) { <span class="bonus">+ {{ formatNumber(item.bonusCredits) }} {{ 'creditPurchase.bonus' | translate }}</span> }
+              </button>
+            }
           </div>
-        </div>
+        }
       </div>
-    </div>
 
-    <!-- Right Column: Summary & Purchase -->
-    <div class="lg:col-span-1">
-      <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl p-6 sticky top-8">
-        <h2 class="text-xl font-bold text-white mb-6">Order Summary</h2>
+      <aside class="panel summary">
+        <h2>{{ 'creditPurchase.review' | translate }}</h2>
+        @if (selectedPackage(); as item) {
+          <dl>
+            <div><dt>{{ 'creditPurchase.package' | translate }}</dt><dd>{{ packageName(item) }}</dd></div>
+            <div><dt>{{ 'creditPurchase.credits' | translate }}</dt><dd>{{ formatNumber(item.credits) }}</dd></div>
+            <div><dt>{{ 'creditPurchase.bonus' | translate }}</dt><dd>{{ formatNumber(item.bonusCredits) }}</dd></div>
+            <div class="total"><dt>{{ 'creditPurchase.total' | translate }}</dt><dd>{{ formatMoney(item.price, item.currency) }}</dd></div>
+          </dl>
+          <button type="button" class="primary" [disabled]="submitting()" (click)="createOrder()">{{ (submitting() ? 'creditPurchase.creating' : 'creditPurchase.buy') | translate }}</button>
+          <p class="verification-note">{{ 'creditPurchase.verificationNote' | translate }}</p>
+        } @else { <div class="state state--compact">{{ 'creditPurchase.selectPrompt' | translate }}</div> }
+      </aside>
+    </section>
 
-        <div *ngIf="selectedPlan() === null" class="text-center py-8">
-          <svg class="w-16 h-16 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-          </svg>
-          <p class="text-gray-400 text-sm">Select a plan to continue</p>
-        </div>
+    <section class="panel history">
+      <div class="section-heading"><h2>{{ 'creditPurchase.history' | translate }}</h2><button type="button" (click)="load()">{{ 'creditPurchase.refresh' | translate }}</button></div>
+      @if (orders().length === 0) { <div class="state">{{ 'creditPurchase.noOrders' | translate }}</div> }
+      @else {
+        <div class="table-wrap"><table><thead><tr><th>{{ 'creditPurchase.reference' | translate }}</th><th>{{ 'creditPurchase.package' | translate }}</th><th>{{ 'creditPurchase.totalCredits' | translate }}</th><th>{{ 'creditPurchase.amount' | translate }}</th><th>{{ 'creditPurchase.statusLabel' | translate }}</th><th>{{ 'creditPurchase.date' | translate }}</th><th></th></tr></thead>
+          <tbody>@for (order of orders(); track order.id) { <tr><td>{{ order.referenceNumber }}</td><td>{{ packageName(order) }}</td><td>{{ formatNumber(order.credits + order.bonusCredits) }}</td><td>{{ formatMoney(order.pricePaid, order.currency) }}</td><td><span [class]="statusTone(order.paymentStatus)">{{ statusKey(order.paymentStatus) | translate }}</span></td><td>{{ formatDate(order.createdAt) }}</td><td><button type="button" class="link" (click)="viewReceipt(order)">{{ 'creditPurchase.details' | translate }}</button></td></tr> }</tbody>
+        </table></div>
+      }
+    </section>
+  }
 
-        <div *ngIf="selectedPlan()" class="space-y-4">
-          <div class="flex items-center justify-between py-3 border-b border-slate-700">
-            <span class="text-gray-400">Plan:</span>
-            <span class="text-white font-semibold">{{ selectedPlan()!.name }}</span>
-          </div>
-          <div class="flex items-center justify-between py-3 border-b border-slate-700">
-            <span class="text-gray-400">Credits:</span>
-            <span class="text-white font-semibold">{{ selectedPlan()!.credits.toLocaleString() }}</span>
-          </div>
-          <div class="flex items-center justify-between py-3 border-b border-slate-700">
-            <span class="text-gray-400">Billing:</span>
-            <span class="text-white font-semibold">{{ BILLING_LABELS[selectedPlan()!.billingPeriod] }}</span>
-          </div>
-          <div class="flex items-center justify-between py-3 text-lg">
-            <span class="text-white font-semibold">Total:</span>
-            <span class="text-blue-400 font-bold text-2xl">{{ selectedPlan()!.price.toLocaleString() }} EGP</span>
-          </div>
-
-          <button
-            type="button"
-            (click)="purchasePackage()"
-            [disabled]="isLoading()"
-            class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all mt-6">
-            <span *ngIf="!isLoading()">Purchase Now</span>
-            <span *ngIf="isLoading()" class="flex items-center justify-center gap-2">
-              <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Processing...
-            </span>
-          </button>
-        </div>
-
-        <!-- Payment Methods -->
-        <div class="mt-8 pt-6 border-t border-slate-800">
-          <p class="text-xs text-gray-500 mb-4 text-center">Secure Payment</p>
-          <div class="flex items-center justify-center gap-4">
-            <div class="bg-white rounded px-2 py-1">
-              <span class="text-blue-600 font-bold text-sm">VISA</span>
-            </div>
-            <div class="bg-white rounded px-2 py-1">
-              <span class="text-orange-600 font-bold text-sm">Mastercard</span>
-            </div>
-            <div class="bg-blue-600 rounded px-2 py-1">
-              <span class="text-white font-bold text-sm">PayPal</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Success Dialog -->
-  <div *ngIf="showSuccessDialog()" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-    <div class="bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-8 max-w-md w-full animate-fade-in">
-      <div class="text-center">
-        <div class="w-20 h-20 mx-auto mb-4 bg-green-500/20 rounded-full flex items-center justify-center">
-          <svg class="w-12 h-12 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-          </svg>
-        </div>
-        <h3 class="text-2xl font-bold text-white mb-2">Purchase Successful!</h3>
-        <p class="text-gray-400 mb-4">{{ purchasedCredits() | number }} credits have been added to your account.</p>
-        <div *ngIf="referenceNumber()" class="mt-4 bg-slate-800 rounded-lg px-4 py-3">
-          <p class="text-xs text-gray-500 mb-1">Reference Number</p>
-          <p class="text-blue-400 font-mono font-semibold tracking-wider">{{ referenceNumber() }}</p>
-        </div>
-        <p class="text-xs text-gray-500 mt-4">Redirecting to your profile…</p>
-      </div>
-    </div>
-  </div>
-</div>
+  @if (selectedOrder(); as order) {
+    <div class="modal" role="dialog" aria-modal="true"><article class="receipt">
+      <button type="button" class="close" (click)="closeReceipt()" [attr.aria-label]="'creditPurchase.close' | translate">×</button>
+      <p class="eyebrow">{{ 'creditPurchase.receipt' | translate }}</p><h2>{{ order.referenceNumber }}</h2>
+      <span [class]="statusTone(order.paymentStatus)">{{ statusKey(order.paymentStatus) | translate }}</span>
+      <dl><div><dt>{{ 'creditPurchase.package' | translate }}</dt><dd>{{ packageName(order) }}</dd></div><div><dt>{{ 'creditPurchase.credits' | translate }}</dt><dd>{{ formatNumber(order.credits) }}</dd></div><div><dt>{{ 'creditPurchase.bonus' | translate }}</dt><dd>{{ formatNumber(order.bonusCredits) }}</dd></div><div><dt>{{ 'creditPurchase.amount' | translate }}</dt><dd>{{ formatMoney(order.pricePaid, order.currency) }}</dd></div><div><dt>{{ 'creditPurchase.date' | translate }}</dt><dd>{{ formatDate(order.createdAt) }}</dd></div><div><dt>{{ 'creditPurchase.paidAt' | translate }}</dt><dd>{{ formatDate(order.paidAt) }}</dd></div></dl>
+      @if (!order.providerConfigured && order.paymentStatus === 'Pending') { <p class="alert">{{ 'creditPurchase.providerUnavailable' | translate }}</p> }
+      <p class="verification-note">{{ 'creditPurchase.receiptNote' | translate }}</p>
+    </article></div>
+  }
+</main>

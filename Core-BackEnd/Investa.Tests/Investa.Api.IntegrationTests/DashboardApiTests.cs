@@ -54,7 +54,7 @@ public class DashboardApiTests : IClassFixture<CustomWebApplicationFactory>
             BusinessCategoryId = bc.Id,
             InitialCapital = 1000m,
             Date = DateTime.UtcNow,
-            Status = Investa.Domain.Entities.Enums.InvestmentStatus.Active
+            Status = "Active"
         };
         db.Investments.Add(inv);
         db.SaveChanges();

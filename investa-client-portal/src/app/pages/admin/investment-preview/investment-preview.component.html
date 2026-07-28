@@ -1,14 +1,4 @@
 <div class="investment-preview-page">
-  <!-- Compact route header -->
-  <div class="investment-preview-routebar">
-    <div class="investment-preview-routebar-inner">
-      <a routerLink="/admin/investments" class="investment-preview-routebar-link">
-        <svg class="w-5 h-5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-        {{ 'investmentPreview.backButton' | translate }}
-      </a>
-    </div>
-  </div>
-
   @if (investment(); as inv) {
     @if (publicOpportunity(); as opp) {
       <div class="public-opportunity animate-fade-in">
@@ -30,14 +20,19 @@
         }
 
         <div class="public-shell public-topbar">
-          <a routerLink="/admin/investments" class="public-back-link">
+          <a [routerLink]="backLink()" class="public-back-link">
             <svg class="h-4 w-4 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
             {{ 'investmentPreview.backButton' | translate }}
           </a>
           @if (!isFounder()) {
-            <button type="button" (click)="openOpportunityReport(opp)" class="investa-btn-ghost">
-              {{ 'reports.actions.reportOpportunity' | translate }}
-            </button>
+            <div class="public-actions-row">
+              <button type="button" (click)="toggleOpportunityFavorite(opp)" [disabled]="favoriteUpdating()" class="investa-btn-ghost" [attr.aria-pressed]="!!opp.favorited">
+                {{ (opp.favorited ? 'investments.removeFromFavorites' : 'investments.addToFavorites') | translate }}
+              </button>
+              <button type="button" (click)="openOpportunityReport(opp)" class="investa-btn-ghost">
+                {{ 'reports.actions.reportOpportunity' | translate }}
+              </button>
+            </div>
           }
         </div>
 
@@ -73,13 +68,13 @@
             <nav class="public-section-nav" aria-label="Opportunity sections">
               <a href="#overview">{{ 'investmentPreview.public.overview' | translate }}</a>
               <a href="#terms">{{ 'investmentPreview.public.investmentTerms' | translate }}</a>
-              <a href="#updates">{{ 'investmentPreview.public.updates' | translate }} <span>{{ getUpdateEvents(opp).length }}</span></a>
+              <a href="#project-activity">{{ 'investmentPreview.public.projectActivity' | translate }} <span>{{ publicActivityTotal() }}</span></a>
               <a href="#documents">{{ 'investmentPreview.public.documents' | translate }} <span>{{ getOpportunityDocuments(opp).length }}</span></a>
               <a href="#media">{{ 'investmentPreview.public.media' | translate }} <span>{{ getOpportunityGallery(opp).length }}</span></a>
             </nav>
 
             <section id="overview" class="public-content-grid">
-              <article class="public-card public-card-wide">
+              <article class="investa-panel investa-panel-wide">
                 <div class="public-section-heading">
                   <div><span>{{ 'investmentPreview.public.opportunityOverview' | translate }}</span><h2>{{ 'investmentPreview.public.aboutThisOpportunity' | translate }}</h2></div>
                 </div>
@@ -91,13 +86,13 @@
                 </div>
               </article>
 
-              <article class="public-card">
+              <article class="investa-panel">
                 <div class="public-section-heading"><div><span>{{ 'investmentPreview.public.capitalAllocation' | translate }}</span><h2>{{ 'investmentPreview.public.useOfFunds' | translate }}</h2></div></div>
                 <p class="public-body-copy compact">{{ getUseOfFunds(opp) || ('investmentPreview.public.useOfFundsPlaceholder' | translate) }}</p>
               </article>
             </section>
 
-            <section id="terms" class="public-card">
+            <section id="terms" class="investa-panel">
               <div class="public-section-heading">
                 <div><span>{{ 'investmentPreview.public.participationStructure' | translate }}</span><h2>{{ 'investmentPreview.public.investmentTerms' | translate }}</h2></div>
                 <span class="public-badge public-badge-green">{{ getOpportunityInvestmentModelLabel(opp) }}</span>
@@ -109,23 +104,79 @@
               </div>
             </section>
 
-            <section id="updates" class="public-card">
-              <div class="public-section-heading"><div><span>{{ 'investmentPreview.public.founderActivity' | translate }}</span><h2>{{ 'investmentPreview.public.recentUpdates' | translate }}</h2></div></div>
-              @if (getUpdateEvents(opp).length > 0) {
+            @if (paymentScheduleLoading()) {
+              <section class="investa-panel payment-schedule-card"><div class="public-empty">{{ 'investmentPreview.cashFlow.loading' | translate }}</div></section>
+            } @else if (paymentSchedule(); as schedule) {
+              <section class="investa-panel payment-schedule-card">
+                <div class="public-section-heading"><div><span>{{ 'investmentPreview.cashFlow.eyebrow' | translate }}</span><h2>{{ 'investmentPreview.cashFlow.title' | translate }}</h2></div></div>
+                <div class="payment-terms">
+                  <div><span>{{ 'investmentPreview.cashFlow.approvedAmount' | translate }}</span><strong>{{ schedule.approvedAmount | number:'1.2-2' }} {{ schedule.currency }}</strong></div>
+                  <div><span>{{ 'investmentPreview.cashFlow.annualRate' | translate }}</span><strong>{{ schedule.annualInterestRate | number:'1.0-4' }}%</strong></div>
+                  <div><span>{{ 'investmentPreview.cashFlow.duration' | translate }}</span><strong>{{ schedule.durationMonths }} {{ 'investmentPreview.cashFlow.months' | translate }}</strong></div>
+                  <div><span>{{ 'investmentPreview.cashFlow.frequency' | translate }}</span><strong>{{ ('investmentPreview.cashFlow.frequencyValue.' + schedule.repaymentFrequency) | translate }}</strong></div>
+                  <div><span>{{ 'investmentPreview.cashFlow.principalRule' | translate }}</span><strong>{{ ('investmentPreview.cashFlow.principalValue.' + schedule.principalRepayment) | translate }}</strong></div>
+                  <div><span>{{ 'investmentPreview.cashFlow.remainingPrincipal' | translate }}</span><strong>{{ schedule.remainingPrincipal == null ? ('investmentPreview.cashFlow.actualUnavailableShort' | translate) : ((schedule.remainingPrincipal | number:'1.2-2') + ' ' + schedule.currency) }}</strong></div>
+                  <div><span>{{ 'investmentPreview.cashFlow.received' | translate }}</span><strong>{{ 'investmentPreview.cashFlow.actualUnavailableShort' | translate }}</strong></div>
+                  <div><span>{{ 'investmentPreview.cashFlow.monthlyAverage' | translate }}</span><strong>{{ schedule.averageExpectedMonthlyIncome | number:'1.2-2' }} {{ schedule.currency }}</strong></div>
+                </div>
+                <p class="payment-disclaimer">{{ 'investmentPreview.cashFlow.disclaimer' | translate }}</p>
+                <p class="payment-tracking-notice">{{ 'investmentPreview.cashFlow.actualUnavailable' | translate }}</p>
+                <div class="payment-table-wrap"><table class="payment-table"><thead><tr>
+                  <th>{{ 'investmentPreview.cashFlow.dueDate' | translate }}</th><th>{{ 'investmentPreview.cashFlow.interest' | translate }}</th><th>{{ 'investmentPreview.cashFlow.principal' | translate }}</th><th>{{ 'investmentPreview.cashFlow.expectedTotal' | translate }}</th><th>{{ 'investmentPreview.cashFlow.actualPaid' | translate }}</th><th>{{ 'investmentPreview.cashFlow.statusLabel' | translate }}</th>
+                </tr></thead><tbody>
+                  @for (item of visiblePaymentScheduleItems(); track item.dueDate) { <tr><td>{{ item.dueDate | date:'mediumDate' }}</td><td>{{ item.expectedInterest | number:'1.2-2' }}</td><td>{{ item.expectedPrincipal | number:'1.2-2' }}</td><td>{{ item.expectedTotal | number:'1.2-2' }}</td><td>{{ 'investmentPreview.cashFlow.actualUnavailableShort' | translate }}</td><td><span class="payment-status" [attr.data-status]="item.status">{{ scheduleStatusKey(item.status) | translate }}</span></td></tr> }
+                </tbody></table></div>
+                <div class="payment-pagination">
+                  <label>{{ 'investmentPreview.cashFlow.rowsPerPage' | translate }}
+                    <select [value]="paymentSchedulePageSize()" (change)="setPaymentSchedulePageSize($event)">
+                      @for (size of paymentSchedulePageSizes; track size) { <option [value]="size">{{ size }}</option> }
+                    </select>
+                  </label>
+                  <span>{{ 'investmentPreview.cashFlow.showing' | translate }} {{ paymentScheduleRangeStart() }}–{{ paymentScheduleRangeEnd() }} {{ 'investmentPreview.cashFlow.of' | translate }} {{ schedule.items.length }}</span>
+                  <div class="payment-pagination-actions">
+                    <button type="button" [disabled]="paymentSchedulePage() === 1" (click)="setPaymentSchedulePage(paymentSchedulePage() - 1)" [attr.aria-label]="'investmentPreview.cashFlow.previous' | translate">‹</button>
+                    <span>{{ paymentSchedulePage() }} / {{ paymentScheduleTotalPages() }}</span>
+                    <button type="button" [disabled]="paymentSchedulePage() === paymentScheduleTotalPages()" (click)="setPaymentSchedulePage(paymentSchedulePage() + 1)" [attr.aria-label]="'investmentPreview.cashFlow.next' | translate">›</button>
+                  </div>
+                </div>
+              </section>
+            } @else if (paymentScheduleUnavailable()) {
+              <section class="investa-panel payment-schedule-card"><div class="public-empty">{{ 'investmentPreview.cashFlow.error' | translate }}</div></section>
+            }
+
+            <section id="project-activity" class="investa-panel">
+              <div class="public-section-heading">
+                <div><span>{{ 'investmentPreview.public.verifiedActivity' | translate }}</span><h2>{{ 'investmentPreview.public.projectActivity' | translate }}</h2></div>
+                @if (!publicActivityExpanded() && publicActivityTotal() > 5) {
+                  <button type="button" class="investa-btn-secondary" (click)="viewMoreProjectActivity()" [disabled]="publicActivityLoading()">{{ 'investmentPreview.public.viewMore' | translate }}</button>
+                }
+              </div>
+              @if (publicActivityError(); as err) {
+                <p class="public-empty">{{ err }}</p>
+              } @else if (publicActivityLoading() && publicActivityExpanded()) {
+                <p class="public-empty">{{ 'investmentPreview.public.loading' | translate }}</p>
+              } @else if (publicActivity().length > 0) {
                 <div class="public-list">
-                  @for (event of getUpdateEvents(opp).slice(0, 4); track event.id || $index) {
+                  @for (event of publicActivity(); track event.id || $index) {
                     <article class="public-list-row">
-                      <span class="public-list-icon">↗</span>
-                      <div><strong>{{ event.title || event.type || ('investmentPreview.public.update' | translate) }}</strong><p>{{ event.description || ('investmentPreview.public.updatePlaceholder' | translate) }}</p></div>
-                      @if (getEventDate(event)) { <time>{{ getEventDate(event) | date:'MMM d, yyyy' }}</time> }
+                      <span class="public-list-icon">✓</span>
+                      <div><strong>{{ publicActivityTitle(event) }}</strong>@if (publicActivityDescription(event)) { <p>{{ publicActivityDescription(event) }}</p> }</div>
+                      @if (publicActivityDate(event)) { <time>{{ publicActivityDate(event) | date:'MMM d, yyyy' }}</time> }
                     </article>
                   }
                 </div>
-              } @else { <p class="public-empty">{{ 'investmentPreview.public.noUpdates' | translate }}</p> }
+                @if (publicActivityExpanded()) {
+                  <nav class="public-pagination" aria-label="Project activity pagination">
+                    <button type="button" class="investa-btn-secondary" (click)="previousProjectActivityPage()" [disabled]="!publicActivityHasPrevious() || publicActivityLoading()">{{ 'investmentPreview.public.previous' | translate }}</button>
+                    <span class="public-pagination-info">{{ 'investmentPreview.public.pageOf' | translate:{ current: publicActivityPage(), total: publicActivityTotalPages() } }}</span>
+                    <button type="button" class="investa-btn-secondary" (click)="nextProjectActivityPage()" [disabled]="!publicActivityHasNext() || publicActivityLoading()">{{ 'investmentPreview.public.next' | translate }}</button>
+                  </nav>
+                }
+              } @else { <p class="public-empty">{{ 'investmentPreview.public.noProjectActivity' | translate }}</p> }
             </section>
 
             <div class="public-two-column">
-              <section id="documents" class="public-card">
+              <section id="documents" class="investa-panel">
                 <div class="public-section-heading"><div><span>{{ 'investmentPreview.public.dueDiligence' | translate }}</span><h2>{{ 'investmentPreview.public.documents' | translate }}</h2></div></div>
                 @if (getOpportunityDocuments(opp).length > 0) {
                   <div class="public-file-list">
@@ -140,7 +191,7 @@
                 } @else { <p class="public-empty">{{ 'investmentPreview.public.noPublicDocuments' | translate }}</p> }
               </section>
 
-              <section id="media" class="public-card">
+              <section id="media" class="investa-panel">
                 <div class="public-section-heading"><div><span>{{ 'investmentPreview.public.visualLibrary' | translate }}</span><h2>{{ 'investmentPreview.public.media' | translate }}</h2></div></div>
                 @if (getOpportunityGallery(opp).length > 0) {
                   <div class="public-media-grid">
@@ -155,7 +206,7 @@
 
           <aside class="public-investment-panel">
             @let progress = getOpportunityFundingProgress(opp);
-            <section class="public-summary-card">
+            <section class="investa-panel">
               <div class="public-summary-heading"><span>{{ 'investmentPreview.public.investmentSummary' | translate }}</span><span>{{ progress | number:'1.0-0' }}%</span></div>
               <div class="public-summary-numbers">
                 <div><span>{{ 'investmentPreview.public.funded' | translate }}</span><strong>{{ opp.fundedAmount || 0 | number:'1.0-0' }} {{ 'investmentPreview.public.usd' | translate }}</strong></div>
@@ -170,7 +221,7 @@
               </div>
             </section>
 
-            <section id="relationship-state" class="public-relationship-card">
+            <section id="relationship-state" class="investa-panel public-relationship-card">
               <div class="public-relationship-heading"><span>{{ 'investmentPreview.public.yourParticipation' | translate }}</span><span class="public-badge public-badge-green">{{ relationshipState().title }}</span></div>
               <p>{{ relationshipState().description }}</p>
               <div class="public-relationship-actions">
@@ -280,7 +331,7 @@
           <!-- Left Column: Main Details -->
           <div class="lg:col-span-2 space-y-8">
             <!-- Quick Info Strip -->
-            <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
+            <div class="investa-panel p-5">
               <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
                 <!-- Type -->
                 <div class="flex items-center gap-2">
@@ -327,7 +378,7 @@
             </div>
 
             <!-- Project Stages Timeline -->
-            <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-8">
+            <div class="investa-panel p-8">
               <h3 class="text-xl font-bold text-white mb-6">{{ 'investmentPreview.projectRoadmap' | translate }}</h3>
               
               <div class="relative">
@@ -384,7 +435,7 @@
 
             <!-- ── Media Gallery ── -->
             @if ((inv.images && inv.images.length > 0) || inv.videoUrl) {
-              <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
+              <div class="investa-panel p-6">
                 <h3 class="text-xl font-bold text-white mb-5">{{ 'investmentPreview.media' | translate }}</h3>
 
                 <!-- Video -->
@@ -496,7 +547,7 @@
             </div>
 
             <!-- Funding Progress Section -->
-            <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-8">
+            <div class="investa-panel p-8">
               <h3 class="text-xl font-bold text-white mb-6">{{ 'investmentPreview.fundingProgress' | translate }}</h3>
               @let rawProgress = inv.fundingPercentage;
               @let progress = rawProgress === null ? null : (rawProgress > 100 ? 100 : rawProgress);
@@ -559,7 +610,7 @@
             </div>
 
             <!-- Team Section -->
-            <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-8">
+            <div class="investa-panel p-8">
               <h3 class="text-xl font-bold text-white mb-6">{{ 'investmentPreview.projectTeam' | translate }}</h3>
 
               @if (inv.teamMembers && inv.teamMembers.length > 0) {
@@ -590,7 +641,7 @@
             <!-- Additional Info -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <!-- Timeline -->
-              <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
+              <div class="investa-panel p-6">
                 <h4 class="font-semibold text-white mb-4">{{ 'investmentPreview.timeline' | translate }}</h4>
                 <div class="space-y-3">
                   @if (inv.startDate) {
@@ -613,7 +664,7 @@
               </div>
 
               <!-- Quick Stats -->
-              <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-6">
+              <div class="investa-panel p-6">
                 <h4 class="font-semibold text-white mb-4">{{ 'investmentPreview.quickStats' | translate }}</h4>
                 <div class="space-y-3">
                   <div class="flex justify-between text-sm">
@@ -639,12 +690,16 @@
           <div class="lg:col-span-1">
             <!-- Founder Card -->
             <div class="sticky top-24 space-y-6">
-              <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5 backdrop-blur-sm">
+              <div class="investa-panel p-5">
                 <!-- Founder header -->
                 <div class="flex items-center gap-3 mb-4">
                   <a [routerLink]="['/admin/founders', inv.founderId]"
                      class="relative flex-shrink-0 rounded-xl ring-2 ring-slate-700 hover:ring-blue-500/50 transition-all">
-                    <img [src]="founderAvatar(inv)" alt="{{ inv.founderDisplay }}" class="w-12 h-12 rounded-xl object-cover">
+                    @if (founderAvatar(inv); as avatarUrl) {
+                      <img [src]="avatarUrl" alt="{{ inv.founderDisplay }}" class="w-12 h-12 rounded-xl object-cover" (error)="onFounderAvatarError(getFounderId(inv))">
+                    } @else {
+                      <span class="w-12 h-12 rounded-xl bg-slate-700 flex items-center justify-center text-sm font-bold text-white">{{ getFounderName(inv).charAt(0).toUpperCase() }}</span>
+                    }
                     @if (inv.status === 'Active') {
                       <span class="absolute -bottom-0.5 -end-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-slate-900"></span>
                     }
@@ -677,7 +732,7 @@
               </div>
 
               <!-- Investors -->
-              <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
+              <div class="investa-panel p-5">
                 <h3 class="text-base font-bold text-white mb-4">{{ 'investmentPreview.recentInvestors' | translate }}</h3>
                 @if (inv.investors && inv.investors.length > 0) {
                   <div class="space-y-3">
@@ -685,7 +740,78 @@
                       <div class="flex items-center gap-3" [class.pb-3]="!last" [class.border-b]="!last" [class.border-slate-700/50]="!last">
                         @if (!investor.isAnonymous && investor.investorAvatar) {
                           <img [src]="investor.investorAvatar" [alt]="investor.investorName" class="w-9 h-9 rounded-full object-cover ring-2 ring-slate-700 flex-shrink-0">
-                        } @else {
+  } @else if (loading()) {
+    <div class="container mx-auto px-6 py-12 animate-pulse">
+      <div class="h-5 w-40 bg-slate-800 rounded mb-10"></div>
+      <div class="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
+        <div>
+          <div class="h-10 w-3/4 bg-slate-800 rounded mb-3"></div>
+          <div class="flex gap-2 mb-6">
+            <div class="h-6 w-20 bg-slate-800 rounded-full"></div>
+            <div class="h-6 w-16 bg-slate-800 rounded-full"></div>
+            <div class="h-6 w-24 bg-slate-800 rounded-full"></div>
+          </div>
+          <div class="rounded-2xl bg-slate-900/80 border border-slate-800 p-6 mb-6">
+            <div class="h-5 w-32 bg-slate-800 rounded mb-4"></div>
+            <div class="h-48 bg-slate-800 rounded-xl mb-4"></div>
+            <div class="space-y-2">
+              <div class="h-4 w-full bg-slate-800 rounded"></div>
+              <div class="h-4 w-5/6 bg-slate-800 rounded"></div>
+              <div class="h-4 w-2/3 bg-slate-800 rounded"></div>
+            </div>
+          </div>
+          <div class="rounded-2xl bg-slate-900/80 border border-slate-800 p-6">
+            <div class="h-5 w-40 bg-slate-800 rounded mb-4"></div>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="bg-slate-800/60 rounded-lg p-3">
+                <div class="h-3 w-16 bg-slate-800 rounded mb-1"></div>
+                <div class="h-5 w-20 bg-slate-800 rounded"></div>
+              </div>
+              <div class="bg-slate-800/60 rounded-lg p-3">
+                <div class="h-3 w-16 bg-slate-800 rounded mb-1"></div>
+                <div class="h-5 w-20 bg-slate-800 rounded"></div>
+              </div>
+              <div class="bg-slate-800/60 rounded-lg p-3">
+                <div class="h-3 w-16 bg-slate-800 rounded mb-1"></div>
+                <div class="h-5 w-20 bg-slate-800 rounded"></div>
+              </div>
+              <div class="bg-slate-800/60 rounded-lg p-3">
+                <div class="h-3 w-16 bg-slate-800 rounded mb-1"></div>
+                <div class="h-5 w-20 bg-slate-800 rounded"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="rounded-2xl bg-slate-900/80 border border-slate-800 p-6 sticky top-24">
+            <div class="h-5 w-24 bg-slate-800 rounded mb-4"></div>
+            <div class="flex justify-between items-end mb-3">
+              <div>
+                <div class="h-3 w-20 bg-slate-800 rounded mb-1"></div>
+                <div class="h-8 w-28 bg-slate-800 rounded"></div>
+              </div>
+              <div class="text-right">
+                <div class="h-3 w-16 bg-slate-800 rounded mb-1"></div>
+                <div class="h-6 w-20 bg-slate-800 rounded"></div>
+              </div>
+            </div>
+            <div class="h-4 w-full bg-slate-800 rounded-full mb-3"></div>
+            <div class="grid grid-cols-2 gap-2 mb-6">
+              <div class="bg-slate-800/60 rounded-lg p-2">
+                <div class="h-3 w-14 bg-slate-800 rounded mb-1"></div>
+                <div class="h-4 w-16 bg-slate-800 rounded"></div>
+              </div>
+              <div class="bg-slate-800/60 rounded-lg p-2">
+                <div class="h-3 w-14 bg-slate-800 rounded mb-1"></div>
+                <div class="h-4 w-16 bg-slate-800 rounded"></div>
+              </div>
+            </div>
+            <div class="h-12 w-full bg-slate-800 rounded-xl"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  } @else {
                           <div class="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-gray-400 text-xs font-bold flex-shrink-0 ring-2 ring-slate-600">
                             {{ investor.isAnonymous ? '?' : (investor.investorName?.charAt(0)?.toUpperCase() || '?') }}
                           </div>

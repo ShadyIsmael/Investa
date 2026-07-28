@@ -53,29 +53,7 @@ class Logger {
     }
   };
 
-  signalr = {
-    connecting: (url: string) => {
-      this.info(`SignalR connecting to: ${url}`);
-    },
-    connected: (connectionId?: string) => {
-      this.info(`SignalR connected`, { connectionId });
-    },
-    reconnecting: () => {
-      this.warn(`SignalR reconnecting...`);
-    },
-    reconnected: (connectionId?: string) => {
-      this.info(`SignalR reconnected`, { connectionId });
-    },
-    disconnected: (error?: Error | string) => {
-      this.error(`SignalR disconnected`, error);
-    },
-    event: (eventName: string, data: any) => {
-      this.debug(`SignalR event: ${eventName}`, data);
-    },
-    error: (message: string, error?: any) => {
-      this.error(`SignalR error: ${message}`, error);
-    }
-  };
+
 }
 
 export const logger = new Logger();

@@ -59,14 +59,6 @@ export default defineConfig(({ mode }) => {
             changeOrigin: true,
             secure: false,
           },
-          // Proxy SignalR hubs (websocket upgrade) to the backend and enable ws support
-          '/hubs': {
-            target: proxyTarget,
-            changeOrigin: true,
-            secure: false,
-            ws: true,
-            rewrite: (path) => path.replace(/^\/hubs/, '/hubs'),
-          },
           // Also proxy chathub directly
           '/chathub': {
             target: proxyTarget,

@@ -10,6 +10,14 @@ export interface ClientNotification {
   message: string;
   createdAt: string;
   isRead: boolean;
+  type: string;
+  actionUrl?: string | null;
+}
+
+export interface UnreadNotificationCounts {
+  unreadCount: number;
+  notificationCount: number;
+  messageCount: number;
 }
 
 interface BackendNotification {
@@ -21,6 +29,12 @@ interface BackendNotification {
   timestamp?: string | null;
   isRead?: boolean | null;
   read?: boolean | null;
+  type?: string | null;
+  actionUrl?: string | null;
+}
+
+interface BackendConversation {
+  unreadCount?: number | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -48,20 +62,40 @@ export class ClientNotificationsService {
   }
 
   async getUnreadCount(): Promise<number> {
+    return (await this.getUnreadCounts()).unreadCount;
+  }
+
+  async getUnreadCounts(): Promise<UnreadNotificationCounts> {
     try {
       const raw = await firstValueFrom(
-        this.http.get<ApiResponse<number | { count?: number; unreadCount?: number }> | number | { count?: number; unreadCount?: number }>(
+        this.http.get<ApiResponse<number | { count?: number; unreadCount?: number; notificationCount?: number; messageCount?: number }> | number | { count?: number; unreadCount?: number; notificationCount?: number; messageCount?: number }>(
           `${this.apiBase}/api/v1/notifications/me/unread-count`,
           { headers: this.authHeaders() }
         )
       );
 
       const data = this.extractData(raw, 'Failed to load unread notification count.');
-      if (typeof data === 'number') return data;
-      return data?.unreadCount ?? data?.count ?? 0;
+      const total = typeof data === 'number' ? data : data?.unreadCount ?? data?.count ?? 0;
+      return {
+        unreadCount: total,
+        notificationCount: typeof data === 'number' ? total : data?.notificationCount ?? total,
+        messageCount: typeof data === 'number' ? 0 : data?.messageCount ?? 0
+      };
     } catch (error) {
       throw this.toNotificationError(error, 'Failed to load unread notification count.');
     }
+  }
+
+  async getUnreadMessageCount(): Promise<number> {
+    const raw = await firstValueFrom(
+      this.http.get<ApiResponse<BackendConversation[]> | BackendConversation[]>(
+        `${this.apiBase}/api/v1/conversations`,
+        { headers: this.authHeaders() }
+      )
+    );
+    const conversations = this.extractData(raw, 'Failed to load unread message count.');
+    return (Array.isArray(conversations) ? conversations : [])
+      .reduce((total, conversation) => total + Math.max(0, Number(conversation.unreadCount) || 0), 0);
   }
 
   async markAsRead(id: number | string): Promise<void> {
@@ -98,7 +132,9 @@ export class ClientNotificationsService {
       title: notification.title || 'Notification',
       message: notification.message || notification.body || '',
       createdAt: notification.createdAt || notification.timestamp || '',
-      isRead: notification.isRead ?? notification.read ?? false
+      isRead: notification.isRead ?? notification.read ?? false,
+      type: notification.type || 'info',
+      actionUrl: notification.actionUrl ?? null
     };
   }
 

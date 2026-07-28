@@ -9,14 +9,6 @@ namespace Investa.Infrastructure.Services;
 
 public sealed class FinanceOverviewService : IFinanceOverviewService
 {
-    private static readonly FinanceTransactionStatus[] PendingStatuses =
-    [
-        FinanceTransactionStatus.Draft,
-        FinanceTransactionStatus.NeedsDocuments,
-        FinanceTransactionStatus.ReadyForReview,
-        FinanceTransactionStatus.Rejected
-    ];
-
     private readonly ApplicationDbContext _context;
 
     public FinanceOverviewService(ApplicationDbContext context)
@@ -120,7 +112,7 @@ public sealed class FinanceOverviewService : IFinanceOverviewService
         IQueryable<FinanceTransaction> periodTransactions,
         CancellationToken cancellationToken)
     {
-        var pendingTransactions = periodTransactions.Where(x => PendingStatuses.Contains(x.Status));
+        var pendingTransactions = periodTransactions.Where(IsPendingStatusExpression());
 
         return new FinancePendingSummaryDto
         {
@@ -188,7 +180,10 @@ public sealed class FinanceOverviewService : IFinanceOverviewService
             _context.FinanceTransactions.AsNoTracking()
                 .Where(x => x.TransactionDate >= dateFrom
                     && x.TransactionDate < dateToExclusive
-                    && PendingStatuses.Contains(x.Status)),
+                    && (x.Status == FinanceTransactionStatus.Draft
+                        || x.Status == FinanceTransactionStatus.NeedsDocuments
+                        || x.Status == FinanceTransactionStatus.ReadyForReview
+                        || x.Status == FinanceTransactionStatus.Rejected)),
             query.AccountId,
             currency);
 
@@ -255,7 +250,7 @@ public sealed class FinanceOverviewService : IFinanceOverviewService
             })
             .ToListAsync(cancellationToken);
 
-        var supportedTypes = new[]
+        var supportedTypes = new List<IncomingMoneyType>
         {
             IncomingMoneyType.CompanyRevenue,
             IncomingMoneyType.CapitalContribution,
@@ -265,7 +260,7 @@ public sealed class FinanceOverviewService : IFinanceOverviewService
 
         return rows
             .Where(row => supportedTypes.Contains(row.Type))
-            .OrderBy(row => Array.IndexOf(supportedTypes, row.Type))
+            .OrderBy(row => supportedTypes.IndexOf(row.Type))
             .Select(row => new FinanceMoneyInBreakdownDto
             {
                 Type = row.Type,
@@ -364,7 +359,7 @@ public sealed class FinanceOverviewService : IFinanceOverviewService
 
         var userIds = recent.Where(x => x.UserId.HasValue).Select(x => x.UserId!.Value).Distinct().ToArray();
         var users = await _context.AuthUsers.AsNoTracking()
-            .Where(x => userIds.Contains(x.Id))
+            .Where(BuildUserIdPredicate(userIds))
             .Select(x => new { x.Id, x.Name })
             .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
 
@@ -423,6 +418,14 @@ public sealed class FinanceOverviewService : IFinanceOverviewService
             || x.IncomingMoneyType == IncomingMoneyType.InternalTransfer;
     }
 
+    private static System.Linq.Expressions.Expression<Func<FinanceTransaction, bool>> IsPendingStatusExpression()
+    {
+        return x => x.Status == FinanceTransactionStatus.Draft
+            || x.Status == FinanceTransactionStatus.NeedsDocuments
+            || x.Status == FinanceTransactionStatus.ReadyForReview
+            || x.Status == FinanceTransactionStatus.Rejected;
+    }
+
     private static Task<decimal> SumCashInAsync(IQueryable<FinanceTransaction> query, CancellationToken cancellationToken)
     {
         return query.SumAsync(x => (decimal?)(x.NetAmountReceived > 0
@@ -454,7 +457,7 @@ public sealed class FinanceOverviewService : IFinanceOverviewService
         CancellationToken cancellationToken)
     {
         return await query
-            .Where(x => x.DestinationAccountId.HasValue && accountIds.Contains(x.DestinationAccountId.Value))
+            .Where(BuildDestinationAccountPredicate(accountIds))
             .GroupBy(x => x.DestinationAccountId!.Value)
             .Select(g => new
             {
@@ -472,8 +475,7 @@ public sealed class FinanceOverviewService : IFinanceOverviewService
         CancellationToken cancellationToken)
     {
         return await query
-            .Where(x => (x.SourceAccountId.HasValue && accountIds.Contains(x.SourceAccountId.Value))
-                || (!x.SourceAccountId.HasValue && x.DestinationAccountId.HasValue && accountIds.Contains(x.DestinationAccountId.Value)))
+            .Where(BuildCashOutAccountPredicate(accountIds))
             .GroupBy(x => x.SourceAccountId ?? x.DestinationAccountId!.Value)
             .Select(g => new
             {
@@ -489,7 +491,7 @@ public sealed class FinanceOverviewService : IFinanceOverviewService
         CancellationToken cancellationToken)
     {
         return await query
-            .Where(x => x.DestinationAccountId.HasValue && accountIds.Contains(x.DestinationAccountId.Value))
+            .Where(BuildDestinationAccountPredicate(accountIds))
             .GroupBy(x => x.DestinationAccountId!.Value)
             .Select(g => new
             {
@@ -505,7 +507,7 @@ public sealed class FinanceOverviewService : IFinanceOverviewService
         CancellationToken cancellationToken)
     {
         return await query
-            .Where(x => x.SourceAccountId.HasValue && accountIds.Contains(x.SourceAccountId.Value))
+            .Where(BuildSourceAccountPredicate(accountIds))
             .GroupBy(x => x.SourceAccountId!.Value)
             .Select(g => new
             {
@@ -518,6 +520,47 @@ public sealed class FinanceOverviewService : IFinanceOverviewService
     private static decimal Get(IReadOnlyDictionary<int, decimal> values, int accountId)
     {
         return values.TryGetValue(accountId, out var value) ? value : 0m;
+    }
+
+    private static System.Linq.Expressions.Expression<Func<AuthUser, bool>> BuildUserIdPredicate(IEnumerable<Guid> ids)
+    {
+        var parameter = System.Linq.Expressions.Expression.Parameter(typeof(AuthUser), "user");
+        var property = System.Linq.Expressions.Expression.Property(parameter, nameof(AuthUser.Id));
+        var body = ids.Select(id => System.Linq.Expressions.Expression.Equal(property, System.Linq.Expressions.Expression.Constant(id)))
+            .Aggregate<System.Linq.Expressions.Expression, System.Linq.Expressions.Expression>(
+                System.Linq.Expressions.Expression.Constant(false),
+                System.Linq.Expressions.Expression.OrElse);
+        return System.Linq.Expressions.Expression.Lambda<Func<AuthUser, bool>>(body, parameter);
+    }
+
+    private static System.Linq.Expressions.Expression<Func<FinanceTransaction, bool>> BuildDestinationAccountPredicate(IEnumerable<int> ids)
+        => BuildAccountPredicate(ids, useSource: false, fallBackToDestination: false);
+
+    private static System.Linq.Expressions.Expression<Func<FinanceTransaction, bool>> BuildSourceAccountPredicate(IEnumerable<int> ids)
+        => BuildAccountPredicate(ids, useSource: true, fallBackToDestination: false);
+
+    private static System.Linq.Expressions.Expression<Func<FinanceTransaction, bool>> BuildCashOutAccountPredicate(IEnumerable<int> ids)
+        => BuildAccountPredicate(ids, useSource: true, fallBackToDestination: true);
+
+    private static System.Linq.Expressions.Expression<Func<FinanceTransaction, bool>> BuildAccountPredicate(
+        IEnumerable<int> ids,
+        bool useSource,
+        bool fallBackToDestination)
+    {
+        var parameter = System.Linq.Expressions.Expression.Parameter(typeof(FinanceTransaction), "transaction");
+        var source = System.Linq.Expressions.Expression.Property(parameter, nameof(FinanceTransaction.SourceAccountId));
+        var destination = System.Linq.Expressions.Expression.Property(parameter, nameof(FinanceTransaction.DestinationAccountId));
+        System.Linq.Expressions.Expression selected = useSource && fallBackToDestination
+            ? System.Linq.Expressions.Expression.Coalesce(source, destination)
+            : useSource ? source : destination;
+        var hasValue = System.Linq.Expressions.Expression.Property(selected, nameof(Nullable<int>.HasValue));
+        var value = System.Linq.Expressions.Expression.Property(selected, nameof(Nullable<int>.Value));
+        var matches = ids.Select(id => System.Linq.Expressions.Expression.Equal(value, System.Linq.Expressions.Expression.Constant(id)))
+            .Aggregate<System.Linq.Expressions.Expression, System.Linq.Expressions.Expression>(
+                System.Linq.Expressions.Expression.Constant(false),
+                System.Linq.Expressions.Expression.OrElse);
+        var body = System.Linq.Expressions.Expression.AndAlso(hasValue, matches);
+        return System.Linq.Expressions.Expression.Lambda<Func<FinanceTransaction, bool>>(body, parameter);
     }
 
     private static string? NormalizeCurrency(string? currency)

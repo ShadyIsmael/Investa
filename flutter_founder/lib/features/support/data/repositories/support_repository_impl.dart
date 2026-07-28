@@ -28,39 +28,15 @@ class SupportRepositoryImpl implements SupportRepository {
       );
 
       return const Right(null);
-    } on SignalRFailure catch (failure) {
-      return Left(failure);
     } catch (e, stackTrace) {
       return Left(
-          SignalRFailure('Failed to send support request: $e', stackTrace));
+          ServerFailure('Failed to send support request: $e', stackTrace: stackTrace));
     }
   }
 
   @override
   Stream<SupportMessage> listenToSupportMessages() {
     return remoteDataSource.listenToMessages();
-  }
-
-  @override
-  Future<Either<Failure, void>> connectToHub() async {
-    try {
-      await remoteDataSource.connect();
-      return const Right(null);
-    } on SignalRFailure catch (failure) {
-      return Left(failure);
-    } catch (e, stackTrace) {
-      return Left(SignalRFailure('Failed to connect to hub: $e', stackTrace));
-    }
-  }
-
-  @override
-  Future<void> disconnectFromHub() async {
-    await remoteDataSource.disconnect();
-  }
-
-  @override
-  bool isConnectedToHub() {
-    return remoteDataSource.isConnected();
   }
 
   @override
@@ -76,7 +52,7 @@ class SupportRepositoryImpl implements SupportRepository {
       return Right(sessionId);
     } catch (e, stackTrace) {
       return Left(
-          SignalRFailure('Failed to initiate support session: $e', stackTrace));
+          ServerFailure('Failed to initiate support session: $e', stackTrace: stackTrace));
     }
   }
 }

@@ -56,6 +56,19 @@ namespace Investa.Domain.Entities
         [MaxLength(500)]
         public string? ActionUrl { get; set; }
 
+        [MaxLength(100)]
+        public string? EventType { get; set; }
+
+        public Guid? ActorUserId { get; set; }
+
+        public int? OpportunityId { get; set; }
+
+        [MaxLength(100)]
+        public string? RelatedEntityId { get; set; }
+
+        [MaxLength(300)]
+        public string? IdempotencyKey { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         /// <summary>When the user read the notification (null if unread)</summary>

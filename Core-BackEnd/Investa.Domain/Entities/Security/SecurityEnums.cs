@@ -84,5 +84,19 @@ namespace Investa.Domain.Entities.Security
         public const string OfferManage = "Offer.Manage";
 
         public const string SystemDebug = "System.Debug";
+
+        // Admin User Management permissions
+        public const string AdminUsersView = "AdminUsers.View";
+        public const string AdminUsersCreate = "AdminUsers.Create";
+        public const string AdminUsersEdit = "AdminUsers.Edit";
+        public const string AdminUsersChangeStatus = "AdminUsers.ChangeStatus";
+        public const string AdminUsersLockUnlock = "AdminUsers.LockUnlock";
+        public const string AdminUsersManageRoles = "AdminUsers.ManageRoles";
+        public const string AdminUsersRequestPasswordReset = "AdminUsers.RequestPasswordReset";
+        public const string AdminUsersApproveChanges = "AdminUsers.ApproveChanges";
+        public const string AdminUsersViewAudit = "AdminUsers.ViewAudit";
+
+        public const string FinanceRecordPayment = "Finance.RecordPayment";
+        public const string FinanceReversePayment = "Finance.ReversePayment";
     }
 }

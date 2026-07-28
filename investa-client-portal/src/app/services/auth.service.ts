@@ -4,8 +4,11 @@ import { firstValueFrom } from 'rxjs';
 import { API_BASE } from '../config/api.token';
 import { UserRoles } from '../config/constants';
 import { NotificationService } from './notification.service';
+import { FirebaseClientService } from './firebase-client.service';
+import { NotificationRefreshCoordinator } from './notification-refresh-coordinator.service';
+import { FcmService } from './fcm.service';
 
-export type UserRole = string; // All external users are 'Client' type
+export type UserRole = string;
 
 interface ApiResponse<T> {
   success: boolean;
@@ -28,14 +31,19 @@ export class AuthService {
   isAuthenticated = signal<boolean>(false);
   userRole = signal<UserRole | null>(null);
   private initialized = false;
+  private notificationUserId: string | null = null;
+  private notificationConnectionVersion = 0;
 
-  constructor(private http: HttpClient, @Inject(API_BASE) private apiBase: string, private notificationService: NotificationService) {
+  constructor(
+    private http: HttpClient,
+    @Inject(API_BASE) private apiBase: string,
+    private notificationService: NotificationService,
+    private firebaseClient: FirebaseClientService,
+    private coordinator: NotificationRefreshCoordinator,
+    private fcmService: FcmService,
+  ) {
   }
 
-  /**
-   * Initialize authentication state on application startup
-   * Validates token and restores session if valid
-   */
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
@@ -49,27 +57,20 @@ export class AuthService {
       return;
     }
 
-    // Check if token is expired
     if (expiry && expiry < new Date()) {
-      // Token expired, clear auth state
       this.logout();
       this.initialized = true;
       return;
     }
 
-    // Token exists and is not expired, restore session
     const role = localStorage.getItem('userRole') as UserRole | null;
     this.isAuthenticated.set(true);
     if (role) {
       this.userRole.set(role);
     }
-    this.notificationService.startPolling();
     this.initialized = true;
   }
 
-  /**
-   * Call backend login API and persist returned tokens
-   */
   async login(phoneNumber: string, password: string, role?: UserRole): Promise<void> {
     const url = `${this.apiBase}/api/v1/auth/login`;
     const payload = { phoneNumber, password };
@@ -77,7 +78,7 @@ export class AuthService {
     const resp = await firstValueFrom(this.http.post<ApiResponse<AuthResponseDto>>(url, payload));
 
     if (!resp || !resp.success || !resp.data) {
-      throw new Error(resp?.message || 'Login failed');
+      throw new Error('Login failed');
     }
 
     const data = resp.data;
@@ -94,10 +95,42 @@ export class AuthService {
 
     localStorage.setItem('isLoggedIn', 'true');
     this.isAuthenticated.set(true);
-    this.notificationService.startPolling();
+  }
+
+  startNotificationLoading(): void {
+    if (this.isAuthenticated() && this.getAccessToken()) {
+      this.coordinator.start();
+    }
+  }
+
+  async startNotificationSession(userId: string, reconnect = false): Promise<void> {
+    if (!this.isAuthenticated() || !this.getAccessToken() || !userId) return;
+
+    this.startNotificationLoading();
+    if (!reconnect && this.notificationUserId === userId) return;
+
+    this.notificationUserId = userId;
+    const connectionVersion = ++this.notificationConnectionVersion;
+    try {
+      this.firebaseClient.initialize();
+      await this.firebaseClient.connectForUser(userId);
+    } catch {
+      // API polling remains active when realtime is unavailable.
+    }
+
+    if (connectionVersion !== this.notificationConnectionVersion) {
+      this.firebaseClient.disconnect();
+    }
   }
 
   logout(): void {
+    this.notificationUserId = null;
+    this.notificationConnectionVersion++;
+    this.coordinator.stop();
+    this.notificationService.clear();
+    this.fcmService.disable();
+    this.firebaseClient.disconnect();
+
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('userRole');
     localStorage.removeItem('activeClientContext');
@@ -107,7 +140,6 @@ export class AuthService {
     localStorage.removeItem('phoneNumber');
     this.isAuthenticated.set(false);
     this.userRole.set(null);
-    this.notificationService.clear();
   }
 
   getAccessToken(): string | null {
@@ -149,6 +181,25 @@ export class AuthService {
     return (exp.getTime() - now.getTime()) / 1000 < thresholdSeconds;
   }
 
+  async signupInit(phoneNumber: string, password: string, firstName: string, lastName: string): Promise<{ verificationSessionId: string }> {
+    const url = `${this.apiBase}/api/v1/auth/signup-init`;
+    const payload = { phoneNumber, password, firstName, lastName };
+    const resp = await firstValueFrom(this.http.post<{ success: boolean; data: { verificationSessionId: string }; message?: string }>(url, payload));
+    if (!resp || !resp.success || !resp.data) {
+      throw new Error('Signup initiation failed');
+    }
+    return resp.data;
+  }
+
+  async signupVerify(verificationSessionId: string, otpCode: string): Promise<void> {
+    const url = `${this.apiBase}/api/v1/auth/signup-verify`;
+    const payload = { verificationSessionId, otpCode };
+    const resp = await firstValueFrom(this.http.post<{ success: boolean; message?: string }>(url, payload));
+    if (!resp || !resp.success) {
+      throw new Error('OTP verification failed');
+    }
+  }
+
   async refresh(): Promise<void> {
     const refreshToken = this.getRefreshToken();
     if (!refreshToken) {
@@ -161,7 +212,7 @@ export class AuthService {
 
     if (!resp || !resp.success || !resp.data) {
       this.logout();
-      throw new Error(resp?.message || 'Refresh failed');
+      throw new Error('Refresh failed');
     }
 
     const data = resp.data;
@@ -170,6 +221,8 @@ export class AuthService {
     localStorage.setItem('tokenExpiresAt', data.expiresAt);
     if (data.phoneNumber) localStorage.setItem('phoneNumber', data.phoneNumber);
     this.isAuthenticated.set(true);
+    if (this.notificationUserId) {
+      await this.startNotificationSession(this.notificationUserId, true);
+    }
   }
 }
-

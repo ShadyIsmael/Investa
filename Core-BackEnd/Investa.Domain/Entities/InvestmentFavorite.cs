@@ -14,8 +14,9 @@ public class InvestmentFavorite
     [Required]
     public Guid InvestorId { get; set; }
 
-    [Required]
-    public int InvestmentId { get; set; }
+    public int? InvestmentId { get; set; }
+
+    public int? OpportunityId { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
@@ -23,5 +24,8 @@ public class InvestmentFavorite
     public AuthUser Investor { get; set; } = null!;
 
     [ForeignKey(nameof(InvestmentId))]
-    public Investment Investment { get; set; } = null!;
+    public Investment? Investment { get; set; }
+
+    [ForeignKey(nameof(OpportunityId))]
+    public Opportunity? Opportunity { get; set; }
 }

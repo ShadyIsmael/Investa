@@ -162,6 +162,9 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
 
     public DbSet<AuditLog> AuditLogs { get; set; }
 
+    // Pending admin user changes for Maker/Checker workflow
+    public DbSet<PendingAdminChange> PendingAdminChanges { get; set; }
+
 
 
     // Business category taxonomy used for client classification
@@ -289,6 +292,10 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
 
     public new DbSet<UserToken> UserTokens { get; set; }
 
+    // Multi-device push notification tokens (supports multiple devices per user)
+
+    public DbSet<DeviceToken> DeviceTokens { get; set; }
+
 
 
     // Images associated with investments (gallery)
@@ -305,7 +312,14 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
 
     public DbSet<UserNotification> UserNotifications { get; set; }
 
+    // Email outbox for async email delivery
 
+    public DbSet<EmailOutbox> EmailOutbox { get; set; }
+
+    public DbSet<EmailHistory> EmailHistory { get; set; }
+
+    public DbSet<EmailPreference> EmailPreferences { get; set; }
+    public DbSet<EmailVerificationOtp> EmailVerificationOtps { get; set; }
 
     // Analytics tracking entities
 
@@ -323,6 +337,8 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
     public DbSet<FinanceAttachment> FinanceAttachments { get; set; }
     public DbSet<FinanceAuditEvent> FinanceAuditEvents { get; set; }
     public DbSet<FinanceReconciliation> FinanceReconciliations { get; set; }
+    public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
+    public DbSet<PaymentAllocation> PaymentAllocations { get; set; }
 
 
 
@@ -331,6 +347,13 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
     {
 
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<EmailVerificationOtp>(entity =>
+        {
+            entity.HasIndex(x => new { x.UserId, x.NormalizedEmail, x.Purpose });
+            entity.Property(x => x.NormalizedEmail).IsRequired();
+            entity.Property(x => x.OtpHash).IsRequired();
+        });
 
         ConfigureCompanyFinance(modelBuilder);
 
@@ -642,6 +665,12 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
 
             fav.HasIndex(x => x.InvestmentId);
 
+            fav.HasIndex(x => new { x.InvestorId, x.OpportunityId })
+               .IsUnique()
+               .HasFilter("[OpportunityId] IS NOT NULL");
+
+            fav.HasIndex(x => x.OpportunityId);
+
             fav.HasOne(x => x.Investor)
 
                .WithMany()
@@ -649,6 +678,14 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
                .HasForeignKey(x => x.InvestorId)
 
                .OnDelete(DeleteBehavior.Cascade);
+
+            fav.HasOne(x => x.Opportunity)
+
+               .WithMany()
+
+               .HasForeignKey(x => x.OpportunityId)
+
+               .OnDelete(DeleteBehavior.NoAction);
 
             fav.HasOne(x => x.Investment)
 
@@ -809,6 +846,9 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
             un.Property(x => x.Icon).HasMaxLength(100);
 
             un.Property(x => x.ActionUrl).HasMaxLength(500);
+            un.Property(x => x.EventType).HasMaxLength(100);
+            un.Property(x => x.RelatedEntityId).HasMaxLength(100);
+            un.Property(x => x.IdempotencyKey).HasMaxLength(300);
 
             un.Property(x => x.IsRead).HasDefaultValue(false);
 
@@ -821,6 +861,9 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
             un.HasIndex(x => new { x.UserId, x.CreatedAt });
 
             un.HasIndex(x => new { x.UserId, x.IsRead });
+            un.HasIndex(x => x.IdempotencyKey)
+              .IsUnique()
+              .HasFilter("[IdempotencyKey] IS NOT NULL");
 
             un.HasOne(x => x.Template)
 
@@ -842,6 +885,23 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
 
               .IsRequired(false);
 
+        });
+
+        // Multi-device push notification tokens
+        modelBuilder.Entity<DeviceToken>(dt =>
+        {
+            dt.HasKey(x => x.Id);
+            dt.Property(x => x.UserId).HasMaxLength(450).IsRequired();
+            dt.Property(x => x.Token).HasMaxLength(500).IsRequired();
+            dt.Property(x => x.DeviceId).HasMaxLength(200);
+            dt.Property(x => x.Browser).HasMaxLength(100);
+            dt.Property(x => x.Platform).HasMaxLength(50);
+            dt.Property(x => x.IsActive).HasDefaultValue(true);
+            dt.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            dt.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            dt.HasIndex(x => new { x.Token, x.UserId }).IsUnique();
+            dt.HasIndex(x => x.UserId);
+            dt.HasIndex(x => x.IsActive);
         });
 
 
@@ -1457,9 +1517,16 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
             e.Property(x => x.CreatedByUserId).IsRequired();
             e.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             e.Property(x => x.IsPublic).HasDefaultValue(false);
+            e.Property(x => x.ActorType).HasMaxLength(30);
+            e.Property(x => x.RelatedEntityType).HasMaxLength(100);
+            e.Property(x => x.RelatedEntityId).HasMaxLength(100);
+            e.Property(x => x.LocalizedMetadataJson).HasMaxLength(2000);
+            e.Property(x => x.IdempotencyKey).HasMaxLength(200);
+            e.Property(x => x.IsImmutableTimelineEntry).HasDefaultValue(false);
             e.HasIndex(x => x.OpportunityId);
             e.HasIndex(x => new { x.OpportunityId, x.CreatedAt });
             e.HasIndex(x => new { x.OpportunityId, x.IsPublic });
+            e.HasIndex(x => x.IdempotencyKey).IsUnique().HasFilter("[IdempotencyKey] IS NOT NULL");
             e.HasOne<AuthUser>()
              .WithMany()
              .HasForeignKey(x => x.CreatedByUserId)
@@ -2010,6 +2077,32 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
 
         });
 
+        // PendingAdminChange configuration
+
+        modelBuilder.Entity<PendingAdminChange>(pac =>
+
+        {
+
+            pac.HasKey(x => x.Id);
+
+            pac.Property(x => x.TargetUserName).HasMaxLength(200);
+            pac.Property(x => x.MakerName).HasMaxLength(200);
+            pac.Property(x => x.CheckerName).HasMaxLength(200);
+            pac.Property(x => x.Action).HasConversion<string>().HasMaxLength(50).IsRequired();
+            pac.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            pac.Property(x => x.Description).HasMaxLength(500);
+            pac.Property(x => x.ReviewDecision).HasMaxLength(20);
+            pac.Property(x => x.ReviewReason).HasMaxLength(500);
+            pac.Property(x => x.IpAddress).HasMaxLength(45);
+
+            pac.HasIndex(x => x.TargetUserId);
+            pac.HasIndex(x => x.MakerId);
+            pac.HasIndex(x => x.CheckerId);
+            pac.HasIndex(x => x.Status);
+            pac.HasIndex(x => new { x.Status, x.SubmittedAt });
+            pac.HasIndex(x => new { x.MakerId, x.Status });
+        });
+
 
 
                 // Client <-> BusinessCategory many-to-many
@@ -2128,7 +2221,9 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
             new ReputationRule { Id = 8, RuleCode = "repeat_investment", Description = "Repeat investment", Points = 200, IsEnabled = true, IsSystem = true, IsAutomatic = true, CanRepeat = true, MaximumOccurrences = 10, SortOrder = 8, CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, DateTimeKind.Utc) },
             new ReputationRule { Id = 9, RuleCode = "successful_investment", Description = "Successful investment", Points = 300, IsEnabled = true, IsSystem = true, IsAutomatic = true, CanRepeat = false, MaximumOccurrences = 1, SortOrder = 9, CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, DateTimeKind.Utc) },
             new ReputationRule { Id = 10, RuleCode = "policy_violation", Description = "Policy violation", Points = -500, IsEnabled = true, IsSystem = true, IsAutomatic = false, CanRepeat = false, MaximumOccurrences = 1, SortOrder = 10, CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, DateTimeKind.Utc) },
-            new ReputationRule { Id = 11, RuleCode = "admin_penalty", Description = "Admin penalty", Points = -1000, IsEnabled = true, IsSystem = true, IsAutomatic = false, CanRepeat = false, MaximumOccurrences = 1, SortOrder = 11, CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, DateTimeKind.Utc) }
+            new ReputationRule { Id = 11, RuleCode = "admin_penalty", Description = "Admin penalty", Points = -1000, IsEnabled = true, IsSystem = true, IsAutomatic = false, CanRepeat = false, MaximumOccurrences = 1, SortOrder = 11, CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, DateTimeKind.Utc) },
+
+            new ReputationRule { Id = 12, RuleCode = "confirm_payment", ActivityCode = "ConfirmPayment", Description = "Payment confirmed by founder", Points = 5, IsEnabled = true, IsSystem = true, IsAutomatic = true, CanRepeat = true, MaximumOccurrences = 0, SortOrder = 12, CreatedAt = new DateTime(2025, 12, 29, 0, 0, 0, DateTimeKind.Utc) }
         );
 
         // Seed ScoreTransaction types
@@ -2917,6 +3012,19 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
         );
 
 
+
+        // PaymentAllocation configuration
+        modelBuilder.Entity<PaymentAllocation>(a =>
+        {
+            a.HasKey(x => x.Id);
+            a.Property(x => x.AllocatedAmount).HasPrecision(18, 2).IsRequired();
+            a.HasIndex(x => new { x.PaymentTransactionId });
+            a.HasIndex(x => new { x.ParticipationRequestId, x.InstallmentNumber });
+            a.HasOne(x => x.PaymentTransaction)
+             .WithMany()
+             .HasForeignKey(x => x.PaymentTransactionId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
 
         // Seed participants (investor contributions)
 

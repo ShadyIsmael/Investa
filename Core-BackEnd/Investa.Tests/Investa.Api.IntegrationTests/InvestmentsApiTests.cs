@@ -52,7 +52,7 @@ public class InvestmentsApiTests : IClassFixture<CustomWebApplicationFactory>
             BusinessCategoryId = bc.Id,
             InitialCapital = 100m,
             Date = DateTime.UtcNow,
-            Status = Investa.Domain.Entities.Enums.InvestmentStatus.Active
+            Status = "Active"
         };
         db.Investments.Add(inv);
         db.SaveChanges();
@@ -95,7 +95,7 @@ public class InvestmentsApiTests : IClassFixture<CustomWebApplicationFactory>
             BusinessCategoryId = bc.Id,
             InitialCapital = 200m,
             Date = DateTime.UtcNow,
-            Status = Investa.Domain.Entities.Enums.InvestmentStatus.Active
+            Status = "Active"
         };
         db.Investments.Add(inv);
         db.SaveChanges();

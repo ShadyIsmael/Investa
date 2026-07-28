@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSignalR } from '../../services/signalr';
 import { supportService } from '../../services/supportService';
 
 type ChatItem = {
@@ -49,18 +48,12 @@ const StatusBadge = ({ status }: { status: TicketItem['status'] }) => {
 };
 
 const SupportDashboard: React.FC = () => {
-  const { connection, connectionState } = useSignalR();
   const [activeLayer, setActiveLayer] = useState<'chats' | 'tickets'>('chats');
   const [chats, setChats] = useState<ChatItem[]>(() => [...MOCK_CHATS]);
   const [tickets, setTickets] = useState<TicketItem[]>(() => [...MOCK_TICKETS]);
   const [messages, setMessages] = useState<Record<string, any>>({});
   const { t } = useTranslation();
   
-  // Ref to track listener attachment and prevent cleanup loop
-  const isListenerAttached = React.useRef(false);
-  const handlerRef = React.useRef<((newChat: any) => void) | null>(null);
-  const connectionRef = React.useRef(connection);
-
   const [selectedChat, setSelectedChat] = useState<ChatItem | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<TicketItem | null>(null);
 
@@ -92,104 +85,7 @@ const SupportDashboard: React.FC = () => {
     return () => window.removeEventListener('keydown', onEsc);
   }, []);
 
-  // Monitor connection state and log for debugging
-  useEffect(() => {
-    
-    if (connectionState === 'Connected') {
-    } else if (connectionState === 'Disconnected') {
-      // Reset listener tracking when disconnected
-      isListenerAttached.current = false;
-    } else if (connectionState === 'Connecting') {
-    }
-  }, [connection, connectionState]);
-
-  // SignalR listener for new support requests with stable reference
-  useEffect(() => {
-    const conn = connectionRef.current;
-    if (!conn) {
-      return;
-    }
-
-    if (connectionState !== 'Connected') {
-      return;
-    }
-
-    // Guard: If listener already attached, don't re-attach
-    if (isListenerAttached.current) {
-      return;
-    }
-
-
-    const playNotificationSound = () => {
-      try {
-        const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSmF0fPTgjMGHm7A7+OZURE');
-        audio.volume = 0.3;
-        audio.play().catch(() => {});
-      } catch (e) {
-        // Ignore
-      }
-    };
-
-    // Create stable handler function and store in ref
-    const handleNewRequest = (newChat: any) => {
-
-      const chatItem: ChatItem = {
-        id: newChat.id || newChat.conversationId || String(Date.now()),
-        name: newChat.customer || newChat.customerName || 'Unknown Customer',
-        phone: newChat.mobile || newChat.phone || '',
-        category: newChat.type || newChat.category || 'General',
-        startedAt: newChat.date || newChat.timestamp || new Date().toISOString(),
-        unread: 1,
-        lastMessage: newChat.text || newChat.initialMessage || newChat.message || 'New chat request'
-      };
-
-      setChats(prev => {
-        const exists = prev.find(chat => chat.id === chatItem.id);
-        if (exists) return prev; // Skip if already there
-        return [chatItem, ...prev];
-      });
-      playNotificationSound();
-    };
-
-    // Hard cleanup for development to prevent ghost listeners
-    conn.off('NewSupportRequest');
-    conn.off('NewChatRequest');
-
-    // Listen for the custom event dispatched by signalr service
-    const handleCustomEvent = (e: any) => handleNewRequest(e.detail);
-    window.addEventListener('investa:signalr:new-support-request', handleCustomEvent);
-    
-    // Also keep direct SignalR listeners as fallback
-    conn.on('NewSupportRequest', handleNewRequest);
-    conn.on('NewChatRequest', handleNewRequest);
-    isListenerAttached.current = true;
-
-    // ðŸš« NO CLEANUP: Listeners remain active for the entire session
-    // This ensures SignalR events are always received regardless of component re-mounts
-  }, [connectionState]);
-
-  // Enable Chat: Update MessageInput disabled logic
   const isMessageInputDisabled = false;
-
-  // Real-time Sync: Handle NewMessage listener
-  useEffect(() => {
-    if (!connection) return;
-
-    const handleNewMessage = (newMessage: any) => {
-      if (newMessage.ConversationId === activeConversation?.id) {
-        setMessages(prev => ({
-          ...prev,
-          [newMessage.ConversationId]: [...(prev[newMessage.ConversationId] || []), newMessage]
-        }));
-      }
-    };
-
-    connection.on('NewMessage', handleNewMessage);
-
-    return () => {
-      connection.off('NewMessage', handleNewMessage);
-    };
-  }, [connection, activeConversation]);
 
   const matches = (s: string) => s.toLowerCase().includes(search.trim().toLowerCase());
 

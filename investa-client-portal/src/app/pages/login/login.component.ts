@@ -1,5 +1,4 @@
 import { Component, ChangeDetectionStrategy, inject, signal, computed } from '@angular/core';
-import { HttpErrorResponse } from '@angular/common/http';
 import { LanguageService } from '../../services/language.service';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
@@ -8,6 +7,15 @@ import { AuthService, UserRole } from '../../services/auth.service';
 import { ProfileService } from '../../services/profile.service';
 import { TranslatePipe } from '../../pipes/translate.pipe';
 import { RoleContextService } from '../../services/role-context.service';
+import { ErrorResult } from '../../services/error-mapping.service';
+
+export function composeInternationalPhone(countryCode: string | null | undefined, mobile: string | null | undefined): string {
+  const dialCode = String(countryCode ?? '').trim();
+  let nationalNumber = String(mobile ?? '').replace(/\D/g, '');
+  if (dialCode === '+20' && nationalNumber.startsWith('20') && nationalNumber.length === 12) nationalNumber = nationalNumber.slice(2);
+  if (dialCode === '+20' && nationalNumber.startsWith('0') && nationalNumber.length === 11) nationalNumber = nationalNumber.slice(1);
+  return `${dialCode}${nationalNumber}`;
+}
 
 @Component({
   standalone: true,
@@ -104,31 +112,38 @@ export class LoginComponent {
     const mobile = this.loginForm.get('mobile')!.value;
     const password = this.loginForm.get('password')!.value;
     const role = this.role();
-    const fullMobile = `${countryCode}${mobile}`;
+    const fullMobile = composeInternationalPhone(countryCode, mobile);
 
     try {
       await this.authService.login(fullMobile, password, role);
+      const activeContext = this.roleContext.setActiveContext(role);
+      this.authService.startNotificationLoading();
 
       // Load profile from backend after successful login
       try {
-        await this.profileService.loadMyProfile();
+        const profile = await this.profileService.loadMyProfile();
+        if (profile?.userId) {
+          await this.authService.startNotificationSession(profile.userId);
+        }
       } catch (profileErr) {
         // Non-fatal: continue navigation even if profile load fails
       }
 
-      const activeContext = this.roleContext.setActiveContext(role);
       this.router.navigate([activeContext === 'investor' ? '/admin/investments' : '/admin/dashboard']);
     } catch (err: any) {
       let key = 'login.errorGeneric';
-      if (err instanceof HttpErrorResponse) {
-        if (err.status === 401) key = 'login.invalidCredentials';
+      if (err && err.type) {
+        if (err.type === 'unauthorized') key = 'login.invalidCredentials';
+        this.errorMessage.set(err.message ? err.message : this.languageService.translate(key));
       } else if (typeof err?.message === 'string') {
         const m = err.message.toLowerCase();
         if (m.includes('invalid') || m.includes('credential') || m.includes('wrong') || m.includes('incorrect') || m.includes('not found')) {
           key = 'login.invalidCredentials';
         }
+        this.errorMessage.set(this.languageService.translate(key));
+      } else {
+        this.errorMessage.set(this.languageService.translate(key));
       }
-      this.errorMessage.set(this.languageService.translate(key));
     } finally {
       this.isSubmitting.set(false);
     }

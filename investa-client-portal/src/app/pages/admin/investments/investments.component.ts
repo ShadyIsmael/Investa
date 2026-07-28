@@ -356,6 +356,7 @@ export class InvestmentsComponent {
     const snapshot = this.route.snapshot.queryParamMap;
     if (snapshot.get('onlyFavorites') === 'true') {
       this.filterForm.patchValue({ onlyFavorites: true });
+      this.filterState.set(this.filterForm.getRawValue() as InvestmentFilters);
     }
 
     // Reset to page 1 when filters change and update the reactive filter state.
@@ -510,10 +511,15 @@ export class InvestmentsComponent {
    * Toggle favorite status
    */
   async toggleFavorite(investmentToToggle: ProjectCard): Promise<void> {
+    const id = this.resolveOpportunityId(investmentToToggle);
+    if (id == null) return;
+    const previous = investmentToToggle.favorited;
+    this.investments.update(items => items.map(item => this.resolveOpportunityId(item) === id ? ({ ...item, favorited: !previous }) : item));
     try {
-      const id = investmentToToggle.id;
-      this.investments.update(items => items.map(item => item.id === id ? ({ ...item, favorited: !item.favorited }) : item));
+      const result = await this.opportunityService.setFavorite(id, !previous);
+      this.investments.update(items => items.map(item => this.resolveOpportunityId(item) === id ? ({ ...item, favorited: result.favorited }) : item));
     } catch (error) {
+      this.investments.update(items => items.map(item => this.resolveOpportunityId(item) === id ? ({ ...item, favorited: previous }) : item));
       console.error('Failed to update favorite status', error);
     }
   }

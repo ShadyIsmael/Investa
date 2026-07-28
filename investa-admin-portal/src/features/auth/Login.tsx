@@ -115,7 +115,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onForgotPassword }) => {
             <div className="w-14 h-14 bg-gradient-to-br from-indigo-600 to-indigo-500 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-600/20 mb-4 transform hover:scale-110 transition-transform duration-300">
               <Icon name="hands" className="text-white w-8 h-8" />
             </div>
-            <h1 className="text-2xl font-black text-text tracking-tight">{t('pages.investaPortal', { defaultValue: 'Investa Portal' })}</h1>
+            <h1 className="text-2xl font-black text-text tracking-tight">{t('pages.investaPortal', { defaultValue: 'FOPX One Portal' })}</h1>
             <p className="text-muted-foreground text-sm font-medium mt-1">{t('pages.investaPortalDescription', { defaultValue: 'Institutional Grade Financial Access' })}</p>
           </div>
 
@@ -134,7 +134,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onForgotPassword }) => {
                 <input 
                   type="email" 
                   required
-                  placeholder="name@investa.com"
+                  placeholder="name@company.com"
                   className="w-full pl-11 pr-4 py-3.5 bg-background border border-border rounded-2xl text-sm font-medium focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all text-text"
                   value={formData.email}
                   onChange={e => setFormData({ ...formData, email: e.target.value })}

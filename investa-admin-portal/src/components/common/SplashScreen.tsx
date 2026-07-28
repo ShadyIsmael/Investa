@@ -50,7 +50,7 @@ export const SplashScreen: React.FC = () => {
         </div>
 
         <div className="text-center mb-10">
-          <h1 className="text-3xl font-black text-text tracking-tighter mb-2">INVESTA</h1>
+          <h1 className="text-3xl font-black text-text tracking-tighter mb-2">FOPX One</h1>
           <p className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.4em]">Institutional Ledger Portal</p>
         </div>
 

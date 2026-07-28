@@ -8,10 +8,12 @@ namespace Investa.Application.Services;
 public class PaidActionService : IPaidActionService
 {
     private readonly IUnitOfWork _uow;
+    private readonly IClientInteractionChargingPolicy _chargingPolicy;
 
-    public PaidActionService(IUnitOfWork uow)
+    public PaidActionService(IUnitOfWork uow, IClientInteractionChargingPolicy chargingPolicy)
     {
         _uow = uow;
+        _chargingPolicy = chargingPolicy;
     }
 
     public async Task<PaidActionQuoteDto> GetQuoteAsync(
@@ -21,7 +23,7 @@ public class PaidActionService : IPaidActionService
     {
         var rule = await GetActiveRuleAsync(action);
         var wallet = await GetOrCreateWalletAsync(userId);
-        var balanceAfter = wallet.CurrentBalance - rule.CreditCost;
+        var balanceAfter = _chargingPolicy.IsEnabled ? wallet.CurrentBalance - rule.CreditCost : wallet.CurrentBalance;
 
         return new PaidActionQuoteDto
         {
@@ -29,7 +31,8 @@ public class PaidActionService : IPaidActionService
             CreditCost = rule.CreditCost,
             CurrentBalance = wallet.CurrentBalance,
             BalanceAfter = balanceAfter,
-            HasSufficientCredit = balanceAfter >= 0m
+            HasSufficientCredit = !_chargingPolicy.IsEnabled || balanceAfter >= 0m,
+            ChargingEnabled = _chargingPolicy.IsEnabled
         };
     }
 
@@ -45,6 +48,9 @@ public class PaidActionService : IPaidActionService
 
         var actionCode = action.ToString();
         var rule = await GetActiveRuleAsync(action);
+
+        if (!_chargingPolicy.IsEnabled)
+            return;
         var wallet = await GetOrCreateWalletAsync(userId);
 
         var existingCharge = (await _uow.Repository<WalletTransaction>().FindAsync(t =>

@@ -11,6 +11,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Investa.Infrastructure", "I
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Investa.API", "Investa.API\Investa.API.csproj", "{39103BB5-E6C4-4329-910E-6B649ED2B089}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Investa.Tests", "Investa.Tests", "{F37AAD65-782F-BE84-0F64-43234A9631F9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Investa.Api.IntegrationTests", "Investa.Tests\Investa.Api.IntegrationTests\Investa.Api.IntegrationTests.csproj", "{05ABFEE1-4CB1-4D33-AF32-91C248B45A8D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,8 +73,23 @@ Global
 		{39103BB5-E6C4-4329-910E-6B649ED2B089}.Release|x64.Build.0 = Release|Any CPU
 		{39103BB5-E6C4-4329-910E-6B649ED2B089}.Release|x86.ActiveCfg = Release|Any CPU
 		{39103BB5-E6C4-4329-910E-6B649ED2B089}.Release|x86.Build.0 = Release|Any CPU
+		{05ABFEE1-4CB1-4D33-AF32-91C248B45A8D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{05ABFEE1-4CB1-4D33-AF32-91C248B45A8D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{05ABFEE1-4CB1-4D33-AF32-91C248B45A8D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{05ABFEE1-4CB1-4D33-AF32-91C248B45A8D}.Debug|x64.Build.0 = Debug|Any CPU
+		{05ABFEE1-4CB1-4D33-AF32-91C248B45A8D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{05ABFEE1-4CB1-4D33-AF32-91C248B45A8D}.Debug|x86.Build.0 = Debug|Any CPU
+		{05ABFEE1-4CB1-4D33-AF32-91C248B45A8D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{05ABFEE1-4CB1-4D33-AF32-91C248B45A8D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{05ABFEE1-4CB1-4D33-AF32-91C248B45A8D}.Release|x64.ActiveCfg = Release|Any CPU
+		{05ABFEE1-4CB1-4D33-AF32-91C248B45A8D}.Release|x64.Build.0 = Release|Any CPU
+		{05ABFEE1-4CB1-4D33-AF32-91C248B45A8D}.Release|x86.ActiveCfg = Release|Any CPU
+		{05ABFEE1-4CB1-4D33-AF32-91C248B45A8D}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{05ABFEE1-4CB1-4D33-AF32-91C248B45A8D} = {F37AAD65-782F-BE84-0F64-43234A9631F9}
 	EndGlobalSection
 EndGlobal

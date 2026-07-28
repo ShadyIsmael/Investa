@@ -10,11 +10,13 @@ import { UserService } from '../../../services/user.service';
 import { NotificationService } from '../../../services/notification.service';
 import { FileStoreService } from '../../../services/file-store.service';
 import { RoleContextService } from '../../../services/role-context.service';
-import { Opportunity, OpportunityService } from '../../../services/opportunity.service';
+import { ApprovedInvestor, Opportunity, OpportunityService, OpportunityRoom, OpportunityMilestone, OpportunityEvent, OpportunityDocument } from '../../../services/opportunity.service';
 import { WalletService } from '../../../services/wallet.service';
+import { CashFlowService, CashFlowSummary, MonthlyCashFlow, PaymentScheduleItem } from '../../../services/cash-flow.service';
 import { OpportunityRequest, OpportunityRequestKind } from '../../../models/request.model';
 import { TIME_INTERVALS } from '../../../config/constants';
 import { get } from 'lodash-es';
+import { sumParticipationValues } from './dashboard-calculations';
 
 declare var d3: any;
 
@@ -22,18 +24,6 @@ interface ChartData {
   name: string;
   value: number;
   percentage?: number;
-}
-
-interface BarChartData {
-  label: string;
-  value: number;
-}
-
-interface Activity {
-  type: 'investment' | 'watchlist' | 'milestone';
-  text: string;
-  time: string;
-  imageUrl?: string;
 }
 
 interface RecentActivity {
@@ -68,17 +58,6 @@ interface D3PieArcDatum {
   data: ChartData;
 }
 
-interface ParticipantOverview {
-  id: string;
-  name: string;
-  status: string;
-  requestedAmount: number;
-  updatedAt: Date;
-  openConversation: boolean;
-  conversationId?: string | number | null;
-  hasReport?: boolean;
-}
-
 interface SentRequest {
   id: number | string;
   projectName: string;
@@ -86,14 +65,6 @@ interface SentRequest {
   author: string;
   status: 'Pending' | 'Negotiating' | 'Partner' | 'Rejected';
   date: Date;
-}
-
-interface ProjectRoomActivityItem {
-  id: string;
-  title: string;
-  description: string;
-  time: string;
-  link?: (string | number)[];
 }
 
 type DashboardProject = Opportunity & Record<string, any>;
@@ -109,6 +80,7 @@ type DashboardProject = Opportunity & Record<string, any>;
 export class DashboardComponent {
   private opportunityService = inject(OpportunityService);
   private walletService = inject(WalletService);
+  private cashFlowService = inject(CashFlowService);
   private languageService = inject(LanguageService);
   private authService = inject(AuthService);
   private profileService = inject(ProfileService);
@@ -131,13 +103,35 @@ export class DashboardComponent {
   
   userRole = this.authService.userRole;
   allInvestments = signal<DashboardProject[]>([]);
+  projectsLoading = signal(false);
+  cashFlowSummary = signal<CashFlowSummary | null>(null);
+  monthlyCashFlow = signal<MonthlyCashFlow[]>([]);
+  upcomingCashFlow = signal<PaymentScheduleItem[]>([]);
+  cashFlowLoading = signal(false);
+  cashFlowUnavailable = signal(false);
+  opportunityRoom = signal<OpportunityRoom | null>(null);
+  roomLoading = signal(false);
   direction = computed(() => this.languageService.direction());
   isInvestorDashboardContext = computed(() => this.roleContext.isActiveInvestorContext());
   isFounderDashboardContext = computed(() => this.roleContext.isActiveFounderContext());
 
-  // --- Premium status (temporary - connect to subscription service when available) ---
-  // TODO: Replace with actual subscription check from subscription service
-  isPremium = computed(() => false);
+  // No subscription/entitlement endpoint is currently exposed to the client portal.
+  isPremium = computed<boolean | null>(() => null);
+  identityName = computed(() => {
+    const profile = this.profileService.profile();
+    const basic = profile?.basicInfo;
+    return basic?.fullName || [basic?.firstName, basic?.lastName].filter(Boolean).join(' ') || profile?.coreMetrics?.email || this.t('dashboard.partnerFallback', 'FOPX One Partner');
+  });
+  identityAvatar = computed(() => {
+    const value = this.profileService.profile()?.basicInfo?.avatarUrl;
+    return value ? this.fileStoreService.getPublicUrl(value) : '';
+  });
+  hasGrowthHistory = computed(() => {
+    if (this.investorParticipationRequests().some(item => !!item.createdAt)) return true;
+    const flow = this.cashFlowSummary();
+    return flow != null && flow.totalInvestedAmount > 0;
+  });
+  nextProfileAchievement = computed(() => Math.max(0, 100 - this.profileCompletion()));
 
   // --- Investor-specific computed signals ---
   investorParticipationRequests = computed(() => this.requestsService.outgoing().filter(request => request.requestType === OpportunityRequestKind.Participation || request.type === 'participation'));
@@ -159,8 +153,7 @@ export class DashboardComponent {
   profileCompletion = computed(() => {
     const profile = this.profileService.profile();
     if (!profile) return 0;
-    // Use the KYC completion percentage computed by ProfileService
-    return profile.basicInfo?.kycCompletionPercentage ?? 0;
+    return profile.profileCompletionPercentage ?? 0;
   });
   featuredInvestments = computed(() => this.allInvestments().sort((a, b) => b.credibilityScore - a.credibilityScore).slice(0, 3));
   investorScore = computed<number | null>(() => {
@@ -182,10 +175,16 @@ export class DashboardComponent {
     if (score >= 40) return this.t('dashboard.reputation.levels.building', 'Building');
     return this.t('dashboard.reputation.levels.starter', 'Starter');
   });
-  currentCredits = computed(() => this.userService.credits()); // Live user credit balance
+  currentCredits = computed(() => this.userService.credits());
   availableCredits = this.userService.credits;
-  totalInvested = computed(() => this.approvedParticipations().reduce((sum, request) => sum + this.getRequestAmount(request), 0));
-  expectedEarnings = computed(() => this.approvedParticipations().reduce((sum, request) => sum + this.getExpectedEarnings(request), 0));
+  investmentCurrency = computed(() => this.cashFlowSummary()?.currency ?? 'EGP');
+  cashFlowTotalInvested = computed(() => this.cashFlowSummary()?.totalInvestedAmount ?? this.cashFlowSummary()?.remainingPrincipal ?? 0);
+  totalInvested = computed(() => {
+    return sumParticipationValues(this.approvedParticipations(), request => this.getRequestAmount(request));
+  });
+  expectedEarnings = computed(() => {
+    return sumParticipationValues(this.approvedParticipations(), request => this.getExpectedEarnings(request));
+  });
   returnRate = computed(() => {
     const invested = this.totalInvested();
     return invested > 0 ? (this.expectedEarnings() / invested) * 100 : 0;
@@ -292,6 +291,16 @@ export class DashboardComponent {
   });
   founderProjectCount = computed(() => this.founderProjects().length);
   selectedFounderProject = signal<DashboardProject | null>(null);
+  approvedInvestors = signal<ApprovedInvestor[]>([]);
+  approvedInvestorsLoading = signal(false);
+  founderProjectDataError = signal<string | null>(null);
+  approvedInvestorsExpanded = signal(false);
+  private failedApprovedInvestorAvatars = signal<ReadonlySet<string>>(new Set());
+  private approvedInvestorsLoadSequence = 0;
+  private opportunityRoomLoadSequence = 0;
+  visibleApprovedInvestors = computed(() => this.approvedInvestorsExpanded() ? this.approvedInvestors() : this.approvedInvestors().slice(0, 4));
+  hiddenApprovedInvestorCount = computed(() => Math.max(0, this.approvedInvestors().length - this.visibleApprovedInvestors().length));
+  private approvedInvestorsProjectId: string | null = null;
   publishingOpportunityId = signal<string | number | null>(null);
   selectedFounderProjectRequests = computed(() => {
     const project = this.selectedFounderProject();
@@ -357,62 +366,6 @@ export class DashboardComponent {
     return summary;
   });
 
-  founderProjectParticipants = computed<ParticipantOverview[]>(() => {
-    const participationRequests = this.selectedFounderParticipationRequests();
-    const conversationRequests = this.selectedFounderConversationRequests();
-    const map = new Map<string, ParticipantOverview>();
-
-    const addParticipant = (request: OpportunityRequest, statusOverride?: string) => {
-      const key = String(request.investorId ?? request.counterpartName ?? request.senderName ?? request.receiverName ?? request.id);
-      const name = request.counterpartName || request.senderName || request.receiverName || this.t('dashboard.opportunityFallback', 'Opportunity');
-      const status = statusOverride || request.status || 'Pending';
-      const amount = this.getRequestAmount(request);
-      const existing = map.get(key);
-
-      if (!existing) {
-        map.set(key, {
-          id: key,
-          name,
-          status,
-          requestedAmount: amount,
-          updatedAt: request.createdAt ?? new Date(),
-          openConversation: false,
-          conversationId: undefined,
-          hasReport: false
-        });
-        return;
-      }
-
-      if (this.getRequestPriority(status) > this.getRequestPriority(existing.status)) {
-        existing.status = status;
-      }
-      existing.requestedAmount += amount;
-      if (request.createdAt && request.createdAt > existing.updatedAt) {
-        existing.updatedAt = request.createdAt;
-      }
-    };
-
-    participationRequests.forEach(request => addParticipant(request));
-    conversationRequests.forEach(request => {
-      const key = String(request.investorId ?? request.counterpartName ?? request.senderName ?? request.receiverName ?? request.id);
-      const participant = map.get(key);
-      if (!participant) {
-        addParticipant(request, request.status || 'Pending');
-      }
-      if (request.acceptedConversationId) {
-        const existing = map.get(key);
-        if (existing) {
-          existing.openConversation = true;
-          existing.conversationId = request.acceptedConversationId;
-        }
-      }
-    });
-
-    return Array.from(map.values())
-      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
-      .slice(0, 5);
-  });
-
   founderProjectParticipantCount = computed(() => {
     const ids = new Set<string>();
     this.selectedFounderProjectRequests().forEach(request => {
@@ -420,35 +373,6 @@ export class DashboardComponent {
       if (key) ids.add(key);
     });
     return ids.size;
-  });
-
-  founderProjectPublicPerformance = computed(() => {
-    const project = this.selectedFounderProject();
-    return {
-      totalRequests: this.selectedFounderProjectRequests().length,
-      participationRequests: this.selectedFounderParticipationRequests().length,
-      conversationRequests: this.selectedFounderConversationRequests().length,
-      investorCount: project?.investors?.length ?? 0,
-      fundingPercent: Number(project?.fundingProgressPercent ?? project?.fundingProgress ?? this.fundingProgress())
-    };
-  });
-
-  projectViews = computed(() => Number(this.selectedFounderProject()?.views ?? this.selectedFounderProject()?.mediaCount ?? 0));
-
-  engagementScore = computed(() => Number(this.selectedFounderProject()?.score ?? 0));
-
-  founderProjectRoomActivity = computed<ProjectRoomActivityItem[]>(() => {
-    const requests = this.selectedFounderProjectRequests()
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-      .slice(0, 5);
-
-    return requests.map(request => ({
-      id: String(request.id),
-      title: request.projectName || this.t('dashboard.opportunityFallback', 'Opportunity'),
-      description: `${this.getStatusLabel(request.status)} · ${request.type === 'conversation' ? 'Chat' : 'Participation'}`,
-      time: this.getTimeAgo(request.createdAt),
-      link: request.acceptedConversationId ? ['/admin/chat'] : undefined
-    }));
   });
 
   selectedYear = signal<number>(new Date().getFullYear());
@@ -469,7 +393,131 @@ export class DashboardComponent {
     if (!p) return null;
     return this.toNullableNumber((p as Record<string, any>)['fundingProgressPercentage'] ?? p.fundingProgressPercent);
   });
-  
+
+  roomTimeline = computed<OpportunityEvent[]>(() => {
+    const room = this.opportunityRoom();
+    const raw = room?.timeline;
+    if (Array.isArray(raw)) return raw as OpportunityEvent[];
+    if (raw && typeof raw === 'object') return Object.values(raw).flat() as OpportunityEvent[];
+    return [];
+  });
+
+  roomMilestones = computed<OpportunityMilestone[]>(() => {
+    const room = this.opportunityRoom();
+    const raw = room?.milestones;
+    if (Array.isArray(raw)) return raw as OpportunityMilestone[];
+    if (raw && typeof raw === 'object') return Object.values(raw).flat() as OpportunityMilestone[];
+    return [];
+  });
+
+  roomDocuments = computed<OpportunityDocument[]>(() => {
+    const room = this.opportunityRoom();
+    const raw = room?.documents ?? room?.documentsLibrary;
+    if (Array.isArray(raw)) return raw as OpportunityDocument[];
+    if (raw && typeof raw === 'object') return Object.values(raw).flat() as OpportunityDocument[];
+    return [];
+  });
+
+  completedMilestoneCount = computed(() => this.roomMilestones().filter(m => String(m.status ?? '').toLowerCase() === 'completed').length);
+
+  pendingInvestorCount = computed(() => {
+    const project = this.selectedFounderProject();
+    if (!project) return 0;
+    return project.approvedParticipantCount ?? this.approvedInvestors().length;
+  });
+
+  pendingParticipationCount = computed(() =>
+    this.selectedFounderParticipationRequests().filter(r => r.status === 'Pending' || r.status === 'Requested').length
+  );
+
+  pendingConversationCount = computed(() =>
+    this.selectedFounderConversationRequests().filter(r => r.status === 'Pending').length
+  );
+
+  latestApprovedInvestor = computed<ApprovedInvestor | null>(() => {
+    const list = this.approvedInvestors();
+    if (list.length === 0) return null;
+    return list.reduce((latest, current) =>
+      new Date(current.approvedAt) > new Date(latest.approvedAt) ? current : latest
+    );
+  });
+
+  investmentModelType = computed<string | null>(() => {
+    const project = this.selectedFounderProject();
+    if (!project) return null;
+    const raw = String(project.investmentModel ?? '').toLowerCase().replace(/[\s_-]+/g, '');
+    if (raw.includes('loan') || raw === '3') return 'loan';
+    if (raw.includes('profit') || raw === '2') return 'profitSharing';
+    if (raw.includes('equity') || raw === '1' || raw.includes('capital')) return 'equity';
+    return null;
+  });
+
+  totalMilestoneCount = computed(() => this.roomMilestones().length);
+
+  nextIncompleteMilestone = computed<OpportunityMilestone | null>(() => {
+    const milestones = this.roomMilestones();
+    const incomplete = milestones
+      .filter(m => String(m.status ?? '').toLowerCase() !== 'completed')
+      .sort((a, b) => new Date(a.targetDate ?? 0).getTime() - new Date(b.targetDate ?? 0).getTime());
+    return incomplete.length > 0 ? incomplete[0] : null;
+  });
+
+  overdueMilestoneCount = computed(() => {
+    const now = new Date();
+    return this.roomMilestones().filter(m => {
+      if (!m.targetDate) return false;
+      if (String(m.status ?? '').toLowerCase() === 'completed') return false;
+      return new Date(m.targetDate) < now;
+    }).length;
+  });
+
+  latestDocument = computed<OpportunityDocument | null>(() => {
+    const docs = this.roomDocuments();
+    if (docs.length === 0) return null;
+    return docs.reduce((latest, current) =>
+      new Date(current.createdAt ?? 0) > new Date(latest.createdAt ?? 0) ? current : latest
+    );
+  });
+
+  latestRoomActivity = computed<{ title: string; timeAgo: string } | null>(() => {
+    const timeline = this.roomTimeline();
+    if (timeline.length === 0) return null;
+    const latest = timeline.reduce((a, b) =>
+      new Date(b.occurredAt ?? 0) > new Date(a.occurredAt ?? 0) ? b : a
+    );
+    return {
+      title: latest.title,
+      timeAgo: latest.occurredAt ? this.getDateAgo(latest.occurredAt) : ''
+    };
+  });
+
+  nextPaymentDate = computed<string | null>(() => {
+    const project = this.selectedFounderProject();
+    if (!project?.finalRepaymentDate) return null;
+    const freq = String(project.repaymentFrequency ?? 'Monthly').toLowerCase();
+    const final = new Date(project.finalRepaymentDate);
+    const now = new Date();
+    if (final <= now) return project.finalRepaymentDate;
+    let monthsBack = 0;
+    if (freq.includes('month')) monthsBack = 1;
+    else if (freq.includes('quarter')) monthsBack = 3;
+    else if (freq.includes('semi') || freq.includes('semi-annual')) monthsBack = 6;
+    else if (freq.includes('annual')) monthsBack = 12;
+    if (monthsBack === 0) return project.finalRepaymentDate;
+    const candidate = new Date(final);
+    while (candidate > now) candidate.setMonth(candidate.getMonth() - monthsBack);
+    candidate.setMonth(candidate.getMonth() + monthsBack);
+    return candidate.toISOString().split('T')[0];
+  });
+
+  paymentPerInvestor = computed<{ displayName: string; amount: number }[]>(() => {
+    const investors = this.approvedInvestors();
+    return investors.map(inv => ({
+      displayName: inv.displayName,
+      amount: inv.totalApprovedContribution
+    })).filter(p => p.amount > 0).sort((a, b) => b.amount - a.amount);
+  });
+
   // Mock data for founder dashboard
   sentRequests = signal<SentRequest[]>([]);
 
@@ -478,12 +526,32 @@ export class DashboardComponent {
   constructor() {
     void this.loadProjects();
     void this.requestsService.refreshRequests();
+    void this.loadCashFlow();
 
     effect(() => {
       const projects = this.founderProjects();
       if (this.roleContext.isActiveFounderContext() && projects.length === 1 && !this.selectedFounderProject()) {
         this.selectedFounderProject.set(projects[0]);
       }
+    });
+
+    effect(() => {
+      const projectId = this.selectedFounderProject()?.id;
+      if (projectId == null) {
+        this.approvedInvestors.set([]);
+        this.approvedInvestorsProjectId = null;
+        return;
+      }
+      void this.loadApprovedInvestors(projectId);
+    });
+
+    effect(() => {
+      const projectId = this.selectedFounderProject()?.id;
+      if (!this.roleContext.isActiveFounderContext() || projectId == null) {
+        this.opportunityRoom.set(null);
+        return;
+      }
+      void this.loadOpportunityRoom(projectId);
     });
 
     effect(() => {
@@ -495,20 +563,18 @@ export class DashboardComponent {
     });
 
     effect(() => {
-      // This effect runs when view children are ready, role or language changes
-      setTimeout(() => { // Allow view to render before drawing charts
+      this.approvedParticipations();
+      this.cashFlowSummary();
+      this.selectedYear();
+      this.languageService.language();
+      setTimeout(() => {
         if (this.roleContext.isActiveInvestorContext()) {
-          if (this.pieChart() && this.lineChart()) {
-            this.createPieChart();
-            this.createLineChart();
-          }
-        } else if (this.roleContext.isActiveFounderContext()) {
-           if (this.barChart() && this.selectedFounderProject()) {
-            this.createBarChart();
-          }
+          if (this.pieChart()) this.createPieChart();
+          if (this.lineChart()) this.createLineChart();
         }
       }, 0);
     });
+
 
     effect(() => {
       const years = this.availableYears();
@@ -527,7 +593,45 @@ export class DashboardComponent {
     void this.userService.refreshUser().catch(() => {});
   }
 
+  private async loadCashFlow(): Promise<void> {
+    if (!this.roleContext.isActiveInvestorContext()) return;
+    this.cashFlowLoading.set(true);
+    this.cashFlowUnavailable.set(false);
+    try {
+      const [summary, monthly, upcoming] = await Promise.all([
+        this.cashFlowService.getSummary(),
+        this.cashFlowService.getMonthly(12),
+        this.cashFlowService.getUpcoming(5)
+      ]);
+      this.cashFlowSummary.set(summary);
+      this.monthlyCashFlow.set(monthly);
+      this.upcomingCashFlow.set(upcoming);
+    } catch (error) {
+      console.warn('Expected cash flow is not available.', error);
+      this.cashFlowSummary.set(null);
+      this.monthlyCashFlow.set([]);
+      this.upcomingCashFlow.set([]);
+      this.cashFlowUnavailable.set(true);
+    } finally {
+      this.cashFlowLoading.set(false);
+    }
+  }
+
+  cashFlowChartMaximum(): number {
+    return Math.max(1, ...this.monthlyCashFlow().flatMap(item => [item.expectedInterest, item.expectedPrincipal, item.actualReceived]));
+  }
+
+  cashFlowBarHeight(value: number): number {
+    return Math.max(value > 0 ? 3 : 0, (value / this.cashFlowChartMaximum()) * 100);
+  }
+
+  formatCashFlowDate(value: string | null | undefined): string {
+    if (!value) return this.t('dashboard.unavailable', 'Unavailable');
+    return new Intl.DateTimeFormat(this.languageService.language() === 'ar' ? 'ar-EG' : 'en-EG', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(value));
+  }
+
   private async loadProjects(): Promise<void> {
+    this.projectsLoading.set(true);
     try {
       const [publicProjects, myProjects] = await Promise.all([
         this.opportunityService.getPublicOpportunities(),
@@ -545,6 +649,8 @@ export class DashboardComponent {
     } catch (error) {
       console.error('Failed to load dashboard opportunities', error);
       this.allInvestments.set([]);
+    } finally {
+      this.projectsLoading.set(false);
     }
   }
 
@@ -560,9 +666,62 @@ export class DashboardComponent {
     return Promise.resolve(true);
   }
 
-  openParticipantConversation(conversationId: string | number | null | undefined): void {
-    if (!conversationId) return;
-    void this.router.navigate(['/admin/chat'], { queryParams: { conversationId } });
+  private async loadApprovedInvestors(projectId: string | number): Promise<void> {
+    const key = String(projectId);
+    if (this.approvedInvestorsProjectId === key) return;
+    const sequence = ++this.approvedInvestorsLoadSequence;
+    this.approvedInvestorsProjectId = key;
+    this.approvedInvestorsExpanded.set(false);
+    this.approvedInvestorsLoading.set(true);
+    try {
+      const investors = await this.opportunityService.getApprovedInvestors(projectId);
+      if (sequence !== this.approvedInvestorsLoadSequence || String(this.selectedFounderProject()?.id) !== key) return;
+      this.approvedInvestors.set(investors);
+      this.founderProjectDataError.set(null);
+    } catch {
+      if (sequence !== this.approvedInvestorsLoadSequence) return;
+      this.approvedInvestors.set([]);
+      this.founderProjectDataError.set(this.t('dashboard.errors.approvedInvestors', 'Approved investors could not be loaded. Please retry.'));
+    } finally {
+      if (sequence === this.approvedInvestorsLoadSequence) this.approvedInvestorsLoading.set(false);
+    }
+  }
+
+  private async loadOpportunityRoom(projectId: string | number): Promise<void> {
+    const key = String(projectId);
+    const sequence = ++this.opportunityRoomLoadSequence;
+    this.roomLoading.set(true);
+    try {
+      const room = await this.opportunityService.getOpportunityRoom(projectId);
+      if (sequence !== this.opportunityRoomLoadSequence || String(this.selectedFounderProject()?.id) !== key) return;
+      this.opportunityRoom.set(room);
+      this.founderProjectDataError.set(null);
+    } catch {
+      if (sequence !== this.opportunityRoomLoadSequence) return;
+      this.opportunityRoom.set(null);
+      this.founderProjectDataError.set(this.t('dashboard.errors.projectRoom', 'Project execution data could not be loaded. Please retry.'));
+    } finally {
+      if (sequence === this.opportunityRoomLoadSequence) this.roomLoading.set(false);
+    }
+  }
+
+  expandApprovedInvestors(): void {
+    this.approvedInvestorsExpanded.set(true);
+  }
+
+  approvedInvestorAvatar(investor: ApprovedInvestor): string | null {
+    return investor.avatarUrl && !this.failedApprovedInvestorAvatars().has(investor.userId)
+      ? this.fileStoreService.getPublicUrl(investor.avatarUrl)
+      : null;
+  }
+
+  onApprovedInvestorAvatarError(userId: string): void {
+    if (this.failedApprovedInvestorAvatars().has(userId)) return;
+    this.failedApprovedInvestorAvatars.update(failed => new Set(failed).add(userId));
+  }
+
+  approvedInvestorInitials(displayName: string): string {
+    return displayName.trim().split(/\s+/).slice(0, 2).map(part => part.charAt(0)).join('').toUpperCase() || '?';
   }
 
   getRoomOpportunityId(project: DashboardProject): string | number | null {
@@ -628,31 +787,10 @@ export class DashboardComponent {
     } as DashboardProject;
   }
 
-  private getRequestPriority(status: string): number {
-    const key = String(status || '').toLowerCase();
-    if (key === 'partner' || key === 'accepted') return 4;
-    if (key === 'negotiating') return 3;
-    if (key === 'pending' || key === 'requested') return 2;
-    if (key === 'rejected' || key === 'declined' || key === 'cancelled') return 1;
-    return 0;
-  }
-
-  getParticipantStatusLabel(status: string): string {
-    return this.getStatusLabel(status);
-  }
-
-  getParticipantBadgeClass(status: string): string {
-    const key = String(status || '').toLowerCase();
-    if (key === 'partner' || key === 'accepted') return 'badge-approved';
-    if (key === 'negotiating') return 'badge-negotiating';
-    if (key === 'pending' || key === 'requested') return 'badge-pending';
-    if (key === 'rejected' || key === 'declined' || key === 'cancelled') return 'badge-rejected';
-    return 'badge-default';
-  }
-
-  formatProjectAmount(value: number): string {
+  formatProjectAmount(value: number, currency?: string | null): string {
     if (!value || value === 0) return this.t('dashboard.unavailable', 'Unavailable');
-    return `$${value.toLocaleString()}`;
+    const cur = currency ?? this.selectedFounderProject()?.currency ?? 'EGP';
+    return `${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur}`;
   }
 
   private safeArray<T = any>(value: unknown): T[] {
@@ -708,14 +846,40 @@ export class DashboardComponent {
   }
 
   formatCreditAmount(value: number): string {
-    return `${value.toLocaleString()} ${this.t('dashboard.creditUnit', 'CREDIT')}`;
+    const currency = this.investmentCurrency();
+    return `${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
   }
 
   getStatusLabel(status: string): string {
     return this.t(`dashboard.requestStatus.${status.toLowerCase()}`, status);
   }
 
-getProjectAvatar(project: DashboardProject): string {
+  translateStatus(raw: string | null | undefined): string {
+    if (!raw) return '—';
+    return this.t(`dashboard.enums.status.${raw.toLowerCase()}`, raw);
+  }
+
+  translateInvestmentModel(raw: string | number | null | undefined): string {
+    if (raw == null) return '—';
+    return this.t(`dashboard.enums.investmentModel.${String(raw).toLowerCase()}`, String(raw));
+  }
+
+  participationModelLabel(raw: string | null | undefined): string {
+    const normalized = String(raw ?? '').toLowerCase().replace(/[\s_-]+/g, '');
+    const key = normalized.includes('loan')
+      ? 'loan'
+      : normalized.includes('profit')
+        ? 'profitSharing'
+        : 'equity';
+    return this.t(`dashboard.summary.composition.${key}`, raw || key);
+  }
+
+  translateFrequency(raw: string | null | undefined): string {
+    if (!raw) return '—';
+    return this.t(`dashboard.enums.frequency.${raw.toLowerCase()}`, raw);
+  }
+
+  getProjectAvatar(project: DashboardProject): string {
     // Prefer project image for project overview, fall back to profile avatar
     const projectImage = this.getImageSrc(project);
     if (projectImage) return projectImage;
@@ -770,10 +934,14 @@ getProjectAvatar(project: DashboardProject): string {
   }
 
   async toggleFavorite(investment: DashboardProject) {
+    const id = investment.id;
+    const previous = !!investment.favorited;
+    this.allInvestments.update(items => items.map(item => item.id === id ? ({ ...item, favorited: !previous }) : item));
     try {
-      const id = investment.id;
-      this.allInvestments.update(items => items.map(item => item.id === id ? ({ ...item, favorited: !item.favorited }) : item));
+      const result = await this.opportunityService.setFavorite(id, !previous);
+      this.allInvestments.update(items => items.map(item => item.id === id ? ({ ...item, favorited: result.favorited }) : item));
     } catch (error) {
+      this.allInvestments.update(items => items.map(item => item.id === id ? ({ ...item, favorited: previous }) : item));
       console.error('Failed to update favorite status', error);
     }
   }
@@ -806,6 +974,15 @@ getProjectAvatar(project: DashboardProject): string {
     }
   }
   
+  getDateAgo(dateStr: string | null | undefined): string {
+    if (!dateStr) return '';
+    try {
+      return this.getTimeAgo(new Date(dateStr));
+    } catch {
+      return '';
+    }
+  }
+
   getTimeAgo(date: Date): string {
     const now = new Date();
     const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
@@ -890,19 +1067,6 @@ getProjectAvatar(project: DashboardProject): string {
   }
 
   private getLineChartData(): LineChartData[] {
-    if (!this.roleContext.isActiveInvestorContext()) {
-      return [
-        { month: this.t('common.months.jan', 'Jan'), value: 78000 },
-        { month: this.t('common.months.feb', 'Feb'), value: 81000 },
-        { month: this.t('common.months.mar', 'Mar'), value: 85000 },
-        { month: this.t('common.months.apr', 'Apr'), value: 83000 },
-        { month: this.t('common.months.may', 'May'), value: 90000 },
-        { month: this.t('common.months.jun', 'Jun'), value: 92000 },
-        { month: this.t('common.months.jul', 'Jul'), value: 95000 },
-        { month: this.t('common.months.aug', 'Aug'), value: 98000 },
-      ];
-    }
-
     const year = this.selectedYear();
     const monthNames = [
       this.t('common.months.jan', 'Jan'),
@@ -930,83 +1094,20 @@ getProjectAvatar(project: DashboardProject): string {
       monthlyTotals[createdAt.getMonth()] += invested;
     }
 
+    // If no participation data, use cash-flow total invested as a single data point
+    const hasDataPoints = monthlyTotals.some(v => v > 0);
+    if (!hasDataPoints) {
+      const totalAmount = this.cashFlowTotalInvested();
+      if (totalAmount > 0) {
+        monthlyTotals[new Date().getMonth()] = totalAmount;
+      }
+    }
+
+    let cumulativeValue = 0;
     return monthlyTotals.map((value, index) => ({
       month: monthNames[index],
-      value,
+      value: cumulativeValue += value,
     }));
-  }
-
-  private getBarChartData(): BarChartData[] {
-     // Mock data for new investors over time
-    return [
-      { label: this.t('common.months.apr', 'Apr'), value: 5 },
-      { label: this.t('common.months.may', 'May'), value: 8 },
-      { label: this.t('common.months.jun', 'Jun'), value: 12 },
-      { label: this.t('common.months.jul', 'Jul'), value: 7 },
-      { label: this.t('common.months.aug', 'Aug'), value: 15 },
-      { label: this.t('common.months.sep', 'Sep'), value: 11 },
-    ];
-  }
-  
-  private createBarChart(): void {
-    const data = this.getBarChartData();
-    const element = this.barChart()?.nativeElement;
-    
-    if (!element || element.clientWidth === 0) return;
-
-    d3.select(element).select('svg').remove();
-
-    const margin = { top: 20, right: 20, bottom: 30, left: 40 };
-    const width = element.clientWidth - margin.left - margin.right;
-    const height = 300 - margin.top - margin.bottom;
-
-    const svg = d3.select(element)
-        .append('svg')
-        .attr('width', width + margin.left + margin.right)
-        .attr('height', height + margin.top + margin.bottom)
-        .append('g')
-        .attr('transform', `translate(${margin.left},${margin.top})`);
-        
-    const x = d3.scaleBand()
-        .range([0, width])
-        .domain(data.map(d => d.label))
-        .padding(0.4);
-
-    svg.append('g')
-        .attr('transform', `translate(0,${height})`)
-        .call(d3.axisBottom(x))
-        .selectAll('text')
-        .style('fill', '#94a3b8');
-
-    const y = d3.scaleLinear()
-        .domain([0, d3.max(data, d => d.value) * 1.2])
-        .range([height, 0]);
-
-    svg.append('g')
-        .call(d3.axisLeft(y).ticks(5))
-        .selectAll('text')
-        .style('fill', '#94a3b8');
-        
-    svg.selectAll('.domain, .tick line').attr('stroke', '#374151');
-
-    const barGradient = svg.append("defs").append("linearGradient")
-        .attr("id", "bar-gradient")
-        .attr("x1", "0%").attr("y1", "100%")
-        .attr("x2", "0%").attr("y2", "0%");
-    barGradient.append("stop").attr("offset", "0%").attr("stop-color", "#3b82f6");
-    barGradient.append("stop").attr("offset", "100%").attr("stop-color", "#8b5cf6");
-
-    svg.selectAll("mybar")
-        .data(data)
-        .enter()
-        .append("rect")
-        .attr("x", d => x(d.label))
-        .attr("y", d => y(d.value))
-        .attr("width", x.bandwidth())
-        .attr("height", d => height - y(d.value))
-        .attr("fill", "url(#bar-gradient)")
-        .attr('rx', 4)
-        .attr('ry', 4);
   }
 
 
@@ -1051,7 +1152,7 @@ getProjectAvatar(project: DashboardProject): string {
     const data_ready = pie(data as any);
     const totalValue = data.reduce((sum, d) => sum + d.value, 0);
     const centerLabel = this.roleContext.isActiveInvestorContext() ? this.t('dashboard.allocationTotal', 'Total Invested') : this.t('dashboard.allocationTotal', 'Total');
-    const formattedTotal = `$${totalValue.toLocaleString()}`;
+    const formattedTotal = `${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${this.investmentCurrency()}`;
 
     const arc = d3.arc()
       .innerRadius(radius * 0.5)
@@ -1102,7 +1203,7 @@ getProjectAvatar(project: DashboardProject): string {
         .on('mousemove', function(event: MouseEvent, d: D3PieArcDatum) {
             const percentage = d.data.percentage ? d.data.percentage.toFixed(1) : '0.0';
             tooltip
-              .html(`<b>${d.data.name}</b><br>${valueLabel}: <b>$${d.data.value.toLocaleString()}</b><br>${percentage}% of portfolio`)
+              .html(`<b>${d.data.name}</b><br>${valueLabel}: <b>${d.data.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${this.investmentCurrency()}</b><br>${percentage}% of portfolio`)
               .style('left', (event.pageX - element.getBoundingClientRect().left + 15) + 'px')
               .style('top', (event.pageY - element.getBoundingClientRect().top - 15) + 'px');
         })
@@ -1154,22 +1255,28 @@ getProjectAvatar(project: DashboardProject): string {
   }
 
   private createLineChart(): void {
-    const data = this.getLineChartData();
+    const realData = this.getLineChartData();
+    const hasRealData = realData.some(item => item.value > 0);
+    const data = realData.length ? realData : [{ month: this.t('common.months.jan', 'Jan'), value: 0 }];
     const element = this.lineChart()?.nativeElement;
 
-    if (!element || element.clientWidth === 0) return;
+    if (!element || element.clientWidth === 0 || typeof d3 === 'undefined') return;
 
     d3.select(element).select('svg').remove();
     d3.select(element).select('.d3-tooltip').remove();
     
-    if (data.length === 0) return;
-
     const margin = { top: 20, right: 30, bottom: 40, left: 70 };
     const width = element.clientWidth - margin.left - margin.right;
     const height = 300 - margin.top - margin.bottom;
 
+    const textColor = 'var(--investa-text-muted)';
+    const gridColor = 'var(--investa-border)';
+    const surfaceColor = 'var(--investa-surface-2)';
     const svg = d3.select(element)
       .append('svg')
+        .attr('class', 'growth-chart-svg')
+        .attr('viewBox', `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`)
+        .attr('preserveAspectRatio', 'xMidYMid meet')
         .attr('width', width + margin.left + margin.right)
         .attr('height', height + margin.top + margin.bottom)
       .append('g')
@@ -1188,7 +1295,7 @@ getProjectAvatar(project: DashboardProject): string {
         .attr("x1", "0%").attr("y1", "0%")
         .attr("x2", "0%").attr("y2", "100%");
     areaGradient.append("stop").attr("offset", "0%").attr("stop-color", "#3b82f6").attr("stop-opacity", 0.3);
-    areaGradient.append("stop").attr("offset", "100%").attr("stop-color", "#111827").attr("stop-opacity", 0);
+    areaGradient.append("stop").attr("offset", "100%").attr("stop-color", surfaceColor).attr("stop-opacity", 0);
 
     const x = d3.scaleBand()
       .domain(data.map((d: LineChartData) => d.month))
@@ -1196,25 +1303,29 @@ getProjectAvatar(project: DashboardProject): string {
       .padding(0.5);
 
     const y = d3.scaleLinear()
-      .domain([0, d3.max(data, (d: LineChartData) => d.value) * 1.1])
+      .domain([0, Math.max(1, d3.max(data, (d: LineChartData) => d.value) * 1.1)])
       .range([height, 0]);
 
     svg.append('g')
       .attr('transform', `translate(0, ${height})`)
       .call(d3.axisBottom(x))
-      .selectAll('text').style('fill', '#94a3b8');
-    svg.selectAll('.domain, .tick line').attr('stroke', '#374151');
+      .selectAll('text').style('fill', textColor);
+    svg.selectAll('.domain, .tick line').attr('stroke', gridColor);
       
+    const currency = this.investmentCurrency();
     const yAxis = svg.append('g')
-      .call(d3.axisLeft(y).ticks(5).tickFormat((d: any) => `$${d / 1000}k`));
-    yAxis.selectAll('text').style('fill', '#94a3b8');
+      .call(d3.axisLeft(y).ticks(5).tickFormat((d: any) => {
+        if (d >= 1000) return `${(d / 1000).toFixed(1)}k ${currency}`;
+        return `${d.toFixed(0)} ${currency}`;
+      }));
+    yAxis.selectAll('text').style('fill', textColor);
     yAxis.select('.domain').remove();
     yAxis.selectAll('.tick line')
-       .attr('stroke', '#374151')
+       .attr('stroke', gridColor)
        .attr('stroke-dasharray', '3,3')
        .attr('x2', width);
 
-    svg.append('path')
+    if (hasRealData) svg.append('path')
       .datum(data)
       .attr('fill', 'url(#area-gradient)')
       .attr('d', d3.area()
@@ -1224,7 +1335,7 @@ getProjectAvatar(project: DashboardProject): string {
         .curve(d3.curveMonotoneX)
       );
 
-    svg.append('path')
+    if (hasRealData) svg.append('path')
       .datum(data)
       .attr('fill', 'none')
       .attr('stroke', 'url(#line-gradient)')
@@ -1235,6 +1346,8 @@ getProjectAvatar(project: DashboardProject): string {
         .curve(d3.curveMonotoneX)
       );
     
+    if (!hasRealData) return;
+
     const tooltip = d3.select(element)
       .append('div')
       .attr('class', 'd3-tooltip absolute bg-slate-800 text-white text-sm rounded-lg py-1 px-3 shadow-lg pointer-events-none')
@@ -1292,7 +1405,7 @@ getProjectAvatar(project: DashboardProject): string {
           .attr('x2', focusX);
           
         tooltip
-          .html(`<b>${d.month}</b><br>$${d.value.toLocaleString()}`)
+          .html(`<b>${d.month}</b><br>${d.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${this.investmentCurrency()}`)
           .style('left', (focusX + margin.left + 15) + 'px')
           .style('top', (focusY + margin.top) + 'px');
       }

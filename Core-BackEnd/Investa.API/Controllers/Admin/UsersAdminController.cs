@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Investa.Application.Interfaces;
 using Investa.Application.DTOs;
 using Investa.Application.Common;
@@ -224,9 +225,10 @@ namespace Investa.API.Controllers.Admin
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdateOrgUser([FromRoute] Guid userId, [FromBody] UpdateOrgUserDto dto)
         {
+            var currentUserId = ResolveUserIdFromClaims();
             try
             {
-                var user = await _orgUserService.UpdateOrgUserAsync(userId, dto);
+                var user = await _orgUserService.UpdateOrgUserAsync(userId, dto, currentUserId);
                 if (user == null)
                     return NotFound(new { message = _localizer["UserNotFound"].Value });
 
@@ -251,9 +253,10 @@ namespace Investa.API.Controllers.Admin
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteOrgUser([FromRoute] Guid userId)
         {
+            var currentUserId = ResolveUserIdFromClaims();
             try
             {
-                var success = await _orgUserService.DeleteOrgUserAsync(userId);
+                var success = await _orgUserService.DeleteOrgUserAsync(userId, currentUserId);
                 if (!success)
                     return NotFound(new { message = "User not found" });
 
@@ -295,6 +298,160 @@ namespace Investa.API.Controllers.Admin
             {
                 _logger.LogError(ex, "Error bulk updating user status");
                 return StatusCode(500, new { message = _localizer["ErrorUpdatingUsers"].Value });
+            }
+        }
+
+        /// <summary>
+        /// Gets detailed information about a specific organizational user.
+        /// </summary>
+        [HttpGet("{userId:guid}")]
+        public async Task<IActionResult> GetOrgUserById([FromRoute] Guid userId)
+        {
+            try
+            {
+                var user = await _orgUserService.GetOrgUserByIdAsync(userId);
+                if (user == null)
+                    return NotFound(new { message = "User not found" });
+                return Ok(user);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving user {UserId}", userId);
+                return StatusCode(500, new { message = "Error retrieving user" });
+            }
+        }
+
+        /// <summary>
+        /// Locks an organizational user account.
+        /// </summary>
+        [HttpPost("{userId:guid}/lock")]
+        public async Task<IActionResult> LockOrgUser([FromRoute] Guid userId, [FromBody] LockUserDto? dto = null)
+        {
+            var currentUserId = ResolveUserIdFromClaims();
+            try
+            {
+                var success = await _orgUserService.LockOrgUserAsync(userId, currentUserId, dto?.Reason);
+                if (!success)
+                    return NotFound(new { message = "User not found" });
+                return Ok(new { message = "User locked successfully" });
+            }
+            catch (OrgUserValidationException ex)
+            {
+                return BadRequest(new { code = ex.Code, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error locking user {UserId}", userId);
+                return StatusCode(500, new { message = "Error locking user" });
+            }
+        }
+
+        /// <summary>
+        /// Unlocks an organizational user account.
+        /// </summary>
+        [HttpPost("{userId:guid}/unlock")]
+        public async Task<IActionResult> UnlockOrgUser([FromRoute] Guid userId, [FromBody] UnlockUserDto? dto = null)
+        {
+            var currentUserId = ResolveUserIdFromClaims();
+            try
+            {
+                var success = await _orgUserService.UnlockOrgUserAsync(userId, currentUserId, dto?.Reason);
+                if (!success)
+                    return NotFound(new { message = "User not found" });
+                return Ok(new { message = "User unlocked successfully" });
+            }
+            catch (OrgUserValidationException ex)
+            {
+                return BadRequest(new { code = ex.Code, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error unlocking user {UserId}", userId);
+                return StatusCode(500, new { message = "Error unlocking user" });
+            }
+        }
+
+        /// <summary>
+        /// Resets an organizational user's password.
+        /// </summary>
+        [HttpPost("{userId:guid}/reset-password")]
+        public async Task<IActionResult> ResetPassword([FromRoute] Guid userId, [FromBody] ResetPasswordDto dto)
+        {
+            try
+            {
+                var success = await _orgUserService.ResetPasswordAsync(userId, dto.NewPassword);
+                if (!success)
+                    return NotFound(new { message = "User not found" });
+                return Ok(new { message = "Password reset successfully" });
+            }
+            catch (OrgUserValidationException ex)
+            {
+                return BadRequest(new { code = ex.Code, message = ex.Message, errors = ex.Errors });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error resetting password for user {UserId}", userId);
+                return StatusCode(500, new { message = "Error resetting password" });
+            }
+        }
+
+        /// <summary>
+        /// Sends an invitation to an organizational user.
+        /// </summary>
+        [HttpPost("{userId:guid}/invite")]
+        public async Task<IActionResult> InviteOrgUser([FromRoute] Guid userId, [FromBody] InviteUserDto? dto = null)
+        {
+            try
+            {
+                var success = await _orgUserService.InviteOrgUserAsync(userId, dto?.Message);
+                if (!success)
+                    return NotFound(new { message = "User not found" });
+                return Ok(new { message = "Invitation sent successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error inviting user {UserId}", userId);
+                return StatusCode(500, new { message = "Error sending invitation" });
+            }
+        }
+
+        /// <summary>
+        /// Gets the effective permissions for an organizational user.
+        /// </summary>
+        [HttpGet("{userId:guid}/effective-permissions")]
+        public async Task<IActionResult> GetEffectivePermissions([FromRoute] Guid userId)
+        {
+            try
+            {
+                var permissionService = HttpContext.RequestServices.GetRequiredService<IEffectivePermissionService>();
+                var permissions = await permissionService.ResolveAsync(userId);
+                return Ok(new { userId, permissions = permissions.PermissionKeys });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving effective permissions for user {UserId}", userId);
+                return StatusCode(500, new { message = "Error retrieving permissions" });
+            }
+        }
+
+        /// <summary>
+        /// Gets the audit log for an organizational user.
+        /// </summary>
+        [HttpGet("{userId:guid}/audit-log")]
+        public async Task<IActionResult> GetAuditLog(
+            [FromRoute] Guid userId,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
+        {
+            try
+            {
+                var entries = await _orgUserService.GetUserAuditLogAsync(userId, page, pageSize);
+                return Ok(new { items = entries, page, pageSize });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving audit log for user {UserId}", userId);
+                return StatusCode(500, new { message = "Error retrieving audit log" });
             }
         }
     }

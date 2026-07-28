@@ -1,7 +1,8 @@
 
 import { api } from '@/api/api';
 import { MOCK_USERS, MOST_REPORTED_USERS } from '@/mocks';
-import { User, ReportedUser, PaginatedUsers } from '@/types';
+import { User, ReportedUser, PaginatedUsers, UserDetail, AuditLogEntry, SubmitAdminChangeDto } from '@/types';
+import { PendingAdminChange } from '@/features/admin-users/types';
 
 interface GetUsersParams {
   page?: number;
@@ -273,5 +274,147 @@ export const userService = {
       }
       return results;
     }
-  }
+  },
+
+  async getUserById(userId: string): Promise<UserDetail | null> {
+    try {
+      const res = await api.get<any>(`/api/v1/admin/users/${userId}`);
+      return res ?? null;
+    } catch (err) {
+      console.warn('Failed to fetch user details', err);
+      return null;
+    }
+  },
+
+  async lockUser(userId: string, reason?: string): Promise<any> {
+    try {
+      const res = await api.post<any>(`/api/v1/admin/users/${userId}/lock`, { reason });
+      return res ?? { message: 'Lock request submitted for approval' };
+    } catch (err) {
+      console.warn('Failed to lock user', err);
+      throw err;
+    }
+  },
+
+  async unlockUser(userId: string, reason?: string): Promise<any> {
+    try {
+      const res = await api.post<any>(`/api/v1/admin/users/${userId}/unlock`, { reason });
+      return res ?? { message: 'Unlock request submitted for approval' };
+    } catch (err) {
+      console.warn('Failed to unlock user', err);
+      throw err;
+    }
+  },
+
+  async resetUserPassword(userId: string, newPassword: string): Promise<any> {
+    try {
+      const res = await api.post<any>(`/api/v1/admin/users/${userId}/reset-password`, { newPassword });
+      return res ?? { message: 'Password reset request submitted for approval' };
+    } catch (err) {
+      console.warn('Failed to reset password', err);
+      throw err;
+    }
+  },
+
+  async inviteUser(userId: string, message?: string): Promise<boolean> {
+    try {
+      await api.post(`/api/v1/admin/users/${userId}/invite`, { message });
+      return true;
+    } catch (err) {
+      console.warn('Failed to invite user', err);
+      throw err;
+    }
+  },
+
+  async getEffectivePermissions(userId: string): Promise<string[]> {
+    try {
+      const res = await api.get<any>(`/api/v1/admin/users/${userId}/effective-permissions`);
+      return res?.permissions ?? [];
+    } catch (err) {
+      console.warn('Failed to fetch effective permissions', err);
+      return [];
+    }
+  },
+
+  async getUserAuditLog(userId: string, page = 1, pageSize = 20): Promise<{ items: AuditLogEntry[]; page: number; pageSize: number }> {
+    try {
+      const res = await api.get<any>(`/api/v1/admin/users/${userId}/audit-log?page=${page}&pageSize=${pageSize}`);
+      return res ?? { items: [], page, pageSize };
+    } catch (err) {
+      console.warn('Failed to fetch audit log', err);
+      return { items: [], page, pageSize };
+    }
+  },
+
+  // === Pending Admin Change (Maker/Checker) methods ===
+
+  async getPendingChanges(page = 1, pageSize = 20): Promise<{ items: PendingAdminChange[] }> {
+    try {
+      const res = await api.get<any>(`/api/v1/admin/users/approval/pending?page=${page}&pageSize=${pageSize}`);
+      return res ?? { items: [] };
+    } catch (err) {
+      console.warn('Failed to fetch pending changes', err);
+      return { items: [] };
+    }
+  },
+
+  async getMySubmissions(page = 1, pageSize = 20): Promise<{ items: PendingAdminChange[] }> {
+    try {
+      const res = await api.get<any>(`/api/v1/admin/users/approval/my-submissions?page=${page}&pageSize=${pageSize}`);
+      return res ?? { items: [] };
+    } catch (err) {
+      console.warn('Failed to fetch my submissions', err);
+      return { items: [] };
+    }
+  },
+
+  async getChangeById(changeId: number): Promise<PendingAdminChange | null> {
+    try {
+      const res = await api.get<any>(`/api/v1/admin/users/approval/${changeId}`);
+      return res ?? null;
+    } catch (err) {
+      console.warn('Failed to fetch change detail', err);
+      return null;
+    }
+  },
+
+  async submitAdminChange(payload: SubmitAdminChangeDto): Promise<PendingAdminChange | null> {
+    try {
+      const res = await api.post<any>('/api/v1/admin/users/approval/submit', payload);
+      return res ?? null;
+    } catch (err) {
+      console.warn('Failed to submit change', err);
+      throw err;
+    }
+  },
+
+  async approveChange(changeId: number, notes?: string): Promise<PendingAdminChange | null> {
+    try {
+      const res = await api.post<any>(`/api/v1/admin/users/approval/${changeId}/approve`, { approvalNotes: notes });
+      return res ?? null;
+    } catch (err) {
+      console.warn('Failed to approve change', err);
+      throw err;
+    }
+  },
+
+  async rejectChange(changeId: number, reason: string): Promise<PendingAdminChange | null> {
+    try {
+      const res = await api.post<any>(`/api/v1/admin/users/approval/${changeId}/reject`, { rejectionReason: reason });
+      return res ?? null;
+    } catch (err) {
+      console.warn('Failed to reject change', err);
+      throw err;
+    }
+  },
+
+  async cancelChange(changeId: number): Promise<PendingAdminChange | null> {
+    try {
+      const res = await api.post<any>(`/api/v1/admin/users/approval/${changeId}/cancel`, {});
+      return res ?? null;
+    } catch (err) {
+      console.warn('Failed to cancel change', err);
+      throw err;
+    }
+  },
 };

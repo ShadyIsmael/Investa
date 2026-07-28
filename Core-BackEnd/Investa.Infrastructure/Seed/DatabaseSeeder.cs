@@ -41,7 +41,6 @@ public class DatabaseSeeder
     {
         Console.WriteLine("🌱 Starting database seeding...");
 
-        await DeleteDemoUsersAsync();
         await SeedUsersAsync();
         await SeedOpportunitiesAsync();
         await SeedParticipationsAsync();

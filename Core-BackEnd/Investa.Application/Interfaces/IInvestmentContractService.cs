@@ -11,4 +11,5 @@ public interface IInvestmentContractService
     Task<InvestmentContractVersionDto> GetVersionAsync(Guid userId, int contractId, int versionNumber, CancellationToken cancellationToken = default);
     Task<InvestmentContractDocumentDto> GetDocumentAsync(Guid userId, int contractId, int versionNumber, CancellationToken cancellationToken = default);
     Task<InvestmentContractPdfDto> GetPdfAsync(Guid userId, int contractId, int versionNumber, CancellationToken cancellationToken = default);
+    Task<EmailInvestmentContractResultDto> EmailContractAsync(Guid userId, int contractId, int versionNumber, string language, Guid operationId, CancellationToken cancellationToken = default);
 }

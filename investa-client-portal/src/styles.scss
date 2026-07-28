@@ -101,6 +101,235 @@ body {
 }
 
 // ===========================
+// Investa Panel — Unified card/panel aesthetic
+// Matches the investor dashboard's .dashboard-panel look
+// ===========================
+
+.investa-panel {
+  position: relative;
+  background:
+    linear-gradient(145deg, rgba(30, 41, 59, 0.93) 0%, rgba(15, 23, 42, 0.97) 100%);
+  border: 1px solid rgba(100, 116, 139, 0.38);
+  border-radius: 0.85rem;
+  padding: 1.2rem;
+  color: #e2e8f0;
+  box-shadow: 0 14px 34px rgba(2, 6, 23, 0.22);
+  overflow: hidden;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.investa-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 18% 0%, rgba(56, 189, 248, 0.1), transparent 34%);
+  opacity: 0.78;
+}
+
+.investa-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.investa-panel--interactive {
+  transform: translateY(0);
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: rgba(148, 163, 184, 0.52);
+    box-shadow: 0 20px 42px rgba(2, 6, 23, 0.3);
+  }
+}
+
+.investa-panel-eyebrow {
+  margin: 0 0 0.25rem;
+  color: #38bdf8;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.investa-panel-title {
+  margin: 0;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.005em;
+}
+
+.investa-panel-link {
+  color: #93c5fd;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: color 140ms ease, transform 140ms ease;
+
+  &:hover {
+    color: #bfdbfe;
+    transform: translateX(2px);
+  }
+}
+
+.investa-panel-helper {
+  margin: 0.85rem 0 0;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.investa-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.95rem;
+}
+
+.investa-metric {
+  min-width: 0;
+  border: 1px solid rgba(100, 116, 139, 0.28);
+  border-radius: 0.7rem;
+  padding: 0.9rem;
+  background: rgba(15, 23, 42, 0.5);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.035) inset;
+  transition: transform 150ms ease, background 150ms ease, border-color 150ms ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: rgba(148, 163, 184, 0.42);
+    background: rgba(15, 23, 42, 0.68);
+  }
+
+  span {
+    display: block;
+    color: #94a3b8;
+    font-size: 0.78rem;
+    margin-bottom: 0.35rem;
+  }
+
+  strong {
+    display: block;
+    color: #f8fafc;
+    font-size: 1.02rem;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+}
+
+.investa-metric-primary {
+  grid-column: span 2;
+  background: linear-gradient(145deg, rgba(37, 99, 235, 0.25), rgba(15, 23, 42, 0.58));
+  border-color: rgba(96, 165, 250, 0.42);
+
+  strong {
+    font-size: 1.24rem;
+  }
+
+  @media (min-width: 768px) {
+    grid-column: span 1;
+  }
+}
+
+.investa-metric-positive strong {
+  color: #a7f3d0;
+}
+
+.investa-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 -0.35rem;
+  padding: 0.82rem 0.35rem;
+  border-top: 1px solid rgba(71, 85, 105, 0.45);
+  color: inherit;
+  text-decoration: none;
+  border-radius: 0.55rem;
+  transition: background 140ms ease, transform 140ms ease;
+
+  &:hover {
+    background: rgba(30, 41, 59, 0.72);
+    transform: translateX(2px);
+  }
+
+  span,
+  small {
+    display: block;
+    min-width: 0;
+  }
+
+  strong {
+    display: block;
+    min-width: 0;
+    color: #f8fafc;
+    font-size: 0.92rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+}
+
+// Light theme overrides for investa-panel family
+body.investa-theme-light {
+  .investa-panel {
+    background: var(--investa-surface);
+    border-color: var(--investa-border);
+    color: var(--investa-text-primary);
+    box-shadow: var(--investa-shadow-md);
+  }
+
+  .investa-panel::before {
+    background: radial-gradient(circle at 18% 0%, rgba(16, 185, 129, 0.08), transparent 34%);
+    opacity: 1;
+  }
+
+  .investa-panel--interactive:hover {
+    border-color: var(--investa-border-strong);
+    box-shadow: var(--investa-shadow-lg);
+    transform: translateY(-2px);
+  }
+
+  .investa-panel-eyebrow,
+  .investa-panel-link {
+    color: #047857;
+  }
+
+  .investa-panel-title,
+  .investa-metric strong,
+  .investa-list-row strong {
+    color: var(--investa-text-primary);
+  }
+
+  .investa-panel-helper,
+  .investa-metric span,
+  .investa-list-row span,
+  .investa-list-row small {
+    color: var(--investa-text-secondary);
+  }
+
+  .investa-metric {
+    background: var(--investa-surface-2);
+    border-color: var(--investa-border);
+  }
+
+  .investa-metric-primary {
+    background: linear-gradient(145deg, rgba(16, 185, 129, 0.14), rgba(255, 255, 255, 0.88));
+    border-color: rgba(16, 185, 129, 0.28);
+  }
+
+  .investa-metric-positive strong {
+    color: #047857;
+  }
+
+  .investa-list-row:hover {
+    background: rgba(16, 185, 129, 0.07);
+  }
+}
+
+// ===========================
 // Accessibility
 // ===========================
 

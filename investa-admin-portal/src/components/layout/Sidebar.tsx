@@ -126,7 +126,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           {!isCollapsed && (
             <div>
-              <span className="text-base font-black tracking-tighter text-foreground select-none">Investa</span>
+              <span className="text-base font-black tracking-tighter text-foreground select-none">FOPX One</span>
               <span className="block text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground -mt-0.5">Admin Portal</span>
             </div>
           )}

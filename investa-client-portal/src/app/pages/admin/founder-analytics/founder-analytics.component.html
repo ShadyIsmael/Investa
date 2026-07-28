@@ -17,45 +17,45 @@
   } @else {
     <!-- KPI Cards -->
     <div class="kpi-grid">
-      <div class="kpi-card">
+      <div class="kpi-card investa-panel">
         <div class="kpi-label">{{ 'Total Opportunities' | translate }}</div>
         <div class="kpi-value">{{ summary()?.totalOpportunities || 0 }}</div>
         <div class="kpi-subtitle">{{ summary()?.publishedOpportunities || 0 }} {{ 'Published' | translate }}</div>
       </div>
-      <div class="kpi-card">
+      <div class="kpi-card investa-panel">
         <div class="kpi-label">{{ 'Total Views' | translate }}</div>
         <div class="kpi-value">{{ formatNumber(summary()?.totalViews || 0) }}</div>
         <div class="kpi-subtitle">{{ formatNumber(summary()?.uniqueViews || 0) }} {{ 'Unique' | translate }}</div>
       </div>
-      <div class="kpi-card">
+      <div class="kpi-card investa-panel">
         <div class="kpi-label">{{ 'Learn More Opens' | translate }}</div>
         <div class="kpi-value">{{ formatNumber(summary()?.learnMoreOpens || 0) }}</div>
         <div class="kpi-subtitle">{{ formatNumber(summary()?.uniqueLearnMoreOpens || 0) }} {{ 'Unique' | translate }}</div>
       </div>
-      <div class="kpi-card">
+      <div class="kpi-card investa-panel">
         <div class="kpi-label">{{ 'Requests Received' | translate }}</div>
         <div class="kpi-value">{{ summary()?.requestsReceived || 0 }}</div>
       </div>
-      <div class="kpi-card">
+      <div class="kpi-card investa-panel">
         <div class="kpi-label">{{ 'Approved Requests' | translate }}</div>
         <div class="kpi-value">{{ summary()?.approvedRequests || 0 }}</div>
       </div>
-      <div class="kpi-card">
+      <div class="kpi-card investa-panel">
         <div class="kpi-label">{{ 'Approval Rate' | translate }}</div>
         <div class="kpi-value">{{ summary()?.approvalRate?.toFixed(1) || 0 }}%</div>
       </div>
-      <div class="kpi-card">
+      <div class="kpi-card investa-panel">
         <div class="kpi-label">{{ 'Rejected Requests' | translate }}</div>
         <div class="kpi-value">{{ summary()?.rejectedRequests || 0 }}</div>
       </div>
-      <div class="kpi-card">
+      <div class="kpi-card investa-panel">
         <div class="kpi-label">{{ 'Active Conversations' | translate }}</div>
         <div class="kpi-value">{{ summary()?.activeConversations || 0 }}</div>
       </div>
     </div>
 
     <!-- Conversion Funnel -->
-    <div class="section">
+    <div class="section investa-panel">
       <h2>{{ 'Conversion Funnel' | translate }}</h2>
       @if (!loadingFunnel()) {
         <div class="funnel-chart">
@@ -103,7 +103,7 @@
     </div>
 
     <!-- Top Performing Opportunities -->
-    <div class="section">
+    <div class="section investa-panel">
       <h2>{{ 'Top Performing Opportunities' | translate }}</h2>
       @if (!loadingTopPerforming()) {
         @if (topPerforming().length > 0) {
@@ -148,7 +148,7 @@
     </div>
 
     <!-- Low Performing Opportunities -->
-    <div class="section">
+    <div class="section investa-panel">
       <h2>{{ 'Low Performing Opportunities' | translate }}</h2>
       @if (!loadingLowPerforming()) {
         @if (lowPerforming().length > 0) {
@@ -190,7 +190,7 @@
 
     <!-- Founder Insights -->
     @if (insights().length > 0) {
-      <div class="section">
+      <div class="section investa-panel">
         <h2>{{ 'Founder Insights' | translate }}</h2>
         <div class="insights-grid">
           @for (insight of insights(); track insight) {

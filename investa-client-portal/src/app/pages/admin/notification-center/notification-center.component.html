@@ -24,7 +24,7 @@
     </div>
   </div>
 
-  <div *ngIf="isLoading()" class="bg-slate-900/80 border border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-800">
+  <div *ngIf="isLoading()" class="investa-panel p-0 overflow-hidden">
     <div *ngFor="let item of [1,2,3,4]" class="p-5 flex items-start gap-4 animate-pulse">
       <div class="w-10 h-10 rounded-full bg-slate-700 flex-shrink-0"></div>
       <div class="flex-1 space-y-3">
@@ -45,14 +45,14 @@
   </div>
 
   <ng-container *ngIf="!isLoading() && !errorMessage()">
-    <div *ngIf="notifications().length === 0" class="bg-slate-900/80 border border-slate-800 rounded-xl p-12 text-center">
+    <div *ngIf="notifications().length === 0" class="investa-panel p-12 text-center">
       <svg class="w-16 h-16 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a3 3 0 11-5.714 0"/>
       </svg>
       <p class="text-gray-400">No notifications found.</p>
     </div>
 
-    <div *ngIf="notifications().length > 0" class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl overflow-hidden">
+    <div *ngIf="notifications().length > 0" class="investa-panel p-0 overflow-hidden">
       <ul class="divide-y divide-slate-800">
         <li *ngFor="let notification of notifications()" class="p-5 transition-colors" [class.bg-blue-950/10]="!notification.isRead">
           <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">

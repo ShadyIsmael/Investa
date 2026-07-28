@@ -163,6 +163,23 @@ export interface PaginatedPermissions {
   pageSize: number;
 }
 
+export interface UserDetail extends User {
+  phoneNumber: string | null;
+  isLocked: boolean;
+  lockoutEnd: string | null;
+  groups: string[];
+  roles: string[];
+  effectivePermissions: string[];
+}
+
+export interface AuditLogEntry {
+  id: number;
+  action: string;
+  changes: string | null;
+  performedBy: string | null;
+  timestamp: string;
+}
+
 // ============================================
 // Legacy/Other Types
 // ============================================
@@ -332,4 +349,11 @@ export interface Conversation {
   lastMessage: string;
   unreadCount: number;
   messages: Message[];
+}
+
+export interface SubmitAdminChangeDto {
+  targetUserId: string;
+  action: string;
+  afterSnapshot?: string;
+  description?: string;
 }

@@ -365,7 +365,7 @@ export const ClientsList: React.FC<ClientsListProps> = ({ onViewClient }) => {
                 <input
                   value={notifyTitle}
                   onChange={(e) => setNotifyTitle(e.target.value)}
-                  placeholder="e.g. Important update from Investa Admin"
+                  placeholder="e.g. Important update from FOPX One Admin"
                   className="w-full px-3 py-2 bg-background border border-border rounded-xl text-sm text-text focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary"
                 />
               </div>

@@ -1,4 +1,6 @@
 .founder-analytics-container {
+  color: var(--investa-text-primary);
+  background: var(--investa-bg);
   padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
@@ -18,10 +20,11 @@
 
   .time-filter select {
     padding: 0.5rem 1rem;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--investa-border);
     border-radius: 8px;
     font-size: 1rem;
-    background: white;
+    background: var(--investa-surface-2);
+    color: var(--investa-text-primary);
     cursor: pointer;
   }
 }
@@ -35,8 +38,8 @@
   .spinner {
     width: 40px;
     height: 40px;
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid #3498db;
+    border: 4px solid var(--investa-border);
+    border-top-color: var(--investa-info);
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
@@ -51,8 +54,8 @@
   .spinner-small {
     width: 24px;
     height: 24px;
-    border: 3px solid #f3f3f3;
-    border-top: 3px solid #3498db;
+    border: 3px solid var(--investa-border);
+    border-top-color: var(--investa-info);
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
@@ -71,42 +74,34 @@
 }
 
 .kpi-card {
-  background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   transition: transform 0.2s, box-shadow 0.2s;
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    box-shadow: var(--investa-shadow-md);
   }
 
   .kpi-label {
     font-size: 0.875rem;
-    color: #666;
+    color: var(--investa-text-secondary);
     margin-bottom: 0.5rem;
   }
 
   .kpi-value {
     font-size: 2rem;
     font-weight: 700;
-    color: #333;
+    color: var(--investa-text-primary);
     margin-bottom: 0.25rem;
   }
 
   .kpi-subtitle {
     font-size: 0.875rem;
-    color: #999;
+    color: var(--investa-text-muted);
   }
 }
 
 .section {
-  background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
   margin-bottom: 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 
   h2 {
     margin: 0 0 1.5rem 0;
@@ -129,20 +124,20 @@
     .funnel-label {
       width: 120px;
       font-size: 0.875rem;
-      color: #666;
+      color: var(--investa-text-secondary);
       text-align: right;
     }
 
     .funnel-track {
       flex: 1;
       height: 32px;
-      background: #f0f0f0;
+      background: var(--investa-surface-3);
       border-radius: 4px;
       overflow: hidden;
 
       .funnel-fill {
         height: 100%;
-        background: linear-gradient(90deg, #3498db, #2ecc71);
+        background: linear-gradient(90deg, var(--investa-info), var(--investa-accent));
         transition: width 0.5s ease;
       }
     }
@@ -150,7 +145,7 @@
     .funnel-value {
       width: 80px;
       font-weight: 600;
-      color: #333;
+      color: var(--investa-text-primary);
     }
   }
 }
@@ -162,14 +157,15 @@
 }
 
 .opportunity-card {
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--investa-border);
+  background: var(--investa-surface-2);
   border-radius: 12px;
   overflow: hidden;
   transition: transform 0.2s, box-shadow 0.2s;
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    box-shadow: var(--investa-shadow-md);
   }
 
   .opportunity-image {
@@ -185,7 +181,7 @@
       margin: 0 0 1rem 0;
       font-size: 1.125rem;
       font-weight: 600;
-      color: #333;
+      color: var(--investa-text-primary);
     }
 
     .opportunity-metrics {
@@ -199,14 +195,14 @@
 
         .metric-label {
           font-size: 0.75rem;
-          color: #666;
+          color: var(--investa-text-secondary);
           margin-bottom: 0.25rem;
         }
 
         .metric-value {
           font-size: 1rem;
           font-weight: 600;
-          color: #333;
+          color: var(--investa-text-primary);
         }
       }
     }
@@ -222,33 +218,33 @@
 
     thead {
       tr {
-        background: #f8f9fa;
+        background: var(--investa-surface-2);
 
         th {
           padding: 1rem;
           text-align: left;
           font-weight: 600;
-          color: #333;
-          border-bottom: 2px solid #e0e0e0;
+          color: var(--investa-text-primary);
+          border-bottom: 2px solid var(--investa-border-strong);
         }
       }
     }
 
     tbody {
       tr {
-        border-bottom: 1px solid #e0e0e0;
+        border-bottom: 1px solid var(--investa-border);
 
         &:last-child {
           border-bottom: none;
         }
 
         &:hover {
-          background: #f8f9fa;
+          background: var(--investa-surface-3);
         }
 
         td {
           padding: 1rem;
-          color: #333;
+          color: var(--investa-text-primary);
         }
       }
     }
@@ -258,7 +254,7 @@
 .empty-state {
   text-align: center;
   padding: 3rem;
-  color: #999;
+  color: var(--investa-text-muted);
   font-size: 1rem;
 }
 
@@ -270,11 +266,11 @@
 
 .insight-card {
   padding: 1rem;
-  background: #f8f9fa;
-  border-left: 4px solid #3498db;
+  background: var(--investa-surface-2);
+  border-left: 4px solid var(--investa-info);
   border-radius: 4px;
   font-size: 0.875rem;
-  color: #333;
+  color: var(--investa-text-secondary);
   line-height: 1.5;
 }
 
@@ -292,6 +288,6 @@
 
   .insight-card {
     border-left: none;
-    border-right: 4px solid #3498db;
+    border-right: 4px solid var(--investa-info);
   }
 }

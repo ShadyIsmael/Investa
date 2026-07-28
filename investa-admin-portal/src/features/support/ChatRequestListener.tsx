@@ -1,12 +1,10 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { useSignalR } from '../../services/signalr';
+import React, { useState, useCallback } from 'react';
 import ChatRequestToast from './ChatRequestToast';
 import { ChatRequestPayload } from '@/types';
 
 const AUTO_DISMISS_MS = 12000; // 12s per toast
 
 export const ChatRequestListener: React.FC = () => {
-  const { on, off, connectionState } = useSignalR();
   const [requests, setRequests] = useState<ChatRequestPayload[]>([]);
 
   const pushRequest = useCallback((payload: any) => {
@@ -26,20 +24,6 @@ export const ChatRequestListener: React.FC = () => {
       setRequests(prev => prev.filter(r => r.id !== chat.id));
     }, AUTO_DISMISS_MS);
   }, []);
-
-  useEffect(() => {
-    // Primary subscription (SignalR direct)
-    on('NewChatRequest', pushRequest);
-
-    // Fallback: also listen to the forwarded window event
-    const onWin = (e: any) => pushRequest(e?.detail);
-    window.addEventListener('investa:signalr:new-chat', onWin as EventListener);
-
-    return () => {
-      off('NewChatRequest', pushRequest);
-      window.removeEventListener('investa:signalr:new-chat', onWin as EventListener);
-    };
-  }, [on, off, pushRequest]);
 
   const handleClose = useCallback((id: string) => setRequests(prev => prev.filter(r => r.id !== id)), []);
 

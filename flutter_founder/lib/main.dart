@@ -247,7 +247,7 @@ class _MyAppState extends State<MyApp> {
     // If startup error occurred, show it prominently to help debugging on web
     if (_startupError != null) {
       return MaterialApp(
-        title: 'Investa - Startup Error',
+        title: 'FOPX One - Startup Error',
         debugShowCheckedModeBanner: false,
         home: Scaffold(
           appBar: AppBar(title: const Text('Startup Error')),
@@ -280,7 +280,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => ChatController(_fcmService)),
       ],
       child: MaterialApp(
-        title: 'Investa',
+        title: 'FOPX One',
         debugShowCheckedModeBanner: false,
         locale: _locale,
         supportedLocales: const [Locale('en'), Locale('ar')],

@@ -47,10 +47,19 @@ export class NotificationsComponent implements OnInit {
     this.activeFilter.set(filter);
   }
 
-  async markAsRead(notification: Notification) {
+  async markAsReadOnly(notification: Notification, event: MouseEvent) {
+    event.stopPropagation();
     if (!notification.read) {
       await this.notificationService.markAsRead(notification.id);
     }
+  }
+
+  async openNotification(notification: Notification) {
+    await this.notificationService.openNotification(notification);
+  }
+
+  isOpening(notification: Notification): boolean {
+    return this.notificationService.isOpening(notification.id);
   }
 
   async markAllAsRead() {

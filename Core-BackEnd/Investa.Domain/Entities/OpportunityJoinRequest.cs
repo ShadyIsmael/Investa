@@ -34,6 +34,8 @@ public class OpportunityJoinRequest
 
     public DateTime? ReviewedAt { get; set; }
 
+    public int? AcceptedOfferId { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

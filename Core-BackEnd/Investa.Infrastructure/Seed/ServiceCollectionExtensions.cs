@@ -21,14 +21,17 @@ public static class ServiceCollectionExtensions
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddDatabaseSeeder(this IServiceCollection services)
     {
+        // Ensure password hasher is available even if Identity hasn't registered IPasswordHasher<AuthUser>
         services.AddScoped<DatabaseSeeder>(sp => new DatabaseSeeder(
             sp.GetRequiredService<ApplicationDbContext>(),
-            sp.GetRequiredService<IPasswordHasher<AuthUser>>(),
+            // DatabaseSeeder constructor expects IPasswordHasher<AuthUser>
+            new PasswordHasher<AuthUser>(),
             sp.GetRequiredService<UserManager<ApplicationIdentityUser>>(),
             sp.GetRequiredService<RoleManager<ApplicationIdentityRole>>()
         ));
         return services;
     }
+
 
     /// <summary>
     /// Registers the development reseed service (repair-only) for identity roles and seeded users.

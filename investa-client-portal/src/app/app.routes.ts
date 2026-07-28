@@ -7,42 +7,52 @@ export const routes: Routes = [
   { 
     path: '', 
     loadComponent: () => import('./pages/home/home.component').then(m => m.HomeComponent),
-    title: 'Investa' 
+    title: 'FOPX One' 
   },
   { 
     path: 'about', 
     loadComponent: () => import('./pages/about/about.component').then(m => m.AboutPageComponent),
-    title: 'About - Investa' 
+    title: 'About - FOPX One' 
   },
   { 
     path: 'services', 
     loadComponent: () => import('./pages/services/services.component').then(m => m.ServicesPageComponent),
-    title: 'Services - Investa' 
+    title: 'Services - FOPX One' 
   },
   { 
     path: 'blog', 
     loadComponent: () => import('./pages/blog/blog.component').then(m => m.BlogPageComponent),
-    title: 'Blog - Investa' 
+    title: 'Blog - FOPX One' 
   },
   { 
     path: 'blog/:slug', 
     loadComponent: () => import('./pages/blog-post/blog-post.component').then(m => m.BlogPostPageComponent),
-    title: 'Blog Post - Investa' 
+    title: 'Blog Post - FOPX One' 
   },
   { 
     path: 'contact', 
     loadComponent: () => import('./pages/contact/contact.component').then(m => m.ContactPageComponent),
-    title: 'Contact - Investa' 
+    title: 'Contact - FOPX One' 
   },
   { 
     path: 'login', 
     loadComponent: () => import('./pages/login/login.component').then(m => m.LoginComponent),
-    title: 'Login - Investa' 
+    title: 'Login - FOPX One' 
   },
   { 
     path: 'signup', 
     loadComponent: () => import('./pages/signup/signup.component').then(m => m.SignupComponent),
-    title: 'Sign Up - Investa' 
+    title: 'Sign Up - FOPX One' 
+  },
+  { 
+    path: 'signup-otp', 
+    loadComponent: () => import('./pages/signup-otp/signup-otp.component').then(m => m.SignupOtpComponent),
+    title: 'Verify OTP - FOPX One' 
+  },
+  {
+    path: 'opportunities/:id',
+    loadComponent: () => import('./pages/admin/investment-preview/investment-preview.component').then(m => m.InvestmentPreviewComponent),
+    title: 'Opportunity - FOPX One'
   },
   // Admin routes - lazy loaded (requires authentication)
   {
@@ -54,12 +64,12 @@ export const routes: Routes = [
       { 
         path: 'dashboard', 
         loadComponent: () => import('./pages/admin/dashboard/dashboard.component').then(m => m.DashboardComponent),
-        title: 'Dashboard - Investa' 
+        title: 'Dashboard - FOPX One' 
       },
       { 
         path: 'investments', 
         loadComponent: () => import('./pages/admin/investments/investments.component').then(m => m.InvestmentsComponent),
-        title: 'Discover Opportunities - Investa'
+        title: 'Discover Opportunities - FOPX One'
       },
       {
         path: 'opportunities',
@@ -70,17 +80,17 @@ export const routes: Routes = [
         path: 'opportunities/:id/edit',
         loadComponent: () => import('./pages/admin/opportunities/opportunity-editor.component').then(m => m.OpportunityEditorComponent),
         canActivate: [founderOnlyGuard],
-        title: 'Edit Opportunity - Investa'
+        title: 'Edit Opportunity - FOPX One'
       },
       {
         path: 'opportunities/:id/room',
         loadComponent: () => import('./pages/admin/opportunity-room/opportunity-room.component').then(m => m.OpportunityRoomComponent),
-        title: 'Project Room - Investa'
+        title: 'Project Room - FOPX One'
       },
       {
         path: 'opportunities/:id',
         loadComponent: () => import('./pages/admin/opportunities/opportunity-details.component').then(m => m.OpportunityDetailsComponent),
-        title: 'Opportunity Details - Investa'
+        title: 'Opportunity Details - FOPX One'
       },
       {
         path: 'my-opportunities',
@@ -90,81 +100,81 @@ export const routes: Routes = [
       {
         path: 'my-projects',
         loadComponent: () => import('./pages/admin/investments/investments.component').then(m => m.InvestmentsComponent),
-        title: 'My Participations - Investa'
+        title: 'My Participations - FOPX One'
       },
       { 
         path: 'investments/new', 
         loadComponent: () => import('./pages/admin/opportunities/opportunity-editor.component').then(m => m.OpportunityEditorComponent),
         canActivate: [founderOnlyGuard],
-        title: 'Create Opportunity - Investa'
+        title: 'Create Opportunity - FOPX One'
       },
       {
         path: 'investments/:id/media',
         loadComponent: () => import('./pages/admin/investment-media/investment-media.component').then(m => m.InvestmentMediaComponent),
-        title: 'Opportunity Media - Investa'
+        title: 'Opportunity Media - FOPX One'
       },
       { 
         path: 'investments/:id', 
         loadComponent: () => import('./pages/admin/investment-preview/investment-preview.component').then(m => m.InvestmentPreviewComponent),
-        title: 'Opportunity Details - Investa'
+        title: 'Opportunity Details - FOPX One'
       },
       {
         path: 'founders/:id',
         loadComponent: () => import('./pages/admin/founder-profile/founder-profile.component').then(m => m.FounderProfileComponent),
-        title: 'Founder Profile - Investa'
+        title: 'Founder Profile - FOPX One'
       },
 
       { 
         path: 'chat', 
         loadComponent: () => import('./pages/admin/chat/chat.component').then(m => m.ChatComponent),
-        title: 'Communication - Investa' 
+        title: 'Communication - FOPX One' 
       },
       { 
         path: 'profile', 
         loadComponent: () => import('./pages/admin/profile/profile.component').then(m => m.ProfileComponent),
-        title: 'My Profile - Investa' 
+        title: 'My Profile - FOPX One' 
       },
       {
         path: 'not-allowed',
         loadComponent: () => import('./pages/admin/not-allowed/not-allowed.component').then(m => m.NotAllowedComponent),
-        title: 'Not Allowed - Investa'
+        title: 'Not Allowed - FOPX One'
       },
       {
         path: 'profile/wallet',
         loadComponent: () => import('./pages/admin/wallet/wallet.component').then(m => m.WalletComponent),
-        title: 'Wallet - Investa'
+        title: 'Wallet - FOPX One'
       },
       {
         path: 'profile/notifications',
         loadComponent: () => import('./pages/admin/notification-center/notification-center.component').then(m => m.NotificationCenterComponent),
-        title: 'Notification Center - Investa'
+        title: 'Notification Center - FOPX One'
       },
       { 
         path: 'transactions', 
         loadComponent: () => import('./pages/admin/transactions/transactions.component').then(m => m.TransactionsComponent),
-        title: 'Transactions - Investa' 
+        title: 'Transactions - FOPX One' 
       },
       { 
         path: 'notifications', 
         loadComponent: () => import('./pages/admin/notifications/notifications.component').then(m => m.NotificationsComponent),
-        title: 'Notifications - Investa' 
+        title: 'Notifications - FOPX One' 
       }
       ,
       { 
         path: 'requests', 
         loadComponent: () => import('./pages/admin/requests/requests.component').then(m => m.RequestsComponent),
-        title: 'Requests - Investa' 
+        title: 'Requests - FOPX One' 
       }
       ,
       { 
         path: 'settings', 
         loadComponent: () => import('./pages/admin/settings/settings.component').then(m => m.SettingsComponent),
-        title: 'Settings - Investa' 
+        title: 'Settings - FOPX One' 
       },
       { 
         path: 'credit-charge', 
         loadComponent: () => import('./pages/admin/credit-charge/credit-charge.component').then(m => m.CreditChargeComponent),
-        title: 'Charge Credits - Investa' 
+        title: 'Charge Credits - FOPX One' 
       }
     ]
   }

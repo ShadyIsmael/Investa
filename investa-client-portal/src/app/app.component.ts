@@ -10,6 +10,9 @@ import { AuthService } from './services/auth.service';
 import { UserService } from './services/user.service';
 import { SettingsService } from './services/settings.service';
 import { ThemePreference } from './models/settings.model';
+import { FirebaseClientService } from './services/firebase-client.service';
+import { NotificationRefreshCoordinator } from './services/notification-refresh-coordinator.service';
+import { FcmService } from './services/fcm.service';
 
 @Component({
   standalone: true,
@@ -30,11 +33,13 @@ export class AppComponent {
   private authService = inject(AuthService);
   private userService = inject(UserService);
   private settingsService = inject(SettingsService);
+  private firebaseClient = inject(FirebaseClientService);
+  private coordinator = inject(NotificationRefreshCoordinator);
+  private fcmService = inject(FcmService);
 
   isRoleSelectOpen = this.uiService.isRoleSelectOpen;
 
   constructor() {
-    // Set up effects for reactive state
     effect(() => {
       document.documentElement.lang = this.languageService.language();
       document.documentElement.dir = this.languageService.direction();
@@ -48,24 +53,59 @@ export class AppComponent {
       document.body.classList.toggle('investa-theme-dark', !useLight);
     });
 
-    // Initialize authentication and user state on app startup
     this.initializeApp();
+  }
+
+  private async registerServiceWorker(): Promise<void> {
+    if (!('serviceWorker' in navigator)) {
+      console.warn('[AppComponent] Service workers not supported in this browser');
+      return;
+    }
+    try {
+      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      if (registration.active) {
+        console.info('[AppComponent] Firebase messaging service worker registered successfully, scope:', registration.scope);
+      } else {
+        console.info('[AppComponent] Firebase messaging service worker registered (waiting for activation)');
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('[AppComponent] SERVICE WORKER REGISTRATION FAILED:', msg);
+      if (msg.includes('404') || msg.includes('Not Found')) {
+        console.error('[AppComponent] /firebase-messaging-sw.js was not found at the application root. Ensure the file is deployed to the output root.');
+      }
+    }
   }
 
   private async initializeApp(): Promise<void> {
     try {
-      // Step 1: Initialize authentication (validate token)
       await this.authService.initialize();
 
-      // Step 2: Initialize user profile (only if authenticated)
       await this.userService.initializeUser();
 
-      // Step 3: Start session service (only if authenticated)
       if (this.authService.isAuthenticated()) {
         try {
           this.sessionService.start();
         } catch {
-          // ignore if session service can't start in some environments
+          // ignore
+        }
+      }
+
+      if (this.authService.isAuthenticated()) {
+        const currentUser = this.userService.user();
+        if (currentUser?.userId) {
+          try {
+            await this.authService.startNotificationSession(currentUser.userId);
+
+            try {
+              await this.registerServiceWorker();
+              await this.fcmService.initialize();
+            } catch {
+              // FCM failure must not block the app
+            }
+          } catch {
+            // Firebase failure must not block the app
+          }
         }
       }
     } catch (error) {

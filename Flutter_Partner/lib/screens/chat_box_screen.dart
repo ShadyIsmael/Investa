@@ -4,10 +4,6 @@ import '../theme/app_theme.dart';
 import '../theme/color_extensions.dart';
 import '../widgets/app_background.dart';
 import '../models/chat_user.dart';
-import '../core/services/signalr_service.dart';
-import '../core/services/logger_service.dart';
-import '../core/services/secure_storage_service.dart';
-import '../core/network/network_config.dart';
 import 'package:provider/provider.dart';
 import '../controllers/chat_controller.dart';
 
@@ -23,37 +19,14 @@ class ChatBoxScreen extends StatefulWidget {
 }
 
 class _ChatBoxScreenState extends State<ChatBoxScreen> {
-  // Current user id (kept for telemetry/analytics) -- intentionally unused for now
-  // ignore: unused_field
   final String? _meId = FirebaseAuth.instance.currentUser?.uid;
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-
-  final _service = SignalRService(
-      networkConfig: NetworkConfig(),
-      secureStorage: SecureStorageService(),
-      logger: LoggerService());
-
-  @override
-  void initState() {
-    super.initState();
-    // Ensure we are connected and joined (in case navigation didn't join beforehand)
-    () async {
-      if (!_service.isConnected) {
-        await _service.connect();
-      }
-      if (widget.autoJoin) {
-        await _service.joinConversation(widget.user.id.toString());
-      }
-    }();
-  }
 
   @override
   void dispose() {
     _controller.dispose();
     _scrollController.dispose();
-    // leave conversation on dispose
-    _service.leaveConversation(widget.user.id);
     super.dispose();
   }
 
@@ -67,7 +40,6 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       _controller.clear();
       _scrollToBottom();
     } catch (e) {
-      // optionally show error
     }
   }
 

@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@angular/core';
+import { Inject, Injectable, isDevMode } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE } from '../config/api.token';
@@ -126,6 +126,159 @@ export interface OpportunityEvent {
   newValue?: string | null;
   isPublic?: boolean | null;
   createdByUserId?: string | null;
+  titleKey?: string | null;
+  descriptionKey?: string | null;
+  actorType?: 'System' | 'Founder' | 'Admin' | string | null;
+  occurredAt?: string | null;
+  relatedEntityType?: string | null;
+  relatedEntityId?: string | null;
+  metadata?: Record<string, string | null> | null;
+}
+
+export interface ApprovedInvestor {
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  approvedAt: string;
+  totalApprovedContribution: number;
+  participations: ApprovedParticipationSummary[];
+}
+
+export interface ApprovedParticipationSummary {
+  participationRequestId: number;
+  investmentModel: string;
+  approvedContribution: number;
+  currency: string | null;
+  approvedAt: string;
+}
+
+export interface InvestorPaymentSummary {
+  investorId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  totalApprovedContribution: number;
+  totalPaid: number;
+  totalOutstanding: number;
+  overdueAmount: number;
+  nextDueDate: string | null;
+  unpaidInstallmentCount: number;
+  status: string;
+  currency: string | null;
+  investmentModelLabel: string;
+}
+
+export interface ExpectedPaymentScheduleItem {
+  dueDate: string;
+  expectedInterest: number;
+  expectedPrincipal: number;
+  expectedTotal: number;
+  actualPaid: number | null;
+  remainingAmount: number;
+  paymentDate: string | null;
+  paymentReference: string | null;
+  status: string;
+}
+
+export interface ParticipationPaymentSchedule {
+  participationRequestId: number;
+  opportunityId: number;
+  opportunityTitle: string;
+  currency: string | null;
+  principal: number;
+  annualInterestRate: number;
+  durationMonths: number;
+  repaymentFrequency: string;
+  principalRepaymentMethod: number;
+  startDate: string;
+  finalRepaymentDate: string;
+  totalExpectedInterest: number;
+  averageExpectedMonthlyIncome: number;
+  receivedToDate: number | null;
+  remainingPrincipal: number | null;
+  payments: ExpectedPaymentScheduleItem[];
+}
+
+export interface PaymentAllocationDetail {
+  installmentNumber: number;
+  allocatedAmount: number;
+}
+
+export interface PaymentTransactionDetail {
+  id: number;
+  participationRequestId: number;
+  amount: number;
+  paymentDate: string;
+  reference: string | null;
+  notes: string | null;
+  isReversed: boolean;
+  reversalReason: string | null;
+  reversedAt: string | null;
+  createdByName: string | null;
+  createdAt: string;
+  allocations: PaymentAllocationDetail[];
+}
+
+export interface RecordPaymentRequest {
+  participationRequestId: number;
+  amount: number;
+  paymentDate: string;
+  reference?: string | null;
+  notes?: string | null;
+}
+
+export interface ReversePaymentRequest {
+  paymentTransactionId: number;
+  reason: string;
+}
+
+export interface InvestorPaymentDetail {
+  investorId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  investmentModel: string;
+  currency: string | null;
+  participations: ParticipationPaymentSchedule[];
+  paymentTransactions: PaymentTransactionDetail[];
+}
+
+export interface MonthlyUnpaidInstallmentItem {
+  participationRequestId: number;
+  investorId: string;
+  investorDisplayName: string;
+  installmentNumber: number;
+  dueDate: string;
+  expectedTotal: number;
+  alreadyPaid: number;
+  remainingAmount: number;
+}
+
+export interface MonthlyBulkConfirmPreview {
+  year: number;
+  month: number;
+  investorCount: number;
+  installmentCount: number;
+  totalRemainingAmount: number;
+  installments: MonthlyUnpaidInstallmentItem[];
+}
+
+export interface BulkConfirmMonthlyRequest {
+  year?: number | null;
+  month?: number | null;
+}
+
+export interface BulkConfirmMonthlyResult {
+  confirmedCount: number;
+  totalAmount: number;
+  reputationPointsAwarded: number;
+  founderNotificationId: number;
+  investorNotificationIds: number[];
+}
+
+export interface PublicProjectActivityPage {
+  items: OpportunityEvent[];
+  total: number;
+  page: number;
+  pageSize: number;
 }
 
 export interface OpportunityMilestone {
@@ -243,6 +396,7 @@ export interface Opportunity {
   id: number | string;
   founderId?: string | null;
   legacyInvestmentId?: number | null;
+  favorited?: boolean;
   investmentId?: number | null;
   title?: string | null;
   shortDescription?: string | null;
@@ -318,6 +472,8 @@ export interface Opportunity {
   media?: OpportunityMedia[];
   documents?: OpportunityDocument[];
   events?: OpportunityEvent[];
+  recentProjectActivity?: OpportunityEvent[];
+  projectActivityTotalCount?: number;
   isLockedForEditing?: boolean | null;
   firstInvestorJoinedAt?: string | null;
   updatedAt?: string | null;
@@ -342,7 +498,7 @@ export interface OpportunityUpsert {
   categoryId?: string | number | null;
   projectStage?: string | number | null;
   tagIds?: Array<string | number>;
-  investmentModel?: string | number | null;
+  investmentModel?: 'EquityInvestment' | 'LoanInvestment' | 'ProfitSharingInvestment' | null;
   fundingGoalId?: string | number | null;
   fundingTarget?: number | null;
   minimumInvestment?: number | null;
@@ -380,6 +536,22 @@ export class OpportunityService {
     return this.getOne(`/api/v1/public/opportunities/${encodeURIComponent(String(id))}`);
   }
 
+  getPublicProjectActivity(id: string | number, page = 1, pageSize = 20): Promise<PublicProjectActivityPage> {
+    return this.getOne(`/api/v1/public/opportunities/${encodeURIComponent(String(id))}/project-activity?page=${page}&pageSize=${pageSize}`);
+  }
+
+  getFavoriteOpportunities(): Promise<Opportunity[]> {
+    return this.getList('/api/v1/opportunities/favorites');
+  }
+
+  getFavoriteStatus(id: string | number): Promise<{ opportunityId: number; favorited: boolean }> {
+    return this.getOne(`/api/v1/opportunities/${encodeURIComponent(String(id))}/favorite`);
+  }
+
+  setFavorite(id: string | number, favorited: boolean): Promise<{ opportunityId: number; favorited: boolean }> {
+    return this.send('put', `/api/v1/opportunities/${encodeURIComponent(String(id))}/favorite`, { favorited });
+  }
+
   getViewerState(id: string | number): Promise<OpportunityViewerState> {
     return this.getOne(`/api/v1/opportunities/${encodeURIComponent(String(id))}/viewer-state`);
   }
@@ -412,12 +584,49 @@ export class OpportunityService {
     return this.getOne(`/api/v1/opportunities/${encodeURIComponent(String(id))}/room`);
   }
 
+  getApprovedInvestors(id: string | number): Promise<ApprovedInvestor[]> {
+    return this.getList(`/api/v1/opportunities/${encodeURIComponent(String(id))}/approved-investors`);
+  }
+
+  getOpportunityPayments(id: string | number): Promise<InvestorPaymentSummary[]> {
+    return this.getList(`/api/v1/opportunities/${encodeURIComponent(String(id))}/payments`);
+  }
+
+  getInvestorPaymentDetails(id: string | number, investorId: string): Promise<InvestorPaymentDetail> {
+    return this.getOne(`/api/v1/opportunities/${encodeURIComponent(String(id))}/payments/investors/${encodeURIComponent(investorId)}`);
+  }
+
+  recordPayment(id: string | number, payload: RecordPaymentRequest): Promise<PaymentTransactionDetail> {
+    return this.send('post', `/api/v1/opportunities/${encodeURIComponent(String(id))}/payments`, payload);
+  }
+
+  reversePayment(id: string | number, payload: ReversePaymentRequest): Promise<PaymentTransactionDetail> {
+    return this.send('post', `/api/v1/opportunities/${encodeURIComponent(String(id))}/payments/reverse`, payload);
+  }
+
+  getMonthlyUnpaidPreview(id: string | number, year?: number | null, month?: number | null): Promise<MonthlyBulkConfirmPreview> {
+    let path = `/api/v1/opportunities/${encodeURIComponent(String(id))}/payments/monthly-unpaid`;
+    const params: string[] = [];
+    if (year != null) params.push(`year=${encodeURIComponent(year)}`);
+    if (month != null) params.push(`month=${encodeURIComponent(month)}`);
+    if (params.length) path += '?' + params.join('&');
+    return this.getOne(path);
+  }
+
+  bulkConfirmMonthlyPayments(id: string | number, payload: BulkConfirmMonthlyRequest): Promise<BulkConfirmMonthlyResult> {
+    return this.send('post', `/api/v1/opportunities/${encodeURIComponent(String(id))}/payments/bulk-confirm-monthly`, payload);
+  }
+
   createOpportunity(payload: OpportunityUpsert): Promise<Opportunity> {
-    return this.send<Opportunity>('post', '/api/v1/opportunities', this.toOpportunityRequest(payload));
+    const request = this.toOpportunityRequest(payload);
+    if (isDevMode()) console.debug('[Opportunity Create] payload', request);
+    return this.send<Opportunity>('post', '/api/v1/opportunities', request);
   }
 
   updateOpportunity(id: string | number, payload: OpportunityUpsert): Promise<Opportunity> {
-    return this.send<Opportunity>('put', `/api/v1/opportunities/${encodeURIComponent(String(id))}`, this.toOpportunityRequest(payload));
+    const request = this.toOpportunityRequest(payload);
+    if (isDevMode()) console.debug('[Opportunity Update] payload', request);
+    return this.send<Opportunity>('put', `/api/v1/opportunities/${encodeURIComponent(String(id))}`, request);
   }
 
   publishOpportunity(id: string | number): Promise<Opportunity> {
@@ -540,7 +749,7 @@ export class OpportunityService {
       repaymentFrequency: payload.repaymentFrequency ?? null,
       finalRepaymentDate: payload.finalRepaymentDate ?? null,
       tagIds: (payload.tagIds ?? []).map(value => Number(value)).filter(value => Number.isFinite(value)),
-      investmentModel: this.toNumberOrNull(payload.investmentModel),
+      investmentModel: payload.investmentModel ?? null,
       projectStage: this.toNumberOrNull(payload.projectStage),
       coverImageUrl: payload.coverImageUrl ?? null
     };

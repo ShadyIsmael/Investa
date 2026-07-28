@@ -1,145 +1,111 @@
-import { Component, ChangeDetectionStrategy, signal, computed, inject, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
-import { UserService } from '../../../services/user.service';
-import { AuthService } from '../../../services/auth.service';
-import { API_BASE } from '../../../config/api.token';
-
-type BillingPeriod = 'monthly' | 'yearly' | 'one-time';
-
-interface AdminPricePlan {
-  id: number;
-  name: string;
-  credits: number;
-  price: number;
-  billingPeriod: BillingPeriod;
-  isActive: boolean;
-}
+import { ActivatedRoute, Router } from '@angular/router';
+import { TranslatePipe } from '../../../pipes/translate.pipe';
+import { LanguageService } from '../../../services/language.service';
+import { WalletService } from '../../../services/wallet.service';
+import { CreditPackage, CreditPurchaseOrder, CreditPurchaseService, CreditPurchaseStatus } from '../../../services/credit-purchase.service';
 
 @Component({
   standalone: true,
   selector: 'app-credit-charge',
+  imports: [CommonModule, TranslatePipe],
   templateUrl: './credit-charge.component.html',
   styleUrls: ['./credit-charge.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule]
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CreditChargeComponent implements OnInit {
+  private purchases = inject(CreditPurchaseService);
+  private wallet = inject(WalletService);
+  readonly language = inject(LanguageService);
+  private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private userService = inject(UserService);
-  private authService = inject(AuthService);
-  private http = inject(HttpClient);
-  private apiBase = inject(API_BASE);
 
-  // State
-  isLoading = signal<boolean>(false);
-  errorMessage = signal<string | null>(null);
-  selectedPlanId = signal<number | null>(null);
-  showSuccessDialog = signal<boolean>(false);
-  plansLoading = signal<boolean>(true);
-  referenceNumber = signal<string | null>(null);
-  purchasedCredits = signal<number>(0);
+  packages = signal<CreditPackage[]>([]);
+  orders = signal<CreditPurchaseOrder[]>([]);
+  selectedPackageId = signal<string | null>(null);
+  selectedOrder = signal<CreditPurchaseOrder | null>(null);
+  loading = signal(true);
+  submitting = signal(false);
+  error = signal<string | null>(null);
+  currentBalance = this.wallet.balance;
+  selectedPackage = computed(() => this.packages().find(item => item.id === this.selectedPackageId()) ?? null);
 
-  // Current credits from UserService
-  currentCredits = this.userService.credits;
-
-  // Admin-created plans from API
-  adminPlans = signal<AdminPricePlan[]>([]);
-
-  readonly BILLING_LABELS: Record<BillingPeriod, string> = {
-    'monthly':  'Monthly',
-    'yearly':   'Yearly',
-    'one-time': 'One-Time',
-  };
-
-  // Computed values
-  selectedPlan = computed(() => {
-    const id = this.selectedPlanId();
-    if (id === null) return null;
-    return this.adminPlans().find(p => p.id === id) ?? null;
-  });
-
-  ngOnInit(): void {
-    this.loadPlans();
+  async ngOnInit(): Promise<void> {
+    await this.load();
+    const orderId = this.route.snapshot.queryParamMap.get('orderId');
+    if (orderId) await this.refreshOrder(orderId);
   }
 
-  private async loadPlans(): Promise<void> {
+  async load(): Promise<void> {
+    this.loading.set(true);
+    this.error.set(null);
     try {
-      this.plansLoading.set(true);
-      const token = this.authService.getAccessToken();
-      const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
-      const plans = await firstValueFrom(
-        this.http.get<AdminPricePlan[]>(`${this.apiBase}/api/credit-plans`, { headers })
-      );
-      this.adminPlans.set(plans ?? []);
-    } catch (e) {
-      this.errorMessage.set('Could not load credit plans. Please try again later.');
-      console.error('Failed to load credit plans:', e);
+      const [packages, orders] = await Promise.all([
+        this.purchases.getActivePackages(),
+        this.purchases.getMyOrders(),
+        this.wallet.loadBalance()
+      ]);
+      this.packages.set(packages);
+      this.orders.set(orders.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)));
+    } catch (error) {
+      this.error.set(this.errorText(error));
     } finally {
-      this.plansLoading.set(false);
+      this.loading.set(false);
     }
   }
 
-  selectPlan(id: number): void {
-    this.selectedPlanId.set(id);
-  }
+  selectPackage(id: string): void { this.selectedPackageId.set(id); }
 
-  async purchasePackage(): Promise<void> {
-    const plan = this.selectedPlan();
-    if (!plan) return;
-
-    await this.processPurchase(plan.credits, plan.price);
-  }
-
-  private async processPurchase(credits: number, price: number): Promise<void> {
-    const plan = this.selectedPlan();
-    if (!plan) return;
-
+  async createOrder(): Promise<void> {
+    const selected = this.selectedPackage();
+    if (!selected || this.submitting()) return;
+    this.submitting.set(true);
+    this.error.set(null);
     try {
-      this.isLoading.set(true);
-      this.errorMessage.set(null);
-
-      const token = this.authService.getAccessToken();
-      const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
-
-      const result = await firstValueFrom(
-        this.http.post<{
-          referenceNumber: string;
-          planName: string;
-          creditsAdded: number;
-          newBalance: number;
-        }>(
-          `${this.apiBase}/api/credit-plans/${plan.id}/purchase`,
-          {},
-          { headers }
-        )
-      );
-
-      // Update credits from server-returned balance
-      this.userService.setCredits(result.newBalance);
-      this.referenceNumber.set(result.referenceNumber);
-      this.purchasedCredits.set(result.creditsAdded);
-
-      // Show success dialog
-      this.showSuccessDialog.set(true);
-
-      // Navigate back after 4 seconds
-      setTimeout(() => {
-        this.showSuccessDialog.set(false);
-        this.router.navigate(['/admin/profile']);
-      }, 4000);
-
-    } catch (e) {
-      this.errorMessage.set('Purchase failed. Please try again.');
-      console.error('Purchase error:', e);
+      const order = await this.purchases.createOrder(selected.id);
+      this.selectedOrder.set(order);
+      this.orders.update(items => [order, ...items.filter(item => item.id !== order.id)]);
+      if (order.redirectUrl) window.location.assign(order.redirectUrl);
+    } catch (error) {
+      this.error.set(this.errorText(error));
     } finally {
-      this.isLoading.set(false);
+      this.submitting.set(false);
     }
   }
 
-  goBack(): void {
-    this.router.navigate(['/admin/profile']);
+  async refreshOrder(id: string): Promise<void> {
+    try {
+      const order = await this.purchases.getOrder(id);
+      this.selectedOrder.set(order);
+      this.orders.update(items => [order, ...items.filter(item => item.id !== order.id)]);
+      if (order.paymentStatus === 'Paid') await this.wallet.loadBalance();
+    } catch (error) {
+      this.error.set(this.errorText(error));
+    }
+  }
+
+  viewReceipt(order: CreditPurchaseOrder): void { this.selectedOrder.set(order); }
+  closeReceipt(): void { this.selectedOrder.set(null); }
+  goBack(): void { this.router.navigate(['/admin/profile/wallet']); }
+  packageName(item: CreditPackage | CreditPurchaseOrder): string {
+    if ('planName' in item) return this.language.language() === 'ar' ? item.planNameAr : item.planName;
+    return this.language.language() === 'ar' ? item.nameAr : item.name;
+  }
+  formatMoney(value: number, currency: string): string {
+    return new Intl.NumberFormat(this.language.language() === 'ar' ? 'ar-EG' : 'en-EG', { style: 'currency', currency }).format(value);
+  }
+  formatNumber(value: number): string { return new Intl.NumberFormat(this.language.language() === 'ar' ? 'ar-EG' : 'en-US').format(value); }
+  formatDate(value?: string | null): string { return value ? new Intl.DateTimeFormat(this.language.language() === 'ar' ? 'ar-EG' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '—'; }
+  statusKey(status: CreditPurchaseStatus): string { return `creditPurchase.status.${status}`; }
+  statusTone(status: CreditPurchaseStatus): string {
+    if (status === 'Paid') return 'status status--paid';
+    if (status === 'Failed' || status === 'Cancelled' || status === 'Expired') return 'status status--failed';
+    if (status === 'Refunded') return 'status status--refunded';
+    return 'status status--pending';
+  }
+  private errorText(error: unknown): string {
+    const value = error as { error?: { message?: string }; message?: string };
+    return value?.error?.message || value?.message || this.language.translate('creditPurchase.error');
   }
 }

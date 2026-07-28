@@ -6,6 +6,7 @@ import { SettingsService } from '../../../services/settings.service';
 import { CurrencyPreference, DashboardDensity, DefaultInvestmentTypePreference, ThemePreference, UserSettings } from '../../../models/settings.model';
 import { LanguageService } from '../../../services/language.service';
 import { WalletService } from '../../../services/wallet.service';
+import { FcmService } from '../../../services/fcm.service';
 
 @Component({
   standalone: true,
@@ -19,9 +20,13 @@ export class SettingsComponent {
   private settingsService = inject(SettingsService);
   private walletService = inject(WalletService);
   languageService = inject(LanguageService);
+  fcmService = inject(FcmService);
   platformCreditBalance = this.walletService.balance;
   creditLoading = signal(true);
   creditError = signal(false);
+  fcmEnabled = signal(false);
+  fcmDevices = signal<import('../../../services/fcm.service').DeviceInfo[]>([]);
+  fcmLoading = signal(false);
 
   ThemePreference = ThemePreference;
   DashboardDensity = DashboardDensity;
@@ -120,6 +125,55 @@ export class SettingsComponent {
       this.updateDraft({ sessionTimeoutMinutes: Math.floor(v) });
     } else {
       this.updateDraft({ sessionTimeoutMinutes: undefined });
+    }
+  }
+
+  async enableFcm(): Promise<void> {
+    this.fcmLoading.set(true);
+    try {
+      const ok = await this.fcmService.enable();
+      this.fcmEnabled.set(ok);
+      if (ok) {
+        this.settingsService.setNotifications({ ...this.settings().notifications, push: true });
+        this.draft.update(d => ({ ...d, notifications: { ...d.notifications, push: true } }));
+        await this.loadFcmDevices();
+      }
+    } finally {
+      this.fcmLoading.set(false);
+    }
+  }
+
+  async disableFcm(): Promise<void> {
+    this.fcmLoading.set(true);
+    try {
+      await this.fcmService.disable();
+      this.fcmEnabled.set(false);
+      this.settingsService.setNotifications({ ...this.settings().notifications, push: false });
+      this.draft.update(d => ({ ...d, notifications: { ...d.notifications, push: false } }));
+      this.fcmDevices.set([]);
+    } finally {
+      this.fcmLoading.set(false);
+    }
+  }
+
+  async loadFcmDevices(): Promise<void> {
+    try {
+      const devices = await this.fcmService.getMyDevices();
+      this.fcmDevices.set(devices);
+      this.fcmEnabled.set(devices.some(d => d.isActive));
+    } catch {
+      // ignore
+    }
+  }
+
+  async deactivateDevice(deviceId: number): Promise<void> {
+    this.fcmLoading.set(true);
+    try {
+      await this.fcmService.disable();
+      this.fcmEnabled.set(false);
+      this.fcmDevices.update(devices => devices.map(d => d.id === deviceId ? { ...d, isActive: false } : d));
+    } finally {
+      this.fcmLoading.set(false);
     }
   }
 

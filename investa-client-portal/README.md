@@ -84,7 +84,6 @@ The client resolves the backend API base URL at runtime with the following prece
 - **Investment Listing**: Browse active investment opportunities with filters
 - **Authentication**: JWT-based login and registration
 - **Profile Management**: Edit personal info, change password
-- **KYC**: Submit identity and compliance documents
 - **Credit History**: View credit score and transaction history
 - **Bilingual**: AR/EN localization support
 - **Responsive**: Mobile-first layout with Tailwind CSS

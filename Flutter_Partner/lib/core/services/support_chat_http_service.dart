@@ -5,7 +5,6 @@ import '../services/secure_storage_service.dart';
 import '../network/network_config.dart';
 
 /// HTTP Service for support chat API calls
-/// Replaces SignalR real-time communication with REST API
 class SupportChatHttpService {
   final LoggerService logger;
   final SecureStorageService secureStorage;

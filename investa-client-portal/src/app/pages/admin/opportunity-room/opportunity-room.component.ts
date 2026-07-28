@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { DomSanitizer } from '@angular/platform-browser';
-import { ChangeDetectionStrategy, Component, SecurityContext, computed, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
@@ -12,13 +11,20 @@ import {
   OpportunityMedia,
   OpportunityRoom,
   OpportunityRoomParticipantContext,
-  OpportunityService
+  OpportunityService,
+  InvestorPaymentSummary,
+  InvestorPaymentDetail,
+  PaymentTransactionDetail,
+  MonthlyBulkConfirmPreview,
+  BulkConfirmMonthlyResult
 } from '../../../services/opportunity.service';
 import { FileStoreService } from '../../../services/file-store.service';
 import { ReportReasonCode, ReportService } from '../../../services/report.service';
 import { LanguageService } from '../../../services/language.service';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
 import { RequestsService } from '../../../services/requests.service';
+import { FirebaseClientService, RealtimeEvent } from '../../../services/firebase-client.service';
+import { Subscription } from 'rxjs';
 import {
   ContractService,
   InvestmentContractDetail,
@@ -28,11 +34,11 @@ import {
   PdfGenerationStatus
 } from '../../../services/contract.service';
 
-type RoomTab = 'overview' | 'contracts' | 'timeline' | 'documents' | 'media' | 'updates';
+type RoomTab = 'overview' | 'contracts' | 'timeline' | 'documents' | 'media' | 'payments';
 
 interface ActivityFeedItem {
   trackKey: string;
-  kind: 'milestone' | 'update' | 'document' | 'media';
+  kind: 'milestone' | 'document' | 'media';
   title: string;
   detail: string;
   dateText: string;
@@ -45,6 +51,12 @@ interface RoomError {
   message: string;
 }
 
+interface InvestorContractGroup {
+  investorUserId: string;
+  investorDisplayName: string;
+  contracts: InvestmentContractSummary[];
+}
+
 const RECENT_ACTIVITY_LIMIT = 5;
 
 @Component({
@@ -55,15 +67,18 @@ const RECENT_ACTIVITY_LIMIT = 5;
   styleUrl: './opportunity-room.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class OpportunityRoomComponent {
+export class OpportunityRoomComponent implements OnDestroy {
   private route = inject(ActivatedRoute);
   private opportunityService = inject(OpportunityService);
   private fileStore = inject(FileStoreService);
   private reportService = inject(ReportService);
   private languageService = inject(LanguageService);
   private contractService = inject(ContractService);
-  private sanitizer = inject(DomSanitizer);
   private requestsService = inject(RequestsService);
+  private firebaseClient = inject(FirebaseClientService);
+  private readonly realtimeSubscriptions = new Subscription();
+  private roomRefreshInFlight: Promise<void> | null = null;
+  private roomRefreshQueued = false;
 
   room = signal<OpportunityRoom | null>(null);
   isLoading = signal(false);
@@ -73,10 +88,8 @@ export class OpportunityRoomComponent {
   actionSuccess = signal<string | null>(null);
   isSubmittingAction = signal(false);
   showAllRecentActivity = signal(false);
-  updateModalOpen = signal(false);
   documentModalOpen = signal(false);
   milestoneModalOpen = signal(false);
-  updateForm = signal({ title: '', content: '', isPublic: false });
   milestoneForm = signal({ title: '', description: '', isPublic: true });
   documentForm = signal({
     title: '',
@@ -86,6 +99,23 @@ export class OpportunityRoomComponent {
     searchTags: ''
   });
   selectedDocumentFile = signal<File | null>(null);
+  payments = signal<InvestorPaymentSummary[]>([]);
+  paymentsLoading = signal(false);
+  paymentsError = signal<string | null>(null);
+  selectedPaymentInvestor = signal<InvestorPaymentDetail | null>(null);
+  selectedPaymentInvestorLoading = signal(false);
+  selectedPaymentInvestorError = signal<string | null>(null);
+  recordPaymentModalOpen = signal(false);
+  recordPaymentForm = signal({ participationRequestId: 0, amount: 0, paymentDate: '', reference: '', notes: '' });
+  reversePaymentModalOpen = signal(false);
+  reversePaymentForm = signal({ paymentTransactionId: 0, reason: '' });
+  bulkConfirmPreview = signal<MonthlyBulkConfirmPreview | null>(null);
+  bulkConfirmPreviewLoading = signal(false);
+  bulkConfirmModalOpen = signal(false);
+  bulkConfirmResult = signal<BulkConfirmMonthlyResult | null>(null);
+  bulkConfirmSubmitting = signal(false);
+  recordPaymentInvestorName = signal<string>('');
+  recordPaymentInstallmentInfo = signal<string>('');
   reportModalOpen = signal(false);
   reportSubmitting = signal(false);
   reportSuccess = signal(false);
@@ -93,6 +123,23 @@ export class OpportunityRoomComponent {
   reportReason = signal<ReportReasonCode>('Spam');
   reportDescription = signal('');
   contracts = signal<InvestmentContractSummary[]>([]);
+  investorContractGroups = computed<InvestorContractGroup[]>(() => {
+    const groups = new Map<string, InvestorContractGroup>();
+    for (const contract of this.contracts()) {
+      const key = contract.investorUserId || contract.investorDisplayName;
+      const group = groups.get(key);
+      if (group) {
+        group.contracts.push(contract);
+      } else {
+        groups.set(key, {
+          investorUserId: contract.investorUserId,
+          investorDisplayName: contract.investorDisplayName,
+          contracts: [contract]
+        });
+      }
+    }
+    return Array.from(groups.values());
+  });
   contractsLoading = signal(false);
   contractsLoaded = signal(false);
   contractsError = signal<string | null>(null);
@@ -105,6 +152,7 @@ export class OpportunityRoomComponent {
   previewLoading = signal(false);
   previewError = signal<string | null>(null);
   pdfDownloading = signal<string | null>(null);
+  contractEmailing = signal<string | null>(null);
   pdfStatusOverrides = signal<Record<string, PdfGenerationStatus>>({});
 
   readonly reportReasons: ReportReasonCode[] = [
@@ -123,7 +171,7 @@ export class OpportunityRoomComponent {
     { id: 'timeline', label: 'Timeline' },
     { id: 'documents', label: 'Documents' },
     { id: 'media', label: 'Media' },
-    { id: 'updates', label: 'Updates' }
+    { id: 'payments', label: '' }
   ];
 
   overview = computed(() => (this.room()?.overview ?? {}) as Opportunity & Record<string, any>);
@@ -131,18 +179,10 @@ export class OpportunityRoomComponent {
   documents = computed(() => this.flattenLibrary<OpportunityDocument>(this.room()?.documentsLibrary ?? this.room()?.documents));
   media = computed(() => this.flattenLibrary<OpportunityMedia>(this.room()?.mediaLibrary ?? this.room()?.media));
   milestones = computed(() => this.flattenLibrary<OpportunityMilestone>(this.room()?.milestones));
-  timeline = computed(() => {
-    return this.milestones().map(milestone => this.milestoneToEvent(milestone));
-  });
-  updates = computed(() => {
-    const updateTypes = ['update', 'projectupdate', 'founderupdate', 'announcement', 'progressupdate'];
-    return this.flattenLibrary<OpportunityEvent>(this.room()?.timeline ?? this.room()?.events)
-      .filter(item => updateTypes.includes(this.eventType(item).toLowerCase().replace(/\s+/g, '')));
-  });
+  timeline = computed(() => this.flattenLibrary<OpportunityEvent>(this.room()?.timeline));
 
   milestonesSorted = computed(() => this.sortMilestonesByDateDesc(this.milestones()));
-  timelineSorted = computed(() => this.milestonesSorted().map(milestone => this.milestoneToEvent(milestone)));
-  updatesSorted = computed(() => this.sortEventsByDateDesc(this.updates()));
+  timelineSorted = computed(() => this.sortEventsByDateDesc(this.timeline()));
   documentsSorted = computed(() => this.sortByDateDesc(this.documents(), item => this.documentRawDate(item)));
   mediaSorted = computed(() => this.sortByDateDesc(this.media(), item => this.mediaRawDate(item)));
 
@@ -192,9 +232,16 @@ export class OpportunityRoomComponent {
 
   constructor() {
     void this.load();
+    this.realtimeSubscriptions.add(
+      this.firebaseClient.onRealtimeEvent.subscribe(event => this.handleRealtimeEvent(event))
+    );
     effect(() => {
       if (this.requestsService.participationRevision() > 0) void this.load();
     });
+  }
+
+  ngOnDestroy(): void {
+    this.realtimeSubscriptions.unsubscribe();
   }
 
   async load(): Promise<void> {
@@ -206,7 +253,7 @@ export class OpportunityRoomComponent {
       this.error.set(null);
       this.room.set(await this.opportunityService.getOpportunityRoom(id));
       this.resetContractState();
-      await this.loadContracts(true);
+      if (this.activeTab() === 'contracts') await this.loadContracts(true);
     } catch (error) {
       this.room.set(null);
       this.error.set(this.toRoomError(error));
@@ -219,6 +266,9 @@ export class OpportunityRoomComponent {
     this.activeTab.set(tab);
     if (tab === 'contracts') {
       void this.loadContracts();
+    }
+    if (tab === 'payments') {
+      void this.loadPayments();
     }
   }
 
@@ -250,10 +300,6 @@ export class OpportunityRoomComponent {
     return this.participantContext().canEditCoreProject === true;
   }
 
-  canAddUpdate(): boolean {
-    return this.participantContext().canAddUpdate === true;
-  }
-
   canAddDocument(): boolean {
     return this.participantContext().canAddDocument === true;
   }
@@ -266,12 +312,6 @@ export class OpportunityRoomComponent {
     return this.canEditCoreProject()
       ? this.t('opportunityRoom.founderWorkspace.editAvailable')
       : this.t('opportunityRoom.founderWorkspace.lockedMessage');
-  }
-
-  openUpdateModal(): void {
-    this.actionError.set(null);
-    this.actionSuccess.set(null);
-    this.updateModalOpen.set(true);
   }
 
   openDocumentModal(): void {
@@ -302,6 +342,237 @@ export class OpportunityRoomComponent {
 
   setReportDescription(description: string): void {
     this.reportDescription.set(description);
+  }
+
+  async loadPayments(): Promise<void> {
+    const id = this.opportunityId();
+    if (!id || this.paymentsLoading()) return;
+    try {
+      this.paymentsLoading.set(true);
+      this.paymentsError.set(null);
+      this.payments.set(await this.opportunityService.getOpportunityPayments(id));
+      if (!this.selectedPaymentInvestor() && this.payments().length > 0) {
+        await this.openPaymentInvestor(this.payments()[0]);
+      }
+    } catch (error: any) {
+      this.payments.set([]);
+      this.paymentsError.set(error?.error?.message || error?.message || 'Failed to load payments.');
+    } finally {
+      this.paymentsLoading.set(false);
+    }
+  }
+
+  async openPaymentInvestor(summary: InvestorPaymentSummary): Promise<void> {
+    const id = this.opportunityId();
+    if (!id || this.selectedPaymentInvestorLoading()) return;
+    try {
+      this.selectedPaymentInvestorLoading.set(true);
+      this.selectedPaymentInvestorError.set(null);
+      this.selectedPaymentInvestor.set(await this.opportunityService.getInvestorPaymentDetails(id, summary.investorId));
+    } catch (error: any) {
+      this.selectedPaymentInvestorError.set(error?.error?.message || error?.message || 'Failed to load investor payment details.');
+    } finally {
+      this.selectedPaymentInvestorLoading.set(false);
+    }
+  }
+
+  isLoanModel(): boolean {
+    const model = this.investmentModel();
+    return model === 'Loan' || model === '2';
+  }
+
+  paymentStatusLabel(status: string): string {
+    return this.t(`opportunityRoom.payments.status.${status}`);
+  }
+
+  openRecordPaymentModal(): void {
+    const detail = this.selectedPaymentInvestor();
+    if (!detail || detail.participations.length === 0) return;
+    this.actionError.set(null);
+    this.actionSuccess.set(null);
+    this.recordPaymentForm.set({
+      participationRequestId: detail.participations[0].participationRequestId,
+      amount: 0,
+      paymentDate: new Date().toISOString().split('T')[0],
+      reference: '',
+      notes: ''
+    });
+    this.recordPaymentModalOpen.set(true);
+  }
+
+  closeRecordPaymentModal(): void {
+    if (this.isSubmittingAction()) return;
+    this.recordPaymentModalOpen.set(false);
+    this.actionError.set(null);
+  }
+
+  setRecordPaymentField(field: string, value: any): void {
+    this.recordPaymentForm.update(f => ({ ...f, [field]: value }));
+  }
+
+  async submitRecordPayment(): Promise<void> {
+    const id = this.opportunityId();
+    const form = this.recordPaymentForm();
+    if (!id || !form.participationRequestId || form.amount <= 0 || !form.paymentDate) {
+      this.actionError.set('Amount and payment date are required.');
+      return;
+    }
+    try {
+      this.isSubmittingAction.set(true);
+      this.actionError.set(null);
+      await this.opportunityService.recordPayment(id, {
+        participationRequestId: form.participationRequestId,
+        amount: form.amount,
+        paymentDate: form.paymentDate,
+        reference: form.reference || undefined,
+        notes: form.notes || undefined
+      });
+      this.actionSuccess.set(this.t('opportunityRoom.payments.recordSuccess'));
+      this.recordPaymentModalOpen.set(false);
+      await this.loadPayments();
+    } catch (error: any) {
+      this.actionError.set(error?.error?.message || error?.message || 'Failed to record payment.');
+    } finally {
+      this.isSubmittingAction.set(false);
+    }
+  }
+
+  openReversePaymentModal(txn: PaymentTransactionDetail): void {
+    this.actionError.set(null);
+    this.actionSuccess.set(null);
+    this.reversePaymentForm.set({ paymentTransactionId: txn.id, reason: '' });
+    this.reversePaymentModalOpen.set(true);
+  }
+
+  closeReversePaymentModal(): void {
+    if (this.isSubmittingAction()) return;
+    this.reversePaymentModalOpen.set(false);
+    this.actionError.set(null);
+  }
+
+  setReverseReason(value: string): void {
+    this.reversePaymentForm.update(f => ({ ...f, reason: value }));
+  }
+
+  async submitReversePayment(): Promise<void> {
+    const id = this.opportunityId();
+    const form = this.reversePaymentForm();
+    if (!id || !form.paymentTransactionId || !form.reason.trim()) {
+      this.actionError.set('Reversal reason is required.');
+      return;
+    }
+    try {
+      this.isSubmittingAction.set(true);
+      this.actionError.set(null);
+      await this.opportunityService.reversePayment(id, {
+        paymentTransactionId: form.paymentTransactionId,
+        reason: form.reason.trim()
+      });
+      this.actionSuccess.set(this.t('opportunityRoom.payments.reverseSuccess'));
+      this.reversePaymentModalOpen.set(false);
+      await this.loadPayments();
+    } catch (error: any) {
+      this.actionError.set(error?.error?.message || error?.message || 'Failed to reverse payment.');
+    } finally {
+      this.isSubmittingAction.set(false);
+    }
+  }
+
+  async openConfirmForInvestor(summary: InvestorPaymentSummary): Promise<void> {
+    await this.openPaymentInvestor(summary);
+    const detail = this.selectedPaymentInvestor();
+    if (!detail || detail.participations.length === 0) return;
+    const today = new Date().toISOString().split('T')[0];
+    let earliestUnpaid: { reqId: number; amount: number; installNo: number; dueDate: string; expectedTotal: number; alreadyPaid: number } | null = null;
+    for (const part of detail.participations) {
+      for (const pmt of part.payments) {
+        if (pmt.status !== 'Paid' && pmt.status !== 'Cancelled' && (pmt.remainingAmount ?? 0) > 0) {
+          if (!earliestUnpaid || new Date(pmt.dueDate) < new Date(earliestUnpaid.dueDate)) {
+            earliestUnpaid = {
+              reqId: part.participationRequestId,
+              amount: pmt.remainingAmount ?? pmt.expectedTotal,
+              installNo: pmt.dueDate ? parseInt(pmt.dueDate.split('-')[2]?.replace(/^0/, '') ?? '1', 10) || 1 : 1,
+              dueDate: pmt.dueDate,
+              expectedTotal: pmt.expectedTotal,
+              alreadyPaid: pmt.actualPaid ?? 0
+            };
+          }
+        }
+      }
+    }
+    if (!earliestUnpaid) return;
+    this.recordPaymentForm.set({
+      participationRequestId: earliestUnpaid.reqId,
+      amount: earliestUnpaid.amount,
+      paymentDate: today,
+      reference: '',
+      notes: ''
+    });
+    this.recordPaymentInvestorName.set(summary.displayName);
+    this.recordPaymentInstallmentInfo.set(
+      `${this.t('opportunityRoom.payments.scheduled')}: ${this.money(earliestUnpaid.expectedTotal)}, ${this.t('opportunityRoom.payments.paid')}: ${this.money(earliestUnpaid.alreadyPaid)}, ${this.t('opportunityRoom.payments.remaining')}: ${this.money(earliestUnpaid.amount)} — ${this.t('opportunityRoom.payments.dueDate')}: ${new Date(earliestUnpaid.dueDate).toLocaleDateString()}`
+    );
+    this.recordPaymentModalOpen.set(true);
+  }
+
+  openRecordPaymentForSelectedInvestor(): void {
+    const detail = this.selectedPaymentInvestor();
+    if (!detail) return;
+    const summary = this.payments().find(p => p.investorId === detail.investorId);
+    if (summary) {
+      void this.openConfirmForInvestor(summary);
+    }
+  }
+
+  async openBulkConfirmModal(): Promise<void> {
+    const id = this.opportunityId();
+    if (!id || this.bulkConfirmPreviewLoading()) return;
+    try {
+      this.bulkConfirmPreviewLoading.set(true);
+      this.bulkConfirmPreview.set(null);
+      this.bulkConfirmResult.set(null);
+      const preview = await this.opportunityService.getMonthlyUnpaidPreview(id);
+      this.bulkConfirmPreview.set(preview);
+      this.bulkConfirmModalOpen.set(true);
+    } catch (error: any) {
+      this.actionError.set(error?.error?.message || error?.message || 'Failed to load monthly unpaid preview.');
+    } finally {
+      this.bulkConfirmPreviewLoading.set(false);
+    }
+  }
+
+  closeBulkConfirmModal(): void {
+    if (this.bulkConfirmSubmitting()) return;
+    this.bulkConfirmModalOpen.set(false);
+    this.bulkConfirmPreview.set(null);
+    this.bulkConfirmResult.set(null);
+    this.actionError.set(null);
+  }
+
+  async submitBulkConfirm(): Promise<void> {
+    const id = this.opportunityId();
+    if (!id || this.bulkConfirmSubmitting() || !this.bulkConfirmPreview()) return;
+    try {
+      this.bulkConfirmSubmitting.set(true);
+      this.actionError.set(null);
+      const result = await this.opportunityService.bulkConfirmMonthlyPayments(id, {});
+      this.bulkConfirmResult.set(result);
+      this.actionSuccess.set(this.t('opportunityRoom.payments.bulkConfirmSuccess'));
+      this.bulkConfirmModalOpen.set(false);
+      await this.loadPayments();
+    } catch (error: any) {
+      this.actionError.set(error?.error?.message || error?.message || 'Failed to confirm monthly payments.');
+    } finally {
+      this.bulkConfirmSubmitting.set(false);
+    }
+  }
+
+  paymentStatusClass(status: string): string {
+    if (status === 'Overdue') return 'investa-badge-danger';
+    if (status === 'Outstanding') return 'investa-badge-warning';
+    if (status === 'Paid') return 'investa-badge-success';
+    if (status === 'NoPaymentSchedule') return 'investa-badge-muted';
+    return '';
   }
 
   reportReasonLabel(reason: ReportReasonCode): string {
@@ -449,6 +720,28 @@ export class OpportunityRoomComponent {
     }
   }
 
+  async emailContract(version: InvestmentContractVersion | InvestmentContractVersionSummary | null = this.selectedVersion()): Promise<void> {
+    const detail = this.selectedContract();
+    if (!detail || !version) return;
+    const key = this.contractVersionKey(detail.contract.contractId, version.versionNumber);
+    if (this.contractEmailing() === key) return;
+    try {
+      this.contractEmailing.set(key);
+      this.actionError.set(null);
+      this.actionSuccess.set(null);
+      await this.contractService.emailContract(
+        detail.contract.contractId,
+        version.versionNumber,
+        this.languageService.language()
+      );
+      this.actionSuccess.set(this.t('contracts.email.success'));
+    } catch (error: any) {
+      this.actionError.set(this.contractErrorMessage(error));
+    } finally {
+      this.contractEmailing.set(null);
+    }
+  }
+
   openMilestoneModal(): void {
     this.actionError.set(null);
     this.actionSuccess.set(null);
@@ -457,22 +750,9 @@ export class OpportunityRoomComponent {
 
   closeActionModals(): void {
     if (this.isSubmittingAction()) return;
-    this.updateModalOpen.set(false);
     this.documentModalOpen.set(false);
     this.milestoneModalOpen.set(false);
     this.actionError.set(null);
-  }
-
-  setUpdateTitle(title: string): void {
-    this.updateForm.update(form => ({ ...form, title }));
-  }
-
-  setUpdateContent(content: string): void {
-    this.updateForm.update(form => ({ ...form, content }));
-  }
-
-  setUpdateIsPublic(isPublic: boolean): void {
-    this.updateForm.update(form => ({ ...form, isPublic }));
   }
 
   setMilestoneTitle(title: string): void {
@@ -502,19 +782,6 @@ export class OpportunityRoomComponent {
   onDocumentFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.selectedDocumentFile.set(input.files?.[0] ?? null);
-  }
-
-  async submitUpdate(): Promise<void> {
-    const form = this.updateForm();
-    if (!form.title.trim()) {
-      this.actionError.set(this.t('opportunityRoom.validation.updateTitleRequired'));
-      return;
-    }
-    await this.createEvent('ProjectUpdate', form.title, form.content, form.isPublic, this.t('opportunityRoom.toasts.updateAdded'), () => {
-      this.updateForm.set({ title: '', content: '', isPublic: false });
-      this.updateModalOpen.set(false);
-      this.activeTab.set('updates');
-    });
   }
 
   async submitMilestone(): Promise<void> {
@@ -821,6 +1088,11 @@ export class OpportunityRoomComponent {
     return !!detail && !!version && this.pdfDownloading() === this.contractVersionKey(detail.contract.contractId, version.versionNumber);
   }
 
+  isContractEmailing(version: InvestmentContractVersion | InvestmentContractVersionSummary | null): boolean {
+    const detail = this.selectedContract();
+    return !!detail && !!version && this.contractEmailing() === this.contractVersionKey(detail.contract.contractId, version.versionNumber);
+  }
+
   mediaUrl(item: OpportunityMedia): string {
     return this.fileStore.getPublicUrl(item.thumbnailUrl || item.previewUrl || item.fileUrl || '');
   }
@@ -834,7 +1106,17 @@ export class OpportunityRoomComponent {
   }
 
   eventTitle(item: OpportunityEvent): string {
-    return item.title || this.eventType(item) || this.t('opportunityRoom.fallback.projectUpdate');
+    return this.timelineText(item.titleKey || item.title, item.metadata)
+      || this.eventType(item)
+      || this.t('opportunityRoom.fallback.projectUpdate');
+  }
+
+  eventDescription(item: OpportunityEvent): string {
+    return this.timelineText(item.descriptionKey || item.description, item.metadata) || '-';
+  }
+
+  eventActor(item: OpportunityEvent): string {
+    return this.t(`projectActivity.actor.${item.actorType || 'System'}`);
   }
 
   eventType(item: OpportunityEvent): string {
@@ -842,7 +1124,7 @@ export class OpportunityRoomComponent {
   }
 
   eventDate(item: OpportunityEvent): string {
-    const raw = item.eventDate || item.date || item.createdAt;
+    const raw = item.occurredAt || item.eventDate || item.date || item.createdAt;
     if (!raw) return '-';
     const date = new Date(raw);
     return Number.isNaN(date.getTime()) ? String(raw) : date.toLocaleDateString();
@@ -865,14 +1147,12 @@ export class OpportunityRoomComponent {
 
   activityKindLabel(kind: ActivityFeedItem['kind']): string {
     if (kind === 'milestone') return this.t('opportunityRoom.fallback.milestoneUpdate');
-    if (kind === 'update') return this.t('opportunityRoom.fallback.update');
     if (kind === 'document') return this.t('opportunityRoom.fallback.publicDocument');
     return this.t('opportunityRoom.fallback.publicMedia');
   }
 
   activityKindClass(kind: ActivityFeedItem['kind']): string {
     if (kind === 'milestone') return 'investa-badge-accent';
-    if (kind === 'update') return '';
     if (kind === 'document') return 'bg-amber-500/10 text-amber-700 border-amber-500/30 dark:text-amber-200';
     return '';
   }
@@ -906,7 +1186,7 @@ export class OpportunityRoomComponent {
   }
 
   private sortEventsByDateDesc(items: OpportunityEvent[]): OpportunityEvent[] {
-    return [...items].sort((a, b) => this.dateValueFromRaw(b.eventDate || b.date || b.createdAt) - this.dateValueFromRaw(a.eventDate || a.date || a.createdAt));
+    return [...items].sort((a, b) => this.dateValueFromRaw(b.occurredAt || b.eventDate || b.date || b.createdAt) - this.dateValueFromRaw(a.occurredAt || a.eventDate || a.date || a.createdAt));
   }
 
   private sortMilestonesByDateDesc(items: OpportunityMilestone[]): OpportunityMilestone[] {
@@ -919,21 +1199,12 @@ export class OpportunityRoomComponent {
 
   private activityFeed(): ActivityFeedItem[] {
     const milestones: ActivityFeedItem[] = this.timeline().map((item, index) => ({
-      trackKey: `milestone:${item.id ?? item.eventDate ?? item.createdAt ?? 'na'}:${index}`,
+      trackKey: `milestone:${item.id ?? item.occurredAt ?? item.createdAt ?? 'na'}:${index}`,
       kind: 'milestone',
       title: this.eventTitle(item),
-      detail: item.description || 'Milestone update.',
+      detail: this.eventDescription(item),
       dateText: this.eventDate(item),
-      dateValue: this.dateValueFromRaw(item.eventDate || item.date || item.createdAt)
-    }));
-
-    const updates: ActivityFeedItem[] = this.updates().map((item, index) => ({
-      trackKey: `update:${item.id ?? item.eventDate ?? item.createdAt ?? 'na'}:${index}`,
-      kind: 'update',
-      title: this.eventTitle(item),
-      detail: item.description || 'Founder update.',
-      dateText: this.eventDate(item),
-      dateValue: this.dateValueFromRaw(item.eventDate || item.date || item.createdAt)
+      dateValue: this.dateValueFromRaw(item.occurredAt || item.eventDate || item.date || item.createdAt)
     }));
 
     const documents: ActivityFeedItem[] = this.documents().map((item, index) => ({
@@ -954,7 +1225,7 @@ export class OpportunityRoomComponent {
       dateValue: this.dateValueFromRaw(this.mediaRawDate(item))
     }));
 
-    return [...milestones, ...updates, ...documents, ...media].filter(item => item.dateValue > 0);
+    return [...milestones, ...documents, ...media].filter(item => item.dateValue > 0);
   }
 
   private milestoneToEvent(milestone: OpportunityMilestone): OpportunityEvent {
@@ -1047,6 +1318,32 @@ export class OpportunityRoomComponent {
     this.room.set(await this.opportunityService.getOpportunityRoom(id));
   }
 
+  private handleRealtimeEvent(event: RealtimeEvent): void {
+    if (event.type !== 'OpportunityRoomChanged' && event.type !== 'NotificationCreated') return;
+    const currentOpportunityId = String(this.opportunityId() ?? '');
+    const eventOpportunityId = String(event.data?.['opportunityId'] ?? '');
+    if (!currentOpportunityId || currentOpportunityId !== eventOpportunityId) return;
+    void this.queueRoomRefresh();
+  }
+
+  private async queueRoomRefresh(): Promise<void> {
+    if (this.roomRefreshInFlight) {
+      this.roomRefreshQueued = true;
+      return;
+    }
+
+    this.roomRefreshInFlight = this.refreshRoomData();
+    try {
+      await this.roomRefreshInFlight;
+    } finally {
+      this.roomRefreshInFlight = null;
+      if (this.roomRefreshQueued) {
+        this.roomRefreshQueued = false;
+        await this.queueRoomRefresh();
+      }
+    }
+  }
+
   private groupDocuments(documents: OpportunityDocument[]): Array<{ label: string; items: OpportunityDocument[] }> {
     const groups = [
       { label: 'Public Documents', keys: ['PublicDocument', 'OpportunityPublicDocument', '4'] },
@@ -1109,6 +1406,8 @@ export class OpportunityRoomComponent {
     if (status === 403 || normalized.includes('access denied')) return this.t('contracts.errors.accessDenied');
     if (status === 404 || normalized.includes('not found')) return this.t('contracts.errors.notFound');
     if (status === 409 || normalized.includes('generating')) return this.t('contracts.errors.pdfGenerating');
+    if (normalized.includes('verify your email') || normalized.includes('توثيق بريدك')) return this.t('contracts.errors.emailNotVerified');
+    if (raw) return String(raw);
     return this.t('contracts.errors.generic');
   }
 
@@ -1117,7 +1416,7 @@ export class OpportunityRoomComponent {
       .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
       .replace(/\son[a-z]+\s*=\s*(['"]).*?\1/gi, '')
       .replace(/\s(href|src)\s*=\s*(['"])\s*javascript:[\s\S]*?\2/gi, '');
-    return this.sanitizer.sanitize(SecurityContext.HTML, withoutScripts) ?? '';
+    return withoutScripts;
   }
 
   private saveBlob(blob: Blob, fileName: string): void {
@@ -1208,6 +1507,15 @@ export class OpportunityRoomComponent {
 
   private t(path: string): string {
     return this.languageService.translate(path);
+  }
+
+  private timelineText(key: string | null | undefined, metadata: Record<string, string | null> | null | undefined): string {
+    if (!key) return '';
+    const translated = this.t(key);
+    return Object.entries(metadata || {}).reduce(
+      (text, [name, value]) => text.replaceAll(`{${name}}`, value ?? ''),
+      translated
+    );
   }
 
   private toRoomError(error: unknown): RoomError {

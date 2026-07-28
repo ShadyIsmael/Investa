@@ -4,6 +4,7 @@ import { userService } from '@/services/userService';
 import { User } from '@/types';
 import UserOnboarding from '@/components/UserOnboarding';
 import PermissionControl from '@/components/common/PermissionControl';
+import UserDetailModal from './UserDetailModal';
 import { toast } from 'react-toastify';
 
 /**
@@ -16,6 +17,7 @@ export const UsersList: React.FC = React.memo(() => {
   const { t } = useTranslation();
   const [showOnboard, setShowOnboard] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [detailUserId, setDetailUserId] = useState<string | null>(null);
 
   // Filters and pagination
   const [searchQuery, setSearchQuery] = useState('');
@@ -74,14 +76,14 @@ export const UsersList: React.FC = React.memo(() => {
   const handleToggleStatus = useCallback(async (u: User) => {
     const nextStatus = u.status === 'Active' ? 'Inactive' : 'Active';
     try {
-      await userService.updateUser(u.id, { status: nextStatus });
-      setUsers(prev => prev.map(p => p.id === u.id ? { ...p, status: nextStatus } : p));
-      toast.success(`Status updated to ${nextStatus}`);
+      const res = await userService.updateUser(u.id, { status: nextStatus }) as any;
+      toast.success(res?.message || `Status update submitted for approval`);
+      load();
     } catch (err) {
       console.warn('Failed to update status', err);
       toast.error('Failed to update status');
     }
-  }, []);
+  }, [load]);
 
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -261,6 +263,7 @@ export const UsersList: React.FC = React.memo(() => {
                     <td className="px-3 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <PermissionControl permission="User.Manage">
+                          <button onClick={() => setDetailUserId(u.id)} className="px-2 py-1 border border-border rounded-md text-sm text-text hover:bg-background">View</button>
                           <button onClick={() => handleEdit(u)} className="px-2 py-1 border border-border rounded-md text-sm text-text hover:bg-background">Edit</button>
                           <button onClick={() => handleToggleStatus(u)} className="px-2 py-1 border border-border rounded-md text-sm text-text hover:bg-background">{u.status === 'Active' ? 'Deactivate' : 'Activate'}</button>
                           <button onClick={() => handleDelete(u)} className="px-2 py-1 border border-red-200 rounded-md text-sm text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:hover:bg-red-900/20">Delete</button>
@@ -323,6 +326,14 @@ export const UsersList: React.FC = React.memo(() => {
             <UserOnboarding editingUser={editingUser} onClose={(created) => { setShowOnboard(false); setEditingUser(null); if (created) load(); }} />
           </div>
         </div>
+      )}
+
+      {detailUserId && (
+        <UserDetailModal
+          userId={detailUserId}
+          onClose={() => setDetailUserId(null)}
+          onUserUpdated={() => load()}
+        />
       )}
     </div>
   );

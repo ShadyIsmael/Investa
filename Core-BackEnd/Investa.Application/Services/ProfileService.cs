@@ -17,12 +17,14 @@ public class ProfileService : IProfileService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly IWalletService _walletService;
+    private readonly ITrustService _trustService;
 
-    public ProfileService(IUnitOfWork unitOfWork, IMapper mapper, IWalletService walletService)
+    public ProfileService(IUnitOfWork unitOfWork, IMapper mapper, IWalletService walletService, ITrustService trustService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _walletService = walletService;
+        _trustService = trustService;
     }
 
 
@@ -121,6 +123,11 @@ public class ProfileService : IProfileService
         // Update contact info
         if (profileDto.ContactInfo != null)
         {
+            if (!string.Equals(profile.Email, profileDto.ContactInfo.Email, StringComparison.OrdinalIgnoreCase))
+            {
+                user.IsEmailVerified = false;
+                user.EmailVerifiedAtUtc = null;
+            }
             profile.Email = profileDto.ContactInfo.Email;
 
             if (!string.IsNullOrWhiteSpace(profileDto.ContactInfo.Phone1))
@@ -159,6 +166,8 @@ public class ProfileService : IProfileService
         profile.UpdatedAt = DateTime.UtcNow;
 
         await _unitOfWork.SaveChangesAsync();
+
+        await _trustService.RecalculateTrustAsync(userId);
 
         return await MapToProfileDtoAsync(user)!;
     }

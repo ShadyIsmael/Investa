@@ -11,8 +11,10 @@ import { FileStoreService } from '../../../services/file-store.service';
 import { Opportunity, OpportunityLookup, OpportunityMedia, OpportunityDocument, OpportunityEvent, OpportunityRoom, OpportunityService, OpportunityViewerState } from '../../../services/opportunity.service';
 import { PaidActionCode, PaidActionQuote, WalletService } from '../../../services/wallet.service';
 import { ReportReasonCode, ReportService, ReportTargetType } from '../../../services/report.service';
+import { CashFlowService, ParticipationPaymentSchedule, PaymentScheduleStatus } from '../../../services/cash-flow.service';
 import { OpportunityRequestKind } from '../../../models/request.model';
 import { ParticipationBuilderComponent } from '../../../components/participation-builder/participation-builder.component';
+import { RoleContextService } from '../../../services/role-context.service';
 import { get } from 'lodash-es';
 
 declare const ngDevMode: boolean;
@@ -82,11 +84,18 @@ export class InvestmentPreviewComponent {
   private opportunityService = inject(OpportunityService);
   private walletService = inject(WalletService);
   private reportService = inject(ReportService);
+  private cashFlowService = inject(CashFlowService);
+  private roleContext = inject(RoleContextService);
 
   protected readonly InvestmentType = InvestmentType;
 
   // User credits from UserService
   userCredits = this.userService.credits;
+
+  /** Back link: founders go to dashboard, investors go to opportunity exploration */
+  backLink = computed(() =>
+    this.roleContext.isFounderUser() ? '/admin/dashboard' : '/admin/investments'
+  );
 
   /** URL of the image currently shown in the lightbox (null = closed) */
   lightboxUrl = signal<string | null>(null);
@@ -207,7 +216,30 @@ export class InvestmentPreviewComponent {
 
   investment = signal<OpportunityView | null>(null);
   publicOpportunity = signal<Opportunity | null>(null);
+publicActivity = signal<OpportunityEvent[]>([]);
+publicActivityTotal = signal(0);
+publicActivityExpanded = signal(false);
+publicActivityLoading = signal(false);
+publicActivityPage = signal(1);
+readonly publicActivityPageSize = 10;
+publicActivityTotalPages = computed(() => Math.max(1, Math.ceil(this.publicActivityTotal() / this.publicActivityPageSize)));
+publicActivityHasPrevious = computed(() => this.publicActivityPage() > 1);
+publicActivityHasNext = computed(() => this.publicActivityPage() < this.publicActivityTotalPages());
+publicActivityError = signal<string | null>(null);
   viewerState = signal<OpportunityViewerState | null>(null);
+  paymentSchedule = signal<ParticipationPaymentSchedule | null>(null);
+  paymentScheduleLoading = signal(false);
+  paymentScheduleUnavailable = signal(false);
+  favoriteUpdating = signal(false);
+  paymentSchedulePage = signal(1);
+  paymentSchedulePageSize = signal(10);
+  readonly paymentSchedulePageSizes = [10, 25, 50];
+  paymentScheduleTotalPages = computed(() => Math.max(1, Math.ceil((this.paymentSchedule()?.items.length ?? 0) / this.paymentSchedulePageSize())));
+  visiblePaymentScheduleItems = computed(() => {
+    const items = this.paymentSchedule()?.items ?? [];
+    const start = (this.paymentSchedulePage() - 1) * this.paymentSchedulePageSize();
+    return items.slice(start, start + this.paymentSchedulePageSize());
+  });
   relationshipState = computed(() => this.getRelationshipState());
   participationStatus = this.relationshipState;
   // Cache of founder avatar URLs by userId
@@ -294,14 +326,18 @@ export class InvestmentPreviewComponent {
     try {
       const opportunityId = id;
       
-      // First try to load viewer state to determine if user is founder
+      const isAnonymousPublicRoute = this.router.url.startsWith('/opportunities/');
+
+      // Authenticated pages load relationship state. The anonymous public route
+      // deliberately avoids protected endpoints and uses only the public projection.
       let viewerState: OpportunityViewerState | null = null;
-      try {
-        viewerState = await this.opportunityService.getViewerState(opportunityId);
-        this.viewerState.set(viewerState);
-      } catch (error) {
-        // Viewer state might fail for public opportunities, continue
-        console.warn('Could not load viewer state, will try public endpoint');
+      if (!isAnonymousPublicRoute) {
+        try {
+          viewerState = await this.opportunityService.getViewerState(opportunityId);
+          this.viewerState.set(viewerState);
+        } catch {
+          this.viewerState.set(null);
+        }
       }
 
       // Load opportunity data
@@ -320,21 +356,32 @@ export class InvestmentPreviewComponent {
         opportunity = this.mergeAuthorizedRoomSummary(opportunity, room);
       }
 
+      // The public page always uses the public projection for activity, even when
+      // the current viewer also has founder/Project Room access.
+      if (viewerState?.isFounder) {
+        const publicProjection = await this.opportunityService.getPublicOpportunity(opportunityId);
+        opportunity.recentProjectActivity = publicProjection.recentProjectActivity;
+        opportunity.projectActivityTotalCount = publicProjection.projectActivityTotalCount;
+      }
+
       this.publicOpportunity.set(opportunity);
+      this.publicActivity.set([...(opportunity.recentProjectActivity ?? [])]);
+      this.publicActivityTotal.set(opportunity.projectActivityTotalCount ?? opportunity.recentProjectActivity?.length ?? 0);
+      this.publicActivityExpanded.set(false);
+      this.publicActivityPage.set(1);
       this.investment.set(this.toOpportunityView(opportunity));
+      await this.loadPaymentSchedule(viewerState);
 
       if (typeof ngDevMode !== 'undefined' && ngDevMode) {
         console.log('Opportunity loaded', opportunity, 'isFounder:', viewerState?.isFounder);
       }
       
-      // Load founder avatar if founderId present
-      try {
-        const founderId = this.getFounderId(opportunity);
-        if (founderId) {
-          this.loadFounderAvatar(founderId);
-        }
-      } catch (err) {
-        // ignore
+      // The Opportunity DTO is authoritative for founder media. Avoid probing the
+      // file-store profile endpoint when the DTO has no avatar; the UI uses initials.
+      const founderId = this.getFounderId(opportunity);
+      if (founderId) {
+        const avatarUrl = this.resolveImageUrl(opportunity.founder?.avatarUrl);
+        this.founderAvatarCache.update(cache => ({ ...cache, [founderId]: avatarUrl }));
       }
     } catch (error) {
       console.error('Error loading investment:', error);
@@ -344,6 +391,71 @@ export class InvestmentPreviewComponent {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  private async loadPaymentSchedule(state: OpportunityViewerState | null): Promise<void> {
+    this.paymentScheduleUnavailable.set(false);
+    const participationId = state?.participationRequestId;
+    const approved = String(state?.participationStatus ?? '').toLowerCase().includes('approved') || state?.projectRoomUnlocked === true;
+    if (!participationId || !approved) {
+      this.paymentSchedule.set(null);
+      return;
+    }
+    this.paymentScheduleLoading.set(true);
+    try {
+      this.paymentSchedule.set(await this.cashFlowService.getParticipationSchedule(participationId));
+      this.paymentSchedulePage.set(1);
+    } catch (error) {
+      console.warn('Payment schedule is not available for this participation.', error);
+      this.paymentSchedule.set(null);
+      this.paymentScheduleUnavailable.set(true);
+    } finally {
+      this.paymentScheduleLoading.set(false);
+    }
+  }
+
+  scheduleStatusKey(status: PaymentScheduleStatus): string {
+    return `investmentPreview.cashFlow.status.${status}`;
+  }
+
+  async toggleOpportunityFavorite(opportunity: Opportunity): Promise<void> {
+    if (this.favoriteUpdating()) return;
+    const id = this.getPublicOpportunityId(opportunity);
+    if (id == null) return;
+    const previous = !!opportunity.favorited;
+    this.favoriteUpdating.set(true);
+    this.publicOpportunity.update(current => current ? { ...current, favorited: !previous } : current);
+    this.investment.update(current => current ? { ...current, favorited: !previous } : current);
+    try {
+      const result = await this.opportunityService.setFavorite(id, !previous);
+      this.publicOpportunity.update(current => current ? { ...current, favorited: result.favorited } : current);
+      this.investment.update(current => current ? { ...current, favorited: result.favorited } : current);
+    } catch (error) {
+      this.publicOpportunity.update(current => current ? { ...current, favorited: previous } : current);
+      this.investment.update(current => current ? { ...current, favorited: previous } : current);
+      console.error('Failed to update favorite status', error);
+    } finally {
+      this.favoriteUpdating.set(false);
+    }
+  }
+
+  paymentScheduleRangeStart(): number {
+    return this.paymentSchedule()?.items.length ? (this.paymentSchedulePage() - 1) * this.paymentSchedulePageSize() + 1 : 0;
+  }
+
+  paymentScheduleRangeEnd(): number {
+    return Math.min(this.paymentSchedulePage() * this.paymentSchedulePageSize(), this.paymentSchedule()?.items.length ?? 0);
+  }
+
+  setPaymentSchedulePage(page: number): void {
+    this.paymentSchedulePage.set(Math.min(Math.max(1, page), this.paymentScheduleTotalPages()));
+  }
+
+  setPaymentSchedulePageSize(event: Event): void {
+    const size = Number((event.target as HTMLSelectElement).value);
+    if (!this.paymentSchedulePageSizes.includes(size)) return;
+    this.paymentSchedulePageSize.set(size);
+    this.paymentSchedulePage.set(1);
   }
 
   private async loadViewerState(opportunityId: number): Promise<void> {
@@ -659,6 +771,73 @@ export class InvestmentPreviewComponent {
     return this.getOpportunityEvents(opportunity).filter(event => this.isOperationalUpdate(event));
   }
 
+  async viewMoreProjectActivity(): Promise<void> {
+    const opportunityId = this.getPublicOpportunityId(this.publicOpportunity());
+    if (!opportunityId || this.publicActivityLoading()) return;
+    this.publicActivityLoading.set(true);
+    this.publicActivityError.set(null);
+    try {
+      const page = await this.opportunityService.getPublicProjectActivity(opportunityId, 1, this.publicActivityPageSize);
+      this.publicActivity.set(page.items ?? []);
+      this.publicActivityTotal.set(page.total ?? 0);
+      this.publicActivityPage.set(1);
+      this.publicActivityExpanded.set(true);
+    } catch (e) {
+      this.publicActivityError.set('Failed to load project activity.');
+    } finally {
+      this.publicActivityLoading.set(false);
+    }
+  }
+
+  async goToProjectActivityPage(pageNum: number): Promise<void> {
+    const opportunityId = this.getPublicOpportunityId(this.publicOpportunity());
+    if (!opportunityId || this.publicActivityLoading()) return;
+    this.publicActivityLoading.set(true);
+    this.publicActivityError.set(null);
+    try {
+      const page = await this.opportunityService.getPublicProjectActivity(opportunityId, pageNum, this.publicActivityPageSize);
+      this.publicActivity.set(page.items ?? []);
+      this.publicActivityTotal.set(page.total ?? 0);
+      this.publicActivityPage.set(page.page ?? pageNum);
+    } catch (e) {
+      this.publicActivityError.set('Failed to load project activity.');
+    } finally {
+      this.publicActivityLoading.set(false);
+    }
+  }
+
+  previousProjectActivityPage(): void {
+    const prev = this.publicActivityPage() - 1;
+    if (prev >= 1) this.goToProjectActivityPage(prev);
+  }
+
+  nextProjectActivityPage(): void {
+    const next = this.publicActivityPage() + 1;
+    if (next <= this.publicActivityTotalPages()) this.goToProjectActivityPage(next);
+  }
+
+  publicActivityTitle(event: OpportunityEvent): string {
+    return this.publicActivityText(event.titleKey || event.title, event.metadata)
+      || this.t('investmentPreview.public.projectActivityFallback');
+  }
+
+  publicActivityDescription(event: OpportunityEvent): string {
+    return this.publicActivityText(event.descriptionKey || event.description, event.metadata);
+  }
+
+  publicActivityDate(event: OpportunityEvent): string | null {
+    return event.occurredAt || event.createdAt || null;
+  }
+
+  private publicActivityText(key: string | null | undefined, metadata: Record<string, string | null> | null | undefined): string {
+    if (!key) return '';
+    let value = this.t(key);
+    for (const [name, replacement] of Object.entries(metadata ?? {})) {
+      value = value.split(`{{${name}}}`).join(replacement ?? '');
+    }
+    return value;
+  }
+
   getEventDate(event: OpportunityEvent | null): string | null {
     return event?.eventDate || event?.date || event?.createdAt || null;
   }
@@ -743,19 +922,6 @@ export class InvestmentPreviewComponent {
     return match ? Number(match[1]) : undefined;
   }
 
-  private async loadFounderAvatar(userId: string): Promise<void> {
-    if (!userId) return;
-    // Already cached
-    if (Object.prototype.hasOwnProperty.call(this.founderAvatarCache(), userId)) return;
-    try {
-      const url = await this.fileStoreService.getProfilePictureUrl(userId);
-      this.founderAvatarCache.update(m => ({ ...(m || {}), [userId]: url || '' }));
-    } catch (err) {
-      this.founderAvatarCache.update(m => ({ ...(m || {}), [userId]: '' }));
-      console.warn('Failed to load founder avatar for', userId, err);
-    }
-  }
-
   onFounderAvatarError(userId: string): void {
     if (!userId) return;
     this.founderAvatarCache.update(m => ({ ...(m || {}), [userId]: '' }));
@@ -766,7 +932,7 @@ export class InvestmentPreviewComponent {
     const uid = this.getFounderId(inv);
     const cached = uid ? this.founderAvatarCache()[uid] : undefined;
     if (cached) return cached;
-    return this.getOpportunityCoverUrl(inv);
+    return '';
   }
 
   getHeroImageUrl(inv: OpportunityView | null): string {

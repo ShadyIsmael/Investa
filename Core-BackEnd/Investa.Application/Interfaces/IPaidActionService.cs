@@ -24,4 +24,5 @@ public class PaidActionQuoteDto
     public decimal CurrentBalance { get; set; }
     public decimal BalanceAfter { get; set; }
     public bool HasSufficientCredit { get; set; }
+    public bool ChargingEnabled { get; set; }
 }

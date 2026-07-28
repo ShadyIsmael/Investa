@@ -11,12 +11,12 @@
     <div *ngFor="let item of [1,2,3]" class="h-28 animate-pulse rounded-xl border border-slate-800 bg-slate-900/80"></div>
   </div>
   <div *ngIf="errorMessage() && !isLoading()" class="rounded-lg border border-red-500/50 bg-red-500/20 p-4 text-red-200">{{ errorMessage() }}</div>
-  <div *ngIf="!isLoading() && !errorMessage() && opportunities().length === 0" class="rounded-xl border border-slate-800 bg-slate-900/80 p-12 text-center">
+  <div *ngIf="!isLoading() && !errorMessage() && opportunities().length === 0" class="investa-panel p-12 text-center">
     <p class="text-gray-400">You have not created any opportunities yet.</p>
     <a *ngIf="roleContext.canCreateOpportunity()" routerLink="/admin/investments/new" class="mt-4 inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">Create your first opportunity</a>
   </div>
 
-  <div *ngIf="!isLoading() && opportunities().length > 0" class="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/80">
+  <div *ngIf="!isLoading() && opportunities().length > 0" class="investa-panel p-0 overflow-hidden">
     <table class="min-w-full divide-y divide-slate-800">
       <thead class="bg-slate-950/50">
         <tr>

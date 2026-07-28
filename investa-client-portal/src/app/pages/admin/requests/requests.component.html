@@ -1,31 +1,32 @@
 <main class="requests-page">
   <div class="requests-shell">
-    <header class="page-header panel-card">
+    <header class="page-header investa-panel">
       <div class="title-block">
         <p class="eyebrow">{{ 'requests.workspace.eyebrow' | translate }}</p>
         <h1>{{ 'requests.title' | translate }}</h1>
         <p>{{ 'requests.workspace.subtitle' | translate }}</p>
       </div>
-      <div class="header-counts" aria-label="Request totals">
-        <div><span>{{ 'requests.incoming' | translate }}</span><strong>{{ incomingCount() }}</strong></div>
-        <div><span>{{ 'requests.outgoing' | translate }}</span><strong>{{ outgoingCount() }}</strong></div>
+      <div class="header-counts" role="tablist" [attr.aria-label]="'requests.workspace.filtersLabel' | translate">
+        <button type="button"
+                role="tab"
+                [attr.aria-selected]="tab() === 'incoming'"
+                [class.active]="tab() === 'incoming'"
+                (click)="switchTab('incoming')">
+          <span>{{ 'requests.incoming' | translate }}</span>
+          <strong>{{ incomingCount() }}</strong>
+        </button>
+        <button type="button"
+                role="tab"
+                [attr.aria-selected]="tab() === 'outgoing'"
+                [class.active]="tab() === 'outgoing'"
+                (click)="switchTab('outgoing')">
+          <span>{{ 'requests.outgoing' | translate }}</span>
+          <strong>{{ outgoingCount() }}</strong>
+        </button>
       </div>
     </header>
 
-    <nav class="direction-tabs panel-card" role="tablist">
-      <button type="button" role="tab" [attr.aria-selected]="tab() === 'incoming'" [class.active]="tab() === 'incoming'" (click)="switchTab('incoming')">
-        <span class="tab-icon" aria-hidden="true">↙</span>
-        {{ 'requests.incoming' | translate }}
-        <span class="count-badge">{{ incomingCount() }}</span>
-      </button>
-      <button type="button" role="tab" [attr.aria-selected]="tab() === 'outgoing'" [class.active]="tab() === 'outgoing'" (click)="switchTab('outgoing')">
-        <span class="tab-icon" aria-hidden="true">↗</span>
-        {{ 'requests.outgoing' | translate }}
-        <span class="count-badge">{{ outgoingCount() }}</span>
-      </button>
-    </nav>
-
-    <section class="filter-bar panel-card" [attr.aria-label]="'requests.workspace.filtersLabel' | translate">
+    <section class="filter-bar investa-panel" [attr.aria-label]="'requests.workspace.filtersLabel' | translate">
       <label class="search-control">
         <span aria-hidden="true">⌕</span>
         <input type="search" [value]="searchTerm()" (input)="setSearchTerm($event.target.value)" [placeholder]="'requests.workspace.search' | translate">
@@ -60,12 +61,12 @@
     </section>
 
     <section class="type-overview">
-      <article class="type-summary conversation-summary panel-card">
+      <article class="type-summary conversation-summary investa-panel">
         <div class="summary-icon" aria-hidden="true">↔</div>
         <div><h2>{{ 'requests.sections.conversationRequests' | translate }}</h2><p>{{ 'requests.sections.conversationHelper' | translate }}</p></div>
         <strong>{{ currentConversationCount() }}</strong>
       </article>
-      <article class="type-summary participation-summary panel-card">
+      <article class="type-summary participation-summary investa-panel">
         <div class="summary-icon" aria-hidden="true">✓</div>
         <div><h2>{{ 'requests.sections.participationRequests' | translate }}</h2><p>{{ 'requests.sections.participationHelper' | translate }}</p></div>
         <strong>{{ currentParticipationCount() }}</strong>
@@ -73,9 +74,9 @@
     </section>
 
     @if (loading()) {
-      <section class="state-card panel-card"><span class="spinner"></span><h2>{{ 'requests.states.loading' | translate }}</h2></section>
+      <section class="state-card investa-panel"><span class="spinner"></span><h2>{{ 'requests.states.loading' | translate }}</h2></section>
     } @else if (loadError()) {
-      <section class="state-card state-card--error panel-card"><span class="state-icon">!</span><h2>{{ loadError() }}</h2><button type="button" class="secondary-button" (click)="refresh()">{{ 'requests.states.retry' | translate }}</button></section>
+      <section class="state-card state-card--error investa-panel"><span class="state-icon">!</span><h2>{{ loadError() }}</h2><button type="button" class="secondary-button" (click)="refresh()">{{ 'requests.states.retry' | translate }}</button></section>
     } @else {
       <section class="request-sections">
         @for (request of paginatedRequests(); track request.id) {
@@ -86,16 +87,23 @@
             </header>
           }
 
-          <article class="request-card panel-card" [class.request-card--conversation]="isConversationRequest(request)" [class.request-card--participation]="!isConversationRequest(request)">
+          <article class="request-card investa-panel" [class.request-card--conversation]="isConversationRequest(request)" [class.request-card--participation]="!isConversationRequest(request)">
             <div class="status-rail" [class.pending]="statusTone(request) === 'pending'" [class.success]="statusTone(request) === 'success'" [class.danger]="statusTone(request) === 'danger'"></div>
             <header class="request-header">
               <div class="person-block">
-                <div class="avatar">{{ initials(getCounterpartyName(request)) }}</div>
-                <div>
-                  <p class="direction-label">{{ request.direction === 'incoming' ? ('requests.from' | translate) : ('requests.to' | translate) }}</p>
-                  <h3>{{ getCounterpartyName(request) }}</h3>
-                  <time>{{ getExactDateTime(request.createdAt) }}</time>
-                </div>
+                <button type="button"
+                        class="counterparty-link"
+                        [class.counterparty-link--disabled]="!canOpenCounterpartyProfile(request)"
+                        [disabled]="!canOpenCounterpartyProfile(request)"
+                        (click)="openCounterpartyProfile(request)"
+                        [attr.aria-label]="getCounterpartyName(request)">
+                  <span class="avatar">{{ initials(getCounterpartyName(request)) }}</span>
+                  <span class="counterparty-copy">
+                    <span class="direction-label">{{ request.direction === 'incoming' ? ('requests.from' | translate) : ('requests.to' | translate) }}</span>
+                    <strong>{{ getCounterpartyName(request) }}</strong>
+                    <time>{{ getExactDateTime(request.createdAt) }}</time>
+                  </span>
+                </button>
               </div>
               <div class="badges">
                 <span class="type-badge" [class.participation]="!isConversationRequest(request)">{{ getRequestTypeDisplay(request) }}</span>
@@ -157,12 +165,12 @@
             }
           </article>
         } @empty {
-          <section class="state-card panel-card"><span class="state-icon">↔</span><h2>{{ getEmptyTitle() }}</h2><p>{{ getEmptySubtitle() }}</p></section>
+          <section class="state-card investa-panel"><span class="state-icon">↔</span><h2>{{ getEmptyTitle() }}</h2><p>{{ getEmptySubtitle() }}</p></section>
         }
       </section>
 
       @if (totalPages() > 1) {
-        <nav class="pagination panel-card" [attr.aria-label]="'requests.workspace.pagination' | translate">
+        <nav class="pagination investa-panel" [attr.aria-label]="'requests.workspace.pagination' | translate">
           <button type="button" class="secondary-button" (click)="previousPage()" [disabled]="currentPage() === 1">{{ 'requests.workspace.previous' | translate }}</button>
           <span>{{ 'requests.workspace.page' | translate }} {{ currentPage() }} / {{ totalPages() }}</span>
           <button type="button" class="secondary-button" (click)="nextPage()" [disabled]="currentPage() === totalPages()">{{ 'requests.workspace.next' | translate }}</button>

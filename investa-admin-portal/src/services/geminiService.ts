@@ -13,7 +13,7 @@ export const generateExecutiveSummary = async (data: object) => {
   if (!ai) throw new Error("API Key is missing.");
 
   const prompt = `
-    You are a senior data analyst for Investa Admin. 
+    You are a senior data analyst for FOPX One Admin. 
     Analyze the following dashboard data JSON and provide:
     1. A brief executive summary (max 2 sentences).
     2. Three actionable bullet points for improvement or attention.
@@ -47,7 +47,7 @@ export const performAiSearch = async (query: string, data: any) => {
     ${JSON.stringify(data)}
 
     Instructions:
-    Interpret the user's intent. They are searching an admin portal for Investa.
+    Interpret the user's intent. They are searching an admin portal for FOPX One.
     Find relevant users, dashboard metrics, or ledger accounts from the Chart of Accounts.
     If they ask "What's the balance of Petty Cash?", find the Petty Cash account.
     If they ask about performance, return the relevant stat.

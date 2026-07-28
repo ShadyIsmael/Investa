@@ -50,7 +50,7 @@ namespace Investa.Application.Services
 
 
 
-        // New SignalR Chat Methods
+        // Chat Methods
 
         public async Task<SupportSession> RequestSupportAsync(string userMobile)
 

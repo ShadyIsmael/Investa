@@ -12,6 +12,7 @@ export type PdfGenerationStatus = 0 | 1 | 2 | 3 | string;
 export interface InvestmentContractSummary {
   contractId: number;
   contractNumber: string;
+  investorUserId: string;
   founderDisplayName: string;
   investorDisplayName: string;
   investmentModel: string | number;
@@ -53,6 +54,11 @@ export interface ContractPdfDownload {
   fileName: string;
 }
 
+export interface EmailContractResult {
+  emailOutboxId: number;
+  operationId: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ContractService {
   constructor(
@@ -92,6 +98,21 @@ export class ContractService {
       blob: response.body ?? new Blob([], { type: 'application/pdf' }),
       fileName: this.fileNameFromResponse(response) || `contract-v${versionNumber}.pdf`
     };
+  }
+
+  async emailContract(contractId: string | number, versionNumber: string | number, language: 'en' | 'ar'): Promise<EmailContractResult> {
+    const operationId = crypto.randomUUID();
+    const headers = this.authHeaders()
+      .set('Idempotency-Key', operationId)
+      .set('Accept-Language', language);
+    const raw = await firstValueFrom(
+      this.http.post<ApiResponse<EmailContractResult> | EmailContractResult>(
+        `${this.apiBase}/api/v1/contracts/${encodeURIComponent(String(contractId))}/versions/${encodeURIComponent(String(versionNumber))}/email`,
+        {},
+        { headers }
+      )
+    );
+    return this.extractData(raw, 'Failed to email contract.');
   }
 
   private async getList<T = any>(path: string): Promise<T[]> {

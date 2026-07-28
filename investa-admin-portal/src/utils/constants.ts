@@ -4,6 +4,11 @@
 
 import { NavItem } from '@/types';
 
+export const BRAND = {
+  name: 'FOPX One',
+  shortName: 'FOPX One',
+};
+
 export const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', labelKey: 'nav.dashboard', iconName: 'grid', path: '/', permissions: ['Dashboard.View'] },
   { id: 'clients', label: 'Clients', labelKey: 'nav.clients', iconName: 'briefcase', path: '/clients', permissions: ['Client.View', 'Client.Manage'] },
@@ -132,4 +137,5 @@ export const NAV_ITEMS: NavItem[] = [
   },
   { id: 'system-config', label: 'System Configuration', labelKey: 'nav.systemConfiguration', iconName: 'cog', path: '/system-config', permissions: ['System.Configure'] },
   { id: 'settings', label: 'Global Settings', labelKey: 'nav.globalSettings', iconName: 'adjustments', path: '/settings', permissions: ['Settings.Manage'] },
+  { id: 'admin-users-approval', label: 'User Changes', labelKey: 'nav.adminUserChanges', iconName: 'clipboard-check', path: '/admin-users/approval', permissions: ['AdminUsers.ApproveChanges'] },
 ];

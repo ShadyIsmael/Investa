@@ -56,13 +56,15 @@
     </div>
   } @else {
 
-    <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl overflow-hidden">
+    <div class="investa-panel p-0 overflow-hidden">
       <ul class="divide-y divide-slate-800">
         @for(notification of filteredNotifications(); track notification.id) {
-          <li (click)="markAsRead(notification)"
+          <li (click)="openNotification(notification)"
               class="group p-4 sm:p-5 flex items-start gap-4 transition-colors duration-200"
-              [class.hover:bg-slate-800/50]="!notification.read"
-              [class.cursor-pointer]="!notification.read"
+              [class.hover:bg-slate-800/50]="!isOpening(notification)"
+              [class.cursor-pointer]="!isOpening(notification)"
+              [class.pointer-events-none]="isOpening(notification)"
+              [attr.aria-busy]="isOpening(notification)"
               [class.bg-blue-950/10]="!notification.read">
 
             <!-- Type icon -->
@@ -98,11 +100,10 @@
                 {{ notification.message }}
               </p>
               @if (notification.actionUrl) {
-                <a [href]="notification.actionUrl"
-                   (click)="$event.stopPropagation()"
+                <span
                    class="inline-block mt-2 text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors">
                   View details →
-                </a>
+                </span>
               }
             </div>
 
@@ -110,6 +111,11 @@
             <div class="flex-shrink-0 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
               @if(!notification.read) {
                 <div class="w-2.5 h-2.5 bg-blue-500 rounded-full opacity-100" [title]="'notifications.unread' | translate"></div>
+                <button (click)="markAsReadOnly(notification, $event)"
+                        [title]="'notifications.markAllRead' | translate"
+                        class="text-gray-500 hover:text-blue-300 p-1.5 rounded-full hover:bg-slate-700 transition-colors">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                </button>
               }
               <button (click)="deleteNotification(notification.id, $event)"
                       [title]="'notifications.delete' | translate"

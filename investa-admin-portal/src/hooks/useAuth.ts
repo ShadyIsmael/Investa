@@ -28,7 +28,7 @@ export function useAuth(onRedirect?: (path: string) => void): UseAuthReturn {
       onRedirect(redirect);
     }
     
-    // Emit login event for SignalR and other listeners
+    // Emit login event for listeners
     try {
       window.dispatchEvent(new CustomEvent('investa:auth:login'));
     } catch (e) {
@@ -41,7 +41,7 @@ export function useAuth(onRedirect?: (path: string) => void): UseAuthReturn {
     setAuthToken(null);
     storage.remove(ADMIN_AUTHENTICATED_KEY);
     
-    // Emit logout event for SignalR and other listeners
+    // Emit logout event for listeners
     try {
       window.dispatchEvent(new CustomEvent('investa:auth:logout'));
     } catch (e) {

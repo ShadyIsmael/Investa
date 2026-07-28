@@ -20,7 +20,9 @@ public sealed class FinancePermissionBackfillService
         (SystemPermissions.FinanceReview, "Review Finance Transactions", "Review and reject Company Finance transactions"),
         (SystemPermissions.FinanceConfirm, "Confirm Finance Transactions", "Approve and confirm Company Finance transactions"),
         (SystemPermissions.FinanceReverse, "Reverse Finance Transactions", "Reverse confirmed Company Finance transactions"),
-        (SystemPermissions.FinanceManageMasterData, "Manage Finance Master Data", "Manage Company Finance accounts, suppliers, and categories")
+        (SystemPermissions.FinanceManageMasterData, "Manage Finance Master Data", "Manage Company Finance accounts, suppliers, and categories"),
+        (SystemPermissions.FinanceRecordPayment, "Record Investor Payment", "Record an investor payment against a participation"),
+        (SystemPermissions.FinanceReversePayment, "Reverse Investor Payment", "Reverse a previously recorded investor payment")
     };
 
     private readonly ApplicationDbContext _context;

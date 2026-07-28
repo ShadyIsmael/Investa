@@ -31,5 +31,22 @@ public class OpportunityEvent
 
     public bool IsPublic { get; set; }
 
+    [StringLength(30)]
+    public string? ActorType { get; set; }
+
+    [StringLength(100)]
+    public string? RelatedEntityType { get; set; }
+
+    [StringLength(100)]
+    public string? RelatedEntityId { get; set; }
+
+    [StringLength(2000)]
+    public string? LocalizedMetadataJson { get; set; }
+
+    [StringLength(200)]
+    public string? IdempotencyKey { get; set; }
+
+    public bool IsImmutableTimelineEntry { get; set; }
+
     public Opportunity? Opportunity { get; set; }
 }

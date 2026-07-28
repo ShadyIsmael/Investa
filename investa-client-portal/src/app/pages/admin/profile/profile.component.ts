@@ -13,6 +13,8 @@ import { MyParticipation, Opportunity, OpportunityService } from '../../../servi
 import { SettingsService } from '../../../services/settings.service';
 import { DashboardDensity, DefaultInvestmentTypePreference, ThemePreference } from '../../../models/settings.model';
 import { walletReasonKey, WalletService, WalletTransaction } from '../../../services/wallet.service';
+import { MatDialog } from '@angular/material/dialog';
+import { EmailOtpDialogComponent } from '../../../components/email-otp-dialog/email-otp-dialog.component';
 
 export const passwordMatchValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
   const password = control.get('newPassword');
@@ -69,6 +71,7 @@ export class ProfileComponent {
   private fileStoreService = inject(FileStoreService);
   private opportunityService = inject(OpportunityService);
   private walletService = inject(WalletService);
+  private dialog = inject(MatDialog);
 
   private t(path: string): string {
     return this.languageService.translate(path);
@@ -149,7 +152,7 @@ export class ProfileComponent {
   profileFormValues = toSignal(this.profileForm.valueChanges, { initialValue: this.profileForm.value });
 
   communicationForm = new FormGroup({
-    email: new FormControl(''),
+    email: new FormControl('', [Validators.email]),
     mobile: new FormControl({ value: '', disabled: true }),
     address: new FormControl(''),
     city: new FormControl(''),
@@ -819,6 +822,46 @@ export class ProfileComponent {
       const message = this.errorMessageFrom(e, 'profile.toasts.saveFailedMessage');
       this.errorMessage.set(message);
       this.notificationService.showToast({ title: this.t('profile.toasts.saveFailedTitle'), message, type: 'error' });
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  async verifyEmail(): Promise<void> {
+    const control = this.communicationForm.get('email');
+    control?.markAsTouched();
+    if (!control?.value || control.invalid || this.isLoading()) return;
+    const email = control.value.trim();
+    this.isLoading.set(true);
+    try {
+      const currentEmail = this.profileService.profile()?.contactInfo?.email ?? '';
+      if (email.toLowerCase() !== currentEmail.toLowerCase()) {
+        await this.profileService.updateMyProfile(this.buildProfileUpdatePayload());
+      }
+      await this.profileService.sendEmailOtp(email);
+      const verified = await new Promise<boolean>(resolve => {
+        this.dialog.open(EmailOtpDialogComponent, {
+          data: { email }, disableClose: true, autoFocus: true, restoreFocus: true
+        }).afterClosed().subscribe(result => resolve(result === true));
+      });
+      if (verified) {
+        await this.profileService.loadMyProfile();
+        this.notificationService.showToast({
+          title: this.isRtl() ? 'تم التأكيد' : 'Verified',
+          message: this.isRtl() ? 'تم تأكيد بريدك الإلكتروني بنجاح.' : 'Your email has been verified successfully.',
+          type: 'success'
+        });
+      }
+    } catch (error: unknown) {
+      const record = error as { error?: { message?: string } };
+      const duplicate = record?.error?.message === 'EMAIL_ALREADY_USED';
+      this.notificationService.showToast({
+        title: this.isRtl() ? 'تعذر التأكيد' : 'Verification failed',
+        message: duplicate
+          ? (this.isRtl() ? 'هذا البريد الإلكتروني مرتبط بحساب آخر.' : 'This email is already linked to another account.')
+          : (this.isRtl() ? 'تعذر إرسال رمز التأكيد.' : 'Could not send the verification code.'),
+        type: 'error'
+      });
     } finally {
       this.isLoading.set(false);
     }

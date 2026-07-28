@@ -22,7 +22,6 @@ export interface BasicInfo {
   websiteUrl?: string | null;
   verificationStatus?: string | null;
   isKycVerified?: boolean;
-  kycCompletionPercentage?: number;
 }
 
 export interface ContactInfo {
@@ -45,6 +44,8 @@ export interface CoreMetrics {
   clientType?: string | null;
   credibilityScore?: number | null;
   currentCredibilityScore?: number | null;
+  isEmailVerified?: boolean;
+  emailVerifiedAtUtc?: string | null;
 }
 
 export interface IdentityCompliance {
@@ -68,6 +69,7 @@ export interface UserProfile {
   auditUsage?: {
     lastLoginDate?: string | null;
   } | null;
+  profileCompletionPercentage?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -129,14 +131,6 @@ export class ProfileService {
       const resp = this.extractData<UserProfile>(raw);
       console.debug('[ProfileService] loadMyProfile: response', resp || raw);
       if (resp) {
-        // Compute KYC completion percentage client-side if backend doesn't provide it
-        try {
-          const pct = this.computeKycCompletion(resp);
-          if (!resp.basicInfo) resp.basicInfo = {} as BasicInfo;
-          resp.basicInfo.kycCompletionPercentage = pct;
-        } catch (e) {
-          // ignore compute errors
-        }
         this._profile.set(resp);
         return resp;
       }
@@ -158,11 +152,6 @@ export class ProfileService {
       const resp = this.extractData<UserProfile>(raw);
       console.debug('[ProfileService] startKyc: response', resp || raw);
       if (resp) {
-        try {
-          const pct = this.computeKycCompletion(resp);
-          if (!resp.basicInfo) resp.basicInfo = {} as BasicInfo;
-          resp.basicInfo.kycCompletionPercentage = pct;
-        } catch {}
         this._profile.set(resp);
         return resp;
       }
@@ -206,6 +195,27 @@ export class ProfileService {
       console.error('[ProfileService] confirmPasswordChange failed', err);
       throw err;
     }
+  }
+
+  async sendEmailOtp(email: string): Promise<void> {
+    await this.postEmailOtp('send-otp', { email });
+  }
+
+  async resendEmailOtp(email: string): Promise<void> {
+    await this.postEmailOtp('resend-otp', { email });
+  }
+
+  async verifyEmailOtp(email: string, otp: string): Promise<void> {
+    await this.postEmailOtp('verify-otp', { email, otp });
+  }
+
+  private async postEmailOtp(action: string, payload: { email: string; otp?: string }): Promise<void> {
+    const url = `${this.apiBase}/api/v1/auth/email-verification/${action}`;
+    const token = this.getAccessTokenFromLocalStorage();
+    const options = token ? { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) } : undefined;
+    const raw = await firstValueFrom(this.http.post<unknown>(url, payload, options));
+    const envelope = this.asEnvelope(raw);
+    if (envelope?.success === false) throw new Error(envelope.message || 'EMAIL_OTP_FAILED');
   }
 
   async updateMyProfile(profile: UserProfile): Promise<UserProfile | null> {
@@ -268,11 +278,6 @@ export class ProfileService {
       const resp = this.extractData<UserProfile>(raw);
       console.debug('[ProfileService] updateMyProfile: response', resp || raw);
       if (resp) {
-        try {
-          const pct = this.computeKycCompletion(resp);
-          if (!resp.basicInfo) resp.basicInfo = {} as BasicInfo;
-          resp.basicInfo.kycCompletionPercentage = pct;
-        } catch {}
         this._profile.set(resp);
         return resp;
       }
@@ -330,43 +335,6 @@ export class ProfileService {
 
   private asRecord(value: unknown): Record<string, unknown> | null {
     return typeof value === 'object' && value !== null ? value as Record<string, unknown> : null;
-  }
-
-  /**
-   * Compute a simple KYC completion percentage based on presence of key profile fields.
-   * This is a client-side heuristic used when backend doesn't provide an explicit percentage.
-   */
-  private computeKycCompletion(profile: UserProfile): number {
-    if (!profile) return 0;
-
-    // New KYC rules (client-side heuristic): count these five fields equally:
-    // - name (first and/or last or fullName)
-    // - mobile (contactInfo.phone1)
-    // - email (contactInfo.email)
-    // - national ID (identityCompliance.documentNumber)
-    // - ID images (documentFrontImageUrl or documentBackImageUrl)
-
-    const checks: Array<() => boolean> = [
-      // Name: either fullName or both/one of first/last
-      () => !!(profile.basicInfo?.fullName || profile.basicInfo?.firstName || profile.basicInfo?.lastName),
-      // Mobile
-      () => !!(profile.contactInfo?.phone1 || profile.contactInfo?.phone2),
-      // Email
-      () => !!profile.contactInfo?.email,
-      // National ID number
-      () => !!profile.identityCompliance?.documentNumber,
-      // ID images uploaded (front or back)
-      () => !!(profile.identityCompliance?.documentFrontImageUrl || profile.identityCompliance?.documentBackImageUrl)
-    ];
-
-    const total = checks.length;
-    let filled = 0;
-    for (const fn of checks) {
-      try { if (fn()) filled++; } catch {}
-    }
-
-    const pct = total === 0 ? 0 : Math.round((filled / total) * 100);
-    return Math.min(100, Math.max(0, pct));
   }
 
   private getAccessTokenFromLocalStorage(): string | null {

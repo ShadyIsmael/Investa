@@ -46,7 +46,7 @@ public class EmailTestController : BaseApiController
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
         var recipient = request.Email;
-        var subject = "Welcome to Investa 🚀";
+        var subject = "Welcome to FOPX One 🚀";
 
         try
         {
@@ -56,7 +56,7 @@ public class EmailTestController : BaseApiController
             if (!connectionVerified)
                 throw new InvalidOperationException("SMTP connection verification failed.");
 
-            _logger.LogInformation("SMTP connected. Host={Host} Port={Port}", _emailOptions.Host, _emailOptions.Port);
+            _logger.LogInformation("SMTP connected. Host={Host} Port={Port}", _emailOptions.Smtp.Host, _emailOptions.Smtp.Port);
 
             var templatesPath = Path.Combine(_env.ContentRootPath, "Templates");
             var welcomeTemplatePath = Path.Combine(templatesPath, "Welcome.html");
@@ -72,9 +72,9 @@ public class EmailTestController : BaseApiController
                 new Dictionary<string, string?>
                 {
                     ["UserName"] = "Shady",
-                    ["PlatformName"] = "Investa",
+                    ["PlatformName"] = "FOPX One",
                     ["CurrentYear"] = currentYear,
-                    ["CompanyName"] = "Investa"
+                    ["CompanyName"] = "FOPX One"
                 });
 
             var emailRequest = new SendEmailRequest
@@ -86,7 +86,7 @@ public class EmailTestController : BaseApiController
 
             await _emailService.SendEmailAsync(emailRequest, cancellationToken);
 
-            _logger.LogInformation("SMTP authenticated. Username={Username}", _emailOptions.Username);
+            _logger.LogInformation("SMTP authenticated. Username={Username}", _emailOptions.Smtp.Username);
             _logger.LogInformation("Email sent successfully. To={Email} Subject={Subject}", recipient, subject);
 
             return Ok(new ApiResponse<object>

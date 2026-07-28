@@ -12,9 +12,10 @@
       </div>
     </div>
 
-    <button type="button" (click)="loadWallet()" [disabled]="isLoading()" class="inline-flex items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-slate-700 disabled:opacity-50">
-      {{ 'wallet.refresh' | translate }}
-    </button>
+    <div class="flex gap-2">
+      <button type="button" (click)="buyCredits()" class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">{{ 'creditPurchase.buy' | translate }}</button>
+      <button type="button" (click)="loadWallet()" [disabled]="isLoading()" class="inline-flex items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-slate-700 disabled:opacity-50">{{ 'wallet.refresh' | translate }}</button>
+    </div>
   </div>
 
   <div *ngIf="isLoading()" class="text-center py-12">
@@ -33,7 +34,7 @@
 
   <ng-container *ngIf="!isLoading() && !errorMessage()">
     <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-      <div *ngFor="let item of summaryItems()" class="bg-slate-900/80 border border-slate-800 rounded-xl p-5">
+      <div *ngFor="let item of summaryItems()" class="investa-panel p-5">
         <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">{{ item.labelKey | translate }}</p>
         <p class="text-3xl font-bold" [class]="item.tone">{{ formatNumber(item.value) }}</p>
       </div>
@@ -43,7 +44,7 @@
       {{ 'wallet.platformCreditHelper' | translate }}
     </p>
 
-    <section class="bg-slate-900/80 border border-slate-800 rounded-xl overflow-hidden">
+    <section class="investa-panel p-0 overflow-hidden">
       <div class="p-5 border-b border-slate-800 flex items-center justify-between">
         <div>
           <h2 class="text-xl font-bold text-white">{{ 'wallet.transactions.title' | translate }}</h2>

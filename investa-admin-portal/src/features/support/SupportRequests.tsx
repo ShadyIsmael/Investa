@@ -49,36 +49,6 @@ export const SupportRequests: React.FC = () => {
     };
     load();
 
-    // Listen for real-time support requests from SignalR
-    const onSupport = (e: any) => {
-      const payload = e?.detail || e;
-
-      // Map incoming fields to the table model, ensuring nulls are cleaned
-      const mapped = {
-        id: String(payload?.id || payload?.ticketId || Date.now()),
-        clientName: payload?.clientName || payload?.client || `User ${payload?.fromUserId || ''}`,
-        subject: payload?.subject || payload?.message || 'New support request',
-        priority: (payload?.priority as any) || 'Medium',
-        status: (payload?.status as any) || 'Open',
-        createdAt: payload?.createdAt || new Date().toISOString(),
-        slaDueAt: payload?.slaDueAt || new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
-        conversationId: payload?.conversationId,
-        phoneNumber: payload?.phoneNumber,
-      } as SupportRequest & { conversationId?: string; phoneNumber?: string };
-
-      // Remove null/undefined entries
-      for (const k of Object.keys(mapped)) {
-        if ((mapped as any)[k] === null || typeof (mapped as any)[k] === 'undefined') delete (mapped as any)[k];
-      }
-
-      setTickets(prev => [mapped as SupportRequest, ...prev]);
-    };
-
-    window.addEventListener('investa:signalr:receive-support', onSupport as EventListener);
-
-    return () => {
-      window.removeEventListener('investa:signalr:receive-support', onSupport as EventListener);
-    };
   }, []);
 
   const filtered = tickets.filter(req => 

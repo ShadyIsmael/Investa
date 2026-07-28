@@ -1,378 +1,265 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'react-toastify';
 import { Icon } from '@/components/common/Icons';
 import { api } from '@/services/api';
 
-// ─── Price Plan ───────────────────────────────────────────────────────────────
-type BillingPeriod = 'monthly' | 'yearly' | 'one-time';
+type PackageId = string | number;
+type PurchaseStatus = 'Pending' | 'Processing' | 'Paid' | 'Failed' | 'Cancelled' | 'Expired' | 'Refunded';
 
-interface PricePlan {
-  id: number;
-  name: string;
-  credits: number;
-  price: number;
-  billingPeriod: BillingPeriod;
+interface CreditPackage {
+  id: PackageId;
+  code: string;
+  nameEn: string;
+  nameAr: string;
+  creditQuantity: number;
+  sellingPrice: number;
+  currency: string;
+  bonusCredits: number;
+  activeFrom: string | null;
+  activeTo: string | null;
   isActive: boolean;
+  displayOrder: number;
+  isFeatured: boolean;
+  updatedAt?: string | null;
 }
 
-interface PlanDraft {
-  name: string;
-  credits: number;
-  price: number;
-  billingPeriod: BillingPeriod;
-  isActive: boolean;
+interface PackageDraft extends Omit<CreditPackage, 'id' | 'updatedAt'> {}
+
+interface CreditPurchase {
+  id: PackageId;
+  userId: string;
+  userDisplayName?: string | null;
+  userEmail?: string | null;
+  packageCode: string;
+  packageName: string;
+  purchasedCredits: number;
+  bonusCredits: number;
+  totalPrice: number;
+  currency: string;
+  status: PurchaseStatus;
+  providerReference?: string | null;
+  walletTransactionId?: string | null;
+  createdAt: string;
+  paidAt?: string | null;
 }
 
-const BLANK_DRAFT: PlanDraft = { name: '', credits: 100, price: 199, billingPeriod: 'monthly', isActive: true };
+const EMPTY_PACKAGE: PackageDraft = {
+  code: '', nameEn: '', nameAr: '', creditQuantity: 100, sellingPrice: 0, currency: 'EGP',
+  bonusCredits: 0, activeFrom: null, activeTo: null, isActive: true, displayOrder: 0, isFeatured: false,
+};
 
-const BILLING_OPTIONS: { value: BillingPeriod; label: string }[] = [
-  { value: 'monthly',  label: 'Monthly' },
-  { value: 'yearly',   label: 'Yearly' },
-  { value: 'one-time', label: 'One-Time' },
-];
+const unwrapList = (value: any): any[] => {
+  const list = value?.data?.items ?? value?.data ?? value?.items ?? value;
+  return Array.isArray(list) ? list : [];
+};
+
+const mapPackage = (value: any): CreditPackage => ({
+  id: value.id ?? value.Id,
+  code: String(value.code ?? value.Code ?? ''),
+  nameEn: String(value.nameEn ?? value.NameEn ?? value.name ?? value.Name ?? ''),
+  nameAr: String(value.nameAr ?? value.NameAr ?? ''),
+  creditQuantity: Number(value.creditQuantity ?? value.CreditQuantity ?? value.credits ?? value.Credits ?? 0),
+  sellingPrice: Number(value.sellingPrice ?? value.SellingPrice ?? value.price ?? value.Price ?? 0),
+  currency: String(value.currency ?? value.Currency ?? ''),
+  bonusCredits: Number(value.bonusCredits ?? value.BonusCredits ?? 0),
+  activeFrom: value.activeFrom ?? value.ActiveFrom ?? null,
+  activeTo: value.activeTo ?? value.ActiveTo ?? value.activeUntil ?? value.ActiveUntil ?? null,
+  isActive: Boolean(value.isActive ?? value.IsActive),
+  displayOrder: Number(value.displayOrder ?? value.DisplayOrder ?? 0),
+  isFeatured: Boolean(value.isFeatured ?? value.IsFeatured),
+  updatedAt: value.updatedAt ?? value.UpdatedAt ?? null,
+});
+
+const mapPurchase = (source: any): CreditPurchase => {
+  const value = source.order ?? source.Order ?? source;
+  return ({
+  id: value.id ?? value.Id,
+  userId: String(source.userId ?? source.UserId ?? value.userId ?? value.UserId ?? ''),
+  userDisplayName: value.userDisplayName ?? value.UserDisplayName ?? null,
+  userEmail: value.userEmail ?? value.UserEmail ?? null,
+  packageCode: String(value.packageCode ?? value.PackageCode ?? value.planCode ?? value.PlanCode ?? ''),
+  packageName: String(value.packageName ?? value.PackageName ?? value.planName ?? value.PlanName ?? ''),
+  purchasedCredits: Number(value.purchasedCredits ?? value.PurchasedCredits ?? value.credits ?? value.Credits ?? 0),
+  bonusCredits: Number(value.bonusCredits ?? value.BonusCredits ?? 0),
+  totalPrice: Number(value.totalPrice ?? value.TotalPrice ?? value.pricePaid ?? value.PricePaid ?? 0),
+  currency: String(value.currency ?? value.Currency ?? ''),
+  status: (value.status ?? value.Status ?? value.paymentStatus ?? value.PaymentStatus ?? 'Pending') as PurchaseStatus,
+  providerReference: value.providerReference ?? value.ProviderReference ?? null,
+  walletTransactionId: value.walletTransactionId ?? value.WalletTransactionId ?? null,
+  createdAt: value.createdAt ?? value.CreatedAt ?? '',
+  paidAt: value.paidAt ?? value.PaidAt ?? null,
+  });
+};
+
+const dateInput = (value: string | null) => value ? value.slice(0, 10) : '';
+const dateLabel = (value?: string | null) => value ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '-';
+const money = (value: number, currency: string) => {
+  try { return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value); }
+  catch { return `${value.toLocaleString()} ${currency}`; }
+};
 
 export const CreditSetup: React.FC = () => {
-  const { t } = useTranslation();
-
-  // ─── State ─────────────────────────────────────────────────────────────────
-  const [plans, setPlans] = useState<PricePlan[]>([]);
+  const { t, i18n } = useTranslation();
+  const rtl = i18n.dir() === 'rtl';
+  const [tab, setTab] = useState<'packages' | 'orders'>('packages');
+  const [packages, setPackages] = useState<CreditPackage[]>([]);
+  const [orders, setOrders] = useState<CreditPurchase[]>([]);
   const [loading, setLoading] = useState(true);
-  const [apiError, setApiError] = useState<string | null>(null);
-
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editDraft, setEditDraft] = useState<PricePlan | null>(null);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [isAdding, setIsAdding] = useState(false);
-  const [newDraft, setNewDraft] = useState<PlanDraft>(BLANK_DRAFT);
   const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState<CreditPackage | null>(null);
+  const [draft, setDraft] = useState<PackageDraft>(EMPTY_PACKAGE);
+  const [showForm, setShowForm] = useState(false);
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('');
 
-  // ─── Load plans on mount ──────────────────────────────────────────────────
-  useEffect(() => {
-    loadPlans();
-  }, []);
-
-  async function loadPlans() {
+  const loadPackages = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      setApiError(null);
-      const data = await api.get<PricePlan[]>('/api/credit-plans/admin');
-      setPlans(data ?? []);
-    } catch (e: any) {
-      setApiError('Failed to load credit plans.');
-    } finally {
-      setLoading(false);
-    }
-  }
+      const result = await api.get<any>('/api/credit-plans/admin');
+      setPackages(unwrapList(result).map(mapPackage).sort((a, b) => a.displayOrder - b.displayOrder));
+    } catch (error: any) { toast.error(error?.message ?? t('creditAdmin.loadPackagesError')); }
+    finally { setLoading(false); }
+  }, [t]);
 
-  // ─── Edit ──────────────────────────────────────────────────────────────────
-  const startEdit = (p: PricePlan) => { setEditingId(p.id); setEditDraft({ ...p }); };
-  const cancelEdit = () => { setEditingId(null); setEditDraft(null); };
-  const saveEdit = async () => {
-    if (!editDraft) return;
+  const loadOrders = useCallback(async () => {
+    setLoading(true);
     try {
-      setSaving(true);
-      const updated = await api.put<PricePlan>(`/api/credit-plans/${editDraft.id}`, {
-        name: editDraft.name,
-        credits: editDraft.credits,
-        price: editDraft.price,
-        billingPeriod: editDraft.billingPeriod,
-        isActive: editDraft.isActive,
+      const result = await api.get<any>('/api/credit-plans/admin/orders');
+      let rows = unwrapList(result).map(mapPurchase);
+      const queryText = search.trim().toLowerCase();
+      if (queryText) rows = rows.filter(order => [order.id, order.userId, order.packageCode, order.packageName, order.providerReference].some(value => String(value ?? '').toLowerCase().includes(queryText)));
+      if (status) rows = rows.filter(order => order.status === status);
+      setOrders(rows);
+    } catch (error: any) { toast.error(error?.message ?? t('creditAdmin.loadOrdersError')); }
+    finally { setLoading(false); }
+  }, [search, status, t]);
+
+  useEffect(() => { tab === 'packages' ? loadPackages() : loadOrders(); }, [tab, loadPackages, loadOrders]);
+
+  const openCreate = () => { setEditing(null); setDraft({ ...EMPTY_PACKAGE }); setShowForm(true); };
+  const openEdit = (item: CreditPackage) => {
+    const { id: _id, updatedAt: _updatedAt, ...values } = item;
+    setEditing(item); setDraft(values); setShowForm(true);
+  };
+
+  const valid = useMemo(() => draft.code.trim() && draft.nameEn.trim() && draft.nameAr.trim()
+    && draft.creditQuantity > 0 && draft.sellingPrice > 0 && /^[A-Z]{3}$/.test(draft.currency.trim().toUpperCase())
+    && draft.bonusCredits >= 0 && (!draft.activeFrom || !draft.activeTo || draft.activeFrom <= draft.activeTo), [draft]);
+
+  const savePackage = async () => {
+    if (!valid || saving) return;
+    setSaving(true);
+    const payload = {
+      code: draft.code.trim(), name: draft.nameEn.trim(), nameAr: draft.nameAr.trim(),
+      credits: draft.creditQuantity, bonusCredits: draft.bonusCredits, price: draft.sellingPrice,
+      currency: draft.currency.trim().toUpperCase(), activeFrom: draft.activeFrom,
+      activeUntil: draft.activeTo, displayOrder: draft.displayOrder, isFeatured: draft.isFeatured,
+      billingPeriod: 'one-time', isActive: draft.isActive,
+    };
+    try {
+      if (editing) await api.put(`/api/credit-plans/${editing.id}`, payload);
+      else await api.post('/api/credit-plans', payload);
+      toast.success(t(editing ? 'creditAdmin.updated' : 'creditAdmin.created'));
+      setShowForm(false); await loadPackages();
+    } catch (error: any) { toast.error(error?.message ?? t('creditAdmin.saveError')); }
+    finally { setSaving(false); }
+  };
+
+  const setPackageActive = async (item: CreditPackage, isActive: boolean) => {
+    try {
+      await api.put(`/api/credit-plans/${item.id}`, {
+        code: item.code, name: item.nameEn, nameAr: item.nameAr, credits: item.creditQuantity,
+        bonusCredits: item.bonusCredits, price: item.sellingPrice, currency: item.currency,
+        activeFrom: item.activeFrom, activeUntil: item.activeTo, displayOrder: item.displayOrder,
+        isFeatured: item.isFeatured, billingPeriod: 'one-time', isActive,
       });
-      setPlans(ps => ps.map(p => p.id === updated.id ? updated : p));
-      cancelEdit();
-    } catch {
-      setApiError('Failed to save changes.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // ─── Add ───────────────────────────────────────────────────────────────────
-  const startAdd = () => { setNewDraft(BLANK_DRAFT); setIsAdding(true); };
-  const cancelAdd = () => setIsAdding(false);
-  const confirmAdd = async () => {
-    if (!newDraft.name.trim()) return;
-    try {
-      setSaving(true);
-      const created = await api.post<PricePlan>('/api/credit-plans', newDraft);
-      setPlans(ps => [...ps, created]);
-      setIsAdding(false);
-    } catch {
-      setApiError('Failed to create plan.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // ─── Toggle active ────────────────────────────────────────────────────────
-  const toggleActive = async (plan: PricePlan) => {
-    try {
-      const updated = await api.put<PricePlan>(`/api/credit-plans/${plan.id}`, {
-        ...plan,
-        isActive: !plan.isActive,
-      });
-      setPlans(ps => ps.map(p => p.id === updated.id ? updated : p));
-    } catch {
-      setApiError('Failed to update plan status.');
-    }
-  };
-
-  // ─── Delete ───────────────────────────────────────────────────────────────
-  const deletePlan = async (id: number) => {
-    try {
-      await api.delete(`/api/credit-plans/${id}`);
-      setPlans(ps => ps.filter(p => p.id !== id));
-      setDeletingId(null);
-    } catch {
-      setApiError('Failed to delete plan.');
-    }
+      toast.success(t(isActive ? 'creditAdmin.activated' : 'creditAdmin.deactivated'));
+      await loadPackages();
+    } catch (error: any) { toast.error(error?.message ?? t('creditAdmin.statusError')); }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="space-y-6" dir={rtl ? 'rtl' : 'ltr'}>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground tracking-tight">{t('pages.creditPricingSetup', { defaultValue: 'Credit Pricing Setup' })}</h2>
-          <p className="text-muted-foreground text-[13px] font-medium">{t('pages.creditPricingSetupDescription', { defaultValue: 'Configure credit bundles available for purchase.' })}</p>
+          <h2 className="text-2xl font-bold text-foreground">{t('creditAdmin.title')}</h2>
+          <p className="text-sm text-muted-foreground">{t('creditAdmin.description')}</p>
         </div>
+        {tab === 'packages' && <button className="btn-primary" onClick={openCreate}><span aria-hidden>+</span>{t('creditAdmin.addPackage')}</button>}
       </div>
 
-      {/* API error banner */}
-      {apiError && (
-        <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm font-medium flex items-center justify-between">
-          <span>{apiError}</span>
-          <button onClick={() => setApiError(null)} className="text-destructive/60 hover:text-destructive ml-4">✕</button>
+      <div className="flex gap-2 border-b border-border">
+        {(['packages', 'orders'] as const).map(value => <button key={value} onClick={() => setTab(value)} className={`px-4 py-3 text-sm font-bold border-b-2 ${tab === value ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'}`}>{t(`creditAdmin.${value}`)}</button>)}
+      </div>
+
+      {tab === 'packages' ? (
+        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-[1050px] w-full text-sm">
+              <thead className="bg-muted/60 text-muted-foreground"><tr>
+                {['code','name','credits','bonus','price','activeDates','displayOrder','status','actions'].map(key => <th key={key} className="px-4 py-3 text-start font-bold">{t(`creditAdmin.${key}`)}</th>)}
+              </tr></thead>
+              <tbody className="divide-y divide-border">
+                {loading ? <tr><td colSpan={9} className="p-12 text-center text-muted-foreground">{t('common.loading')}</td></tr> : packages.map(item => (
+                  <tr key={item.id} className="hover:bg-muted/30">
+                    <td className="px-4 py-3 font-mono text-xs">{item.code}</td>
+                    <td className="px-4 py-3"><div className="font-bold text-foreground">{i18n.language.startsWith('ar') ? item.nameAr : item.nameEn}</div>{item.isFeatured && <span className="text-xs text-primary">{t('creditAdmin.featured')}</span>}</td>
+                    <td className="px-4 py-3 font-bold">{item.creditQuantity.toLocaleString()}</td>
+                    <td className="px-4 py-3">{item.bonusCredits.toLocaleString()}</td>
+                    <td className="px-4 py-3 font-bold">{money(item.sellingPrice, item.currency)}</td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">{dateInput(item.activeFrom) || t('creditAdmin.immediate')} – {dateInput(item.activeTo) || t('creditAdmin.noEnd')}</td>
+                    <td className="px-4 py-3">{item.displayOrder}</td>
+                    <td className="px-4 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${item.isActive ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-muted text-muted-foreground'}`}>{t(item.isActive ? 'creditAdmin.active' : 'creditAdmin.inactive')}</span></td>
+                    <td className="px-4 py-3"><div className="flex gap-2"><button className="rounded-lg px-3 py-1.5 font-bold text-primary hover:bg-primary/10" onClick={() => openEdit(item)}>{t('common.edit')}</button><button className={`rounded-lg px-3 py-1.5 font-bold ${item.isActive ? 'text-destructive hover:bg-destructive/10' : 'text-emerald-700 hover:bg-emerald-100 dark:text-emerald-300 dark:hover:bg-emerald-900/30'}`} onClick={() => setPackageActive(item, !item.isActive)}>{t(item.isActive ? 'creditAdmin.deactivate' : 'creditAdmin.activate')}</button></div></td>
+                  </tr>
+                ))}
+                {!loading && packages.length === 0 && <tr><td colSpan={9} className="p-12 text-center text-muted-foreground">{t('creditAdmin.noPackages')}</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-[1fr_220px_auto]">
+            <input className="input-field" value={search} onChange={e => setSearch(e.target.value)} placeholder={t('creditAdmin.searchOrders')} />
+            <select className="input-field bg-card" value={status} onChange={e => setStatus(e.target.value)}><option value="">{t('creditAdmin.allStatuses')}</option>{['Pending','Processing','Paid','Failed','Cancelled','Expired','Refunded'].map(value => <option key={value}>{value}</option>)}</select>
+            <button className="btn-primary" onClick={loadOrders}><Icon name="search" className="h-4 w-4" />{t('common.search')}</button>
+          </div>
+          <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm"><div className="overflow-x-auto"><table className="min-w-[1100px] w-full text-sm">
+            <thead className="bg-muted/60 text-muted-foreground"><tr>{['orderId','customer','package','credits','price','paymentStatus','providerReference','walletTransaction','createdAt'].map(key => <th key={key} className="px-4 py-3 text-start font-bold">{t(`creditAdmin.${key}`)}</th>)}</tr></thead>
+            <tbody className="divide-y divide-border">{loading ? <tr><td colSpan={9} className="p-12 text-center text-muted-foreground">{t('common.loading')}</td></tr> : orders.map(order => <tr key={order.id} className="hover:bg-muted/30">
+              <td className="px-4 py-3 font-mono text-xs">{order.id}</td><td className="px-4 py-3"><div className="font-bold">{order.userDisplayName || order.userEmail || order.userId}</div>{order.userEmail && <div className="text-xs text-muted-foreground">{order.userEmail}</div>}</td>
+              <td className="px-4 py-3"><div className="font-bold">{order.packageName}</div><div className="font-mono text-xs text-muted-foreground">{order.packageCode}</div></td><td className="px-4 py-3">{order.purchasedCredits.toLocaleString()}{order.bonusCredits > 0 && <span className="text-emerald-600"> +{order.bonusCredits}</span>}</td><td className="px-4 py-3 font-bold">{money(order.totalPrice, order.currency)}</td>
+              <td className="px-4 py-3"><span className="rounded-full bg-muted px-2.5 py-1 text-xs font-bold">{t(`creditAdmin.statuses.${order.status}`)}</span></td><td className="px-4 py-3 font-mono text-xs">{order.providerReference || '-'}</td><td className="px-4 py-3 font-mono text-xs">{order.walletTransactionId || t('creditAdmin.notCredited')}</td><td className="px-4 py-3 text-xs">{dateLabel(order.createdAt)}</td>
+            </tr>)}{!loading && orders.length === 0 && <tr><td colSpan={9} className="p-12 text-center text-muted-foreground">{t('creditAdmin.noOrders')}</td></tr>}</tbody>
+          </table></div></div>
+          <p className="text-xs text-muted-foreground">{t('creditAdmin.paymentReadOnlyNotice')}</p>
         </div>
       )}
 
-      {/* ── Price Plans Section ────────────────────────────────────────────── */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg text-primary">
-              <Icon name="credit-card" className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-[15px] font-bold text-foreground">Price Plans</h3>
-              <p className="text-[12px] text-muted-foreground">Define credit bundles clients can purchase</p>
-            </div>
-          </div>
-          <button
-            onClick={startAdd}
-            disabled={isAdding}
-            className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-            Add Plan
-          </button>
+      {showForm && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"><div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-card p-6 shadow-2xl">
+        <div className="mb-5 flex items-center justify-between"><h3 className="text-xl font-bold">{t(editing ? 'creditAdmin.editPackage' : 'creditAdmin.addPackage')}</h3><button onClick={() => setShowForm(false)} className="text-muted-foreground">✕</button></div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label={t('creditAdmin.code')}><input className="input-field w-full" value={draft.code} disabled={!!editing} onChange={e => setDraft({ ...draft, code: e.target.value })} /></Field>
+          <Field label={t('creditAdmin.currency')}><input className="input-field w-full" maxLength={3} value={draft.currency} onChange={e => setDraft({ ...draft, currency: e.target.value.toUpperCase() })} /></Field>
+          <Field label={t('creditAdmin.nameEn')}><input className="input-field w-full" dir="ltr" value={draft.nameEn} onChange={e => setDraft({ ...draft, nameEn: e.target.value })} /></Field>
+          <Field label={t('creditAdmin.nameAr')}><input className="input-field w-full" dir="rtl" value={draft.nameAr} onChange={e => setDraft({ ...draft, nameAr: e.target.value })} /></Field>
+          <NumberField label={t('creditAdmin.credits')} value={draft.creditQuantity} min={1} onChange={creditQuantity => setDraft({ ...draft, creditQuantity })} />
+          <NumberField label={t('creditAdmin.bonus')} value={draft.bonusCredits} min={0} onChange={bonusCredits => setDraft({ ...draft, bonusCredits })} />
+          <NumberField label={t('creditAdmin.price')} value={draft.sellingPrice} min={0} step="0.01" onChange={sellingPrice => setDraft({ ...draft, sellingPrice })} />
+          <NumberField label={t('creditAdmin.displayOrder')} value={draft.displayOrder} min={0} onChange={displayOrder => setDraft({ ...draft, displayOrder })} />
+          <Field label={t('creditAdmin.activeFrom')}><input type="date" className="input-field w-full" value={dateInput(draft.activeFrom)} onChange={e => setDraft({ ...draft, activeFrom: e.target.value || null })} /></Field>
+          <Field label={t('creditAdmin.activeTo')}><input type="date" className="input-field w-full" value={dateInput(draft.activeTo)} onChange={e => setDraft({ ...draft, activeTo: e.target.value || null })} /></Field>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={draft.isActive} onChange={e => setDraft({ ...draft, isActive: e.target.checked })} />{t('creditAdmin.active')}</label>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={draft.isFeatured} onChange={e => setDraft({ ...draft, isFeatured: e.target.checked })} />{t('creditAdmin.featured')}</label>
         </div>
-
-        {/* Plan cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {loading && (
-            <div className="col-span-full flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
-              <svg className="animate-spin w-8 h-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-              </svg>
-              <p className="text-sm font-medium">Loading plans…</p>
-            </div>
-          )}
-
-          {/* New plan card */}
-          {isAdding && (
-            <div className="bg-card text-card-foreground rounded-2xl border-2 border-primary/40 border-dashed p-5 space-y-3 shadow-md">
-              <p className="text-[11px] font-black uppercase tracking-wider text-primary mb-1">New Plan</p>
-              <div>
-                <label className="text-[10px] font-bold text-muted-foreground uppercase">Plan Name</label>
-                <input
-                  autoFocus
-                  type="text"
-                  placeholder="e.g. Starter"
-                  value={newDraft.name}
-                  onChange={e => setNewDraft(d => ({ ...d, name: e.target.value }))}
-                  className="input-field w-full mt-1 text-sm font-semibold"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-bold text-muted-foreground uppercase">Credits</label>
-                  <input
-                    type="number" min={1} step={1}
-                    value={newDraft.credits}
-                    onChange={e => setNewDraft(d => ({ ...d, credits: Number(e.target.value) }))}
-                    className="input-field w-full mt-1 text-sm font-semibold"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-muted-foreground uppercase">Price (EGP)</label>
-                  <input
-                    type="number" min={0} step={1}
-                    value={newDraft.price}
-                    onChange={e => setNewDraft(d => ({ ...d, price: Number(e.target.value) }))}
-                    className="input-field w-full mt-1 text-sm font-semibold"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-muted-foreground uppercase">Billing Period</label>
-                <select
-                  value={newDraft.billingPeriod}
-                  onChange={e => setNewDraft(d => ({ ...d, billingPeriod: e.target.value as BillingPeriod }))}
-                  className="input-field w-full mt-1 text-sm font-semibold bg-card"
-                >
-                  {BILLING_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              </div>
-              <div className="flex gap-2 pt-1">
-                <button onClick={cancelAdd} className="flex-1 py-2 rounded-lg bg-muted text-muted-foreground text-sm font-bold hover:bg-muted/80 transition-all">Cancel</button>
-                <button
-                  onClick={confirmAdd}
-                  disabled={!newDraft.name.trim() || saving}
-                  className="btn-primary flex-1 justify-center py-2 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
-                >{saving ? 'Saving…' : 'Create'}</button>
-              </div>
-            </div>
-          )}
-
-          {/* Existing plan cards */}
-          {!loading && plans.map(plan => (
-            <div
-              key={plan.id}
-              className={`card p-5 space-y-3 transition-all ${
-                editingId === plan.id ? 'ring-2 ring-primary/20 border-primary/40' : ''
-              } ${!plan.isActive && editingId !== plan.id ? 'opacity-60' : ''}`}
-            >
-              {editingId === plan.id && editDraft ? (
-                /* ── Edit mode ── */
-                <>
-                  <p className="text-[11px] font-black uppercase tracking-wider text-primary">Editing</p>
-                  <div>
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase">Plan Name</label>
-                    <input
-                      autoFocus
-                      type="text"
-                      value={editDraft.name}
-                      onChange={e => setEditDraft(d => d ? { ...d, name: e.target.value } : d)}
-                      className="input-field w-full mt-1 text-sm font-semibold"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[10px] font-bold text-muted-foreground uppercase">Credits</label>
-                      <input
-                        type="number" min={1} step={1}
-                        value={editDraft.credits}
-                        onChange={e => setEditDraft(d => d ? { ...d, credits: Number(e.target.value) } : d)}
-                        className="input-field w-full mt-1 text-sm font-semibold"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-muted-foreground uppercase">Price (EGP)</label>
-                      <input
-                        type="number" min={0} step={1}
-                        value={editDraft.price}
-                        onChange={e => setEditDraft(d => d ? { ...d, price: Number(e.target.value) } : d)}
-                        className="input-field w-full mt-1 text-sm font-semibold"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase">Billing Period</label>
-                    <select
-                      value={editDraft.billingPeriod}
-                      onChange={e => setEditDraft(d => d ? { ...d, billingPeriod: e.target.value as BillingPeriod } : d)}
-                      className="input-field w-full mt-1 text-sm font-semibold bg-card"
-                    >
-                      {BILLING_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                  </div>
-                  <div className="flex gap-2 pt-1">
-                    <button onClick={cancelEdit} className="flex-1 py-2 rounded-lg bg-muted text-muted-foreground text-sm font-bold hover:bg-muted/80 transition-all">Cancel</button>
-                    <button
-                      onClick={saveEdit}
-                      disabled={!editDraft.name.trim() || saving}
-                      className="btn-primary flex-1 justify-center py-2 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
-                    >{saving ? 'Saving…' : 'Save'}</button>
-                  </div>
-                </>
-              ) : (
-                /* ── View mode ── */
-                <>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1">
-                      <h4 className="text-base font-black text-foreground">{plan.name}</h4>
-                      <span className="badge mt-1 text-[10px] uppercase tracking-wider">
-                        {BILLING_OPTIONS.find(o => o.value === plan.billingPeriod)?.label}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => startEdit(plan)}
-                        className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-                        title="Edit"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                      </button>
-                      <button
-                        onClick={() => setDeletingId(plan.id)}
-                        className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                        title="Delete"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex items-end gap-1 py-2">
-                    <span className="text-3xl font-black text-foreground">{plan.price.toLocaleString()}</span>
-                    <span className="text-sm text-muted-foreground mb-1">EGP</span>
-                  </div>
-
-                  <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 rounded-xl">
-                    <Icon name="cash" className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-bold text-primary">{plan.credits.toLocaleString()} credits</span>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-xs text-muted-foreground">{(plan.price / plan.credits).toFixed(2)} EGP / credit</span>
-                    <button
-                      onClick={() => toggleActive(plan)}
-                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors ${
-                        plan.isActive
-                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                          : 'bg-muted text-muted-foreground'
-                      }`}
-                    >
-                      <span className={`inline-block w-1.5 h-1.5 rounded-full ${plan.isActive ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />
-                      {plan.isActive ? 'Active' : 'Inactive'}
-                    </button>
-                  </div>
-
-                  {/* Inline delete confirm */}
-                  {deletingId === plan.id && (
-                    <div className="pt-2 border-t border-destructive/20 space-y-2">
-                      <p className="text-xs font-bold text-destructive">Delete this plan?</p>
-                      <div className="flex gap-2">
-                        <button onClick={() => setDeletingId(null)} className="flex-1 py-1.5 rounded-lg bg-muted text-muted-foreground text-xs font-bold hover:bg-muted/80 transition-all">Cancel</button>
-                        <button onClick={() => deletePlan(plan.id)} className="flex-1 py-1.5 rounded-lg bg-destructive text-destructive-foreground text-xs font-bold hover:opacity-90 transition-all">Delete</button>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          ))}
-
-          {!loading && plans.length === 0 && !isAdding && (
-            <div className="col-span-full flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
-              <Icon name="credit-card" className="w-10 h-10 opacity-30" />
-              <p className="text-sm font-bold">No plans yet. Click "Add Plan" to create one.</p>
-            </div>
-          )}
-        </div>
-      </div>
+        {!valid && <p className="mt-4 text-xs text-destructive">{t('creditAdmin.validation')}</p>}
+        <div className="mt-6 flex justify-end gap-3"><button className="rounded-lg bg-muted px-4 py-2 font-bold" onClick={() => setShowForm(false)}>{t('common.cancel')}</button><button className="btn-primary" disabled={!valid || saving} onClick={savePackage}>{saving ? t('common.loading') : t('common.save')}</button></div>
+      </div></div>}
     </div>
   );
 };
+
+const Field = ({ label, children }: { label: string; children: React.ReactNode }) => <label className="block"><span className="mb-1 block text-xs font-bold text-muted-foreground">{label}</span>{children}</label>;
+const NumberField = ({ label, value, min, step = '1', onChange }: { label: string; value: number; min: number; step?: string; onChange: (value: number) => void }) => <Field label={label}><input type="number" min={min} step={step} className="input-field w-full" value={value} onChange={e => onChange(Number(e.target.value))} /></Field>;

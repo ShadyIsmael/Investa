@@ -17,14 +17,18 @@ using System.Text;
 namespace Investa.API.Controllers;
 
 /// <summary>
-/// Authentication controller handling user registration, login, and token management
+/// Authentication controller handling user registration, login, and token management.
+/// Authentication-entry endpoints are AllowAnonymous; protected endpoints use [Authorize] individually.
 /// </summary>
-[Authorize(AuthenticationSchemes = "Bearer")]
 [Route("api/v1/auth")]
 public class AuthController : BaseApiController
 {
     private static readonly ConcurrentDictionary<string, string> _passwordChangeTokenCache = new();
     private const string FixedPasswordChangeOtp = "1234";
+    private static readonly ConcurrentDictionary<string, PendingSignup> _signupPendingCache = new();
+    private const string SignupInitOtp = "123456";
+
+    private record PendingSignup(string PhoneNumber, string Password, string FirstName, string LastName, DateTime CreatedAt);
 
     private readonly UserManager<ApplicationIdentityUser> _userManager;
     private readonly IJwtTokenService _jwtTokenService;
@@ -348,6 +352,7 @@ public class AuthController : BaseApiController
     /// Verify current password and issue a fixed test OTP for password change
     /// </summary>
     [HttpPost("change-password/send-otp")]
+    [Authorize(AuthenticationSchemes = "Bearer")]
     public async Task<IActionResult> SendChangePasswordOtpAsync([FromBody] ChangePasswordOtpRequestDto request)
     {
         if (string.IsNullOrWhiteSpace(request.CurrentPassword))
@@ -372,6 +377,7 @@ public class AuthController : BaseApiController
     /// Confirm password change using OTP token
     /// </summary>
     [HttpPost("change-password/confirm")]
+    [Authorize(AuthenticationSchemes = "Bearer")]
     public async Task<IActionResult> ConfirmChangePasswordAsync([FromBody] ChangePasswordConfirmDto request)
     {
         if (string.IsNullOrWhiteSpace(request.Token) || string.IsNullOrWhiteSpace(request.NewPassword))
@@ -769,6 +775,152 @@ public class AuthController : BaseApiController
             });
         }
     }    
+
+    /// <summary>
+    /// Step 1 of two-step signup: validate phone, store pending registration, return verification session ID.
+    /// </summary>
+    [HttpPost("signup-init")]
+    [AllowAnonymous]
+    public async Task<IActionResult> SignupInit([FromBody] SignupInitDto request)
+    {
+        if (string.IsNullOrWhiteSpace(request.PhoneNumber) || string.IsNullOrWhiteSpace(request.Password))
+            return ErrorResponse("Phone number and password are required", 400);
+
+        var normalizedPhone = PhoneNumberNormalizer.NormalizePhoneNumber(request.PhoneNumber);
+        if (normalizedPhone == null)
+            return ErrorResponse("Invalid phone number format.", 400);
+
+        var phoneCandidates = PhoneNumberNormalizer.GetPhoneVariants(normalizedPhone);
+        foreach (var candidate in phoneCandidates)
+        {
+            var existingUser = await TryFindByNameAsync(candidate);
+            if (existingUser != null)
+                return Conflict(new { success = false, message = "This phone number is already registered.", code = "PHONE_EXISTS" });
+        }
+
+        var sessionId = Guid.NewGuid().ToString();
+        _signupPendingCache[sessionId] = new PendingSignup(normalizedPhone, request.Password, request.FirstName ?? "", request.LastName ?? "", DateTime.UtcNow);
+
+        _logger.LogInformation("Signup init for phone {Phone}, session {SessionId}", normalizedPhone, sessionId);
+
+        return Ok(new { success = true, data = new { verificationSessionId = sessionId } });
+    }
+
+    /// <summary>
+    /// Step 2 of two-step signup: verify OTP, create user account, return JWT.
+    /// </summary>
+    [HttpPost("signup-verify")]
+    [AllowAnonymous]
+    public async Task<IActionResult> SignupVerify([FromBody] SignupVerifyDto request)
+    {
+        if (string.IsNullOrWhiteSpace(request.VerificationSessionId) || string.IsNullOrWhiteSpace(request.OtpCode))
+            return ErrorResponse("Verification session ID and OTP code are required", 400);
+
+        if (request.OtpCode != SignupInitOtp)
+            return ErrorResponse("Invalid OTP code", 400);
+
+        if (!_signupPendingCache.TryRemove(request.VerificationSessionId, out var pending))
+            return ErrorResponse("Verification session not found or expired", 404);
+
+        if ((DateTime.UtcNow - pending.CreatedAt).TotalMinutes > 10)
+        {
+            _logger.LogWarning("Expired signup session {SessionId}", request.VerificationSessionId);
+            return ErrorResponse("Verification session has expired", 400);
+        }
+
+        try
+        {
+            await _unitOfWork.BeginTransactionAsync();
+
+            var user = new ApplicationIdentityUser
+            {
+                UserName = pending.PhoneNumber,
+                PhoneNumber = pending.PhoneNumber,
+                PhoneNumberConfirmed = true,
+                Email = null,
+                EmailConfirmed = false
+            };
+
+            var result = await _userManager.CreateAsync(user, pending.Password);
+
+            if (!result.Succeeded)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                _logger.LogWarning($"User creation failed for phone: {pending.PhoneNumber}. Errors: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                return BadRequest(new { success = false, message = "Registration failed.", errors = result.Errors.Select(e => e.Description).ToList() });
+            }
+
+            if (!string.IsNullOrWhiteSpace(pending.FirstName))
+                await _userManager.AddClaimAsync(user, new Claim(ClaimTypes.GivenName, pending.FirstName));
+
+            if (!string.IsNullOrWhiteSpace(pending.LastName))
+                await _userManager.AddClaimAsync(user, new Claim(ClaimTypes.Surname, pending.LastName));
+
+            Guid authGuid = user.Id;
+            if (authGuid != Guid.Empty)
+            {
+                var passwordHasher = new Microsoft.AspNetCore.Identity.PasswordHasher<ApplicationIdentityUser>();
+                var authUser = new AuthUser
+                {
+                    Id = authGuid,
+                    Email = pending.PhoneNumber + "@phone.investa.local",
+                    PasswordHash = passwordHasher.HashPassword(user, pending.Password),
+                    UserType = Investa.Domain.Entities.Enums.UserType.Client,
+                    Status = true
+                };
+
+                await _unitOfWork.Repository<AuthUser>().AddAsync(authUser);
+                await _unitOfWork.SaveChangesAsync();
+
+                var profile = new UserProfile
+                {
+                    UserId = authGuid,
+                    FirstName = pending.FirstName,
+                    LastName = pending.LastName,
+                    FullName = string.IsNullOrWhiteSpace(pending.FirstName) && string.IsNullOrWhiteSpace(pending.LastName)
+                        ? pending.PhoneNumber
+                        : ($"{pending.FirstName} {pending.LastName}").Trim(),
+                    Phone1 = pending.PhoneNumber,
+                    Email = null,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                await _unitOfWork.Repository<UserProfile>().AddAsync(profile);
+                await _unitOfWork.SaveChangesAsync();
+
+                var client = new Client
+                {
+                    UserId = authGuid,
+                    FirstName = pending.FirstName,
+                    LastName = pending.LastName,
+                    MobileNumber = pending.PhoneNumber,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    StatusId = 1
+                };
+
+                await _unitOfWork.Repository<Client>().AddAsync(client);
+                await _unitOfWork.SaveChangesAsync();
+
+                await _walletService.CreateWalletAsync(authGuid);
+            }
+
+            await _unitOfWork.CommitTransactionAsync();
+
+            var authResponse = await BuildAuthResponseAsync(user);
+
+            _logger.LogInformation("User created via OTP signup: {Phone} (ID: {UserId})", pending.PhoneNumber, user.Id);
+
+            return Ok(new { success = true, data = authResponse });
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackTransactionAsync();
+            _logger.LogError(ex, "Error during signup verification for phone: {Phone}", pending.PhoneNumber);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = "An error occurred during registration. Please try again." });
+        }
+    }
 
     private async Task<ApplicationIdentityUser?> TryFindByNameAsync(string username)
     {

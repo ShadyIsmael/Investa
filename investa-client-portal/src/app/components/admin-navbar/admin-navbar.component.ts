@@ -1,13 +1,14 @@
-import { Component, ChangeDetectionStrategy, inject, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal, computed, OnInit } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { CommonModule } from '@angular/common';
 import { TranslatePipe } from '../../pipes/translate.pipe';
 import { LanguageService } from '../../services/language.service';
-import { NotificationService } from '../../services/notification.service';
+import { Notification, NotificationService } from '../../services/notification.service';
 import { ClickOutsideDirective } from '../../directives/click-outside.directive';
 import { ProfileService } from '../../services/profile.service';
 import { RoleContextService } from '../../services/role-context.service';
+import { FileStoreService } from '../../services/file-store.service';
 import { get } from 'lodash-es';
 
 /**
@@ -34,23 +35,23 @@ import { get } from 'lodash-es';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, RouterLinkActive, CommonModule, TranslatePipe, ClickOutsideDirective]
 })
-export class AdminNavbarComponent {
+export class AdminNavbarComponent implements OnInit {
   private authService = inject(AuthService);
   private router: Router = inject(Router);
   languageService = inject(LanguageService);
   notificationService = inject(NotificationService);
   private profileService = inject(ProfileService);
+  private fileStoreService = inject(FileStoreService);
   roleContext = inject(RoleContextService);
+  private avatarLoadFailed = signal(false);
 
   /** Current user's role (investor, founder, admin) */
   userRole = this.authService.userRole;
 
-  /** Avatar URL sourced from the user's profile, with picsum fallback */
+  /** Avatar URL sourced from the profile and resolved by the configured media service. */
   avatarUrl = computed(() => {
     const p = this.profileService.profile();
-    if (p?.basicInfo?.avatarUrl) return p.basicInfo.avatarUrl;
-    const seed = (p?.basicInfo?.firstName || 'user').replace(/\s+/g, '') || 'user';
-    return `https://picsum.photos/seed/${seed}/100/100`;
+    return this.fileStoreService.getPublicUrl(p?.basicInfo?.avatarUrl);
   });
 
   /** User's display name */
@@ -85,12 +86,16 @@ export class AdminNavbarComponent {
   /** Whether user has a profile image */
   hasProfileImage = computed(() => {
     const p = this.profileService.profile();
-    return !!p?.basicInfo?.avatarUrl;
+    return !!p?.basicInfo?.avatarUrl && !this.avatarLoadFailed();
   });
+
+  onAvatarError(): void {
+    this.avatarLoadFailed.set(true);
+  }
 
   /** Unread message count */
   unreadMessageCount = computed(() => {
-    return this.notificationService.unreadCount();
+    return this.notificationService.unreadMessageCount();
   });
 
   /** Tracks if user dropdown menu is open */
@@ -107,6 +112,10 @@ export class AdminNavbarComponent {
 
   /** Most recent notifications (limited to 10) */
   recentNotifications = computed(() => this.notificationService.notifications().slice(0, 10));
+
+  ngOnInit(): void {
+    void this.notificationService.loadNotifications();
+  }
 
   /**
    * Toggles the user menu dropdown
@@ -127,6 +136,7 @@ export class AdminNavbarComponent {
     this.isNotificationsOpen.update(value => !value);
      if (this.isNotificationsOpen()) {
       this.isUserMenuOpen.set(false);
+      void this.notificationService.loadNotifications();
     }
   }
 
@@ -157,6 +167,15 @@ export class AdminNavbarComponent {
 
   markAllRead() {
     this.notificationService.markAllAsRead();
+  }
+
+  async openNotification(notification: Notification) {
+    this.isNotificationsOpen.set(false);
+    await this.notificationService.openNotification(notification);
+  }
+
+  isOpeningNotification(id: number): boolean {
+    return this.notificationService.isOpening(id);
   }
 
   /**

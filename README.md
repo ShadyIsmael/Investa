@@ -1,6 +1,6 @@
-# Investa — Multi-Platform Investment Platform
+# FOPX One — Multi-Platform Investment Platform
 
-Investa is a production-grade, multi-platform investment ecosystem for founders, partners, and administrators. It follows Clean Architecture principles across all five platforms.
+FOPX One is a production-grade, multi-platform investment ecosystem for founders, partners, and administrators. It follows Clean Architecture principles across all five platforms.
 
 ---
 

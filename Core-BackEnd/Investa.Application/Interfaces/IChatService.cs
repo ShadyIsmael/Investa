@@ -9,7 +9,7 @@ namespace Investa.Application.Interfaces
 {
     public interface IChatService
     {
-        // SignalR Chat Methods
+        // Chat Methods
         Task<SupportSession> RequestSupportAsync(string userMobile);
         Task<SupportSession> RequestSupportAsync(string userMobile, string? type, string? message);
         Task<ChatMessage> SendChatMessageAsync(Guid supportSessionId, string senderId, string text);

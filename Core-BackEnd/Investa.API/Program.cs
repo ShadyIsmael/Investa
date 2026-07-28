@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Investa.API.Serialization;
 using System.Linq;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
@@ -25,6 +26,7 @@ using Investa.Infrastructure.Persistence;
 using Investa.Infrastructure.Services;
 using Investa.Infrastructure.Repositories;
 using Investa.Infrastructure.Seed;
+using Investa.Infrastructure.Services.Firebase;
 
 
 try
@@ -105,10 +107,6 @@ try
                 // Prevent EF from translating captured primitive collections through OPENJSON.
                 sqlOptions.UseCompatibilityLevel(120);
                 sqlOptions.CommandTimeout(30);
-                sqlOptions.EnableRetryOnFailure(
-                    maxRetryCount: 3,
-                    maxRetryDelay: TimeSpan.FromSeconds(10),
-                    errorNumbersToAdd: null);
             }));
         Console.WriteLine("[STARTUP] Database configured successfully");
     }
@@ -294,7 +292,14 @@ try
 
     // === EMAIL CONFIGURATION (Options Pattern) ===
     // Reads email SMTP configuration from: appsettings.json -> Email:{...}
-    builder.Services.Configure<Investa.Application.DTOs.EmailOptions>(builder.Configuration.GetSection("Email"));
+    builder.Services
+        .AddOptions<Investa.Application.DTOs.EmailOptions>()
+        .Bind(builder.Configuration.GetSection("Email"))
+        .Validate(
+            options => !string.Equals(options.Provider, "MailerSend", StringComparison.OrdinalIgnoreCase)
+                || !string.IsNullOrWhiteSpace(options.MailerSend.ApiKey),
+            "Email:MailerSend:ApiKey must be configured when Email:Provider is MailerSend.")
+        .ValidateOnStart();
 
     // === API CONFIGURATION ===
     builder.Services.AddControllers()
@@ -305,6 +310,7 @@ try
                options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
                options.JsonSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
                options.JsonSerializerOptions.WriteIndented = false;
+               options.JsonSerializerOptions.Converters.Add(new InvestmentModelJsonConverter());
                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
            })
            .ConfigureApiBehaviorOptions(options =>
@@ -323,21 +329,45 @@ try
                };
            });
 
-    // === FIREBASE CLOUD MESSAGING CONFIGURATION ===
-    // Initialize Firebase Admin SDK for push notifications
-    var firebaseConfigPath = builder.Configuration["Firebase:ServiceAccountPath"];
-    if (!string.IsNullOrEmpty(firebaseConfigPath) && File.Exists(firebaseConfigPath))
+    // === FIREBASE CONFIGURATION ===
+    // Use strongly-typed options with environment variable fallback
+    builder.Services.Configure<Investa.Application.DTOs.FirebaseOptions>(builder.Configuration.GetSection("Firebase"));
+
+    var firebaseSection = builder.Configuration.GetSection("Firebase");
+    var fbEnabled = firebaseSection["Enabled"] ?? "false";
+    if (!bool.TryParse(fbEnabled, out var isFirebaseEnabled))
+        isFirebaseEnabled = false;
+
+    // Resolve credentials path: environment variable > config value
+    var credentialsPath = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS")
+                          ?? firebaseSection["CredentialsPath"];
+
+    if (isFirebaseEnabled && !string.IsNullOrEmpty(credentialsPath) && File.Exists(credentialsPath))
     {
         FirebaseApp.Create(new AppOptions
         {
-            Credential = GoogleCredential.FromFile(firebaseConfigPath)
+            Credential = GoogleCredential.FromFile(credentialsPath),
+            ProjectId = firebaseSection["ProjectId"]
         });
-        logger.LogInformation("✅ Firebase Admin SDK initialized from {Path}", firebaseConfigPath);
+        logger.LogInformation("✅ Firebase Admin SDK initialized. Project: {ProjectId}", firebaseSection["ProjectId"]);
+    }
+    else if (isFirebaseEnabled)
+    {
+        var error = "Firebase is enabled but configuration is invalid. " +
+                    "Set GOOGLE_APPLICATION_CREDENTIALS environment variable to point to your service account JSON, " +
+                    "or configure Firebase:CredentialsPath in appsettings.";
+        logger.LogError("❌ {Error}", error);
+
+        if (builder.Environment.IsDevelopment())
+        {
+            throw new InvalidOperationException(error);
+        }
+
+        logger.LogWarning("⚠️  Firebase enabled but misconfigured. Continuing without Firebase in non-Development.");
     }
     else
     {
-        logger.LogWarning("⚠️  Firebase service account file not found. Push notifications will be unavailable.");
-        logger.LogWarning("   Configure 'Firebase:ServiceAccountPath' in appsettings.json");
+        logger.LogInformation("ℹ️  Firebase is disabled. Firebase-dependent features will use no-op implementations.");
     }
 
     // === AUTOMATION MAPPER ===
@@ -346,6 +376,10 @@ try
     // === DEVELOPMENT IDENTITY RESEED (repair-only) ===
     builder.Services.AddDevIdentityReseed();
     builder.Services.AddScoped<FinancePermissionBackfillService>();
+
+    // === DEMO DATA SEEDING (runs on startup) ===
+    builder.Services.AddDatabaseSeeder();
+
 
     // === DEVELOPMENT OPPORTUNITY SEED (repair-only) ===
     if (builder.Environment.IsDevelopment())
@@ -375,6 +409,9 @@ try
 
     // === HEALTH CHECKS ===
     builder.Services.AddHealthChecks();
+
+    // === FIREBASE SERVICES ===
+    builder.Services.AddFirebaseServices();
 
     // === BUILD APPLICATION ===
     var app = builder.Build();
@@ -432,11 +469,10 @@ try
             var roomDemoDataBackfill = scope.ServiceProvider.GetRequiredService<OpportunityRoomDemoDataBackfillService>();
             var roomDemoDataResult = await roomDemoDataBackfill.BackfillAsync();
             logger.LogInformation(
-                "Opportunity room demo data backfill result: scanned={Scanned}, populated={Populated}, timelineEventsCreated={TimelineEventsCreated}, documentsCreated={DocumentsCreated}, mediaCreated={MediaCreated}, joinRequestsCreated={JoinRequestsCreated}, skipped={Skipped}",
+                "Opportunity room demo data backfill result: scanned={Scanned}, populated={Populated}, timelineEventsCreated={TimelineEventsCreated}, mediaCreated={MediaCreated}, joinRequestsCreated={JoinRequestsCreated}, skipped={Skipped}",
                 roomDemoDataResult.Scanned,
                 roomDemoDataResult.OpportunitiesPopulated,
                 roomDemoDataResult.TimelineEventsCreated,
-                roomDemoDataResult.DocumentsCreated,
                 roomDemoDataResult.MediaCreated,
                 roomDemoDataResult.JoinRequestsCreated,
                 roomDemoDataResult.Skipped);
@@ -493,8 +529,8 @@ try
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Investa API v1");
-        options.DocumentTitle = "Investa API Documentation";
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "FOPX One API v1");
+        options.DocumentTitle = "FOPX One API Documentation";
         options.DefaultModelsExpandDepth(2);
         options.DefaultModelExpandDepth(2);
     });
@@ -551,7 +587,24 @@ try
         await reseed.RepairDevelopmentIdentityDataAsync(builder.Configuration);
     }
 
+    // === DEMO DATA SEEDING (ensures all demo seed entities exist) ===
+    // Runs on every startup in non-Testing environments.
+    if (!app.Environment.IsEnvironment("Testing"))
+    {
+        try
+        {
+            using var scope = app.Services.CreateScope();
+            var seeder = scope.ServiceProvider.GetRequiredService<Investa.Infrastructure.Seed.DatabaseSeeder>();
+            await seeder.SeedAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SEED-WARN] DatabaseSeeder skipped: {ex.Message}");
+        }
+    }
+
     await app.RunAsync();
+
 
     
     Console.WriteLine("[SHUTDOWN] Application stopped gracefully.");
@@ -611,6 +664,7 @@ static void RegisterApplicationServices(IServiceCollection services)
     services.AddScoped<IWalletService, WalletService>();
     services.AddScoped<IPriceService, PriceService>();
     services.AddScoped<IPaidActionService, PaidActionService>();
+    services.AddSingleton<IClientInteractionChargingPolicy, ClientInteractionChargingPolicy>();
     services.AddScoped<IReportService, ReportService>();
     services.AddScoped<IOpportunityService, OpportunityService>();
     services.AddScoped<IInvestmentContractService, InvestmentContractService>();
@@ -627,6 +681,7 @@ static void RegisterApplicationServices(IServiceCollection services)
     services.AddScoped<IFinanceMasterDataService, FinanceMasterDataService>();
     services.AddScoped<IFinanceOverviewService, FinanceOverviewService>();
     services.AddScoped<IFinanceReconciliationService, FinanceReconciliationService>();
+    services.AddScoped<IAdminUserApprovalService, AdminUserApprovalService>();
 
     // === INFRASTRUCTURE LAYER - External Services ===
     // Security Services (Scoped - stateful per request)
@@ -636,7 +691,18 @@ static void RegisterApplicationServices(IServiceCollection services)
     
     // Communication Services (Scoped)
     services.AddScoped<ISmsSender, SmsSender>();
-    services.AddScoped<Investa.Application.Interfaces.IEmailService, Investa.Infrastructure.Services.GmailSmtpEmailService>();
+
+    // === EMAIL INFRASTRUCTURE (Outbox-based, async) ===
+    services.AddScoped<IEmailProvider, Investa.Infrastructure.Services.Email.MailerSendEmailProvider>();
+    services.AddScoped<IEmailQueue, Investa.Infrastructure.Services.Email.EmailQueue>();
+    services.AddScoped<IEmailHistoryService, Investa.Infrastructure.Services.Email.EmailHistoryService>();
+    services.AddScoped<IEmailPreferenceService, Investa.Infrastructure.Services.Email.EmailPreferenceService>();
+    services.AddScoped<IEmailDispatcher, Investa.Infrastructure.Services.Email.EmailDispatcher>();
+    services.AddScoped<IEmailTemplateRenderer, Investa.Infrastructure.Services.Email.UnifiedEmailTemplateRenderer>();
+    services.AddScoped<IEmailAttachmentProvider, Investa.Infrastructure.Services.Email.NullEmailAttachmentProvider>();
+    services.AddScoped<IEmailService, Investa.Infrastructure.Services.Email.EmailService>();
+    services.AddScoped<IEmailOtpService, Investa.Infrastructure.Services.Email.EmailOtpService>();
+    services.AddHostedService<Investa.Infrastructure.Workers.EmailDispatcherWorker>();
 
 
 
@@ -647,6 +713,13 @@ static void RegisterApplicationServices(IServiceCollection services)
     // === INFRASTRUCTURE LAYER - Notification Services ===
     // Firebase Cloud Messaging for push notifications (Scoped)
     services.AddScoped<INotificationService, NotificationService>();
+
+    // Multi-device push notification service
+    services.AddScoped<DevicePushNotificationService>();
+
+    // Shared UserNotification creation + FCM dispatch service
+    services.AddScoped<IUserNotificationService, UserNotificationService>();
+    services.AddSingleton<IConversationPresenceService, ConversationPresenceService>();
 
     // === PRESENTATION LAYER - Request Context (Scoped) ===
     services.AddScoped<RequestContext>();
@@ -661,12 +734,12 @@ static void ConfigureSwaggerGeneration(IServiceCollection services)
     {
         options.SwaggerDoc("v1", new OpenApiInfo
         {
-            Title = "Investa Investment Platform API",
+            Title = "FOPX One API",
             Version = "v1.0.0",
-            Description = "RESTful API for the Investa investment platform with real-time chat and notifications",
+            Description = "RESTful API for the FOPX One investment platform with real-time chat and notifications",
             Contact = new OpenApiContact
             {
-                Name = "Investa Development Team",
+                Name = "FOPX One Team",
                 Email = "dev@investa.local"
             },
             License = new OpenApiLicense

@@ -1,173 +1,239 @@
-<div class="container mx-auto p-6 lg:p-8" [dir]="direction()">
+<div class="dashboard-wrapper" [dir]="direction()">
   @if (roleContext.isActiveInvestorContext()) {
     <div class="premium-dashboard investor-dashboard">
-      <div class="dashboard-header">
-        <h1 class="dashboard-title">{{ 'dashboard.investorTitle' | translate }}</h1>
-        <p class="dashboard-subtitle">{{ 'dashboard.welcomeSubtitle' | translate }}</p>
+      <div class="partner-identity dashboard-panel">
+        <span class="partner-avatar">@if (identityAvatar()) { <img [src]="identityAvatar()" [alt]="identityName()"> } @else { {{ identityName().charAt(0) }} }</span>
+        <div class="partner-copy"><p>{{ 'dashboard.welcomeBack' | translate }}</p><h1>{{ identityName() }}</h1></div>
+        <a routerLink="/admin/profile/wallet" class="identity-stat"><span>{{ 'dashboard.wallet.title' | translate }}</span><strong>{{ currentCredits() | number:'1.0-0' }}</strong></a>
+        <a routerLink="/admin/profile" class="identity-stat"><span>{{ 'dashboard.reputation.title' | translate }}</span><strong>{{ investorScore() !== null ? (investorScore() | number:'1.0-0') : ('dashboard.unavailable' | translate) }}</strong><small>{{ investorLevel() }}</small></a>
+        @if (unreadMessageCount() > 0) { <a routerLink="/admin/notifications" class="identity-notification" [attr.aria-label]="'dashboard.unreadNotifications' | translate">{{ unreadMessageCount() }}</a> }
       </div>
 
-      <div class="investor-top-grid">
-        <a [routerLink]="['/admin/requests']" class="dashboard-panel performance-panel">
-          <div class="panel-header">
-            <div>
-              <p class="panel-eyebrow">{{ 'dashboard.performance.eyebrow' | translate }}</p>
-              <h2 class="panel-title">{{ 'dashboard.performance.title' | translate }}</h2>
+      <div class="dashboard-70-30">
+        <!-- Main 70% Column -->
+        <div class="dashboard-main">
+          <!-- Merged: Portfolio Performance -->
+          <section class="dashboard-panel portfolio-performance-card">
+            <div class="panel-header">
+              <div>
+                <p class="panel-eyebrow">{{ 'dashboard.performance.eyebrow' | translate }}</p>
+                <h2 class="panel-title">{{ 'dashboard.portfolioPerformance' | translate }}</h2>
+              </div>
+              <a routerLink="/admin/requests" class="panel-link">{{ 'dashboard.viewDetails' | translate }}</a>
             </div>
-            <span class="panel-link">{{ 'dashboard.viewDetails' | translate }}</span>
-          </div>
-          <div class="performance-metrics">
-            <div class="metric-item metric-primary"><span>{{ 'dashboard.performance.totalInvested' | translate }}</span><strong>{{ formatCreditAmount(totalInvested()) }}</strong></div>
-            <div class="metric-item metric-unavailable"><span>{{ 'dashboard.performance.currentValue' | translate }}</span><strong>{{ 'dashboard.unavailable' | translate }}</strong></div>
-            <div class="metric-item metric-unavailable"><span>{{ 'dashboard.performance.realizedEarnings' | translate }}</span><strong>{{ 'dashboard.unavailable' | translate }}</strong></div>
-            <div class="metric-item metric-positive"><span>{{ 'dashboard.performance.expectedEarnings' | translate }}</span><strong>{{ formatCreditAmount(expectedEarnings()) }}</strong></div>
-            <div class="metric-item metric-unavailable"><span>{{ 'dashboard.performance.totalReturn' | translate }}</span><strong>{{ 'dashboard.unavailable' | translate }}</strong></div>
-            <div class="metric-item"><span>{{ 'dashboard.performance.returnRate' | translate }}</span><strong>{{ returnRate() | number:'1.0-2' }}%</strong></div>
-          </div>
-          <p class="panel-helper">{{ 'dashboard.performance.helper' | translate }}</p>
-        </a>
+            <div class="portfolio-metrics-grid">
+              <div class="metric-item metric-primary"><span>{{ 'dashboard.performance.totalInvested' | translate }}<i class="info-tip" [attr.data-tip]="'dashboard.performance.totalInvestedHint' | translate">i</i></span><strong>{{ formatCreditAmount(totalInvested()) }}</strong></div>
+              <div class="metric-item metric-positive"><span>{{ 'dashboard.performance.expectedEarnings' | translate }}<i class="info-tip" [attr.data-tip]="'dashboard.performance.expectedEarningsHint' | translate">i</i></span><strong>{{ formatCreditAmount(expectedEarnings()) }}</strong></div>
+              <div class="metric-item metric-unavailable"><span>{{ 'dashboard.performance.currentValue' | translate }}<i class="info-tip" [attr.data-tip]="'dashboard.performance.currentValueHint' | translate">i</i></span><strong>{{ 'dashboard.unavailable' | translate }}</strong></div>
+              <div class="metric-item metric-unavailable"><span>{{ 'dashboard.performance.realizedEarnings' | translate }}<i class="info-tip" [attr.data-tip]="'dashboard.performance.realizedEarningsHint' | translate">i</i></span><strong>{{ 'dashboard.unavailable' | translate }}</strong></div>
+            </div>
+            <div class="portfolio-chart-section">
+              <div #lineChart class="portfolio-chart" role="img" [attr.aria-label]="'dashboard.growth.chartLabel' | translate"></div>
+              @if (!hasGrowthHistory()) { <div class="growth-empty-state"><strong>0</strong><p>{{ 'dashboard.growth.emptyHelper' | translate }}</p></div> }
+            </div>
+            <p class="panel-helper">{{ 'dashboard.performance.helper' | translate }}</p>
+          </section>
 
-        <a [routerLink]="['/admin/profile']" class="dashboard-panel compact-panel wallet-panel">
-          <p class="panel-eyebrow">{{ 'dashboard.wallet.eyebrow' | translate }}</p>
-          <h2 class="panel-title">{{ 'dashboard.wallet.title' | translate }}</h2>
-          <p class="compact-value">{{ currentCredits() | number:'1.0-0' }}</p>
-          <p class="panel-helper">{{ 'dashboard.wallet.helper' | translate }}</p>
-        </a>
-
-        <a [routerLink]="['/admin/profile']" class="dashboard-panel compact-panel reputation-panel">
-          <p class="panel-eyebrow">{{ 'dashboard.reputation.eyebrow' | translate }}</p>
-          <h2 class="panel-title">{{ 'dashboard.reputation.title' | translate }}</h2>
-          <p class="compact-value">{{ investorScore() !== null ? (investorScore() | number:'1.0-0') : ('dashboard.unavailable' | translate) }}</p>
-          <p class="panel-helper">{{ investorLevel() }}</p>
-          <p class="panel-helper">{{ 'dashboard.reputation.helper' | translate }}</p>
-        </a>
-      </div>
-
-      <div class="investor-section-grid">
-        <section class="dashboard-panel action-panel">
-          <div class="panel-header">
-            <h3 class="panel-title">{{ 'dashboard.actionNeeded.title' | translate }}</h3>
-            <a [routerLink]="['/admin/requests']" class="panel-link">{{ 'dashboard.viewAll' | translate }}</a>
-          </div>
-          @for (request of actionNeeded(); track request.id) {
-            <a [routerLink]="['/admin/requests']" class="list-row">
-              <span><strong>{{ request.projectName }}</strong><small>{{ request.counterpartName }}</small></span>
-              <em>{{ getStatusLabel(request.status) }}</em>
-            </a>
-          } @empty {
-            <div class="empty-state"><strong>{{ 'dashboard.actionNeeded.emptyTitle' | translate }}</strong><p>{{ 'dashboard.actionNeeded.emptyHelper' | translate }}</p></div>
-          }
-        </section>
-
-        <section class="dashboard-panel negotiations-panel">
-          <div class="panel-header">
-            <h3 class="panel-title">{{ 'dashboard.negotiations.title' | translate }}</h3>
-            <a [routerLink]="['/admin/requests']" class="panel-link">{{ 'dashboard.viewAll' | translate }}</a>
-          </div>
-          @for (request of activeNegotiations(); track request.id) {
-            <a [routerLink]="request.opportunityId ? ['/admin/investments', request.opportunityId] : ['/admin/requests']" class="list-row">
-              <span><strong>{{ request.projectName }}</strong><small>{{ formatCreditAmount(getRequestAmount(request)) }}</small></span>
-              <em>{{ getStatusLabel(request.status) }}</em>
-            </a>
-          } @empty {
-            <div class="empty-state"><strong>{{ 'dashboard.negotiations.emptyTitle' | translate }}</strong><p>{{ 'dashboard.negotiations.emptyHelper' | translate }}</p></div>
-          }
-        </section>
-      </div>
-
-      <section class="dashboard-panel summary-panel">
-        <div class="panel-header">
-          <h3 class="panel-title">{{ 'dashboard.summary.title' | translate }}</h3>
-          <a [routerLink]="['/admin/requests']" class="panel-link">{{ 'dashboard.viewDetails' | translate }}</a>
-        </div>
-        <div class="summary-grid">
-          @for (stat of investmentSummaryStats(); track stat.key) {
-            <a [routerLink]="stat.route" class="summary-stat"><span>{{ stat.labelKey | translate }}</span><strong>{{ stat.value }}</strong></a>
-          }
-        </div>
-        <div class="composition-list">
-          <h4>{{ 'dashboard.summary.composition.title' | translate }}</h4>
-          @for (item of portfolioComposition(); track item.key) {
-            <div class="composition-row"><span>{{ item.labelKey | translate }}</span><strong>{{ formatCreditAmount(item.value) }}</strong></div>
-          }
-        </div>
-      </section>
-
-      <section class="dashboard-panel updates-panel">
-        <div class="panel-header">
-          <h3 class="panel-title">{{ 'dashboard.updates.title' | translate }}</h3>
-          <a [routerLink]="['/admin/investments']" class="panel-link">{{ 'dashboard.viewAll' | translate }}</a>
-        </div>
-        @for (request of latestProjectUpdates(); track request.id) {
-          <a [routerLink]="request.opportunityId ? ['/admin/investments', request.opportunityId] : ['/admin/investments']" class="list-row">
-            <span><strong>{{ request.projectName }}</strong><small>{{ getTimeAgo(request.createdAt) }}</small></span>
-            <em>{{ getStatusLabel(request.status) }}</em>
-          </a>
-        } @empty {
-          <div class="empty-state"><strong>{{ 'dashboard.updates.emptyTitle' | translate }}</strong><p>{{ 'dashboard.updates.emptyHelper' | translate }}</p></div>
-        }
-      </section>
-
-      <section class="dashboard-panel favorites-panel">
-        <div class="panel-header">
-          <div>
-            <p class="panel-eyebrow">{{ 'dashboard.favorites.eyebrow' | translate }}</p>
-            <h3 class="panel-title">{{ 'dashboard.favorites.title' | translate }}</h3>
-          </div>
-          <a [routerLink]="['/admin/investments']" [queryParams]="{ onlyFavorites: true }" class="panel-link">{{ 'dashboard.favorites.viewAll' | translate }}</a>
-        </div>
-        @if (favoritePreviewInvestments().length > 0) {
-          <div class="favorites-list">
-            @for (favorite of favoritePreviewInvestments(); track favorite.id) {
-              <a [routerLink]="['/admin/investments', favorite.id]" class="favorite-row">
-                <span class="favorite-avatar">
-                  @let favoriteImage = getImageSrc(favorite);
-                  @if (favoriteImage) {
-                    <img [src]="favoriteImage" alt="{{ favorite.title }}">
-                  } @else {
-                    <span>{{ getNameInitial(favorite.title) }}</span>
+          <!-- Expected Cash Flow -->
+          <section class="dashboard-panel cash-flow-panel">
+            <div class="panel-header">
+              <div><p class="panel-eyebrow">{{ 'dashboard.cashFlow.eyebrow' | translate }}</p><h2 class="panel-title">{{ 'dashboard.cashFlow.title' | translate }}</h2></div>
+              <a routerLink="/admin/investments" class="panel-link">{{ 'dashboard.viewDetails' | translate }}</a>
+            </div>
+            @if (cashFlowLoading()) {
+              <p class="panel-helper">{{ 'dashboard.cashFlow.loading' | translate }}</p>
+            } @else if (cashFlowSummary(); as flow) {
+              <div class="cash-flow-summary">
+                <div class="cash-flow-primary"><span>{{ 'dashboard.cashFlow.thisMonth' | translate }}</span><strong>{{ flow.expectedIncomeThisMonth | number:'1.2-2' }} {{ flow.currency }}</strong></div>
+                <div><span>{{ 'dashboard.cashFlow.nextPayment' | translate }}</span><strong>{{ flow.nextPaymentAmount | number:'1.2-2' }} {{ flow.currency }}</strong><small>{{ formatCashFlowDate(flow.nextPaymentDate) }}</small></div>
+                <div><span>{{ 'dashboard.cashFlow.nextTwelveMonths' | translate }}</span><strong>{{ flow.expectedNextTwelveMonths | number:'1.2-2' }} {{ flow.currency }}</strong></div>
+                <div><span>{{ 'dashboard.cashFlow.totalInterest' | translate }}</span><strong>{{ flow.totalExpectedInterest | number:'1.2-2' }} {{ flow.currency }}</strong></div>
+                <div><span>{{ 'dashboard.cashFlow.received' | translate }}</span><strong>{{ 'dashboard.cashFlow.actualUnavailableShort' | translate }}</strong></div>
+                <div><span>{{ 'dashboard.cashFlow.remainingPrincipal' | translate }}</span><strong>{{ flow.remainingPrincipal | number:'1.2-2' }} {{ flow.currency }}</strong></div>
+                <div class="cash-flow-overdue"><span>{{ 'dashboard.cashFlow.overdue' | translate }}</span><strong>{{ 'dashboard.cashFlow.actualUnavailableShort' | translate }}</strong></div>
+              </div>
+              <p class="cash-flow-actual-notice">{{ 'dashboard.cashFlow.actualUnavailable' | translate }}</p>
+              <div class="cash-flow-legend"><span class="interest">{{ 'dashboard.cashFlow.expectedInterest' | translate }}</span><span class="principal">{{ 'dashboard.cashFlow.principal' | translate }}</span></div>
+              @if (monthlyCashFlow().length) {
+                <div class="cash-flow-chart" role="img" [attr.aria-label]="'dashboard.cashFlow.chartLabel' | translate">
+                  @for (month of monthlyCashFlow(); track month.month) {
+                    <div class="cash-flow-month">
+                      <div class="cash-flow-bars">
+                        <i class="interest" [style.height.%]="cashFlowBarHeight(month.expectedInterest)" [title]="('dashboard.cashFlow.expectedInterest' | translate) + ': ' + (month.expectedInterest | number:'1.2-2')"></i>
+                        <i class="principal" [style.height.%]="cashFlowBarHeight(month.expectedPrincipal)" [title]="('dashboard.cashFlow.principal' | translate) + ': ' + (month.expectedPrincipal | number:'1.2-2')"></i>
+                      </div><small>{{ month.month | date:'MMM yyyy' }}</small>
+                    </div>
                   }
-                </span>
-                <span class="favorite-content">
-                  <strong>{{ favorite.title }}</strong>
-                  <small>{{ favorite.categoryName || favorite.fundingGoalName || ('dashboard.uncategorized' | translate) }}</small>
-                </span>
-                <em>{{ 'dashboard.favorites.openDetails' | translate }}</em>
-              </a>
+                </div>
+              } @else { <div class="empty-state"><strong>0</strong><p>{{ 'dashboard.cashFlow.empty' | translate }}</p></div> }
+            } @else {
+              <div class="empty-state"><strong>0</strong><p>{{ (cashFlowUnavailable() ? 'dashboard.cashFlow.unavailable' : 'dashboard.cashFlow.empty') | translate }}</p></div>
             }
-          </div>
-        } @else {
-          <div class="empty-state favorites-empty">
-            <strong>{{ 'dashboard.favorites.emptyTitle' | translate }}</strong>
-            <p>{{ 'dashboard.favorites.emptyHelper' | translate }}</p>
-            <a [routerLink]="['/admin/investments']" class="premium-cta">{{ 'dashboard.favorites.emptyCta' | translate }}</a>
-          </div>
-        }
-      </section>
+          </section>
 
-      <section class="dashboard-panel premium-insights-panel" [class.is-locked]="!isPremium()">
-        <div class="panel-header">
-          <div>
-            <p class="panel-eyebrow">{{ 'dashboard.premium.eyebrow' | translate }}</p>
-            <h3 class="panel-title">{{ 'dashboard.premium.title' | translate }}</h3>
-          </div>
-          @if (!isPremium()) { <span class="locked-badge">{{ 'dashboard.premium.locked' | translate }}</span> }
+          <!-- My Investment Summary -->
+          <section class="dashboard-panel summary-panel">
+            <div class="panel-header">
+              <h3 class="panel-title">{{ 'dashboard.summary.title' | translate }}</h3>
+              <a [routerLink]="['/admin/requests']" class="panel-link">{{ 'dashboard.viewDetails' | translate }}</a>
+            </div>
+            <div class="summary-grid">
+              @for (stat of investmentSummaryStats(); track stat.key) {
+                <a [routerLink]="stat.route" class="summary-stat"><span>{{ stat.labelKey | translate }}</span><strong>{{ stat.value }}</strong></a>
+              }
+            </div>
+            <div class="composition-list">
+              <h4>{{ 'dashboard.summary.composition.title' | translate }}</h4>
+              @for (item of portfolioComposition(); track item.key) {
+                <div class="composition-row"><span>{{ item.labelKey | translate }}</span><strong>{{ formatCreditAmount(item.value) }}</strong></div>
+              }
+            </div>
+          </section>
+
+          <!-- Active Negotiations -->
+          <section class="dashboard-panel negotiations-panel">
+            <div class="panel-header">
+              <h3 class="panel-title">{{ 'dashboard.negotiations.title' | translate }}</h3>
+              <a [routerLink]="['/admin/requests']" class="panel-link">{{ 'dashboard.viewAll' | translate }}</a>
+            </div>
+            @for (request of activeNegotiations(); track request.id) {
+              <a [routerLink]="request.opportunityId ? ['/admin/investments', request.opportunityId] : ['/admin/requests']" class="list-row">
+                <span><strong>{{ request.projectName }}</strong><small>{{ formatCreditAmount(getRequestAmount(request)) }}</small></span>
+                <em>{{ getStatusLabel(request.status) }}</em>
+              </a>
+            } @empty {
+              <div class="empty-state"><strong>{{ 'dashboard.negotiations.emptyTitle' | translate }}</strong><p>{{ 'dashboard.negotiations.emptyHelper' | translate }}</p></div>
+            }
+          </section>
         </div>
-        @if (isPremium()) {
-          <p class="panel-helper">{{ 'dashboard.premium.subscribedHelper' | translate }}</p>
-        } @else {
-          <p class="premium-teaser">{{ 'dashboard.premium.teaser' | translate }}</p>
-          <a [routerLink]="['/admin/settings']" class="premium-cta">{{ 'dashboard.premium.cta' | translate }}</a>
-        }
-      </section>
+
+        <!-- Sidebar 30% Column -->
+        <div class="dashboard-sidebar">
+          <!-- Profile Completion -->
+          <section class="dashboard-panel achievement-card">
+            <p class="panel-eyebrow">{{ 'dashboard.nextAchievement.title' | translate }}</p>
+            <strong class="achievement-title">{{ 'dashboard.nextAchievement.profile' | translate }}</strong>
+            <div class="achievement-track"><span [style.width.%]="profileCompletion()"></span></div>
+            <p class="panel-helper">{{ nextProfileAchievement() | number:'1.0-0' }}% {{ 'dashboard.nextAchievement.remaining' | translate }}</p>
+            <a routerLink="/admin/profile" class="panel-link">{{ 'dashboard.nextAchievement.continue' | translate }}</a>
+          </section>
+
+          <!-- Action Needed -->
+          <section class="dashboard-panel action-panel">
+            <div class="panel-header">
+              <h3 class="panel-title">{{ 'dashboard.actionNeeded.title' | translate }}</h3>
+              <a [routerLink]="['/admin/requests']" class="panel-link">{{ 'dashboard.viewAll' | translate }}</a>
+            </div>
+            @for (request of actionNeeded(); track request.id) {
+              <a [routerLink]="['/admin/requests']" class="list-row">
+                <span><strong>{{ request.projectName }}</strong><small>{{ request.counterpartName }}</small></span>
+                <em>{{ getStatusLabel(request.status) }}</em>
+              </a>
+            } @empty {
+              <div class="empty-state"><strong>{{ 'dashboard.actionNeeded.emptyTitle' | translate }}</strong><p>{{ 'dashboard.actionNeeded.emptyHelper' | translate }}</p></div>
+            }
+          </section>
+
+          <!-- Favorites -->
+          <section class="dashboard-panel favorites-panel">
+            <div class="panel-header">
+              <div>
+                <p class="panel-eyebrow">{{ 'dashboard.favorites.eyebrow' | translate }}</p>
+                <h3 class="panel-title">{{ 'dashboard.favorites.title' | translate }}</h3>
+              </div>
+              <a [routerLink]="['/admin/investments']" [queryParams]="{ onlyFavorites: true }" class="panel-link">{{ 'dashboard.favorites.viewAll' | translate }}</a>
+            </div>
+            @if (favoritePreviewInvestments().length > 0) {
+              <div class="favorites-list-vertical">
+                @for (favorite of favoritePreviewInvestments(); track favorite.id) {
+                  <a [routerLink]="['/admin/investments', favorite.id]" class="favorite-row-vertical">
+                    <span class="favorite-avatar">
+                      @let favoriteImage = getImageSrc(favorite);
+                      @if (favoriteImage) {
+                        <img [src]="favoriteImage" alt="{{ favorite.title }}">
+                      } @else {
+                        <span>{{ getNameInitial(favorite.title) }}</span>
+                      }
+                    </span>
+                    <span class="favorite-content">
+                      <strong>{{ favorite.title }}</strong>
+                      <small>{{ favorite.categoryName || favorite.fundingGoalName || ('dashboard.uncategorized' | translate) }}</small>
+                    </span>
+                    <em>{{ 'dashboard.favorites.openDetails' | translate }}</em>
+                  </a>
+                }
+              </div>
+            } @else {
+              <div class="empty-state favorites-empty">
+                <strong>{{ 'dashboard.favorites.emptyTitle' | translate }}</strong>
+                <p>{{ 'dashboard.favorites.emptyHelper' | translate }}</p>
+                <a [routerLink]="['/admin/investments']" class="premium-cta">{{ 'dashboard.favorites.emptyCta' | translate }}</a>
+              </div>
+            }
+          </section>
+
+          <!-- Premium Insights -->
+          <section class="dashboard-panel premium-insights-panel" [class.is-locked]="!isPremium()">
+            <div class="panel-header">
+              <div>
+                <p class="panel-eyebrow">{{ 'dashboard.premium.eyebrow' | translate }}</p>
+                <h3 class="panel-title">{{ 'dashboard.premium.title' | translate }}</h3>
+              </div>
+              @if (!isPremium()) { <span class="locked-badge">{{ 'dashboard.premium.locked' | translate }}</span> }
+            </div>
+            @if (isPremium() === true) {
+              <p class="panel-helper">{{ 'dashboard.premium.subscribedHelper' | translate }}</p>
+            } @else if (isPremium() === false) {
+              <p class="premium-teaser">{{ 'dashboard.premium.teaser' | translate }}</p><a [routerLink]="['/admin/settings']" class="premium-cta">{{ 'dashboard.premium.cta' | translate }}</a>
+            } @else {
+              <p class="premium-teaser">{{ 'dashboard.premium.unavailable' | translate }}</p>
+            }
+          </section>
+
+          <!-- Latest Project Updates -->
+          <section class="dashboard-panel updates-panel">
+            <div class="panel-header">
+              <h3 class="panel-title">{{ 'dashboard.updates.title' | translate }}</h3>
+              <a [routerLink]="['/admin/investments']" class="panel-link">{{ 'dashboard.viewAll' | translate }}</a>
+            </div>
+            @for (request of latestProjectUpdates(); track request.id) {
+              <a [routerLink]="request.opportunityId ? ['/admin/investments', request.opportunityId] : ['/admin/investments']" class="list-row">
+                <span><strong>{{ request.projectName }}</strong><small>{{ getTimeAgo(request.createdAt) }}</small></span>
+                <em>{{ getStatusLabel(request.status) }}</em>
+              </a>
+            } @empty {
+              <div class="empty-state"><strong>{{ 'dashboard.updates.emptyTitle' | translate }}</strong><p>{{ 'dashboard.updates.emptyHelper' | translate }}</p></div>
+            }
+          </section>
+        </div>
+      </div>
     </div>
   }
   @if (roleContext.isActiveFounderContext()) {
-    <div class="animate-fade-in">
+    <div class="animate-fade-in p-5 md:p-6">
       @if (selectedFounderProject(); as project) {
+        @if (founderProjectDataError()) {
+          <div class="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+            {{ founderProjectDataError() }}
+          </div>
+        }
+        <!-- Row 1: Project Header and Status -->
         <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 class="text-3xl font-bold text-white">{{ project.title }}</h1>
-            <p class="text-sm text-gray-400 mt-0.5">{{ 'dashboard.founderDashboardSubtitle' | translate }}</p>
+          <div class="flex items-center gap-3">
+            <div>
+              <h1 class="text-3xl font-bold text-white">{{ project.title }}</h1>
+              <div class="flex flex-wrap items-center gap-2 mt-1">
+                  <span class="inline-flex items-center rounded-full bg-slate-800 px-2.5 py-0.5 text-xs font-medium text-gray-300 border border-slate-700">
+                   {{ translateStatus(project.status) }}
+                  </span>
+                  <span class="inline-flex items-center rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs font-medium text-blue-300 border border-blue-500/20">
+                   {{ 'dashboard.projectInvestmentModel' | translate }}: {{ translateInvestmentModel(project.investmentModel) }}
+                  </span>
+                @if (project.createdAt) {
+                  <span class="text-xs text-gray-500">{{ 'dashboard.createdOn' | translate }} {{ project.createdAt | date:'mediumDate' }}</span>
+                }
+              </div>
+            </div>
           </div>
           <div class="flex flex-wrap items-center gap-2">
           @if (isDraftOpportunity(project)) {
@@ -183,222 +249,256 @@
           }
           </div>
         </div>
+
+        <div class="bg-slate-900/80 backdrop-blur-sm p-5 rounded-2xl border border-slate-800 mb-5">
+          @let fp = fundingProgress();
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-semibold text-white">{{ 'investments.fundingProgress' | translate }}</span>
+            <span class="text-sm font-semibold text-white">{{ fp | number:'1.0-0' }}%</span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-2.5 mb-2">
+            <div class="h-2.5 rounded-full transition-all"
+                 [class.bg-slate-500]="fp < 25"
+                 [class.bg-gradient-to-r]="fp >= 25"
+                 [class.from-amber-500]="fp >= 25 && fp < 75"
+                 [class.to-amber-400]="fp >= 25 && fp < 75"
+                 [class.from-emerald-500]="fp >= 75 && fp < 100"
+                 [class.to-emerald-400]="fp >= 75 && fp < 100"
+                 [class.from-cyan-500]="fp >= 100"
+                 [class.to-blue-400]="fp >= 100"
+                 [style.width.%]="fp"></div>
+          </div>
+          <div class="flex justify-between text-xs text-gray-500">
+            <span>{{ 'investmentPreview.amountRaised' | translate }}: <span class="text-white font-semibold">{{ getNativeFundedAmount(project) === null ? '—' : (getNativeFundedAmount(project) | number:'1.2-2') }}</span></span>
+            <span>{{ 'investmentPreview.target' | translate }}: <span class="text-white font-semibold">{{ formatProjectAmount(project.fundingTarget, project.currency) }}</span></span>
+          </div>
+        </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div class="lg:col-span-2 space-y-5">
-            <div class="bg-slate-900/80 backdrop-blur-sm p-6 rounded-2xl border border-slate-800 hover:border-slate-700 transition-colors">
-              <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">{{ 'dashboard.myProjectOverview' | translate }}</h3>
-              <div class="flex flex-col sm:flex-row items-center gap-5">
-                <img [src]="getProjectAvatar(project)" alt="{{ project.title }}" class="w-20 h-20 rounded-2xl object-cover ring-2 ring-slate-700">
-                <div class="flex-1 w-full text-center sm:text-left">
-                  <h2 class="text-xl font-bold text-white">{{ project.title }}</h2>
-                  <p class="text-sm text-gray-500 mt-1 mb-3 line-clamp-2">{{ project.description }}</p>
-                  @let fp = fundingProgress();
-                  <div class="w-full bg-slate-800 rounded-full h-2.5">
-                    <div class="h-2.5 rounded-full transition-all"
-                         [class.bg-slate-500]="fp < 25"
-                         [class.bg-gradient-to-r]="fp >= 25"
-                         [class.from-amber-500]="fp >= 25 && fp < 75"
-                         [class.to-amber-400]="fp >= 25 && fp < 75"
-                         [class.from-emerald-500]="fp >= 75 && fp < 100"
-                         [class.to-emerald-400]="fp >= 75 && fp < 100"
-                         [class.from-cyan-500]="fp >= 100"
-                         [class.to-blue-400]="fp >= 100"
-                         [style.width.%]="fp"></div>
-                  </div>
-                  <div class="flex justify-between text-xs mt-1.5 text-gray-500">
-                    <span>{{ 'investmentPreview.amountRaised' | translate }}: <span class="text-white font-semibold">{{ getNativeFundedAmount(project) === null ? '—' : (getNativeFundedAmount(project) | number) }}</span></span>
-                    <span>{{ 'investmentPreview.target' | translate }}: <span class="text-white font-semibold">${{ project.fundingTarget | number }}</span></span>
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 text-center hover:border-blue-500/30 transition-colors">
-                <div class="w-8 h-8 rounded-lg bg-blue-500/15 border border-blue-500/20 flex items-center justify-center mx-auto mb-2">
-                  <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941"/></svg>
-                </div>
-                <p class="text-2xl font-bold text-white">{{ fundingProgress() | number:'1.0-0' }}%</p>
-                <p class="text-[11px] text-gray-500 mt-0.5 uppercase tracking-wide">{{ 'investments.fundingProgress' | translate }}</p>
-              </div>
-              <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 text-center hover:border-emerald-500/30 transition-colors">
-                <div class="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center mx-auto mb-2">
-                  <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"/></svg>
-                </div>
-                <p class="text-2xl font-bold text-white">{{ project.investors.length }}</p>
-                <p class="text-[11px] text-gray-500 mt-0.5 uppercase tracking-wide">{{ 'dashboard.totalInvestors' | translate }}</p>
-              </div>
-              <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 text-center hover:border-amber-500/30 transition-colors">
-                <div class="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/20 flex items-center justify-center mx-auto mb-2">
-                  <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                </div>
-                <p class="text-2xl font-bold text-white">{{ projectViews() | number }}</p>
-                <p class="text-[11px] text-gray-500 mt-0.5 uppercase tracking-wide">{{ 'dashboard.profileViews' | translate }}</p>
-              </div>
-              <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 text-center hover:border-purple-500/30 transition-colors">
-                <div class="w-8 h-8 rounded-lg bg-purple-500/15 border border-purple-500/20 flex items-center justify-center mx-auto mb-2">
-                  <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5"/></svg>
-                </div>
-                <p class="text-2xl font-bold text-white">{{ engagementScore() }}</p>
-                <p class="text-[11px] text-gray-500 mt-0.5 uppercase tracking-wide">{{ 'dashboard.engagementScore' | translate }}</p>
-              </div>
-            </div>
 
-            <div class="grid gap-5">
-              <section class="dashboard-panel action-panel">
-                <div class="panel-header">
-                  <h3 class="panel-title">{{ 'dashboard.actionNeeded.title' | translate }}</h3>
-                  <a [routerLink]="['/admin/requests']" class="panel-link">{{ 'dashboard.viewAll' | translate }}</a>
-                </div>
-                @for(request of founderProjectActionNeeded().slice(0, 5); track request.id) {
-                  <a [routerLink]="['/admin/requests']" class="list-row">
-                    <span><strong>{{ request.projectName }}</strong><small>{{ request.counterpartName }}</small></span>
-                    <em>{{ getStatusLabel(request.status) }}</em>
-                  </a>
-                } @empty {
-                  <div class="empty-state"><strong>{{ 'dashboard.actionNeeded.emptyTitle' | translate }}</strong><p>{{ 'dashboard.actionNeeded.emptyHelper' | translate }}</p></div>
+            <!-- Row 6: Project Execution -->
+            <section class="dashboard-panel">
+              <div class="panel-header">
+                <h3 class="panel-title">{{ 'dashboard.projectExecution' | translate }}</h3>
+                @if (getRoomOpportunityId(project); as roomId) {
+                  <a [routerLink]="['/admin/opportunities', roomId, 'room']" class="panel-link">{{ 'dashboard.viewAll' | translate }}</a>
                 }
-              </section>
-
-              <section class="dashboard-panel negotiations-panel">
-                <div class="panel-header">
-                  <h3 class="panel-title">{{ 'dashboard.negotiations.title' | translate }}</h3>
-                  <a [routerLink]="['/admin/requests']" class="panel-link">{{ 'dashboard.viewAll' | translate }}</a>
+              </div>
+              @if (roomLoading()) {
+                <div class="flex items-center gap-2 text-sm text-gray-500 py-2">
+                  <span class="animate-pulse w-4 h-4 rounded-full bg-slate-600"></span>
+                  {{ 'dashboard.loading' | translate }}
                 </div>
-                @for(request of founderProjectNegotiations().slice(0, 5); track request.id) {
-                  <a [routerLink]="['/admin/requests']" class="list-row">
-                    <span><strong>{{ request.projectName }}</strong><small>{{ formatCreditAmount(getRequestAmount(request)) }}</small></span>
-                    <em>{{ getStatusLabel(request.status) }}</em>
-                  </a>
-                } @empty {
-                  <div class="empty-state"><strong>{{ 'dashboard.negotiations.emptyTitle' | translate }}</strong><p>{{ 'dashboard.negotiations.emptyHelper' | translate }}</p></div>
-                }
-              </section>
-
-              <section class="dashboard-panel summary-panel">
-                <div class="panel-header">
-                  <h3 class="panel-title">{{ 'dashboard.summary.title' | translate }}</h3>
+              } @else {
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                  <div class="bg-slate-800/50 rounded-xl p-3 text-center">
+                    <p class="text-lg font-bold text-white">{{ completedMilestoneCount() }}/{{ totalMilestoneCount() }}</p>
+                    <p class="text-xs text-gray-500">{{ 'dashboard.milestonesProgress' | translate }}</p>
+                  </div>
+                  <div class="bg-slate-800/50 rounded-xl p-3 text-center">
+                    <p class="text-lg font-bold text-white">{{ overdueMilestoneCount() }}</p>
+                    <p class="text-xs text-gray-500">{{ 'dashboard.overdue' | translate }}</p>
+                  </div>
                 </div>
-                <div class="summary-grid">
-                  <div class="summary-stat"><span>{{ 'dashboard.summary.approvedParticipations' | translate }}</span><strong>{{ founderProjectParticipationSummary().approved }}</strong></div>
-                  <div class="summary-stat"><span>{{ 'dashboard.summary.pendingParticipations' | translate }}</span><strong>{{ founderProjectParticipationSummary().pending }}</strong></div>
-                  <div class="summary-stat"><span>{{ 'dashboard.negotiations.title' | translate }}</span><strong>{{ founderProjectParticipationSummary().negotiating }}</strong></div>
-                  <div class="summary-stat"><span>{{ 'dashboard.requestStatus.rejected' | translate }}</span><strong>{{ founderProjectParticipationSummary().rejected }}</strong></div>
-                </div>
-                <div class="composition-list">
-                  <h4>{{ 'investmentPreview.sections.analytics.requestsReceived' | translate }}</h4>
-                  <div class="composition-row"><span>{{ 'investmentPreview.sections.analytics.requestsReceived' | translate }}</span><strong>{{ founderProjectParticipationSummary().total }}</strong></div>
-                  <div class="composition-row"><span>{{ 'dashboard.summary.totalInvested' | translate }}</span><strong>{{ formatProjectAmount(founderProjectParticipationSummary().requestedAmount) }}</strong></div>
-                </div>
-              </section>
-
-              <section class="dashboard-panel participants-panel">
-                <div class="panel-header">
-                  <h3 class="panel-title">{{ 'investmentPreview.projectTeam' | translate }}</h3>
-                  <a [routerLink]="['/admin/requests']" class="panel-link">{{ 'dashboard.viewAll' | translate }}</a>
-                </div>
-                @if (founderProjectParticipants().length > 0) {
-                  <div class="space-y-3">
-                    @for(participant of founderProjectParticipants(); track participant.id) {
-                      <div class="participant-row">
-                        <div>
-                          <strong>{{ participant.name }}</strong>
-                          <p class="text-xs text-gray-500 mt-0.5">{{ formatProjectAmount(participant.requestedAmount) }}</p>
-                        </div>
-                        <div class="flex items-center gap-2">
-                          <span class="badge {{ getParticipantBadgeClass(participant.status) }}">{{ getParticipantStatusLabel(participant.status) }}</span>
-                          @if (participant.openConversation && participant.conversationId) {
-                            <button type="button" (click)="openParticipantConversation(participant.conversationId)" class="text-sm font-semibold text-sky-300 hover:text-sky-200">{{ 'dashboard.viewDetails' | translate }}</button>
-                          }
-                        </div>
-                      </div>
+                @if (nextIncompleteMilestone(); as nextMs) {
+                  <div class="flex items-center justify-between bg-slate-800/30 rounded-xl p-3 mb-2">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <span class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0"></span>
+                      <span class="text-sm text-gray-300">{{ 'dashboard.nextMilestone' | translate }}:</span>
+                      <span class="text-sm font-medium text-white truncate">{{ nextMs.title }}</span>
+                    </div>
+                    @if (nextMs.targetDate) {
+                      <span class="text-xs text-gray-500 flex-shrink-0">{{ nextMs.targetDate | date:'mediumDate' }}</span>
                     }
                   </div>
-                } @else {
-                  <div class="empty-state"><strong>{{ 'dashboard.noSentRequests' | translate }}</strong><p>{{ 'dashboard.updates.emptyHelper' | translate }}</p></div>
                 }
-              </section>
+                @if (latestDocument(); as doc) {
+                  <div class="flex items-center justify-between bg-slate-800/30 rounded-xl p-3 mb-2">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <span class="text-sm text-gray-300">{{ 'dashboard.latestDocument' | translate }}:</span>
+                      <span class="text-sm font-medium text-white truncate max-w-[200px]">{{ doc.title }}</span>
+                    </div>
+                    @if (doc.createdAt) {
+                      <span class="text-xs text-gray-500 flex-shrink-0">{{ getDateAgo(doc.createdAt) }}</span>
+                    }
+                  </div>
+                }
+                @if (latestRoomActivity(); as activity) {
+                  <div class="flex items-center justify-between bg-slate-800/30 rounded-xl p-3 mb-4">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <span class="w-2 h-2 rounded-full bg-blue-400 flex-shrink-0"></span>
+                      <span class="text-sm text-gray-300">{{ 'dashboard.latestUpdate' | translate }}:</span>
+                      <span class="text-sm font-medium text-white truncate">{{ activity.title }}</span>
+                    </div>
+                    <span class="text-xs text-gray-500 flex-shrink-0">{{ activity.timeAgo }}</span>
+                  </div>
+                }
 
-              <section class="dashboard-panel activity-panel">
-                <div class="panel-header">
-                  <h3 class="panel-title">{{ 'dashboard.recentActivity' | translate }}</h3>
+                <!-- Repayment Terms -->
+                <div class="border-t border-slate-700/50 pt-4 mt-2">
+                  <div class="grid grid-cols-3 gap-3">
+                    <div class="bg-slate-800/50 rounded-xl p-3">
+                      <p class="text-xs text-gray-500">{{ 'dashboard.interestRate' | translate }}</p>
+                      <p class="text-sm font-bold text-white">{{ project.interestRate != null ? (project.interestRate + '%') : '—' }}</p>
+                    </div>
+                    <div class="bg-slate-800/50 rounded-xl p-3">
+                      <p class="text-xs text-gray-500">{{ 'dashboard.repaymentFrequency' | translate }}</p>
+                      <p class="text-sm font-bold text-white">{{ translateFrequency(project.repaymentFrequency) }}</p>
+                    </div>
+                    <div class="bg-slate-800/50 rounded-xl p-3">
+                      <p class="text-xs text-gray-500">{{ 'dashboard.finalRepaymentDate' | translate }}</p>
+                      <p class="text-sm font-bold text-white">{{ project.finalRepaymentDate ? (project.finalRepaymentDate | date:'mediumDate') : '—' }}</p>
+                    </div>
+                  </div>
                 </div>
-                @if (founderProjectRoomActivity().length > 0) {
-                  @for(activity of founderProjectRoomActivity().slice(0, 5); track activity.id) {
-                    <a [routerLink]="activity.link || ['/admin/requests']" class="list-row">
-                      <span><strong>{{ activity.title }}</strong><small>{{ activity.description }}</small></span>
-                      <em>{{ activity.time }}</em>
-                    </a>
+
+                <!-- Payments Schedule -->
+                <div class="border-t border-slate-700/50 pt-4 mt-4">
+                  <div class="flex items-center justify-between mb-3">
+                    <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ 'dashboard.approvedContributions' | translate }}</h4>
+                    @if (getRoomOpportunityId(project); as roomId) {
+                      <a [routerLink]="['/admin/opportunities', roomId, 'room']" class="text-xs text-blue-400 hover:text-blue-300 font-medium transition-colors">{{ 'dashboard.viewAll' | translate }}</a>
+                    }
+                  </div>
+                  @if (paymentPerInvestor().length > 0) {
+                    <div class="space-y-2">
+                      @for(payment of paymentPerInvestor(); track payment.displayName) {
+                        <div class="flex items-center justify-between bg-slate-800/30 rounded-xl px-3 py-2.5">
+                          <div class="flex items-center gap-2 min-w-0">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0"></span>
+                            <span class="text-sm text-white truncate">{{ payment.displayName }}</span>
+                          </div>
+                          <span class="text-sm font-semibold text-emerald-300 flex-shrink-0">{{ formatProjectAmount(payment.amount, project.currency) }}</span>
+                        </div>
+                      }
+                    </div>
+                  } @else {
+                    <div class="text-sm text-gray-500 py-2">{{ 'dashboard.noPayments' | translate }}</div>
                   }
-                } @else {
-                  <div class="empty-state"><strong>{{ 'dashboard.updates.emptyTitle' | translate }}</strong><p>{{ 'dashboard.updates.emptyHelper' | translate }}</p></div>
-                }
-              </section>
-            </div>
+                </div>
+              }
+            </section>
 
-            <div class="bg-slate-900/80 backdrop-blur-sm p-6 rounded-2xl border border-slate-800 hover:border-slate-700 transition-colors">
-              <h3 class="text-base font-semibold text-white mb-4">{{ 'investmentPreview.sections.analytics.title' | translate }}</h3>
-              <div class="summary-grid">
-                <div class="summary-stat"><span>{{ 'investmentPreview.sections.analytics.views' | translate }}</span><strong>{{ founderProjectPublicPerformance().totalRequests }}</strong></div>
-                <div class="summary-stat"><span>{{ 'investmentPreview.sections.analytics.requestsReceived' | translate }}</span><strong>{{ founderProjectPublicPerformance().participationRequests }}</strong></div>
-                <div class="summary-stat"><span>{{ 'dashboard.totalInvestors' | translate }}</span><strong>{{ founderProjectPublicPerformance().investorCount }}</strong></div>
-                <div class="summary-stat"><span>{{ 'investments.fundingProgress' | translate }}</span><strong>{{ founderProjectPublicPerformance().fundingPercent | number:'1.0-0' }}%</strong></div>
+            <!-- Row 5: Investors & Engagements -->
+            <section class="dashboard-panel">
+              <div class="panel-header">
+                <h3 class="panel-title">{{ 'dashboard.investorsAndEngagements' | translate }}</h3>
+                <a [routerLink]="['/admin/requests']" class="panel-link">{{ 'dashboard.viewAll' | translate }}</a>
               </div>
-            </div>
-
-            <div #barChart class="relative"></div>
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                <div class="bg-slate-800/50 rounded-xl p-3">
+                  <p class="text-lg font-bold text-white">{{ approvedInvestors().length }}</p>
+                  <p class="text-xs text-gray-500">{{ 'dashboard.approvedInvestors.title' | translate }}</p>
+                </div>
+                <div class="bg-slate-800/50 rounded-xl p-3">
+                  <p class="text-lg font-bold text-white">{{ pendingParticipationCount() }}</p>
+                  <p class="text-xs text-gray-500">{{ 'dashboard.pendingParticipations' | translate }}</p>
+                </div>
+                <div class="bg-slate-800/50 rounded-xl p-3">
+                  <p class="text-lg font-bold text-white">{{ founderProjectNegotiations().length }}</p>
+                  <p class="text-xs text-gray-500">{{ 'dashboard.negotiations.title' | translate }}</p>
+                </div>
+                <div class="bg-slate-800/50 rounded-xl p-3">
+                  <p class="text-lg font-bold text-white">{{ pendingConversationCount() }}</p>
+                  <p class="text-xs text-gray-500">{{ 'dashboard.pendingConversations' | translate }}</p>
+                </div>
+              </div>
+              @if (latestApprovedInvestor(); as latest) {
+                <div class="flex items-center gap-2 text-sm text-gray-400 border-t border-slate-700/50 pt-3">
+                  <span>{{ 'dashboard.latestInvestor' | translate }}:</span>
+                  @if (approvedInvestorAvatar(latest); as avatarUrl) {
+                    <img [src]="avatarUrl" class="w-6 h-6 rounded-full object-cover">
+                  } @else {
+                    <span class="w-6 h-6 rounded-full bg-blue-500/20 text-blue-300 text-xs flex items-center justify-center font-bold">{{ approvedInvestorInitials(latest.displayName) }}</span>
+                  }
+                  <span class="text-white font-medium">{{ latest.displayName }}</span>
+                  <span class="text-xs text-gray-500">{{ getDateAgo(latest.approvedAt) }}</span>
+                </div>
+              }
+              @if (approvedInvestors().length > 0) {
+                <div class="mt-3 border-t border-slate-700/50 pt-3 space-y-2">
+                  @for(investor of visibleApprovedInvestors(); track investor.userId) {
+                    <div class="rounded-xl bg-slate-800/30 px-3 py-2">
+                      <div class="flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2 min-w-0">
+                        @if (approvedInvestorAvatar(investor); as avatarUrl) {
+                          <img [src]="avatarUrl" class="w-8 h-8 rounded-full object-cover ring-2 ring-slate-700 flex-shrink-0">
+                        } @else {
+                          <span class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-violet-600 text-white text-xs flex items-center justify-center font-bold ring-2 ring-slate-700 flex-shrink-0">{{ approvedInvestorInitials(investor.displayName) }}</span>
+                        }
+                        <span class="text-sm text-gray-300 truncate">{{ investor.displayName }}</span>
+                        </div>
+                        <span class="text-sm font-semibold text-emerald-300 flex-shrink-0">{{ formatProjectAmount(investor.totalApprovedContribution, project.currency) }}</span>
+                      </div>
+                      @if (investor.participations?.length) {
+                        <div class="mt-2 flex flex-wrap gap-1.5 border-t border-slate-700/50 pt-2">
+                          @for (participation of investor.participations; track participation.participationRequestId) {
+                            <span class="rounded-full border border-blue-500/25 bg-blue-500/10 px-2 py-1 text-[10px] font-semibold text-blue-200">
+                              {{ participationModelLabel(participation.investmentModel) }} · {{ formatProjectAmount(participation.approvedContribution, participation.currency || project.currency) }}
+                            </span>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+                  @if (hiddenApprovedInvestorCount() > 0) {
+                    <button type="button" (click)="expandApprovedInvestors()" class="flex items-center justify-center w-full rounded-xl bg-slate-800/20 hover:bg-slate-800/40 px-3 py-2 text-xs text-gray-400 hover:text-white transition-colors">+{{ hiddenApprovedInvestorCount() }} {{ 'dashboard.viewMore' | translate }}</button>
+                  }
+                </div>
+              }
+            </section>
           </div>
+
           <div class="lg:col-span-1 space-y-5">
-            <div class="bg-slate-900/80 backdrop-blur-sm p-6 rounded-2xl border border-slate-800 hover:border-slate-700 transition-colors">
+            <!-- Row 8: Requires Your Attention -->
+            <section class="dashboard-panel action-panel">
+              <div class="panel-header">
+                <h3 class="panel-title">{{ 'dashboard.actionNeeded.title' | translate }}</h3>
+                <a [routerLink]="['/admin/requests']" class="panel-link">{{ 'dashboard.viewAll' | translate }}</a>
+              </div>
+              @for(request of founderProjectActionNeeded().slice(0, 5); track request.id) {
+                <a [routerLink]="['/admin/requests']" class="list-row">
+                  <span>
+                    <strong>{{ request.counterpartName }}</strong>
+                    <small>{{ request.type === 'conversation' ? ('dashboard.conversationRequest' | translate) : (request.requestedAmount ? formatProjectAmount(request.requestedAmount, request.currencySnapshot) : ('dashboard.participationRequest' | translate)) }}</small>
+                  </span>
+                  <em>{{ getStatusLabel(request.status) }}</em>
+                </a>
+              } @empty {
+                <div class="empty-state"><strong>{{ 'dashboard.actionNeeded.emptyTitle' | translate }}</strong><p>{{ 'dashboard.actionNeeded.emptyHelper' | translate }}</p></div>
+              }
+            </section>
+
+            <!-- Row 9: Quick Navigation -->
+            <div class="bg-slate-900/80 backdrop-blur-sm p-5 rounded-2xl border border-slate-800">
               <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">{{ 'dashboard.quickActions' | translate }}</h3>
               <div class="space-y-2">
-                <a [routerLink]="['/admin/investments/new']" class="w-full flex items-center gap-3 text-start px-4 py-3 rounded-xl font-medium transition-colors bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/20 hover:border-blue-500/40 text-blue-300 hover:text-blue-200">
-                  <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-                  <span class="text-sm">{{ 'dashboard.createInvestment' | translate }}</span>
-                </a>
                 <a [routerLink]="['/admin/opportunities', project.id, 'edit']" class="w-full flex items-center gap-3 text-start px-4 py-3 rounded-xl text-sm font-medium transition-colors bg-slate-800/40 hover:bg-slate-700/60 border border-slate-700/50 hover:border-slate-600 text-gray-300 hover:text-white">
                   <svg class="w-4 h-4 flex-shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>
                   {{ 'dashboard.editProject' | translate }}
                 </a>
-                <a [routerLink]="['/admin/investments', project.id]" class="w-full flex items-center gap-3 text-start px-4 py-3 rounded-xl text-sm font-medium transition-colors bg-slate-800/40 hover:bg-slate-700/60 border border-slate-700/50 hover:border-slate-600 text-gray-300 hover:text-white">
-                  <svg class="w-4 h-4 flex-shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                  {{ 'dashboard.viewPublicPage' | translate }}
-                </a>
                 @if (getRoomOpportunityId(project); as roomOpportunityId) {
                   <a [routerLink]="['/admin/opportunities', roomOpportunityId, 'room']" class="w-full flex items-center gap-3 text-start px-4 py-3 rounded-xl text-sm font-medium transition-colors bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/25 hover:border-emerald-500/45 text-emerald-200">
                     <svg class="w-4 h-4 flex-shrink-0 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15l-.75 18H5.25L4.5 3zm4.5 4.5h6m-6 4.5h6m-6 4.5h3"/></svg>
-                    Open Project Room
+                    {{ 'dashboard.openProjectRoom' | translate }}
                   </a>
                 }
-                <button class="w-full flex items-center gap-3 text-start px-4 py-3 rounded-xl text-sm font-medium transition-colors bg-slate-800/40 hover:bg-slate-700/60 border border-slate-700/50 hover:border-slate-600 text-gray-300 hover:text-white">
-                  <svg class="w-4 h-4 flex-shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12"/></svg>
-                  {{ 'dashboard.postUpdate' | translate }}
-                </button>
+                @if (!isDraftOpportunity(project)) {
+                  <a [routerLink]="['/opportunities', project.id]" class="w-full flex items-center gap-3 text-start px-4 py-3 rounded-xl text-sm font-medium transition-colors bg-slate-800/40 hover:bg-slate-700/60 border border-slate-700/50 hover:border-slate-600 text-gray-300 hover:text-white">
+                    <svg class="w-4 h-4 flex-shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    {{ 'dashboard.viewPublicPage' | translate }}
+                  </a>
+                }
+                <a [routerLink]="['/admin/requests']" class="w-full flex items-center gap-3 text-start px-4 py-3 rounded-xl text-sm font-medium transition-colors bg-slate-800/40 hover:bg-slate-700/60 border border-slate-700/50 hover:border-slate-600 text-gray-300 hover:text-white">
+                  <svg class="w-4 h-4 flex-shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+                  {{ 'dashboard.manageRequests' | translate }}
+                </a>
               </div>
             </div>
 
-            <div class="bg-slate-900/80 backdrop-blur-sm p-6 rounded-2xl border border-slate-800 hover:border-slate-700 transition-colors">
-              <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">{{ 'dashboard.recentActivity' | translate }}</h3>
-              <ul class="space-y-3">
-                @for(activity of recentActivity(); track $index) {
-                  <li class="flex items-start gap-3">
-                     <div class="flex-shrink-0 w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center mt-0.5">
-                      @if (activity.type === 'investment') {
-                        <svg class="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0l.879-.659M7.5 14.25l-2.489-1.867a.75.75 0 010-1.266l2.489-1.867M16.5 14.25l2.489-1.867a.75.75 0 000-1.266l-2.489-1.867" /></svg>
-                      } @else if (activity.type === 'watchlist') {
-                        <svg class="w-5 h-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" /></svg>
-                      } @else if (activity.type === 'milestone') {
-                        <svg class="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9a9 9 0 119 0zM16.5 18.75a9 9 0 00-9 0m9 0v-4.5m-9 4.5v-4.5m0-6.75h9m-9 0a9 9 0 019 0z" /></svg>
-                      }
-                    </div>
-                    <div class="flex-1">
-                      <p class="text-sm text-white">{{ activity.text }}</p>
-                      <p class="text-xs text-gray-500">{{ activity.time }}</p>
-                    </div>
-                  </li>
-                }
-              </ul>
-            </div>
+
           </div>
         </div>
       } @else {
@@ -447,6 +547,28 @@
                     {{ publishingOpportunityId() === p.id ? ('opportunityPublish.publishing' | translate) : ('opportunityPublish.action' | translate) }}
                   </button>
                 }
+              </div>
+            }
+          </div>
+        } @else if (projectsLoading()) {
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            @for (_ of [1,2,3,4,5,6]; track _) {
+              <div class="relative bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-2xl p-6 overflow-hidden">
+                <div class="absolute top-0 inset-x-0 h-0.5 rounded-t-2xl bg-gradient-to-r from-blue-500/20 to-violet-500/20"></div>
+                <div class="flex items-center gap-4 mb-5">
+                  <div class="w-14 h-14 rounded-2xl bg-slate-800 animate-pulse"></div>
+                  <div class="h-5 bg-slate-800 animate-pulse rounded flex-1"></div>
+                </div>
+                <div class="w-full h-1.5 bg-slate-800 animate-pulse rounded-full mb-2"></div>
+                <div class="flex justify-between mb-4">
+                  <div class="h-4 w-24 bg-slate-800 animate-pulse rounded"></div>
+                  <div class="h-4 w-12 bg-slate-800 animate-pulse rounded"></div>
+                </div>
+                <div class="flex justify-between items-center pt-3 border-t border-slate-800">
+                  <div class="h-4 w-28 bg-slate-800 animate-pulse rounded"></div>
+                  <div class="h-4 w-16 bg-slate-800 animate-pulse rounded"></div>
+                </div>
+                <div class="mt-4 h-10 bg-slate-800 animate-pulse rounded-xl"></div>
               </div>
             }
           </div>

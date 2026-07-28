@@ -79,6 +79,7 @@ export class OpportunityEditorComponent {
   };
 
   readonly payoutFrequencies = ['Monthly', 'Quarterly', 'Semi-Annually', 'Annually', 'At Maturity'] as const;
+  readonly repaymentFrequencies = ['Monthly', 'Quarterly', 'Annual'] as const;
   readonly currencies = ['USD', 'EUR', 'SAR', 'EGP'] as const;
   readonly uploadKinds: readonly PendingUploadKind[] = ['cover', 'gallery', 'video', 'publicDocument', 'privateDocument'];
   readonly projectStages = [1, 2, 3, 4, 5] as const;
@@ -133,7 +134,7 @@ export class OpportunityEditorComponent {
       profitSharingContractEndDate: [''],
       coverImageUrl: ['', [Validators.maxLength(1000)]],
       // Equity-specific fields
-      currency: [''],
+      currency: ['', [Validators.required]],
       sharePrice: [null],
       totalShares: [null],
       offeredShares: [null],
@@ -272,9 +273,9 @@ export class OpportunityEditorComponent {
   private mapInvestmentModelToEnum(model?: string | number | null): number | null {
     if (!model) return null;
     const modelStr = String(model).toLowerCase();
-    if (modelStr === 'equity' || modelStr === '1') return this.InvestmentModel.Equity;
-    if (modelStr === 'capitalcontributionprofitsharing' || modelStr === 'profitsharing' || modelStr === '2') return this.InvestmentModel.CapitalContributionProfitSharing;
-    if (modelStr === 'loaninvestment' || modelStr === 'loan' || modelStr === '3') return this.InvestmentModel.LoanInvestment;
+    if (modelStr === 'equityinvestment') return this.InvestmentModel.Equity;
+    if (modelStr === 'profitsharinginvestment') return this.InvestmentModel.CapitalContributionProfitSharing;
+    if (modelStr === 'loaninvestment') return this.InvestmentModel.LoanInvestment;
     return null;
   }
 
@@ -306,7 +307,6 @@ export class OpportunityEditorComponent {
     // Clear all model-specific fields first
     this.form.patchValue({
       equityOfferedPercentage: null,
-      currency: '',
       sharePrice: null,
       totalShares: null,
       offeredShares: null,
@@ -328,7 +328,7 @@ export class OpportunityEditorComponent {
    * Update field validators based on investment model
    */
   private updateValidatorsByModel(model: number | null): void {
-    const equityFields = ['currency', 'sharePrice', 'totalShares', 'offeredShares', 'equityOfferedPercentage'];
+    const equityFields = ['sharePrice', 'totalShares', 'offeredShares', 'equityOfferedPercentage'];
     const loanFields = ['interestRate', 'repaymentFrequency', 'finalRepaymentDate'];
     const profitSharingFields = ['profitSharePercentage', 'profitSharingPayoutFrequency', 'profitSharingContractStartDate', 'profitSharingContractEndDate', 'exitTerms'];
 
@@ -341,7 +341,6 @@ export class OpportunityEditorComponent {
 
     // Apply validators for current model
     if (model === this.InvestmentModel.Equity) {
-      this.form.get('currency')?.setValidators([Validators.required]);
       this.form.get('sharePrice')?.setValidators([Validators.required, Validators.min(0.01)]);
       this.form.get('totalShares')?.setValidators([Validators.required, Validators.min(1)]);
       this.form.get('offeredShares')?.setValidators([Validators.required, Validators.min(1)]);
@@ -391,19 +390,20 @@ export class OpportunityEditorComponent {
       if (form.get('projectStage')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.projectStageRequired'));
     } else if (currentStep === 2) {
       // Step 2: Funding basics
-      ['investmentModel', 'fundingTarget', 'minimumInvestment'].forEach(field => form.get(field)?.markAsTouched());
+      ['investmentModel', 'fundingTarget', 'minimumInvestment', 'currency'].forEach(field => form.get(field)?.markAsTouched());
       if (form.get('investmentModel')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.investmentModelRequired'));
       if (form.get('fundingTarget')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.fundingTargetPositive'));
       if (form.get('minimumInvestment')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.minimumInvestmentPositive'));
+      if (form.get('currency')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.currencyRequired'));
       form.get('fundingUsage')?.markAsTouched();
       if (form.get('fundingUsage')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.useOfFundsRequired'));
       
       // Model-specific validation
       const model = form.get('investmentModel')?.value;
       if (model === this.InvestmentModel.Equity) {
-        ['currency', 'sharePrice', 'totalShares', 'offeredShares', 'equityOfferedPercentage'].forEach(field => form.get(field)?.markAsTouched());
+        ['sharePrice', 'totalShares', 'offeredShares', 'equityOfferedPercentage'].forEach(field => form.get(field)?.markAsTouched());
         if (form.get('equityOfferedPercentage')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.equityRequired'));
-        if (['currency', 'sharePrice', 'totalShares', 'offeredShares'].some(field => form.get(field)?.invalid)) invalidFields.push(this.t('opportunityEditor.validation.equityConfigurationRequired'));
+        if (['sharePrice', 'totalShares', 'offeredShares'].some(field => form.get(field)?.invalid)) invalidFields.push(this.t('opportunityEditor.validation.equityConfigurationRequired'));
         const sharePrice = Number(form.get('sharePrice')?.value);
         const minimum = Number(form.get('minimumInvestment')?.value);
         if (minimum > 0 && sharePrice > 0 && Math.abs(minimum / sharePrice - Math.round(minimum / sharePrice)) > 0.000001) invalidFields.push(this.t('opportunityEditor.validation.minimumShareAligned'));
@@ -487,6 +487,11 @@ export class OpportunityEditorComponent {
       this.isSaving.set(true);
       this.savingMode.set(submit ? 'publish' : 'draft');
       this.errorMessage.set(null);
+      if (submit && this.pendingUploads().length > 0) {
+        this.step.set(3);
+        this.stepErrorMessage.set(this.t('opportunityEditor.media.pendingHelp'));
+        return;
+      }
       const publishErrors = submit ? this.publishValidationErrors() : [];
       if (submit && (!this.validateCurrentStep() || this.form.invalid || publishErrors.length > 0)) {
         this.form.markAllAsTouched();
@@ -510,6 +515,7 @@ export class OpportunityEditorComponent {
       this.notifications.showToast({ title: submit ? this.t('opportunityPublish.successTitle') : this.t('opportunityEditor.savedTitle'), message: submit ? this.t('opportunityPublish.successMessage') : this.t('opportunityEditor.savedMessage'), type: 'success' });
       this.router.navigate(['/admin/my-opportunities']);
     } catch (error: unknown) {
+      this.routeCreateError(error);
       const message = this.errorText(error, submit ? 'opportunityPublish.failureMessage' : 'opportunityEditor.saveFailureMessage');
       this.errorMessage.set(message);
       this.notifications.showToast({ title: this.t(submit ? 'opportunityPublish.failureTitle' : 'opportunityEditor.saveFailureTitle'), message, type: 'error' });
@@ -522,11 +528,11 @@ export class OpportunityEditorComponent {
   /**
    * Map enum value to investment model string for API
    */
-  private mapEnumToInvestmentModel(modelValue: number | null): string {
-    if (modelValue === this.InvestmentModel.Equity) return 'Equity';
-    if (modelValue === this.InvestmentModel.CapitalContributionProfitSharing) return 'CapitalContributionProfitSharing';
+  private mapEnumToInvestmentModel(modelValue: number | null): OpportunityUpsert['investmentModel'] {
+    if (modelValue === this.InvestmentModel.Equity) return 'EquityInvestment';
+    if (modelValue === this.InvestmentModel.CapitalContributionProfitSharing) return 'ProfitSharingInvestment';
     if (modelValue === this.InvestmentModel.LoanInvestment) return 'LoanInvestment';
-    return '';
+    return null;
   }
 
   investmentModelKey(): string {
@@ -595,10 +601,11 @@ export class OpportunityEditorComponent {
 
   private buildPayload(): OpportunityUpsert {
     const value = this.form.getRawValue();
-    return {
-      title: value.title,
-      shortDescription: value.shortDescription,
-      fullDescription: value.fullDescription,
+    const text = (input: unknown): string | null => String(input ?? '').trim() || null;
+    const payload: OpportunityUpsert = {
+      title: String(value.title ?? '').trim(),
+      shortDescription: String(value.shortDescription ?? '').trim(),
+      fullDescription: text(value.fullDescription),
       categoryId: value.categoryId,
       projectStage: value.projectStage,
       tagIds: this.selectedTags(),
@@ -608,21 +615,39 @@ export class OpportunityEditorComponent {
       minimumInvestment: value.minimumInvestment,
       maximumInvestment: value.maximumInvestment,
       expectedDurationMonths: value.expectedDuration,
-      currency: value.currency || null,
-      sharePrice: value.sharePrice,
-      totalShares: value.totalShares,
-      offeredShares: value.offeredShares,
-      profitSharePercentage: value.profitSharePercentage,
-      profitSharingPayoutFrequency: value.profitSharingPayoutFrequency || null,
-      profitSharingContractStartDate: value.profitSharingContractStartDate || null,
-      profitSharingContractEndDate: value.profitSharingContractEndDate || null,
-      coverImageUrl: value.coverImageUrl,
-      equityOfferedPercentage: value.equityOfferedPercentage,
-      interestRate: value.interestRate,
-      repaymentFrequency: value.repaymentFrequency || null,
-      finalRepaymentDate: value.finalRepaymentDate || null,
-      fundingUsage: value.fundingUsage
+      currency: text(value.currency),
+      coverImageUrl: text(value.coverImageUrl),
+      fundingUsage: String(value.fundingUsage ?? '').trim()
     };
+    if (value.investmentModel === this.InvestmentModel.Equity) Object.assign(payload, {
+      sharePrice: this.toNullableNumber(value.sharePrice), totalShares: this.toNullableNumber(value.totalShares),
+      offeredShares: this.toNullableNumber(value.offeredShares), equityOfferedPercentage: this.toNullableNumber(value.equityOfferedPercentage)
+    });
+    if (value.investmentModel === this.InvestmentModel.LoanInvestment) Object.assign(payload, {
+      interestRate: this.toNullableNumber(value.interestRate), repaymentFrequency: text(value.repaymentFrequency), finalRepaymentDate: text(value.finalRepaymentDate)
+    });
+    if (value.investmentModel === this.InvestmentModel.CapitalContributionProfitSharing) Object.assign(payload, {
+      profitSharePercentage: this.toNullableNumber(value.profitSharePercentage), profitSharingPayoutFrequency: text(value.profitSharingPayoutFrequency),
+      profitSharingContractStartDate: text(value.profitSharingContractStartDate), profitSharingContractEndDate: text(value.profitSharingContractEndDate)
+    });
+    return payload;
+  }
+
+  private routeCreateError(error: unknown): void {
+    const raw = JSON.stringify(error).toLowerCase();
+    const routes: Array<{ step: number; fields: string[] }> = [
+      { step: 1, fields: ['title', 'shortdescription', 'projectstage', 'categoryid'] },
+      { step: 2, fields: ['useoffunds', 'fundingtarget', 'investmentmodel', 'currency', 'fundinggoalid', 'minimuminvestmentamount', 'maximuminvestmentamount', 'expecteddurationmonths', 'interestrate', 'repaymentfrequency', 'finalrepaymentdate', 'shareprice', 'totalshares', 'offeredshares', 'equityofferedpercentage', 'profitsharepercentage', 'profitsharingpayoutfrequency'] },
+      { step: 3, fields: ['coverimageurl'] }
+    ];
+    for (const route of routes) {
+      const rejected = route.fields.filter(field => raw.includes(field));
+      if (!rejected.length) continue;
+      this.step.set(route.step);
+      const controls: Record<string, string> = { useoffunds: 'fundingUsage', minimuminvestmentamount: 'minimumInvestment', maximuminvestmentamount: 'maximumInvestment', expecteddurationmonths: 'expectedDuration' };
+      rejected.forEach(field => this.form.get(controls[field] ?? field)?.markAsTouched());
+      return;
+    }
   }
 
   private mapProjectStageToEnum(value: unknown): number | null {

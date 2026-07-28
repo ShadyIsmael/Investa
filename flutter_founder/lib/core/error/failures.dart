@@ -52,11 +52,6 @@ class CacheFailure extends Failure {
   const CacheFailure(super.message, [super.stackTrace]);
 }
 
-/// SignalR-related failures
-class SignalRFailure extends Failure {
-  const SignalRFailure(super.message, [super.stackTrace]);
-}
-
 /// Firebase-related failures
 class FirebaseFailure extends Failure {
   const FirebaseFailure(super.message, [super.stackTrace]);

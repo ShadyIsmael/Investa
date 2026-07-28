@@ -319,7 +319,7 @@ class ChatController extends ChangeNotifier {
       text: text,
       time: DateTime.now(),
       isMe: false,
-      senderName: senderName ?? 'Investa Assistant',
+      senderName: senderName ?? 'FOPX One Assistant',
     ));
     notifyListeners();
   }
@@ -329,10 +329,10 @@ class ChatController extends ChangeNotifier {
       final systemMessage = ChatMessage(
         id: 'system-${DateTime.now().microsecondsSinceEpoch}',
         text:
-            'أهلاً بك في Investa! أنا مساعدك الذكي، كيف يمكنني مساعدتك اليوم؟',
+            'أهلاً بك في FOPX One! أنا مساعدك الذكي، كيف يمكنني مساعدتك اليوم؟',
         time: DateTime.now(),
         isMe: false,
-        senderName: 'Investa Assistant',
+        senderName: 'FOPX One Assistant',
       );
       messages.add(systemMessage);
       notifyListeners();

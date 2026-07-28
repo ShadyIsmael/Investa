@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { supportService } from '../../services/supportService';
 import { useChatStore } from '@/services/chatStore';
-import { useSignalR } from '../../services/signalr';
 import { Message } from '../../types';
 
 // Note: This project doesn't use react-router by default; we'll support passing conversationId as prop
@@ -14,7 +13,6 @@ export const ChatView: React.FC<{ supportSessionId?: string }> = React.memo(({ s
   const [text, setText] = useState('');
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setText(e.target.value), []);
-  const { connection } = useSignalR();
   const addConversation = useChatStore(s => s.addConversation);
   const receiveMessage = useChatStore(s => s.receiveMessage);
   const setActiveConversation = useChatStore(s => s.setActiveConversation);
@@ -50,36 +48,10 @@ export const ChatView: React.FC<{ supportSessionId?: string }> = React.memo(({ s
     };
     if (sessionId) load();
 
-    // Join the global Admins group to receive all support messages and notifications
-    if (connection) {
-      try { 
-        connection.invoke('JoinGroup', 'Admins').catch(() => {});
-      } catch { /* ignore */ }
-    }
-
-    // Listen for new messages via window events
-    const onMessage = (e: any) => {
-      const payload = e?.detail || e;
-      const incomingSessionId = payload?.SupportSessionId;
-      if (incomingSessionId !== sessionId) return;
-      const msg: Message = {
-        id: String(payload?.MessageId || Date.now()),
-        fromUserId: payload?.FromUserId || null,
-        from: payload?.From || null,
-        text: payload?.Text || '',
-        createdAt: payload?.CreatedAt || new Date().toISOString()
-      };
-      setMessages(prev => [...prev, msg]);
-      receiveMessage(sessionId, msg);
-    };
-
-    window.addEventListener('investa:signalr:receive-message', onMessage as EventListener);
     return () => {
-      window.removeEventListener('investa:signalr:receive-message', onMessage as EventListener);
-      if (connection) try { connection.invoke('LeaveGroup', 'Admins').catch(() => {}); } catch { /* ignore */ }
       mounted = false;
     };
-  }, [sessionId, connection, addConversation, receiveMessage, setActiveConversation]);
+  }, [sessionId, addConversation, receiveMessage, setActiveConversation]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });

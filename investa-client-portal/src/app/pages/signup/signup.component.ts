@@ -1,8 +1,10 @@
-import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { ReactiveFormsModule, FormControl, FormGroup, Validators, AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
+import { AuthService } from '../../services/auth.service';
 import { TranslatePipe } from '../../pipes/translate.pipe';
+import { ErrorResult } from '../../services/error-mapping.service';
 
 export const passwordMatchValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
   const password = control.get('password');
@@ -25,18 +27,37 @@ export const passwordMatchValidator: ValidatorFn = (control: AbstractControl): V
 })
 export class SignupComponent {
   private router: Router = inject(Router);
+  private authService: AuthService = inject(AuthService);
+
+  errorMessage = signal<string | null>(null);
+  isSubmitting = signal<boolean>(false);
+
   signupForm = new FormGroup({
     mobile: new FormControl('', [Validators.required, Validators.pattern('^[0-9]{10,15}$')]),
     firstName: new FormControl('', [Validators.required]),
     lastName: new FormControl('', [Validators.required]),
-    email: new FormControl('', [Validators.email]),
     password: new FormControl('', [Validators.required, Validators.minLength(8)]),
     confirmPassword: new FormControl('', [Validators.required])
   }, { validators: passwordMatchValidator });
 
-  onSubmit() {
-    if (this.signupForm.valid) {
-      // Handle signup logic here
+  async onSubmit() {
+    if (!this.signupForm.valid || this.isSubmitting()) return;
+
+    this.errorMessage.set(null);
+    this.isSubmitting.set(true);
+
+    const mobile = this.signupForm.get('mobile')!.value!;
+    const firstName = this.signupForm.get('firstName')!.value!;
+    const lastName = this.signupForm.get('lastName')!.value!;
+    const password = this.signupForm.get('password')!.value!;
+
+    try {
+      const result = await this.authService.signupInit(mobile, password, firstName, lastName);
+      this.router.navigate(['/signup-otp'], { queryParams: { session: result.verificationSessionId } });
+    } catch (err: any) {
+      this.errorMessage.set(err?.message || 'Signup failed. Please try again.');
+    } finally {
+      this.isSubmitting.set(false);
     }
   }
 
