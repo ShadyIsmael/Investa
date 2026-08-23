@@ -10,6 +10,7 @@ public class PaymentAllocation
     public decimal AllocatedAmount { get; set; }
 
     public int InstallmentNumber { get; set; }
+    public string? InstallmentConfirmationKey { get; set; }
 
     public PaymentTransaction PaymentTransaction { get; set; } = null!;
 }

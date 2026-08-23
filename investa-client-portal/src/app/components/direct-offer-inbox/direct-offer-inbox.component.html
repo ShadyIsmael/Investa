@@ -1,0 +1,15 @@
+<section class="direct-offer-inbox investa-panel" aria-labelledby="direct-offers-title">
+  <header class="section-heading"><div><p class="eyebrow">{{ 'requests.directOffers.eyebrow' | translate }}</p><h2 id="direct-offers-title">{{ 'requests.directOffers.title' | translate }}</h2><p>{{ 'requests.directOffers.subtitle' | translate }}</p></div><button type="button" class="secondary-button" (click)="load()" [disabled]="loading()">{{ 'requests.directOffers.refresh' | translate }}</button></header>
+  @if (loading()) { <p class="state">{{ 'requests.directOffers.loading' | translate }}</p> }
+  @else if (error()) { <p class="state state--error">{{ error() }}</p> }
+  @else { <div class="offer-list">
+    @for (offer of offers(); track offer.id) {
+      <article class="direct-offer-card">
+        <header><div><p class="eyebrow">{{ 'conversationWorkspace.offers.version' | translate }} {{ offer.version }}</p><h3>{{ offer.opportunityTitle || ('requests.opportunityLabelShort' | translate) }}</h3><p>{{ offer.createdByName || ('requests.directOffers.participant' | translate) }}</p></div><span class="status-badge">{{ status(offer) }}</span></header>
+        <div class="leg-grid">@for (leg of offer.legs; track leg.id || leg.legType) { <div class="leg"><strong>{{ legLabel(leg.legType) }}</strong><span>{{ leg.amount | currencyDisplay: offer.currency }}</span>@if (leg.equityPercentage) { <small>{{ 'conversationWorkspace.offers.equityPercentage' | translate }}: {{ leg.equityPercentage }}%</small> }@if (leg.sharesTerms) { <small>{{ leg.sharesTerms }}</small> }@if (leg.returnRate) { <small>{{ 'conversationWorkspace.offers.returnRate' | translate }}: {{ leg.returnRate }}%</small> }@if (leg.termMonths) { <small>{{ 'conversationWorkspace.offers.term' | translate }}: {{ leg.termMonths }} {{ 'conversationWorkspace.offers.months' | translate }}</small> }@if (leg.repaymentModel) { <small>{{ leg.repaymentModel }}</small> }@if (leg.profitSharePercentage) { <small>{{ 'conversationWorkspace.offers.profitPercentage' | translate }}: {{ leg.profitSharePercentage }}%</small> }@if (leg.exitTerms) { <small>{{ leg.exitTerms }}</small> }</div> }</div>
+        @if (offer.note) { <p class="note">{{ offer.note }}</p> }
+        <footer>@if (canAccept(offer)) { <button type="button" class="primary-button" (click)="accept(offer)">{{ 'conversationWorkspace.actions.accept' | translate }}</button> } @if (canReject(offer)) { <button type="button" class="secondary-button danger-button" (click)="reject(offer)">{{ 'conversationWorkspace.actions.reject' | translate }}</button> } @if (offer.status === 3 && offer.opportunityId) { <a class="secondary-button" [routerLink]="['/admin/opportunities', offer.opportunityId, 'room']">{{ 'conversationWorkspace.actions.openRoom' | translate }}</a> }</footer>
+      </article>
+    } @empty { <p class="state">{{ 'requests.directOffers.empty' | translate }}</p> }
+  </div> }
+</section>

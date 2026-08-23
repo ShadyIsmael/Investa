@@ -1,3 +1,4 @@
+﻿using Investa.Domain;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -77,7 +78,7 @@ public class FinanceValidationService : IFinanceValidationService
         }
 
         var currency = dto.Currency.Trim().ToUpperInvariant();
-        if (currency != "EGP" && dto.ExchangeRate <= 1)
+        if (currency != CurrencyMasterDefaults.DefaultCurrency && dto.ExchangeRate <= 1)
             errors.Add("Foreign currency transactions require an exchange rate greater than 1");
 
         var effectiveTransactionType = ResolveTransactionType(dto.TransactionType, dto.IncomingMoneyType);

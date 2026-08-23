@@ -4,7 +4,7 @@ namespace Investa.Application.Interfaces;
 
 public interface INegotiationService
 {
-    Task<OpportunityViewerStateDto> GetOpportunityViewerStateAsync(Guid userId, int opportunityId, Guid? conversationId = null, CancellationToken cancellationToken = default);
+    Task<OpportunityViewerStateDto> GetOpportunityViewerStateAsync(Guid userId, int opportunityId, Guid? conversationId = null, CancellationToken cancellationToken = default, bool isAdmin = false);
     Task<NegotiationConversationRequestDto> RequestConversationAsync(Guid investorId, int opportunityId, CreateNegotiationConversationRequest request, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<NegotiationConversationRequestDto>> GetMyConversationRequestsAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<NegotiationConversationDto>> GetMyConversationsAsync(Guid userId, CancellationToken cancellationToken = default);
@@ -20,8 +20,13 @@ public interface INegotiationService
     Task<NegotiationConversationDto> MarkReadyToProceedAsync(Guid userId, Guid conversationId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<NegotiationOfferDto>> GetOffersAsync(Guid userId, Guid conversationId, CancellationToken cancellationToken = default);
     Task<NegotiationOfferDto> SendOfferAsync(Guid userId, Guid conversationId, CreateNegotiationOfferRequest request, CancellationToken cancellationToken = default);
-    Task<NegotiationOfferDto> CounterOfferAsync(Guid userId, Guid conversationId, int offerId, CreateNegotiationOfferRequest request, CancellationToken cancellationToken = default);
+    Task<NegotiationOfferDto> ReplaceOfferAsync(Guid userId, Guid conversationId, int offerId, CreateNegotiationOfferRequest request, CancellationToken cancellationToken = default);
     Task<AcceptOfferResultDto> AcceptOfferAsync(Guid userId, Guid conversationId, int offerId, CancellationToken cancellationToken = default);
     Task<NegotiationOfferDto> RejectOfferAsync(Guid userId, Guid conversationId, int offerId, CancellationToken cancellationToken = default);
     Task<NegotiationOfferDto> WithdrawOfferAsync(Guid userId, Guid conversationId, int offerId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<NegotiationOfferDto>> GetDirectOffersAsync(Guid userId, int opportunityId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<NegotiationOfferDto>> GetDirectInboxAsync(Guid userId, bool incoming, CancellationToken cancellationToken = default);
+    Task<NegotiationOfferDto> SubmitDirectOfferAsync(Guid userId, int opportunityId, CreateNegotiationOfferRequest request, CancellationToken cancellationToken = default);
+    Task<NegotiationOfferDto> AcceptDirectOfferAsync(Guid userId, int opportunityId, int offerId, CancellationToken cancellationToken = default);
+    Task<NegotiationOfferDto> RejectDirectOfferAsync(Guid userId, int opportunityId, int offerId, CancellationToken cancellationToken = default);
 }

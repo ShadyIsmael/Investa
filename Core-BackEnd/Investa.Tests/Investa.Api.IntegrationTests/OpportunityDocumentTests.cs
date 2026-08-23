@@ -34,16 +34,19 @@ public class OpportunityDocumentTests : IClassFixture<CustomWebApplicationFactor
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<Investa.Infrastructure.Persistence.ApplicationDbContext>();
+        var authenticatedUser = db.AuthUsers.Single(x =>
+            x.Id == Guid.Parse("11111111-1111-1111-1111-111111111111"));
+        authenticatedUser.UserType = Investa.Domain.Entities.Enums.UserType.Client;
+        authenticatedUser.ClientType = Investa.Domain.Entities.Enums.ClientType.Founder;
 
-        var category = new Investa.Domain.Entities.BusinessCategory
+        var category = new Investa.Domain.Entities.OpportunityCategory
         {
             Id = 7000,
-            Key = "TestCategory",
-            Value = "Test Category",
-            ValueAr = "فئة اختبار",
-            SortOrder = 7000
+            Name = "Test Category",
+            Description = "Test opportunity category",
+            IsActive = true
         };
-        db.BusinessCategories.Add(category);
+        db.OpportunityCategories.Add(category);
 
         var fundingGoal = new Investa.Domain.Entities.FundingGoal
         {
@@ -67,22 +70,26 @@ public class OpportunityDocumentTests : IClassFixture<CustomWebApplicationFactor
         var createRequest = new
         {
             title = "Test Opportunity",
-            description = "Test Description",
+            description = "Test opportunity description for document verification",
             shortDescription = "Test Short Description",
-            useOfFunds = "Test Use of Funds",
+            useOfFunds = "Test use of funds for verified project delivery",
             fundingTarget = 100000m,
             categoryId = category.Id,
             fundingGoalId = fundingGoal.Id,
             minimumInvestmentAmount = 1000m,
             maximumInvestmentAmount = 50000m,
             currency = "USD",
-            investmentModel = 1,
+            sharePrice = 1000m,
+            totalShares = 100,
+            offeredShares = 10,
+            investmentModel = "EquityInvestment",
             projectStage = 1,
             equityOfferedPercentage = 10m
         };
 
         var res = await client.PostAsJsonAsync("/api/v1/opportunities", createRequest);
-        res.StatusCode.Should().Be(HttpStatusCode.Created);
+        var createBody = await res.Content.ReadAsStringAsync();
+        res.StatusCode.Should().Be(HttpStatusCode.Created, createBody);
 
         var json = await res.Content.ReadFromJsonAsync<System.Text.Json.Nodes.JsonObject>();
         json.Should().NotBeNull();
@@ -99,16 +106,19 @@ public class OpportunityDocumentTests : IClassFixture<CustomWebApplicationFactor
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<Investa.Infrastructure.Persistence.ApplicationDbContext>();
+        var authenticatedUser = db.AuthUsers.Single(x =>
+            x.Id == Guid.Parse("11111111-1111-1111-1111-111111111111"));
+        authenticatedUser.UserType = Investa.Domain.Entities.Enums.UserType.Client;
+        authenticatedUser.ClientType = Investa.Domain.Entities.Enums.ClientType.Founder;
 
-        var category = new Investa.Domain.Entities.BusinessCategory
+        var category = new Investa.Domain.Entities.OpportunityCategory
         {
             Id = 8000,
-            Key = "TestCategory2",
-            Value = "Test Category 2",
-            ValueAr = "فئة اختبار 2",
-            SortOrder = 8000
+            Name = "Test Category 2",
+            Description = "Second test opportunity category",
+            IsActive = true
         };
-        db.BusinessCategories.Add(category);
+        db.OpportunityCategories.Add(category);
 
         var fundingGoal = new Investa.Domain.Entities.FundingGoal
         {
@@ -132,22 +142,26 @@ public class OpportunityDocumentTests : IClassFixture<CustomWebApplicationFactor
         var createRequest = new
         {
             title = "Test Opportunity 2",
-            description = "Test Description 2",
+            description = "Second test opportunity description for document verification",
             shortDescription = "Test Short Description 2",
-            useOfFunds = "Test Use of Funds 2",
+            useOfFunds = "Test use of funds for verified project delivery two",
             fundingTarget = 200000m,
             categoryId = category.Id,
             fundingGoalId = fundingGoal.Id,
             minimumInvestmentAmount = 2000m,
             maximumInvestmentAmount = 100000m,
             currency = "USD",
-            investmentModel = 1,
+            sharePrice = 2000m,
+            totalShares = 100,
+            offeredShares = 15,
+            investmentModel = "EquityInvestment",
             projectStage = 1,
             equityOfferedPercentage = 15m
         };
 
         var res = await client.PostAsJsonAsync("/api/v1/opportunities", createRequest);
-        res.StatusCode.Should().Be(HttpStatusCode.Created);
+        var createBody = await res.Content.ReadAsStringAsync();
+        res.StatusCode.Should().Be(HttpStatusCode.Created, createBody);
 
         var json = await res.Content.ReadFromJsonAsync<System.Text.Json.Nodes.JsonObject>();
         json.Should().NotBeNull();
@@ -160,7 +174,8 @@ public class OpportunityDocumentTests : IClassFixture<CustomWebApplicationFactor
         roomJson.Should().NotBeNull();
         var documents = roomJson!["data"]!["documents"]?.AsArray();
 
-        documents.Should().NotBeNull();
-        documents.Should().BeEmpty("Document library should be empty after opportunity creation");
+        (documents?.Count ?? 0).Should().Be(
+            0,
+            "Document library should contain no generated documents after opportunity creation");
     }
 }

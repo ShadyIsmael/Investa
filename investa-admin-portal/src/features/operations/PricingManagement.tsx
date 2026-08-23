@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import { Icon } from '@/components/common/Icons';
 import { api } from '@/api/api';
+import { formatMoney, ensureCurrenciesLoaded } from '../../utils/currency';
 
 type PricingStatusFilter = 'all' | 'enabled' | 'disabled';
 type PricingSort = 'serviceName' | 'price' | 'status';
@@ -67,18 +68,7 @@ const formatDate = (value: string | null): string => {
 };
 
 const formatPrice = (price: number, currency: string): string => {
-  if (!currency) return price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: 'currency',
-      currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(price);
-  } catch {
-    return `${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
-  }
+  return formatMoney(price, currency);
 };
 
 const PricingManagement: React.FC = () => {
@@ -113,6 +103,7 @@ const PricingManagement: React.FC = () => {
 
   useEffect(() => {
     fetchPricing();
+    ensureCurrenciesLoaded();
   }, [fetchPricing]);
 
   const visibleServices = useMemo(() => {

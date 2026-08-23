@@ -10,6 +10,8 @@ import {
   OpportunityMilestone,
   OpportunityMedia,
   OpportunityRoom,
+  OpportunityRoomParticipation,
+  ParticipationLeg,
   OpportunityRoomParticipantContext,
   OpportunityService,
   InvestorPaymentSummary,
@@ -22,8 +24,8 @@ import { FileStoreService } from '../../../services/file-store.service';
 import { ReportReasonCode, ReportService } from '../../../services/report.service';
 import { LanguageService } from '../../../services/language.service';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
-import { RequestsService } from '../../../services/requests.service';
 import { FirebaseClientService, RealtimeEvent } from '../../../services/firebase-client.service';
+import { CurrencyService } from '../../../services/currency.service';
 import { Subscription } from 'rxjs';
 import {
   ContractService,
@@ -34,7 +36,7 @@ import {
   PdfGenerationStatus
 } from '../../../services/contract.service';
 
-type RoomTab = 'overview' | 'contracts' | 'timeline' | 'documents' | 'media' | 'payments';
+type RoomTab = 'overview' | 'milestones' | 'contracts' | 'timeline' | 'documents' | 'media' | 'payments';
 
 interface ActivityFeedItem {
   trackKey: string;
@@ -59,6 +61,37 @@ interface InvestorContractGroup {
 
 const RECENT_ACTIVITY_LIMIT = 5;
 
+/**
+ * The Room endpoint is authoritative, but a stale or partially failed response
+ * must not be allowed to crash Angular's @for tracking expressions. Room
+ * participation rows are immutable records, so malformed rows can be omitted
+ * safely until the next refresh returns a valid record.
+ */
+export function normalizeOpportunityRoomParticipations(
+  values: readonly (OpportunityRoomParticipation | null | undefined)[] | null | undefined
+): OpportunityRoomParticipation[] {
+  const rows = Array.isArray(values) ? values : [];
+  return rows
+    .filter((participation): participation is OpportunityRoomParticipation => {
+      const id = Number(participation?.participationId);
+      return !!participation && Number.isFinite(id) && id > 0;
+    })
+    .map(participation => ({
+      ...participation,
+      participationId: Number(participation.participationId),
+      legs: (Array.isArray(participation.legs) ? participation.legs : [])
+        .filter((leg): leg is ParticipationLeg => !!leg)
+        .map((leg, index) => ({
+          ...leg,
+          legNumber: Number.isFinite(Number(leg.legNumber)) && Number(leg.legNumber) > 0
+            ? Number(leg.legNumber)
+            : index + 1,
+          cashFlows: Array.isArray(leg.cashFlows) ? leg.cashFlows : [],
+          obligations: Array.isArray(leg.obligations) ? leg.obligations : []
+        }))
+    }));
+}
+
 @Component({
   standalone: true,
   selector: 'app-opportunity-room',
@@ -74,8 +107,8 @@ export class OpportunityRoomComponent implements OnDestroy {
   private reportService = inject(ReportService);
   private languageService = inject(LanguageService);
   private contractService = inject(ContractService);
-  private requestsService = inject(RequestsService);
-  private firebaseClient = inject(FirebaseClientService);
+private firebaseClient = inject(FirebaseClientService);
+private currencyService = inject(CurrencyService);
   private readonly realtimeSubscriptions = new Subscription();
   private roomRefreshInFlight: Promise<void> | null = null;
   private roomRefreshQueued = false;
@@ -87,6 +120,7 @@ export class OpportunityRoomComponent implements OnDestroy {
   actionError = signal<string | null>(null);
   actionSuccess = signal<string | null>(null);
   isSubmittingAction = signal(false);
+  completingMilestoneId = signal<string | number | null>(null);
   showAllRecentActivity = signal(false);
   documentModalOpen = signal(false);
   milestoneModalOpen = signal(false);
@@ -167,6 +201,7 @@ export class OpportunityRoomComponent implements OnDestroy {
 
   tabs: Array<{ id: RoomTab; label: string }> = [
     { id: 'overview', label: 'Overview' },
+    { id: 'milestones', label: 'Milestones' },
     { id: 'contracts', label: '' },
     { id: 'timeline', label: 'Timeline' },
     { id: 'documents', label: 'Documents' },
@@ -176,12 +211,22 @@ export class OpportunityRoomComponent implements OnDestroy {
 
   overview = computed(() => (this.room()?.overview ?? {}) as Opportunity & Record<string, any>);
   participantContext = computed(() => (this.room()?.participantContext ?? {}) as OpportunityRoomParticipantContext);
+  roomParticipations = computed(() => normalizeOpportunityRoomParticipations(this.room()?.participations));
   documents = computed(() => this.flattenLibrary<OpportunityDocument>(this.room()?.documentsLibrary ?? this.room()?.documents));
   media = computed(() => this.flattenLibrary<OpportunityMedia>(this.room()?.mediaLibrary ?? this.room()?.media));
   milestones = computed(() => this.flattenLibrary<OpportunityMilestone>(this.room()?.milestones));
   timeline = computed(() => this.flattenLibrary<OpportunityEvent>(this.room()?.timeline));
 
   milestonesSorted = computed(() => this.sortMilestonesByDateDesc(this.milestones()));
+  milestonesInSequence = computed(() => [...this.milestones()].sort((a, b) =>
+    this.dateValueFromRaw(a.createdAt) - this.dateValueFromRaw(b.createdAt)
+  ));
+  currentMilestone = computed(() =>
+    this.milestonesInSequence().find(milestone => String(milestone.status ?? '').toLowerCase() !== 'completed') ?? null
+  );
+  completedMilestoneCount = computed(() =>
+    this.milestones().filter(milestone => String(milestone.status ?? '').toLowerCase() === 'completed').length
+  );
   timelineSorted = computed(() => this.sortEventsByDateDesc(this.timeline()));
   documentsSorted = computed(() => this.sortByDateDesc(this.documents(), item => this.documentRawDate(item)));
   mediaSorted = computed(() => this.sortByDateDesc(this.media(), item => this.mediaRawDate(item)));
@@ -235,9 +280,6 @@ export class OpportunityRoomComponent implements OnDestroy {
     this.realtimeSubscriptions.add(
       this.firebaseClient.onRealtimeEvent.subscribe(event => this.handleRealtimeEvent(event))
     );
-    effect(() => {
-      if (this.requestsService.participationRevision() > 0) void this.load();
-    });
   }
 
   ngOnDestroy(): void {
@@ -308,6 +350,31 @@ export class OpportunityRoomComponent implements OnDestroy {
     return this.participantContext().canAddMilestone === true;
   }
 
+  async completeCurrentMilestone(): Promise<void> {
+    const opportunityId = this.opportunityId();
+    const milestone = this.currentMilestone();
+    const milestoneId = milestone?.milestoneId ?? milestone?.id;
+    if (!opportunityId || !milestoneId || !this.isFounder() || this.completingMilestoneId() !== null) return;
+
+    try {
+      this.completingMilestoneId.set(milestoneId);
+      this.actionError.set(null);
+      this.actionSuccess.set(null);
+      await this.opportunityService.completeMilestone(opportunityId, milestoneId);
+      this.actionSuccess.set(this.t('opportunityRoom.toasts.milestoneCompleted'));
+      await this.refreshRoomData();
+    } catch (error: any) {
+      this.actionError.set(error?.error?.message || error?.message || this.t('opportunityRoom.toasts.milestoneCompleteFailed'));
+    } finally {
+      this.completingMilestoneId.set(null);
+    }
+  }
+
+  isCompletingCurrentMilestone(): boolean {
+    const milestone = this.currentMilestone();
+    return this.completingMilestoneId() === (milestone?.milestoneId ?? milestone?.id);
+  }
+
   coreEditMessage(): string {
     return this.canEditCoreProject()
       ? this.t('opportunityRoom.founderWorkspace.editAvailable')
@@ -374,11 +441,6 @@ export class OpportunityRoomComponent implements OnDestroy {
     } finally {
       this.selectedPaymentInvestorLoading.set(false);
     }
-  }
-
-  isLoanModel(): boolean {
-    const model = this.investmentModel();
-    return model === 'Loan' || model === '2';
   }
 
   paymentStatusLabel(status: string): string {
@@ -850,11 +912,6 @@ export class OpportunityRoomComponent implements OnDestroy {
     return overview.title || overview.name || overview.businessName || this.t('opportunityRoom.title');
   }
 
-  description(): string {
-    const overview = this.overview();
-    return overview.shortDescription || overview.description || overview.fullDescription || '-';
-  }
-
   status(): string {
     const key = this.statusKey();
     return key ? this.t(key) : '-';
@@ -864,17 +921,18 @@ export class OpportunityRoomComponent implements OnDestroy {
     return this.overview().projectStage || this.overview().stage || '-';
   }
 
-  investmentModel(): string {
-    return this.overview().investmentModel || this.overview().model || '-';
+  legTypeLabel(type: string | number | null | undefined): string {
+    const normalized = String(type ?? '').toLowerCase().replace(/[\s_-]/g, '');
+    if (normalized === '1' || normalized.includes('equity')) return 'Equity';
+    if (normalized === '2' || normalized.includes('loan')) return 'Loan';
+    if (normalized === '3' || normalized.includes('profit')) return 'Profit Sharing';
+    return String(type ?? 'Participation leg');
   }
 
-  investmentModelKey(): string {
-    const model = this.overview().investmentModel || this.overview().model || '';
-    if (model === 'Equity' || model === '1' || model === 1) return 'investments.type.equity';
-    if (model === 'Loan' || model === '2' || model === 2) return 'investments.type.loan';
-    if (model === 'ProfitSharing' || model === '3' || model === 3) return 'investments.type.revenueSharing';
-    if (model === 'Founding' || model === 'Founding') return 'investments.type.founding';
-    return '';
+  paymentLegSummary(detail: InvestorPaymentDetail | null): string {
+    if (!detail) return '-';
+    const labels = (detail.participations ?? []).flatMap(item => (item.legs ?? []).map(leg => this.legTypeLabel(leg.legType)));
+    return Array.from(new Set(labels)).join(' · ') || '-';
   }
 
   statusKey(): string {
@@ -922,10 +980,6 @@ export class OpportunityRoomComponent implements OnDestroy {
     return Math.max(0, Math.min(100, progress));
   }
 
-  minimumParticipation(): number | null {
-    return this.numberValue(this.overview().minimumInvestment ?? this.overview().minimumInvestmentAmount ?? this.overview().minInvestment);
-  }
-
   founderSummary(): string {
     const overview = this.overview();
     const founder = overview.founder;
@@ -964,9 +1018,9 @@ export class OpportunityRoomComponent implements OnDestroy {
     return value ? this.t('opportunityRoom.fallback.allowed') : this.t('opportunityRoom.fallback.notAllowed');
   }
 
-  money(value: number | null | undefined): string {
+  money(value: number | null | undefined, currency?: string | null): string {
     if (value === null || value === undefined || Number.isNaN(value)) return '-';
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
+    return this.currencyService.format(value, currency ?? this.overview()?.currency);
   }
 
   fileSize(bytes: number | null | undefined): string {
@@ -1436,7 +1490,6 @@ export class OpportunityRoomComponent implements OnDestroy {
     if (!terms) return [];
     const preferredKeys = [
       'contractNumber',
-      'investmentModel',
       'requestedAmount',
       'numberOfShares',
       'sharePrice',

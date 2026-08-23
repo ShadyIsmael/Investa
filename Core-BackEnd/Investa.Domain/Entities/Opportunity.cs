@@ -1,3 +1,4 @@
+﻿using Investa.Domain;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Investa.Domain.Entities.Enums;
@@ -7,6 +8,22 @@ namespace Investa.Domain.Entities;
 public class Opportunity
 {
     public int Id { get; set; }
+
+    [Required]
+    public int ProjectId { get; set; }
+
+    /// <summary>Stable one-based ordering of opportunities within their Project.</summary>
+    public int SequenceNumber { get; set; }
+
+    /// <summary>Founder-facing reason for this distinct opportunity.</summary>
+    [Required]
+    [StringLength(200)]
+    public string Purpose { get; set; } = "General funding";
+
+    /// <summary>Opportunity classification; independent from its investment instrument.</summary>
+    [Required]
+    [StringLength(80)]
+    public string Type { get; set; } = "Opportunity";
 
     [Required]
     public Guid FounderId { get; set; }
@@ -30,8 +47,6 @@ public class Opportunity
     [Range(0.01, double.MaxValue)]
     public decimal FundingTarget { get; set; }
 
-    public int? CategoryId { get; set; }
-
     public int? FundingGoalId { get; set; }
 
     [Column(TypeName = "decimal(18,2)")]
@@ -42,8 +57,18 @@ public class Opportunity
 
     public int? ExpectedDurationMonths { get; set; }
 
-    [StringLength(10)]
-    public string? Currency { get; set; }
+    /// <summary>Authoritative currency for all project calculations and settlement.</summary>
+    [Required]
+    [StringLength(3, MinimumLength = 3)]
+    public string FundingCurrency { get; set; } = CurrencyMasterDefaults.DefaultCurrency;
+
+    /// <summary>Backward-compatible alias. New code must use FundingCurrency.</summary>
+    [NotMapped]
+    public string? Currency
+    {
+        get => FundingCurrency;
+        set => FundingCurrency = string.IsNullOrWhiteSpace(value) ? "EGP" : value.Trim().ToUpperInvariant();
+    }
 
     [Column(TypeName = "decimal(18,2)")]
     public decimal? SharePrice { get; set; }
@@ -75,13 +100,40 @@ public class Opportunity
     public DateTime? FinalRepaymentDate { get; set; }
 
     [Required]
-    public InvestmentModel InvestmentModel { get; set; }
+    public InvestmentModel InvestmentModel { get; set; } = InvestmentModel.Unspecified;
 
     [Required]
     public ProjectStage ProjectStage { get; set; }
 
+    /// <summary>
+    /// Founder-supplied lifecycle milestone label when <see cref="ProjectStage"/> is Other.
+    /// This is project context and is never an investment instrument or OfferLeg term.
+    /// </summary>
+    [StringLength(120)]
+    public string? ProjectStageCustomName { get; set; }
+
+    /// <summary>
+    /// Persisted canonical form used exclusively for the project-scoped unique constraint.
+    /// </summary>
+    [StringLength(120)]
+    public string? ProjectStageCustomNameNormalized { get; set; }
+
     [Required]
     public OpportunityStatus Status { get; set; } = OpportunityStatus.Draft;
+
+    public OpportunityModerationStatus ModerationStatus { get; set; } = OpportunityModerationStatus.Draft;
+
+    public OpportunityFundingStatus FundingStatus { get; set; } = OpportunityFundingStatus.NotScheduled;
+
+    public DateTime? FundingOpensAt { get; set; }
+
+    public DateTime? FundingClosesAt { get; set; }
+
+    public DateTime? ClosedAt { get; set; }
+
+    public OpportunityClosureReason? ClosureReason { get; set; }
+
+    public ObligationCompletionStatus ObligationCompletionStatus { get; set; } = ObligationCompletionStatus.NotStarted;
 
     [StringLength(1000)]
     public string? CoverImageUrl { get; set; }
@@ -102,9 +154,12 @@ public class Opportunity
 
     public ICollection<OpportunityJoinRequest> JoinRequests { get; set; } = new List<OpportunityJoinRequest>();
 
-    public OpportunityCategory? Category { get; set; }
-
     public FundingGoal? FundingGoal { get; set; }
 
+    public Project? Project { get; set; }
+
     public ICollection<OpportunityTagAssignment> OpportunityTags { get; set; } = new List<OpportunityTagAssignment>();
+
+    [Timestamp]
+    public byte[] RowVersion { get; set; } = [];
 }

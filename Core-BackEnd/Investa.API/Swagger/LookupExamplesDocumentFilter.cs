@@ -1,42 +1,25 @@
-using Microsoft.OpenApi.Any;
-using Microsoft.OpenApi.Models;
+using System.Text.Json.Nodes;
+using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace Investa.API.Swagger;
 
-public class LookupExamplesDocumentFilter : IDocumentFilter
+public sealed class LookupExamplesDocumentFilter : IDocumentFilter
 {
     public void Apply(OpenApiDocument swaggerDoc, DocumentFilterContext context)
     {
-        var path = "/api/v1/lookups/grouped";
-        if (swaggerDoc.Paths.ContainsKey(path))
-        {
-            var resp = new OpenApiObject
-            {
-                ["status"] = new OpenApiBoolean(true),
-                ["message"] = new OpenApiString("OK"),
-                ["data"] = new OpenApiObject
-                {
-                    ["BusinessStage"] = new OpenApiArray
-                    {
-                        new OpenApiObject { ["id"] = new OpenApiInteger(1), ["key"] = new OpenApiString("Initiation"), ["value"] = new OpenApiString("Initiation"), ["slug"] = new OpenApiString("initiation") },
-                        new OpenApiObject { ["id"] = new OpenApiInteger(2), ["key"] = new OpenApiString("Planning"), ["value"] = new OpenApiString("Planning"), ["slug"] = new OpenApiString("planning") }
-                    },
-                    ["BusinessCategory"] = new OpenApiArray
-                    {
-                        new OpenApiObject { ["id"] = new OpenApiInteger(100), ["key"] = new OpenApiString("Technology"), ["value"] = new OpenApiString("Technology"), ["slug"] = new OpenApiString("technology") }
-                    }
-                }
-            };
+        const string path = "/api/v1/lookups/grouped";
+        if (!swaggerDoc.Paths.TryGetValue(path, out var pathItem)) return;
 
-            var pathItem = swaggerDoc.Paths[path];
-            foreach (var op in pathItem.Operations.Values)
+        JsonNode example = JsonNode.Parse("""
+        {"status":true,"message":"OK","data":{"BusinessStage":[{"id":1,"key":"Initiation","value":"Initiation","slug":"initiation"},{"id":2,"key":"Planning","value":"Planning","slug":"planning"}],"BusinessCategory":[{"id":100,"key":"Technology","value":"Technology","slug":"technology"}]}}
+        """)!;
+
+        foreach (var operation in pathItem.Operations.Values)
+        {
+            if (operation.Responses.TryGetValue("200", out var response))
             {
-                if (op.Responses.TryGetValue("200", out var response))
-                {
-                    response.Content ??= new Dictionary<string, OpenApiMediaType>();
-                    response.Content["application/json"] = new OpenApiMediaType { Example = resp };
-                }
+                response.Content["application/json"] = new OpenApiMediaType { Example = example.DeepClone() };
             }
         }
     }

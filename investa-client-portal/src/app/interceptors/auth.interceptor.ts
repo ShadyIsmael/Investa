@@ -14,9 +14,10 @@ export class AuthInterceptor implements HttpInterceptor {
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     const authorization = this.authService.getAuthorizationHeaderValue();
+    const isAuthEndpoint = req.url.includes('/auth/refresh') || req.url.includes('/auth/login');
 
     // Proactively refresh if token is expiring soon
-    if (authorization && this.authService.isTokenExpiringSoon()) {
+    if (authorization && !isAuthEndpoint && this.authService.isTokenExpiringSoon()) {
       return from(this.authService.refresh()).pipe(
         switchMap(() => {
           const refreshedAuthorization = this.authService.getAuthorizationHeaderValue();
@@ -31,15 +32,17 @@ export class AuthInterceptor implements HttpInterceptor {
     }
 
     let authReq = req;
-    if (authorization) {
+    if (authorization && !isAuthEndpoint) {
       authReq = req.clone({ setHeaders: { Authorization: authorization } });
     }
 
     return next.handle(authReq).pipe(
       catchError((err: any) => {
-        if (err instanceof HttpErrorResponse && err.status === 401) {
+        // Use the status value directly as HttpErrorResponse can be wrapped by
+        // different Angular HTTP backends in development and production.
+        if (err?.status === 401) {
           // Avoid trying to refresh if the 401 came from login/refresh endpoints
-          if (req.url.includes('/auth/refresh') || req.url.includes('/auth/login')) {
+          if (isAuthEndpoint) {
             this.authService.logout();
             try { this.router.navigate(['/']); } catch {}
             return throwError(() => err);

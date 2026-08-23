@@ -21,5 +21,4 @@ public class OpportunityCategory
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    public ICollection<Opportunity> Opportunities { get; set; } = new List<Opportunity>();
 }

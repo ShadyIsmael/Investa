@@ -84,6 +84,15 @@ public class ProfileService : IProfileService
             await _unitOfWork.Repository<UserProfile>().AddAsync(profile);
         }
 
+        if (!string.IsNullOrWhiteSpace(profileDto.PreferredCurrency))
+        {
+            var preferredCurrency = CurrencyConversionService.NormalizeCurrency(profileDto.PreferredCurrency);
+            var currency = await _unitOfWork.Repository<Currency>().GetSingleAsync(x => x.ISOCode == preferredCurrency);
+            if (currency == null || !currency.IsActive)
+                throw new InvalidOperationException($"Currency {preferredCurrency} is not active.");
+            profile.PreferredCurrency = preferredCurrency;
+        }
+
         // Update basic info
         if (profileDto.BasicInfo != null)
         {

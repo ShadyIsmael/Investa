@@ -1,11 +1,15 @@
-using System.Text.Json;
+﻿using System.Text.Json;
+using System.Security.Cryptography;
+using System.Text;
 using Investa.Application.Common;
 using Investa.Application.DTOs;
 using Investa.Application.DTOs.Users;
 using Investa.Application.Interfaces;
+using Investa.Domain;
 using Investa.Domain.Entities;
 using Investa.Domain.Entities.Chat;
 using Investa.Domain.Entities.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace Investa.Application.Services;
 
@@ -26,8 +30,13 @@ public class OpportunityService : IOpportunityService
     private readonly IInvestmentContractService _investmentContractService;
     private readonly IUserNotificationService _userNotificationService;
     private readonly IRealtimeEventPublisher _realtimeEventPublisher;
+    private readonly ICurrencyConversionService _currencyConversionService;
+    private readonly IFileStorage _fileStorage;
+    private readonly IFileValidationService _fileValidationService;
+    private readonly IFileScanService _fileScanService;
+    private readonly IOpportunityFileAuditService _fileAuditService;
 
-    public OpportunityService(IUnitOfWork uow, IPaidActionService paidActionService, IReputationService reputationService, IInvestmentContractService investmentContractService, IUserNotificationService userNotificationService, IRealtimeEventPublisher realtimeEventPublisher)
+    public OpportunityService(IUnitOfWork uow, IPaidActionService paidActionService, IReputationService reputationService, IInvestmentContractService investmentContractService, IUserNotificationService userNotificationService, IRealtimeEventPublisher realtimeEventPublisher, ICurrencyConversionService currencyConversionService, IFileStorage fileStorage, IFileValidationService fileValidationService, IFileScanService fileScanService, IOpportunityFileAuditService fileAuditService)
     {
         _uow = uow;
         _paidActionService = paidActionService;
@@ -35,47 +44,74 @@ public class OpportunityService : IOpportunityService
         _investmentContractService = investmentContractService;
         _userNotificationService = userNotificationService;
         _realtimeEventPublisher = realtimeEventPublisher;
+        _currencyConversionService = currencyConversionService;
+        _fileStorage = fileStorage;
+        _fileValidationService = fileValidationService;
+        _fileScanService = fileScanService;
+        _fileAuditService = fileAuditService;
     }
 
     public async Task<OpportunityDetailDto> CreateAsync(Guid founderId, CreateOpportunityRequest request, CancellationToken cancellationToken = default)
     {
-        ValidateFounder(founderId);
-        ValidateCoreFields(request.Title, request.FundingTarget, request.InvestmentModel, request.ProjectStage);
-        ValidateProductFields(request.ShortDescription, request.UseOfFunds, request.InvestmentModel, request.EquityOfferedPercentage, request.ProfitSharePercentage, request.ProfitSharingPayoutFrequency, request.ExpectedDurationMonths, request.ProfitSharingContractStartDate, request.ProfitSharingContractEndDate, request.InterestRate, request.RepaymentFrequency, request.FinalRepaymentDate);
-        ValidateEquityConfiguration(request.InvestmentModel, request.Currency, request.SharePrice, request.TotalShares, request.OfferedShares, request.EquityOfferedPercentage, request.MinimumInvestmentAmount);
-        ValidateCurrency(request.Currency);
-        ValidateInvestmentBounds(request.MinimumInvestmentAmount, request.MaximumInvestmentAmount);
-        var tags = await ValidateClassificationAsync(request.CategoryId, request.FundingGoalId, request.TagIds);
+        var founder = await ValidateOpportunityCreationFounderAsync(founderId);
+        request.FundingCurrency = CurrencyConversionService.NormalizeCurrency(request.FundingCurrency ?? founder?.Profile?.PreferredCurrency ?? CurrencyMasterDefaults.DefaultCurrency);
+        ValidateCoreFields(request.Title, request.FundingTarget);
+        var stage = ValidateProjectStage(request.ProjectStage, request.ProjectStageCustomName);
+        ValidateTextRange(request.ShortDescription, "SHORT_DESCRIPTION_REQUIRED", "ShortDescription", 20, 300);
+        ValidateTextRange(request.UseOfFunds, "USE_OF_FUNDS_REQUIRED", "UseOfFunds", 30, 2000);
+        await ValidateCurrencySelectionAsync(request.FundingCurrency!, requireFunding: true);
+        var tags = await ValidateClassificationAsync(request.FundingGoalId, request.TagIds);
 
         var now = DateTime.UtcNow;
+        Project project;
+        if (request.ProjectId.HasValue)
+        {
+            project = await _uow.Repository<Project>().GetSingleAsync(
+                p => p.Id == request.ProjectId.Value && p.FounderId == founderId,
+                p => p.Opportunities,
+                p => p.Category!);
+            if (project == null)
+                throw new BusinessValidationException("PROJECT_NOT_FOUND", "A valid founder-owned Project is required.");
+            if (project.Status == ProjectStatus.Archived)
+                throw new BusinessValidationException("PROJECT_ARCHIVED", "An archived Project cannot have a funding opportunity.");
+        }
+        else
+        {
+            // Backward-compatible Phase 1 path for existing API clients. New clients
+            // send ProjectId and use the separately managed Project aggregate.
+            project = new Project
+            {
+                FounderId = founderId, DisplayName = request.Title.Trim(), Slug = $"project-{Guid.NewGuid():N}",
+                Summary = request.ShortDescription.Trim(), Description = Normalize(request.Description) ?? request.ShortDescription.Trim(),
+                BusinessStage = stage.Stage,
+                TagsSnapshotJson = JsonSerializer.Serialize(tags.Select(tag => tag.Id).OrderBy(id => id)),
+                LogoUrl = Normalize(request.CoverImageUrl), Status = ProjectStatus.Draft, CreatedAt = now, UpdatedAt = now
+            };
+        }
+        if (request.ProjectId.HasValue)
+            await EnsureProjectStageAvailableAsync(project.Id, stage, cancellationToken: cancellationToken);
+
         var opportunity = new Opportunity
         {
+            Project = project,
             FounderId = founderId,
+            SequenceNumber = project.Opportunities.Count == 0 ? 1 : project.Opportunities.Max(o => o.SequenceNumber) + 1,
+            Purpose = Normalize(request.Purpose) ?? "General funding",
+            Type = Normalize(request.Type) ?? "Opportunity",
             Title = request.Title.Trim(),
             Description = Normalize(request.Description),
             ShortDescription = request.ShortDescription.Trim(),
             UseOfFunds = request.UseOfFunds.Trim(),
             FundingTarget = request.FundingTarget,
-            CategoryId = request.CategoryId,
             FundingGoalId = request.FundingGoalId,
-            MinimumInvestmentAmount = request.MinimumInvestmentAmount,
-            MaximumInvestmentAmount = request.MaximumInvestmentAmount,
-            ExpectedDurationMonths = request.ExpectedDurationMonths,
-            Currency = Normalize(request.Currency),
-            SharePrice = request.SharePrice,
-            TotalShares = request.TotalShares,
-            OfferedShares = request.OfferedShares,
-            EquityOfferedPercentage = request.EquityOfferedPercentage,
-            ProfitSharePercentage = request.ProfitSharePercentage,
-            ProfitSharingPayoutFrequency = Normalize(request.ProfitSharingPayoutFrequency),
-            ProfitSharingContractStartDate = request.ProfitSharingContractStartDate,
-            ProfitSharingContractEndDate = request.ProfitSharingContractEndDate,
-            InterestRate = request.InterestRate,
-            RepaymentFrequency = Normalize(request.RepaymentFrequency),
-            FinalRepaymentDate = request.FinalRepaymentDate,
-            InvestmentModel = request.InvestmentModel!.Value,
-            ProjectStage = request.ProjectStage!.Value,
+            FundingCurrency = request.FundingCurrency,
+            InvestmentModel = InvestmentModel.Unspecified,
+            ProjectStage = stage.Stage,
+            ProjectStageCustomName = stage.CustomName,
+            ProjectStageCustomNameNormalized = stage.NormalizedCustomName,
             Status = OpportunityStatus.Draft,
+            ModerationStatus = OpportunityModerationStatus.Draft,
+            FundingStatus = OpportunityFundingStatus.NotScheduled,
             CoverImageUrl = Normalize(request.CoverImageUrl),
             CreatedAt = now,
             UpdatedAt = now
@@ -92,65 +128,98 @@ public class OpportunityService : IOpportunityService
 
         opportunity.Events.Add(new OpportunityEvent
         {
-            EventType = "ProjectCreated",
-            Title = "Project created",
-            Description = "Opportunity draft was created.",
+            EventType = request.ProjectId.HasValue ? "OpportunityDraftCreated" : "ProjectDraftCreated",
+            Title = request.ProjectId.HasValue ? "Opportunity created" : "Project created",
+            Description = request.ProjectId.HasValue ? "Opportunity draft was linked to an existing Project." : "Opportunity draft was created through the legacy compatibility path.",
             CreatedByUserId = founderId,
             CreatedAt = now,
             IsPublic = false
         });
+        ProjectActivityTimeline.Add(
+            opportunity.Events,
+            opportunity.Id,
+            ProjectActivityTimeline.Types.OpportunityCreated,
+            "Founder",
+            founderId,
+            now,
+            "Opportunity",
+            $"sequence:{opportunity.SequenceNumber}",
+            $"opportunity-created:{project.Id}:{opportunity.SequenceNumber}:{now.Ticks}",
+            new Dictionary<string, string?>
+            {
+                ["opportunityTitle"] = opportunity.Title,
+                ["projectStage"] = GetProjectStageLabel(stage),
+                ["createdOpenedDate"] = now.ToString("O"),
+                ["opportunityReference"] = $"#{opportunity.SequenceNumber}"
+            });
 
         await _uow.Repository<Opportunity>().AddAsync(opportunity);
-        await _uow.SaveChangesAsync();
+        try
+        {
+            await _uow.SaveChangesAsync();
+        }
+        catch (DbUpdateException exception) when (IsProjectStageUniqueConstraint(exception))
+        {
+            throw ProjectStageConflict();
+        }
 
+        await AttachProjectContextAsync(new[] { opportunity });
         return ToDetailDto(opportunity, tagLookup: tags.ToDictionary(t => t.Id));
     }
 
     public async Task<OpportunityDetailDto> UpdateAsync(Guid founderId, int id, UpdateOpportunityRequest request, CancellationToken cancellationToken = default)
     {
         ValidateFounder(founderId);
-        ValidateCoreFields(request.Title, request.FundingTarget, request.InvestmentModel, request.ProjectStage);
-        ValidateProductFields(request.ShortDescription, request.UseOfFunds, request.InvestmentModel, request.EquityOfferedPercentage, request.ProfitSharePercentage, request.ProfitSharingPayoutFrequency, request.ExpectedDurationMonths, request.ProfitSharingContractStartDate, request.ProfitSharingContractEndDate, request.InterestRate, request.RepaymentFrequency, request.FinalRepaymentDate);
-        ValidateEquityConfiguration(request.InvestmentModel, request.Currency, request.SharePrice, request.TotalShares, request.OfferedShares, request.EquityOfferedPercentage, request.MinimumInvestmentAmount);
-        ValidateCurrency(request.Currency);
-        ValidateInvestmentBounds(request.MinimumInvestmentAmount, request.MaximumInvestmentAmount);
-        var tags = await ValidateClassificationAsync(request.CategoryId, request.FundingGoalId, request.TagIds);
-
         var opportunity = await GetOwnedOpportunityAsync(founderId, id, includeChildren: true);
+        request.FundingCurrency = CurrencyConversionService.NormalizeCurrency(request.FundingCurrency ?? opportunity.FundingCurrency);
+        ValidateCoreFields(request.Title, request.FundingTarget);
+        var stage = ValidateProjectStage(request.ProjectStage, request.ProjectStageCustomName);
+        ValidateTextRange(request.ShortDescription, "SHORT_DESCRIPTION_REQUIRED", "ShortDescription", 20, 300);
+        ValidateTextRange(request.UseOfFunds, "USE_OF_FUNDS_REQUIRED", "UseOfFunds", 30, 2000);
+        await ValidateCurrencySelectionAsync(request.FundingCurrency!, requireFunding: true);
+        var tags = await ValidateClassificationAsync(request.FundingGoalId, request.TagIds);
 
         if (opportunity.IsLockedForEditing)
             throw new BusinessValidationException("OPPORTUNITY_LOCKED", "Core project fields are locked after the first investor joins. Add a project event instead.");
 
+        await EnsureProjectStageAvailableAsync(opportunity.ProjectId, stage, opportunity.Id, cancellationToken);
+
         var previousStatus = opportunity.Status;
         var nextStatus = request.Status ?? opportunity.Status;
         ValidateFounderEditStatusTransition(previousStatus, nextStatus);
+        if (previousStatus is not (OpportunityStatus.Draft or OpportunityStatus.Rejected)
+            && !string.Equals(opportunity.FundingCurrency, request.FundingCurrency, StringComparison.OrdinalIgnoreCase))
+            throw new BusinessValidationException("FUNDING_CURRENCY_IMMUTABLE", "Funding Currency cannot be changed after publishing.");
 
         var oldValue = SnapshotCore(opportunity);
 
         opportunity.Title = request.Title.Trim();
+        opportunity.Purpose = Normalize(request.Purpose) ?? opportunity.Purpose;
+        opportunity.Type = Normalize(request.Type) ?? opportunity.Type;
         opportunity.Description = Normalize(request.Description);
         opportunity.ShortDescription = request.ShortDescription.Trim();
         opportunity.UseOfFunds = request.UseOfFunds.Trim();
         opportunity.FundingTarget = request.FundingTarget;
-        opportunity.CategoryId = request.CategoryId;
         opportunity.FundingGoalId = request.FundingGoalId;
-        opportunity.MinimumInvestmentAmount = request.MinimumInvestmentAmount;
-        opportunity.MaximumInvestmentAmount = request.MaximumInvestmentAmount;
-        opportunity.ExpectedDurationMonths = request.ExpectedDurationMonths;
-        opportunity.Currency = Normalize(request.Currency);
-        opportunity.SharePrice = request.SharePrice;
-        opportunity.TotalShares = request.TotalShares;
-        opportunity.OfferedShares = request.OfferedShares;
-        opportunity.EquityOfferedPercentage = request.EquityOfferedPercentage;
-        opportunity.ProfitSharePercentage = request.ProfitSharePercentage;
-        opportunity.ProfitSharingPayoutFrequency = Normalize(request.ProfitSharingPayoutFrequency);
-        opportunity.ProfitSharingContractStartDate = request.ProfitSharingContractStartDate;
-        opportunity.ProfitSharingContractEndDate = request.ProfitSharingContractEndDate;
-        opportunity.InterestRate = request.InterestRate;
-        opportunity.RepaymentFrequency = Normalize(request.RepaymentFrequency);
-        opportunity.FinalRepaymentDate = request.FinalRepaymentDate;
-        opportunity.InvestmentModel = request.InvestmentModel!.Value;
-        opportunity.ProjectStage = request.ProjectStage!.Value;
+        opportunity.FundingCurrency = request.FundingCurrency;
+        opportunity.MinimumInvestmentAmount = null;
+        opportunity.MaximumInvestmentAmount = null;
+        opportunity.ExpectedDurationMonths = null;
+        opportunity.SharePrice = null;
+        opportunity.TotalShares = null;
+        opportunity.OfferedShares = null;
+        opportunity.EquityOfferedPercentage = null;
+        opportunity.ProfitSharePercentage = null;
+        opportunity.ProfitSharingPayoutFrequency = null;
+        opportunity.ProfitSharingContractStartDate = null;
+        opportunity.ProfitSharingContractEndDate = null;
+        opportunity.InterestRate = null;
+        opportunity.RepaymentFrequency = null;
+        opportunity.FinalRepaymentDate = null;
+        opportunity.InvestmentModel = InvestmentModel.Unspecified;
+        opportunity.ProjectStage = stage.Stage;
+        opportunity.ProjectStageCustomName = stage.CustomName;
+        opportunity.ProjectStageCustomNameNormalized = stage.NormalizedCustomName;
         opportunity.Status = nextStatus;
         opportunity.CoverImageUrl = Normalize(request.CoverImageUrl);
         opportunity.UpdatedAt = DateTime.UtcNow;
@@ -182,8 +251,16 @@ public class OpportunityService : IOpportunityService
         });
 
         await _uow.Repository<Opportunity>().UpdateAsync(opportunity);
-        await _uow.SaveChangesAsync();
+        try
+        {
+            await _uow.SaveChangesAsync();
+        }
+        catch (DbUpdateException exception) when (IsProjectStageUniqueConstraint(exception))
+        {
+            throw ProjectStageConflict();
+        }
 
+        await AttachProjectContextAsync(new[] { opportunity });
         return ToDetailDto(opportunity, tagLookup: tags.ToDictionary(t => t.Id));
     }
 
@@ -193,9 +270,10 @@ public class OpportunityService : IOpportunityService
 
         var opportunities = await _uow.Repository<Opportunity>().FindWithIncludesAsync(
             o => o.FounderId == founderId,
-            o => o.Category!,
+            o => o.Project!,
             o => o.FundingGoal!,
             o => o.OpportunityTags);
+        await AttachProjectContextAsync(opportunities);
         var tagLookup = await GetActiveTagLookupAsync();
         var ordered = opportunities
             .OrderByDescending(o => o.UpdatedAt)
@@ -218,20 +296,33 @@ public class OpportunityService : IOpportunityService
 
         var relationshipGroups = approved.GroupBy(r => r.OpportunityId).ToList();
         var summaries = await GetParticipationSummariesAsync(relationshipGroups.Select(g => g.Key));
-        var contracts = (await _uow.Repository<InvestmentContract>().FindAsync(c =>
-                c.InvestorUserId == investorId && c.Status == InvestmentContractStatus.Active))
-            .GroupBy(c => c.OpportunityId)
-            .ToDictionary(g => g.Key, g => g.OrderByDescending(c => c.UpdatedAt).First());
+        var contracts = (await _uow.Repository<InvestmentContract>().FindWithIncludesAsync(
+                c => c.InvestorUserId == investorId && c.Status == InvestmentContractStatus.Active,
+                c => c.Versions))
+            .ToList();
+        var contractsByParticipation = contracts
+            .SelectMany(contract => contract.Versions.Select(version => new { contract, version }))
+            .ToDictionary(item => item.version.SourceParticipationRequestId);
+        var projectIds = approved.Select(r => r.Opportunity!.ProjectId).Distinct().ToHashSet();
+        var projects = (await _uow.Repository<Project>().FindAsync(p => projectIds.Contains(p.Id)))
+            .ToDictionary(p => p.Id);
+        var projectTotals = approved
+            .Where(r => r.RequestType == OpportunityJoinRequestType.InvestmentParticipation)
+            .GroupBy(r => r.Opportunity!.ProjectId)
+            .ToDictionary(g => g.Key, g => g.Sum(r => r.FundingAmount ?? r.RequestedAmount ?? 0m));
 
         return relationshipGroups.Select(group =>
         {
             var latest = group.OrderByDescending(r => r.ReviewedAt ?? r.UpdatedAt).First();
             var opportunity = latest.Opportunity!;
             var investmentRequests = group.Where(r => r.RequestType == OpportunityJoinRequestType.InvestmentParticipation).ToList();
-            var approvedContribution = investmentRequests.Sum(r => r.RequestedAmount ?? 0m);
+            var approvedContribution = investmentRequests.Sum(r => r.FundingAmount ?? r.RequestedAmount ?? 0m);
             var approvedShares = investmentRequests.Sum(r => TryReadSelectedShares(r.TermsSnapshotJson));
             var summary = summaries[opportunity.Id];
-            contracts.TryGetValue(opportunity.Id, out var contract);
+            var latestContract = contracts
+                .Where(c => c.OpportunityId == opportunity.Id)
+                .OrderByDescending(c => c.CreatedAt)
+                .FirstOrDefault();
             var parseResult = TermsSnapshotParser.Parse(latest.TermsSnapshotJson);
             var terms = parseResult.Normalized;
             var hasAcceptedOffer = latest.AcceptedOfferId.HasValue;
@@ -239,6 +330,26 @@ public class OpportunityService : IOpportunityService
 
             return new MyParticipationDto
             {
+                ProjectId = opportunity.ProjectId,
+                ProjectDisplayName = projects.TryGetValue(opportunity.ProjectId, out var project) ? project.DisplayName : string.Empty,
+                ProjectTotalInvestment = projectTotals.GetValueOrDefault(opportunity.ProjectId),
+                OpportunityTotalInvestment = approvedContribution,
+                Participations = investmentRequests.OrderBy(r => r.ParticipationSequence).Select(r =>
+                {
+                    contractsByParticipation.TryGetValue(r.Id, out var contractItem);
+                    return new ParticipationItemDto
+                    {
+                        ParticipationId = r.Id,
+                        SequenceNumber = r.ParticipationSequence,
+                        ApprovedAmount = r.FundingAmount ?? r.RequestedAmount ?? 0m,
+                        FundingCurrency = r.FundingCurrency ?? opportunity.FundingCurrency,
+                        ApprovedAt = r.ReviewedAt,
+                        ContractId = contractItem?.contract.Id,
+                        ContractNumber = contractItem?.contract.ContractNumber,
+                        ContractVersion = contractItem?.version.VersionNumber,
+                        ContractDocumentHash = contractItem?.version.DocumentHash
+                    };
+                }).ToArray(),
                 OpportunityId = opportunity.Id,
                 OpportunityTitle = opportunity.Title,
                 OpportunityStatus = opportunity.Status,
@@ -255,9 +366,9 @@ public class OpportunityService : IOpportunityService
                 ParticipationStatus = OpportunityJoinRequestStatus.Approved,
                 ProjectRoomUnlocked = true,
                 CanOpenProjectRoom = true,
-                ContractAvailable = contract != null,
-                CurrentContractId = contract?.Id,
-                CurrentContractVersion = contract?.CurrentVersionNumber,
+                ContractAvailable = latestContract != null,
+                CurrentContractId = latestContract?.Id,
+                CurrentContractVersion = latestContract?.CurrentVersionNumber,
                 FundedAmount = summary.FundedAmount,
                 FundingTarget = opportunity.FundingTarget,
                 RemainingFundingAmount = summary.RemainingFundingAmount,
@@ -298,7 +409,11 @@ public class OpportunityService : IOpportunityService
             r => r.Opportunity!)).SingleOrDefault();
         if (request?.Opportunity == null)
             throw new BusinessValidationException("PARTICIPATION_NOT_FOUND", "Approved participation was not found.");
-        return BuildInvestorCashFlowSchedule(request);
+        var acceptedOffer = request.AcceptedOfferId.HasValue
+            ? (await _uow.Repository<NegotiationOffer>().FindWithIncludesAsync(o => o.Id == request.AcceptedOfferId.Value, o => o.Legs)).SingleOrDefault()
+            : null;
+        var legs = BuildParticipationLegs(request, request.Opportunity, acceptedOffer);
+        return BuildLegAggregateSchedule(request, request.Opportunity, legs);
     }
 
     public async Task<IReadOnlyList<MonthlyCashFlowDto>> GetInvestorMonthlyCashFlowAsync(Guid investorId, CancellationToken cancellationToken = default)
@@ -363,80 +478,102 @@ public class OpportunityService : IOpportunityService
         Guid userId, int opportunityId, RecordPaymentRequest request,
         CancellationToken cancellationToken = default)
     {
-        var opportunity = await GetOpportunityAsync(opportunityId, includeChildren: false);
-        var participation = await _uow.Repository<OpportunityJoinRequest>().GetByIdAsync(request.ParticipationRequestId);
-        if (participation == null || participation.OpportunityId != opportunityId)
-            throw new BusinessValidationException("PARTICIPATION_NOT_FOUND", "Participation request was not found for this opportunity.");
-        if (participation.Status != OpportunityJoinRequestStatus.Approved)
-            throw new BusinessValidationException("PARTICIPATION_NOT_APPROVED", "Only approved participations can receive payments.");
         if (request.Amount <= 0)
             throw new BusinessValidationException("INVALID_PAYMENT_AMOUNT", "Payment amount must be greater than zero.");
-        if (!string.IsNullOrWhiteSpace(request.Reference))
-        {
-            var dupRef = await _uow.Repository<PaymentTransaction>().ExistsAsync(pt =>
-                pt.Reference == request.Reference.Trim() && !pt.IsReversed);
-            if (dupRef)
-                throw new BusinessValidationException("DUPLICATE_PAYMENT_REFERENCE", "A payment with this reference already exists.");
-        }
-        var recentDup = await _uow.Repository<PaymentTransaction>().ExistsAsync(pt =>
-            pt.ParticipationRequestId == request.ParticipationRequestId
-            && pt.Amount == request.Amount
-            && pt.PaymentDate.Date == request.PaymentDate.Date
-            && !pt.IsReversed);
-        if (recentDup)
-            throw new BusinessValidationException("DUPLICATE_PAYMENT", "An identical payment has already been recorded for this participation on the same date.");
+        var reference = Normalize(request.Reference);
+        var idempotencyKey = NormalizePaymentIdempotencyKey(
+            request.IdempotencyKey,
+            opportunityId,
+            request.ParticipationRequestId,
+            request.Amount,
+            request.PaymentDate,
+            reference);
 
-        var now = DateTime.UtcNow;
-        var transaction = new PaymentTransaction
-        {
-            ParticipationRequestId = request.ParticipationRequestId,
-            Amount = request.Amount,
-            PaymentDate = request.PaymentDate,
-            Reference = request.Reference?.Trim(),
-            Notes = request.Notes?.Trim(),
-            CreatedByUserId = userId,
-            CreatedAt = now
-        };
+        var existing = await GetPaymentByIdempotencyKeyAsync(idempotencyKey);
+        if (existing != null)
+            return existing;
 
-        List<PaymentAllocation> allocations;
-        if (opportunity.InvestmentModel == InvestmentModel.LoanInvestment)
+        PaymentTransaction? transaction = null;
+        List<PaymentAllocation> allocations = [];
+        try
         {
-            allocations = await ComputeFifoAllocationsAsync(participation, request.Amount);
-        }
-        else
-        {
-            allocations = new List<PaymentAllocation>
+            await _uow.ExecuteWithStrategyAsync(async () =>
             {
-                new PaymentAllocation
+                await _uow.BeginTransactionAsync();
+                try
                 {
-                    ParticipationRequestId = participation.Id,
-                    InstallmentNumber = 0,
-                    AllocatedAmount = request.Amount
+                    var opportunity = await GetOpportunityAsync(opportunityId, includeChildren: false);
+                    var participation = await _uow.Repository<OpportunityJoinRequest>().GetByIdAsync(request.ParticipationRequestId);
+                    if (participation == null || participation.OpportunityId != opportunityId)
+                        throw new BusinessValidationException("PARTICIPATION_NOT_FOUND", "Participation request was not found for this opportunity.");
+                    if (participation.Status != OpportunityJoinRequestStatus.Approved)
+                        throw new BusinessValidationException("PARTICIPATION_NOT_APPROVED", "Only approved participations can receive payments.");
+
+                    var replay = await _uow.Repository<PaymentTransaction>().ExistsAsync(pt => pt.IdempotencyKey == idempotencyKey);
+                    if (replay)
+                        throw new BusinessValidationException("PAYMENT_IDEMPOTENCY_CONFLICT", "This payment request has already been processed.");
+                    if (reference != null && await _uow.Repository<PaymentTransaction>().ExistsAsync(pt => pt.Reference == reference))
+                        throw new BusinessValidationException("DUPLICATE_PAYMENT_REFERENCE", "A payment with this reference already exists.");
+
+                    transaction = new PaymentTransaction
+                    {
+                        ParticipationRequestId = request.ParticipationRequestId,
+                        Amount = request.Amount,
+                        PaymentDate = request.PaymentDate,
+                        Reference = reference,
+                        IdempotencyKey = idempotencyKey,
+                        Notes = request.Notes?.Trim(),
+                        ExchangeRateSnapshotId = participation.ExchangeRateSnapshotId,
+                        CreatedByUserId = userId,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    allocations = opportunity.InvestmentModel == InvestmentModel.LoanInvestment
+                        ? await ComputeFifoAllocationsAsync(participation, request.Amount)
+                        :
+                        [
+                            new PaymentAllocation
+                            {
+                                ParticipationRequestId = participation.Id,
+                                InstallmentNumber = 0,
+                                AllocatedAmount = request.Amount
+                            }
+                        ];
+
+                    await _uow.Repository<PaymentTransaction>().AddAsync(transaction);
+                    await _uow.SaveChangesAsync();
+                    foreach (var alloc in allocations)
+                    {
+                        alloc.PaymentTransactionId = transaction.Id;
+                        await _uow.Repository<PaymentAllocation>().AddAsync(alloc);
+                    }
+                    await _uow.SaveChangesAsync();
+                    await _uow.CommitTransactionAsync();
                 }
-            };
+                catch
+                {
+                    await _uow.RollbackTransactionAsync();
+                    throw;
+                }
+            }, cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            var replay = await GetPaymentByIdempotencyKeyAsync(idempotencyKey);
+            if (replay != null)
+                return replay;
+            throw new BusinessValidationException("CONCURRENCY_CONFLICT", "The payment conflicted with another financial write. Reload and retry.");
+        }
+        catch (BusinessValidationException ex) when (ex.Code == "PAYMENT_IDEMPOTENCY_CONFLICT")
+        {
+            var replay = await GetPaymentByIdempotencyKeyAsync(idempotencyKey);
+            if (replay != null)
+                return replay;
+            throw;
         }
 
-        await _uow.ExecuteWithStrategyAsync(async () =>
-        {
-            await _uow.BeginTransactionAsync();
-            try
-            {
-                await _uow.Repository<PaymentTransaction>().AddAsync(transaction);
-                await _uow.SaveChangesAsync();
-                foreach (var alloc in allocations)
-                {
-                    alloc.PaymentTransactionId = transaction.Id;
-                    await _uow.Repository<PaymentAllocation>().AddAsync(alloc);
-                }
-                await _uow.SaveChangesAsync();
-                await _uow.CommitTransactionAsync();
-            }
-            catch
-            {
-                await _uow.RollbackTransactionAsync();
-                throw;
-            }
-        }, cancellationToken);
+        if (transaction == null)
+            throw new BusinessValidationException("CONCURRENCY_CONFLICT", "The payment was not committed.");
 
         var creator = await _uow.Repository<AuthUser>().GetByIdAsync(userId);
         var dto = ToPaymentTransactionDetailDto(transaction, allocations, creator?.Name);
@@ -469,6 +606,12 @@ public class OpportunityService : IOpportunityService
             r => r.Investor!,
             r => r.Investor!.Profile!);
 
+        var acceptedOfferIds = approved.Where(r => r.AcceptedOfferId.HasValue).Select(r => r.AcceptedOfferId!.Value).ToHashSet();
+        var acceptedOffers = acceptedOfferIds.Count == 0
+            ? []
+            : await _uow.Repository<NegotiationOffer>().FindWithIncludesAsync(o => acceptedOfferIds.Contains(o.Id), o => o.Legs);
+        var acceptedOffersById = acceptedOffers.ToDictionary(o => o.Id);
+
         var requestIds = approved.Select(r => r.Id).ToList();
         var existingAllocations = await _uow.Repository<PaymentAllocation>()
             .FindWithIncludesAsync(a => requestIds.Contains(a.ParticipationRequestId), a => a.PaymentTransaction!);
@@ -483,7 +626,11 @@ public class OpportunityService : IOpportunityService
         foreach (var participation in approved)
         {
             investorIds.Add(participation.InvestorId);
-            var schedule = BuildPaymentSchedule(participation);
+            acceptedOffersById.TryGetValue(participation.AcceptedOfferId ?? 0, out var acceptedOffer);
+            var schedule = BuildLegAggregateSchedule(
+                participation,
+                opportunity,
+                BuildParticipationLegs(participation, opportunity, acceptedOffer));
             var displayName = participation.Investor?.Profile?.FullName?.Trim() ?? participation.Investor?.Name?.Trim() ?? string.Empty;
 
             for (int i = 0; i < schedule.Payments.Count; i++)
@@ -549,13 +696,17 @@ public class OpportunityService : IOpportunityService
             if (processedIds.Contains(dedupKey)) continue;
             processedIds.Add(dedupKey);
 
+            var participation = await _uow.Repository<OpportunityJoinRequest>().GetByIdAsync(inst.ParticipationRequestId);
+            var confirmationKey = $"bulk:{opportunityId}:{preview.Year}:{preview.Month:D2}:{inst.ParticipationRequestId}:{inst.InstallmentNumber}";
             var transaction = new PaymentTransaction
             {
                 ParticipationRequestId = inst.ParticipationRequestId,
                 Amount = inst.RemainingAmount,
                 PaymentDate = today,
-                Reference = $"BULK-{preview.Year}-{preview.Month:D2}-{inst.InstallmentNumber}",
+                Reference = $"BULK-{preview.Year}-{preview.Month:D2}-{inst.ParticipationRequestId}-{inst.InstallmentNumber}",
+                IdempotencyKey = confirmationKey,
                 Notes = $"Bulk confirmation for {preview.Year}-{preview.Month:D2} (installment #{inst.InstallmentNumber})",
+                ExchangeRateSnapshotId = participation?.ExchangeRateSnapshotId,
                 CreatedByUserId = founderId,
                 CreatedAt = now
             };
@@ -566,7 +717,8 @@ public class OpportunityService : IOpportunityService
                 {
                     ParticipationRequestId = inst.ParticipationRequestId,
                     InstallmentNumber = inst.InstallmentNumber,
-                    AllocatedAmount = inst.RemainingAmount
+                    AllocatedAmount = inst.RemainingAmount,
+                    InstallmentConfirmationKey = confirmationKey
                 }
             };
 
@@ -581,6 +733,44 @@ public class OpportunityService : IOpportunityService
             await _uow.BeginTransactionAsync();
             try
             {
+                preview = await GetMonthlyUnpaidInstallmentsAsync(founderId, opportunityId, request.Year, request.Month, cancellationToken);
+                if (preview.Installments.Count == 0)
+                    throw new BusinessValidationException("INSTALLMENT_ALREADY_CONFIRMED", "The installments were already confirmed by another request.");
+
+                createdTransactions.Clear();
+                processedIds.Clear();
+                foreach (var inst in preview.Installments)
+                {
+                    var dedupKey = (inst.ParticipationRequestId, inst.InstallmentNumber);
+                    if (!processedIds.Add(dedupKey))
+                        continue;
+
+                    var participation = await _uow.Repository<OpportunityJoinRequest>().GetByIdAsync(inst.ParticipationRequestId);
+                    var confirmationKey = $"bulk:{opportunityId}:{preview.Year}:{preview.Month:D2}:{inst.ParticipationRequestId}:{inst.InstallmentNumber}";
+                    createdTransactions.Add((
+                        new PaymentTransaction
+                        {
+                            ParticipationRequestId = inst.ParticipationRequestId,
+                            Amount = inst.RemainingAmount,
+                            PaymentDate = today,
+                            Reference = $"BULK-{preview.Year}-{preview.Month:D2}-{inst.ParticipationRequestId}-{inst.InstallmentNumber}",
+                            IdempotencyKey = confirmationKey,
+                            Notes = $"Bulk confirmation for {preview.Year}-{preview.Month:D2} (installment #{inst.InstallmentNumber})",
+                            ExchangeRateSnapshotId = participation?.ExchangeRateSnapshotId,
+                            CreatedByUserId = founderId,
+                            CreatedAt = now
+                        },
+                        [
+                            new PaymentAllocation
+                            {
+                                ParticipationRequestId = inst.ParticipationRequestId,
+                                InstallmentNumber = inst.InstallmentNumber,
+                                AllocatedAmount = inst.RemainingAmount,
+                                InstallmentConfirmationKey = confirmationKey
+                            }
+                        ]));
+                }
+
                 foreach (var (txn, allocs) in createdTransactions)
                 {
                     await _uow.Repository<PaymentTransaction>().AddAsync(txn);
@@ -603,6 +793,11 @@ public class OpportunityService : IOpportunityService
                 }
 
                 await _uow.CommitTransactionAsync();
+            }
+            catch (DbUpdateException)
+            {
+                await _uow.RollbackTransactionAsync();
+                throw new BusinessValidationException("INSTALLMENT_ALREADY_CONFIRMED", "One or more installments were concurrently confirmed.");
             }
             catch
             {
@@ -722,7 +917,11 @@ public class OpportunityService : IOpportunityService
     private async Task<List<PaymentAllocation>> ComputeFifoAllocationsAsync(OpportunityJoinRequest participation, decimal amount)
     {
         participation.Opportunity = await _uow.Repository<Opportunity>().GetByIdAsync(participation.OpportunityId);
-        var schedule = BuildPaymentSchedule(participation);
+        var acceptedOffer = participation.AcceptedOfferId.HasValue
+            ? (await _uow.Repository<NegotiationOffer>().FindWithIncludesAsync(o => o.Id == participation.AcceptedOfferId.Value, o => o.Legs)).SingleOrDefault()
+            : null;
+        var legs = BuildParticipationLegs(participation, participation.Opportunity!, acceptedOffer);
+        var schedule = BuildLegAggregateSchedule(participation, participation.Opportunity!, legs);
         var existingAllocations = await _uow.Repository<PaymentAllocation>()
             .FindWithIncludesAsync(
                 a => a.ParticipationRequestId == participation.Id,
@@ -785,66 +984,73 @@ public class OpportunityService : IOpportunityService
     {
         await ValidateClientAsync(investorId, "Only authenticated clients can view expected cash flow.");
         var requests = await _uow.Repository<OpportunityJoinRequest>().FindWithIncludesAsync(r => r.InvestorId == investorId && r.Status == OpportunityJoinRequestStatus.Approved && r.RequestType == OpportunityJoinRequestType.InvestmentParticipation, r => r.Opportunity!);
+        var acceptedOfferIds = requests.Where(r => r.AcceptedOfferId.HasValue).Select(r => r.AcceptedOfferId!.Value).ToHashSet();
+        var acceptedOffers = acceptedOfferIds.Count == 0
+            ? []
+            : await _uow.Repository<NegotiationOffer>().FindWithIncludesAsync(o => acceptedOfferIds.Contains(o.Id), o => o.Legs);
+        var acceptedOffersById = acceptedOffers.ToDictionary(o => o.Id);
         return requests
-            .Where(r => r.Opportunity?.InvestmentModel is InvestmentModel.LoanInvestment or InvestmentModel.CapitalContributionProfitSharing)
-            .Select(BuildInvestorCashFlowSchedule)
+            .Where(r => r.Opportunity != null)
+            .Select(r =>
+            {
+                acceptedOffersById.TryGetValue(r.AcceptedOfferId ?? 0, out var acceptedOffer);
+                return BuildLegAggregateSchedule(r, r.Opportunity!, BuildParticipationLegs(r, r.Opportunity!, acceptedOffer));
+            })
+            .Where(schedule => schedule.Legs.Count > 0)
             .ToList();
     }
 
-    private static ParticipationPaymentScheduleDto BuildInvestorCashFlowSchedule(OpportunityJoinRequest request)
+    private static ParticipationPaymentScheduleDto BuildLegAggregateSchedule(
+        OpportunityJoinRequest request,
+        Opportunity opportunity,
+        IReadOnlyList<ParticipationLegDto> legs)
     {
-        return request.Opportunity?.InvestmentModel == InvestmentModel.CapitalContributionProfitSharing
-            ? BuildProfitSharingPaymentSchedule(request)
-            : BuildPaymentSchedule(request);
+        var payments = legs.SelectMany(leg => leg.CashFlows).OrderBy(payment => payment.DueDate).ToList();
+        var start = request.ReviewedAt ?? request.CreatedAt;
+        return new ParticipationPaymentScheduleDto
+        {
+            ParticipationRequestId = request.Id,
+            OpportunityId = opportunity.Id,
+            OpportunityTitle = opportunity.Title,
+            Currency = legs.FirstOrDefault()?.Currency ?? request.FundingCurrency,
+            Principal = legs.Sum(leg => leg.Amount),
+            AnnualInterestRate = 0m,
+            DurationMonths = legs.Where(leg => leg.TermMonths.HasValue).Select(leg => leg.TermMonths!.Value).DefaultIfEmpty(0).Max(),
+            RepaymentFrequency = legs.Count == 1 ? legs[0].RepaymentModel ?? string.Empty : "Mixed",
+            PrincipalRepaymentMethod = LoanPrincipalRepaymentMethod.AtMaturity,
+            StartDate = start,
+            FinalRepaymentDate = payments.Count == 0 ? start : payments.Max(payment => payment.DueDate),
+            TotalExpectedInterest = payments.Sum(payment => payment.ExpectedInterest),
+            AverageExpectedMonthlyIncome = payments.Count == 0 ? 0m : payments.Sum(payment => payment.ExpectedInterest) / Math.Max(1, legs.Max(leg => leg.TermMonths ?? 1)),
+            ReceivedToDate = null,
+            RemainingPrincipal = null,
+            Payments = payments,
+            Legs = legs.ToList()
+        };
     }
 
-    private static ParticipationPaymentScheduleDto BuildProfitSharingPaymentSchedule(OpportunityJoinRequest request)
-    {
-        var opportunity = request.Opportunity!;
-        var terms = TermsSnapshotParser.Parse(request.TermsSnapshotJson).Normalized;
-        var contribution = request.RequestedAmount ?? SnapshotDecimal(terms, "contributionAmount") ?? 0m;
-        var expectedProfit = SnapshotDecimal(terms, "expectedProfitAmount") ?? 0m;
-        var durationMonths = SnapshotInt(terms, "termValueSnapshot") ?? SnapshotInt(terms, "expectedDurationMonthsSnapshot") ?? opportunity.ExpectedDurationMonths;
-        var frequency = SnapshotString(terms, "payoutFrequencySnapshot") ?? opportunity.ProfitSharingPayoutFrequency;
-        var startDate = SnapshotDate(terms, "contractStartDateSnapshot") ?? opportunity.ProfitSharingContractStartDate ?? request.ReviewedAt ?? request.CreatedAt;
-        var finalDate = SnapshotDate(terms, "contractEndDateSnapshot") ?? opportunity.ProfitSharingContractEndDate;
-        if (finalDate == null && durationMonths is > 0) finalDate = startDate.AddMonths(durationMonths.Value);
-        if (durationMonths == null && finalDate != null) durationMonths = Math.Max(1, ((finalDate.Value.Year - startDate.Year) * 12) + finalDate.Value.Month - startDate.Month);
-        if (contribution <= 0 || expectedProfit < 0 || durationMonths is null or <= 0 || string.IsNullOrWhiteSpace(frequency) || finalDate == null)
-            throw new BusinessValidationException("PROFIT_SHARING_SCHEDULE_TERMS_INCOMPLETE", "Approved Profit Sharing participation does not contain complete authoritative cash-flow terms.");
-        return ProfitSharingCashFlowCalculator.Calculate(request.Id, opportunity.Id, opportunity.Title, SnapshotString(terms, "currencySnapshot") ?? opportunity.Currency, contribution, expectedProfit, durationMonths.Value, frequency, startDate, finalDate.Value);
-    }
-
-    private static ParticipationPaymentScheduleDto BuildPaymentSchedule(OpportunityJoinRequest request)
-    {
-        var opportunity = request.Opportunity!;
-        var parseResult = TermsSnapshotParser.Parse(request.TermsSnapshotJson);
-        var terms = parseResult.Normalized;
-        var principal = request.RequestedAmount ?? 0m;
-        var rate = SnapshotDecimal(terms, "returnRateSnapshot") ?? opportunity.InterestRate;
-        var months = SnapshotInt(terms, "termValueSnapshot") ?? opportunity.ExpectedDurationMonths;
-        var frequency = SnapshotString(terms, "repaymentModelSnapshot") ?? opportunity.RepaymentFrequency;
-        var finalDate = SnapshotDate(terms, "finalRepaymentDateSnapshot") ?? opportunity.FinalRepaymentDate;
-        if (principal <= 0 || rate is null or <= 0 || months is null or <= 0 || string.IsNullOrWhiteSpace(frequency) || finalDate == null)
-            throw new BusinessValidationException("LOAN_SCHEDULE_TERMS_INCOMPLETE", "Approved loan participation does not contain complete authoritative schedule terms.");
-        return LoanCashFlowCalculator.Calculate(request.Id, opportunity.Id, opportunity.Title, SnapshotString(terms,"currencySnapshot") ?? opportunity.Currency, principal, rate.Value, months.Value, frequency, request.ReviewedAt ?? request.CreatedAt, finalDate.Value);
-    }
-
-    public async Task<OpportunityDetailDto> GetFounderOpportunityAsync(Guid founderId, int id, CancellationToken cancellationToken = default)
+    public async Task<OpportunityDetailDto> GetFounderOpportunityAsync(Guid founderId, int id, CancellationToken cancellationToken = default, bool isAdmin = false)
     {
         ValidateFounder(founderId);
-        var opportunity = await GetOwnedOpportunityAsync(founderId, id, includeChildren: true);
+        var opportunity = isAdmin
+            ? await GetOpportunityAsync(id, includeChildren: true)
+            : await GetOwnedOpportunityAsync(founderId, id, includeChildren: true);
+        await AttachProjectContextAsync(new[] { opportunity });
         var founder = await _uow.Repository<AuthUser>().GetByIdAsync(opportunity.FounderId);
         var dto = ToDetailDto(opportunity, founder: founder, tagLookup: await GetActiveTagLookupAsync());
         await ApplyParticipationSummaryAsync(dto);
         return dto;
     }
 
-    public async Task<OpportunityRoomDto> GetProjectRoomAsync(Guid userId, int id, CancellationToken cancellationToken = default)
+    public async Task<OpportunityRoomDto> GetOpportunityRoomAsync(Guid userId, int id, CancellationToken cancellationToken = default, bool isAdmin = false)
     {
-        await ValidateClientAsync(userId, "Only authenticated clients can access an investor project room.");
+        if (!isAdmin)
+            await ValidateClientAsync(userId, "Only authenticated clients can access an Opportunity Room.");
         var opportunity = await GetOpportunityAsync(id, includeChildren: true);
+        var project = await _uow.Repository<Project>().GetByIdAsync(opportunity.ProjectId);
         var isFounder = opportunity.FounderId == userId;
+        if (isAdmin)
+            return ToRoomDto(opportunity, project?.DisplayName, await _uow.Repository<AuthUser>().GetByIdAsync(opportunity.FounderId), isFounder: false, isApprovedParticipant: false, await GetParticipationSummaryAsync(id), await BuildRoomParticipationsAsync(opportunity, userId, isFounder: false, isAdmin: true, cancellationToken), isAdmin: true);
         var summary = await GetParticipationSummaryAsync(id);
         var approvedParticipantCount = summary.ApprovedParticipantCount;
         var isApprovedParticipant = false;
@@ -858,54 +1064,67 @@ public class OpportunityService : IOpportunityService
         }
 
         if (!isFounder && !isApprovedParticipant)
-            throw new BusinessValidationException("PROJECT_ROOM_FORBIDDEN", "Project room access requires founder ownership or an approved join request.");
+            throw new BusinessValidationException("OPPORTUNITY_ROOM_FORBIDDEN", "Opportunity Room access requires founder ownership or an approved join request.");
 
         var founder = await _uow.Repository<AuthUser>().GetByIdAsync(opportunity.FounderId);
-        return ToRoomDto(opportunity, founder, isFounder, isApprovedParticipant, summary);
+        return ToRoomDto(opportunity, project?.DisplayName, founder, isFounder, isApprovedParticipant, summary, await BuildRoomParticipationsAsync(opportunity, userId, isFounder, isAdmin: false, cancellationToken), isAdmin: false);
     }
 
     public async Task<OpportunityMediaDto> AddMediaAsync(Guid founderId, int id, CreateOpportunityMediaRequest request, CancellationToken cancellationToken = default)
     {
         ValidateFounder(founderId);
-        ValidateRequired(request.FileUrl, "FILE_URL_REQUIRED", "FileUrl is required.");
-        ValidateRequired(request.FileName, "FILE_NAME_REQUIRED", "FileName is required.");
-        ValidateRequired(request.FileType, "FILE_TYPE_REQUIRED", "FileType is required.");
+        ValidateRequired(request.FileKey, "FILE_KEY_REQUIRED", "FileKey is required.");
         ValidateRequired(request.MediaType, "MEDIA_TYPE_REQUIRED", "MediaType is required.");
         if (!request.IsPublic.HasValue)
             throw new BusinessValidationException("MEDIA_VISIBILITY_REQUIRED", "Media visibility must be explicitly Public or Private.");
 
         var opportunity = await GetOwnedOpportunityAsync(founderId, id, includeChildren: true);
+        await AttachProjectContextAsync(new[] { opportunity });
         var now = DateTime.UtcNow;
         var purpose = ResolveMediaPurpose(request);
         ValidateMediaPurposeVisibility(purpose, request.IsPublic.Value);
+
+        var metadata = await _fileStorage.GetFileMetadataAsync(request.FileKey, cancellationToken);
+        if (metadata == null)
+            throw new BusinessValidationException("FILE_NOT_FOUND", "The referenced file was not found in storage.");
+
+        var resolved = _fileValidationService.ValidateAndResolve(request.FileKey);
+
+        var scanStatus = await _fileScanService.ScanAsync(request.FileKey, cancellationToken);
+        if (scanStatus == Domain.Entities.Enums.FileScanStatus.Rejected)
+            throw new BusinessValidationException("FILE_REJECTED", "The referenced file failed security scanning.");
 
         if (request.IsCover)
         {
             foreach (var existing in opportunity.Media)
                 existing.IsCover = false;
 
-            opportunity.CoverImageUrl = request.FileUrl.Trim();
+            opportunity.CoverImageUrl = metadata.Url;
         }
 
         var media = new OpportunityMedia
         {
             OpportunityId = id,
-            FileUrl = request.FileUrl.Trim(),
-            FileId = Normalize(request.FileId),
-            FileKey = Normalize(request.FileKey),
-            FileName = request.FileName.Trim(),
-            FileType = request.FileType.Trim(),
-            MimeType = Normalize(request.MimeType),
-            FileSize = request.FileSize,
-            PreviewUrl = Normalize(request.PreviewUrl),
-            ThumbnailUrl = Normalize(request.ThumbnailUrl),
+            FileKey = request.FileKey,
+            FileId = metadata.FileId,
+            FileUrl = metadata.Url,
+            FileName = Path.GetFileName(metadata.OriginalFileName) != metadata.FileName
+                ? metadata.OriginalFileName
+                : metadata.FileName,
+            FileType = Path.GetExtension(metadata.OriginalFileName).TrimStart('.').ToUpperInvariant(),
+            MimeType = metadata.MimeType,
+            FileSize = metadata.FileSize,
+            PreviewUrl = metadata.PreviewUrl,
+            ThumbnailUrl = metadata.ThumbnailUrl,
             MediaType = request.MediaType.Trim(),
             IsCover = request.IsCover,
             IsPublic = request.IsPublic.Value,
             Purpose = purpose,
             SortOrder = request.SortOrder,
             CreatedByUserId = founderId,
-            CreatedAt = now
+            CreatedAt = now,
+            ScanStatus = scanStatus,
+            ScanCompletedAt = scanStatus != Domain.Entities.Enums.FileScanStatus.Pending ? now : null
         };
 
         opportunity.Media.Add(media);
@@ -923,44 +1142,62 @@ public class OpportunityService : IOpportunityService
         await _uow.Repository<Opportunity>().UpdateAsync(opportunity);
         await _uow.SaveChangesAsync();
 
+        await _fileAuditService.RecordUploadAsync(founderId, id, "OpportunityMedia", media.Id.ToString(), media.FileName);
+        await _fileAuditService.RecordScanResultAsync("OpportunityMedia", media.Id.ToString(), request.FileKey, scanStatus.ToString());
+
         return ToMediaDto(media);
     }
 
     public async Task<OpportunityDocumentDto> AddDocumentAsync(Guid founderId, int id, CreateOpportunityDocumentRequest request, CancellationToken cancellationToken = default)
     {
         ValidateFounder(founderId);
-        ValidateRequired(request.FileUrl, "FILE_URL_REQUIRED", "FileUrl is required.");
-        ValidateRequired(request.FileName, "FILE_NAME_REQUIRED", "FileName is required.");
-        ValidateRequired(request.FileExtension, "FILE_EXTENSION_REQUIRED", "FileExtension is required.");
+        ValidateRequired(request.FileKey, "FILE_KEY_REQUIRED", "FileKey is required.");
         ValidateRequired(request.DocumentType, "DOCUMENT_TYPE_REQUIRED", "DocumentType is required.");
 
         if (!request.Visibility.HasValue || !Enum.IsDefined(request.Visibility.Value))
             throw new BusinessValidationException("INVALID_DOCUMENT_VISIBILITY", "Document visibility must be Public or Private.");
+
+        _fileValidationService.ValidateMetadataSanitization(null, null, request.Category, request.SearchTags);
 
         var opportunity = await GetOwnedOpportunityAsync(founderId, id, includeChildren: true);
         var now = DateTime.UtcNow;
         var purpose = ResolveDocumentPurpose(request);
         ValidateDocumentPurposeVisibility(purpose, request.Visibility.Value);
 
+        var metadata = await _fileStorage.GetFileMetadataAsync(request.FileKey, cancellationToken);
+        if (metadata == null)
+            throw new BusinessValidationException("FILE_NOT_FOUND", "The referenced file was not found in storage.");
+
+        var resolved = _fileValidationService.ValidateAndResolve(request.FileKey);
+
+        var scanStatus = await _fileScanService.ScanAsync(request.FileKey, cancellationToken);
+        if (scanStatus == Domain.Entities.Enums.FileScanStatus.Rejected)
+            throw new BusinessValidationException("FILE_REJECTED", "The referenced file failed security scanning.");
+
+        var ext = Path.GetExtension(metadata.OriginalFileName);
+        var fileName = metadata.OriginalFileName;
+
         var document = new OpportunityDocument
         {
             OpportunityId = id,
-            FileUrl = request.FileUrl.Trim(),
-            FileId = Normalize(request.FileId),
-            FileKey = Normalize(request.FileKey),
-            FileName = request.FileName.Trim(),
-            FileExtension = request.FileExtension.Trim(),
-            MimeType = Normalize(request.MimeType),
-            FileSize = request.FileSize,
-            PreviewUrl = Normalize(request.PreviewUrl),
-            ThumbnailUrl = Normalize(request.ThumbnailUrl),
+            FileKey = request.FileKey,
+            FileId = metadata.FileId,
+            FileUrl = metadata.Url,
+            FileName = fileName,
+            FileExtension = ext.TrimStart('.'),
+            MimeType = metadata.MimeType,
+            FileSize = metadata.FileSize,
+            PreviewUrl = metadata.PreviewUrl,
+            ThumbnailUrl = metadata.ThumbnailUrl,
             DocumentType = request.DocumentType.Trim(),
             Visibility = request.Visibility.Value,
             Purpose = purpose,
             Category = Normalize(request.Category),
             SearchTags = Normalize(request.SearchTags),
             CreatedByUserId = founderId,
-            CreatedAt = now
+            CreatedAt = now,
+            ScanStatus = scanStatus,
+            ScanCompletedAt = scanStatus != Domain.Entities.Enums.FileScanStatus.Pending ? now : null
         };
 
         opportunity.Documents.Add(document);
@@ -975,13 +1212,17 @@ public class OpportunityService : IOpportunityService
                 now,
                 "OpportunityDocument",
                 document.FileId ?? document.FileKey ?? document.FileName,
-                $"document-published:{Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(document.FileUrl)))}",
+                $"document-published:{Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(document.FileKey ?? string.Empty)))}",
                 new Dictionary<string, string?> { ["documentName"] = document.FileName });
         }
         opportunity.UpdatedAt = now;
 
         await _uow.Repository<Opportunity>().UpdateAsync(opportunity);
         await _uow.SaveChangesAsync();
+
+        await _fileAuditService.RecordUploadAsync(founderId, id, "OpportunityDocument", document.Id.ToString(), document.FileName);
+        await _fileAuditService.RecordScanResultAsync("OpportunityDocument", document.Id.ToString(), request.FileKey, scanStatus.ToString());
+
         if (document.Visibility == OpportunityDocumentVisibility.Public)
         {
             await PublishOpportunityRoomChangedAsync(
@@ -1072,6 +1313,63 @@ public class OpportunityService : IOpportunityService
         return ToEventDto(opportunityEvent);
     }
 
+    public async Task<OpportunityMilestoneDto> CompleteMilestoneAsync(Guid founderId, int id, int milestoneId, CancellationToken cancellationToken = default)
+    {
+        ValidateFounder(founderId);
+        var opportunity = await GetOwnedOpportunityAsync(founderId, id, includeChildren: true);
+        var milestone = opportunity.Events.FirstOrDefault(e =>
+            e.Id == milestoneId
+            && e.IsImmutableTimelineEntry
+            && e.EventType == ProjectActivityTimeline.Types.MilestoneCreated);
+
+        if (milestone == null)
+            throw new BusinessValidationException("MILESTONE_NOT_FOUND", "Milestone was not found.");
+
+        var relatedEntityId = milestone.RelatedEntityId ?? $"milestone-event:{milestone.Id}";
+        var alreadyCompleted = opportunity.Events.Any(e =>
+            e.IsImmutableTimelineEntry
+            && e.EventType == ProjectActivityTimeline.Types.MilestoneCompleted
+            && e.RelatedEntityId == relatedEntityId);
+        if (alreadyCompleted)
+            throw new BusinessValidationException("MILESTONE_ALREADY_COMPLETED", "Milestone is already completed.");
+
+        var now = DateTime.UtcNow;
+        var metadata = ReadMilestoneMetadata(milestone);
+        ProjectActivityTimeline.Add(
+            opportunity.Events,
+            id,
+            ProjectActivityTimeline.Types.MilestoneCompleted,
+            "Founder",
+            founderId,
+            now,
+            "OpportunityMilestone",
+            relatedEntityId,
+            $"milestone:{relatedEntityId}:completed",
+            metadata);
+        opportunity.UpdatedAt = now;
+
+        await _uow.Repository<Opportunity>().UpdateAsync(opportunity);
+        await _uow.SaveChangesAsync();
+        await PublishOpportunityRoomChangedAsync(
+            opportunity,
+            ProjectActivityTimeline.Types.MilestoneCompleted,
+            milestone.Id.ToString(),
+            cancellationToken);
+        await NotifyApprovedParticipantsOfProjectUpdateAsync(
+            opportunity,
+            founderId,
+            $"milestone:{milestone.Id}:completed",
+            metadata.GetValueOrDefault("milestoneTitle") ?? milestone.Title,
+            cancellationToken);
+        await ApplyReputationActivitySafeAsync(
+            founderId,
+            "CompleteProjectMilestone",
+            "OpportunityEvent",
+            milestone.Id.ToString());
+
+        return ToMilestoneDto(milestone, now);
+    }
+
     public async Task<IReadOnlyList<OpportunityEventDto>> GetEventsAsync(Guid founderId, int id, CancellationToken cancellationToken = default)
     {
         ValidateFounder(founderId);
@@ -1108,9 +1406,10 @@ public class OpportunityService : IOpportunityService
         var opportunities = await _uow.Repository<Opportunity>()
             .FindWithIncludesAsync(
                 o => PublicStatuses.Contains(o.Status),
-                o => o.Category!,
                 o => o.FundingGoal!,
+                o => o.Project!,
                 o => o.OpportunityTags);
+        await AttachProjectContextAsync(opportunities);
         var tagLookup = await GetActiveTagLookupAsync();
 
         var filtered = ApplyDiscoveryFilters(opportunities.ToList(), query);
@@ -1140,12 +1439,14 @@ public class OpportunityService : IOpportunityService
             o => o.Media,
             o => o.Documents,
             o => o.Events,
-            o => o.Category!,
             o => o.FundingGoal!,
+            o => o.Project!,
             o => o.OpportunityTags);
 
         if (opportunity == null)
             throw new BusinessValidationException("OPPORTUNITY_NOT_FOUND", "Opportunity was not found.");
+
+        await AttachProjectContextAsync(new[] { opportunity });
 
         var founder = await _uow.Repository<AuthUser>().GetByIdAsync(opportunity.FounderId);
         var dto = ToDetailDto(
@@ -1162,6 +1463,28 @@ public class OpportunityService : IOpportunityService
         dto.Events = Array.Empty<OpportunityEventDto>();
         await ApplyParticipationSummaryAsync(dto);
         return dto;
+    }
+
+    private async Task AttachProjectContextAsync(IEnumerable<Opportunity> opportunities)
+    {
+        var items = opportunities.ToList();
+        var projectIds = items.Select(o => o.ProjectId).Distinct().ToArray();
+        if (projectIds.Length == 0)
+            return;
+
+        // The legacy database migration introduced a composite ProjectId/FounderId
+        // relationship. Read-model projection must still resolve the canonical
+        // Project by its own id so Project context is available even when an old
+        // row has a stale founder relationship value.
+        var projectRepository = _uow.Repository<Project>();
+        foreach (var opportunity in items)
+        {
+            var project = await projectRepository.GetSingleAsync(
+                p => p.Id == opportunity.ProjectId,
+                p => p.Category!);
+            if (project != null)
+                opportunity.Project = project;
+        }
     }
 
     public async Task<PublicProjectActivityPageDto> GetPublicProjectActivityAsync(
@@ -1253,11 +1576,15 @@ public class OpportunityService : IOpportunityService
     {
         ValidateFounder(founderId);
         var opportunity = await GetOwnedOpportunityAsync(founderId, id, includeChildren: true);
+        await AttachProjectContextAsync(new[] { opportunity });
 
         if (opportunity.Status is not (OpportunityStatus.Draft or OpportunityStatus.Rejected))
             throw new BusinessValidationException("INVALID_STATUS_TRANSITION", "Only Draft or Rejected opportunities can be published.");
 
         ValidateCompleteForReview(opportunity);
+        opportunity.ModerationStatus = OpportunityModerationStatus.Approved;
+        opportunity.FundingStatus = OpportunityFundingStatus.Open;
+        opportunity.FundingOpensAt ??= DateTime.UtcNow;
         ChangeStatusWithEvent(opportunity, OpportunityStatus.Published, "Published", "Opportunity published", "Founder published opportunity to public.", founderId, isPublic: false);
 
         await _uow.ExecuteWithStrategyAsync(async () =>
@@ -1293,6 +1620,51 @@ public class OpportunityService : IOpportunityService
         return result;
     }
 
+    public async Task<OpportunityDetailDto> TransitionFundingAsync(Guid actorId, int id, TransitionOpportunityFundingRequest request, bool isAdmin, CancellationToken cancellationToken = default)
+    {
+        if (!request.TargetStatus.HasValue || !Enum.IsDefined(request.TargetStatus.Value))
+            throw new BusinessValidationException("INVALID_FUNDING_STATUS", "Unknown funding status.");
+        var opportunity = isAdmin
+            ? await GetOpportunityAsync(id, includeChildren: true)
+            : await GetOwnedOpportunityAsync(actorId, id, includeChildren: true);
+        ApplyAutomaticLifecycle(opportunity, actorId);
+        var target = request.TargetStatus.Value;
+        if (!IsAllowedFundingTransition(opportunity.FundingStatus, target))
+            throw new BusinessValidationException("INVALID_FUNDING_STATUS_TRANSITION", $"Opportunity cannot transition from {opportunity.FundingStatus} to {target}.");
+        if (target is OpportunityFundingStatus.Scheduled or OpportunityFundingStatus.Open)
+        {
+            if (opportunity.ModerationStatus != OpportunityModerationStatus.Approved && opportunity.Status != OpportunityStatus.Approved && opportunity.Status != OpportunityStatus.Published)
+                throw new BusinessValidationException("OPPORTUNITY_NOT_APPROVED", "Only an approved Opportunity can be scheduled or opened.");
+            if (request.FundingClosesAt.HasValue && request.FundingClosesAt <= (request.FundingOpensAt ?? DateTime.UtcNow))
+                throw new BusinessValidationException("INVALID_FUNDING_DATES", "Funding close date must be after its open date.");
+        }
+        if (target == OpportunityFundingStatus.Closed && !request.ClosureReason.HasValue)
+            throw new BusinessValidationException("CLOSURE_REASON_REQUIRED", "A closure reason is required.");
+
+        var oldValue = SnapshotCore(opportunity);
+        opportunity.FundingOpensAt = request.FundingOpensAt ?? opportunity.FundingOpensAt;
+        opportunity.FundingClosesAt = request.FundingClosesAt ?? opportunity.FundingClosesAt;
+        opportunity.FundingStatus = target;
+        opportunity.ClosureReason = target == OpportunityFundingStatus.Closed ? request.ClosureReason : null;
+        opportunity.ClosedAt = target == OpportunityFundingStatus.Closed ? DateTime.UtcNow : null;
+        opportunity.Status = target switch {
+            OpportunityFundingStatus.Open => OpportunityStatus.Funding,
+            OpportunityFundingStatus.Closed when request.ClosureReason == OpportunityClosureReason.TargetReached => OpportunityStatus.FullyFunded,
+            OpportunityFundingStatus.Closed => OpportunityStatus.Completed,
+            _ => opportunity.Status
+        };
+        opportunity.UpdatedAt = DateTime.UtcNow;
+        opportunity.Events.Add(new OpportunityEvent {
+            EventType = "FundingStatusChanged", Title = $"Funding {target}",
+            Description = request.Reason?.Trim() ?? $"Funding transitioned to {target}.",
+            OldValue = oldValue, NewValue = SnapshotCore(opportunity), CreatedByUserId = actorId,
+            CreatedAt = DateTime.UtcNow, IsPublic = target is OpportunityFundingStatus.Open or OpportunityFundingStatus.Closed
+        });
+        await _uow.Repository<Opportunity>().UpdateAsync(opportunity);
+        await _uow.SaveChangesAsync();
+        return ToDetailDto(opportunity, tagLookup: await GetActiveTagLookupAsync());
+    }
+
     public async Task<OpportunityParticipationFormDto> GetParticipationFormAsync(Guid userId, int opportunityId, CancellationToken cancellationToken = default)
     {
         await ValidateClientAsync(userId, "Only authenticated clients can view participation form data.");
@@ -1320,6 +1692,11 @@ public class OpportunityService : IOpportunityService
         var loanTermMonths = ResolveLoanTermMonths(opportunity);
         var profitSharingTermMonths = ResolveProfitSharingTermMonths(opportunity, linkedInvestment);
         var profitSharePercentage = opportunity.ProfitSharePercentage;
+        var investor = await _uow.Repository<AuthUser>().GetSingleAsync(u => u.Id == userId, u => u.Profile!);
+        var displayCurrency = CurrencyConversionService.NormalizeCurrency(investor?.Profile?.PreferredCurrency ?? CurrencyMasterDefaults.DefaultCurrency);
+        var displayTarget = await _currencyConversionService.ConvertForDisplayAsync(opportunity.FundingTarget, opportunity.FundingCurrency, displayCurrency, cancellationToken);
+        var displayFunded = await _currencyConversionService.ConvertForDisplayAsync(Math.Max(alreadyFundedAmount, 0.01m), opportunity.FundingCurrency, displayCurrency, cancellationToken);
+        var displayRemaining = await _currencyConversionService.ConvertForDisplayAsync(Math.Max(remainingFundingAmount, 0.01m), opportunity.FundingCurrency, displayCurrency, cancellationToken);
 
         return new OpportunityParticipationFormDto
         {
@@ -1332,6 +1709,11 @@ public class OpportunityService : IOpportunityService
             FundingProgressPercentage = participationSummary.FundingProgressPercentage,
             ApprovedParticipantCount = participationSummary.ApprovedParticipantCount,
             Currency = currency,
+            FundingCurrency = opportunity.FundingCurrency,
+            DisplayCurrency = displayCurrency,
+            ApproximateDisplayFundingTarget = displayTarget.ConvertedAmount,
+            ApproximateDisplayAlreadyFundedAmount = alreadyFundedAmount == 0 ? 0 : displayFunded.ConvertedAmount,
+            ApproximateDisplayRemainingFundingAmount = remainingFundingAmount == 0 ? 0 : displayRemaining.ConvertedAmount,
             MinimumContribution = minimumInvestment,
             MaximumContribution = maximumInvestment,
             ReturnRate = opportunity.InvestmentModel == InvestmentModel.LoanInvestment ? opportunity.InterestRate : null,
@@ -1411,25 +1793,76 @@ public class OpportunityService : IOpportunityService
         if (opportunity.FounderId == investorId)
             throw new BusinessValidationException("FOUNDER_CANNOT_JOIN_OWN_OPPORTUNITY", "Founder cannot request to join their own opportunity.");
 
+        var idempotencyKey = Normalize(request.IdempotencyKey);
+        if (idempotencyKey != null)
+        {
+            var replay = (await _uow.Repository<OpportunityJoinRequest>().FindAsync(r =>
+                r.OpportunityId == opportunityId && r.InvestorId == investorId && r.IdempotencyKey == idempotencyKey))
+                .SingleOrDefault();
+            if (replay != null)
+                return await GetJoinRequestDtoAsync(replay.Id, includeRejectionReason: true);
+        }
+
         if (!IsEligibleForJoin(opportunity))
             throw new BusinessValidationException("OPPORTUNITY_NOT_ELIGIBLE", "Opportunity is not currently eligible for join requests.");
 
         var hasActiveRequest = await _uow.Repository<OpportunityJoinRequest>().ExistsAsync(r =>
             r.OpportunityId == opportunityId
             && r.InvestorId == investorId
-            && (r.Status == OpportunityJoinRequestStatus.Pending || r.Status == OpportunityJoinRequestStatus.Approved));
+            && r.Status == OpportunityJoinRequestStatus.Pending);
 
         if (hasActiveRequest)
-            throw new BusinessValidationException("DUPLICATE_JOIN_REQUEST", "An active join request already exists for this opportunity.");
+        {
+            var existingRequest = (await _uow.Repository<OpportunityJoinRequest>().FindAsync(r =>
+                    r.OpportunityId == opportunityId
+                    && r.InvestorId == investorId
+                    && r.Status == OpportunityJoinRequestStatus.Pending))
+                .OrderByDescending(r => r.CreatedAt)
+                .First();
+            return await GetJoinRequestDtoAsync(existingRequest.Id, includeRejectionReason: true);
+        }
+
+        CurrencyConversionResult? fxConversion = null;
+        var enteredAmount = request.RequestedAmount;
+        if ((request.RequestType ?? OpportunityJoinRequestType.GeneralParticipation) == OpportunityJoinRequestType.InvestmentParticipation
+            && request.RequestedAmount.HasValue)
+        {
+            var investor = await _uow.Repository<AuthUser>().GetSingleAsync(u => u.Id == investorId, u => u.Profile!);
+            var enteredCurrency = CurrencyConversionService.NormalizeCurrency(investor?.Profile?.PreferredCurrency ?? CurrencyMasterDefaults.DefaultCurrency);
+            if (!string.IsNullOrWhiteSpace(request.EnteredCurrency)
+                && !string.Equals(enteredCurrency, request.EnteredCurrency.Trim(), StringComparison.OrdinalIgnoreCase))
+                throw new BusinessValidationException("ENTERED_CURRENCY_MISMATCH", "Investment amount must be entered in the investor's preferred display currency.");
+
+            fxConversion = await _currencyConversionService.ConvertForExecutionAsync(
+                request.RequestedAmount.Value,
+                enteredCurrency,
+                opportunity.FundingCurrency,
+                cancellationToken);
+            request.RequestedAmount = fxConversion.ConvertedAmount;
+        }
 
         var requestDetails = await BuildJoinRequestDetailsAsync(opportunity, request);
+        var participationSequence = requestDetails.RequestType == OpportunityJoinRequestType.InvestmentParticipation
+            ? (await _uow.Repository<OpportunityJoinRequest>().FindAsync(r =>
+                r.OpportunityId == opportunityId
+                && r.InvestorId == investorId
+                && r.RequestType == OpportunityJoinRequestType.InvestmentParticipation))
+                .Select(r => r.ParticipationSequence).DefaultIfEmpty(0).Max() + 1
+            : 0;
         var now = DateTime.UtcNow;
         var joinRequest = new OpportunityJoinRequest
         {
             OpportunityId = opportunityId,
             InvestorId = investorId,
+            ParticipationSequence = participationSequence,
+            IdempotencyKey = idempotencyKey ?? Guid.NewGuid().ToString("N"),
             RequestType = requestDetails.RequestType,
             RequestedAmount = requestDetails.RequestedAmount,
+            EnteredAmount = fxConversion == null ? requestDetails.RequestedAmount : enteredAmount,
+            EnteredCurrency = fxConversion?.SourceCurrency ?? opportunity.FundingCurrency,
+            FundingAmount = requestDetails.RequestedAmount,
+            FundingCurrency = opportunity.FundingCurrency,
+            ExchangeRateSnapshotId = fxConversion?.Snapshot.Id,
             CalculatedTotalAmount = requestDetails.CalculatedTotalAmount,
             Message = Normalize(request.Message),
             TermsSnapshotJson = requestDetails.TermsSnapshotJson,
@@ -1449,34 +1882,49 @@ public class OpportunityService : IOpportunityService
         });
         opportunity.UpdatedAt = now;
 
-        await _uow.ExecuteWithStrategyAsync(async () =>
+        try
         {
-            await _uow.BeginTransactionAsync();
-            try
+            await _uow.ExecuteWithStrategyAsync(async () =>
             {
-                await _paidActionService.ChargeAsync(
-                    investorId,
-                    PricingAction.SubmitParticipationRequest,
-                    ReferenceType.OpportunityJoinRequest,
-                    $"{opportunityId}:{investorId}",
-                    cancellationToken);
+                await _uow.BeginTransactionAsync();
+                try
+                {
+                    await _paidActionService.ChargeAsync(
+                        investorId,
+                        PricingAction.SubmitParticipationRequest,
+                        ReferenceType.OpportunityJoinRequest,
+                        $"{opportunityId}:{investorId}:{joinRequest.IdempotencyKey}",
+                        cancellationToken);
 
-                await _uow.Repository<OpportunityJoinRequest>().AddAsync(joinRequest);
-                await _uow.Repository<Opportunity>().UpdateAsync(opportunity);
-                await _uow.SaveChangesAsync();
-                await ApplyReputationActivitySafeAsync(
-                    investorId,
-                    "SubmitParticipationRequest",
-                    "OpportunityJoinRequest",
-                    joinRequest.Id.ToString());
-                await _uow.CommitTransactionAsync();
-            }
-            catch
-            {
-                await _uow.RollbackTransactionAsync();
-                throw;
-            }
-        }, cancellationToken);
+                    await _uow.Repository<OpportunityJoinRequest>().AddAsync(joinRequest);
+                    await _uow.Repository<Opportunity>().UpdateAsync(opportunity);
+                    await _uow.SaveChangesAsync();
+                    await ApplyReputationActivitySafeAsync(
+                        investorId,
+                        "SubmitParticipationRequest",
+                        "OpportunityJoinRequest",
+                        joinRequest.Id.ToString());
+                    await _uow.CommitTransactionAsync();
+                }
+                catch
+                {
+                    await _uow.RollbackTransactionAsync();
+                    throw;
+                }
+            }, cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            var concurrentRequest = (await _uow.Repository<OpportunityJoinRequest>().FindAsync(r =>
+                    r.OpportunityId == opportunityId
+                    && r.InvestorId == investorId
+                    && (r.IdempotencyKey == joinRequest.IdempotencyKey || r.Status == OpportunityJoinRequestStatus.Pending)))
+                .OrderByDescending(r => r.CreatedAt)
+                .FirstOrDefault();
+            if (concurrentRequest != null)
+                return await GetJoinRequestDtoAsync(concurrentRequest.Id, includeRejectionReason: true);
+            throw new BusinessValidationException("CONCURRENCY_CONFLICT", "The join request conflicted with another write. Reload and retry.");
+        }
 
         await PublishOpportunityRoomChangedAsync(
             opportunity,
@@ -1697,6 +2145,25 @@ public class OpportunityService : IOpportunityService
             });
         }
 
+        if (joinRequest.RequestType == OpportunityJoinRequestType.InvestmentParticipation
+            && EffectiveFundingStatus(opportunity) == OpportunityFundingStatus.Open)
+        {
+            var committed = (await GetParticipationSummaryAsync(opportunity.Id)).FundedAmount
+                + (joinRequest.FundingAmount ?? joinRequest.RequestedAmount ?? 0m);
+            if (committed >= opportunity.FundingTarget)
+            {
+                opportunity.FundingStatus = OpportunityFundingStatus.Closed;
+                opportunity.Status = OpportunityStatus.FullyFunded;
+                opportunity.ClosedAt = now;
+                opportunity.ClosureReason = OpportunityClosureReason.TargetReached;
+                opportunity.Events.Add(new OpportunityEvent {
+                    EventType="FundingAutomaticallyClosed", Title="Funding target reached",
+                    Description="Opportunity funding closed automatically after the approved Participation reached its target.",
+                    CreatedByUserId=founderId, CreatedAt=now, IsPublic=true
+                });
+            }
+        }
+
         opportunity.UpdatedAt = now;
 
         await _uow.ExecuteWithStrategyAsync(async () =>
@@ -1704,6 +2171,16 @@ public class OpportunityService : IOpportunityService
             await _uow.BeginTransactionAsync();
             try
             {
+                // Re-read committed participation totals inside the transaction. The
+                // Opportunity row-version below ensures only one competing approval
+                // can commit after evaluating this availability.
+                if (opportunity.InvestmentModel == InvestmentModel.Equity && joinRequest.RequestType == OpportunityJoinRequestType.InvestmentParticipation)
+                    await ValidateEquityAvailabilityForApprovalAsync(opportunity, joinRequest);
+                if (opportunity.InvestmentModel == InvestmentModel.LoanInvestment && joinRequest.RequestType == OpportunityJoinRequestType.InvestmentParticipation)
+                    await ValidateLoanFundingAvailabilityForApprovalAsync(opportunity, joinRequest);
+                if (opportunity.InvestmentModel == InvestmentModel.CapitalContributionProfitSharing && joinRequest.RequestType == OpportunityJoinRequestType.InvestmentParticipation)
+                    await ValidateProfitSharingFundingAvailabilityForApprovalAsync(opportunity, joinRequest);
+
                 await UpdateSourceConversationAfterParticipationReviewAsync(joinRequest, ConversationStatus.ParticipationApproved, now);
                 await _uow.Repository<OpportunityJoinRequest>().UpdateAsync(joinRequest);
                 await _uow.Repository<Opportunity>().UpdateAsync(opportunity);
@@ -1721,6 +2198,16 @@ public class OpportunityService : IOpportunityService
                     joinRequest.Id.ToString());
                 await _uow.CommitTransactionAsync();
             }
+            catch (DbUpdateConcurrencyException)
+            {
+                await _uow.RollbackTransactionAsync();
+                throw new BusinessValidationException("CONCURRENCY_CONFLICT", "The participation was changed by another approval. Reload and retry.");
+            }
+            catch (DbUpdateException)
+            {
+                await _uow.RollbackTransactionAsync();
+                throw new BusinessValidationException("CONCURRENCY_CONFLICT", "The approval conflicted with another financial write. Reload and retry.");
+            }
             catch
             {
                 await _uow.RollbackTransactionAsync();
@@ -1730,12 +2217,18 @@ public class OpportunityService : IOpportunityService
 
         if (joinRequest.RequestType == OpportunityJoinRequestType.InvestmentParticipation)
         {
+            var snapshot = joinRequest.ExchangeRateSnapshotId.HasValue
+                ? await _uow.Repository<ExchangeRateSnapshot>().GetByIdAsync(joinRequest.ExchangeRateSnapshotId.Value)
+                : null;
+            var fxSummary = snapshot == null
+                ? string.Empty
+                : $" Entered Amount: {joinRequest.EnteredAmount} {joinRequest.EnteredCurrency}; Official Funding Amount: {joinRequest.FundingAmount} {joinRequest.FundingCurrency}; Exchange Rate: {snapshot.ExchangeRate}; Execution Timestamp: {snapshot.RateTimestamp:O}.";
             await _userNotificationService.CreateEventAsync(new NotificationEventCreation(
                 joinRequest.InvestorId,
                 "ParticipationRequestApproved",
                 joinRequest.Id.ToString(),
                 "Participation request approved",
-                $"Your participation request for {opportunity.Title} was approved.",
+                $"Your participation request for {opportunity.Title} was approved.{fxSummary}",
                 "success",
                 $"/admin/opportunities/{opportunity.Id}/room",
                 founderId,
@@ -1801,7 +2294,6 @@ public class OpportunityService : IOpportunityService
         var pageSize = query.PageSize <= 0 ? 20 : Math.Min(query.PageSize, 100);
         var opportunities = (await _uow.Repository<Opportunity>().FindWithIncludesAsync(
             o => true,
-            o => o.Category!,
             o => o.FundingGoal!,
             o => o.OpportunityTags)).ToList();
         var founders = (await _uow.Repository<AuthUser>().GetAllAsync()).ToDictionary(u => u.Id);
@@ -1846,6 +2338,7 @@ public class OpportunityService : IOpportunityService
     public async Task<AdminOpportunityDetailDto> GetAdminOpportunityAsync(int id, CancellationToken cancellationToken = default)
     {
         var opportunity = await GetOpportunityAsync(id, includeChildren: true);
+        await AttachProjectContextAsync(new[] { opportunity });
         var founder = await _uow.Repository<AuthUser>().GetByIdAsync(opportunity.FounderId);
         return ToAdminDetailDto(opportunity, founder, await GetActiveTagLookupAsync());
     }
@@ -1854,11 +2347,13 @@ public class OpportunityService : IOpportunityService
     {
         ValidateFounder(reviewerId);
         var opportunity = await GetOpportunityAsync(id, includeChildren: true);
+        await AttachProjectContextAsync(new[] { opportunity });
 
         if (opportunity.Status != OpportunityStatus.UnderReview)
             throw new BusinessValidationException("INVALID_STATUS_TRANSITION", "Only UnderReview opportunities can be approved.");
 
         ChangeStatusWithEvent(opportunity, OpportunityStatus.Approved, "Approved", "Opportunity approved", "Admin approved opportunity for the next workflow step.", reviewerId, isPublic: false);
+        opportunity.ModerationStatus = OpportunityModerationStatus.Approved;
 
         await _uow.Repository<Opportunity>().UpdateAsync(opportunity);
         await _uow.SaveChangesAsync();
@@ -1873,11 +2368,13 @@ public class OpportunityService : IOpportunityService
         ValidateRequired(request.Reason, "REJECTION_REASON_REQUIRED", "Rejection reason is required.");
 
         var opportunity = await GetOpportunityAsync(id, includeChildren: true);
+        await AttachProjectContextAsync(new[] { opportunity });
 
         if (opportunity.Status != OpportunityStatus.UnderReview)
             throw new BusinessValidationException("INVALID_STATUS_TRANSITION", "Only UnderReview opportunities can be rejected.");
 
         ChangeStatusWithEvent(opportunity, OpportunityStatus.Rejected, "Rejected", "Opportunity rejected", request.Reason.Trim(), reviewerId, isPublic: false);
+        opportunity.ModerationStatus = OpportunityModerationStatus.Rejected;
 
         await _uow.Repository<Opportunity>().UpdateAsync(opportunity);
         await _uow.SaveChangesAsync();
@@ -1897,7 +2394,6 @@ public class OpportunityService : IOpportunityService
                 o => o.Media,
                 o => o.Documents,
                 o => o.Events,
-                o => o.Category!,
                 o => o.FundingGoal!,
                 o => o.OpportunityTags);
         }
@@ -1962,7 +2458,6 @@ public class OpportunityService : IOpportunityService
                 o => o.Media,
                 o => o.Documents,
                 o => o.Events,
-                o => o.Category!,
                 o => o.FundingGoal!,
                 o => o.OpportunityTags);
         }
@@ -1977,19 +2472,63 @@ public class OpportunityService : IOpportunityService
         return opportunity;
     }
 
-    private static void ValidateCoreFields(string title, decimal fundingTarget, InvestmentModel? investmentModel, ProjectStage? projectStage)
+    private static void ValidateCoreFields(string title, decimal fundingTarget)
     {
         ValidateRequired(title, "TITLE_REQUIRED", "Title is required.");
 
         if (fundingTarget <= 0)
             throw new BusinessValidationException("INVALID_FUNDING_TARGET", "FundingTarget must be greater than zero.");
 
-        if (!investmentModel.HasValue || !Enum.IsDefined(investmentModel.Value))
-            throw new BusinessValidationException("INVALID_INVESTMENT_MODEL", "InvestmentModel is required.");
-
-        if (!projectStage.HasValue || !Enum.IsDefined(projectStage.Value))
-            throw new BusinessValidationException("INVALID_PROJECT_STAGE", "ProjectStage is required.");
     }
+
+    private static ProjectStageAssignment ValidateProjectStage(ProjectStage? stage, string? customName)
+    {
+        if (!stage.HasValue || !Enum.IsDefined(stage.Value))
+            throw new BusinessValidationException("INVALID_PROJECT_STAGE", "ProjectStage is required.");
+
+        if (stage.Value != ProjectStage.Other)
+            return new ProjectStageAssignment(stage.Value, null, null);
+
+        var trimmedName = Normalize(customName);
+        if (trimmedName == null)
+            throw new BusinessValidationException("CUSTOM_PROJECT_STAGE_REQUIRED", "A custom ProjectStage name is required when ProjectStage is Other.");
+
+        return new ProjectStageAssignment(stage.Value, trimmedName, trimmedName.ToUpperInvariant());
+    }
+
+    private async Task EnsureProjectStageAvailableAsync(
+        int projectId,
+        ProjectStageAssignment stage,
+        int? excludedOpportunityId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var duplicate = stage.Stage == ProjectStage.Other
+            ? await _uow.Repository<Opportunity>().ExistsAsync(o =>
+                o.ProjectId == projectId
+                && (!excludedOpportunityId.HasValue || o.Id != excludedOpportunityId.Value)
+                && o.ProjectStage == ProjectStage.Other
+                && o.ProjectStageCustomNameNormalized == stage.NormalizedCustomName)
+            : await _uow.Repository<Opportunity>().ExistsAsync(o =>
+                o.ProjectId == projectId
+                && (!excludedOpportunityId.HasValue || o.Id != excludedOpportunityId.Value)
+                && o.ProjectStage == stage.Stage);
+
+        if (duplicate)
+            throw ProjectStageConflict();
+    }
+
+    private static BusinessValidationException ProjectStageConflict() =>
+        new("PROJECT_STAGE_ALREADY_USED", "This Project stage is already assigned to another Opportunity in the same Project.");
+
+    private static bool IsProjectStageUniqueConstraint(DbUpdateException exception)
+    {
+        var message = exception.ToString();
+        return message.Contains("UX_Opportunities_Project_StandardStage", StringComparison.Ordinal)
+            || message.Contains("UX_Opportunities_Project_OtherStage", StringComparison.Ordinal);
+    }
+
+    private static string GetProjectStageLabel(ProjectStageAssignment stage) =>
+        stage.Stage == ProjectStage.Other ? $"Other: {stage.CustomName}" : stage.Stage.ToString();
 
     private static void ValidateFounderEditStatusTransition(OpportunityStatus from, OpportunityStatus to)
     {
@@ -2023,33 +2562,17 @@ public class OpportunityService : IOpportunityService
         if (opportunity.FundingTarget <= 0)
             throw new BusinessValidationException("INVALID_FUNDING_TARGET", "FundingTarget must be greater than zero.");
 
-        if (!Enum.IsDefined(opportunity.InvestmentModel))
-            throw new BusinessValidationException("INVALID_INVESTMENT_MODEL", "InvestmentModel is required.");
+        ValidateProjectStage(opportunity.ProjectStage, opportunity.ProjectStageCustomName);
 
-        if (!Enum.IsDefined(opportunity.ProjectStage))
-            throw new BusinessValidationException("INVALID_PROJECT_STAGE", "ProjectStage is required.");
-
-        if (!opportunity.CategoryId.HasValue)
-            throw new BusinessValidationException("CATEGORY_REQUIRED", "CategoryId is required before review.");
+        if (opportunity.Project?.CategoryId is null)
+            throw new BusinessValidationException("CATEGORY_REQUIRED", "Project category is required before review.");
 
         if (!opportunity.FundingGoalId.HasValue)
             throw new BusinessValidationException("FUNDING_GOAL_REQUIRED", "FundingGoalId is required before review.");
 
-        ValidateProductFields(
-            opportunity.ShortDescription,
-            opportunity.UseOfFunds,
-            opportunity.InvestmentModel,
-            opportunity.EquityOfferedPercentage,
-            opportunity.ProfitSharePercentage,
-            opportunity.ProfitSharingPayoutFrequency,
-            opportunity.ExpectedDurationMonths,
-            opportunity.ProfitSharingContractStartDate,
-            opportunity.ProfitSharingContractEndDate,
-            opportunity.InterestRate,
-            opportunity.RepaymentFrequency,
-            opportunity.FinalRepaymentDate);
-        ValidateEquityConfiguration(opportunity.InvestmentModel, opportunity.Currency, opportunity.SharePrice, opportunity.TotalShares, opportunity.OfferedShares, opportunity.EquityOfferedPercentage, opportunity.MinimumInvestmentAmount);
-        ValidateCurrency(opportunity.Currency);
+        ValidateTextRange(opportunity.ShortDescription, "SHORT_DESCRIPTION_REQUIRED", "ShortDescription", 20, 300);
+        ValidateTextRange(opportunity.UseOfFunds, "USE_OF_FUNDS_REQUIRED", "UseOfFunds", 30, 2000);
+        ValidateFundingCurrency(opportunity.FundingCurrency);
     }
 
     private static OpportunityFilePurpose ResolveMediaPurpose(CreateOpportunityMediaRequest request)
@@ -2125,15 +2648,8 @@ public class OpportunityService : IOpportunityService
             throw new BusinessValidationException("INVALID_DOCUMENT_VISIBILITY", $"{purpose} must be Private.");
     }
 
-    private async Task<IReadOnlyList<OpportunityTag>> ValidateClassificationAsync(int? categoryId, int? fundingGoalId, IReadOnlyList<int>? tagIds)
+    private async Task<IReadOnlyList<OpportunityTag>> ValidateClassificationAsync(int? fundingGoalId, IReadOnlyList<int>? tagIds)
     {
-        if (categoryId.HasValue)
-        {
-            var category = await _uow.Repository<OpportunityCategory>().GetByIdAsync(categoryId.Value);
-            if (category == null || !category.IsActive)
-                throw new BusinessValidationException("INVALID_CATEGORY", "CategoryId must reference an active opportunity category.");
-        }
-
         if (fundingGoalId.HasValue)
         {
             var fundingGoal = await _uow.Repository<FundingGoal>().GetByIdAsync(fundingGoalId.Value);
@@ -2150,70 +2666,6 @@ public class OpportunityService : IOpportunityService
         return tags.Where(t => requestedTagIds.Contains(t.Id) && t.IsActive).ToList();
     }
 
-    private static void ValidateProductFields(string? shortDescription, string? useOfFunds, InvestmentModel? investmentModel, decimal? equityOfferedPercentage, decimal? profitSharePercentage, string? payoutFrequency, int? durationMonths, DateTime? contractStartDate, DateTime? contractEndDate, decimal? interestRate, string? repaymentFrequency, DateTime? finalRepaymentDate)
-    {
-        ValidateTextRange(shortDescription, "SHORT_DESCRIPTION_REQUIRED", "ShortDescription", 20, 300);
-        ValidateTextRange(useOfFunds, "USE_OF_FUNDS_REQUIRED", "UseOfFunds", 30, 2000);
-
-        if (investmentModel == InvestmentModel.Equity)
-        {
-            if (!equityOfferedPercentage.HasValue)
-                throw new BusinessValidationException("EQUITY_OFFERED_REQUIRED", "EquityOfferedPercentage is required for Equity opportunities.");
-
-            if (equityOfferedPercentage.Value <= 0 || equityOfferedPercentage.Value > 100)
-                throw new BusinessValidationException("INVALID_EQUITY_OFFERED", "EquityOfferedPercentage must be greater than 0 and less than or equal to 100.");
-        }
-        else if (investmentModel == InvestmentModel.LoanInvestment)
-        {
-            if (!durationMonths.HasValue || durationMonths.Value <= 0)
-                throw new BusinessValidationException("LOAN_TERM_REQUIRED", "ExpectedDurationMonths is required for Loan opportunities.");
-
-            if (!interestRate.HasValue || interestRate.Value <= 0 || interestRate.Value > 100)
-                throw new BusinessValidationException("LOAN_INTEREST_RATE_REQUIRED", "InterestRate must be between 0.01 and 100 for Loan opportunities.");
-
-            if (string.IsNullOrWhiteSpace(repaymentFrequency))
-                throw new BusinessValidationException("LOAN_REPAYMENT_FREQUENCY_REQUIRED", "RepaymentFrequency is required for Loan opportunities.");
-
-            if (!finalRepaymentDate.HasValue)
-                throw new BusinessValidationException("LOAN_FINAL_REPAYMENT_DATE_REQUIRED", "FinalRepaymentDate is required for Loan opportunities.");
-
-            if (finalRepaymentDate.Value <= DateTime.UtcNow)
-                throw new BusinessValidationException("LOAN_FINAL_REPAYMENT_DATE_PAST", "FinalRepaymentDate must be in the future.");
-        }
-        else if (investmentModel == InvestmentModel.CapitalContributionProfitSharing)
-        {
-            ValidateProfitSharingTerms(profitSharePercentage, payoutFrequency, durationMonths, contractStartDate, contractEndDate);
-        }
-        else if (equityOfferedPercentage.HasValue && (equityOfferedPercentage.Value <= 0 || equityOfferedPercentage.Value > 100))
-        {
-            throw new BusinessValidationException("INVALID_EQUITY_OFFERED", "EquityOfferedPercentage must be greater than 0 and less than or equal to 100.");
-        }
-    }
-
-    private static void ValidateProfitSharingTerms(decimal? percentage, string? payoutFrequency, int? durationMonths, DateTime? startDate, DateTime? endDate)
-    {
-        if (!percentage.HasValue || percentage.Value <= 0 || percentage.Value > 100)
-            throw new BusinessValidationException("PROFIT_SHARE_PERCENTAGE_REQUIRED", "ProfitSharePercentage between 0.01 and 100 is required for Profit Sharing opportunities.");
-        if (string.IsNullOrWhiteSpace(payoutFrequency))
-            throw new BusinessValidationException("PROFIT_SHARING_PAYOUT_FREQUENCY_REQUIRED", "ProfitSharingPayoutFrequency is required for Profit Sharing opportunities.");
-        if ((!durationMonths.HasValue || durationMonths.Value <= 0) && (!startDate.HasValue || !endDate.HasValue))
-            throw new BusinessValidationException("PROFIT_SHARING_CONTRACT_TERM_REQUIRED", "ExpectedDurationMonths or both ProfitSharingContractStartDate and ProfitSharingContractEndDate are required.");
-        if (startDate.HasValue != endDate.HasValue || (startDate.HasValue && endDate <= startDate))
-            throw new BusinessValidationException("INVALID_PROFIT_SHARING_CONTRACT_DATES", "Profit Sharing contract dates must both be provided and end after the start date.");
-    }
-
-    private static void ValidateEquityConfiguration(InvestmentModel? model, string? currency, decimal? sharePrice, int? totalShares, int? offeredShares, decimal? offeredPercentage, decimal? minimumInvestment)
-    {
-        if (model != InvestmentModel.Equity) return;
-        if (string.IsNullOrWhiteSpace(currency)) throw new BusinessValidationException("CURRENCY_REQUIRED", "Currency is required for Equity opportunities.");
-        if (!sharePrice.HasValue || sharePrice.Value <= 0) throw new BusinessValidationException("EQUITY_SHARE_PRICE_REQUIRED", "SharePrice must be greater than zero.");
-        if (!totalShares.HasValue || totalShares.Value <= 0) throw new BusinessValidationException("EQUITY_TOTAL_SHARES_REQUIRED", "TotalShares must be greater than zero.");
-        if (!offeredShares.HasValue || offeredShares.Value <= 0 || offeredShares.Value > totalShares.Value) throw new BusinessValidationException("INVALID_EQUITY_OFFERED_SHARES", "OfferedShares must be positive and cannot exceed TotalShares.");
-        var calculatedPercentage = decimal.Round(offeredShares.Value * 100m / totalShares.Value, 2);
-        if (!offeredPercentage.HasValue || calculatedPercentage != offeredPercentage.Value) throw new BusinessValidationException("EQUITY_PERCENTAGE_MISMATCH", "EquityOfferedPercentage must equal OfferedShares divided by TotalShares.");
-        if (minimumInvestment.HasValue && minimumInvestment.Value % sharePrice.Value != 0) throw new BusinessValidationException("EQUITY_MINIMUM_NOT_SHARE_ALIGNED", "MinimumInvestmentAmount must be divisible by SharePrice.");
-    }
-
     private static void ValidateTextRange(string? value, string errorCode, string fieldName, int minLength, int maxLength)
     {
         var normalized = Normalize(value);
@@ -2224,35 +2676,13 @@ public class OpportunityService : IOpportunityService
             throw new BusinessValidationException($"INVALID_{fieldName.ToUpperInvariant()}", $"{fieldName} must be between {minLength} and {maxLength} characters.");
     }
 
-    private static void ValidateCurrency(string? currency)
-    {
-        var value = currency?.Trim();
-        if (value == null || value.Length != 3 || !value.All(char.IsLetter))
-            throw new BusinessValidationException("INVALID_CURRENCY", "Currency must be a three-letter currency code.");
-    }
-
-    private static void ValidateInvestmentBounds(decimal? minimumInvestmentAmount, decimal? maximumInvestmentAmount)
-    {
-        if (minimumInvestmentAmount.HasValue && minimumInvestmentAmount.Value <= 0)
-            throw new BusinessValidationException("INVALID_MINIMUM_INVESTMENT", "MinimumInvestmentAmount must be greater than zero.");
-
-        if (maximumInvestmentAmount.HasValue)
-        {
-            if (maximumInvestmentAmount.Value <= 0)
-                throw new BusinessValidationException("INVALID_MAXIMUM_INVESTMENT", "MaximumInvestmentAmount must be greater than zero.");
-
-            if (minimumInvestmentAmount.HasValue && maximumInvestmentAmount.Value < minimumInvestmentAmount.Value)
-                throw new BusinessValidationException("INVALID_INVESTMENT_RANGE", "MaximumInvestmentAmount must be greater than or equal to MinimumInvestmentAmount.");
-        }
-    }
-
     private static List<Opportunity> ApplyDiscoveryFilters(List<Opportunity> opportunities, OpportunityDiscoveryQuery query)
     {
         if (query.InvestmentModel.HasValue)
             opportunities = opportunities.Where(o => o.InvestmentModel == query.InvestmentModel.Value).ToList();
 
         if (query.CategoryId.HasValue)
-            opportunities = opportunities.Where(o => o.CategoryId == query.CategoryId.Value).ToList();
+            opportunities = opportunities.Where(o => o.Project?.CategoryId == query.CategoryId.Value).ToList();
 
         if (query.FundingGoalId.HasValue)
             opportunities = opportunities.Where(o => o.FundingGoalId == query.FundingGoalId.Value).ToList();
@@ -2283,7 +2713,7 @@ public class OpportunityService : IOpportunityService
                 .Where(o =>
                     o.Title.Contains(search, StringComparison.OrdinalIgnoreCase)
                     || (o.Description?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false)
-                    || (o.Category?.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false)
+                    || (o.Project?.Category?.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false)
                     || (o.FundingGoal?.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false))
                 .ToList();
         }
@@ -2393,6 +2823,22 @@ public class OpportunityService : IOpportunityService
         var user = await _uow.Repository<AuthUser>().GetByIdAsync(userId);
         if (user == null || user.UserType != UserType.Client || user.ClientType is not (ClientType.Founder or ClientType.Both))
             throw new BusinessValidationException("FOUNDER_ACCESS_REQUIRED", "Founder access is required.");
+    }
+
+    private async Task<AuthUser> ValidateOpportunityCreationFounderAsync(Guid userId)
+    {
+        if (userId == Guid.Empty)
+            throw new BusinessValidationException("FOUNDER_ACCESS_REQUIRED", "An active Founder account is required to create an opportunity.");
+
+        var user = await _uow.Repository<AuthUser>().GetSingleAsync(u => u.Id == userId, u => u.Profile!);
+        var isSuspended = user?.SuspendedUntil.HasValue == true && user.SuspendedUntil.Value > DateTime.UtcNow;
+        var hasFounderCapability = user?.UserType == UserType.Client
+            && user.ClientType is ClientType.Founder or ClientType.Both;
+
+        if (user == null || !user.Status || isSuspended || !hasFounderCapability)
+            throw new BusinessValidationException("FOUNDER_ACCESS_REQUIRED", "An active Founder account is required to create an opportunity.");
+
+        return user;
     }
 
     private static void ValidateRequired(string? value, string code, string message)
@@ -2635,17 +3081,26 @@ public class OpportunityService : IOpportunityService
             && r.RequestType == OpportunityJoinRequestType.InvestmentParticipation
             && (!excludingJoinRequestId.HasValue || r.Id != excludingJoinRequestId.Value));
 
-        return approvedRequests.Sum(r => r.RequestedAmount ?? 0m);
+        return approvedRequests.Sum(r => r.FundingAmount ?? r.RequestedAmount ?? 0m);
     }
 
-    public async Task<IReadOnlyList<ApprovedInvestorDto>> GetApprovedInvestorsAsync(Guid userId, int opportunityId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ApprovedInvestorDto>> GetApprovedInvestorsAsync(Guid userId, int opportunityId, CancellationToken cancellationToken = default, bool isAdmin = false)
     {
-        var opportunity = await GetOwnedOpportunityAsync(userId, opportunityId, includeChildren: false);
+        var opportunity = await GetOpportunityAsync(opportunityId, includeChildren: false);
+        var isFounder = opportunity.FounderId == userId;
+        var isApprovedParticipant = await _uow.Repository<OpportunityJoinRequest>().ExistsAsync(request =>
+            request.OpportunityId == opportunityId
+            && request.InvestorId == userId
+            && request.Status == OpportunityJoinRequestStatus.Approved
+            && request.RequestType == OpportunityJoinRequestType.InvestmentParticipation);
+        if (!isAdmin && !isFounder && !isApprovedParticipant)
+            throw new BusinessValidationException("OPPORTUNITY_ROOM_FORBIDDEN", "Approved investors are only available inside an authorized Opportunity Room.");
 
         var approved = await _uow.Repository<OpportunityJoinRequest>().FindWithIncludesAsync(
             request => request.OpportunityId == opportunityId
                 && request.RequestType == OpportunityJoinRequestType.InvestmentParticipation
-                && request.Status == OpportunityJoinRequestStatus.Approved,
+                && request.Status == OpportunityJoinRequestStatus.Approved
+                && (isAdmin || isFounder || request.InvestorId == userId),
             request => request.Investor!,
             request => request.Investor!.Profile!);
 
@@ -2654,7 +3109,7 @@ public class OpportunityService : IOpportunityService
             .Select(group => new
             {
                 First = group.OrderBy(request => request.ReviewedAt ?? request.UpdatedAt).First(),
-                TotalContribution = group.Sum(r => r.RequestedAmount ?? 0m),
+                TotalContribution = group.Sum(r => r.FundingAmount ?? r.RequestedAmount ?? 0m),
                 Requests = group.OrderBy(request => request.ReviewedAt ?? request.UpdatedAt).ToList()
             })
             .OrderBy(x => x.First.ReviewedAt ?? x.First.UpdatedAt)
@@ -2671,7 +3126,7 @@ public class OpportunityService : IOpportunityService
                 {
                     ParticipationRequestId = request.Id,
                     InvestmentModel = ParticipationModelLabel(ResolveParticipationInvestmentModel(request, opportunity.InvestmentModel)),
-                    ApprovedContribution = request.RequestedAmount ?? 0m,
+                    ApprovedContribution = request.FundingAmount ?? request.RequestedAmount ?? 0m,
                     Currency = SnapshotString(TermsSnapshotParser.Parse(request.TermsSnapshotJson).Normalized, "currencySnapshot")
                         ?? opportunity.Currency,
                     ApprovedAt = request.ReviewedAt ?? request.UpdatedAt
@@ -2680,20 +3135,29 @@ public class OpportunityService : IOpportunityService
             .ToList();
     }
 
-    public async Task<IReadOnlyList<InvestorPaymentSummaryDto>> GetOpportunityPaymentsAsync(Guid founderId, int id, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<InvestorPaymentSummaryDto>> GetOpportunityPaymentsAsync(Guid founderId, int id, CancellationToken cancellationToken = default, bool isAdmin = false)
     {
-        var opportunity = await GetOwnedOpportunityAsync(founderId, id, includeChildren: false);
+        var opportunity = isAdmin
+            ? await GetOpportunityAsync(id, includeChildren: false)
+            : await GetOwnedOpportunityAsync(founderId, id, includeChildren: false);
 
         var approved = await _uow.Repository<OpportunityJoinRequest>().FindWithIncludesAsync(
             r => r.OpportunityId == id
                 && r.RequestType == OpportunityJoinRequestType.InvestmentParticipation
-                && r.Status == OpportunityJoinRequestStatus.Approved,
+                && r.Status == OpportunityJoinRequestStatus.Approved
+                && (isAdmin || opportunity.FounderId == founderId || r.InvestorId == founderId),
             r => r.Investor!,
             r => r.Investor!.Profile!);
 
         var groupByInvestor = approved
             .GroupBy(r => r.InvestorId)
             .ToList();
+
+        var acceptedOfferIds = approved.Where(r => r.AcceptedOfferId.HasValue).Select(r => r.AcceptedOfferId!.Value).ToHashSet();
+        var acceptedOffers = acceptedOfferIds.Count == 0
+            ? []
+            : await _uow.Repository<NegotiationOffer>().FindWithIncludesAsync(o => acceptedOfferIds.Contains(o.Id), o => o.Legs);
+        var acceptedOffersById = acceptedOffers.ToDictionary(o => o.Id);
 
         var requestIds = approved.Select(r => r.Id).ToList();
         var paymentTxns = await _uow.Repository<PaymentTransaction>().FindAsync(pt => requestIds.Contains(pt.ParticipationRequestId) && !pt.IsReversed);
@@ -2709,14 +3173,10 @@ public class OpportunityService : IOpportunityService
         return groupByInvestor.Select(group =>
         {
             var first = group.First();
-            var scheduledRequests = group
-                .Where(r => ResolveParticipationInvestmentModel(r, opportunity.InvestmentModel) is InvestmentModel.LoanInvestment or InvestmentModel.CapitalContributionProfitSharing)
-                .ToList();
-            var schedules = scheduledRequests.Select(r =>
+            var schedules = group.Select(r =>
             {
-                var schedule = ResolveParticipationInvestmentModel(r, opportunity.InvestmentModel) == InvestmentModel.CapitalContributionProfitSharing
-                    ? BuildProfitSharingPaymentSchedule(r)
-                    : BuildPaymentSchedule(r);
+                acceptedOffersById.TryGetValue(r.AcceptedOfferId ?? 0, out var acceptedOffer);
+                var schedule = BuildLegAggregateSchedule(r, opportunity, BuildParticipationLegs(r, opportunity, acceptedOffer));
                 var payments = txnByParticipation.TryGetValue(r.Id, out var pts) ? pts : [];
                 var allocs = allocsByParticipation.TryGetValue(r.Id, out var al) ? al : new List<PaymentAllocation>().ToLookup(a => a.InstallmentNumber);
                 EnrichScheduleWithPayments(schedule.Payments, allocs, payments);
@@ -2731,29 +3191,36 @@ public class OpportunityService : IOpportunityService
 
             var overallStatus = totalOverdue > 0 ? "Overdue" : totalOutstanding > 0 ? "Outstanding" : "Paid";
             if (schedules.Count == 0) overallStatus = "NoPaymentSchedule";
-            var models = group.Select(r => ResolveParticipationInvestmentModel(r, opportunity.InvestmentModel)).Distinct().Select(ParticipationModelLabel);
+            var legTypes = group.SelectMany(r =>
+            {
+                acceptedOffersById.TryGetValue(r.AcceptedOfferId ?? 0, out var acceptedOffer);
+                return BuildParticipationLegs(r, opportunity, acceptedOffer).Select(leg => leg.LegType);
+            }).Distinct().ToList();
 
             return new InvestorPaymentSummaryDto
             {
                 InvestorId = group.Key,
                 DisplayName = first.Investor?.Profile?.FullName?.Trim() ?? first.Investor?.Name?.Trim() ?? string.Empty,
                 AvatarUrl = first.Investor?.Profile?.AvatarUrl,
-                TotalApprovedContribution = group.Sum(r => r.RequestedAmount ?? 0m),
+                TotalApprovedContribution = group.Sum(r => r.FundingAmount ?? r.RequestedAmount ?? 0m),
                 TotalPaid = totalPaid,
                 TotalOutstanding = totalOutstanding,
                 OverdueAmount = totalOverdue,
                 NextDueDate = next?.DueDate,
                 UnpaidInstallmentCount = unpaidCount,
                 Status = overallStatus,
-                Currency = schedules.FirstOrDefault()?.Currency ?? opportunity.Currency,
-                InvestmentModelLabel = string.Join(" / ", models)
+                Currency = schedules.FirstOrDefault()?.Currency ?? opportunity.FundingCurrency,
+                InvestmentModelLabel = string.Join(" / ", legTypes),
+                LegTypes = legTypes
             };
         }).ToList();
     }
 
-    public async Task<InvestorPaymentDetailDto> GetInvestorPaymentDetailsAsync(Guid founderId, int id, Guid investorId, CancellationToken cancellationToken = default)
+    public async Task<InvestorPaymentDetailDto> GetInvestorPaymentDetailsAsync(Guid founderId, int id, Guid investorId, CancellationToken cancellationToken = default, bool isAdmin = false)
     {
-        var opportunity = await GetOwnedOpportunityAsync(founderId, id, includeChildren: false);
+        var opportunity = isAdmin
+            ? await GetOpportunityAsync(id, includeChildren: false)
+            : await GetOwnedOpportunityAsync(founderId, id, includeChildren: false);
 
         var approved = await _uow.Repository<OpportunityJoinRequest>().FindWithIncludesAsync(
             r => r.OpportunityId == id
@@ -2767,9 +3234,17 @@ public class OpportunityService : IOpportunityService
         if (!approved.Any())
             throw new BusinessValidationException("INVESTOR_NOT_FOUND", "No approved participation found for this investor in this opportunity.");
 
+        if (!isAdmin && opportunity.FounderId != founderId && investorId != founderId)
+            throw new BusinessValidationException("OPPORTUNITY_ROOM_FORBIDDEN", "Payment details are limited to the authorized Opportunity Room participant.");
+
         var first = approved.First();
-        var participationModels = approved.Select(r => ResolveParticipationInvestmentModel(r, opportunity.InvestmentModel)).Distinct().ToList();
-        var investmentModel = string.Join(" / ", participationModels.Select(ParticipationModelLabel));
+        var acceptedOfferIds = approved.Where(r => r.AcceptedOfferId.HasValue).Select(r => r.AcceptedOfferId!.Value).ToHashSet();
+        var acceptedOffers = acceptedOfferIds.Count == 0
+            ? []
+            : await _uow.Repository<NegotiationOffer>().FindWithIncludesAsync(o => acceptedOfferIds.Contains(o.Id), o => o.Legs);
+        var acceptedOffersById = acceptedOffers.ToDictionary(o => o.Id);
+        var legTypes = acceptedOffers.SelectMany(o => o.Legs).Select(l => l.LegType.ToString()).Distinct().ToList();
+        var investmentModel = string.Join(" / ", legTypes);
         var requestIds = approved.Select(r => r.Id).ToList();
         var allTxns = await _uow.Repository<PaymentTransaction>().FindAsync(pt => requestIds.Contains(pt.ParticipationRequestId));
         var nonReversedTxns = allTxns.Where(pt => !pt.IsReversed).ToList();
@@ -2782,36 +3257,12 @@ public class OpportunityService : IOpportunityService
             .ToDictionary(g => g.Key, g => g.ToLookup(a => a.InstallmentNumber));
         var participations = approved.Select(r =>
         {
-            var participationModel = ResolveParticipationInvestmentModel(r, opportunity.InvestmentModel);
-            if (participationModel is InvestmentModel.LoanInvestment or InvestmentModel.CapitalContributionProfitSharing)
-            {
-                var schedule = participationModel == InvestmentModel.CapitalContributionProfitSharing
-                    ? BuildProfitSharingPaymentSchedule(r)
-                    : BuildPaymentSchedule(r);
-                var payments = txnByParticipation.TryGetValue(r.Id, out var pts) ? pts : [];
-                var allocs = allocsByParticipation.TryGetValue(r.Id, out var al) ? al : new List<PaymentAllocation>().ToLookup(a => a.InstallmentNumber);
-                EnrichScheduleWithPayments(schedule.Payments, allocs, payments);
-                return schedule;
-            }
-            return new ParticipationPaymentScheduleDto
-            {
-                ParticipationRequestId = r.Id,
-                OpportunityId = id,
-                OpportunityTitle = opportunity.Title,
-                Currency = opportunity.Currency,
-                Principal = r.RequestedAmount ?? 0m,
-                AnnualInterestRate = 0m,
-                DurationMonths = 0,
-                RepaymentFrequency = string.Empty,
-                PrincipalRepaymentMethod = LoanPrincipalRepaymentMethod.AtMaturity,
-                StartDate = r.ReviewedAt ?? r.CreatedAt,
-                FinalRepaymentDate = opportunity.FinalRepaymentDate ?? DateTime.MinValue,
-                TotalExpectedInterest = 0m,
-                AverageExpectedMonthlyIncome = 0m,
-                ReceivedToDate = null,
-                RemainingPrincipal = null,
-                Payments = []
-            };
+            acceptedOffersById.TryGetValue(r.AcceptedOfferId ?? 0, out var acceptedOffer);
+            var schedule = BuildLegAggregateSchedule(r, opportunity, BuildParticipationLegs(r, opportunity, acceptedOffer));
+            var payments = txnByParticipation.TryGetValue(r.Id, out var pts) ? pts : [];
+            var allocs = allocsByParticipation.TryGetValue(r.Id, out var al) ? al : new List<PaymentAllocation>().ToLookup(a => a.InstallmentNumber);
+            EnrichScheduleWithPayments(schedule.Payments, allocs, payments);
+            return schedule;
         }).ToList();
 
         var creatorIds = allTxns.Select(t => t.CreatedByUserId).Distinct();
@@ -2834,7 +3285,8 @@ public class OpportunityService : IOpportunityService
             DisplayName = first.Investor?.Profile?.FullName?.Trim() ?? first.Investor?.Name?.Trim() ?? string.Empty,
             AvatarUrl = first.Investor?.Profile?.AvatarUrl,
             InvestmentModel = investmentModel,
-            Currency = opportunity.Currency,
+            Currency = opportunity.FundingCurrency,
+            FundingCurrency = opportunity.FundingCurrency,
             Participations = participations,
             PaymentTransactions = paymentTransactionDtos
         };
@@ -2850,7 +3302,7 @@ public class OpportunityService : IOpportunityService
                 && request.RequestType == OpportunityJoinRequestType.InvestmentParticipation)
             .GroupBy(request => request.Id)
             .Select(group => group.First())
-            .Sum(request => request.RequestedAmount ?? 0m);
+            .Sum(request => request.FundingAmount ?? request.RequestedAmount ?? 0m);
         var progress = Math.Min(funded / opportunity.FundingTarget * 100m, 100m);
 
         foreach (var threshold in new[] { 25, 50, 75, 100 }.Where(value => progress >= value))
@@ -2912,7 +3364,7 @@ public class OpportunityService : IOpportunityService
                 .GroupBy(r => r.Id)
                 .Select(g => g.First())
                 .ToList();
-            var fundedAmount = financialRequests.Sum(r => r.RequestedAmount ?? 0m);
+            var fundedAmount = financialRequests.Sum(r => r.FundingAmount ?? r.RequestedAmount ?? 0m);
             var remainingFunding = CalculateRemainingFunding(opportunity.FundingTarget, fundedAmount);
             var progress = opportunity.FundingTarget <= 0
                 ? 0m
@@ -2966,6 +3418,197 @@ public class OpportunityService : IOpportunityService
         opportunity.AllocatedEquityPercentage = summary.AllocatedEquityPercentage;
         opportunity.RemainingEquityPercentage = summary.RemainingEquityPercentage;
     }
+
+    private static void ValidateFundingCurrency(string? currency)
+    {
+        var value = currency?.Trim();
+        if (value == null || value.Length != 3 || !value.All(char.IsLetter))
+            throw new BusinessValidationException("INVALID_CURRENCY", "Funding currency must be a three-letter currency code.");
+    }
+
+    private async Task<IReadOnlyList<OpportunityRoomParticipationDto>> BuildRoomParticipationsAsync(
+        Opportunity opportunity,
+        Guid actorId,
+        bool isFounder,
+        bool isAdmin,
+        CancellationToken cancellationToken)
+    {
+        var approved = await _uow.Repository<OpportunityJoinRequest>().FindWithIncludesAsync(
+            r => r.OpportunityId == opportunity.Id
+                && r.RequestType == OpportunityJoinRequestType.InvestmentParticipation
+                && r.Status == OpportunityJoinRequestStatus.Approved
+                && (isFounder || isAdmin || r.InvestorId == actorId),
+            r => r.Investor!,
+            r => r.Investor!.Profile!);
+
+        var offerIds = approved.Where(r => r.AcceptedOfferId.HasValue).Select(r => r.AcceptedOfferId!.Value).ToHashSet();
+        var offers = offerIds.Count == 0
+            ? []
+            : await _uow.Repository<NegotiationOffer>().FindWithIncludesAsync(o => offerIds.Contains(o.Id), o => o.Legs);
+        var offersById = offers.ToDictionary(o => o.Id);
+
+        var requestIds = approved.Select(r => r.Id).ToHashSet();
+        var contracts = requestIds.Count == 0
+            ? []
+            : await _uow.Repository<InvestmentContract>().FindWithIncludesAsync(
+                c => c.OpportunityId == opportunity.Id && (isFounder || isAdmin || c.InvestorUserId == actorId),
+                c => c.Versions);
+        var contractByParticipation = contracts
+            .SelectMany(c => c.Versions.Select(v => new { Contract = c, Version = v }))
+            .Where(x => requestIds.Contains(x.Version.SourceParticipationRequestId))
+            .GroupBy(x => x.Version.SourceParticipationRequestId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.Version.VersionNumber).First());
+
+        return approved
+            .OrderBy(r => r.ParticipationSequence)
+            .Select(request =>
+            {
+                offersById.TryGetValue(request.AcceptedOfferId ?? 0, out var acceptedOffer);
+                contractByParticipation.TryGetValue(request.Id, out var contractItem);
+                var termsJson = request.TermsSnapshotJson ?? string.Empty;
+                return new OpportunityRoomParticipationDto
+                {
+                    ParticipationId = request.Id,
+                    SequenceNumber = request.ParticipationSequence,
+                    InvestorId = request.InvestorId,
+                    InvestorDisplayName = request.Investor?.Profile?.FullName?.Trim() ?? request.Investor?.Name?.Trim() ?? string.Empty,
+                    Status = request.Status,
+                    ApprovedAmount = request.FundingAmount ?? request.RequestedAmount ?? 0m,
+                    FundingCurrency = request.FundingCurrency ?? opportunity.FundingCurrency,
+                    AcceptedAt = request.ReviewedAt ?? request.UpdatedAt,
+                    AcceptedOfferId = request.AcceptedOfferId,
+                    TermsImmutable = request.AcceptedOfferId.HasValue && !string.IsNullOrWhiteSpace(request.TermsSnapshotJson),
+                    TermsSnapshotHash = string.IsNullOrWhiteSpace(termsJson) ? string.Empty : Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(termsJson))).ToLowerInvariant(),
+                    Legs = BuildParticipationLegs(request, opportunity, acceptedOffer),
+                    Contract = contractItem == null ? null : new OpportunityRoomContractDto
+                    {
+                        ContractId = contractItem.Contract.Id,
+                        ContractNumber = contractItem.Contract.ContractNumber,
+                        CurrentVersionNumber = contractItem.Contract.CurrentVersionNumber,
+                        Status = contractItem.Contract.Status,
+                        DocumentHash = contractItem.Version.DocumentHash,
+                        ActivatedAt = contractItem.Version.ActivatedAt
+                    }
+                };
+            })
+            .ToList();
+    }
+
+    private static IReadOnlyList<ParticipationLegDto> BuildParticipationLegs(
+        OpportunityJoinRequest request,
+        Opportunity opportunity,
+        NegotiationOffer? acceptedOffer)
+    {
+        if (acceptedOffer?.OpportunityId is int offerOpportunityId && offerOpportunityId != opportunity.Id)
+            acceptedOffer = null;
+
+        var sources = ParseAcceptedOfferLegs(request.TermsSnapshotJson);
+        var currency = acceptedOffer?.Currency ?? request.FundingCurrency;
+        var startDate = request.ReviewedAt ?? request.CreatedAt;
+
+        return sources.Select((leg, index) =>
+        {
+            var type = leg.LegType.ToString();
+            var cashFlows = BuildLegCashFlows(request.Id, opportunity, leg, currency, startDate);
+            return new ParticipationLegDto
+            {
+                LegNumber = index + 1,
+                LegType = type,
+                Amount = leg.Amount,
+                Currency = currency,
+                EquityPercentage = leg.EquityPercentage,
+                SharesTerms = leg.SharesTerms,
+                ReturnRate = leg.ReturnRate,
+                TermMonths = leg.TermMonths,
+                RepaymentModel = leg.RepaymentModel,
+                ProfitSharePercentage = leg.ProfitSharePercentage,
+                ExitTerms = leg.ExitTerms,
+                Status = request.Status.ToString(),
+                CashFlows = cashFlows,
+                Obligations = BuildLegObligations(leg)
+            };
+        }).ToList();
+    }
+
+    private static List<ParticipationLegSource> ParseAcceptedOfferLegs(string? termsJson)
+    {
+        var parsed = TermsSnapshotParser.Parse(termsJson);
+        if (parsed.Kind != TermsSnapshotKind.ArrayAcceptedOffer || string.IsNullOrWhiteSpace(termsJson))
+            return [];
+        try
+        {
+            using var document = JsonDocument.Parse(termsJson);
+            return document.RootElement.EnumerateArray().Select(leg => new ParticipationLegSource(
+                ReadLegType(leg),
+                ReadDecimal(leg, "Amount"),
+                ReadDecimal(leg, "EquityPercentage"),
+                ReadString(leg, "SharesTerms"),
+                ReadDecimal(leg, "ReturnRate"),
+                ReadInt(leg, "TermMonths"),
+                ReadString(leg, "RepaymentModel"),
+                ReadDecimal(leg, "ProfitSharePercentage"),
+                ReadString(leg, "ExitTerms"))).ToList();
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    private static List<ExpectedPaymentScheduleItemDto> BuildLegCashFlows(int requestId, Opportunity opportunity, ParticipationLegSource leg, string? currency, DateTime startDate)
+    {
+        if (leg.LegType == NegotiationOfferLegType.Loan
+            && leg.Amount > 0
+            && leg.ReturnRate is > 0
+            && leg.TermMonths is > 0
+            && !string.IsNullOrWhiteSpace(leg.RepaymentModel))
+        {
+            var finalDate = startDate.AddMonths(leg.TermMonths.Value);
+            return LoanCashFlowCalculator.Calculate(requestId, opportunity.Id, opportunity.Title, currency, leg.Amount, leg.ReturnRate.Value, leg.TermMonths.Value, leg.RepaymentModel, startDate, finalDate).Payments;
+        }
+        return [];
+    }
+
+    private static List<ParticipationObligationDto> BuildLegObligations(ParticipationLegSource leg) => leg.LegType switch
+    {
+        NegotiationOfferLegType.Equity => [new() { Party = "Investor", Description = $"Hold the agreed equity interest{(string.IsNullOrWhiteSpace(leg.SharesTerms) ? string.Empty : $": {leg.SharesTerms}")}." }],
+        NegotiationOfferLegType.Loan => [new() { Party = "Investor", Description = $"Repay principal and agreed return at the selected {leg.RepaymentModel ?? "repayment"} cadence." }, new() { Party = "Founder", Description = "Provide repayments according to the accepted loan terms." }],
+        NegotiationOfferLegType.ProfitSharing => [new() { Party = "Founder", Description = $"Report and share profits at the accepted {leg.ProfitSharePercentage:0.##}% rate." }, new() { Party = "Investor", Description = $"Receive the accepted profit-sharing return{(string.IsNullOrWhiteSpace(leg.ExitTerms) ? string.Empty : $": {leg.ExitTerms}")}." }],
+        _ => []
+    };
+
+    private static NegotiationOfferLegType ReadLegType(JsonElement leg)
+    {
+        if (TryGetProperty(leg, "LegType", out var value))
+        {
+            if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var numeric) && Enum.IsDefined(typeof(NegotiationOfferLegType), numeric))
+                return (NegotiationOfferLegType)numeric;
+            if (Enum.TryParse<NegotiationOfferLegType>(value.ToString(), true, out var parsed)) return parsed;
+        }
+        return NegotiationOfferLegType.Equity;
+    }
+
+    private static decimal ReadDecimal(JsonElement value, params string[] names) => SnapshotDecimal(value, names) ?? 0m;
+    private static int? ReadInt(JsonElement value, params string[] names) => SnapshotInt(value, names);
+    private static string? ReadString(JsonElement value, params string[] names) => SnapshotString(value, names);
+    private static bool TryGetProperty(JsonElement value, string name, out JsonElement result)
+    {
+        foreach (var property in value.EnumerateObject())
+            if (string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase)) { result = property.Value; return true; }
+        result = default;
+        return false;
+    }
+
+    private sealed record ParticipationLegSource(
+        NegotiationOfferLegType LegType,
+        decimal Amount,
+        decimal? EquityPercentage,
+        string? SharesTerms,
+        decimal? ReturnRate,
+        int? TermMonths,
+        string? RepaymentModel,
+        decimal? ProfitSharePercentage,
+        string? ExitTerms);
 
     private static JsonElement? SnapshotProperty(JsonElement? root, params string[] names)
     {
@@ -3024,6 +3667,13 @@ public class OpportunityService : IOpportunityService
             if (normalized.Contains("equity")) return InvestmentModel.Equity;
         }
         return opportunityModel ?? request.Opportunity?.InvestmentModel ?? InvestmentModel.Equity;
+    }
+
+    private async Task ValidateCurrencySelectionAsync(string isoCode, bool requireFunding)
+    {
+        var currency = await _uow.Repository<Currency>().GetSingleAsync(x => x.ISOCode == isoCode);
+        if (currency == null || !currency.IsActive || (requireFunding && !currency.SupportsFunding))
+            throw new BusinessValidationException("UNSUPPORTED_CURRENCY", $"Currency {isoCode} is not available for opportunity funding.");
     }
 
     private static string ParticipationModelLabel(InvestmentModel model) => model switch
@@ -3316,9 +3966,59 @@ public class OpportunityService : IOpportunityService
 
     private static bool IsEligibleForJoin(Opportunity opportunity)
     {
-        return PublicStatuses.Contains(opportunity.Status)
-            && opportunity.Status is not OpportunityStatus.Completed
-            && opportunity.Status is not OpportunityStatus.Archived;
+        var fundingStatus = EffectiveFundingStatus(opportunity);
+        return fundingStatus == OpportunityFundingStatus.Open
+            && (!opportunity.FundingOpensAt.HasValue || opportunity.FundingOpensAt <= DateTime.UtcNow)
+            && (!opportunity.FundingClosesAt.HasValue || opportunity.FundingClosesAt > DateTime.UtcNow);
+    }
+
+    private static OpportunityFundingStatus EffectiveFundingStatus(Opportunity opportunity)
+    {
+        var now = DateTime.UtcNow;
+        if (opportunity.FundingStatus == OpportunityFundingStatus.Scheduled
+            && opportunity.FundingOpensAt <= now
+            && (!opportunity.FundingClosesAt.HasValue || opportunity.FundingClosesAt > now))
+            return OpportunityFundingStatus.Open;
+        if (opportunity.FundingStatus == OpportunityFundingStatus.Open
+            && opportunity.FundingClosesAt.HasValue && opportunity.FundingClosesAt <= now)
+            return OpportunityFundingStatus.Closed;
+        return opportunity.FundingStatus == OpportunityFundingStatus.NotScheduled
+            && opportunity.Status is OpportunityStatus.Published or OpportunityStatus.Funding or OpportunityStatus.FullyFunded or OpportunityStatus.InProgress
+                ? OpportunityFundingStatus.Open
+                : opportunity.FundingStatus;
+    }
+
+    private static bool IsAllowedFundingTransition(OpportunityFundingStatus from, OpportunityFundingStatus to) =>
+        from == to || (from, to) switch {
+            (OpportunityFundingStatus.NotScheduled, OpportunityFundingStatus.Scheduled) => true,
+            (OpportunityFundingStatus.NotScheduled, OpportunityFundingStatus.Open) => true,
+            (OpportunityFundingStatus.Scheduled, OpportunityFundingStatus.Open) => true,
+            (OpportunityFundingStatus.Open, OpportunityFundingStatus.Paused) => true,
+            (OpportunityFundingStatus.Paused, OpportunityFundingStatus.Open) => true,
+            (OpportunityFundingStatus.Open, OpportunityFundingStatus.Closed) => true,
+            (OpportunityFundingStatus.Paused, OpportunityFundingStatus.Closed) => true,
+            (OpportunityFundingStatus.Scheduled, OpportunityFundingStatus.Closed) => true,
+            _ => false
+        };
+
+    private static void ApplyAutomaticLifecycle(Opportunity opportunity, Guid actorId)
+    {
+        var now = DateTime.UtcNow;
+        if (opportunity.FundingStatus == OpportunityFundingStatus.Scheduled
+            && opportunity.FundingOpensAt <= now
+            && (!opportunity.FundingClosesAt.HasValue || opportunity.FundingClosesAt > now))
+        {
+            opportunity.FundingStatus = OpportunityFundingStatus.Open;
+            opportunity.Status = OpportunityStatus.Funding;
+        }
+        if (EffectiveFundingStatus(opportunity) == OpportunityFundingStatus.Open
+            && opportunity.FundingClosesAt.HasValue && opportunity.FundingClosesAt <= now)
+        {
+            opportunity.FundingStatus = OpportunityFundingStatus.Closed;
+            opportunity.Status = OpportunityStatus.Completed;
+            opportunity.ClosedAt = now;
+            opportunity.ClosureReason = OpportunityClosureReason.DeadlineReached;
+        }
     }
 
     private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
@@ -3327,12 +4027,15 @@ public class OpportunityService : IOpportunityService
     {
         var snapshot = new
         {
+            opportunity.ProjectId,
+            opportunity.SequenceNumber,
+            opportunity.Purpose,
+            opportunity.Type,
             opportunity.Title,
             opportunity.Description,
             opportunity.ShortDescription,
             opportunity.UseOfFunds,
             opportunity.FundingTarget,
-            opportunity.CategoryId,
             opportunity.FundingGoalId,
             opportunity.MinimumInvestmentAmount,
             opportunity.MaximumInvestmentAmount,
@@ -3347,6 +4050,7 @@ public class OpportunityService : IOpportunityService
             opportunity.FinalRepaymentDate,
             InvestmentModel = opportunity.InvestmentModel.ToString(),
             ProjectStage = opportunity.ProjectStage.ToString(),
+            opportunity.ProjectStageCustomName,
             Status = opportunity.Status.ToString(),
             opportunity.CoverImageUrl,
             opportunity.IsLockedForEditing,
@@ -3367,6 +4071,15 @@ public class OpportunityService : IOpportunityService
         var dto = new OpportunityDetailDto
         {
             Id = opportunity.Id,
+            ProjectId = opportunity.ProjectId,
+            ProjectDisplayName = opportunity.Project?.DisplayName,
+            ProjectSummary = opportunity.Project?.Summary,
+            ProjectDescription = opportunity.Project?.Description,
+            ProjectIndustry = opportunity.Project?.Industry,
+            ProjectLogoUrl = opportunity.Project?.LogoUrl,
+            SequenceNumber = opportunity.SequenceNumber,
+            Purpose = opportunity.Purpose,
+            Type = opportunity.Type,
             FounderId = opportunity.FounderId,
             LegacyInvestmentId = legacyInvestmentId,
             Founder = ToFounderSummary(founder, opportunity.FounderId),
@@ -3375,13 +4088,13 @@ public class OpportunityService : IOpportunityService
             ShortDescription = opportunity.ShortDescription,
             UseOfFunds = opportunity.UseOfFunds,
             FundingTarget = opportunity.FundingTarget,
-            Category = ToLookupDto(opportunity.Category),
             FundingGoal = ToLookupDto(opportunity.FundingGoal),
             FundingPurpose = opportunity.UseOfFunds,
             MinimumInvestmentAmount = opportunity.MinimumInvestmentAmount,
             MaximumInvestmentAmount = opportunity.MaximumInvestmentAmount,
             ExpectedDurationMonths = opportunity.ExpectedDurationMonths,
-            Currency = opportunity.Currency,
+            Currency = opportunity.FundingCurrency,
+            FundingCurrency = opportunity.FundingCurrency,
             SharePrice = opportunity.SharePrice,
             TotalShares = opportunity.TotalShares,
             OfferedShares = opportunity.OfferedShares,
@@ -3399,12 +4112,14 @@ public class OpportunityService : IOpportunityService
             Tags = ToTagDtos(opportunity, tagLookup),
             InvestmentModel = opportunity.InvestmentModel,
             ProjectStage = opportunity.ProjectStage,
+            ProjectStageCustomName = opportunity.ProjectStageCustomName,
             Status = opportunity.Status,
             CoverImageUrl = opportunity.CoverImageUrl,
             IsLockedForEditing = opportunity.IsLockedForEditing,
             FirstInvestorJoinedAt = opportunity.FirstInvestorJoinedAt,
             CreatedAt = opportunity.CreatedAt,
             UpdatedAt = opportunity.UpdatedAt,
+            ProjectContext = opportunity.Project == null ? null : ToProjectContextDto(opportunity.Project),
             Media = opportunity.Media
                 .Where(m => !publicOnly || m.IsPublic)
                 .OrderBy(m => m.SortOrder)
@@ -3426,6 +4141,32 @@ public class OpportunityService : IOpportunityService
         return dto;
     }
 
+    private static OpportunityProjectContextDto ToProjectContextDto(Project project) => new()
+    {
+        Id = project.Id,
+        DisplayName = project.DisplayName,
+        LegalName = project.LegalName,
+        Slug = project.Slug,
+        Summary = project.Summary,
+        Description = project.Description,
+        CategoryId = project.CategoryId,
+        Category = ToLookupDto(project.Category),
+        Industry = project.Industry,
+        BusinessStage = project.BusinessStage,
+        Geography = project.Geography,
+        FoundedOn = project.FoundedOn,
+        WebsiteUrl = project.WebsiteUrl,
+        LogoUrl = project.LogoUrl,
+        TeamDescription = project.TeamDescription,
+        BusinessModel = project.BusinessModel,
+        RiskLevel = project.RiskLevel,
+        RiskDisclosure = project.RiskDisclosure,
+        Status = project.Status,
+        DefaultCurrency = project.DefaultCurrency,
+        CreatedAt = project.CreatedAt,
+        UpdatedAt = project.UpdatedAt
+    };
+
     private static OpportunityDto ToDto(
         Opportunity opportunity,
         AuthUser? founder = null,
@@ -3433,6 +4174,15 @@ public class OpportunityService : IOpportunityService
         int? legacyInvestmentId = null) => new()
     {
         Id = opportunity.Id,
+        ProjectId = opportunity.ProjectId,
+        ProjectDisplayName = opportunity.Project?.DisplayName,
+        ProjectSummary = opportunity.Project?.Summary,
+        ProjectDescription = opportunity.Project?.Description,
+        ProjectIndustry = opportunity.Project?.Industry,
+        ProjectLogoUrl = opportunity.Project?.LogoUrl,
+        SequenceNumber = opportunity.SequenceNumber,
+        Purpose = opportunity.Purpose,
+        Type = opportunity.Type,
         FounderId = opportunity.FounderId,
         LegacyInvestmentId = legacyInvestmentId,
         Founder = ToFounderSummary(founder, opportunity.FounderId),
@@ -3441,13 +4191,13 @@ public class OpportunityService : IOpportunityService
         ShortDescription = opportunity.ShortDescription,
         UseOfFunds = opportunity.UseOfFunds,
         FundingTarget = opportunity.FundingTarget,
-        Category = ToLookupDto(opportunity.Category),
         FundingGoal = ToLookupDto(opportunity.FundingGoal),
         FundingPurpose = opportunity.UseOfFunds,
         MinimumInvestmentAmount = opportunity.MinimumInvestmentAmount,
         MaximumInvestmentAmount = opportunity.MaximumInvestmentAmount,
         ExpectedDurationMonths = opportunity.ExpectedDurationMonths,
-        Currency = opportunity.Currency,
+        Currency = opportunity.FundingCurrency,
+        FundingCurrency = opportunity.FundingCurrency,
         SharePrice = opportunity.SharePrice,
         TotalShares = opportunity.TotalShares,
         OfferedShares = opportunity.OfferedShares,
@@ -3465,7 +4215,15 @@ public class OpportunityService : IOpportunityService
         Tags = ToTagDtos(opportunity, tagLookup),
         InvestmentModel = opportunity.InvestmentModel,
         ProjectStage = opportunity.ProjectStage,
+        ProjectStageCustomName = opportunity.ProjectStageCustomName,
         Status = opportunity.Status,
+        ModerationStatus = opportunity.ModerationStatus,
+        FundingStatus = EffectiveFundingStatus(opportunity),
+        FundingOpensAt = opportunity.FundingOpensAt,
+        FundingClosesAt = opportunity.FundingClosesAt,
+        ClosedAt = opportunity.ClosedAt,
+        ClosureReason = opportunity.ClosureReason,
+        ObligationCompletionStatus = opportunity.ObligationCompletionStatus,
         CoverImageUrl = opportunity.CoverImageUrl,
         IsLockedForEditing = opportunity.IsLockedForEditing,
         FirstInvestorJoinedAt = opportunity.FirstInvestorJoinedAt,
@@ -3497,7 +4255,6 @@ public class OpportunityService : IOpportunityService
             ShortDescription = detail.ShortDescription,
             UseOfFunds = detail.UseOfFunds,
             FundingTarget = detail.FundingTarget,
-            Category = detail.Category,
             FundingGoal = detail.FundingGoal,
             FundingPurpose = detail.FundingPurpose,
             MinimumInvestmentAmount = detail.MinimumInvestmentAmount,
@@ -3524,9 +4281,9 @@ public class OpportunityService : IOpportunityService
         };
     }
 
-    private static OpportunityRoomDto ToRoomDto(Opportunity opportunity, AuthUser? founder, bool isFounder, bool isApprovedParticipant, ParticipationSummary summary)
+    private static OpportunityRoomDto ToRoomDto(Opportunity opportunity, string? projectDisplayName, AuthUser? founder, bool isFounder, bool isApprovedParticipant, ParticipationSummary summary, IReadOnlyList<OpportunityRoomParticipationDto> participations, bool isAdmin)
     {
-        var canAccessRoom = isFounder || isApprovedParticipant;
+        var canAccessRoom = isFounder || isApprovedParticipant || isAdmin;
         var canViewPrivateFiles = canAccessRoom;
         var milestoneEvents = opportunity.Events
             .Where(e => e.IsImmutableTimelineEntry && e.EventType is
@@ -3536,16 +4293,34 @@ public class OpportunityService : IOpportunityService
                 ProjectActivityTimeline.Types.MilestoneUpdated)
             .OrderByDescending(e => e.CreatedAt)
             .ToList();
-        var milestones = milestoneEvents.Select(ToMilestoneDto).ToList();
+        var milestones = milestoneEvents
+            .GroupBy(e => e.RelatedEntityId ?? $"event:{e.Id}")
+            .Select(group =>
+            {
+                var created = group
+                    .Where(e => e.EventType == ProjectActivityTimeline.Types.MilestoneCreated)
+                    .OrderBy(e => e.CreatedAt)
+                    .FirstOrDefault() ?? group.OrderBy(e => e.CreatedAt).First();
+                var completed = group
+                    .Where(e => e.EventType == ProjectActivityTimeline.Types.MilestoneCompleted)
+                    .OrderByDescending(e => e.CreatedAt)
+                    .FirstOrDefault();
+                return ToMilestoneDto(created, completed?.CreatedAt);
+            })
+            .OrderByDescending(m => m.CreatedAt)
+            .ToList();
 
         return new OpportunityRoomDto
         {
+            ProjectId = opportunity.ProjectId,
+            ProjectDisplayName = projectDisplayName ?? string.Empty,
             Overview = new OpportunityRoomOverviewDto
             {
                 Id = opportunity.Id,
                 Title = opportunity.Title,
                 Status = opportunity.Status,
-                ProjectStage = opportunity.ProjectStage,
+        ProjectStage = opportunity.ProjectStage,
+        ProjectStageCustomName = opportunity.ProjectStageCustomName,
                 Founder = ToFounderSummary(founder, opportunity.FounderId),
                 FundingTarget = opportunity.FundingTarget,
                 FundingProgress = summary.FundingProgressPercentage,
@@ -3554,60 +4329,101 @@ public class OpportunityService : IOpportunityService
                 RemainingFundingAmount = summary.RemainingFundingAmount,
                 FundingProgressPercentage = summary.FundingProgressPercentage,
                 ApprovedParticipantCount = summary.ApprovedParticipantCount,
-                TotalShares = opportunity.TotalShares,
-                OfferedShares = opportunity.OfferedShares,
-                SoldShares = summary.SoldShares,
-                RemainingShares = summary.RemainingShares,
-                SharePrice = opportunity.SharePrice,
-                AllocatedEquityPercentage = summary.AllocatedEquityPercentage,
-                RemainingEquityPercentage = summary.RemainingEquityPercentage,
-                InvestmentModel = opportunity.InvestmentModel,
-                MinimumInvestment = opportunity.MinimumInvestmentAmount,
-                ExpectedReturnSummary = BuildExpectedReturnSummary(opportunity),
-                UseOfFunds = opportunity.UseOfFunds,
-                PublicInvestmentTermsSummary = BuildPublicInvestmentTermsSummary(opportunity)
+                UseOfFunds = opportunity.UseOfFunds
             },
             MediaLibrary = BuildRoomMediaLibrary(opportunity.Media, canViewPrivateFiles),
             DocumentsLibrary = BuildRoomDocumentsLibrary(opportunity.Documents, canViewPrivateFiles),
             Timeline = opportunity.Events
-                .Where(ProjectActivityTimeline.IsInvestorVisible)
+                .Where(e => isFounder || isAdmin || ProjectActivityTimeline.IsInvestorVisible(e))
                 .OrderByDescending(e => e.CreatedAt)
                 .Select(ToProjectActivityTimelineDto)
                 .ToList(),
             Milestones = milestones,
             LatestMilestone = milestones.FirstOrDefault(),
+            Participations = participations,
             ParticipantContext = new OpportunityRoomParticipantContextDto
             {
                 IsFounder = isFounder,
+                IsAdmin = isAdmin,
                 IsApprovedParticipant = isApprovedParticipant,
                 ApprovedParticipantCount = summary.ApprovedParticipantCount,
-                CanAccessProjectRoom = canAccessRoom,
+                CanAccessProjectRoom = canAccessRoom || isAdmin,
                 CanEditCoreProject = isFounder && summary.ApprovedParticipantCount == 0,
-                CanAddUpdate = isFounder,
-                CanAddDocument = isFounder,
-                CanAddMilestone = isFounder,
-                CanUpload = isFounder,
-                CanPostUpdate = isFounder,
+                CanAddUpdate = isFounder || isAdmin,
+                CanAddDocument = isFounder || isAdmin,
+                CanAddMilestone = isFounder || isAdmin,
+                CanUpload = isFounder || isAdmin,
+                CanPostUpdate = isFounder || isAdmin,
                 CanViewPrivateFiles = canViewPrivateFiles,
                 CanDownloadFiles = canAccessRoom
             }
         };
     }
 
-    private static OpportunityMilestoneDto ToMilestoneDto(OpportunityEvent milestone)
+    private static OpportunityMilestoneDto ToMilestoneDto(OpportunityEvent milestone, DateTime? completedAt = null)
     {
-        var isCompleted = milestone.EventType.Contains("completed", StringComparison.OrdinalIgnoreCase);
+        var isCompleted = completedAt.HasValue || milestone.EventType.Contains("completed", StringComparison.OrdinalIgnoreCase);
         var isStarted = milestone.EventType.Contains("started", StringComparison.OrdinalIgnoreCase);
+        var metadata = ReadMilestoneMetadata(milestone);
 
         return new OpportunityMilestoneDto
         {
             MilestoneId = milestone.Id,
-            Title = milestone.Title,
-            Description = milestone.Description,
+            Title = metadata.GetValueOrDefault("milestoneTitle") ?? milestone.Title,
+            Description = metadata.GetValueOrDefault("milestoneDescription") ?? milestone.Description,
             Status = isCompleted ? "Completed" : isStarted ? "InProgress" : "Created",
             CreatedAt = milestone.CreatedAt,
-            CompletedAt = isCompleted ? milestone.CreatedAt : null
+            CompletedAt = isCompleted ? completedAt ?? milestone.CreatedAt : null
         };
+    }
+
+    private async Task<PaymentTransactionDetailDto?> GetPaymentByIdempotencyKeyAsync(string idempotencyKey)
+    {
+        var transaction = (await _uow.Repository<PaymentTransaction>()
+                .FindAsync(t => t.IdempotencyKey == idempotencyKey))
+            .SingleOrDefault();
+        if (transaction == null)
+            return null;
+
+        var allocations = await _uow.Repository<PaymentAllocation>()
+            .FindAsync(a => a.PaymentTransactionId == transaction.Id);
+        var creator = await _uow.Repository<AuthUser>().GetByIdAsync(transaction.CreatedByUserId);
+        return ToPaymentTransactionDetailDto(transaction, allocations.ToList(), creator?.Name);
+    }
+
+    private static string NormalizePaymentIdempotencyKey(
+        string? suppliedKey,
+        int opportunityId,
+        int participationRequestId,
+        decimal amount,
+        DateTime paymentDate,
+        string? reference)
+    {
+        var normalized = Normalize(suppliedKey);
+        if (normalized is { Length: > 200 })
+            throw new BusinessValidationException("INVALID_IDEMPOTENCY_KEY", "Idempotency key cannot exceed 200 characters.");
+        if (normalized != null)
+            return normalized;
+
+        var canonical = FormattableString.Invariant(
+            $"{opportunityId}|{participationRequestId}|{amount:0.00####}|{paymentDate.ToUniversalTime():O}|{reference ?? string.Empty}");
+        return $"generated:{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)))}";
+    }
+
+    private static Dictionary<string, string?> ReadMilestoneMetadata(OpportunityEvent milestone)
+    {
+        if (string.IsNullOrWhiteSpace(milestone.LocalizedMetadataJson))
+            return new Dictionary<string, string?>();
+
+        try
+        {
+            return JsonSerializer.Deserialize<Dictionary<string, string?>>(milestone.LocalizedMetadataJson)
+                ?? new Dictionary<string, string?>();
+        }
+        catch (JsonException)
+        {
+            return new Dictionary<string, string?>();
+        }
     }
 
     private static IReadOnlyList<OpportunityRoomMediaGroupDto> BuildRoomMediaLibrary(IEnumerable<OpportunityMedia> media, bool includePrivate)
@@ -3789,12 +4605,18 @@ public class OpportunityService : IOpportunityService
         OpportunityId = joinRequest.OpportunityId,
         OpportunityTitle = joinRequest.Opportunity?.Title ?? string.Empty,
         InvestorId = joinRequest.InvestorId,
+        ParticipationSequence = joinRequest.ParticipationSequence,
         InvestorName = ResolveUserDisplayName(joinRequest.Investor),
         FounderId = joinRequest.Opportunity?.FounderId ?? Guid.Empty,
         FounderName = ResolveUserDisplayName(founder),
         RequestType = joinRequest.RequestType,
         RequestedAmount = joinRequest.RequestedAmount,
         CalculatedTotalAmount = joinRequest.CalculatedTotalAmount,
+        EnteredAmount = joinRequest.EnteredAmount,
+        EnteredCurrency = joinRequest.EnteredCurrency,
+        FundingAmount = joinRequest.FundingAmount,
+        FundingCurrency = joinRequest.FundingCurrency,
+        ExchangeRateSnapshotId = joinRequest.ExchangeRateSnapshotId,
         Message = joinRequest.Message,
         TermsSnapshotJson = joinRequest.TermsSnapshotJson,
         Status = joinRequest.Status,
@@ -3973,6 +4795,11 @@ public class OpportunityService : IOpportunityService
             Metadata = metadata
         };
     }
+
+    private sealed record ProjectStageAssignment(
+        ProjectStage Stage,
+        string? CustomName,
+        string? NormalizedCustomName);
 
     private sealed record ParticipationSummary(
         decimal FundedAmount,

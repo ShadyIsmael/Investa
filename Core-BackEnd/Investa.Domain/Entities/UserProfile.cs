@@ -1,3 +1,4 @@
+﻿using Investa.Domain;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Investa.Domain.Entities.Enums;
@@ -150,6 +151,11 @@ public class UserProfile
     /// </summary>
     [StringLength(250)]
     public string? FacebookUrl { get; set; }
+
+    /// <summary>ISO 4217 currency used only to display converted values.</summary>
+    [Required]
+    [StringLength(3, MinimumLength = 3)]
+    public string PreferredCurrency { get; set; } = CurrencyMasterDefaults.DefaultCurrency;
 
     #endregion
 

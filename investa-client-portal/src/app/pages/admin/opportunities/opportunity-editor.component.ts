@@ -8,6 +8,7 @@ import { FileStoreFile, FileStoreService } from '../../../services/file-store.se
 import { WalletService } from '../../../services/wallet.service';
 import { LanguageService } from '../../../services/language.service';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
+import { Project, ProjectService } from '../../../services/project.service';
 
 type PendingUploadKind = 'cover' | 'gallery' | 'video' | 'publicDocument' | 'privateDocument';
 
@@ -18,34 +19,21 @@ interface PendingUpload {
   file: File;
 }
 
-type OpportunityLookupKind = 'categories' | 'tags' | 'fundingGoals';
+type OpportunityLookupKind = 'tags' | 'fundingGoals';
 
 interface OpportunityEditorFormValue {
+  projectId: number | null;
+  purpose: string;
+  type: string;
   title: string;
   shortDescription: string;
   fullDescription: string;
-  categoryId: string | number | null;
   projectStage: number | null;
-  investmentModel: number | null;
+  projectStageCustomName: string;
   fundingGoalId: string | number | null;
   fundingTarget: number | null;
-  minimumInvestment: number | null;
-  maximumInvestment: number | null;
-  expectedDuration: number | null;
-  profitSharingPayoutFrequency: string;
-  profitSharingContractStartDate: string;
-  profitSharingContractEndDate: string;
   coverImageUrl: string;
   currency: string;
-  sharePrice: number | null;
-  totalShares: number | null;
-  offeredShares: number | null;
-  equityOfferedPercentage: number | null;
-  interestRate: number | null;
-  repaymentFrequency: string;
-  finalRepaymentDate: string;
-  profitSharePercentage: number | null;
-  exitTerms: string;
   fundingUsage: string;
   risks: string;
   exitStrategy: string;
@@ -68,21 +56,13 @@ export class OpportunityEditorComponent {
   private fb = inject(FormBuilder);
   private walletService = inject(WalletService);
   private languageService = inject(LanguageService);
+  private projectService = inject(ProjectService);
   readonly direction = this.languageService.direction;
   readonly language = this.languageService.language;
 
-  // Investment Model enum values from backend
-  readonly InvestmentModel = {
-    Equity: 1,
-    CapitalContributionProfitSharing: 2,
-    LoanInvestment: 3
-  };
-
-  readonly payoutFrequencies = ['Monthly', 'Quarterly', 'Semi-Annually', 'Annually', 'At Maturity'] as const;
-  readonly repaymentFrequencies = ['Monthly', 'Quarterly', 'Annual'] as const;
-  readonly currencies = ['USD', 'EUR', 'SAR', 'EGP'] as const;
+  currencies: string[] = [];
   readonly uploadKinds: readonly PendingUploadKind[] = ['cover', 'gallery', 'video', 'publicDocument', 'privateDocument'];
-  readonly projectStages = [1, 2, 3, 4, 5] as const;
+  readonly projectStages = [1, 2, 3, 4, 5, 6] as const;
   readonly wizardSteps = [
     { id: 1, key: 'details' },
     { id: 2, key: 'funding' },
@@ -96,9 +76,10 @@ export class OpportunityEditorComponent {
   savingMode = signal<'draft' | 'publish' | null>(null);
   errorMessage = signal<string | null>(null);
   stepErrorMessage = signal<string | null>(null);
-  categories = signal<OpportunityLookup[]>([]);
   tags = signal<OpportunityLookup[]>([]);
   fundingGoals = signal<OpportunityLookup[]>([]);
+  availableProjects = signal<Project[]>([]);
+  preselectedProject = signal<Project | null>(null);
   selectedTags = signal<Array<string | number>>([]);
   pendingUploads = signal<PendingUpload[]>([]);
   uploadedFiles = signal<FileStoreFile[]>([]);
@@ -118,72 +99,69 @@ export class OpportunityEditorComponent {
 
   constructor() {
     this.form = this.fb.group({
+      projectId: [this.route.snapshot.queryParamMap.get('projectId') ? Number(this.route.snapshot.queryParamMap.get('projectId')) : null, [Validators.required]],
+      purpose: ['General funding', [Validators.required, Validators.maxLength(200)]],
+      type: ['Opportunity', [Validators.required, Validators.maxLength(80)]],
       title: ['', [Validators.required, Validators.maxLength(200)]],
       shortDescription: ['', [Validators.required, Validators.minLength(20), Validators.maxLength(300)]],
       fullDescription: ['', [Validators.maxLength(4000)]],
-      categoryId: [null],
       projectStage: [null, [Validators.required]],
-      investmentModel: [null, [Validators.required]],
+      projectStageCustomName: ['', [Validators.maxLength(120)]],
       fundingGoalId: [null],
       fundingTarget: [null, [Validators.required, Validators.min(1)]],
-      minimumInvestment: [null, [Validators.min(1)]],
-      maximumInvestment: [null],
-      expectedDuration: [null],
-      profitSharingPayoutFrequency: [''],
-      profitSharingContractStartDate: [''],
-      profitSharingContractEndDate: [''],
       coverImageUrl: ['', [Validators.maxLength(1000)]],
-      // Equity-specific fields
       currency: ['', [Validators.required]],
-      sharePrice: [null],
-      totalShares: [null],
-      offeredShares: [null],
-      equityOfferedPercentage: [null, [Validators.min(0), Validators.max(100)]],
-      // Loan-specific fields
-      interestRate: [null, [Validators.min(0), Validators.max(100)]],
-      repaymentFrequency: [''],
-      finalRepaymentDate: [''],
-      // Profit Sharing-specific fields
-      profitSharePercentage: [null, [Validators.min(0), Validators.max(100)]],
-      exitTerms: [''],
-      // Common optional fields
       fundingUsage: ['', [Validators.required, Validators.minLength(30), Validators.maxLength(2000)]],
       risks: [''],
       exitStrategy: ['']
     });
 
-    // Listen for investment model changes to clear incompatible fields
-    this.form.get('investmentModel')?.valueChanges.subscribe(model => {
-      this.onInvestmentModelChange(model);
-    });
-    this.form.get('totalShares')?.valueChanges.subscribe(() => this.updateEquityPercentage());
-    this.form.get('offeredShares')?.valueChanges.subscribe(() => this.updateEquityPercentage());
-
+    this.form.get('projectStage')?.valueChanges.subscribe(() => this.updateCustomStageValidation());
     this.load();
   }
 
   async load(): Promise<void> {
     try {
       this.isLoading.set(true);
-      const [categories, tags, fundingGoals] = await Promise.all([
-        this.service.getCategories(),
+      const initialProjectId = this.route.snapshot.queryParamMap.get('projectId');
+      const projectsPromise = this.isEdit() ? Promise.resolve([]) : this.projectService.list();
+      const [tags, fundingGoals, currencies, projects] = await Promise.all([
         this.service.getTags(),
-        this.service.getFundingGoals()
+        this.service.getFundingGoals(),
+        this.service.getCurrencies('funding'),
+        projectsPromise
       ]);
       this.fileStore.getCategories().then(items => this.fileStoreCategories.set(items)).catch(() => this.fileStoreCategories.set([]));
-      this.categories.set(categories);
       this.tags.set(tags);
       this.fundingGoals.set(fundingGoals);
+      this.availableProjects.set(projects.filter(project => project.canCreateOpportunity));
+      this.currencies = currencies.map(currency => currency.isoCode);
+      if (initialProjectId) {
+        const matched = this.availableProjects().find(p => p.id === Number(initialProjectId));
+        if (matched) {
+          this.preselectedProject.set(matched);
+          this.form.get('projectId')?.setValue(matched.id);
+          this.form.get('projectId')?.disable();
+        }
+      }
       if (this.editId) {
         const existing = await this.service.getFounderOpportunity(this.editId);
         this.existingStatus.set(existing.status ?? null);
         const mapped = this.mapOpportunityToForm(existing);
-        this.updateValidatorsByModel(mapped.investmentModel);
         this.form.patchValue(mapped, { emitEvent: false });
+        this.updateCustomStageValidation();
         this.selectedTags.set(this.mapTagIds(existing.tags ?? []));
         this.existingMedia.set(existing.media ?? []);
         this.existingDocuments.set(existing.documents ?? []);
         this.existingEvents.set(existing.events ?? []);
+        if (mapped.projectId) {
+          const editProjects = await this.projectService.list();
+          const matched = editProjects.find(p => p.id === Number(mapped.projectId));
+          if (matched) {
+            this.preselectedProject.set(matched);
+            this.form.get('projectId')?.disable();
+          }
+        }
       }
     } catch (error: unknown) {
       this.errorMessage.set(this.errorText(error, 'opportunityEditor.errors.load'));
@@ -211,34 +189,19 @@ export class OpportunityEditorComponent {
 
   private mapOpportunityToForm(existing: Opportunity): OpportunityEditorFormValue {
     return {
+      projectId: existing.projectId ? Number(existing.projectId) : null,
+      purpose: existing.purpose ?? 'General funding',
+      type: existing.type ?? 'Opportunity',
       title: existing.title ?? '',
       shortDescription: existing.shortDescription ?? '',
       fullDescription: existing.description ?? '',
-      categoryId: existing.category?.id ?? null,
       projectStage: this.mapProjectStageToEnum(existing.projectStage),
-      investmentModel: this.mapInvestmentModelToEnum(existing.investmentModel),
+      projectStageCustomName: existing.projectStageCustomName ?? '',
       fundingGoalId: existing.fundingGoal?.id ?? null,
       fundingTarget: this.toNullableNumber(existing.fundingTarget),
-      minimumInvestment: this.toNullableNumber(existing.minimumInvestmentAmount),
-      maximumInvestment: this.toNullableNumber(existing.maximumInvestmentAmount),
-      expectedDuration: this.toNullableNumber(existing.expectedDurationMonths),
-      profitSharingPayoutFrequency: existing.profitSharingPayoutFrequency ?? '',
-      profitSharingContractStartDate: this.formatDateForInput(existing.profitSharingContractStartDate),
-      profitSharingContractEndDate: this.formatDateForInput(existing.profitSharingContractEndDate),
       coverImageUrl: existing.coverImageUrl ?? '',
       currency: existing.currency ?? '',
-      sharePrice: this.toNullableNumber(existing.sharePrice),
-      totalShares: this.toNullableNumber(existing.totalShares),
-      offeredShares: this.toNullableNumber(existing.offeredShares),
-      equityOfferedPercentage: this.toNullableNumber(existing.equityOfferedPercentage),
-      interestRate: this.toNullableNumber(existing.interestRate),
-      repaymentFrequency: existing.repaymentFrequency ?? '',
-      finalRepaymentDate: this.formatDateForInput(existing.finalRepaymentDate),
-      profitSharePercentage: this.toNullableNumber(existing.profitSharePercentage),
       fundingUsage: existing.useOfFunds ?? '',
-      // These three controls are draft-only UI notes and are intentionally absent
-      // from both the Opportunity DTO and the update payload.
-      exitTerms: '',
       risks: '',
       exitStrategy: ''
     };
@@ -268,110 +231,6 @@ export class OpportunityEditorComponent {
   }
 
   /**
-   * Map string investment model to enum value
-   */
-  private mapInvestmentModelToEnum(model?: string | number | null): number | null {
-    if (!model) return null;
-    const modelStr = String(model).toLowerCase();
-    if (modelStr === 'equityinvestment') return this.InvestmentModel.Equity;
-    if (modelStr === 'profitsharinginvestment') return this.InvestmentModel.CapitalContributionProfitSharing;
-    if (modelStr === 'loaninvestment') return this.InvestmentModel.LoanInvestment;
-    return null;
-  }
-
-  /**
-   * Check if current model is Equity
-   */
-  isEquityModel(): boolean {
-    return this.form.get('investmentModel')?.value === this.InvestmentModel.Equity;
-  }
-
-  /**
-   * Check if current model is Loan
-   */
-  isLoanModel(): boolean {
-    return this.form.get('investmentModel')?.value === this.InvestmentModel.LoanInvestment;
-  }
-
-  /**
-   * Check if current model is Profit Sharing
-   */
-  isProfitSharingModel(): boolean {
-    return this.form.get('investmentModel')?.value === this.InvestmentModel.CapitalContributionProfitSharing;
-  }
-
-  /**
-   * Clear incompatible fields when investment model changes
-   */
-  private onInvestmentModelChange(model: number | null): void {
-    // Clear all model-specific fields first
-    this.form.patchValue({
-      equityOfferedPercentage: null,
-      sharePrice: null,
-      totalShares: null,
-      offeredShares: null,
-      interestRate: null,
-      repaymentFrequency: '',
-      finalRepaymentDate: '',
-      profitSharePercentage: null,
-      profitSharingPayoutFrequency: '',
-      profitSharingContractStartDate: '',
-      profitSharingContractEndDate: '',
-      exitTerms: ''
-    });
-
-    // Re-apply validators based on new model
-    this.updateValidatorsByModel(model);
-  }
-
-  /**
-   * Update field validators based on investment model
-   */
-  private updateValidatorsByModel(model: number | null): void {
-    const equityFields = ['sharePrice', 'totalShares', 'offeredShares', 'equityOfferedPercentage'];
-    const loanFields = ['interestRate', 'repaymentFrequency', 'finalRepaymentDate'];
-    const profitSharingFields = ['profitSharePercentage', 'profitSharingPayoutFrequency', 'profitSharingContractStartDate', 'profitSharingContractEndDate', 'exitTerms'];
-
-    // Clear all model-specific validators
-    [...equityFields, ...loanFields, ...profitSharingFields].forEach(field => {
-      this.form.get(field)?.clearValidators();
-      this.form.get(field)?.updateValueAndValidity();
-    });
-    this.form.get('expectedDuration')?.clearValidators();
-
-    // Apply validators for current model
-    if (model === this.InvestmentModel.Equity) {
-      this.form.get('sharePrice')?.setValidators([Validators.required, Validators.min(0.01)]);
-      this.form.get('totalShares')?.setValidators([Validators.required, Validators.min(1)]);
-      this.form.get('offeredShares')?.setValidators([Validators.required, Validators.min(1)]);
-      this.form.get('equityOfferedPercentage')?.setValidators([Validators.required, Validators.min(0.01), Validators.max(100)]);
-    } else if (model === this.InvestmentModel.LoanInvestment) {
-      this.form.get('expectedDuration')?.setValidators([Validators.required, Validators.min(1)]);
-      this.form.get('interestRate')?.setValidators([Validators.required, Validators.min(0), Validators.max(100)]);
-      this.form.get('repaymentFrequency')?.setValidators([Validators.required]);
-      this.form.get('finalRepaymentDate')?.setValidators([Validators.required]);
-    } else if (model === this.InvestmentModel.CapitalContributionProfitSharing) {
-      this.form.get('profitSharePercentage')?.setValidators([Validators.required, Validators.min(0.01), Validators.max(100)]);
-      this.form.get('profitSharingPayoutFrequency')?.setValidators([Validators.required]);
-    }
-
-    // Update validity for affected fields
-    [...equityFields, ...loanFields, ...profitSharingFields].forEach(field => {
-      this.form.get(field)?.updateValueAndValidity();
-    });
-    this.form.get('expectedDuration')?.updateValueAndValidity();
-  }
-
-  private updateEquityPercentage(): void {
-    const totalShares = Number(this.form.get('totalShares')?.value);
-    const offeredShares = Number(this.form.get('offeredShares')?.value);
-    const percentage = Number.isFinite(totalShares) && totalShares > 0 && Number.isFinite(offeredShares) && offeredShares > 0
-      ? Math.round((offeredShares * 100 / totalShares) * 100) / 100
-      : null;
-    this.form.get('equityOfferedPercentage')?.setValue(percentage, { emitEvent: false });
-  }
-
-  /**
    * Validate current step before proceeding
    */
   private validateCurrentStep(): boolean {
@@ -382,46 +241,23 @@ export class OpportunityEditorComponent {
 
     if (currentStep === 1) {
       // Step 1: Basic info
+      form.get('projectId')?.markAsTouched();
       form.get('title')?.markAsTouched();
       form.get('shortDescription')?.markAsTouched();
       form.get('projectStage')?.markAsTouched();
+      form.get('projectStageCustomName')?.markAsTouched();
+      if (form.get('projectId')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.projectRequired'));
       if (form.get('title')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.titleRequired'));
       if (form.get('shortDescription')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.shortDescriptionRequired'));
       if (form.get('projectStage')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.projectStageRequired'));
+      if (form.get('projectStageCustomName')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.projectStageCustomRequired'));
     } else if (currentStep === 2) {
-      // Step 2: Funding basics
-      ['investmentModel', 'fundingTarget', 'minimumInvestment', 'currency'].forEach(field => form.get(field)?.markAsTouched());
-      if (form.get('investmentModel')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.investmentModelRequired'));
+      // Step 2: Funding basics only. OfferLeg types are selected later by investors.
+      ['fundingTarget', 'currency'].forEach(field => form.get(field)?.markAsTouched());
       if (form.get('fundingTarget')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.fundingTargetPositive'));
-      if (form.get('minimumInvestment')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.minimumInvestmentPositive'));
       if (form.get('currency')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.currencyRequired'));
       form.get('fundingUsage')?.markAsTouched();
       if (form.get('fundingUsage')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.useOfFundsRequired'));
-      
-      // Model-specific validation
-      const model = form.get('investmentModel')?.value;
-      if (model === this.InvestmentModel.Equity) {
-        ['sharePrice', 'totalShares', 'offeredShares', 'equityOfferedPercentage'].forEach(field => form.get(field)?.markAsTouched());
-        if (form.get('equityOfferedPercentage')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.equityRequired'));
-        if (['sharePrice', 'totalShares', 'offeredShares'].some(field => form.get(field)?.invalid)) invalidFields.push(this.t('opportunityEditor.validation.equityConfigurationRequired'));
-        const sharePrice = Number(form.get('sharePrice')?.value);
-        const minimum = Number(form.get('minimumInvestment')?.value);
-        if (minimum > 0 && sharePrice > 0 && Math.abs(minimum / sharePrice - Math.round(minimum / sharePrice)) > 0.000001) invalidFields.push(this.t('opportunityEditor.validation.minimumShareAligned'));
-      } else if (model === this.InvestmentModel.LoanInvestment) {
-        ['expectedDuration', 'interestRate', 'repaymentFrequency', 'finalRepaymentDate'].forEach(field => form.get(field)?.markAsTouched());
-        if (form.get('expectedDuration')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.loanDurationRequired'));
-        if (form.get('interestRate')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.interestRateRequired'));
-        if (form.get('repaymentFrequency')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.repaymentFrequencyRequired'));
-        if (form.get('finalRepaymentDate')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.finalRepaymentDateRequired'));
-        const repaymentDate = form.get('finalRepaymentDate')?.value;
-        if (repaymentDate && new Date(repaymentDate) <= new Date()) invalidFields.push(this.t('opportunityEditor.validation.finalRepaymentDateFuture'));
-      } else if (model === this.InvestmentModel.CapitalContributionProfitSharing) {
-        ['profitSharePercentage', 'profitSharingPayoutFrequency', 'profitSharingContractStartDate', 'profitSharingContractEndDate'].forEach(field => form.get(field)?.markAsTouched());
-        if (form.get('profitSharePercentage')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.profitShareRequired'));
-        if (form.get('profitSharingPayoutFrequency')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.payoutFrequencyRequired'));
-        if (!this.hasProfitSharingDurationOrDates()) invalidFields.push(this.t('opportunityEditor.validation.durationOrDatesRequired'));
-        if (form.get('profitSharingContractStartDate')?.value && form.get('profitSharingContractEndDate')?.value && new Date(form.get('profitSharingContractStartDate')?.value) >= new Date(form.get('profitSharingContractEndDate')?.value)) invalidFields.push(this.t('opportunityEditor.validation.endAfterStart'));
-      }
     }
     // Step 3 and 4 have no required validation
 
@@ -456,9 +292,9 @@ export class OpportunityEditorComponent {
 
   isStepInvalid(stepId: number): boolean {
     const names = stepId === 1
-      ? ['title', 'shortDescription', 'projectStage']
+      ? ['projectId', 'purpose', 'type', 'title', 'shortDescription', 'projectStage', 'projectStageCustomName']
       : stepId === 2
-        ? ['investmentModel', 'fundingTarget', 'minimumInvestment', 'currency', 'sharePrice', 'totalShares', 'offeredShares', 'equityOfferedPercentage', 'expectedDuration', 'interestRate', 'repaymentFrequency', 'finalRepaymentDate', 'profitSharePercentage', 'profitSharingPayoutFrequency']
+        ? ['fundingTarget', 'currency', 'fundingUsage']
         : [];
     return names.some(name => {
       const control = this.form.get(name);
@@ -503,11 +339,16 @@ export class OpportunityEditorComponent {
         ? await this.service.updateOpportunity(this.editId, payload)
         : await this.service.createOpportunity(payload);
       if (submit) {
-        const quote = await this.walletService.getPaidActionQuote('PublishOpportunity');
-        if (!quote.hasSufficientCredit) {
-          throw new Error(this.t('paidActions.insufficientMessage').replace('{required}', this.formatCredits(quote.creditCost)).replace('{balance}', this.formatCredits(quote.currentBalance)));
-        }
-        if (!window.confirm(this.t('opportunityPublish.confirmation').replace('{action}', this.t('opportunityPublish.action')).replace('{cost}', this.formatCredits(quote.creditCost)).replace('{balance}', this.formatCredits(quote.currentBalance)).replace('{after}', this.formatCredits(quote.balanceAfter)))) {
+        const chargingEnabled = await this.walletService.loadChargingEnabled();
+        if (chargingEnabled) {
+          const quote = await this.walletService.getPaidActionQuote('PublishOpportunity');
+          if (!quote.hasSufficientCredit) {
+            throw new Error(this.t('paidActions.insufficientMessage').replace('{required}', this.formatCredits(quote.creditCost)).replace('{balance}', this.formatCredits(quote.currentBalance)));
+          }
+          if (!window.confirm(this.t('opportunityPublish.confirmation').replace('{action}', this.t('opportunityPublish.action')).replace('{cost}', this.formatCredits(quote.creditCost)).replace('{balance}', this.formatCredits(quote.currentBalance)).replace('{after}', this.formatCredits(quote.balanceAfter)))) {
+            return;
+          }
+        } else if (!window.confirm(this.t('opportunityPublish.confirmationFree').replace('{action}', this.t('opportunityPublish.action')))) {
           return;
         }
         await this.service.publishOpportunity(saved.id);
@@ -525,22 +366,12 @@ export class OpportunityEditorComponent {
     }
   }
 
-  /**
-   * Map enum value to investment model string for API
-   */
-  private mapEnumToInvestmentModel(modelValue: number | null): OpportunityUpsert['investmentModel'] {
-    if (modelValue === this.InvestmentModel.Equity) return 'EquityInvestment';
-    if (modelValue === this.InvestmentModel.CapitalContributionProfitSharing) return 'ProfitSharingInvestment';
-    if (modelValue === this.InvestmentModel.LoanInvestment) return 'LoanInvestment';
-    return null;
-  }
-
-  investmentModelKey(): string {
-    const model = this.form.get('investmentModel')?.value;
-    if (model === this.InvestmentModel.Equity) return 'opportunityEditor.models.equity';
-    if (model === this.InvestmentModel.CapitalContributionProfitSharing) return 'opportunityEditor.models.profitSharing';
-    if (model === this.InvestmentModel.LoanInvestment) return 'opportunityEditor.models.loan';
-    return 'opportunityEditor.review.notAvailable';
+  projectName(): string {
+    const pp = this.preselectedProject();
+    if (pp) return pp.displayName;
+    const id = this.form.get('projectId')?.value;
+    const match = this.availableProjects().find(p => p.id === Number(id));
+    return match?.displayName ?? this.t('opportunityEditor.review.notAvailable');
   }
 
   projectStageKey(value: unknown): string {
@@ -548,15 +379,19 @@ export class OpportunityEditorComponent {
     return stage ? `opportunityEditor.projectStages.${stage}` : 'opportunityEditor.review.notAvailable';
   }
 
-  payoutFrequencyKey(value: string): string {
-    const keys: Record<string, string> = {
-      'Monthly': 'monthly',
-      'Quarterly': 'quarterly',
-      'Semi-Annually': 'semiAnnually',
-      'Annually': 'annually',
-      'At Maturity': 'atMaturity'
-    };
-    return `opportunityEditor.payoutFrequencies.${keys[value] ?? 'unknown'}`;
+  projectStageDisplay(stage: unknown, customName: unknown): string {
+    const translated = this.t(this.projectStageKey(stage));
+    const custom = String(customName ?? '').trim();
+    return this.mapProjectStageToEnum(stage) === 6 && custom ? `${translated}: ${custom}` : translated;
+  }
+
+  isProjectStageUnavailable(stage: number): boolean {
+    if (stage === 6) return false;
+    const project = this.selectedProject();
+    const ownId = Number(this.editId ?? 0);
+    return !!project?.opportunities?.some(opportunity =>
+      Number(opportunity.id) !== ownId && Number(opportunity.projectStage) === stage
+    );
   }
 
   lookupLabel(items: OpportunityLookup[], id: string | number | null | undefined, kind: OpportunityLookupKind): string {
@@ -603,64 +438,71 @@ export class OpportunityEditorComponent {
     const value = this.form.getRawValue();
     const text = (input: unknown): string | null => String(input ?? '').trim() || null;
     const payload: OpportunityUpsert = {
+      projectId: this.isEdit() ? undefined : this.toNullableNumber(value.projectId),
+      purpose: text(value.purpose),
+      type: text(value.type),
       title: String(value.title ?? '').trim(),
       shortDescription: String(value.shortDescription ?? '').trim(),
       fullDescription: text(value.fullDescription),
-      categoryId: value.categoryId,
       projectStage: value.projectStage,
+      projectStageCustomName: Number(value.projectStage) === 6 ? text(value.projectStageCustomName) : null,
       tagIds: this.selectedTags(),
-      investmentModel: this.mapEnumToInvestmentModel(value.investmentModel),
       fundingGoalId: value.fundingGoalId,
       fundingTarget: value.fundingTarget,
-      minimumInvestment: value.minimumInvestment,
-      maximumInvestment: value.maximumInvestment,
-      expectedDurationMonths: value.expectedDuration,
-      currency: text(value.currency),
+      fundingCurrency: text(value.currency),
       coverImageUrl: text(value.coverImageUrl),
       fundingUsage: String(value.fundingUsage ?? '').trim()
     };
-    if (value.investmentModel === this.InvestmentModel.Equity) Object.assign(payload, {
-      sharePrice: this.toNullableNumber(value.sharePrice), totalShares: this.toNullableNumber(value.totalShares),
-      offeredShares: this.toNullableNumber(value.offeredShares), equityOfferedPercentage: this.toNullableNumber(value.equityOfferedPercentage)
-    });
-    if (value.investmentModel === this.InvestmentModel.LoanInvestment) Object.assign(payload, {
-      interestRate: this.toNullableNumber(value.interestRate), repaymentFrequency: text(value.repaymentFrequency), finalRepaymentDate: text(value.finalRepaymentDate)
-    });
-    if (value.investmentModel === this.InvestmentModel.CapitalContributionProfitSharing) Object.assign(payload, {
-      profitSharePercentage: this.toNullableNumber(value.profitSharePercentage), profitSharingPayoutFrequency: text(value.profitSharingPayoutFrequency),
-      profitSharingContractStartDate: text(value.profitSharingContractStartDate), profitSharingContractEndDate: text(value.profitSharingContractEndDate)
-    });
     return payload;
   }
 
   private routeCreateError(error: unknown): void {
     const raw = JSON.stringify(error).toLowerCase();
     const routes: Array<{ step: number; fields: string[] }> = [
-      { step: 1, fields: ['title', 'shortdescription', 'projectstage', 'categoryid'] },
-      { step: 2, fields: ['useoffunds', 'fundingtarget', 'investmentmodel', 'currency', 'fundinggoalid', 'minimuminvestmentamount', 'maximuminvestmentamount', 'expecteddurationmonths', 'interestrate', 'repaymentfrequency', 'finalrepaymentdate', 'shareprice', 'totalshares', 'offeredshares', 'equityofferedpercentage', 'profitsharepercentage', 'profitsharingpayoutfrequency'] },
+      { step: 1, fields: ['projectid', 'title', 'shortdescription', 'projectstage'] },
+      { step: 2, fields: ['useoffunds', 'fundingtarget', 'fundingcurrency', 'currency', 'fundinggoalid'] },
       { step: 3, fields: ['coverimageurl'] }
     ];
     for (const route of routes) {
       const rejected = route.fields.filter(field => raw.includes(field));
       if (!rejected.length) continue;
       this.step.set(route.step);
-      const controls: Record<string, string> = { useoffunds: 'fundingUsage', minimuminvestmentamount: 'minimumInvestment', maximuminvestmentamount: 'maximumInvestment', expecteddurationmonths: 'expectedDuration' };
+      const controls: Record<string, string> = { useoffunds: 'fundingUsage' };
       rejected.forEach(field => this.form.get(controls[field] ?? field)?.markAsTouched());
       return;
     }
   }
 
   private mapProjectStageToEnum(value: unknown): number | null {
-    const names: Record<string, number> = { idea: 1, mvp: 2, startup: 3, scaling: 4, established: 5 };
+    const names: Record<string, number> = { idea: 1, mvp: 2, startup: 3, scaling: 4, established: 5, other: 6 };
     const normalized = String(value ?? '').trim().toLowerCase();
     const numeric = Number(normalized);
-    if (Number.isInteger(numeric) && numeric >= 1 && numeric <= 5) return numeric;
+    if (Number.isInteger(numeric) && numeric >= 1 && numeric <= 6) return numeric;
     return names[normalized] ?? null;
   }
 
+  private selectedProject(): Project | null {
+    const selectedId = Number(this.form.getRawValue().projectId);
+    return this.preselectedProject()
+      ?? this.availableProjects().find(project => project.id === selectedId)
+      ?? null;
+  }
+
+  private updateCustomStageValidation(): void {
+    const customName = this.form.get('projectStageCustomName');
+    if (this.mapProjectStageToEnum(this.form.get('projectStage')?.value) === 6) {
+      customName?.setValidators([this.trimmedRequired, Validators.maxLength(120)]);
+    } else {
+      customName?.clearValidators();
+    }
+    customName?.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private readonly trimmedRequired = (control: { value: unknown }) =>
+    String(control.value ?? '').trim().length > 0 ? null : { required: true };
+
   private publishValidationErrors(): string[] {
     const errors: string[] = [];
-    if (!this.form.get('categoryId')?.value) errors.push(this.t('opportunityEditor.validation.categoryRequired'));
     if (!this.form.get('fundingGoalId')?.value) errors.push(this.t('opportunityEditor.validation.fundingGoalRequired'));
     return errors;
   }
@@ -681,15 +523,6 @@ export class OpportunityEditorComponent {
       if (typeof response.message === 'string') return response.message;
     }
     return this.t(fallbackKey);
-  }
-
-  private hasProfitSharingDurationOrDates(): boolean {
-    const duration = Number(this.form.get('expectedDuration')?.value);
-    const start = this.form.get('profitSharingContractStartDate')?.value;
-    const end = this.form.get('profitSharingContractEndDate')?.value;
-    const hasDuration = Number.isFinite(duration) && duration > 0;
-    const hasDates = !!start && !!end && new Date(start) < new Date(end);
-    return hasDuration || hasDates;
   }
 
   onFilesSelected(event: Event, kind: PendingUploadKind): void {
@@ -803,46 +636,42 @@ export class OpportunityEditorComponent {
   }
 
   private toMediaPayload(item: PendingUpload, file: FileStoreFile) {
+    const fileKey = this.uploadedFileKey(file);
     const purpose = this.purposeFor(item.kind);
     const isPublic = this.isPublicFor(item.kind);
     return {
-      fileId: file.fileId,
-      fileKey: file.fileKey,
-      fileUrl: file.url,
-      fileName: file.fileName,
-      mimeType: file.mimeType,
-      fileSize: file.fileSize,
-      previewUrl: file.previewUrl,
-      thumbnailUrl: file.thumbnailUrl,
+      fileKey,
+      mediaType: item.kind === 'video' ? 'Video' : item.kind === 'cover' ? 'Cover' : 'Gallery',
       purpose,
       isPublic,
-      caption: file.originalFileName,
-      mediaType: item.kind === 'video' ? 'Video' : item.kind === 'cover' ? 'Cover' : 'Gallery',
       isCover: item.kind === 'cover',
       sortOrder: 0
     };
   }
 
   private toDocumentPayload(item: PendingUpload, file: FileStoreFile) {
+    const fileKey = this.uploadedFileKey(file);
     const purpose = this.purposeFor(item.kind);
     const visibility = this.visibilityFor(item.kind);
     return {
-      fileId: file.fileId,
-      fileKey: file.fileKey,
-      fileUrl: file.url,
-      title: file.originalFileName,
-      fileName: file.fileName,
-      fileExtension: file.extension,
-      mimeType: file.mimeType,
-      fileSize: file.fileSize,
-      category: file.category,
-      previewUrl: file.previewUrl,
-      thumbnailUrl: file.thumbnailUrl,
-      purpose,
+      fileKey,
+      documentType: 'Document',
       visibility,
-      searchTags: '',
-      isPublic: visibility === 'Public'
+      purpose,
+      category: file.category,
+      searchTags: ''
     };
+  }
+
+  private uploadedFileKey(file: FileStoreFile): string {
+    const fileKey = file.fileKey?.trim();
+    if (fileKey) return fileKey;
+
+    const storagePath = file.url?.split('/storage/')[1]?.split(/[?#]/)[0];
+    if (storagePath) return decodeURIComponent(storagePath);
+
+    if (file.category && file.fileName) return `${file.category}/${file.fileName}`;
+    throw new Error('The uploaded file did not return a storage key. Please retry the upload.');
   }
 
   private uploadMetadataFor(kind: PendingUploadKind) {

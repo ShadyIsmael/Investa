@@ -1,3 +1,4 @@
+﻿using Investa.Domain;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -62,7 +63,7 @@ public class FinanceTransaction
     /// <summary>Source currency (base: EGP)</summary>
     [Required]
     [StringLength(3)]
-    public string Currency { get; set; } = "EGP";
+    public string Currency { get; set; } = CurrencyMasterDefaults.DefaultCurrency;
 
     /// <summary>Exchange rate if foreign currency used (default 1.0 for EGP)</summary>
     [Column(TypeName = "decimal(10,6)")]
@@ -72,6 +73,8 @@ public class FinanceTransaction
     /// <summary>Amount in base currency (EGP) - calculated from Amount * ExchangeRate</summary>
     [Column(TypeName = "decimal(18,2)")]
     public decimal AmountInBaseCurrency { get; set; }
+    public Guid? ExchangeRateSnapshotId { get; set; }
+    public ExchangeRateSnapshot? ExchangeRateSnapshot { get; set; }
 
     /// <summary>Name of payer or external source for incoming money.</summary>
     [StringLength(200)]

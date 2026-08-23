@@ -1093,6 +1093,505 @@
   .favorite-row em {
     color: #b45309;
   }
+
+  // Withdraw modal (shared by investor & founder)
+  .fixed[class*='bg-black'] {
+    background: var(--investa-overlay);
+  }
+
+  .fixed [class*='bg-slate-900'] {
+    background: var(--investa-surface);
+    border-color: var(--investa-border);
+  }
+
+  .fixed .text-white,
+  .fixed .font-bold.text-white {
+    color: var(--investa-text-primary);
+  }
+
+  .fixed .text-gray-400 {
+    color: var(--investa-text-secondary);
+  }
+
+  .fixed [class*='bg-yellow-500/'] {
+    background: rgba(217, 119, 6, 0.08);
+    border-color: rgba(217, 119, 6, 0.2);
+  }
+
+  .fixed .text-yellow-400 {
+    color: #a16207;
+  }
+
+  .fixed button.bg-slate-700 {
+    background: var(--investa-surface-2);
+    border: 1px solid var(--investa-border);
+    color: var(--investa-text-primary);
+  }
+
+  .fixed button.bg-slate-700:hover {
+    background: var(--investa-surface-3);
+  }
+
+  .fixed button.bg-red-600 {
+    background: var(--investa-error);
+    border-color: var(--investa-error);
+    color: #ffffff;
+  }
+
+  .fixed button.bg-red-600:hover {
+    opacity: 0.9;
+  }
+
+  // ===== Founder dashboard area light theme =====
+  // Overrides hardcoded Tailwind utility classes used in the founder section
+  .founder-dashboard-area {
+    // Map dark slate backgrounds to light surfaces
+    [class*='bg-slate-900'],
+    [class*='bg-slate-950'],
+    [class*='bg-slate-800'],
+    [class*='bg-slate-700'],
+    [class*='bg-gray-900'],
+    [class*='bg-gray-800'] {
+      background: var(--investa-surface);
+      color: var(--investa-text-primary);
+    }
+
+    [class*='bg-slate-800/'],
+    [class*='bg-slate-700/'],
+    [class*='bg-blue-500/'],
+    [class*='bg-emerald-500/'],
+    [class*='bg-amber-500/'] {
+      background: var(--investa-surface-2);
+    }
+
+    // Text colors
+    .text-white,
+    [class*='text-white'] {
+      color: var(--investa-text-primary);
+    }
+
+    .text-gray-300,
+    .text-gray-400 {
+      color: var(--investa-text-secondary);
+    }
+
+    .text-gray-500 {
+      color: var(--investa-text-muted);
+    }
+
+    .text-blue-200,
+    .text-blue-300,
+    .text-blue-400 {
+      color: var(--investa-text-primary);
+    }
+
+    .text-emerald-200,
+    .text-emerald-300 {
+      color: #158322;
+    }
+
+    .text-amber-400,
+    .text-yellow-400 {
+      color: #a16207;
+    }
+
+    // Borders
+    [class*='border-slate'],
+    [class*='border-gray'] {
+      border-color: var(--investa-border);
+    }
+
+    [class*='border-blue-500/'],
+    [class*='border-emerald-500/'],
+    [class*='border-amber-500/'],
+    [class*='border-yellow-500/'] {
+      border-color: var(--investa-border);
+    }
+
+    // Rings
+    [class*='ring-slate'] {
+      --tw-ring-color: var(--investa-border);
+    }
+
+    // Primary buttons (blue / gradient)
+    button[class*='bg-blue-600'],
+    button[class*='from-blue'],
+    a[class*='from-blue'],
+    button[class*='bg-gradient-to-r'],
+    a[class*='bg-gradient-to-r'] {
+      background: var(--investa-primary);
+      background-image: none;
+      border-color: var(--investa-primary);
+      color: #ffffff;
+    }
+
+    button[class*='bg-blue-600']:hover,
+    button[class*='from-blue']:hover,
+    a[class*='from-blue']:hover,
+    button[class*='bg-gradient-to-r']:hover,
+    a[class*='bg-gradient-to-r']:hover {
+      background: var(--investa-primary-hover);
+      border-color: var(--investa-primary-hover);
+      color: #ffffff;
+    }
+
+    // Secondary buttons (slate bg)
+    button.bg-slate-700,
+    button.bg-slate-800 {
+      background: var(--investa-surface);
+      border: 1px solid var(--investa-border);
+      color: var(--investa-text-primary);
+    }
+
+    button.bg-slate-700:hover,
+    button.bg-slate-800:hover {
+      background: var(--investa-surface-2);
+      color: var(--investa-text-primary);
+    }
+
+    // Emerald / green accent buttons
+    [class*='bg-emerald-500/'] {
+      background: rgba(5, 150, 105, 0.08);
+      border-color: rgba(5, 150, 105, 0.2);
+      color: #158322;
+    }
+
+    [class*='bg-emerald-500/']:hover {
+      background: rgba(5, 150, 105, 0.12);
+      border-color: rgba(5, 150, 105, 0.3);
+    }
+
+    // Funding progress bar track
+    .w-full.bg-slate-800.rounded-full {
+      background: var(--investa-surface-3);
+    }
+
+    // Gradient progress fills — flatten to accent
+    [class*='from-emerald'],
+    [class*='from-amber'],
+    [class*='from-cyan'],
+    [class*='from-green'] {
+      --tw-gradient-from: var(--investa-accent);
+      --tw-gradient-to: var(--investa-accent);
+      background: var(--investa-accent);
+      background-image: none;
+    }
+
+    // Gradient avatars (initials on colored bg)
+    [class*='bg-gradient-to-br'] {
+      background: var(--investa-primary);
+      background-image: none;
+      color: #ffffff;
+    }
+
+    // Skeleton / pulse placeholders
+    .animate-pulse {
+      background: var(--investa-surface-3);
+    }
+
+    .bg-slate-800.animate-pulse {
+      background: var(--investa-surface-3);
+    }
+
+    // Modals
+    .fixed {
+      [class*='bg-slate'],
+      [class*='from-slate'] {
+        background: var(--investa-surface);
+        background-image: none;
+        color: var(--investa-text-primary);
+      }
+
+      .text-white {
+        color: var(--investa-text-primary);
+      }
+
+      [class*='bg-yellow-500/'] {
+        background: rgba(217, 119, 6, 0.08);
+      }
+
+      button.bg-slate-700 {
+        background: var(--investa-surface-2);
+        border: 1px solid var(--investa-border);
+        color: var(--investa-text-primary);
+      }
+
+      button.bg-slate-700:hover {
+        background: var(--investa-surface-3);
+      }
+
+      button.bg-red-600 {
+        background: var(--investa-error);
+        border-color: var(--investa-error);
+        color: #ffffff;
+      }
+
+      button.bg-red-600:hover {
+        opacity: 0.9;
+      }
+    }
+  }
+}
+
+// ===== Milestone Timeline =====
+.ms-timeline {
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 0.75rem 0 0.5rem;
+  margin-bottom: 0.25rem;
+  position: relative;
+
+  &::-webkit-scrollbar { height: 4px; }
+  &::-webkit-scrollbar-track { background: rgba(71, 85, 105, 0.2); border-radius: 2px; }
+  &::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 2px; }
+}
+
+.ms-track {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  position: relative;
+  min-width: fit-content;
+  padding: 1rem 0.75rem 0;
+
+  // The connecting line
+  &::before {
+    content: '';
+    position: absolute;
+    top: 1.9rem;
+    left: 1.5rem;
+    right: 1.5rem;
+    height: 3px;
+    background: rgba(71, 85, 105, 0.35);
+    border-radius: 2px;
+    z-index: 0;
+  }
+}
+
+.ms-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-width: 90px;
+  max-width: 140px;
+  padding: 0 0.35rem;
+  cursor: default;
+
+  // Node connecting line (extends the main line through each node)
+  &::before {
+    content: '';
+    position: absolute;
+    top: 1.9rem;
+    left: 0;
+    right: 0;
+    height: 3px;
+    z-index: -1;
+  }
+
+  &.ms-completed::before {
+    background: #10b981;
+  }
+
+  &.ms-current::before {
+    background: linear-gradient(90deg, #10b981 0%, #f59e0b 100%);
+  }
+}
+
+.ms-dot {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-bottom: 0.5rem;
+  transition: all 0.3s ease;
+  position: relative;
+
+  .ms-completed & {
+    background: #10b981;
+    border: 3px solid rgba(16, 185, 129, 0.4);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+  }
+
+  .ms-current & {
+    background: #f59e0b;
+    border: 3px solid rgba(245, 158, 11, 0.5);
+    box-shadow: 0 0 14px rgba(245, 158, 11, 0.5);
+    animation: ms-pulse 2s ease-in-out infinite;
+    width: 40px;
+    height: 40px;
+  }
+
+  .ms-future & {
+    background: rgba(71, 85, 105, 0.45);
+    border: 3px solid rgba(71, 85, 105, 0.3);
+  }
+
+  .ms-node:hover & {
+    transform: scale(1.12);
+  }
+}
+
+.ms-check {
+  width: 16px;
+  height: 16px;
+  color: #ffffff;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+}
+
+.ms-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.15rem;
+  width: 100%;
+}
+
+.ms-name {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  transition: color 0.2s;
+
+  .ms-current & {
+    color: #fbbf24;
+    font-size: 0.75rem;
+  }
+
+  .ms-future & {
+    color: #64748b;
+  }
+
+  .ms-node:hover & {
+    color: #ffffff;
+  }
+}
+
+.ms-date {
+  font-size: 0.6rem;
+  color: #94a3b8;
+  white-space: nowrap;
+
+  .ms-future & { color: #475569; }
+  .ms-current & { color: #fde68a; }
+}
+
+.ms-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-top: 0.35rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+// Tooltip on hover
+.ms-tooltip {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: #1e293b;
+  color: #e2e8f0;
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  white-space: normal;
+  width: 200px;
+  text-align: center;
+  line-height: 1.5;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(100, 116, 139, 0.3);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 50;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: #1e293b;
+  }
+
+  .ms-node:hover & {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes ms-pulse {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.6);
+    transform: scale(1.06);
+  }
+}
+
+// RTL: reverse the visual direction
+[dir='rtl'] .ms-track {
+  direction: ltr;
+
+  &::before {
+    left: 1.5rem;
+    right: 1.5rem;
+  }
+}
+
+[dir='rtl'] .ms-node::before {
+  left: 0;
+  right: 0;
+}
+
+:host-context(body.investa-theme-light) {
+  .ms-name {
+    color: #334155;
+    .ms-current & { color: #d97706; }
+    .ms-future & { color: #94a3b8; }
+    .ms-node:hover & { color: #1e293b; }
+  }
+  .ms-date {
+    color: #64748b;
+    .ms-future & { color: #cbd5e1; }
+    .ms-current & { color: #b45309; }
+  }
+  .ms-track::before { background: rgba(148, 163, 184, 0.3); }
+  .ms-dot {
+    .ms-future & { background: rgba(148, 163, 184, 0.25); border-color: rgba(148, 163, 184, 0.2); }
+  }
+  .ms-tooltip {
+    background: #ffffff;
+    color: #1e293b;
+    border-color: #cbd5e1;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    &::after { border-top-color: #ffffff; }
+  }
 }
 
 // SECTION 1: KPI Cards Grid - Made visually dominant

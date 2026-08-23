@@ -21,6 +21,7 @@ import {
 } from "./CompanyFinanceStates";
 import { FinanceTransactionHistory } from "./FinanceTransactionHistory";
 import { FinanceWorkflowActions } from "./FinanceWorkflowActions";
+import { formatMoney, ensureCurrenciesLoaded } from "../../utils/currency";
 
 const pageSizes = [10, 25, 50];
 const text = (value?: string | null) => value?.trim() || "-";
@@ -72,7 +73,7 @@ export const FinanceMoneyInPage: React.FC = () => {
     }
   }, [t]);
   useEffect(() => {
-    if (canView) void load();
+    if (canView) { void ensureCurrenciesLoaded(); void load(); }
     else setLoading(false);
   }, [canView, load]);
   useEffect(() => {
@@ -354,13 +355,11 @@ export const FinanceMoneyInPage: React.FC = () => {
                   </td>
                   <td className="text-end" dir="ltr">
                     <p className="font-semibold text-slate-900 dark:text-white">
-                      {item.amount.toLocaleString("en-US")} {item.currency}
+                      {formatMoney(item.amount, item.currency)}
                     </p>
                     <p className="mt-0.5 text-xs text-slate-500">
                       {t("companyFinance.moneyIn.netReceived")}:{" "}
-                      {(item.netAmountReceived ?? item.amount).toLocaleString(
-                        "en-US",
-                      )}
+                      {formatMoney(item.netAmountReceived ?? item.amount, item.currency)}
                     </p>
                   </td>
                   <td>
@@ -451,10 +450,10 @@ export const FinanceMoneyInPage: React.FC = () => {
               <dd>{details.description}</dd>
               <dt>{t("companyFinance.moneyIn.amount")}</dt>
               <dd dir="ltr">
-                {details.amount} {details.currency}
+                {formatMoney(details.amount, details.currency)}
               </dd>
               <dt>{t("companyFinance.moneyIn.netReceived")}</dt>
-              <dd dir="ltr">{details.netAmountReceived ?? details.amount}</dd>
+              <dd dir="ltr">{formatMoney(details.netAmountReceived ?? details.amount, details.currency)}</dd>
               <dt>{t("companyFinance.moneyIn.notes")}</dt>
               <dd>
                 {text(

@@ -63,7 +63,7 @@
 
 **Files:** `CreditController.cs` (via `ScoreTransactionsController.cs`), `CreditService.cs`, `trace_score_screen.dart`, `credit_history_widget.dart`
 
-> Note: `CreditTransaction` entity name is misleading — it tracks **credibility score**, not money. See [technical-debt.md](./06-technical-debt.md).
+> Note: `CreditTransaction` entity name is misleading — it tracks **credibility score**, not money. See [technical-debt.md](./05-technical-debt.md).
 
 ---
 

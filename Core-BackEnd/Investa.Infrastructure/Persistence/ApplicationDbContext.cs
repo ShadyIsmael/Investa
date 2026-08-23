@@ -1,3 +1,4 @@
+﻿using Investa.Domain;
 using Investa.Domain.Entities;
 
 using Investa.Domain.Entities.Enums;
@@ -246,11 +247,17 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
     public DbSet<PricingRule> PricingRules { get; set; }
 
     // Investment Opportunity Lifecycle foundation
+    public DbSet<Project> Projects { get; set; }
     public DbSet<Opportunity> Opportunities { get; set; }
     public DbSet<OpportunityMedia> OpportunityMedia { get; set; }
     public DbSet<OpportunityDocument> OpportunityDocuments { get; set; }
     public DbSet<OpportunityEvent> OpportunityEvents { get; set; }
     public DbSet<OpportunityJoinRequest> OpportunityJoinRequests { get; set; }
+    public DbSet<ParticipationObligationConfirmation> ParticipationObligationConfirmations { get; set; }
+    public DbSet<ProjectRoomEntry> ProjectRoomEntries { get; set; }
+    public DbSet<ProjectRoomDocument> ProjectRoomDocuments { get; set; }
+    public DbSet<ExchangeRateSnapshot> ExchangeRateSnapshots { get; set; }
+    public DbSet<Currency> Currencies { get; set; }
     public DbSet<InvestmentContract> InvestmentContracts { get; set; }
     public DbSet<InvestmentContractVersion> InvestmentContractVersions { get; set; }
     public DbSet<ContractEvent> ContractEvents { get; set; }
@@ -526,7 +533,7 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
             entity.HasData(
                 new PricingRule { Id = 1, Action = PricingAction.SendConversationRequest, ActionCode = nameof(PricingAction.SendConversationRequest), DisplayName = "Send Conversation Request", Description = "Fixed CREDIT fee to send a negotiation conversation request.", CreditCost = 5m, IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
                 new PricingRule { Id = 2, Action = PricingAction.SendFirstOffer, ActionCode = nameof(PricingAction.SendFirstOffer), DisplayName = "Send First Offer", Description = "Fixed CREDIT fee to send the first negotiation offer.", CreditCost = 5m, IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
-                new PricingRule { Id = 3, Action = PricingAction.SendCounterOffer, ActionCode = nameof(PricingAction.SendCounterOffer), DisplayName = "Send Counter Offer", Description = "Fixed CREDIT fee to send a counter offer.", CreditCost = 2m, IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+                new PricingRule { Id = 3, Action = PricingAction.SendOfferReplacement, ActionCode = nameof(PricingAction.SendOfferReplacement), DisplayName = "Send Offer Replacement", Description = "Fixed CREDIT fee to send a full replacement offer.", CreditCost = 2m, IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
                 new PricingRule { Id = 4, Action = PricingAction.SubmitParticipationRequest, ActionCode = nameof(PricingAction.SubmitParticipationRequest), DisplayName = "Submit Participation Request", Description = "Fixed CREDIT fee to submit an opportunity participation request.", CreditCost = 10m, IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
                 new PricingRule { Id = 5, Action = PricingAction.PublishOpportunity, ActionCode = nameof(PricingAction.PublishOpportunity), DisplayName = "Publish Opportunity", Description = "Fixed CREDIT fee to publish an opportunity.", CreditCost = 15m, IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate });
         });
@@ -1013,7 +1020,7 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
             {
                 rr.HasKey(r => r.Id);
                 rr.Property(r => r.RuleCode).HasMaxLength(50).IsRequired();
-                rr.Property(r => r.ActivityCode).HasMaxLength(100).IsRequired();
+                rr.Property(r => r.ActivityCode).HasMaxLength(100);
                 rr.Property(r => r.Description).HasMaxLength(200).IsRequired();
                 rr.Property(r => r.Points).IsRequired();
                 rr.Property(r => r.RoleScope).HasMaxLength(50).HasDefaultValue("Any").IsRequired();
@@ -1026,7 +1033,9 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
                 rr.Property(r => r.CreatedAt).HasDefaultValueSql("GETDATE()");
                 rr.Property(r => r.UpdatedAt).HasDefaultValueSql("GETDATE()");
                 rr.HasIndex(r => r.RuleCode).IsUnique();
-                rr.HasIndex(r => r.ActivityCode).IsUnique();
+                rr.HasIndex(r => r.ActivityCode)
+                    .IsUnique()
+                    .HasFilter("[ActivityCode] IS NOT NULL");
                 rr.HasOne(r => r.CreatedBy)
                     .WithMany()
                     .HasForeignKey(r => r.CreatedByUserId)
@@ -1129,6 +1138,12 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
 
             .HasConversion<int>();
 
+modelBuilder.Entity<UserProfile>()
+            .Property(up => up.PreferredCurrency)
+            .HasMaxLength(3)
+            .IsRequired()
+            .HasDefaultValue(CurrencyMasterDefaults.DefaultCurrency);
+
 
 
         // Configure CurrentCredibilityScore with default value
@@ -1189,7 +1204,7 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
 
             eb.Property(a => a.WalletBalance).HasPrecision(18, 2).HasDefaultValue(0m);
 
-            eb.Property(a => a.CredibilityScore).HasDefaultValue(3500);
+            eb.Property(a => a.CredibilityScore).HasDefaultValue(0);
 
             eb.Property(a => a.ReputationLevel).HasMaxLength(80).IsRequired();
 
@@ -1235,6 +1250,8 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
             t.HasIndex(x => x.WalletId);
             t.HasIndex(x => new { x.WalletId, x.CreatedAt });
             t.HasIndex(x => x.ReferenceId);
+            t.HasIndex(x => x.ExchangeRateSnapshotId);
+            t.HasOne(x => x.ExchangeRateSnapshot).WithMany().HasForeignKey(x => x.ExchangeRateSnapshotId).OnDelete(DeleteBehavior.Restrict);
             t.HasIndex(x => new { x.WalletId, x.ActionCode, x.ReferenceType, x.ReferenceId })
                 .IsUnique()
                 .HasFilter("[ActionCode] IS NOT NULL AND [ReferenceId] IS NOT NULL");
@@ -1254,10 +1271,61 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
             sp.HasIndex(x => x.ServiceCode).IsUnique();
         });
 
+        // Durable Project foundation. Opportunity remains the public/funding
+        // aggregate in Phase 1 and is linked as a required child.
+        modelBuilder.Entity<Project>(p =>
+        {
+            p.HasKey(x => x.Id);
+            p.Property(x => x.FounderId).IsRequired();
+            p.Property(x => x.DefaultCurrency).HasMaxLength(3).IsRequired().HasDefaultValue(CurrencyMasterDefaults.DefaultCurrency);
+            p.Property(x => x.DisplayName).HasMaxLength(200).IsRequired();
+            p.Property(x => x.LegalName).HasMaxLength(250);
+            p.Property(x => x.Slug).HasMaxLength(220).IsRequired();
+            p.Property(x => x.Summary).HasMaxLength(500).IsRequired();
+            p.Property(x => x.Description).HasMaxLength(4000).IsRequired();
+            p.Property(x => x.Industry).HasMaxLength(150);
+            p.Property(x => x.BusinessStage).HasConversion<string>().HasMaxLength(40).IsRequired();
+            p.Property(x => x.Geography).HasMaxLength(200);
+            p.Property(x => x.TagsSnapshotJson).HasColumnType("nvarchar(max)").HasDefaultValue("[]").IsRequired();
+            p.Property(x => x.WebsiteUrl).HasMaxLength(500);
+            p.Property(x => x.LogoUrl).HasMaxLength(1000);
+            p.Property(x => x.TeamDescription).HasMaxLength(2000);
+            p.Property(x => x.BusinessModel).HasMaxLength(2000);
+            p.Property(x => x.RiskLevel).HasMaxLength(50);
+            p.Property(x => x.RiskDisclosure).HasMaxLength(4000);
+            p.Property(x => x.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
+            p.Property(x => x.ArchiveReason).HasMaxLength(1000);
+            p.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            p.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            p.Property(x => x.RowVersion).IsRowVersion();
+            p.HasAlternateKey(x => new { x.Id, x.FounderId });
+            p.HasIndex(x => x.FounderId);
+            p.HasIndex(x => x.CategoryId);
+            p.HasIndex(x => x.Slug).IsUnique();
+            p.HasOne(x => x.Founder)
+             .WithMany()
+             .HasForeignKey(x => x.FounderId)
+             .OnDelete(DeleteBehavior.Restrict);
+            p.HasOne(x => x.Category)
+             .WithMany()
+             .HasForeignKey(x => x.CategoryId)
+             .OnDelete(DeleteBehavior.Restrict)
+             .IsRequired(false);
+            p.HasMany(x => x.Opportunities)
+             .WithOne(x => x.Project)
+             .HasForeignKey(x => new { x.ProjectId, x.FounderId })
+             .HasPrincipalKey(x => new { x.Id, x.FounderId })
+             .OnDelete(DeleteBehavior.Restrict);
+        });
+
         // Investment Opportunity Lifecycle foundation mapping
         modelBuilder.Entity<Opportunity>(o =>
         {
             o.HasKey(x => x.Id);
+            o.Property(x => x.ProjectId).IsRequired();
+            o.Property(x => x.SequenceNumber).IsRequired();
+            o.Property(x => x.Purpose).HasMaxLength(200).IsRequired().HasDefaultValue("General funding");
+            o.Property(x => x.Type).HasMaxLength(80).IsRequired().HasDefaultValue("Opportunity");
             o.Property(x => x.FounderId).IsRequired();
             o.Property(x => x.Title).HasMaxLength(200).IsRequired();
             o.Property(x => x.Description).HasMaxLength(4000);
@@ -1267,13 +1335,19 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
             o.Property(x => x.MinimumInvestmentAmount).HasPrecision(18, 2);
             o.Property(x => x.MaximumInvestmentAmount).HasPrecision(18, 2);
             o.Property(x => x.EquityOfferedPercentage).HasPrecision(5, 2);
-            o.Property(x => x.Currency).HasMaxLength(10);
+            o.Property(x => x.FundingCurrency).HasMaxLength(3).IsRequired().HasDefaultValue(CurrencyMasterDefaults.DefaultCurrency);
             o.Property(x => x.SharePrice).HasPrecision(18, 2);
             o.Property(x => x.ProfitSharePercentage).HasPrecision(5, 2);
             o.Property(x => x.ProfitSharingPayoutFrequency).HasMaxLength(50);
             o.Property(x => x.InvestmentModel).HasConversion<string>().HasMaxLength(60).IsRequired();
             o.Property(x => x.ProjectStage).HasConversion<string>().HasMaxLength(40).IsRequired();
+            o.Property(x => x.ProjectStageCustomName).HasMaxLength(120);
+            o.Property(x => x.ProjectStageCustomNameNormalized).HasMaxLength(120);
             o.Property(x => x.Status).HasConversion<string>().HasMaxLength(40).IsRequired();
+            o.Property(x => x.ModerationStatus).HasConversion<string>().HasMaxLength(40).IsRequired();
+            o.Property(x => x.FundingStatus).HasConversion<string>().HasMaxLength(40).IsRequired();
+            o.Property(x => x.ClosureReason).HasConversion<string>().HasMaxLength(40);
+            o.Property(x => x.ObligationCompletionStatus).HasConversion<string>().HasMaxLength(40).IsRequired();
             o.Property(x => x.CoverImageUrl).HasMaxLength(1000);
             o.Property(x => x.IsLockedForEditing).HasDefaultValue(false);
             o.Property(x => x.InterestRate).HasPrecision(5, 2);
@@ -1281,9 +1355,25 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
             o.Property(x => x.FinalRepaymentDate);
             o.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             o.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            o.Property(x => x.RowVersion).IsRowVersion();
             o.HasIndex(x => x.FounderId);
+            o.HasIndex(x => x.ProjectId);
+            o.HasIndex(x => new { x.ProjectId, x.SequenceNumber }).IsUnique();
+            o.HasIndex(x => new { x.ProjectId, x.ProjectStage })
+             .IsUnique()
+             .HasDatabaseName("UX_Opportunities_Project_StandardStage")
+             .HasFilter("[ProjectStage] <> 'Other'");
+            o.HasIndex(x => new { x.ProjectId, x.ProjectStageCustomNameNormalized })
+             .IsUnique()
+             .HasDatabaseName("UX_Opportunities_Project_OtherStage")
+             .HasFilter("[ProjectStage] = 'Other' AND [ProjectStageCustomNameNormalized] IS NOT NULL");
+            o.ToTable(table => table.HasCheckConstraint(
+                "CK_Opportunities_ProjectStageCustomName",
+                "([ProjectStage] <> 'Other' AND [ProjectStageCustomName] IS NULL AND [ProjectStageCustomNameNormalized] IS NULL) OR ([ProjectStage] = 'Other' AND [ProjectStageCustomName] IS NOT NULL AND [ProjectStageCustomNameNormalized] IS NOT NULL)"));
             o.HasIndex(x => x.Status);
-            o.HasIndex(x => x.CategoryId);
+            o.HasIndex(x => x.ModerationStatus);
+            o.HasIndex(x => x.FundingStatus);
+            o.HasIndex(x => x.FundingClosesAt);
             o.HasIndex(x => x.FundingGoalId);
             o.HasIndex(x => x.InvestmentModel);
             o.HasIndex(x => x.ProjectStage);
@@ -1291,11 +1381,6 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
              .WithMany()
              .HasForeignKey(x => x.FounderId)
              .OnDelete(DeleteBehavior.Restrict);
-            o.HasOne(x => x.Category)
-             .WithMany(x => x.Opportunities)
-             .HasForeignKey(x => x.CategoryId)
-             .OnDelete(DeleteBehavior.Restrict)
-             .IsRequired(false);
             o.HasOne(x => x.FundingGoal)
              .WithMany(x => x.Opportunities)
              .HasForeignKey(x => x.FundingGoalId)
@@ -1327,7 +1412,13 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
              .HasMaxLength(40)
              .HasDefaultValue(OpportunityJoinRequestType.GeneralParticipation)
              .IsRequired();
+            j.Property(x => x.ParticipationSequence).IsRequired();
+            j.Property(x => x.IdempotencyKey).HasMaxLength(100);
             j.Property(x => x.RequestedAmount).HasPrecision(18, 2);
+            j.Property(x => x.EnteredAmount).HasPrecision(18, 2);
+            j.Property(x => x.EnteredCurrency).HasMaxLength(3);
+            j.Property(x => x.FundingAmount).HasPrecision(18, 2);
+            j.Property(x => x.FundingCurrency).HasMaxLength(3);
             j.Property(x => x.CalculatedTotalAmount).HasPrecision(18, 2);
             j.Property(x => x.Message).HasMaxLength(1000);
             j.Property(x => x.TermsSnapshotJson).HasColumnType("nvarchar(max)");
@@ -1337,10 +1428,18 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
             j.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             j.Property(x => x.IsVisibleToFounder).HasDefaultValue(true);
             j.Property(x => x.IsVisibleToInvestor).HasDefaultValue(true);
+            j.Property(x => x.RowVersion).IsRowVersion();
+            j.Property<int>("ActiveRequestSlot")
+             .HasComputedColumnSql("CASE WHEN [Status] = 'Pending' THEN 0 ELSE [Id] END", stored: true);
             j.HasIndex(x => x.OpportunityId);
             j.HasIndex(x => x.InvestorId);
             j.HasIndex(x => x.SourceConversationId);
+            j.HasIndex(x => x.ExchangeRateSnapshotId);
             j.HasIndex(x => new { x.OpportunityId, x.InvestorId, x.Status });
+            j.HasIndex(x => new { x.OpportunityId, x.InvestorId, x.IdempotencyKey }).IsUnique().HasFilter("[IdempotencyKey] IS NOT NULL");
+            j.HasIndex(x => new { x.OpportunityId, x.InvestorId, x.ParticipationSequence }).IsUnique().HasFilter("[ParticipationSequence] > 0");
+            j.HasIndex("OpportunityId", "InvestorId", "ActiveRequestSlot")
+             .IsUnique();
             j.HasOne(x => x.Investor)
              .WithMany()
              .HasForeignKey(x => x.InvestorId)
@@ -1350,6 +1449,81 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
              .HasForeignKey(x => x.ReviewedByFounderId)
              .OnDelete(DeleteBehavior.Restrict)
              .IsRequired(false);
+            j.HasOne(x => x.ExchangeRateSnapshot)
+             .WithMany()
+             .HasForeignKey(x => x.ExchangeRateSnapshotId)
+             .OnDelete(DeleteBehavior.Restrict)
+             .IsRequired(false);
+        });
+
+        modelBuilder.Entity<ParticipationObligationConfirmation>(c =>
+        {
+            c.HasKey(x => x.Id);
+            c.Property(x => x.PartyRole).HasConversion<string>().HasMaxLength(20).IsRequired();
+            c.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            c.Property(x => x.ConfirmationStatement).HasMaxLength(1000);
+            c.Property(x => x.IdempotencyKey).HasMaxLength(100);
+            c.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            c.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            c.Property(x => x.RowVersion).IsRowVersion();
+            c.HasIndex(x => new { x.ParticipationRequestId, x.PartyRole }).IsUnique();
+            c.HasIndex(x => new { x.RequiredUserId, x.Status });
+            c.HasIndex(x => new { x.RequiredUserId, x.IdempotencyKey }).IsUnique().HasFilter("[IdempotencyKey] IS NOT NULL");
+            c.HasIndex(x => x.OpportunityId);
+            c.HasOne(x => x.ParticipationRequest).WithMany().HasForeignKey(x => x.ParticipationRequestId).OnDelete(DeleteBehavior.Restrict);
+            c.HasOne(x => x.Opportunity).WithMany().HasForeignKey(x => x.OpportunityId).OnDelete(DeleteBehavior.Restrict);
+            c.HasOne(x => x.RequiredUser).WithMany().HasForeignKey(x => x.RequiredUserId).OnDelete(DeleteBehavior.Restrict);
+            c.HasOne(x => x.ConfirmedByUser).WithMany().HasForeignKey(x => x.ConfirmedByUserId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ProjectRoomEntry>(e =>
+        {
+            e.HasKey(x=>x.Id);e.Property(x=>x.EntryType).HasConversion<string>().HasMaxLength(30).IsRequired();
+            e.Property(x=>x.Title).HasMaxLength(200).IsRequired();e.Property(x=>x.Description).HasMaxLength(4000);
+            e.Property(x=>x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");e.Property(x=>x.RowVersion).IsRowVersion();
+            e.HasIndex(x=>new{x.ProjectId,x.CreatedAt});e.HasOne(x=>x.Project).WithMany(x=>x.RoomEntries).HasForeignKey(x=>x.ProjectId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x=>x.CreatedByUser).WithMany().HasForeignKey(x=>x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<ProjectRoomDocument>(d =>
+        {
+            d.HasKey(x=>x.Id);d.Property(x=>x.FileKey).HasMaxLength(500).IsRequired();d.Property(x=>x.FileName).HasMaxLength(200).IsRequired();
+            d.Property(x=>x.DocumentType).HasMaxLength(100).IsRequired();d.Property(x=>x.Visibility).HasConversion<string>().HasMaxLength(30).IsRequired();
+            d.Property(x=>x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");d.Property(x=>x.RowVersion).IsRowVersion();
+            d.HasIndex(x=>new{x.ProjectId,x.CreatedAt});d.HasOne(x=>x.Project).WithMany(x=>x.RoomDocuments).HasForeignKey(x=>x.ProjectId).OnDelete(DeleteBehavior.Restrict);
+            d.HasOne(x=>x.CreatedByUser).WithMany().HasForeignKey(x=>x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ExchangeRateSnapshot>(x =>
+        {
+            x.HasKey(s => s.Id);
+            x.Property(s => s.SourceCurrency).HasMaxLength(3).IsRequired();
+            x.Property(s => s.TargetCurrency).HasMaxLength(3).IsRequired();
+            x.Property(s => s.ExchangeRate).HasPrecision(28, 12).IsRequired();
+            x.Property(s => s.Provider).HasMaxLength(100).IsRequired();
+            x.Property(s => s.ProviderQuoteId).HasMaxLength(200);
+            x.Property(s => s.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            x.HasIndex(s => new { s.SourceCurrency, s.TargetCurrency, s.RateTimestamp });
+            x.HasIndex(s => s.ProviderQuoteId);
+            x.ToTable("ExchangeRateSnapshots");
+        });
+
+        modelBuilder.Entity<Currency>(c =>
+        {
+            c.HasKey(x => x.ISOCode);
+            c.Property(x => x.ISOCode).HasMaxLength(3);
+            c.Property(x => x.EnglishName).HasMaxLength(100).IsRequired();
+            c.Property(x => x.ArabicName).HasMaxLength(100).IsRequired();
+            c.Property(x => x.Symbol).HasMaxLength(10).IsRequired();
+            c.HasIndex(x => x.IsActive);
+            c.HasData(
+                new Currency { ISOCode = "EGP", EnglishName = "Egyptian Pound", ArabicName = "الجنيه المصري", Symbol = "E£", DecimalDigits = 2, IsActive = true, SupportsFunding = true, SupportsSettlement = true, SupportsWallet = true },
+                new Currency { ISOCode = "USD", EnglishName = "US Dollar", ArabicName = "الدولار الأمريكي", Symbol = "$", DecimalDigits = 2, IsActive = true, SupportsFunding = true, SupportsSettlement = true, SupportsWallet = true },
+                new Currency { ISOCode = "EUR", EnglishName = "Euro", ArabicName = "اليورو", Symbol = "€", DecimalDigits = 2, IsActive = true, SupportsFunding = true, SupportsSettlement = true, SupportsWallet = false },
+                new Currency { ISOCode = "GBP", EnglishName = "British Pound", ArabicName = "الجنيه الإسترليني", Symbol = "£", DecimalDigits = 2, IsActive = true, SupportsFunding = true, SupportsSettlement = true, SupportsWallet = false },
+                new Currency { ISOCode = "SAR", EnglishName = "Saudi Riyal", ArabicName = "الريال السعودي", Symbol = "﷼", DecimalDigits = 2, IsActive = true, SupportsFunding = true, SupportsSettlement = true, SupportsWallet = true },
+                new Currency { ISOCode = "AED", EnglishName = "UAE Dirham", ArabicName = "الدرهم الإماراتي", Symbol = "د.إ", DecimalDigits = 2, IsActive = true, SupportsFunding = true, SupportsSettlement = true, SupportsWallet = true },
+                new Currency { ISOCode = "JPY", EnglishName = "Japanese Yen", ArabicName = "الين الياباني", Symbol = "¥", DecimalDigits = 0, IsActive = true, SupportsFunding = false, SupportsSettlement = true, SupportsWallet = false },
+                new Currency { ISOCode = "KWD", EnglishName = "Kuwaiti Dinar", ArabicName = "الدينار الكويتي", Symbol = "د.ك", DecimalDigits = 3, IsActive = true, SupportsFunding = true, SupportsSettlement = true, SupportsWallet = true });
         });
 
         modelBuilder.Entity<InvestmentContract>(c =>
@@ -1361,7 +1535,7 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
             c.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             c.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             c.HasIndex(x => x.ContractNumber).IsUnique();
-            c.HasIndex(x => new { x.OpportunityId, x.FounderUserId, x.InvestorUserId, x.InvestmentModel }).IsUnique();
+            c.HasIndex(x => new { x.OpportunityId, x.FounderUserId, x.InvestorUserId, x.InvestmentModel });
             c.HasOne(x => x.Opportunity).WithMany().HasForeignKey(x => x.OpportunityId).OnDelete(DeleteBehavior.Restrict);
             c.HasOne(x => x.FounderUser).WithMany().HasForeignKey(x => x.FounderUserId).OnDelete(DeleteBehavior.Restrict);
             c.HasOne(x => x.InvestorUser).WithMany().HasForeignKey(x => x.InvestorUserId).OnDelete(DeleteBehavior.Restrict);
@@ -1462,12 +1636,13 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
         modelBuilder.Entity<OpportunityMedia>(m =>
         {
             m.HasKey(x => x.Id);
-            m.Property(x => x.FileUrl).HasMaxLength(1000).IsRequired();
+            m.Property(x => x.FileKey).HasMaxLength(500).IsRequired();
             m.Property(x => x.FileId).HasMaxLength(100);
-            m.Property(x => x.FileKey).HasMaxLength(500);
+            m.Property(x => x.FileUrl).HasMaxLength(1000);
             m.Property(x => x.FileName).HasMaxLength(255).IsRequired();
             m.Property(x => x.FileType).HasMaxLength(100).IsRequired();
             m.Property(x => x.MimeType).HasMaxLength(150);
+            m.Property(x => x.FileSize);
             m.Property(x => x.PreviewUrl).HasMaxLength(1000);
             m.Property(x => x.ThumbnailUrl).HasMaxLength(1000);
             m.Property(x => x.MediaType).HasMaxLength(50).IsRequired();
@@ -1476,6 +1651,8 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
             m.Property(x => x.Purpose).HasConversion<string>().HasMaxLength(40).HasDefaultValue(OpportunityFilePurpose.General).IsRequired();
             m.Property(x => x.SortOrder).HasDefaultValue(0);
             m.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            m.Property(x => x.ScanStatus).HasConversion<string>().HasMaxLength(20).HasDefaultValue(Domain.Entities.Enums.FileScanStatus.Pending).IsRequired();
+            m.Property(x => x.ScanCompletedAt);
             m.HasIndex(x => x.OpportunityId);
             m.HasIndex(x => new { x.OpportunityId, x.SortOrder });
             m.HasIndex(x => x.FileId);
@@ -1485,12 +1662,13 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
         modelBuilder.Entity<OpportunityDocument>(d =>
         {
             d.HasKey(x => x.Id);
-            d.Property(x => x.FileUrl).HasMaxLength(1000).IsRequired();
+            d.Property(x => x.FileKey).HasMaxLength(500).IsRequired();
             d.Property(x => x.FileId).HasMaxLength(100);
-            d.Property(x => x.FileKey).HasMaxLength(500);
+            d.Property(x => x.FileUrl).HasMaxLength(1000);
             d.Property(x => x.FileName).HasMaxLength(255).IsRequired();
             d.Property(x => x.FileExtension).HasMaxLength(20).IsRequired();
             d.Property(x => x.MimeType).HasMaxLength(150);
+            d.Property(x => x.FileSize);
             d.Property(x => x.PreviewUrl).HasMaxLength(1000);
             d.Property(x => x.ThumbnailUrl).HasMaxLength(1000);
             d.Property(x => x.DocumentType).HasMaxLength(100).IsRequired();
@@ -1499,6 +1677,8 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
             d.Property(x => x.Category).HasMaxLength(100);
             d.Property(x => x.SearchTags).HasMaxLength(1000);
             d.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            d.Property(x => x.ScanStatus).HasConversion<string>().HasMaxLength(20).HasDefaultValue(Domain.Entities.Enums.FileScanStatus.Pending).IsRequired();
+            d.Property(x => x.ScanCompletedAt);
             d.HasIndex(x => x.OpportunityId);
             d.HasIndex(x => new { x.OpportunityId, x.Visibility });
             d.HasIndex(x => x.Category);
@@ -2525,20 +2705,30 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
             o.Property(x => x.Note).HasMaxLength(1000).IsRequired(false);
             o.Property(x => x.Currency).HasMaxLength(10).IsRequired();
             o.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            // Preserve the existing database column name while exposing the domain's
+            // replacement semantics as ReplacesOfferId.
+            o.Property(x => x.ReplacesOfferId).HasColumnName("ParentOfferId");
             o.HasIndex(x => x.ConversationId);
             o.HasIndex(x => new { x.ConversationId, x.Status });
             o.HasIndex(x => new { x.ConversationId, x.Version }).IsUnique();
+            o.HasIndex(x => x.OpportunityId);
+            o.HasIndex(x => new { x.OpportunityId, x.CreatedByUserId, x.Status });
             o.HasOne(x => x.Conversation)
                 .WithMany(x => x.Offers)
                 .HasForeignKey(x => x.ConversationId)
                 .OnDelete(DeleteBehavior.Cascade);
+            o.HasOne(x => x.Opportunity)
+                .WithMany()
+                .HasForeignKey(x => x.OpportunityId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
             o.HasOne(x => x.CreatedByUser)
                 .WithMany()
                 .HasForeignKey(x => x.CreatedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
             o.HasOne(x => x.ParentOffer)
                 .WithMany()
-                .HasForeignKey(x => x.ParentOfferId)
+                .HasForeignKey(x => x.ReplacesOfferId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .IsRequired(false);
         });
@@ -2857,7 +3047,7 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
 
                 ClientType = Investa.Domain.Entities.Enums.ClientType.Founder,
 
-                CredibilityScore = 4200,
+                CredibilityScore = 0,
 
                 WalletBalance = 100000m,
 
@@ -2879,7 +3069,7 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
 
                 ClientType = Investa.Domain.Entities.Enums.ClientType.Investor,
 
-                CredibilityScore = 3750,
+                CredibilityScore = 0,
 
                 WalletBalance = 25000m,
 
@@ -2901,7 +3091,7 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
 
                 ClientType = Investa.Domain.Entities.Enums.ClientType.Investor,
 
-                CredibilityScore = 3600,
+                CredibilityScore = 0,
 
                 WalletBalance = 15000m,
 
@@ -3013,13 +3203,25 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
 
 
 
+        modelBuilder.Entity<PaymentTransaction>(p =>
+        {
+            p.HasKey(x => x.Id);
+            p.Property(x => x.Amount).HasPrecision(18, 2).IsRequired();
+            p.Property(x => x.Reference).HasMaxLength(200);
+            p.Property(x => x.IdempotencyKey).HasMaxLength(200).IsRequired();
+            p.HasIndex(x => x.IdempotencyKey).IsUnique();
+            p.HasIndex(x => x.Reference).IsUnique().HasFilter("[Reference] IS NOT NULL");
+        });
+
         // PaymentAllocation configuration
         modelBuilder.Entity<PaymentAllocation>(a =>
         {
             a.HasKey(x => x.Id);
             a.Property(x => x.AllocatedAmount).HasPrecision(18, 2).IsRequired();
+            a.Property(x => x.InstallmentConfirmationKey).HasMaxLength(250);
             a.HasIndex(x => new { x.PaymentTransactionId });
-            a.HasIndex(x => new { x.ParticipationRequestId, x.InstallmentNumber });
+            a.HasIndex(x => new { x.PaymentTransactionId, x.ParticipationRequestId, x.InstallmentNumber }).IsUnique();
+            a.HasIndex(x => x.InstallmentConfirmationKey).IsUnique().HasFilter("[InstallmentConfirmationKey] IS NOT NULL");
             a.HasOne(x => x.PaymentTransaction)
              .WithMany()
              .HasForeignKey(x => x.PaymentTransactionId)

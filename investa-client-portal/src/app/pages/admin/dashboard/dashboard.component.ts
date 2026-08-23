@@ -13,10 +13,12 @@ import { RoleContextService } from '../../../services/role-context.service';
 import { ApprovedInvestor, Opportunity, OpportunityService, OpportunityRoom, OpportunityMilestone, OpportunityEvent, OpportunityDocument } from '../../../services/opportunity.service';
 import { WalletService } from '../../../services/wallet.service';
 import { CashFlowService, CashFlowSummary, MonthlyCashFlow, PaymentScheduleItem } from '../../../services/cash-flow.service';
+import { CurrencyService } from '../../../services/currency.service';
 import { OpportunityRequest, OpportunityRequestKind } from '../../../models/request.model';
 import { TIME_INTERVALS } from '../../../config/constants';
 import { get } from 'lodash-es';
 import { sumParticipationValues } from './dashboard-calculations';
+import { FounderPortfolioDashboardComponent } from './founder-portfolio-dashboard.component';
 
 declare var d3: any;
 
@@ -75,11 +77,12 @@ type DashboardProject = Opportunity & Record<string, any>;
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, TranslatePipe, RouterLink]
+  imports: [CommonModule, TranslatePipe, RouterLink, FounderPortfolioDashboardComponent]
 })
 export class DashboardComponent {
-  private opportunityService = inject(OpportunityService);
-  private walletService = inject(WalletService);
+private opportunityService = inject(OpportunityService);
+private walletService = inject(WalletService);
+private currencyService = inject(CurrencyService);
   private cashFlowService = inject(CashFlowService);
   private languageService = inject(LanguageService);
   private authService = inject(AuthService);
@@ -177,7 +180,7 @@ export class DashboardComponent {
   });
   currentCredits = computed(() => this.userService.credits());
   availableCredits = this.userService.credits;
-  investmentCurrency = computed(() => this.cashFlowSummary()?.currency ?? 'EGP');
+  investmentCurrency = computed(() => this.cashFlowSummary()?.currency ?? this.currencyService.resolve()?.isoCode ?? '');
   cashFlowTotalInvested = computed(() => this.cashFlowSummary()?.totalInvestedAmount ?? this.cashFlowSummary()?.remainingPrincipal ?? 0);
   totalInvested = computed(() => {
     return sumParticipationValues(this.approvedParticipations(), request => this.getRequestAmount(request));
@@ -397,24 +400,44 @@ export class DashboardComponent {
   roomTimeline = computed<OpportunityEvent[]>(() => {
     const room = this.opportunityRoom();
     const raw = room?.timeline;
-    if (Array.isArray(raw)) return raw as OpportunityEvent[];
-    if (raw && typeof raw === 'object') return Object.values(raw).flat() as OpportunityEvent[];
-    return [];
+    if (!raw) return [];
+    let items: any[] = [];
+    if (Array.isArray(raw)) {
+      items = raw.flatMap((item: any) => Array.isArray(item?.items) ? item.items : [item]).filter(Boolean);
+    } else if (typeof raw === 'object') {
+      items = Object.values(raw).flat().filter(Boolean);
+    }
+    return items as OpportunityEvent[];
   });
 
   roomMilestones = computed<OpportunityMilestone[]>(() => {
     const room = this.opportunityRoom();
-    const raw = room?.milestones;
-    if (Array.isArray(raw)) return raw as OpportunityMilestone[];
-    if (raw && typeof raw === 'object') return Object.values(raw).flat() as OpportunityMilestone[];
-    return [];
+    const extract = (source: any): any[] => {
+      if (!source) return [];
+      if (Array.isArray(source)) return source.flatMap((item: any) => Array.isArray(item?.items) ? item.items : [item]).filter(Boolean);
+      if (typeof source === 'object') return Object.values(source).flat().filter(Boolean);
+      return [];
+    };
+    const isPlainTitle = (v: any) => v && typeof v === 'string' && !v.includes('.') && !v.startsWith('project');
+    let items = extract(room?.milestones).filter((item: any) => {
+      // Keep if no titleKey (real milestone) OR has plain title (milestone with both title+titleKey)
+      return !item.titleKey || isPlainTitle(item.title);
+    });
+    // Fallback: if no real milestones found, look in timeline for 'Milestone' events
+    if (items.length === 0) {
+      items = extract(room?.timeline ?? room?.events).filter((item: any) =>
+        (item.eventType === 'Milestone' || item.type === 'Milestone') && isPlainTitle(item.title)
+      );
+    }
+    return items as OpportunityMilestone[];
   });
 
   roomDocuments = computed<OpportunityDocument[]>(() => {
     const room = this.opportunityRoom();
     const raw = room?.documents ?? room?.documentsLibrary;
-    if (Array.isArray(raw)) return raw as OpportunityDocument[];
-    if (raw && typeof raw === 'object') return Object.values(raw).flat() as OpportunityDocument[];
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw.flatMap((item: any) => Array.isArray(item?.items) ? item.items : [item]).filter(Boolean) as OpportunityDocument[];
+    if (typeof raw === 'object') return Object.values(raw).flat().filter(Boolean) as OpportunityDocument[];
     return [];
   });
 
@@ -471,6 +494,69 @@ export class DashboardComponent {
     }).length;
   });
 
+  sortedMilestones = computed<OpportunityMilestone[]>(() => {
+    return [...this.roomMilestones()]
+      .map(m => {
+        const anyM = m as any;
+        const metadata = this.parseMetadata(anyM.metadata);
+
+        // Priority: metadata.milestoneTitle > newValue > m.title (plain text) > titleKey (i18n) > name/milestoneName
+        let resolvedTitle = metadata?.milestoneTitle || anyM.newValue || '';
+        if (!resolvedTitle) {
+          const titleRaw = m.title;
+          const titleKey = anyM.titleKey;
+          // If m.title is a plain name (not an i18n key), use it directly
+          if (titleRaw && !titleRaw.includes('.') && !titleRaw.startsWith('project')) {
+            resolvedTitle = titleRaw;
+          } else if (titleKey) {
+            const translated = this.resolveI18n(titleKey, metadata);
+            resolvedTitle = translated || titleRaw || '';
+          } else if (titleRaw) {
+            resolvedTitle = titleRaw;
+          }
+        }
+        resolvedTitle = resolvedTitle || anyM.name || anyM.milestoneName || '';
+
+        // Priority for description: metadata.milestoneDescription > m.description (plain) > descriptionKey (i18n) > desc
+        let resolvedDesc = metadata?.milestoneDescription || '';
+        if (!resolvedDesc) {
+          const descRaw = m.description;
+          const descKey = anyM.descriptionKey;
+          if (descRaw && !descRaw.includes('.') && !descRaw.startsWith('project')) {
+            resolvedDesc = descRaw;
+          } else if (descKey) {
+            const translated = this.resolveI18n(descKey, metadata);
+            resolvedDesc = translated || descRaw || '';
+          } else if (descRaw) {
+            resolvedDesc = descRaw;
+          }
+        }
+        resolvedDesc = resolvedDesc || anyM.desc || '';
+
+        // Date: completedAt, targetDate, eventDate, date, createdAt
+        const resolvedDate = anyM.completedAt || m.targetDate || anyM.eventDate || anyM.date || anyM.createdAt || null;
+
+        return {
+          ...m,
+          title: resolvedTitle,
+          description: resolvedDesc,
+          status: String(m.status || anyM.type || '').toLowerCase(),
+          targetDate: resolvedDate,
+        };
+      })
+      .sort((a, b) => {
+        const aDate = a.targetDate ? new Date(a.targetDate).getTime() : 0;
+        const bDate = b.targetDate ? new Date(b.targetDate).getTime() : 0;
+        return aDate - bDate;
+      });
+  });
+
+  currentMilestoneIndex = computed(() => {
+    const milestones = this.sortedMilestones();
+    const idx = milestones.findIndex(m => m.status !== 'completed');
+    return idx >= 0 ? idx : milestones.length - 1;
+  });
+
   latestDocument = computed<OpportunityDocument | null>(() => {
     const docs = this.roomDocuments();
     if (docs.length === 0) return null;
@@ -524,9 +610,12 @@ export class DashboardComponent {
   requestToWithdraw = signal<SentRequest | null>(null);
 
   constructor() {
-    void this.loadProjects();
-    void this.requestsService.refreshRequests();
-    void this.loadCashFlow();
+    this.currencyService.ensureLoaded();
+    if (this.roleContext.isActiveInvestorContext()) {
+      void this.loadProjects();
+      void this.requestsService.refreshRequests();
+      void this.loadCashFlow();
+    }
 
     effect(() => {
       const projects = this.founderProjects();
@@ -739,24 +828,31 @@ export class DashboardComponent {
 
     try {
       this.publishingOpportunityId.set(project.id);
-      const quote = await this.walletService.getPaidActionQuote('PublishOpportunity');
-      if (!quote.hasSufficientCredit) {
-        this.notificationService.showToast({
-          title: this.t('paidActions.insufficientTitle', 'Insufficient CREDIT'),
-          message: this.t('paidActions.insufficientMessage', 'Required: {required} CREDIT. Current balance: {balance} CREDIT.')
-            .replace('{required}', this.formatCredits(quote.creditCost))
-            .replace('{balance}', this.formatCredits(quote.currentBalance)),
-          type: 'error'
-        });
-        return;
-      }
+      const chargingEnabled = await this.walletService.loadChargingEnabled();
+      if (!chargingEnabled) {
+        const freeConfirmation = this.t('opportunityPublish.confirmationFree', '{action} will become publicly visible.')
+          .replace('{action}', this.t('opportunityPublish.action', 'Publish Opportunity'));
+        if (!window.confirm(freeConfirmation)) return;
+      } else {
+        const quote = await this.walletService.getPaidActionQuote('PublishOpportunity');
+        if (!quote.hasSufficientCredit) {
+          this.notificationService.showToast({
+            title: this.t('paidActions.insufficientTitle', 'Insufficient CREDIT'),
+            message: this.t('paidActions.insufficientMessage', 'Required: {required} CREDIT. Current balance: {balance} CREDIT.')
+              .replace('{required}', this.formatCredits(quote.creditCost))
+              .replace('{balance}', this.formatCredits(quote.currentBalance)),
+            type: 'error'
+          });
+          return;
+        }
 
-      const confirmation = this.t('opportunityPublish.confirmation', '{action} will become publicly visible. Fixed platform fee: {cost} CREDIT. Current balance: {balance} CREDIT. Balance after publishing: {after} CREDIT.')
-        .replace('{action}', this.t('opportunityPublish.action', 'Publish Opportunity'))
-        .replace('{cost}', this.formatCredits(quote.creditCost))
-        .replace('{balance}', this.formatCredits(quote.currentBalance))
-        .replace('{after}', this.formatCredits(quote.balanceAfter));
-      if (!window.confirm(confirmation)) return;
+        const confirmation = this.t('opportunityPublish.confirmation', '{action} will become publicly visible. Fixed platform fee: {cost} CREDIT. Current balance: {balance} CREDIT. Balance after publishing: {after} CREDIT.')
+          .replace('{action}', this.t('opportunityPublish.action', 'Publish Opportunity'))
+          .replace('{cost}', this.formatCredits(quote.creditCost))
+          .replace('{balance}', this.formatCredits(quote.currentBalance))
+          .replace('{after}', this.formatCredits(quote.balanceAfter));
+        if (!window.confirm(confirmation)) return;
+      }
 
       const published = this.normalizeDashboardProject(await this.opportunityService.publishOpportunity(project.id) as DashboardProject);
       this.allInvestments.update(items => items.map(item => String(item.id) === String(project.id) ? published : item));
@@ -789,8 +885,8 @@ export class DashboardComponent {
 
   formatProjectAmount(value: number, currency?: string | null): string {
     if (!value || value === 0) return this.t('dashboard.unavailable', 'Unavailable');
-    const cur = currency ?? this.selectedFounderProject()?.currency ?? 'EGP';
-    return `${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur}`;
+    const cur = currency ?? this.selectedFounderProject()?.currency ?? this.currencyService.resolve()?.isoCode ?? '';
+    return this.currencyService.format(value, cur);
   }
 
   private safeArray<T = any>(value: unknown): T[] {
@@ -847,7 +943,7 @@ export class DashboardComponent {
 
   formatCreditAmount(value: number): string {
     const currency = this.investmentCurrency();
-    return `${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
+    return this.currencyService.format(value, currency);
   }
 
   getStatusLabel(status: string): string {
@@ -912,6 +1008,39 @@ export class DashboardComponent {
     if (tm && tm.avatar) return this.fileStoreService.getPublicUrl(tm.avatar);
     
     return '';
+  }
+
+  isMilestoneCompleted(ms: OpportunityMilestone): boolean {
+    return ms.status === 'completed';
+  }
+
+  isMilestoneCurrent(ms: OpportunityMilestone, index: number): boolean {
+    if (this.isMilestoneCompleted(ms)) return false;
+    return index === this.currentMilestoneIndex();
+  }
+
+  getMilestoneDescription(ms: OpportunityMilestone): string {
+    return ms.description || '';
+  }
+
+  private parseMetadata(raw: unknown): Record<string, string> | null {
+    if (!raw) return null;
+    if (typeof raw === 'object') return raw as Record<string, string>;
+    if (typeof raw === 'string') {
+      try { return JSON.parse(raw); } catch { return null; }
+    }
+    return null;
+  }
+
+  private resolveI18n(key: string, metadata: Record<string, string> | null): string {
+    const translated = this.t(key, '');
+    if (!translated || translated === key) return '';
+    if (!metadata) return translated;
+    let result = translated;
+    for (const [k, v] of Object.entries(metadata)) {
+      if (v != null) result = result.replaceAll(`{${k}}`, v);
+    }
+    return result;
   }
 
   getNativeFundedAmount(project: DashboardProject): number | null {
@@ -1152,7 +1281,7 @@ export class DashboardComponent {
     const data_ready = pie(data as any);
     const totalValue = data.reduce((sum, d) => sum + d.value, 0);
     const centerLabel = this.roleContext.isActiveInvestorContext() ? this.t('dashboard.allocationTotal', 'Total Invested') : this.t('dashboard.allocationTotal', 'Total');
-    const formattedTotal = `${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${this.investmentCurrency()}`;
+    const formattedTotal = this.currencyService.format(totalValue, this.investmentCurrency());
 
     const arc = d3.arc()
       .innerRadius(radius * 0.5)
@@ -1203,7 +1332,7 @@ export class DashboardComponent {
         .on('mousemove', function(event: MouseEvent, d: D3PieArcDatum) {
             const percentage = d.data.percentage ? d.data.percentage.toFixed(1) : '0.0';
             tooltip
-              .html(`<b>${d.data.name}</b><br>${valueLabel}: <b>${d.data.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${this.investmentCurrency()}</b><br>${percentage}% of portfolio`)
+              .html(`<b>${d.data.name}</b><br>${valueLabel}: <b>${this.currencyService.format(d.data.value, this.investmentCurrency())}</b><br>${percentage}% of portfolio`)
               .style('left', (event.pageX - element.getBoundingClientRect().left + 15) + 'px')
               .style('top', (event.pageY - element.getBoundingClientRect().top - 15) + 'px');
         })
@@ -1405,7 +1534,7 @@ export class DashboardComponent {
           .attr('x2', focusX);
           
         tooltip
-          .html(`<b>${d.month}</b><br>${d.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${this.investmentCurrency()}`)
+          .html(`<b>${d.month}</b><br>${this.currencyService.format(d.value, this.investmentCurrency())}`)
           .style('left', (focusX + margin.left + 15) + 'px')
           .style('top', (focusY + margin.top) + 'px');
       }

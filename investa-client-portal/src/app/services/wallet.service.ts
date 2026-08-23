@@ -39,7 +39,7 @@ export interface WalletView {
 export type PaidActionCode =
   | 'SendConversationRequest'
   | 'SendFirstOffer'
-  | 'SendCounterOffer'
+  | 'SendOfferReplacement'
   | 'SubmitParticipationRequest'
   | 'PublishOpportunity';
 
@@ -50,6 +50,11 @@ export interface PaidActionQuote {
   currentBalance: number;
   balanceAfter: number;
   hasSufficientCredit: boolean;
+  chargingEnabled: boolean;
+}
+
+export interface FeatureFlags {
+  clientInteractionChargingEnabled: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -57,10 +62,33 @@ export class WalletService {
   private readonly _balance = signal(0);
   readonly balance = this._balance.asReadonly();
 
+  private chargingEnabledCache: boolean | null = null;
+
   constructor(
     private http: HttpClient,
     @Inject(API_BASE) private apiBase: string
   ) {}
+
+  async loadChargingEnabled(): Promise<boolean> {
+    if (this.chargingEnabledCache !== null) {
+      return this.chargingEnabledCache;
+    }
+
+    try {
+      const raw = await firstValueFrom(
+        this.http.get<ApiResponse<FeatureFlags> | FeatureFlags>(
+          `${this.apiBase}/api/v1/config/features`,
+          { headers: this.authHeaders() }
+        )
+      );
+      const flags = this.extractData<FeatureFlags>(raw, 'Failed to load platform features.');
+      this.chargingEnabledCache = flags.clientInteractionChargingEnabled === true;
+    } catch {
+      this.chargingEnabledCache = true;
+    }
+
+    return this.chargingEnabledCache;
+  }
 
   async loadCurrentUserWallet(): Promise<WalletView> {
     const [wallet, balance, transactions] = await Promise.all([

@@ -5,9 +5,10 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { firstValueFrom, Subscription } from 'rxjs';
 import { API_BASE } from '../../../config/api.token';
-import { ParticipationBuilderComponent } from '../../../components/participation-builder/participation-builder.component';
-import { PaidActionCode, WalletService } from '../../../services/wallet.service';
+import { OfferBuilderComponent } from '../../../components/offer-builder/offer-builder.component';
+import { OfferStatus as OfferStatusEnum, OfferVersion } from '../../../models/offer.model';
 import { LanguageService } from '../../../services/language.service';
+import { CurrencyService } from '../../../services/currency.service';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
 import { ReportReasonCode, ReportService } from '../../../services/report.service';
 import { FirebaseClientService, RealtimeEvent } from '../../../services/firebase-client.service';
@@ -104,24 +105,6 @@ interface ViewerState {
   participationStatus?: string;
 }
 
-interface OfferPayloadLeg {
-  legType: OfferLegType;
-  amount: number;
-  equityPercentage?: number;
-  sharesTerms?: string;
-  returnRate?: number;
-  termMonths?: number;
-  repaymentModel?: string;
-  profitSharePercentage?: number;
-  exitTerms?: string;
-}
-
-interface OfferPayload {
-  currency: string;
-  note: string | null;
-  legs: OfferPayloadLeg[];
-}
-
 type JsonRecord = Record<string, unknown>;
 
 interface NegotiationMessage {
@@ -166,27 +149,19 @@ interface NegotiationOffer {
   createdByName?: string;
   createdByRole?: string;
   version: number;
-  parentOfferId?: number | null;
+  replacesOfferId?: number | null;
   status: OfferStatus;
   note?: string | null;
   currency: string;
   createdAt?: string | Date | null;
   legs: NegotiationOfferLeg[];
+  canAccept?: boolean;
+  canReject?: boolean;
+  canRespond?: boolean;
+  canWithdraw?: boolean;
 }
 
 type ChatTimelineItem = ConversationTimelineItem<NegotiationMessage, NegotiationOffer>;
-
-interface OfferLegDraft {
-  enabled: boolean;
-  amount: FormControl<number | null>;
-  equityPercentage?: FormControl<number | null>;
-  sharesTerms?: FormControl<string | null>;
-  returnRate?: FormControl<number | null>;
-  termMonths?: FormControl<number | null>;
-  repaymentModel?: FormControl<string | null>;
-  profitSharePercentage?: FormControl<number | null>;
-  exitTerms?: FormControl<string | null>;
-}
 
 @Component({
   standalone: true,
@@ -194,7 +169,7 @@ interface OfferLegDraft {
   templateUrl: './chat.component.html',
   styleUrls: ['./chat.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, ParticipationBuilderComponent, TranslatePipe]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, OfferBuilderComponent, TranslatePipe]
 })
 export class ChatComponent implements OnInit, OnDestroy {
   private messageStream?: ElementRef<HTMLElement>;
@@ -216,11 +191,11 @@ export class ChatComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   private apiBase = inject(API_BASE);
   private route = inject(ActivatedRoute);
-  private walletService = inject(WalletService);
   private languageService = inject(LanguageService);
   private reportService = inject(ReportService);
   private firebaseClient = inject(FirebaseClientService);
   private notificationService = inject(NotificationService);
+private currencyService = inject(CurrencyService);
   private presenceTimer: ReturnType<typeof setInterval> | null = null;
   private presentConversationId: string | null = null;
   private readonly realtimeSubscriptions = new Subscription();
@@ -239,8 +214,8 @@ export class ChatComponent implements OnInit, OnDestroy {
   actionProcessing = signal(false);
   offerProcessing = signal(false);
   offerBuilderOpen = signal(false);
-  counteringOfferId = signal<number | null>(null);
-  participationBuilderOpen = signal(false);
+  replacingOfferId = signal<number | null>(null);
+  replacementOffer = signal<OfferVersion | null>(null);
   error = signal<string | null>(null);
   messagesError = signal<string | null>(null);
   reportModalOpen = signal(false);
@@ -264,31 +239,6 @@ export class ChatComponent implements OnInit, OnDestroy {
   searchTerm = signal('');
   viewerStates = signal<Record<string, ViewerState>>({});
   messageControl = new FormControl('');
-  offerNoteControl = new FormControl('');
-  offerCurrencyControl = new FormControl('USD');
-  offerDrafts: Record<OfferLegType, OfferLegDraft> = {
-    1: {
-      enabled: true,
-      amount: new FormControl<number | null>(null),
-      equityPercentage: new FormControl<number | null>(null),
-      sharesTerms: new FormControl<string | null>('')
-    },
-    2: {
-      enabled: false,
-      amount: new FormControl<number | null>(null),
-      returnRate: new FormControl<number | null>(null),
-      termMonths: new FormControl<number | null>(null),
-      repaymentModel: new FormControl<string | null>('Monthly')
-    },
-    3: {
-      enabled: false,
-      amount: new FormControl<number | null>(null),
-      profitSharePercentage: new FormControl<number | null>(null),
-      termMonths: new FormControl<number | null>(null),
-      exitTerms: new FormControl<string | null>('')
-    }
-  };
-  readonly offerLegTypes: OfferLegType[] = [1, 2, 3];
 
   visibleConversations = computed(() => {
     const query = this.searchTerm().trim().toLocaleLowerCase('en');
@@ -710,67 +660,33 @@ export class ChatComponent implements OnInit, OnDestroy {
     }
   }
 
-  openOfferBuilder(counterOffer?: NegotiationOffer): void {
+  openOfferBuilder(replacementOffer?: NegotiationOffer): void {
     if (this.isReadOnly(this.activeConversation()) || this.offerProcessing()) return;
-    this.resetOfferBuilder();
-    if (counterOffer) {
-      this.counteringOfferId.set(counterOffer.id);
-      this.seedOfferBuilder(counterOffer);
+    if (replacementOffer) {
+      this.replacingOfferId.set(replacementOffer.id);
+      this.replacementOffer.set(this.toOfferVersion(replacementOffer));
     } else {
-      this.counteringOfferId.set(null);
+      this.replacingOfferId.set(null);
+      this.replacementOffer.set(null);
     }
     this.offerBuilderOpen.set(true);
   }
 
   closeOfferBuilder(): void {
     this.offerBuilderOpen.set(false);
-    this.counteringOfferId.set(null);
+    this.replacingOfferId.set(null);
+    this.replacementOffer.set(null);
   }
 
-  async submitOffer(): Promise<void> {
-    const conversation = this.activeConversation();
-    if (!conversation || this.isReadOnly(conversation) || this.offerProcessing()) return;
-
-    const payload = this.buildOfferPayload();
-    if (!payload.legs.length) {
-      this.messagesError.set('Select at least one offer leg.');
-      return;
+  onSharedOfferSubmitted(offer: OfferVersion): void {
+    const mapped = this.mapOffer(offer);
+    const replacementId = this.replacingOfferId();
+    if (replacementId) {
+      this.offers.update(items => [...items.map(item => item.id === replacementId ? { ...item, status: 2 as OfferStatus } : item), mapped]);
+    } else {
+      this.offers.update(items => [...items, mapped]);
     }
-
-    try {
-      this.offerProcessing.set(true);
-      this.messagesError.set(null);
-      const counterId = this.counteringOfferId();
-      const actionCode: PaidActionCode = counterId ? 'SendCounterOffer' : 'SendFirstOffer';
-      const quote = await this.walletService.getPaidActionQuote(actionCode);
-      if (!quote.hasSufficientCredit) {
-        this.messagesError.set(
-          this.t('paidActions.insufficientMessage')
-            .replace('{required}', this.formatCredits(quote.creditCost))
-            .replace('{balance}', this.formatCredits(quote.currentBalance))
-        );
-        return;
-      }
-      if (!window.confirm(this.confirmationText(quote.displayName || actionCode, quote.creditCost, quote.currentBalance, quote.balanceAfter))) {
-        return;
-      }
-      const path = counterId
-        ? `/api/v1/conversations/${encodeURIComponent(conversation.id)}/offers/${counterId}/counter`
-        : `/api/v1/conversations/${encodeURIComponent(conversation.id)}/offers`;
-      const raw = await this.post<unknown>(path, payload);
-      const wrapped = this.asRecord(raw);
-      const offer = this.mapOffer(wrapped['data'] ?? raw);
-      if (counterId) {
-        this.offers.update(items => [...items.map(item => item.id === counterId ? { ...item, status: 2 as OfferStatus } : item), offer]);
-      } else {
-        this.offers.update(items => [...items, offer]);
-      }
-      this.closeOfferBuilder();
-    } catch (error) {
-      this.messagesError.set(this.errorMessage(error, 'Offer could not be submitted.'));
-    } finally {
-      this.offerProcessing.set(false);
-    }
+    this.closeOfferBuilder();
   }
 
   async acceptOffer(offer: NegotiationOffer): Promise<void> {
@@ -786,11 +702,19 @@ export class ChatComponent implements OnInit, OnDestroy {
   }
 
   canReceiveOfferAction(offer: NegotiationOffer): boolean {
-    return offer.status === 1 && !this.isOfferCreator(offer) && !this.isReadOnly(this.activeConversation()) && !this.offerProcessing();
+    return offer.status === 1 && offer.canAccept === true && !this.isReadOnly(this.activeConversation()) && !this.offerProcessing();
+  }
+
+  canRejectOfferAction(offer: NegotiationOffer): boolean {
+    return offer.status === 1 && offer.canReject === true && !this.isReadOnly(this.activeConversation()) && !this.offerProcessing();
+  }
+
+  canRespondOfferAction(offer: NegotiationOffer): boolean {
+    return offer.status === 1 && offer.canRespond === true && !this.isReadOnly(this.activeConversation()) && !this.offerProcessing();
   }
 
   canWithdrawOffer(offer: NegotiationOffer): boolean {
-    return offer.status === 1 && this.isOfferCreator(offer) && !this.isReadOnly(this.activeConversation()) && !this.offerProcessing();
+    return offer.status === 1 && offer.canWithdraw === true && !this.isReadOnly(this.activeConversation()) && !this.offerProcessing();
   }
 
   isAcceptedOffer(offer: NegotiationOffer): boolean {
@@ -800,7 +724,7 @@ export class ChatComponent implements OnInit, OnDestroy {
   offerStatusLabel(status: OfferStatus): string {
     switch (Number(status)) {
       case 1: return this.t('conversationWorkspace.offerStatus.pending');
-      case 2: return this.t('conversationWorkspace.offerStatus.countered');
+      case 2: return this.t('conversationWorkspace.offerStatus.replaced');
       case 3: return this.t('conversationWorkspace.offerStatus.accepted');
       case 4: return this.t('conversationWorkspace.offerStatus.rejected');
       case 5: return this.t('conversationWorkspace.offerStatus.withdrawn');
@@ -815,24 +739,6 @@ export class ChatComponent implements OnInit, OnDestroy {
       case 3: return this.t('conversationWorkspace.offerTypes.profitSharing');
       default: return this.t('conversationWorkspace.offers.title');
     }
-  }
-
-  openParticipationBuilder(): void {
-    if (!this.canCreateParticipationRequest()) return;
-    this.participationBuilderOpen.set(true);
-  }
-
-  closeParticipationBuilder(): void {
-    this.participationBuilderOpen.set(false);
-  }
-
-  async onParticipationSubmitted(): Promise<void> {
-    this.participationBuilderOpen.set(false);
-    const conversation = this.activeConversation();
-    if (conversation) {
-      await this.loadViewerState(conversation);
-    }
-    await this.loadConversations();
   }
 
   setWorkspaceTab(tab: 'incoming' | 'outgoing' | 'conversations'): void {
@@ -895,9 +801,16 @@ export class ChatComponent implements OnInit, OnDestroy {
     }
   }
 
-  money(value: number | null | undefined): string {
+  money(value: number | null | undefined, currency?: string | null): string {
     if (value === null || value === undefined || Number.isNaN(Number(value))) return '-';
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(Number(value));
+    return this.currencyService.format(Number(value), currency);
+  }
+
+  conversationCurrency(conversation: NegotiationConversation): string | null {
+    const latest = [...this.offers()]
+      .filter(o => o.conversationId === conversation.id)
+      .reduce<NegotiationOffer | null>((acc, o) => (acc === null || o.version > acc.version ? o : acc), null);
+    return latest?.currency ?? null;
   }
 
   formatDate(value: string | Date | null | undefined): string {
@@ -1004,11 +917,15 @@ export class ChatComponent implements OnInit, OnDestroy {
       createdByName: this.optionalString(row['createdByName']) || actor.name,
       createdByRole: this.normalizeRole(row['createdByRole'] ?? actor.role),
       version: Number(row['version'] ?? 1),
-      parentOfferId: this.numberValue(row['parentOfferId']),
+      replacesOfferId: this.numberValue(row['replacesOfferId']),
       status: this.offerStatusValue(row['status']),
       note: this.optionalString(row['note']),
-      currency: this.optionalString(row['currency']) || 'USD',
+      currency: this.optionalString(row['currency']) || this.currencyService.defaultIsoCode(),
       createdAt: this.dateValue(row['createdAt']),
+      canAccept: row['canAccept'] === true,
+      canReject: row['canReject'] === true,
+      canRespond: row['canRespond'] === true,
+      canWithdraw: row['canWithdraw'] === true,
       legs: this.extractArray(row['legs']).map(value => {
         const leg = this.asRecord(value);
         return {
@@ -1143,79 +1060,6 @@ export class ChatComponent implements OnInit, OnDestroy {
 
   private isOfferCreator(offer: NegotiationOffer): boolean {
     return this.sameId(offer.createdByUserId, this.resolveCurrentUserId(this.activeConversation()));
-  }
-
-  private buildOfferPayload(): OfferPayload {
-    const legs: OfferPayloadLeg[] = [];
-    const equity = this.offerDrafts[1];
-    if (equity.enabled) {
-      legs.push({
-        legType: 1,
-        amount: Number(equity.amount.value || 0),
-        equityPercentage: equity.equityPercentage?.value || null,
-        sharesTerms: equity.sharesTerms?.value?.trim() || null
-      });
-    }
-    const loan = this.offerDrafts[2];
-    if (loan.enabled) {
-      legs.push({
-        legType: 2,
-        amount: Number(loan.amount.value || 0),
-        returnRate: loan.returnRate?.value || null,
-        termMonths: loan.termMonths?.value || null,
-        repaymentModel: loan.repaymentModel?.value?.trim() || null
-      });
-    }
-    const profit = this.offerDrafts[3];
-    if (profit.enabled) {
-      legs.push({
-        legType: 3,
-        amount: Number(profit.amount.value || 0),
-        profitSharePercentage: profit.profitSharePercentage?.value || null,
-        termMonths: profit.termMonths?.value || null,
-        exitTerms: profit.exitTerms?.value?.trim() || null
-      });
-    }
-    return {
-      note: this.offerNoteControl.value?.trim() || null,
-      currency: this.offerCurrencyControl.value?.trim() || 'USD',
-      legs
-    };
-  }
-
-  private resetOfferBuilder(): void {
-    this.offerNoteControl.setValue('');
-    this.offerCurrencyControl.setValue('USD');
-    for (const key of [1, 2, 3] as OfferLegType[]) {
-      const draft = this.offerDrafts[key];
-      draft.enabled = key === 1;
-      draft.amount.setValue(null);
-      draft.equityPercentage?.setValue(null);
-      draft.sharesTerms?.setValue('');
-      draft.returnRate?.setValue(null);
-      draft.termMonths?.setValue(null);
-      draft.repaymentModel?.setValue('Monthly');
-      draft.profitSharePercentage?.setValue(null);
-      draft.exitTerms?.setValue('');
-    }
-  }
-
-  private seedOfferBuilder(offer: NegotiationOffer): void {
-    this.offerNoteControl.setValue(offer.note ? `Counter: ${offer.note}` : '');
-    this.offerCurrencyControl.setValue(offer.currency || 'USD');
-    for (const leg of offer.legs) {
-      const draft = this.offerDrafts[leg.legType];
-      if (!draft) continue;
-      draft.enabled = true;
-      draft.amount.setValue(leg.amount || null);
-      draft.equityPercentage?.setValue(leg.equityPercentage ?? null);
-      draft.sharesTerms?.setValue(leg.sharesTerms || '');
-      draft.returnRate?.setValue(leg.returnRate ?? null);
-      draft.termMonths?.setValue(leg.termMonths ?? null);
-      draft.repaymentModel?.setValue(leg.repaymentModel || 'Monthly');
-      draft.profitSharePercentage?.setValue(leg.profitSharePercentage ?? null);
-      draft.exitTerms?.setValue(leg.exitTerms || '');
-    }
   }
 
   private normalizeRole(value: unknown): string {
@@ -1530,6 +1374,27 @@ export class ChatComponent implements OnInit, OnDestroy {
     }
   }
 
+  private toOfferVersion(offer: NegotiationOffer): OfferVersion {
+    return {
+      id: offer.id,
+      conversationId: offer.conversationId,
+      createdByUserId: offer.createdByUserId == null ? null : String(offer.createdByUserId),
+      createdByName: offer.createdByName,
+      createdByRole: offer.createdByRole,
+      version: offer.version,
+      replacesOfferId: offer.replacesOfferId,
+      status: offer.status as OfferStatusEnum,
+      note: offer.note,
+      currency: offer.currency,
+      createdAt: offer.createdAt || new Date(),
+      legs: offer.legs,
+      canAccept: offer.canAccept,
+      canReject: offer.canReject,
+      canRespond: offer.canRespond,
+      canWithdraw: offer.canWithdraw
+    };
+  }
+
   private async patch<T>(path: string, body: unknown): Promise<T> {
     return await firstValueFrom(this.http.patch<T>(`${this.apiBase}${path}`, body, this.getHttpOptions()));
   }
@@ -1798,12 +1663,9 @@ export class ChatComponent implements OnInit, OnDestroy {
     return current?.kind === 'message' && (previous?.kind !== 'message' || previous.message.senderId !== current.message.senderId);
   }
 
-  parentOfferVersion(offer: NegotiationOffer): number | null {
-    if (!offer.parentOfferId) return null;
-    return this.offers().find(item => item.id === offer.parentOfferId)?.version ?? null;
+  replacedOfferVersion(offer: NegotiationOffer): number | null {
+    if (!offer.replacesOfferId) return null;
+    return this.offers().find(item => item.id === offer.replacesOfferId)?.version ?? null;
   }
 
-  setOfferLegEnabled(type: OfferLegType, checked: boolean): void {
-    this.offerDrafts[type].enabled = checked;
-  }
 }

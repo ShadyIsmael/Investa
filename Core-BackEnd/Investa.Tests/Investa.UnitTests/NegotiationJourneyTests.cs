@@ -24,6 +24,7 @@ public sealed class NegotiationJourneyTests
     private readonly Mock<IRepository<OpportunityJoinRequest>> _joinRequests = new();
     private readonly Mock<IRepository<ChatMessage>> _messages = new();
     private readonly Mock<IRepository<AuthUser>> _users = new();
+    private readonly Mock<IRepository<NegotiationOffer>> _offers = new();
     private readonly Investa.Application.Services.NegotiationService _service;
 
     private readonly Opportunity _opportunity;
@@ -45,6 +46,7 @@ public sealed class NegotiationJourneyTests
         _uow.Setup(x => x.Repository<OpportunityJoinRequest>()).Returns(_joinRequests.Object);
         _uow.Setup(x => x.Repository<ChatMessage>()).Returns(_messages.Object);
         _uow.Setup(x => x.Repository<AuthUser>()).Returns(_users.Object);
+        _uow.Setup(x => x.Repository<NegotiationOffer>()).Returns(_offers.Object);
 
         _opportunities.Setup(x => x.GetByIdAsync(_opportunityId)).ReturnsAsync(_opportunity);
         _opportunities.Setup(x => x.GetSingleAsync(
@@ -71,6 +73,11 @@ public sealed class NegotiationJourneyTests
                 It.IsAny<System.Linq.Expressions.Expression<Func<ChatMessage, bool>>>()))
             .ReturnsAsync(new List<ChatMessage>());
 
+        _offers.Setup(x => x.FindWithIncludesAsync(
+                It.IsAny<System.Linq.Expressions.Expression<Func<NegotiationOffer, bool>>>(),
+                It.IsAny<System.Linq.Expressions.Expression<Func<NegotiationOffer, object>>[]>()))
+            .ReturnsAsync(new List<NegotiationOffer>());
+
         _service = new Investa.Application.Services.NegotiationService(
             _uow.Object,
             Mock.Of<IPaidActionService>(),
@@ -78,6 +85,7 @@ public sealed class NegotiationJourneyTests
             Mock.Of<IUserNotificationService>(),
             Mock.Of<IRealtimeEventPublisher>(),
             Mock.Of<IConversationPresenceService>(),
+            Mock.Of<IInvestmentContractService>(),
             NullLogger<Investa.Application.Services.NegotiationService>.Instance);
     }
 

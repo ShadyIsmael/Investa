@@ -1,3 +1,4 @@
+﻿using Investa.Domain;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -59,17 +60,20 @@ public class FinanceTransactionService : IFinanceTransactionService
     private readonly IFinanceValidationService _validationService;
     private readonly IFinanceAccountingService _accountingService;
     private readonly ICurrentUserContext _currentUser;
+    private readonly ICurrencyConversionService _currencyConversionService;
 
     public FinanceTransactionService(
         IFinanceRepository repository,
         IFinanceValidationService validationService,
         IFinanceAccountingService accountingService,
-        ICurrentUserContext currentUser)
+        ICurrentUserContext currentUser,
+        ICurrencyConversionService currencyConversionService)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _validationService = validationService ?? throw new ArgumentNullException(nameof(validationService));
         _accountingService = accountingService ?? throw new ArgumentNullException(nameof(accountingService));
         _currentUser = currentUser ?? throw new ArgumentNullException(nameof(currentUser));
+        _currencyConversionService = currencyConversionService ?? throw new ArgumentNullException(nameof(currencyConversionService));
     }
 
     public async Task<FinanceTransactionDto> CreateTransactionAsync(
@@ -269,6 +273,13 @@ public class FinanceTransactionService : IFinanceTransactionService
             throw new InvalidOperationException($"Cannot confirm: {string.Join(", ", errors)}");
 
         var transaction = await _repository.GetTransactionByIdAsync(id);
+        var conversion = await _currencyConversionService.ConvertForExecutionAsync(
+            transaction.Amount,
+            transaction.Currency,
+            CurrencyMasterDefaults.DefaultCurrency);
+        transaction.ExchangeRate = conversion.Snapshot.ExchangeRate;
+        transaction.AmountInBaseCurrency = conversion.ConvertedAmount;
+        transaction.ExchangeRateSnapshotId = conversion.Snapshot.Id;
         transaction.Status = FinanceTransactionStatus.Confirmed;
         transaction.ConfirmedAt = DateTime.UtcNow;
         transaction.ConfirmedBy = userId;

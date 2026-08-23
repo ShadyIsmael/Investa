@@ -6,8 +6,8 @@
 
 **Production-ready, refactored admin portal with modern architecture**
 
-[![Architecture](https://img.shields.io/badge/Architecture-Refactored-success)](./docs/ARCHITECTURE.md)
-[![Migration](https://img.shields.io/badge/Migration-Guide-blue)](./docs/MIGRATION.md)
+[![Architecture](https://img.shields.io/badge/Architecture-Refactored-success)](../docs/admin-portal/ARCHITECTURE.md)
+[![Migration](https://img.shields.io/badge/Migration-Guide-blue)](../docs/admin-portal/MIGRATION.md)
 
 ## 🚀 Quick Start
 
@@ -92,8 +92,8 @@ GEMINI_API_KEY=your-api-key-here
 
 ## 📚 Documentation
 
-- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Complete architectural overview and patterns
-- **[MIGRATION.md](./MIGRATION.md)** - Step-by-step migration guide from old to new structure
+- **[ARCHITECTURE.md](../docs/admin-portal/ARCHITECTURE.md)** - Complete architectural overview and patterns
+- **[MIGRATION.md](../docs/admin-portal/MIGRATION.md)** - Step-by-step migration guide from old to new structure
 
 ## 🔌 SignalR (Real-time Communication)
 
@@ -176,11 +176,11 @@ storage.remove('key');
 
 ## 📚 Documentation
 
-- [📖 Quick Start Guide](./docs/QUICK_START.md) - Fast introduction to the project structure
-- [✅ Refactoring Complete](./docs/REFACTORING_COMPLETE.md) - Details of the recent refactoring
-- [🏗️ Architecture](./docs/ARCHITECTURE.md) - System architecture and design decisions
-- [🔐 Permissions Guide](./docs/PERMISSIONS.md) - RBAC implementation guide
-- [🔒 Security Checklist](./docs/SECURITY_CHECKLIST.md) - Security best practices
+- [📖 Quick Start Guide](../docs/admin-portal/QUICK_START.md) - Fast introduction to the project structure
+- [✅ Refactoring Complete](../docs/admin-portal/REFACTORING_COMPLETE.md) - Details of the recent refactoring
+- [🏗️ Architecture](../docs/admin-portal/ARCHITECTURE.md) - System architecture and design decisions
+- [🔐 Permissions Guide](../docs/admin-portal/PERMISSIONS.md) - RBAC implementation guide
+- [🔒 Security Checklist](../docs/admin-portal/SECURITY_CHECKLIST.md) - Security best practices
 
 ## 🧪 Development
 

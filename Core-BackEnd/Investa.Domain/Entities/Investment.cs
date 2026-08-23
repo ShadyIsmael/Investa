@@ -5,7 +5,7 @@ using Investa.Domain.Entities.Enums;
 namespace Investa.Domain.Entities;
 
 /// <summary>
-/// Investment Opportunity - A fundraising campaign created by a founder
+/// Investment Opportunity - A fundraising round created by a founder
 /// Supports multiple investment types: Founding, Equity, Revenue Sharing, and Loan/Debt
 /// Includes exit strategy support for full investment lifecycle management
 /// </summary>

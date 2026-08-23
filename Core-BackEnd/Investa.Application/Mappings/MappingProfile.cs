@@ -1,3 +1,4 @@
+﻿using Investa.Domain;
 using AutoMapper;
 using Investa.Application.DTOs;
 using Investa.Application.DTOs.Profile;
@@ -81,6 +82,7 @@ public class MappingProfile : Profile
         // Full profile mapping
         CreateMap<AuthUser, UserProfileDto>()
             .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.Id))
+            .ForMember(dest => dest.PreferredCurrency, opt => opt.MapFrom(src => src.Profile != null ? src.Profile.PreferredCurrency : CurrencyMasterDefaults.DefaultCurrency))
             .ForMember(dest => dest.CoreMetrics, opt => opt.MapFrom(src => src))
             .ForMember(dest => dest.BasicInfo, opt => opt.MapFrom(src => src.Profile))
             .ForMember(dest => dest.ContactInfo, opt => opt.MapFrom(src => src.Profile))

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Opportunity, OpportunityService } from '../../../services/opportunity.service';
@@ -9,12 +9,12 @@ import { RoleContextService } from '../../../services/role-context.service';
 import { WalletService } from '../../../services/wallet.service';
 import { LanguageService } from '../../../services/language.service';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
-import { RequestsService } from '../../../services/requests.service';
+import { CurrencyDisplayPipe } from '../../../pipes/currency-display.pipe';
 
 @Component({
   standalone: true,
   selector: 'app-my-opportunities',
-  imports: [CommonModule, RouterLink, OpportunityStatusBadgeComponent, TranslatePipe],
+  imports: [CommonModule, RouterLink, OpportunityStatusBadgeComponent, TranslatePipe, CurrencyDisplayPipe],
   templateUrl: './my-opportunities.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -23,7 +23,6 @@ export class MyOpportunitiesComponent {
   private notifications = inject(NotificationService);
   private walletService = inject(WalletService);
   private languageService = inject(LanguageService);
-  private requestsService = inject(RequestsService);
   roleContext = inject(RoleContextService);
 
   opportunities = signal<Opportunity[]>([]);
@@ -37,9 +36,6 @@ export class MyOpportunitiesComponent {
 
   constructor() {
     this.load();
-    effect(() => {
-      if (this.requestsService.participationRevision() > 0) void this.load();
-    });
   }
 
   async load(): Promise<void> {
@@ -62,16 +58,21 @@ export class MyOpportunitiesComponent {
   async publishOpportunity(opportunity: Opportunity): Promise<void> {
     try {
       this.submittingId.set(opportunity.id);
-      const quote = await this.walletService.getPaidActionQuote('PublishOpportunity');
-      if (!quote.hasSufficientCredit) {
-        this.notifications.showToast({
-          title: this.t('paidActions.insufficientTitle'),
-          message: this.t('paidActions.insufficientMessage').replace('{required}', this.formatCredits(quote.creditCost)).replace('{balance}', this.formatCredits(quote.currentBalance)),
-          type: 'error'
-        });
-        return;
-      }
-      if (!window.confirm(this.t('opportunityPublish.confirmation').replace('{action}', this.t('opportunityPublish.action')).replace('{cost}', this.formatCredits(quote.creditCost)).replace('{balance}', this.formatCredits(quote.currentBalance)).replace('{after}', this.formatCredits(quote.balanceAfter)))) {
+      const chargingEnabled = await this.walletService.loadChargingEnabled();
+      if (chargingEnabled) {
+        const quote = await this.walletService.getPaidActionQuote('PublishOpportunity');
+        if (!quote.hasSufficientCredit) {
+          this.notifications.showToast({
+            title: this.t('paidActions.insufficientTitle'),
+            message: this.t('paidActions.insufficientMessage').replace('{required}', this.formatCredits(quote.creditCost)).replace('{balance}', this.formatCredits(quote.currentBalance)),
+            type: 'error'
+          });
+          return;
+        }
+        if (!window.confirm(this.t('opportunityPublish.confirmation').replace('{action}', this.t('opportunityPublish.action')).replace('{cost}', this.formatCredits(quote.creditCost)).replace('{balance}', this.formatCredits(quote.currentBalance)).replace('{after}', this.formatCredits(quote.balanceAfter)))) {
+          return;
+        }
+      } else if (!window.confirm(this.t('opportunityPublish.confirmationFree').replace('{action}', this.t('opportunityPublish.action')))) {
         return;
       }
       await this.service.publishOpportunity(opportunity.id);

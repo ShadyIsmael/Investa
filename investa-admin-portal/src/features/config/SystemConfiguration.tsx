@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/common/Icons';
 import { useTheme } from '@/context/ThemeContext';
+import { getCurrencies, currencyName, ensureCurrenciesLoaded } from '../../utils/currency';
 
 const CONFIG_OPTIONS = [
   { key: 'currency', label: 'Default Currency', icon: 'currency-dollar', description: 'Set the default currency for all financial operations.' },
@@ -13,6 +14,15 @@ const CONFIG_OPTIONS = [
 const SystemConfiguration: React.FC = () => {
   const { t } = useTranslation();
   const [selected, setSelected] = useState(CONFIG_OPTIONS[0].key);
+  const [currencies, setCurrencies] = useState(getCurrencies());
+  const [, setReload] = useState(0);
+
+  useEffect(() => {
+    void ensureCurrenciesLoaded().then(() => {
+      setCurrencies(getCurrencies());
+      setReload((x) => x + 1);
+    });
+  }, []);
   
   return (
     <div className="flex gap-8">
@@ -43,12 +53,8 @@ const SystemConfiguration: React.FC = () => {
             <div>
               <label className="block mb-2 font-medium">Default Currency</label>
               <select className="px-3 py-2 rounded border w-64">
-                <option value="USD">USD - US Dollar</option>
-                <option value="EUR">EUR - Euro</option>
-                <option value="GBP">GBP - British Pound</option>
-                <option value="JPY">JPY - Japanese Yen</option>
-                <option value="INR">INR - Indian Rupee</option>
-              </select>
+                  {currencies.map((currency) => <option key={currency.isoCode} value={currency.isoCode}>{currency.isoCode} - {currencyName(currency.isoCode)}</option>)}
+                </select>
             </div>
           )}
           {selected === 'timezone' && (

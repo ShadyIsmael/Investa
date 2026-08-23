@@ -41,7 +41,7 @@ flutter pub get
 flutter run
 ```
 
-See [QUICK_START.md](QUICK_START.md) for environment configuration.
+See the [Flutter Founder quick-start guide](../docs/flutter-founder/QUICK_START.md) for the shared environment configuration.
 
 ---
 
@@ -60,13 +60,10 @@ See [QUICK_START.md](QUICK_START.md) for environment configuration.
 
 | File | Description |
 |---|---|
-| [QUICK_START.md](QUICK_START.md) | Environment setup |
-| [CLEAN_ARCHITECTURE_README.md](CLEAN_ARCHITECTURE_README.md) | Architecture patterns |
-| [FCM_IMPLEMENTATION.md](FCM_IMPLEMENTATION.md) | Push notifications setup |
-| [FLUTTER_PARTNER_REFACTORING.md](FLUTTER_PARTNER_REFACTORING.md) | Partner-specific changes |
-| [FLUTTER_PARTNER_INVESTMENT_FLOW.md](FLUTTER_PARTNER_INVESTMENT_FLOW.md) | Investment flow documentation |
-| [BACKEND_API_SPEC.md](BACKEND_API_SPEC.md) | API endpoints reference |
-| [ISSUES/](ISSUES/) | Known issues and resolutions |
+| [Investment flow](../docs/flutter-partner/FLUTTER_PARTNER_INVESTMENT_FLOW.md) | Investment flow documentation |
+| [Quick reference](../docs/flutter-partner/QUICK_REFERENCE_INVESTMENT_FLOW.md) | Concise investment-flow reference |
+| [Backend API](../docs/flutter-founder/BACKEND_API_SPEC.md) | Shared API endpoints reference |
+| [Known issues](../docs/flutter-partner/issues/) | Known issues and resolutions |
 
 ---
 

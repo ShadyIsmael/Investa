@@ -9,6 +9,7 @@ public class PaymentTransaction
     public decimal Amount { get; set; }
     public DateTime PaymentDate { get; set; }
     public string? Reference { get; set; }
+    public string IdempotencyKey { get; set; } = string.Empty;
     public string? Notes { get; set; }
     public bool IsReversed { get; set; }
     public string? ReversalReason { get; set; }
@@ -16,6 +17,8 @@ public class PaymentTransaction
     public Guid? ReversedByUserId { get; set; }
     public Guid CreatedByUserId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public Guid? ExchangeRateSnapshotId { get; set; }
+    public ExchangeRateSnapshot? ExchangeRateSnapshot { get; set; }
 
     public OpportunityJoinRequest? ParticipationRequest { get; set; }
 }

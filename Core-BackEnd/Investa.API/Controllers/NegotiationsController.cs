@@ -28,7 +28,12 @@ public class NegotiationsController : BaseApiController
 
         try
         {
-            var state = await _negotiationService.GetOpportunityViewerStateAsync(userId.Value, id, conversationId, cancellationToken);
+            var state = await _negotiationService.GetOpportunityViewerStateAsync(
+                userId.Value,
+                id,
+                conversationId,
+                cancellationToken,
+                User.IsInRole("Admin") || User.IsInRole("Reviewer"));
             return SuccessResponse(state);
         }
         catch (BusinessValidationException ex)
@@ -332,9 +337,9 @@ public class NegotiationsController : BaseApiController
         }
     }
 
-    [HttpPost("conversations/{id:guid}/offers/{offerId:int}/counter")]
+    [HttpPost("conversations/{id:guid}/offers/{offerId:int}/replace")]
     [ProducesResponseType(typeof(ApiResponse<NegotiationOfferDto>), StatusCodes.Status201Created)]
-    public async Task<IActionResult> CounterOffer(Guid id, int offerId, [FromBody] CreateNegotiationOfferRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> ReplaceOffer(Guid id, int offerId, [FromBody] CreateNegotiationOfferRequest request, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
             return ErrorResponse("Invalid request", 400, ModelState);
@@ -345,13 +350,99 @@ public class NegotiationsController : BaseApiController
 
         try
         {
-            var offer = await _negotiationService.CounterOfferAsync(userId.Value, id, offerId, request, cancellationToken);
-            return SuccessResponse(offer, "Negotiation offer countered successfully", 201);
+            var offer = await _negotiationService.ReplaceOfferAsync(userId.Value, id, offerId, request, cancellationToken);
+            return SuccessResponse(offer, "Offer version replaced successfully", 201);
         }
         catch (BusinessValidationException ex)
         {
             return ToBusinessError(ex);
         }
+    }
+
+    [HttpGet("opportunities/{id:int}/offers")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<NegotiationOfferDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetDirectOffers(int id, CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null) return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            return SuccessResponse(await _negotiationService.GetDirectOffersAsync(userId.Value, id, cancellationToken));
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
+    [HttpPost("opportunities/{id:int}/offers")]
+    [ProducesResponseType(typeof(ApiResponse<NegotiationOfferDto>), StatusCodes.Status201Created)]
+    public async Task<IActionResult> SubmitDirectOffer(int id, [FromBody] CreateNegotiationOfferRequest request, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid) return ErrorResponse("Invalid request", 400, ModelState);
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null) return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            var offer = await _negotiationService.SubmitDirectOfferAsync(userId.Value, id, request, cancellationToken);
+            return SuccessResponse(offer, "Direct offer submitted successfully", 201);
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
+    [HttpPost("opportunities/{id:int}/offers/{offerId:int}/accept")]
+    public async Task<IActionResult> AcceptDirectOffer(int id, int offerId, CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null) return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            return SuccessResponse(await _negotiationService.AcceptDirectOfferAsync(userId.Value, id, offerId, cancellationToken));
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
+    [HttpPost("opportunities/{id:int}/offers/{offerId:int}/reject")]
+    public async Task<IActionResult> RejectDirectOffer(int id, int offerId, CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null) return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            return SuccessResponse(await _negotiationService.RejectDirectOfferAsync(userId.Value, id, offerId, cancellationToken));
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
+    [HttpGet("offers/incoming")]
+    public async Task<IActionResult> GetIncomingDirectOffers(CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null) return ErrorResponse("Unable to resolve authenticated user", 401);
+        try { return SuccessResponse(await _negotiationService.GetDirectInboxAsync(userId.Value, true, cancellationToken)); }
+        catch (BusinessValidationException ex) { return ToBusinessError(ex); }
+    }
+
+    [HttpGet("offers/outgoing")]
+    public async Task<IActionResult> GetOutgoingDirectOffers(CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null) return ErrorResponse("Unable to resolve authenticated user", 401);
+        try { return SuccessResponse(await _negotiationService.GetDirectInboxAsync(userId.Value, false, cancellationToken)); }
+        catch (BusinessValidationException ex) { return ToBusinessError(ex); }
     }
 
     [HttpPost("conversations/{id:guid}/offers/{offerId:int}/accept")]
@@ -423,7 +514,7 @@ public class NegotiationsController : BaseApiController
         var statusCode = ex.Code switch
         {
             "CONVERSATION_NOT_FOUND" or "CONVERSATION_REQUEST_NOT_FOUND" or "OPPORTUNITY_NOT_FOUND" => 404,
-            "CONVERSATION_FORBIDDEN" => 403,
+            "CONVERSATION_FORBIDDEN" or "OFFER_FORBIDDEN" => 403,
             "CLIENT_REQUIRED" or "USER_REQUIRED" => 401,
             _ => 400
         };

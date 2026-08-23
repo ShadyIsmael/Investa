@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
@@ -21,5 +21,6 @@
     <ProjectReference Include="..\..\Investa.Application\Investa.Application.csproj" />
     <ProjectReference Include="..\..\Investa.Infrastructure\Investa.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Investa.Domain\Investa.Domain.csproj" />
+    <ProjectReference Include="..\..\Tools\ResetBusinessDataRunner\ResetBusinessDataRunner.csproj" />
   </ItemGroup>
 </Project>

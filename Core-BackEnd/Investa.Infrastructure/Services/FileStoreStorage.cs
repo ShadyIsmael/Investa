@@ -25,8 +25,11 @@ public class FileStoreStorage : IFileStorage
         _http = http;
         _logger = logger;
 
-        _baseUrl = (config["FileStore:BaseUrl"] ?? "http://localhost:5240").TrimEnd('/');
-        _apiKey = config["FileStore:ApiKey"] ?? "investa-filestore-key-change-in-production";
+        _baseUrl = (config["FileStore:BaseUrl"]
+            ?? throw new InvalidOperationException("Required configuration 'FileStore:BaseUrl' is missing."))
+            .TrimEnd('/');
+        _apiKey = config["FileStore:ApiKey"]
+            ?? throw new InvalidOperationException("Required secret 'FileStore:ApiKey' is missing.");
 
         _http.DefaultRequestHeaders.Remove("X-Api-Key");
         _http.DefaultRequestHeaders.Add("X-Api-Key", _apiKey);
@@ -122,7 +125,61 @@ public class FileStoreStorage : IFileStorage
     /// </summary>
     public Task EnsureDirectoryAsync(string relativeDirectory)
     {
-        // FileStore creates category directories automatically on upload — nothing to do here.
         return Task.CompletedTask;
+    }
+
+    public async Task<FileStoreMetadataDto?> GetFileMetadataAsync(string fileKey, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(fileKey))
+            return null;
+
+        var segments = fileKey.Split('/');
+        if (segments.Length < 2)
+            return null;
+
+        var category = Uri.EscapeDataString(segments[0]);
+        var filename = Uri.EscapeDataString(segments[^1]);
+
+        var url = $"{_baseUrl}/files/{category}/{filename}/metadata";
+
+        try
+        {
+            using var response = await _http.GetAsync(url, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    return null;
+
+                _logger.LogWarning("FileStore metadata lookup failed ({Status}) for {FileKey}", response.StatusCode, fileKey);
+                return null;
+            }
+
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            using var doc = JsonDocument.Parse(body);
+            var root = doc.RootElement;
+
+            return new FileStoreMetadataDto
+            {
+                FileId = root.GetProperty("fileId").GetString() ?? string.Empty,
+                FileKey = root.GetProperty("fileKey").GetString() ?? fileKey,
+                FileName = root.GetProperty("fileName").GetString() ?? string.Empty,
+                OriginalFileName = root.TryGetProperty("originalFileName", out var ofn) ? ofn.GetString() ?? string.Empty : string.Empty,
+                Extension = root.GetProperty("extension").GetString() ?? string.Empty,
+                MimeType = root.GetProperty("mimeType").GetString() ?? string.Empty,
+                FileSize = root.GetProperty("fileSize").GetInt64(),
+                Category = root.GetProperty("category").GetString() ?? string.Empty,
+                Url = root.GetProperty("url").GetString() ?? string.Empty,
+                PreviewUrl = root.TryGetProperty("previewUrl", out var pu) ? pu.GetString() : null,
+                ThumbnailUrl = root.TryGetProperty("thumbnailUrl", out var tu) ? tu.GetString() : null,
+                UploadedBy = root.TryGetProperty("uploadedBy", out var ub) ? ub.GetString() : null,
+                UploadedAt = root.TryGetProperty("uploadedAt", out var ua) ? ua.GetDateTime() : DateTime.UtcNow
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get file metadata for {FileKey}", fileKey);
+            return null;
+        }
     }
 }

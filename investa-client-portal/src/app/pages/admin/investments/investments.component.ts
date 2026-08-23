@@ -2,18 +2,23 @@ import { Component, ChangeDetectionStrategy, signal, computed, inject, DestroyRe
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Opportunity, OpportunityLookup, OpportunityService, MyParticipation } from '../../../services/opportunity.service';
-import { ReactiveFormsModule, FormBuilder, FormGroup, FormsModule } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
 import { NotificationService } from '../../../services/notification.service';
 import { LanguageService } from '../../../services/language.service';
-import { RequestsService } from '../../../services/requests.service';
-import { UserService } from '../../../services/user.service';
 import { FileStoreService } from '../../../services/file-store.service';
+import { CurrencyDisplayPipe } from '../../../pipes/currency-display.pipe';
 
 type ProjectCard = (Opportunity & MyParticipation & Record<string, any>) & {
   name: string;
   description: string;
+  projectDisplayName: string;
+  projectSummary: string;
+  projectDescription: string;
+  projectIndustry: string;
+  projectLogoUrl: string;
+  fundingStatusLabel: string;
   founderDisplay: string;
   founderId: string;
   businessRole: string;
@@ -25,13 +30,8 @@ type ProjectCard = (Opportunity & MyParticipation & Record<string, any>) & {
   currency: string;
   investedAmount: number | null;
   investorCount: number | null;
-  investmentType: InvestmentType;
   riskLevel: RiskLevel;
   favorited: boolean;
-  minInvestment: number;
-  maxInvestment: number;
-  sharePrice: number;
-  availableShares: number | null;
   credibilityScore: number;
   date: Date;
   lastActivityAt?: Date;
@@ -47,27 +47,9 @@ type ProjectCard = (Opportunity & MyParticipation & Record<string, any>) & {
   currentContractId?: string | null;
   currentContractVersion?: string | null;
   canOpenProjectRoom?: boolean;
+  projectTotalInvestment?: number;
+  opportunityTotalInvestment?: number;
 
-  // Loan-specific (optional)
-  principal?: number | null;
-  interestRate?: number | null;
-  expectedDurationMonths?: number | null;
-  repaymentFrequency?: string | null;
-  finalRepaymentDate?: string | null;
-  expectedReturn?: number | null;
-  expectedTotalRepayment?: number | null;
-
-  // Equity-specific (optional)
-  approvedShares?: number | null;
-  ownershipPercentage?: number | null;
-  soldShares?: number | null;
-
-  // Profit Sharing-specific (optional)
-  contribution?: number | null;
-  profitSharePercentage?: number | null;
-  payoutFrequency?: string | null;
-  expectedProfit?: number | null;
-  expectedTotalPayout?: number | null;
 };
 
 enum RiskLevel {
@@ -76,42 +58,13 @@ enum RiskLevel {
   High = 'High'
 }
 
-enum InvestmentType {
-  Founding = 1,
-  Equity = 2,
-  RevenueSharing = 3,
-  Loan = 4
-}
-
-function getInvestmentTypeDisplayFallback(type: InvestmentType | number | undefined): string {
-  if (type === InvestmentType.Founding) return 'Founding';
-  if (type === InvestmentType.Equity) return 'Equity';
-  if (type === InvestmentType.RevenueSharing) return 'Revenue Sharing';
-  if (type === InvestmentType.Loan) return 'Loan';
-  return 'Opportunity';
-}
-
-function getInvestmentTypeDisplay(type: InvestmentType | number | undefined): string {
-  return getInvestmentTypeDisplayFallback(type);
-}
-
-function getInvestmentTypeBadgeClass(type: InvestmentType | number | undefined): string {
-  if (type === InvestmentType.Founding) return 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/25';
-  if (type === InvestmentType.Equity) return 'bg-blue-500/15 text-blue-300 border border-blue-500/25';
-  if (type === InvestmentType.RevenueSharing) return 'bg-purple-500/15 text-purple-300 border border-purple-500/25';
-  if (type === InvestmentType.Loan) return 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/25';
-  return 'bg-slate-700/70 text-slate-300 border border-slate-600/40';
-}
-
 const DEFAULT_PLACEHOLDER = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0tpZHM9ImV4dGxhbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjY2NjYyIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPgogIDxwYXRoIGQ9Ik0wMCAwMmgNDBwLTAgMEwwIDQwIiBmaWxsPSIjMzUwOSIgLz4KICA8cGF0aCBkPSJNMCA0MHY0MCIgZmlsbD0iIzM1MTEiIC8+CiAgPHBhdGggZD0iTTEwMCAxMEw1MCAxMCIgZmlsbD0iIzY2NyIgc3Ryb2tlLXdpZHRoPSIzLjUiIC8+CiAgPHBhdGggZD0iTTEwMCAxNUw1MCAxNSIgcmlnaHQ9NTAiIGZpbGw9IiNmZmYiIHN0cm9rZS13aWR0aD0iMy41IiAvPgogIDxwYXRoIGQ9Ik0xMDAgMjBMNTAgMjAiIHJpZ2h0PSI1MCIgZmlsbD0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIzLjUiIC8+CiAgPC9nPgogIDx0ZXh0IGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY2NyIgdGV4dC0tLW0tbW0gbWF0Y2hlcmUgdGV4dCIgZmlsbD0iIzY2NyIvPgo8L3N2Zz4=';
 
 const ITEMS_PER_PAGE = 8;
-const ENGAGEMENT_CREDIT_COST = 5;
 
 type InvestmentFilters = {
   searchTerm: string;
   riskLevels: { low: boolean; medium: boolean; high: boolean };
-  investmentTypes: { founding: boolean; equity: boolean; revenueSharing: boolean; loan: boolean };
   minFunding: number;
   maxFunding: number;
   onlyFavorites: boolean;
@@ -133,7 +86,7 @@ type InvestmentFilters = {
   templateUrl: './investments.component.html',
   styleUrls: ['./investments.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, TranslatePipe]
+  imports: [CommonModule, ReactiveFormsModule, TranslatePipe, CurrencyDisplayPipe]
 })
 export class InvestmentsComponent {
   protected opportunityService = inject(OpportunityService);
@@ -143,12 +96,9 @@ export class InvestmentsComponent {
   private destroyRef = inject(DestroyRef);
   private notificationService = inject(NotificationService);
   protected languageService = inject(LanguageService);
-  private requestsService = inject(RequestsService);
-  private userService = inject(UserService);
   private fileStoreService = inject(FileStoreService);
   
   protected readonly RiskLevel = RiskLevel;
-  protected readonly InvestmentType = InvestmentType;
 
   // Service state
   investments = signal<ProjectCard[]>([]);
@@ -213,21 +163,6 @@ export class InvestmentsComponent {
   activeCategory = signal<string>('All');
   currentPage = signal(1);
   isAdvancedSearchOpen = signal(false);
-  investmentToEngage = signal<ProjectCard | null>(null);
-  engagementCreditCost = ENGAGEMENT_CREDIT_COST;
-  engagementProcessing = signal(false);
-  
-  // Investment dialog state
-  investmentToInvest = signal<ProjectCard | null>(null);
-  sharesToPurchaseValue = 1;
-  sharesToPurchase = computed(() => this.sharesToPurchaseValue);
-  investmentError = signal<string | null>(null);
-  investmentProcessing = signal(false);
-  investmentConfirmationOpen = signal(false);  // Tracks if final confirmation dialog is open
-
-  // User credits from UserService
-  userCredits = this.userService.credits;
-
   // Founder avatar cache by user id
   founderAvatarCache = signal<Record<string, string | undefined>>({});
   
@@ -267,10 +202,6 @@ export class InvestmentsComponent {
       medium: [false],
       high: [false]
     }),
-    investmentTypes: this.fb.group({
-      founding: [false],
-      equity: [false]
-    }),
     minFunding: [0],
     maxFunding: [100],
     onlyFavorites: [false]
@@ -289,10 +220,6 @@ export class InvestmentsComponent {
     const selectedRisks = Object.entries(filters.riskLevels ?? {})
       .filter(([, value]) => value)
       .map(([key]) => key);
-
-    const selectedTypes = Object.entries(filters.investmentTypes ?? {})
-      .filter(([, value]) => value)
-      .map(([key]) => key === 'founding' ? InvestmentType.Founding : InvestmentType.Equity);
 
     return this.investments().filter(inv => {
       // Category filter
@@ -318,9 +245,7 @@ export class InvestmentsComponent {
 
       // Favorites filter
       const favoriteMatch = !filters.onlyFavorites || inv.favorited;
-      const typeMatch = selectedTypes.length === 0 || selectedTypes.some(type => inv.investmentType === type);
-
-      return categoryMatch && termMatch && riskMatch && fundingMatch && favoriteMatch && typeMatch;
+      return categoryMatch && termMatch && riskMatch && fundingMatch && favoriteMatch;
     }).sort((a, b) => this.getNewestTimestamp(b) - this.getNewestTimestamp(a));
   });
 
@@ -378,10 +303,6 @@ export class InvestmentsComponent {
 
     void this.loadCategories();
     void this.loadOpportunities();
-    effect(() => {
-      if (this.requestsService.participationRevision() > 0) void this.loadOpportunities();
-    });
-
     // attach scroll listener for load-more
     window.addEventListener('scroll', this.onScroll, { passive: true });
     this.destroyRef.onDestroy(() => window.removeEventListener('scroll', this.onScroll));
@@ -490,6 +411,16 @@ export class InvestmentsComponent {
     return url || DEFAULT_PLACEHOLDER;
   }
 
+  getProjectImageUrl(investment: ProjectCard): string {
+    const url = this.fileStoreService.getPublicUrl(investment.projectLogoUrl || '');
+    return url || DEFAULT_PLACEHOLDER;
+  }
+
+  onProjectImageError(event: Event): void {
+    const image = event.target as HTMLImageElement | null;
+    if (image && image.src !== DEFAULT_PLACEHOLDER) image.src = DEFAULT_PLACEHOLDER;
+  }
+
   private lookupPath(object: any, path: string, fallback: any): any {
     return path.split('.').reduce((current: any, segment: string) => current?.[segment], object) ?? fallback;
   }
@@ -500,7 +431,6 @@ export class InvestmentsComponent {
   resetAdvancedFilters(): void {
     this.filterForm.patchValue({
       riskLevels: { low: false, medium: false, high: false },
-      investmentTypes: { founding: false, equity: false },
       minFunding: 0,
       maxFunding: 100,
       onlyFavorites: false
@@ -524,6 +454,10 @@ export class InvestmentsComponent {
     }
   }
 
+  openParticipationContract(contractId: number | null): void {
+    if (contractId) this.router.navigate(['/admin/contracts', contractId]);
+  }
+
   /**
    * Navigate to previous page
    */
@@ -538,91 +472,6 @@ export class InvestmentsComponent {
     this.currentPage.update(page => Math.min(page + 1, this.totalPages()));
   }
 
-  /**
-   * Show engagement prompt
-   */
-  promptEngage(investment: ProjectCard): void {
-    this.investmentToEngage.set(investment);
-  }
-
-  /**
-   * Cancel engagement
-   */
-  cancelEngage(): void {
-    this.investmentToEngage.set(null);
-  }
-
-  /**
-   * Confirm engagement for funding-based investments
-   */
-  async confirmEngage(): Promise<void> {
-    const investment = this.investmentToEngage();
-    if (!investment) return;
-
-    if (this.engagementProcessing()) {
-      return;
-    }
-
-    // Refresh profile to ensure credits are up-to-date
-    try {
-      await this.userService.refreshUser();
-    } catch (err) {
-      console.warn('Failed to refresh user before engagement confirmation:', err);
-    }
-
-    const currentCredits = this.userCredits();
-    if (currentCredits < this.engagementCreditCost) {
-      this.notificationService.showToast({
-        title: 'Insufficient Credits',
-        message: 'You do not have enough credits for engagement.',
-        type: 'error'
-      });
-      return;
-    }
-
-    this.engagementProcessing.set(true);
-    this.requestsService
-      .createOpportunityRequest(investment, this.engagementCreditCost, 0)
-      .then(() => {
-        const { title, message } = this.getRequestSubmittedCopy(investment);
-        this.notificationService.showToast({
-          title,
-          message,
-          type: 'success'
-        });
-        this.investmentToEngage.set(null);
-      })
-      .catch(error => {
-        const apiMessage = error?.error?.message || error?.message;
-        this.notificationService.showToast({
-          title: 'Request Failed',
-          message: apiMessage || 'Failed to submit engagement request. Please try again.',
-          type: 'error'
-        });
-      })
-      .finally(() => {
-        this.engagementProcessing.set(false);
-      });
-  }
-
-  private getRequestSubmittedCopy(investment: ProjectCard): { title: string; message: string } {
-    const dictionary = this.languageService.dictionary();
-    const title = this.lookupPath(dictionary, 'investments.requestSubmittedTitle', 'Request Sent');
-    const messageTemplate = this.lookupPath(
-      dictionary,
-      'investments.requestSubmittedMessage',
-      'Your request for {investmentName} was submitted. We will notify you once it is accepted.'
-    );
-
-    return {
-      title,
-      message: messageTemplate.replace('{investmentName}', investment.name || investment.title || 'Opportunity')
-    };
-  }
-
-  /**
-   * Navigate to investment details page
-   */
   navigateToDetails(investment: ProjectCard | number): void {
     const investmentId = typeof investment === 'number' ? investment : this.resolveOpportunityId(investment);
     if (investmentId == null) {
@@ -661,191 +510,6 @@ export class InvestmentsComponent {
     const diffTime = end.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return Math.max(0, diffDays);
-  }
-
-  /**
-   * Open investment dialog
-   */
-  openInvestDialog(investment: ProjectCard): void {
-    this.investmentToInvest.set(investment);
-    this.sharesToPurchaseValue = 1;
-    this.investmentError.set(null);
-    this.validateShares(investment);
-  }
-
-  /**
-   * Close investment dialog
-   */
-  closeInvestDialog(): void {
-    this.investmentToInvest.set(null);
-    this.sharesToPurchaseValue = 1;
-    this.investmentError.set(null);
-    this.investmentProcessing.set(false);
-  }
-
-  /**
-   * Increase shares to purchase
-   */
-  increaseShares(investment: ProjectCard): void {
-    if (this.sharesToPurchaseValue < (investment.availableShares || 0)) {
-      this.sharesToPurchaseValue++;
-      this.validateShares(investment);
-    }
-  }
-
-  /**
-   * Decrease shares to purchase
-   */
-  decreaseShares(): void {
-    if (this.sharesToPurchaseValue > 1) {
-      this.sharesToPurchaseValue--;
-      const investment = this.investmentToInvest();
-      if (investment) {
-        this.validateShares(investment);
-      }
-    }
-  }
-
-  /**
-   * Calculate total investment amount
-   */
-  calculateRequestedAmount(investment: ProjectCard): number {
-    return this.sharesToPurchaseValue * (investment.sharePrice || 0);
-  }
-
-  /**
-   * Validate shares input
-   */
-  validateShares(investment: ProjectCard): void {
-    const shares = this.sharesToPurchaseValue;
-    const amount = this.calculateRequestedAmount(investment);
-
-    // Reset error
-    this.investmentError.set(null);
-
-    // Validate shares range
-    if (shares < 1) {
-      this.investmentError.set('Must purchase at least 1 share');
-      return;
-    }
-
-    if (shares > (investment.availableShares || 0)) {
-      this.investmentError.set(`Only ${investment.availableShares} shares available`);
-      return;
-    }
-
-    // Validate min investment
-    if (investment.minInvestment && amount < investment.minInvestment) {
-      this.investmentError.set(`Minimum investment is ${investment.minInvestment} ${investment.currency || 'USD'}`);
-      return;
-    }
-
-    // Validate max investment
-    if (investment.maxInvestment && amount > investment.maxInvestment) {
-      this.investmentError.set(`Maximum investment is ${investment.maxInvestment} ${investment.currency || 'USD'}`);
-      return;
-    }
-  }
-
-  /**
-   * Show final confirmation dialog before submitting investment request
-   */
-  showConfirmationDialog(investment: ProjectCard): void {
-    if (this.investmentError() || this.investmentProcessing()) {
-      return;
-    }
-
-    const requestedAmount = (investment.sharePrice || 0) * this.sharesToPurchaseValue;
-    const currentCredits = this.userCredits();
-
-    // Pre-check credits
-    if (currentCredits < requestedAmount) {
-      this.investmentError.set('Insufficient credits. Please add more credits to your account.');
-      this.notificationService.showToast({
-        title: 'Insufficient Credits',
-        message: 'You do not have enough credits to complete this investment.',
-        type: 'error'
-      });
-      return;
-    }
-
-    // Open final confirmation dialog
-    this.investmentConfirmationOpen.set(true);
-  }
-
-  /**
-   * Cancel final confirmation dialog
-   */
-  cancelConfirmation(): void {
-    this.investmentConfirmationOpen.set(false);
-  }
-
-  /**
-   * Proceed with investment request after user confirms in dialog
-   */
-  async proceedWithInvestment(investment: ProjectCard): Promise<void> {
-    if (this.investmentError() || this.investmentProcessing()) {
-      return;
-    }
-
-    this.investmentProcessing.set(true);
-    this.investmentError.set(null);
-
-    try {
-      const requestedAmount = (investment.sharePrice || 0) * this.sharesToPurchaseValue;
-
-      // Call API to create investment request (deducts credits, creates request in database)
-      await this.requestsService.createOpportunityRequest(
-        investment,
-        requestedAmount,
-        this.sharesToPurchaseValue
-      );
-
-      const { title, message } = this.getRequestSubmittedCopy(investment);
-      this.notificationService.showToast({
-        title,
-        message,
-        type: 'success'
-      });
-
-      // Close dialogs and refresh
-      this.investmentConfirmationOpen.set(false);
-      this.closeInvestDialog();
-      await this.refresh();
-    } catch (error: any) {
-      const apiMessage = error?.error?.message || error?.message;
-      this.investmentError.set(apiMessage || 'Failed to submit investment request');
-      this.notificationService.showToast({
-        title: 'Request Failed',
-        message: apiMessage || 'Failed to submit investment request. Please try again.',
-        type: 'error'
-      });
-    } finally {
-      this.investmentProcessing.set(false);
-    }
-  }
-
-  /**
-   * Get display name for investment type
-   */
-  getInvestmentTypeDisplay(type: InvestmentType | number | undefined): string {
-    const key = this.getInvestmentTypeI18nKey(type);
-    return key ? this.t(key, getInvestmentTypeDisplayFallback(type)) : getInvestmentTypeDisplayFallback(type);
-  }
-
-  private getInvestmentTypeI18nKey(type: InvestmentType | number | undefined): string | null {
-    if (type === InvestmentType.Founding) return 'investments.type.founding';
-    if (type === InvestmentType.Equity) return 'investments.type.equity';
-    if (type === InvestmentType.RevenueSharing) return 'investments.type.profitSharing';
-    if (type === InvestmentType.Loan) return 'investments.type.loan';
-    return null;
-  }
-
-  /**
-   * Get badge CSS classes for investment type
-   */
-  getInvestmentTypeBadgeClass(type: InvestmentType | number | undefined): string {
-    return getInvestmentTypeBadgeClass(type);
   }
 
   /** Map status value to i18n key */
@@ -950,6 +614,12 @@ private toProjectCard(item: Opportunity | MyParticipation): ProjectCard {
       id: source.id,
       name: source.opportunityTitle || 'Untitled Opportunity',
       description: source.shortDescription || '',
+      projectDisplayName: source.projectDisplayName || 'Project',
+      projectSummary: source.projectSummary || source.shortDescription || '',
+      projectDescription: source.projectDescription || '',
+      projectIndustry: source.projectIndustry || source.categoryName || '',
+      projectLogoUrl: source.projectLogoUrl || '',
+      fundingStatusLabel: this.normalizeFundingStatusLabel(source.fundingStatus || source.participationStatus),
       founderDisplay: source.founderDisplayName || 'Founder',
       founderId: source.founderId || '',
       businessRole: source.businessRole || '',
@@ -961,13 +631,8 @@ private toProjectCard(item: Opportunity | MyParticipation): ProjectCard {
       currency: source.currency || 'USD',
       investedAmount: this.numberOrNull(source.approvedContributionAmount),
       investorCount: this.numberOrNull(source.approvedParticipantCount),
-      investmentType: this.toInvestmentType(source.investmentModel),
       riskLevel: (source.riskLevel || RiskLevel.Medium) as RiskLevel,
       favorited: !!source.favorited,
-      minInvestment: Number(source.minimumInvestmentAmount ?? 0),
-      maxInvestment: Number(source.maximumInvestmentAmount ?? 0),
-      sharePrice: Number(source.sharePrice ?? 0),
-      availableShares: this.numberOrNull(source.remainingShares),
       credibilityScore: Number(source.credibilityScore ?? 0),
       date: source.createdAt ? new Date(source.createdAt) : new Date(),
       lastActivityAt: source.updatedAt ? new Date(source.updatedAt) : undefined,
@@ -983,26 +648,6 @@ private toProjectCard(item: Opportunity | MyParticipation): ProjectCard {
       currentContractVersion: source.currentContractVersion ? String(source.currentContractVersion) : null,
       canOpenProjectRoom: !!source.canOpenProjectRoom,
 
-      // Loan-specific
-      principal: this.numberOrNull(source.principal),
-      interestRate: this.numberOrNull(source.interestRate),
-      expectedDurationMonths: this.numberOrNull(source.expectedDurationMonths),
-      repaymentFrequency: source.repaymentFrequency || null,
-      finalRepaymentDate: source.finalRepaymentDate || null,
-      expectedReturn: this.numberOrNull(source.expectedReturn),
-      expectedTotalRepayment: this.numberOrNull(source.expectedTotalRepayment),
-
-      // Equity-specific
-      approvedShares: this.numberOrNull(source.approvedShares),
-      ownershipPercentage: this.numberOrNull(source.ownershipPercentage),
-      soldShares: this.numberOrNull(source.soldShares),
-
-      // Profit Sharing-specific
-      contribution: this.numberOrNull(source.contribution),
-      profitSharePercentage: this.numberOrNull(source.profitSharePercentage),
-      payoutFrequency: source.payoutFrequency || null,
-      expectedProfit: this.numberOrNull(source.expectedProfit),
-      expectedTotalPayout: this.numberOrNull(source.expectedTotalPayout),
     } as ProjectCard;
   }
 
@@ -1015,24 +660,25 @@ private toProjectCard(item: Opportunity | MyParticipation): ProjectCard {
       ...source,
       name: source.title || source.name || 'Untitled Opportunity',
       description: source.shortDescription || source.description || source.fullDescription || '',
+      projectDisplayName: source.projectDisplayName || 'Project',
+      projectSummary: source.projectSummary || '',
+      projectDescription: source.projectDescription || '',
+      projectIndustry: source.projectIndustry || source.projectContext?.category?.name || '',
+      projectLogoUrl: source.projectLogoUrl || '',
+      fundingStatusLabel: this.normalizeFundingStatusLabel(source.fundingStatus || source.status),
       founderDisplay: source.founder?.displayName || source.founder?.fullName || source.founder?.name || 'Founder',
       founderId: source.founderId || source.founder?.id || source.founder?.userId || '',
       businessRole: source.founder?.businessRole || source.businessRole || '',
-      businessCategoryName: source.categoryName || source.category?.label || source.businessCategoryName || '',
-      businessCategoryNameAr: source.businessCategoryNameAr || source.category?.value || '',
+      businessCategoryName: source.projectContext?.category?.name || source.businessCategoryName || '',
+      businessCategoryNameAr: source.projectContext?.category?.name || source.businessCategoryNameAr || '',
       targetFund,
       currentFunding,
       fundingPercentage,
       currency: source.currency || 'USD',
       investedAmount: this.numberOrNull(source.investedAmount),
       investorCount: this.numberOrNull(source.approvedParticipantCount),
-      investmentType: this.toInvestmentType(source.investmentModel),
       riskLevel: (source.riskLevel || RiskLevel.Medium) as RiskLevel,
       favorited: !!source.favorited,
-      minInvestment: Number(source.minimumInvestmentAmount ?? source.minimumInvestment ?? 0),
-      maxInvestment: Number(source.maximumInvestmentAmount ?? source.maximumInvestment ?? 0),
-      sharePrice: Number(source.sharePrice ?? 0),
-      availableShares: this.numberOrNull(source.remainingShares),
       credibilityScore: Number(source.credibilityScore ?? 0),
       date: source.createdAt ? new Date(source.createdAt) : new Date(),
       lastActivityAt: source.updatedAt ? new Date(source.updatedAt) : undefined,
@@ -1062,6 +708,17 @@ private toProjectCard(item: Opportunity | MyParticipation): ProjectCard {
     return 'Active';
   }
 
+  private normalizeFundingStatusLabel(value: unknown): string {
+    const raw = String(value || '').toLowerCase().replace(/[\s_-]+/g, '');
+    if (raw === '1' || raw === 'draft') return 'Draft';
+    if (raw === '6' || raw === 'funding' || raw === 'open') return 'Open';
+    if (raw === '7' || raw === 'fullyfunded' || raw === 'funded') return 'Fully funded';
+    if (raw === '8' || raw === 'inprogress') return 'In progress';
+    if (raw === '9' || raw === 'completed' || raw === 'closed') return 'Closed';
+    if (raw === 'paused') return 'Paused';
+    return value ? String(value) : 'Open';
+  }
+
   private numberOrNull(value: unknown): number | null {
     if (value === null || value === undefined || value === '') return null;
     const parsed = Number(value);
@@ -1071,14 +728,6 @@ private toProjectCard(item: Opportunity | MyParticipation): ProjectCard {
   private isDraftStatus(value: unknown): boolean {
     const raw = String(value || '').toLowerCase().replace(/[\s_-]+/g, '');
     return raw === '1' || raw === 'draft';
-  }
-
-  private toInvestmentType(model: unknown): InvestmentType {
-    const key = String(model || '').toLowerCase();
-    if (key.includes('founding')) return InvestmentType.Founding;
-    if (key.includes('loan') || key.includes('debt')) return InvestmentType.Loan;
-    if (key.includes('profit') || key.includes('revenue')) return InvestmentType.RevenueSharing;
-    return InvestmentType.Equity;
   }
 
 }

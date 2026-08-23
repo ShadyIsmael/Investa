@@ -1,3 +1,4 @@
+﻿using Investa.Domain;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -36,7 +37,7 @@ public class FinanceAccount
     /// <summary>Base currency (EGP)</summary>
     [Required]
     [StringLength(3)]
-    public string Currency { get; set; } = "EGP";
+    public string Currency { get; set; } = CurrencyMasterDefaults.DefaultCurrency;
 
     /// <summary>Current balance in base currency</summary>
     [Required]

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
 import { LanguageService } from '../../../services/language.service';
+import { CurrencyService } from '../../../services/currency.service';
 import { WalletService } from '../../../services/wallet.service';
 import { CreditPackage, CreditPurchaseOrder, CreditPurchaseService, CreditPurchaseStatus } from '../../../services/credit-purchase.service';
 
@@ -18,8 +19,9 @@ export class CreditChargeComponent implements OnInit {
   private purchases = inject(CreditPurchaseService);
   private wallet = inject(WalletService);
   readonly language = inject(LanguageService);
-  private route = inject(ActivatedRoute);
-  private router = inject(Router);
+private route = inject(ActivatedRoute);
+private router = inject(Router);
+private currencyService = inject(CurrencyService);
 
   packages = signal<CreditPackage[]>([]);
   orders = signal<CreditPurchaseOrder[]>([]);
@@ -93,7 +95,7 @@ export class CreditChargeComponent implements OnInit {
     return this.language.language() === 'ar' ? item.nameAr : item.name;
   }
   formatMoney(value: number, currency: string): string {
-    return new Intl.NumberFormat(this.language.language() === 'ar' ? 'ar-EG' : 'en-EG', { style: 'currency', currency }).format(value);
+    return this.currencyService.format(value, currency);
   }
   formatNumber(value: number): string { return new Intl.NumberFormat(this.language.language() === 'ar' ? 'ar-EG' : 'en-US').format(value); }
   formatDate(value?: string | null): string { return value ? new Intl.DateTimeFormat(this.language.language() === 'ar' ? 'ar-EG' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '—'; }

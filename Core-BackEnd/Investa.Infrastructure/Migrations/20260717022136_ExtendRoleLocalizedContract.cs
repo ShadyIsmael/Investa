@@ -98,11 +98,8 @@ namespace Investa.Infrastructure.Migrations
                 computedColumnSql: "'ROL-' + CASE WHEN LEN(CONVERT(varchar(20), [RoleNumber])) < 6 THEN REPLICATE('0', 6 - LEN(CONVERT(varchar(20), [RoleNumber]))) ELSE '' END + CONVERT(varchar(20), [RoleNumber])",
                 stored: true);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Roles_RoleCode",
-                table: "Roles",
-                column: "RoleCode",
-                unique: true);
+            migrationBuilder.Sql(
+                "CREATE UNIQUE INDEX [IX_Roles_RoleCode] ON [Roles] ([RoleCode]);");
         }
 
         /// <inheritdoc />

@@ -1,3 +1,4 @@
+﻿using Investa.Domain;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -95,7 +96,7 @@ public class Supplier
 
     /// <summary>Currency for transactions with this supplier</summary>
     [StringLength(3)]
-    public string Currency { get; set; } = "EGP";
+    public string Currency { get; set; } = CurrencyMasterDefaults.DefaultCurrency;
 
     /// <summary>Whether supplier is currently active</summary>
     public bool IsActive { get; set; } = true;

@@ -14,13 +14,15 @@ import { CommonModule } from '@angular/common';
 })
 export class OpportunityStatusBadgeComponent {
   @Input() status: string | null | undefined = 'Draft';
+  @Input() fundingStatus: string | null | undefined;
 
   get label(): string {
-    return this.status || 'Draft';
+    return this.fundingStatus || this.status || 'Draft';
   }
 
   get tone(): string {
-    switch ((this.status || '').toLowerCase()) {
+    switch ((this.fundingStatus || this.status || '').toLowerCase()) {
+      case 'open':
       case 'published':
       case 'approved':
       case 'funding':
@@ -28,7 +30,11 @@ export class OpportunityStatusBadgeComponent {
       case 'completed':
         return 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25';
       case 'underreview':
+      case 'scheduled':
         return 'bg-blue-500/15 text-blue-300 border-blue-500/25';
+      case 'paused':
+        return 'bg-amber-500/15 text-amber-300 border-amber-500/25';
+      case 'closed':
       case 'rejected':
         return 'bg-red-500/15 text-red-300 border-red-500/25';
       case 'archived':

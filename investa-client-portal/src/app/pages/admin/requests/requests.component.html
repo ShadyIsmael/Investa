@@ -45,7 +45,6 @@
         <select [value]="typeFilter()" (change)="setTypeFilter($event.target.value)">
           <option value="all">{{ 'requests.filters.all' | translate }}</option>
           <option value="conversation">{{ 'requests.filters.conversation' | translate }}</option>
-          <option value="participation">{{ 'requests.filters.participation' | translate }}</option>
         </select>
       </label>
       <label>
@@ -60,16 +59,13 @@
       <p class="results-copy">{{ 'requests.filters.showing' | translate }} {{ displayRange() }} {{ 'requests.filters.of' | translate }} {{ filteredRequests().length }}</p>
     </section>
 
+    <app-direct-offer-inbox></app-direct-offer-inbox>
+
     <section class="type-overview">
       <article class="type-summary conversation-summary investa-panel">
         <div class="summary-icon" aria-hidden="true">↔</div>
         <div><h2>{{ 'requests.sections.conversationRequests' | translate }}</h2><p>{{ 'requests.sections.conversationHelper' | translate }}</p></div>
         <strong>{{ currentConversationCount() }}</strong>
-      </article>
-      <article class="type-summary participation-summary investa-panel">
-        <div class="summary-icon" aria-hidden="true">✓</div>
-        <div><h2>{{ 'requests.sections.participationRequests' | translate }}</h2><p>{{ 'requests.sections.participationHelper' | translate }}</p></div>
-        <strong>{{ currentParticipationCount() }}</strong>
       </article>
     </section>
 
@@ -82,12 +78,12 @@
         @for (request of paginatedRequests(); track request.id) {
           @if (shouldShowSectionHeader(request, $index)) {
             <header class="section-heading">
-              <div><h2>{{ getSectionTitle(request) }}</h2><p>{{ isConversationRequest(request) ? ('requests.sections.conversationHelper' | translate) : ('requests.sections.participationHelper' | translate) }}</p></div>
-              <span>{{ getSectionCount(request) }}</span>
+              <div><h2>{{ 'requests.sections.conversationRequests' | translate }}</h2><p>{{ 'requests.sections.conversationHelper' | translate }}</p></div>
+              <span>{{ currentConversationCount() }}</span>
             </header>
           }
 
-          <article class="request-card investa-panel" [class.request-card--conversation]="isConversationRequest(request)" [class.request-card--participation]="!isConversationRequest(request)">
+          <article class="request-card request-card--conversation investa-panel">
             <div class="status-rail" [class.pending]="statusTone(request) === 'pending'" [class.success]="statusTone(request) === 'success'" [class.danger]="statusTone(request) === 'danger'"></div>
             <header class="request-header">
               <div class="person-block">
@@ -106,7 +102,7 @@
                 </button>
               </div>
               <div class="badges">
-                <span class="type-badge" [class.participation]="!isConversationRequest(request)">{{ getRequestTypeDisplay(request) }}</span>
+                <span class="type-badge">{{ 'requests.types.conversationRequest' | translate }}</span>
                 <span class="status-badge" [class.pending]="statusTone(request) === 'pending'" [class.success]="statusTone(request) === 'success'" [class.danger]="statusTone(request) === 'danger'">{{ getStatusDisplay(request) }}</span>
               </div>
             </header>
@@ -123,30 +119,6 @@
             <p class="direction-copy">{{ getDirectionCopy(request) }}</p>
             @if (request.shortDescription) { <p class="request-message">{{ request.shortDescription }}</p> }
 
-            @if (hasParticipationMetadata(request)) {
-              <section class="terms-panel">
-                <header><span>{{ 'requests.workspace.submittedTerms' | translate }}</span><strong>{{ getInvestmentModelDisplay(request) }}</strong></header>
-                <dl class="terms-grid">
-                  @if (isLoanRequest(request)) {
-                    <div><dt>{{ 'requests.values.contribution' | translate }}</dt><dd>{{ formatOptionalMoney(request, getLoanContributionAmount(request)) }}</dd></div>
-                    <div><dt>{{ 'requests.values.returnRate' | translate }}</dt><dd>{{ getLoanReturnRate(request) }}</dd></div>
-                    <div><dt>{{ 'requests.values.term' | translate }}</dt><dd>{{ getLoanTerm(request) }}</dd></div>
-                    <div><dt>{{ 'requests.values.repayment' | translate }}</dt><dd>{{ getLoanRepaymentModel(request) }}</dd></div>
-                    @if (getLoanExpectedTotalRepayment(request) > 0) { <div><dt>{{ 'requests.values.totalRepayment' | translate }}</dt><dd>{{ formatOptionalMoney(request, getLoanExpectedTotalRepayment(request)) }}</dd></div> }
-                  } @else if (isProfitSharingRequest(request)) {
-                    <div><dt>{{ 'requests.values.contribution' | translate }}</dt><dd>{{ formatOptionalMoney(request, getProfitSharingContributionAmount(request)) }}</dd></div>
-                    <div><dt>{{ 'requests.values.profitShare' | translate }}</dt><dd>{{ getProfitSharePercentage(request) }}</dd></div>
-                    <div><dt>{{ 'requests.values.term' | translate }}</dt><dd>{{ getProfitSharingTerm(request) }}</dd></div>
-                    @if (getProfitSharingExpectedTotalPayout(request); as payout) { <div><dt>{{ 'requests.values.expectedPayout' | translate }}</dt><dd>{{ formatOptionalMoney(request, payout) }}</dd></div> }
-                  } @else {
-                    @if (getSharesRequested(request) > 0) { <div><dt>{{ 'requests.values.shares' | translate }}</dt><dd>{{ getSharesRequested(request) }}</dd></div> }
-                    @if (getSharePrice(request) > 0) { <div><dt>{{ 'requests.values.sharePrice' | translate }}</dt><dd>{{ formatOptionalMoney(request, getSharePrice(request)) }}</dd></div> }
-                    @if (getTotalValue(request) > 0) { <div><dt>{{ 'requests.values.totalValue' | translate }}</dt><dd>{{ formatOptionalMoney(request, getTotalValue(request)) }}</dd></div> }
-                  }
-                </dl>
-              </section>
-            }
-
             <div class="request-progress">
               <div><span>{{ getProgressLabel(request) }}</span><strong>{{ getProgressPercentage(request) }}%</strong></div>
               <div class="progress-track"><span [style.width.%]="getProgressPercentage(request)" [class.danger]="statusTone(request) === 'danger'"></span></div>
@@ -156,7 +128,7 @@
               <footer class="request-actions">
                 @if (canShowAcceptReject(request)) {
                   <button type="button" class="primary-button" (click)="accept(request)">{{ getPrimaryActionLabel(request) }}</button>
-                  <button type="button" class="secondary-button danger-button" (click)="decline(request)">{{ isConversationRequest(request) ? ('requests.actions.rejectChat' | translate) : ('requests.actions.rejectParticipation' | translate) }}</button>
+                  <button type="button" class="secondary-button danger-button" (click)="decline(request)">{{ 'requests.actions.rejectChat' | translate }}</button>
                 }
                 @if (canShowWithdraw(request)) {
                   <button type="button" class="secondary-button" (click)="withdraw(request)">{{ 'requests.actions.withdrawRequest' | translate }}</button>

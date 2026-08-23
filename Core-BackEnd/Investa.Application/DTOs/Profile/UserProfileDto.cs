@@ -1,3 +1,4 @@
+﻿using Investa.Domain;
 namespace Investa.Application.DTOs.Profile;
 
 /// <summary>
@@ -9,6 +10,7 @@ namespace Investa.Application.DTOs.Profile;
 public class UserProfileDto
 {
     public Guid UserId { get; set; }
+    public string PreferredCurrency { get; set; } = CurrencyMasterDefaults.DefaultCurrency;
     
     /// <summary>
     /// User's core credentials and metrics

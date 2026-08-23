@@ -13,11 +13,12 @@ public interface IOpportunityService
     Task<IReadOnlyList<MonthlyCashFlowDto>> GetInvestorMonthlyCashFlowAsync(Guid investorId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ExpectedPaymentScheduleItemDto>> GetUpcomingPaymentsAsync(Guid investorId, CancellationToken cancellationToken = default);
     Task<ParticipationPaymentScheduleDto> GetParticipationPaymentScheduleAsync(Guid investorId, int requestId, CancellationToken cancellationToken = default);
-    Task<OpportunityDetailDto> GetFounderOpportunityAsync(Guid founderId, int id, CancellationToken cancellationToken = default);
-    Task<OpportunityRoomDto> GetProjectRoomAsync(Guid userId, int id, CancellationToken cancellationToken = default);
+    Task<OpportunityDetailDto> GetFounderOpportunityAsync(Guid founderId, int id, CancellationToken cancellationToken = default, bool isAdmin = false);
+    Task<OpportunityRoomDto> GetOpportunityRoomAsync(Guid userId, int id, CancellationToken cancellationToken = default, bool isAdmin = false);
     Task<OpportunityMediaDto> AddMediaAsync(Guid founderId, int id, CreateOpportunityMediaRequest request, CancellationToken cancellationToken = default);
     Task<OpportunityDocumentDto> AddDocumentAsync(Guid founderId, int id, CreateOpportunityDocumentRequest request, CancellationToken cancellationToken = default);
     Task<OpportunityEventDto> AddEventAsync(Guid founderId, int id, CreateOpportunityEventRequest request, CancellationToken cancellationToken = default);
+    Task<OpportunityMilestoneDto> CompleteMilestoneAsync(Guid founderId, int id, int milestoneId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<OpportunityEventDto>> GetEventsAsync(Guid founderId, int id, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<OpportunityDocumentDto>> GetDocumentsAsync(Guid founderId, int id, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<OpportunityMediaDto>> GetMediaAsync(Guid founderId, int id, CancellationToken cancellationToken = default);
@@ -28,6 +29,7 @@ public interface IOpportunityService
     Task<bool> IsFavoriteAsync(Guid userId, int opportunityId, CancellationToken cancellationToken = default);
     Task<bool> SetFavoriteAsync(Guid userId, int opportunityId, bool favorited, CancellationToken cancellationToken = default);
     Task<OpportunityDetailDto> PublishAsync(Guid founderId, int id, CancellationToken cancellationToken = default);
+    Task<OpportunityDetailDto> TransitionFundingAsync(Guid actorId, int id, TransitionOpportunityFundingRequest request, bool isAdmin, CancellationToken cancellationToken = default);
     Task<OpportunityParticipationFormDto> GetParticipationFormAsync(Guid userId, int opportunityId, CancellationToken cancellationToken = default);
     Task<PagedResultDto<AdminOpportunityListItemDto>> GetAdminOpportunitiesAsync(AdminOpportunityListQuery query, CancellationToken cancellationToken = default);
     Task<AdminOpportunityDetailDto> GetAdminOpportunityAsync(int id, CancellationToken cancellationToken = default);
@@ -40,9 +42,9 @@ public interface IOpportunityService
     Task<IReadOnlyList<OpportunityJoinRequestDto>> GetMyJoinRequestsAsync(Guid investorId, OpportunityJoinRequestQuery query, CancellationToken cancellationToken = default);
     Task<OpportunityJoinRequestDto> CancelJoinRequestAsync(Guid investorId, int requestId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<OpportunityJoinRequestDto>> GetOpportunityJoinRequestsAsync(Guid founderId, int opportunityId, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<ApprovedInvestorDto>> GetApprovedInvestorsAsync(Guid userId, int opportunityId, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<InvestorPaymentSummaryDto>> GetOpportunityPaymentsAsync(Guid founderId, int id, CancellationToken cancellationToken = default);
-    Task<InvestorPaymentDetailDto> GetInvestorPaymentDetailsAsync(Guid founderId, int id, Guid investorId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ApprovedInvestorDto>> GetApprovedInvestorsAsync(Guid userId, int opportunityId, CancellationToken cancellationToken = default, bool isAdmin = false);
+    Task<IReadOnlyList<InvestorPaymentSummaryDto>> GetOpportunityPaymentsAsync(Guid founderId, int id, CancellationToken cancellationToken = default, bool isAdmin = false);
+    Task<InvestorPaymentDetailDto> GetInvestorPaymentDetailsAsync(Guid founderId, int id, Guid investorId, CancellationToken cancellationToken = default, bool isAdmin = false);
     Task<IReadOnlyList<FounderIncomingJoinRequestDto>> GetIncomingJoinRequestsAsync(Guid founderId, CancellationToken cancellationToken = default);
     Task<FounderIncomingJoinRequestDto> GetIncomingJoinRequestAsync(Guid founderId, int requestId, CancellationToken cancellationToken = default);
     Task<OpportunityJoinRequestDto> ApproveJoinRequestAsync(Guid founderId, int requestId, CancellationToken cancellationToken = default);

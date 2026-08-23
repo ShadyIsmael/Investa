@@ -65,6 +65,7 @@ public class NegotiationRequestNotificationTests
             _userNotifMock.Object,
             _realtimeMock.Object,
             new Mock<IConversationPresenceService>().Object,
+            Mock.Of<IInvestmentContractService>(),
             NullLogger<Investa.Application.Services.NegotiationService>.Instance);
 
         SetupAuthUser();

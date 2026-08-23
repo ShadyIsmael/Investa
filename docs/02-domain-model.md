@@ -2,6 +2,21 @@
 
 ## Core Entities
 
+### Project
+> Table: `Projects`
+
+The durable business parent introduced by Project / Funding Opportunity Redesign Phase 1. Every `Opportunity` must reference a Project. Current data is intentionally backfilled as one Project per Opportunity; future schema supports one Project with multiple Opportunities, but that workflow is not enabled in Phase 1.
+
+| Field group | Fields |
+|---|---|
+| Identity and owner | `Id`, `FounderId`, `DisplayName`, `LegalName`, `Slug` |
+| Narrative | `Summary`, `Description` |
+| Classification/profile | `CategoryId`, `Industry`, `BusinessStage`, `Geography`, `TagsSnapshotJson`, `FoundedOn`, `WebsiteUrl`, `LogoUrl`, `TeamDescription`, `BusinessModel` |
+| Risk and lifecycle | `RiskLevel`, `RiskDisclosure`, `Status`, `ArchiveReason` |
+| Audit | `CreatedAt`, `UpdatedAt`, `RowVersion` |
+
+The `(ProjectId, FounderId)` relationship prevents an Opportunity from being assigned to another founder's Project. Opportunity remains the public/funding aggregate in Phase 1.
+
 ### AuthUser (Identity)
 > Table: `AspNetUsers`
 
@@ -88,7 +103,7 @@ Audit log of credibility score changes for a client. **Not wallet money.**
 | AdminId | Guid? | Admin who made the change |
 | CreatedAt | DateTime | |
 
-> Distinct from `AuthUser.WalletBalance`. See [technical-debt.md](./06-technical-debt.md) for rename recommendation.
+> Distinct from `AuthUser.WalletBalance`. See [technical-debt.md](./05-technical-debt.md) for rename recommendation.
 
 ---
 
@@ -133,7 +148,7 @@ Encrypted messages within a `SupportSession`. Uses AES-GCM encryption.
 > Table: `Messages`  
 > Namespace: `Investa.Domain.Entities`
 
-Older message entity linked to `SupportSession`. Coexists with `ChatMessage`. See [technical-debt.md](./06-technical-debt.md).
+Older message entity linked to `SupportSession`. Coexists with `ChatMessage`. See [technical-debt.md](./05-technical-debt.md).
 
 ---
 

@@ -28,6 +28,24 @@ public class DashboardApiTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
+    public async Task Founder_dashboard_returns_ok_for_authenticated_founder()
+    {
+        var client = CreateClientAndSeed();
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<Investa.Infrastructure.Persistence.ApplicationDbContext>();
+            var founder = db.AuthUsers.Single(u => u.Email == "jane.doe@example.com");
+            founder.UserType = Investa.Domain.Entities.Enums.UserType.Client;
+            founder.ClientType = Investa.Domain.Entities.Enums.ClientType.Founder;
+            db.SaveChanges();
+        }
+
+        var response = await client.GetAsync("/api/v1/founder/dashboard");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
     public async Task Admin_GetInvestmentsGroupedByCategory_Includes_CategoryNameAr()
     {
         var client = CreateClientAndSeed();

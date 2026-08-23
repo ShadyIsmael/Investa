@@ -110,6 +110,7 @@ public class OpportunityJoinRequestsController : BaseApiController
         {
             "JOIN_REQUEST_NOT_FOUND" or "OPPORTUNITY_NOT_FOUND" => 404,
             "FOUNDER_ACCESS_REQUIRED" => 403,
+            "CONCURRENCY_CONFLICT" => 409,
             _ => 400
         };
         return ErrorResponse(ex.Message, statusCode);

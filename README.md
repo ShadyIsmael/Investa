@@ -112,16 +112,14 @@ All platforms follow **SOLID**, **DRY**, and **KISS** principles:
 
 | Document | Description |
 |---|---|
-| [Core-BackEnd/CLEAN_ARCHITECTURE_REFACTORING.md](Core-BackEnd/CLEAN_ARCHITECTURE_REFACTORING.md) | Backend architecture overview |
-| [Core-BackEnd/RBAC_IMPLEMENTATION_GUIDE.md](Core-BackEnd/RBAC_IMPLEMENTATION_GUIDE.md) | RBAC setup and role definitions |
-| [Core-BackEnd/SECURITY_REFACTORING_PLAN.md](Core-BackEnd/SECURITY_REFACTORING_PLAN.md) | Security hardening details |
-| [Flutter_Founder/CLEAN_ARCHITECTURE_README.md](Flutter_Founder/CLEAN_ARCHITECTURE_README.md) | Flutter Clean Architecture guide |
-| [Flutter_Founder/FCM_IMPLEMENTATION.md](Flutter_Founder/FCM_IMPLEMENTATION.md) | Firebase Cloud Messaging setup |
-| [Flutter_Founder/QUICK_START.md](Flutter_Founder/QUICK_START.md) | Flutter environment setup |
-| [investa-admin-portal/docs/ARCHITECTURE.md](investa-admin-portal/docs/ARCHITECTURE.md) | Admin portal architecture |
-| [investa-admin-portal/docs/PERMISSIONS.md](investa-admin-portal/docs/PERMISSIONS.md) | Admin RBAC permissions guide |
-| [investa-admin-portal/docs/SECURITY_CHECKLIST.md](investa-admin-portal/docs/SECURITY_CHECKLIST.md) | Security checklist |
-| [CODE_REVIEW_AND_CLEANUP_REPORT.md](CODE_REVIEW_AND_CLEANUP_REPORT.md) | Full code quality audit (May 2026) |
+| [Documentation home](docs/README.md) | Complete documentation index |
+| [System overview](docs/01-system-overview.md) | Platform architecture and applications |
+| [Backend guides](docs/backend/) | Setup, security, RBAC, Firebase, and seed data |
+| [Admin portal](docs/admin-portal/) | Architecture, permissions, migration, and setup |
+| [Client portal](docs/client-portal/) | Reviews, refactoring plans, and implementation reports |
+| [Flutter Founder](docs/flutter-founder/) | Setup, API, architecture, and known issues |
+| [Flutter Partner](docs/flutter-partner/) | Investment flow and quick reference |
+| [Project reports](docs/reports/) | Audits and fix summaries |
 
 ---
 

@@ -16,6 +16,7 @@ public sealed class InvestmentModelJsonConverter : JsonConverter<InvestmentModel
 
         return reader.GetString()?.Trim() switch
         {
+            "Unspecified" => InvestmentModel.Unspecified,
             "EquityInvestment" => InvestmentModel.Equity,
             "LoanInvestment" => InvestmentModel.LoanInvestment,
             "ProfitSharingInvestment" => InvestmentModel.CapitalContributionProfitSharing,
@@ -23,12 +24,15 @@ public sealed class InvestmentModelJsonConverter : JsonConverter<InvestmentModel
         };
     }
 
-    public override void Write(Utf8JsonWriter writer, InvestmentModel value, JsonSerializerOptions options) =>
+    public override void Write(Utf8JsonWriter writer, InvestmentModel value, JsonSerializerOptions options)
+    {
         writer.WriteStringValue(value switch
         {
+            InvestmentModel.Unspecified => "Unspecified",
             InvestmentModel.Equity => "EquityInvestment",
             InvestmentModel.LoanInvestment => "LoanInvestment",
             InvestmentModel.CapitalContributionProfitSharing => "ProfitSharingInvestment",
             _ => throw new JsonException("Unsupported InvestmentModel value.")
         });
+    }
 }

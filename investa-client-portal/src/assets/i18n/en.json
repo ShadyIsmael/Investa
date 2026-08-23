@@ -37,6 +37,17 @@
     "platformFeeNotice": "This fee is for using the platform service only. It is separate from investment value, shares, loans, and contributions.",
     "confirmAndProceed": "Confirm and Proceed"
   },
+  "offerBuilder": {
+    "directEyebrow": "Direct offer",
+    "conversationEyebrow": "New offer version",
+    "directTitle": "Make an offer",
+    "conversationTitle": "Respond with a new offer",
+    "directHelper": "Build the complete terms you want the Founder to review. You can combine Equity, Loan, and Profit Sharing in one offer.",
+    "conversationHelper": "This creates a complete replacement offer. Previous versions remain unchanged in the negotiation history.",
+    "amount": "Amount", "currency": "Currency", "sharesTerms": "Share terms", "termMonths": "Term (months)", "repaymentModel": "Repayment model", "exitTerms": "Exit terms", "note": "Note", "send": "Submit offer", "sendReplacement": "Submit new offer", "submitting": "Submitting...",
+    "validation": { "oneLeg": "Add at least one offer leg.", "amount": "Every leg needs an amount greater than zero.", "equity": "Equity needs a percentage or share terms.", "loan": "Loan needs return rate, term, and repayment model.", "profitSharing": "Profit Sharing needs a percentage, term, and exit terms." },
+    "errors": { "conversationRequired": "This conversation is not available.", "submit": "Offer could not be submitted." }
+  },
   "stocks": "Stocks",
   "crypto": "Crypto",
   "fund": "Fund",
@@ -147,8 +158,9 @@
     "dashboard": "Dashboard",
     "investments": "Discover Opportunities",
     "myParticipations": "My Participations",
-    "myProjects": "My Opportunities",
-    "createProject": "Create Opportunity",
+    "myProjects": "My Projects",
+    "createProject": "Create Project",
+    "createOpportunity": "Create Opportunity",
     "searchPlaceholder": "Search opportunities...",
     "communication": "Communication",
     "requests": "Requests",
@@ -332,7 +344,19 @@
   },
   "investments": {
     "title": "Discover Opportunities",
+    "projectFirstEyebrow": "Project-first investing",
+    "projectFirstSubtitle": "Understand the Project first, then review its funding Opportunity.",
+    "project": "Project",
+    "sector": "Sector",
+    "projectIdea": "Project idea",
+    "founder": "Founder",
+    "fundingOpportunity": "Funding Opportunity",
     "target": "Target",
+    "progress": "Progress",
+    "fundingWindow": "Funding window",
+    "viewOpportunity": "View Opportunity",
+    "search": "Search",
+    "category": "Category",
     "myProjectsTitle": "My Participations",
     "noParticipationsTitle": "No participations yet",
     "noParticipationsSubtitle": "Approved participations will appear here.",
@@ -367,7 +391,7 @@
     "yourApprovedContribution": "Your Approved Contribution",
     "remainingToFund": "Remaining to Fund",
     "participants": "Participants",
-    "projectRoom": "Project Room",
+    "projectRoom": "Opportunity Room",
     "contract": "View Contract",
     "loan": {
       "interestRate": "Interest Rate",
@@ -474,6 +498,36 @@
     }
   },
   "dashboard": {
+    "founder": {
+      "eyebrow": "Founder portfolio",
+      "title": "Portfolio Dashboard",
+      "subtitle": "A portfolio-wide view of your Projects, Opportunities, funding, investors, and actionable work.",
+      "refresh": "Refresh",
+      "loading": "Loading portfolio dashboard", "updated": "Updated", "updatedUnknown": "Last updated unavailable", "executiveOverview": "Executive portfolio overview", "portfolioSignals": "Portfolio signals", "errorKicker": "Portfolio connection",
+      "errorTitle": "Portfolio data is unavailable",
+      "errorHelper": "The Founder Dashboard could not load the authoritative portfolio data.",
+      "retry": "Try again",
+      "approximate": "Approximate display",
+      "platformRecorded": "Platform-recorded",
+      "unavailableSource": "Source not available",
+      "deferred": "Deferred",
+      "followersHelper": "Followers are not modeled yet.",
+      "metrics": {
+        "totalProjects": "Total Projects", "activeOpportunities": "Active Opportunities", "activeInvestors": "Unique Active Investors", "target": "Total Funding Target", "funded": "Total Funded", "progress": "Portfolio Funding Progress", "received": "Received Amount", "pendingActions": "Pending Actions", "earnings": "Earnings", "followers": "Followers", "portfolio": "Founder-owned portfolio", "openNow": "Open at evaluation time", "distinctApproved": "Distinct approved participants", "actionable": "Founder action required"
+      },
+      "position": { "kicker": "Portfolio position", "title": "Funding position", "ofTarget": "of target", "approvedFunding": "Approved funding", "authoritative": "Authoritative portfolio total" },
+      "attention": { "kicker": "Attention", "title": "Founder actions", "pendingHelper": "Items are waiting for your review across the portfolio.", "openActions": "Review pending actions", "clearTitle": "Portfolio is up to date", "clearHelper": "No founder action is currently required." },
+      "performance": { "kicker": "Performance", "title": "Portfolio activity", "note": "Platform-recorded activity in the selected range." },
+      "charts": {
+        "fundingEyebrow": "Funding movement", "fundingTitle": "Funding progress over time", "fundingHelper": "Monthly approved funding movement", "fundingLabel": "Monthly approved funding", "investorsEyebrow": "Investor growth", "investorsTitle": "Investor growth", "investorCurrent": "Distinct active investors", "investorHelper": "Historical investor transitions are not yet exposed by the backend; the current authoritative count is shown.", "opportunityEyebrow": "Opportunity performance", "opportunityTitle": "Opportunity performance", "opportunityLabel": "Opportunity funding performance", "receivedEyebrow": "Cash received", "receivedTitle": "Received amount over time", "receivedHelper": "Monthly confirmed receipts", "receivedLabel": "Monthly platform-recorded received amount", "noData": "No time-series data for this range."
+      },
+      "projects": {
+        "eyebrow": "Portfolio structure", "title": "Projects and Opportunities", "helper": "Projects are the primary portfolio view. Open an Opportunity Room for operational work.", "manage": "Manage Projects", "openProject": "Open Project Details", "target": "Target", "funded": "Funded", "opportunities": "Opportunities", "progress": "Progress", "investors": "investors", "publicPage": "Public page", "room": "Opportunity Room", "noOpportunities": "No Opportunities in this Project yet.", "emptyTitle": "Your portfolio is empty", "emptyHelper": "Create a Project to start organizing multiple Opportunities.", "create": "Create Project"
+      },
+      "footer": { "authoritative": "Metrics are supplied by the Founder portfolio service.", "currency": "Display currency" },
+      "status": { "0": "Draft", "1": "Active", "2": "Paused", "3": "Completed", "4": "Archived", "draft": "Draft", "active": "Active", "paused": "Paused", "completed": "Completed", "archived": "Archived" },
+      "opportunityStatus": { "1": "Draft", "2": "Under review", "3": "Rejected", "4": "Approved", "5": "Published", "6": "Funding", "7": "Fully funded", "8": "In progress", "9": "Completed", "10": "Archived", "draft": "Draft", "published": "Published", "funding": "Funding", "fullyfunded": "Fully funded", "inprogress": "In progress", "completed": "Completed", "archived": "Archived" }
+    },
     "investorTitle": "Investor Dashboard",
     "portfolioValue": "Portfolio Value",
     "myInvestments": "My Participations",
@@ -646,6 +700,8 @@
     "pendingParticipations": "Pending participations",
     "projectExecution": "Project Execution",
     "recentProjectActivity": "Recent Project Activity",
+    "currentPhase": "Current Phase",
+    "noMilestones": "No milestones set yet",
     "milestonesProgress": "Progress",
     "overdue": "Overdue",
     "nextMilestone": "Next Milestone",
@@ -769,10 +825,13 @@
       "reject": "Reject",
       "withdraw": "Withdraw",
       "counter": "Counter",
+      "respondWithOffer": "Respond with new offer",
       "cancel": "Cancel",
       "viewOpportunity": "View opportunity",
-      "participate": "Participate",
-      "openRoom": "Open Project Room"
+      "submitOffer": "Submit Offer",
+      "startConversation": "Start Conversation",
+      "continueConversation": "Continue Conversation",
+      "openRoom": "Open Opportunity Room"
     },
     "status": {
       "founderAccepted": "Founder accepted",
@@ -807,12 +866,18 @@
       "title": "Negotiation offer",
       "version": "Offer",
       "counters": "Counters offer",
+      "replaces": "Replaces offer",
+      "equityPercentage": "Equity",
+      "returnRate": "Return",
+      "term": "Term",
+      "months": "months",
+      "repayment": "Repayment",
       "terms": "Offer terms",
       "profitPercentage": "Profit share %"
     },
     "offerStatus": {
       "pending": "Pending",
-      "countered": "Countered",
+      "replaced": "Replaced",
       "accepted": "Accepted",
       "rejected": "Rejected",
       "withdrawn": "Withdrawn"
@@ -854,7 +919,7 @@
       "investorReady": "Investor ready",
       "participationRequest": "Participation request",
       "participationApproved": "Participation approved",
-      "projectRoomUnlocked": "Project Room unlocked",
+      "projectRoomUnlocked": "Opportunity Room unlocked",
       "terminalParticipationRejected": "Participation rejected",
       "terminalDeclined": "Request declined",
       "terminalWithdrawn": "Conversation withdrawn",
@@ -1269,6 +1334,7 @@
   },
   "requests": {
     "title": "Requests",
+    "directOffers": { "eyebrow": "Direct offers", "title": "Offer inbox", "subtitle": "Review complete offers outside a conversation. Accept or reject the exact submitted version.", "refresh": "Refresh", "loading": "Loading offers...", "loadError": "Unable to load direct offers.", "empty": "No direct offers yet.", "participant": "Participant", "acceptError": "Offer could not be accepted.", "rejectError": "Offer could not be rejected.", "status": { "pending": "Pending", "replaced": "Replaced", "accepted": "Accepted", "rejected": "Rejected", "withdrawn": "Withdrawn" } },
     "workspace": {
       "eyebrow": "Request workspace",
       "subtitle": "Review conversation and participation requests in one compact workspace.",
@@ -1418,6 +1484,37 @@
   "investmentPreview": {
     "cashFlow": { "eyebrow": "Approved Loan participation", "title": "Expected Payment Schedule", "loading": "Loading expected payment schedule...", "error": "The expected payment schedule is currently unavailable.", "approvedAmount": "Approved amount", "annualRate": "Annual interest rate", "duration": "Duration", "months": "months", "frequency": "Repayment frequency", "principalRule": "Scheduled principal repayment", "remainingPrincipal": "Scheduled remaining principal", "received": "Actual received", "monthlyAverage": "Average expected monthly income", "disclaimer": "Average expected monthly income is informational. Payments follow the agreed schedule and may not occur monthly.", "actualUnavailable": "Actual payment tracking and transaction history are not yet available. No payment status is inferred from unavailable data.", "actualUnavailableShort": "Not available", "rowsPerPage": "Rows per page", "showing": "Showing", "of": "of", "previous": "Previous page", "next": "Next page", "dueDate": "Scheduled due date", "interest": "Expected interest", "principal": "Scheduled principal", "expectedTotal": "Expected total payment", "actualPaid": "Actual paid", "statusLabel": "Schedule status", "status": { "Upcoming": "Upcoming", "Due": "Due", "Paid": "Paid", "PartiallyPaid": "Partially paid", "Overdue": "Overdue", "Cancelled": "Cancelled" }, "frequencyValue": { "Monthly": "Monthly", "Quarterly": "Quarterly", "SemiAnnual": "Semiannual", "Annual": "Annual" }, "principalValue": { "AtMaturity": "At maturity" } },
     "backButton": "Back to Opportunities",
+    "projectOverview": "Project Overview",
+    "projectFallback": "Project",
+    "projectDescriptionFallback": "Project information is not available yet.",
+    "projectId": "Project",
+    "sector": "Sector",
+    "founderRole": "Founder role",
+    "projectMedia": "Project media",
+    "projectContextLabel": "Business context",
+    "category": "Category",
+    "location": "Location",
+    "businessStage": "Business stage",
+    "projectStatus": "Project status",
+    "founded": "Founded",
+    "projectCurrency": "Project currency",
+    "company": "Company",
+    "moreProjectDetails": "More about this Project",
+    "businessModel": "Business model",
+    "riskDisclosure": "Risk disclosure",
+    "projectUpdates": "Project updates",
+    "projectDocuments": "Project documents",
+    "projectStages": { "idea": "Idea", "mvp": "MVP", "startup": "Startup", "scaling": "Scaling", "established": "Established" },
+    "projectStatuses": { "draft": "Draft", "active": "Active", "paused": "Paused", "completed": "Completed", "archived": "Archived" },
+    "fundingOpportunity": "Funding Opportunity",
+    "opportunityDescriptionFallback": "Funding details are provided by the founder.",
+    "fundingTarget": "Funding target",
+    "fundingWindow": "Funding window",
+    "progress": "Progress",
+    "investorActions": "Investor actions",
+    "loading": { "title": "Loading opportunity details", "helper": "Please wait while we load the opportunity data." },
+    "notFound": { "title": "This opportunity is not available", "message": "The public Opportunity page could not be found for this record." },
+    "loadError": { "title": "We couldn't load this opportunity", "message": "Something went wrong while loading the opportunity. Please try again.", "retry": "Try again" },
     "investmentType": "Investment Model",
     "industry": "Industry",
     "founderRating": "Founder Rating",
@@ -1427,10 +1524,10 @@
     "conservativeProfile": "Conservative profile",
     "moderateExposure": "Moderate exposure",
     "highVolatility": "High volatility",
-    "campaignStatus": "Campaign Status",
+    "fundingStatus": "Funding Status",
     "currentlyAccepting": "Currently accepting participation",
     "targetReached": "Target reached",
-    "campaignEnded": "Campaign ended",
+    "fundingEnded": "Funding ended",
     "projectRoadmap": "Opportunity Roadmap",
     "current": "Current",
     "complete": "Complete",
@@ -1464,9 +1561,7 @@
     "activeInvestors": "Active Investors",
     "currency": "Currency",
     "founder": "Founder",
-    "contactFounder": "Contact Founder",
     "viewProfile": "View Profile",
-    "investNow": "Participate",
     "fullyFunded": "Fully Funded",
     "closed": "Closed",
     "daysLeft": "days left",
@@ -1590,6 +1685,7 @@
       "expectedReturn": "Expected return",
       "toBeConfirmed": "To be confirmed",
       "publicTerms": "Public terms",
+      "offerSubmitted": "Offer submitted",
       "termsPlaceholder": "Terms will be shared by the founder.",
       "founderActivity": "Founder activity",
       "recentUpdates": "Recent updates",
@@ -1611,6 +1707,11 @@
       "status": "Status",
       "yourParticipation": "Your participation",
       "requesting": "Requesting...",
+      "openOpportunityRoom": "Open Opportunity Room",
+      "actionAuthorizationNote": "Actions are available only when authorized by the Opportunity.",
+      "submitOffer": "Submit Offer",
+      "startConversation": "Start Conversation",
+      "continueConversation": "Continue Conversation",
       "participate": "Participate",
       "closeDiscussion": "Close discussion",
       "chatHistoryNote": "Chat history remains available for negotiation context.",
@@ -1640,6 +1741,7 @@
       "contact": "Contact",
       "professional": "Professional info",
       "opportunities": "Opportunities",
+      "category": "Category",
       "participation": "Participation & activity"
     },
     "fields": {
@@ -1921,6 +2023,7 @@
   },
   "opportunityPublish": {
     "action": "Publish Opportunity",
+    "confirmationFree": "{action} will become publicly visible.",
     "publishing": "Publishing...",
     "confirmation": "{action} will become publicly visible. Fixed platform fee: {cost} CREDIT. Current balance: {balance} CREDIT. Balance after publishing: {after} CREDIT.",
     "successTitle": "Opportunity Published",
@@ -1944,12 +2047,12 @@
       "details": {
         "title": "Basic information",
         "short": "Story and classification",
-        "description": "Add the opportunity identity, story, category, stage, and tags."
+        "description": "Select the project, then add the opportunity identity, story, category, stage, and tags."
       },
       "funding": {
-        "title": "Funding and terms",
-        "short": "Goal and investment model",
-        "description": "Configure funding limits and only the terms relevant to the selected model."
+        "title": "Funding need",
+        "short": "Target and currency",
+        "description": "Define the funding need. Investors choose their OfferLeg types after the opportunity is created."
       },
       "media": {
         "title": "Media and documents",
@@ -1963,53 +2066,44 @@
       }
     },
     "fields": {
+      "project": "Project",
+      "purpose": "Fundraising purpose",
+      "type": "Opportunity type",
       "title": "Opportunity title",
       "shortDescription": "Short description",
       "story": "Full story",
       "category": "Category",
       "projectStage": "Opportunity stage",
+      "projectStageCustomName": "Custom stage name",
       "tags": "Tags",
-      "investmentModel": "Investment model",
       "fundingGoal": "Funding goal",
       "fundingTarget": "Funding target",
-      "minimumInvestment": "Minimum investment",
-      "maximumInvestment": "Maximum investment",
-      "expectedDuration": "Expected duration (months)",
       "currency": "Currency",
-      "sharePrice": "Share price",
-      "totalShares": "Total shares",
-      "offeredShares": "Offered shares",
-      "equityOffered": "Equity offered",
-      "interestRate": "Interest rate",
-      "repaymentFrequency": "Repayment frequency",
-      "finalRepaymentDate": "Final repayment date",
-      "profitSharePercentage": "Profit share percentage",
-      "payoutFrequency": "Payout frequency",
-      "contractStartDate": "Contract start date",
-      "contractEndDate": "Contract end date",
-      "exitTerms": "Exit terms",
       "useOfFunds": "Use of funds",
       "risks": "Risks",
       "exitStrategy": "Exit strategy",
       "coverImageUrl": "Cover image URL"
     },
     "placeholders": {
+      "purpose": "Example: Expansion into a new market",
       "title": "Enter a concise opportunity title",
       "shortDescription": "Summarize the opportunity",
       "story": "Tell investors the full opportunity story",
       "category": "Select a category",
       "projectStage": "Enter the current stage",
-      "investmentModel": "Select an investment model",
+      "projectStageCustomName": "Example: Regional expansion",
       "fundingGoal": "Select a funding goal",
       "fundingTarget": "0.00",
-      "minimumInvestment": "0.00",
-      "maximumInvestment": "Optional",
-      "expectedDurationMonths": "Number of months",
       "currency": "Select a currency",
-      "repaymentFrequency": "Enter repayment frequency",
-      "selectPayoutFrequency": "Select payout frequency",
-      "exitTerms": "Describe the profit-sharing exit terms",
       "coverImageUrl": "https://"
+    },
+    "typeOptions": {
+      "generalFunding": "General funding",
+      "seed": "Seed",
+      "growth": "Growth",
+      "bridge": "Bridge",
+      "projectFinance": "Project finance",
+      "other": "Other"
     },
     "currencies": {
       "USD": "US Dollar",
@@ -2017,25 +2111,13 @@
       "SAR": "Saudi Riyal",
       "EGP": "Egyptian Pound"
     },
-    "repaymentFrequencies": {
-      "Monthly": "Monthly",
-      "Quarterly": "Quarterly",
-      "Annual": "Annual"
-    },
-    "models": {
-      "equity": "Equity",
-      "loan": "Loan",
-      "profitSharing": "Profit Sharing",
-      "equityTerms": "Equity terms",
-      "loanTerms": "Loan terms",
-      "profitSharingTerms": "Profit Sharing terms"
-    },
     "projectStages": {
       "1": "Idea",
       "2": "MVP",
       "3": "Startup",
       "4": "Scaling",
-      "5": "Established"
+      "5": "Established",
+      "6": "Other"
     },
     "lookups": {
       "categories": {
@@ -2083,18 +2165,6 @@
         "10": "Acquisition"
       }
     },
-    "payoutFrequencies": {
-      "monthly": "Monthly",
-      "quarterly": "Quarterly",
-      "semiAnnually": "Semi-annually",
-      "annually": "Annually",
-      "atMaturity": "At maturity",
-      "unknown": "Not available"
-    },
-    "help": {
-      "profitSharing": "Provide a payout frequency and either an expected duration or valid contract dates.",
-      "equityPercentage": "Calculated automatically from offered shares and total shares."
-    },
     "advanced": {
       "title": "Advanced optional details",
       "description": "Add use-of-funds, risk, and exit strategy details when available."
@@ -2141,31 +2211,15 @@
       "untitled": "Untitled opportunity",
       "notAvailable": "Not available",
       "details": "Funding summary",
-      "modelTerms": "Investment terms",
       "additional": "Additional information"
     },
-    "empty": {
-      "noTags": "No tags are currently available."
-    },
     "validation": {
+      "projectRequired": "Project is required.",
       "titleRequired": "Title is required.",
       "shortDescriptionRequired": "Short description must contain between 20 and 300 characters.",
       "projectStageRequired": "Opportunity stage is required.",
-      "investmentModelRequired": "Investment model is required.",
+      "projectStageCustomRequired": "Enter a custom stage name for Other.",
       "fundingTargetPositive": "Funding target must be greater than zero.",
-      "minimumInvestmentPositive": "Minimum investment must be greater than zero.",
-      "equityRequired": "Equity offered percentage is required.",
-      "equityConfigurationRequired": "Currency, share price, total shares, and offered shares are required.",
-      "minimumShareAligned": "Minimum investment must be divisible by the share price.",
-      "loanDurationRequired": "Loan duration is required.",
-      "interestRateRequired": "Interest rate is required.",
-      "repaymentFrequencyRequired": "Repayment frequency is required.",
-      "finalRepaymentDateRequired": "Final repayment date is required.",
-      "finalRepaymentDateFuture": "Final repayment date must be in the future.",
-      "profitShareRequired": "Profit share percentage is required.",
-      "payoutFrequencyRequired": "Payout frequency is required.",
-      "durationOrDatesRequired": "Enter an expected duration or both contract dates.",
-      "endAfterStart": "Contract end date must be after the start date.",
       "useOfFundsRequired": "Use of funds must contain between 30 and 2,000 characters.",
       "categoryRequired": "Select a category before publishing.",
       "fundingGoalRequired": "Select a funding goal before publishing.",
@@ -2179,8 +2233,99 @@
       "successMessage": "Files were uploaded and attached to the opportunity.",
       "failureTitle": "Upload failed",
       "failureMessage": "Unable to upload the selected files."
+    },
+    "projectLocked": "This opportunity is linked to the Project above and cannot be changed.",
+    "projectHelp": "Select the project this opportunity belongs to.",
+    "projectStageHelp": "Each standard Project stage can be used only once in this Project.",
+    "placeholders": {
+      "selectProject": "Select an existing Project"
+    },
+    "empty": {
+      "noProjects": "No projects are available. Create a project from the Projects section first.",
+      "noTags": "No tags are currently available."
     }
   },
+  "projectsList": {
+    "eyebrow": "Founder workspace",
+    "title": "Projects",
+    "subtitle": "Manage the ventures you have registered and the funding opportunities attached to them.",
+    "create": "Create project",
+    "stats": {
+      "opportunities": "Opportunities",
+      "fundingTarget": "Total funding target"
+    },
+    "actions": {
+      "view": "View",
+      "edit": "Edit",
+      "createOpportunity": "Create Opportunity",
+      "viewAllOpportunities": "View latest 5 opportunities",
+      "collapseOpportunities": "Show fewer opportunities"
+    },
+    "status": {
+      "draft": "Draft",
+      "active": "Active",
+      "paused": "Paused",
+      "completed": "Completed",
+      "archived": "Archived"
+    },
+    "states": {
+      "loading": "Loading projects…",
+      "retry": "Retry",
+      "emptyTitle": "No projects yet",
+      "emptySubtitle": "Create your first project to start raising funding.",
+      "noOpportunities": "No opportunities yet."
+    }
+  },
+  "projectEditor": {
+    "eyebrow": "Founder workspace",
+    "createTitle": "Create project",
+    "editTitle": "Edit project",
+    "viewTitle": "Project details",
+    "subtitle": "Register a durable business or venture that will raise funding through one or more opportunities.",
+    "fields": {
+      "displayName": "Project name",
+      "legalName": "Legal name",
+      "summary": "Summary",
+      "description": "Description",
+      "category": "Category",
+      "industry": "Industry",
+      "geography": "Geography",
+      "foundedOn": "Founded on",
+      "websiteUrl": "Website URL",
+      "logoUrl": "Logo URL",
+      "defaultCurrency": "Default currency",
+      "teamDescription": "Team description",
+      "businessModel": "Business model",
+      "riskDisclosure": "Risk disclosure"
+    },
+    "placeholders": {
+      "displayName": "Enter the project name",
+      "legalName": "Registered legal name (if different)",
+      "summary": "Brief project summary (min 20 characters)",
+      "description": "Detailed project description (min 20 characters)",
+      "category": "Select a project category",
+      "industry": "e.g. FinTech, HealthTech, E-commerce",
+      "geography": "Primary market geography",
+      "websiteUrl": "https://example.com",
+      "logoUrl": "https://example.com/logo.png",
+      "defaultCurrency": "Defaults to your preferred currency",
+      "teamDescription": "Describe the founding team background",
+      "businessModel": "How will the business generate revenue?",
+      "riskDisclosure": "Known risks and mitigation strategies"
+    },
+    "actions": {
+      "back": "Back to projects",
+      "create": "Create Project",
+      "save": "Save changes",
+      "saving": "Saving…"
+    },
+    "opportunities": {
+      "eyebrow": "Funding rounds",
+      "title": "Opportunities",
+      "create": "Create Opportunity",
+      "openRoom": "Open Opportunity Room",
+      "empty": "No opportunities yet. Create the first opportunity to start fundraising."
+    }},
   "projectActivity": {
     "title": "Project Activity Timeline",
     "subtitle": "Verified material activity generated automatically from completed platform actions.",
@@ -2198,6 +2343,55 @@
       "InvestorDocumentPublished": { "title": "Investor document published", "description": "{documentName} is now available to authorized investors." },
       "ContractActivated": { "title": "Investment contract activated", "description": "Contract version {versionNumber} was activated." },
       "FundingCompleted": { "title": "Funding completed", "description": "The project reached its funding target." }
+      ,"OpportunityCreated": { "title": "Opportunity milestone opened", "description": "Opportunity {opportunityReference} — {opportunityTitle} opened for {projectStage} on {createdOpenedDate}." }
+    }
+  },
+  "projectRoom": {
+    "eyebrow": "Founder workspace",
+    "back": "Back to projects",
+    "title": "Project Room",
+    "loading": "Loading project room…",
+    "error": "The project room could not be loaded.",
+    "retry": "Retry",
+    "composer": {
+      "title": "Post to the project",
+      "titlePlaceholder": "Title",
+      "detailsPlaceholder": "Details",
+      "type": "Type",
+      "typeUpdate": "Update",
+      "typeMilestone": "Milestone",
+      "publish": "Publish"
+    },
+    "sections": {
+      "updates": "Project updates",
+      "milestones": "Project milestones",
+      "documents": "Project documents",
+      "opportunities": "Opportunities",
+      "timeline": "Activity timeline"
+    },
+    "empty": {
+      "updates": "No project updates yet.",
+      "milestones": "No project milestones yet.",
+      "documents": "No project-level documents yet."
+    },
+    "actions": {
+      "markComplete": "Mark complete"
+    },
+    "opportunity": {
+      "funding": "Funding",
+      "obligations": "Obligations",
+      "participation": "participation(s)",
+      "contracts": "contract(s)",
+      "documents": "Documents",
+      "media": "Media",
+      "publicDocuments": "Public documents",
+      "publicMedia": "Public media",
+      "restricted": "Restricted records remain visible only to participants in this Opportunity.",
+      "links": {
+        "records": "Opportunity records",
+        "cashFlows": "Cash flows",
+        "obligations": "Obligation completion"
+      }
     }
   },
   "contracts": {
@@ -2318,8 +2512,8 @@
     }
   },
   "opportunityRoom": {
-    "title": "Project Room",
-    "loading": "Loading project room...",
+    "title": "Opportunity Room",
+    "loading": "Loading Opportunity Room...",
     "statuses": {
       "draft": "Draft",
       "underReview": "Under review",
@@ -2338,17 +2532,18 @@
       "investor": "Investor"
     },
     "badges": {
-      "investorProjectRoom": "Investor Project Room",
+      "investorProjectRoom": "Investor Opportunity Room",
       "public": "Public",
       "private": "Private",
       "room": "Room"
     },
     "founderSummary": "Founder summary",
+    "parentProject": "Parent Project",
     "backToOpportunities": "Back to Opportunities",
     "founderWorkspace": {
-      "title": "Founder Workspace",
+      "title": "Opportunity Workspace",
       "approvedParticipants": "Approved Participants",
-      "editProject": "Edit Project",
+      "editProject": "Edit Opportunity",
       "addUpdate": "Add Update",
       "addDocument": "Add Document",
       "addMilestone": "Add Milestone",
@@ -2377,6 +2572,18 @@
       "untitled": "Untitled milestone",
       "noDescription": "No milestone details available."
     },
+    "milestoneProgress": {
+      "title": "Current Milestone",
+      "subtitle": "Complete the current milestone to automatically move the project to the next one.",
+      "current": "Current milestone",
+      "completeAction": "Mark as completed",
+      "completing": "Completing...",
+      "completed": "Completed",
+      "upcoming": "Upcoming",
+      "allCompleted": "All milestones are complete",
+      "allCompletedHelper": "Add a new milestone when the project is ready for its next objective.",
+      "empty": "Add the first milestone to start tracking project progress."
+    },
     "recentActivity": {
       "title": "What Changed Recently",
       "subtitle": "Latest room activity",
@@ -2393,6 +2600,7 @@
     },
     "tabs": {
       "overview": "Overview",
+      "milestones": "Current Milestone",
       "timeline": "Timeline",
       "documents": "Documents",
       "media": "Media",
@@ -2401,7 +2609,7 @@
       "payments": "Payments"
     },
     "overview": {
-      "title": "Project Overview",
+      "title": "Opportunity Overview",
       "status": "Status",
       "useOfFunds": "Use of Funds",
       "expectedReturn": "Expected Return",
@@ -2416,12 +2624,31 @@
       "activeAccess": "Active room access",
       "limitedAccess": "Limited room access"
     },
+    "participations": {
+      "title": "Accepted participations",
+      "helper": "Each participation is shown with the exact accepted legs and their obligations.",
+      "empty": "No accepted participation is available in this Opportunity Room.",
+      "yourParticipation": "Your participation",
+      "sequence": "Participation",
+      "immutable": "Accepted terms locked",
+      "contract": "Contract"
+    },
+    "legs": {
+      "equity": "Equity",
+      "returnRate": "Return rate",
+      "profitShare": "Profit share",
+      "term": "Term",
+      "months": "months",
+      "cadence": "Cadence",
+      "obligations": "Leg obligations",
+      "cashFlowCount": "{{count}} scheduled cash flows"
+    },
     "timeline": {
-      "title": "Milestones Timeline",
-      "subtitle": "Strategic milestones only. Operational updates are listed in the Updates tab."
+      "title": "Opportunity Timeline",
+      "subtitle": "Opportunity milestones only. Operational updates are listed in the Updates tab."
     },
     "updates": {
-      "title": "Founder Updates",
+      "title": "Opportunity Updates",
       "subtitle": "Progress notes, announcements, and operational updates.",
       "empty": "No updates yet."
     },
@@ -2480,11 +2707,11 @@
     },
     "errors": {
       "retry": "Retry",
-      "notFound": "Project Room not found",
-      "notFoundMessage": "We could not find a Project Room for this opportunity.",
+      "notFound": "Opportunity Room not found",
+      "notFoundMessage": "We could not find an Opportunity Room for this opportunity.",
       "approvalRequired": "Approval required",
-      "approvalRequiredMessage": "Project Room is available after final participation approval.",
-      "genericTitle": "Unable to load Project Room",
+      "approvalRequiredMessage": "Opportunity Room is available after final participation approval.",
+      "genericTitle": "Unable to load Opportunity Room",
       "genericMessage": "Please try again."
     },
     "fallback": {
@@ -2509,6 +2736,8 @@
     "toasts": {
       "updateAdded": "Update added.",
       "milestoneAdded": "Milestone added.",
+      "milestoneCompleted": "Milestone completed. The next milestone is now active.",
+      "milestoneCompleteFailed": "Failed to complete the milestone.",
       "documentAdded": "Document added.",
       "saveFailed": "Failed to save project activity.",
       "documentAddFailed": "Failed to add document."

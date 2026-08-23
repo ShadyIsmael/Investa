@@ -91,6 +91,15 @@ public class OpportunitiesAdminController : BaseApiController
         }
     }
 
+    [HttpPost("{id:int}/funding-status")]
+    public async Task<IActionResult> TransitionFunding(int id, [FromBody] TransitionOpportunityFundingRequest request, CancellationToken cancellationToken)
+    {
+        var reviewerId = ResolveUserIdFromClaims();
+        if (reviewerId == null) return ErrorResponse("Unable to resolve authenticated user", 401);
+        try { return SuccessResponse(await _opportunityService.TransitionFundingAsync(reviewerId.Value, id, request, true, cancellationToken)); }
+        catch (BusinessValidationException ex) { return ToBusinessError(ex); }
+    }
+
     private Guid? ResolveUserIdFromClaims()
     {
         var claimValue = User.FindFirst("sub")?.Value

@@ -1,3 +1,4 @@
+﻿using Investa.Domain;
 using System;
 
 namespace Investa.Application.DTOs.Finance;
@@ -13,7 +14,7 @@ public class FinanceAccountDto
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string AccountType { get; set; } = string.Empty;
-    public string Currency { get; set; } = "EGP";
+    public string Currency { get; set; } = CurrencyMasterDefaults.DefaultCurrency;
     public decimal CurrentBalance { get; set; }
     public string? BankAccountNumber { get; set; }
     public string? BankName { get; set; }
@@ -30,7 +31,7 @@ public class CreateUpdateFinanceAccountDto
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string AccountType { get; set; } = string.Empty;
-    public string Currency { get; set; } = "EGP";
+    public string Currency { get; set; } = CurrencyMasterDefaults.DefaultCurrency;
     public string? BankAccountNumber { get; set; }
     public string? BankName { get; set; }
     public DateTime? OpeningDate { get; set; }

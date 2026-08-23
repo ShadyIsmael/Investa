@@ -72,6 +72,31 @@ export const routes: Routes = [
         title: 'Discover Opportunities - FOPX One'
       },
       {
+        path: 'projects',
+        loadComponent: () => import('./pages/admin/projects/projects.component').then(m => m.ProjectsComponent),
+        canActivate: [founderOnlyGuard]
+      },
+      {
+        path: 'projects/new',
+        loadComponent: () => import('./pages/admin/projects/project-editor.component').then(m => m.ProjectEditorComponent),
+        canActivate: [founderOnlyGuard]
+      },
+      {
+        path: 'projects/:id/edit',
+        loadComponent: () => import('./pages/admin/projects/project-editor.component').then(m => m.ProjectEditorComponent),
+        canActivate: [founderOnlyGuard]
+      },
+        {
+          path: 'projects/:id/room',
+          loadComponent: () => import('./pages/admin/projects/project-room.component').then(m => m.ProjectRoomComponent),
+          title: 'Project Room - FOPX One'
+        },
+        {
+          path: 'projects/:id',
+        loadComponent: () => import('./pages/admin/projects/project-editor.component').then(m => m.ProjectEditorComponent),
+        canActivate: [founderOnlyGuard]
+      },
+      {
         path: 'opportunities',
         redirectTo: 'investments',
         pathMatch: 'full'
@@ -88,8 +113,13 @@ export const routes: Routes = [
         title: 'Project Room - FOPX One'
       },
       {
+        path: 'opportunities/:id/obligations',
+        loadComponent: () => import('./pages/admin/opportunity-obligations/opportunity-obligations.component').then(m => m.OpportunityObligationsComponent),
+        title: 'Opportunity Obligations - FOPX One'
+      },
+      {
         path: 'opportunities/:id',
-        loadComponent: () => import('./pages/admin/opportunities/opportunity-details.component').then(m => m.OpportunityDetailsComponent),
+        loadComponent: () => import('./pages/admin/investment-preview/investment-preview.component').then(m => m.InvestmentPreviewComponent),
         title: 'Opportunity Details - FOPX One'
       },
       {

@@ -61,4 +61,9 @@ public class LocalFileStorage : IFileStorage
         var fullPath = Path.Combine(GetWebRootPath(), storedPath.TrimStart('/', '\\').Replace('/', Path.DirectorySeparatorChar));
         return File.ReadAllBytesAsync(fullPath, cancellationToken);
     }
+
+    public Task<FileStoreMetadataDto?> GetFileMetadataAsync(string fileKey, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<FileStoreMetadataDto?>(null);
+    }
 }

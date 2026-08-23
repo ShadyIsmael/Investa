@@ -257,9 +257,9 @@ public class TrustService : ITrustService
             requirements.Add(new TrustRequirementDto
             {
                 Key = "reputation_score",
-                LabelEn = "Reputation score 500+",
-                LabelAr = "سمعة 500+",
-                IsMet = user.ReputationScore >= 500
+                LabelEn = "Active participation",
+                LabelAr = "مشاركة نشطة",
+                IsMet = user.ReputationScore >= 0
             });
             requirements.Add(new TrustRequirementDto
             {
@@ -343,7 +343,7 @@ public class TrustService : ITrustService
     private static TrustLevel DeriveTrustLevel(AuthUser user)
     {
         // Level 3: Trusted Active - Based on verification and profile
-        if (user.ReputationScore >= 500 &&
+        if (user.ReputationScore >= 0 &&
             user.ProfileCompletionPercentage >= 80 &&
             user.VerificationTrustScore >= 70 &&
             (DateTime.UtcNow - user.CreatedAt).Days >= 30)

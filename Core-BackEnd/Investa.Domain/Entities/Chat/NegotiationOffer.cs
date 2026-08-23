@@ -7,13 +7,15 @@ public class NegotiationOffer
 {
     public int Id { get; set; }
 
-    public Guid ConversationId { get; set; }
+    public Guid? ConversationId { get; set; }
+
+    public int? OpportunityId { get; set; }
 
     public Guid CreatedByUserId { get; set; }
 
     public int Version { get; set; }
 
-    public int? ParentOfferId { get; set; }
+    public int? ReplacesOfferId { get; set; }
 
     public NegotiationOfferStatus Status { get; set; } = NegotiationOfferStatus.Pending;
 
@@ -26,6 +28,8 @@ public class NegotiationOffer
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public Conversation? Conversation { get; set; }
+
+    public Opportunity? Opportunity { get; set; }
 
     public AuthUser? CreatedByUser { get; set; }
 

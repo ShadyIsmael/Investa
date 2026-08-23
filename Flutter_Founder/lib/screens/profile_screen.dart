@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
@@ -11,7 +10,6 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../controllers/chat_controller.dart';
-import '../core/services/signalr_service.dart';
 import '../core/services/logger_service.dart';
 import '../core/services/secure_storage_service.dart';
 import '../core/network/network_config.dart';
@@ -55,8 +53,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoading = true;
   String? _error;
 
-  StreamSubscription<AdminJoinedDto>? _adminSub;
-
   @override
   void initState() {
     super.initState();
@@ -77,7 +73,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void dispose() {
     AppState.instance.removeListener(_onAppStateChanged);
-    _adminSub?.cancel();
     super.dispose();
   }
 
@@ -129,60 +124,13 @@ Load trust profile (non-blocking)
         }
       }).catchError((_) {});
 
-      // 
-      // Start SignalR connection with JWT token from secure storage
+      // Initialize chat controller if provided via Provider
       try {
-        final service = SignalRService(
-            networkConfig: NetworkConfig(),
-            secureStorage: SecureStorageService(),
-            logger: LoggerService());
-        await service.connect();
-        // Initialize chat controller if provided via Provider
-        try {
-          if (!mounted) return;
-          final controller =
-              Provider.of<ChatController>(context, listen: false);
-          await controller.init();
-        } catch (_) {}
-
-        // Listen for AdminJoined events while on Profile screen and navigate (auto-open) or notify
-        _adminSub?.cancel();
-        _adminSub = service.onAdminJoined.listen((adminJoined) {
-          try {
-            final conv = adminJoined.conversationId;
-            final admName = adminJoined.adminName;
-            if (!mounted) return;
-
-            final controller =
-                Provider.of<ChatController>(context, listen: false);
-
-            // Only auto-open if the controller already references this conversation
-            // or the user doesn't have an active conversation yet (so it likely belongs to them)
-            final belongsToMe = (controller.conversationId == null) ||
-                (controller.conversationId == conv);
-
-            if (!belongsToMe) return;
-
-            // Show a transient snackbar and auto-open the chat screen
-            ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('$admName joined your support chat.')));
-
-            final user = ChatUser(
-              id: conv ?? '',
-              name: admName ?? 'Support',
-              avatarUrl: '',
-              lastMessage: '',
-              lastSeen: DateTime.now(),
-              online: true,
-            );
-
-            Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => ChatBoxScreen(user: user)));
-          } catch (_) {}
-        });
-      } catch (e) {
-        debugPrint('SignalR connect from ProfileScreen failed: $e');
-      }
+        if (!mounted) return;
+        final controller =
+            Provider.of<ChatController>(context, listen: false);
+        await controller.init();
+      } catch (_) {}
     } catch (e) {
       if (!mounted) return;
       setState(() {

@@ -141,7 +141,7 @@ public class PaymentsApiTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
-    public async Task RecordPayment_DuplicateReference_ReturnsConflict()
+    public async Task RecordPayment_Replay_ReturnsExistingPayment()
     {
         var (client, opportunityId, requestId) = CreateClientAndSeed();
 
@@ -155,9 +155,12 @@ public class PaymentsApiTests : IClassFixture<CustomWebApplicationFactory>
 
         var first = await client.PostAsync($"/api/v1/opportunities/{opportunityId}/payments", ToJsonContent(body));
         first.StatusCode.Should().Be(HttpStatusCode.Created);
+        var firstId = (await ReadJsonElement(first)).GetProperty("data").GetProperty("id").GetInt32();
 
         var second = await client.PostAsync($"/api/v1/opportunities/{opportunityId}/payments", ToJsonContent(body));
-        second.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        second.StatusCode.Should().Be(HttpStatusCode.Created);
+        var secondId = (await ReadJsonElement(second)).GetProperty("data").GetProperty("id").GetInt32();
+        secondId.Should().Be(firstId);
     }
 
     [Fact]

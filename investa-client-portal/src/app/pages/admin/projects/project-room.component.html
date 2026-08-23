@@ -1,0 +1,120 @@
+<main class="room-page" [attr.dir]="direction()">
+  <div class="room-shell">
+    @if (loading()) {
+      <section class="state-card investa-panel"><span class="spinner"></span><h2>{{ 'projectRoom.loading' | translate }}</h2></section>
+    } @else if (error()) {
+      <section class="state-card state-card--error investa-panel"><span class="state-icon">!</span><h2>{{ 'projectRoom.error' | translate }}</h2><p>{{ error() }}</p><button type="button" class="secondary-button" (click)="load()">{{ 'projectRoom.retry' | translate }}</button></section>
+    } @else if (room(); as r) {
+      <header class="page-header investa-panel">
+        <div class="title-block">
+          <p class="eyebrow">{{ 'projectRoom.eyebrow' | translate }}</p>
+          <h1>{{ r.displayName }}</h1>
+          <p>{{ r.summary }}</p>
+        </div>
+        <button type="button" class="secondary-button" (click)="router.navigate(['/admin/projects'])">
+          {{ 'projectRoom.back' | translate }}
+        </button>
+      </header>
+
+      @if (r.isFounder) {
+        <section class="composer investa-panel">
+          <p class="eyebrow">{{ 'projectRoom.composer.title' | translate }}</p>
+          <div class="composer-grid">
+            <label class="field">
+              <span>{{ 'projectRoom.composer.titlePlaceholder' | translate }}</span>
+              <input [(ngModel)]="title" [placeholder]="'projectRoom.composer.titlePlaceholder' | translate">
+            </label>
+            <label class="field">
+              <span>{{ 'projectRoom.composer.type' | translate }}</span>
+              <select [(ngModel)]="entryType">
+                <option [ngValue]="1">{{ 'projectRoom.composer.typeUpdate' | translate }}</option>
+                <option [ngValue]="2">{{ 'projectRoom.composer.typeMilestone' | translate }}</option>
+              </select>
+            </label>
+            <label class="field field-wide">
+              <span>{{ 'projectRoom.composer.detailsPlaceholder' | translate }}</span>
+              <textarea [(ngModel)]="description" rows="3" [placeholder]="'projectRoom.composer.detailsPlaceholder' | translate"></textarea>
+            </label>
+          </div>
+          <footer class="composer-actions">
+            <button type="button" class="primary-button" (click)="post()" [disabled]="!title.trim()">
+              {{ 'projectRoom.composer.publish' | translate }}
+            </button>
+          </footer>
+        </section>
+      }
+
+      <div class="room-sections">
+        <section class="investa-panel">
+          <header class="section-heading"><p class="eyebrow">{{ 'projectRoom.sections.updates' | translate }}</p></header>
+          @for (item of r.updates; track item.id) {
+            <article class="entry-card">
+              <strong>{{ item.title }}</strong>
+              @if (item.description) { <p>{{ item.description }}</p> }
+            </article>
+          } @empty {
+            <p class="empty-copy">{{ 'projectRoom.empty.updates' | translate }}</p>
+          }
+        </section>
+
+        <section class="investa-panel">
+          <header class="section-heading"><p class="eyebrow">{{ 'projectRoom.sections.milestones' | translate }}</p></header>
+          @for (item of r.milestones; track item.id) {
+            <article class="entry-card">
+              <div class="entry-card-row">
+                <strong>{{ item.title }}</strong>
+                @if (r.isFounder && !item.completedAt) {
+                  <button type="button" class="secondary-button" (click)="complete(item.id)">{{ 'projectRoom.actions.markComplete' | translate }}</button>
+                }
+              </div>
+              @if (item.description) { <p>{{ item.description }}</p> }
+            </article>
+          } @empty {
+            <p class="empty-copy">{{ 'projectRoom.empty.milestones' | translate }}</p>
+          }
+        </section>
+
+        <section class="investa-panel">
+          <header class="section-heading"><p class="eyebrow">{{ 'projectRoom.sections.documents' | translate }}</p></header>
+          @for (doc of r.documents; track doc.id) {
+            <p class="doc-row">{{ doc.fileName }} <small>{{ doc.documentType }}</small></p>
+          } @empty {
+            <p class="empty-copy">{{ 'projectRoom.empty.documents' | translate }}</p>
+          }
+        </section>
+
+        <section class="investa-panel">
+          <header class="section-heading"><p class="eyebrow">{{ 'projectRoom.sections.opportunities' | translate }}</p></header>
+          @for (o of r.opportunities; track o.opportunityId) {
+            <article class="opportunity-card">
+              <header>
+                <h3>#{{ o.sequenceNumber }} {{ o.title }}</h3>
+                <span class="status-badge success">{{ 'projectRoom.opportunity.funding' | translate }}</span>
+              </header>
+              <p class="opportunity-meta">{{ 'projectRoom.opportunity.funding' | translate }}: {{ o.fundingStatus }} · {{ 'projectRoom.opportunity.obligations' | translate }}: {{ o.obligationCompletionStatus }}</p>
+              @if (o.hasOriginatingOpportunityAccess) {
+                <p class="opportunity-meta">{{ o.visibleParticipationCount }} {{ 'projectRoom.opportunity.participation' | translate }} · {{ o.visibleContractCount }} {{ 'projectRoom.opportunity.contracts' | translate }}</p>
+                <nav class="room-links">
+                  <a [routerLink]="o.opportunityRoomUrl">{{ 'projectRoom.opportunity.links.records' | translate }}</a>
+                  <a [routerLink]="o.cashFlowUrl">{{ 'projectRoom.opportunity.links.cashFlows' | translate }}</a>
+                  <a [routerLink]="o.obligationCompletionUrl">{{ 'projectRoom.opportunity.links.obligations' | translate }}</a>
+                </nav>
+                <p class="opportunity-meta">{{ 'projectRoom.opportunity.documents' | translate }}: {{ o.documents.length }} · {{ 'projectRoom.opportunity.media' | translate }}: {{ o.media.length }}</p>
+              } @else {
+                <p class="restricted-copy">{{ 'projectRoom.opportunity.restricted' | translate }}</p>
+                <p class="opportunity-meta">{{ 'projectRoom.opportunity.publicDocuments' | translate }}: {{ o.documents.length }} · {{ 'projectRoom.opportunity.publicMedia' | translate }}: {{ o.media.length }}</p>
+              }
+            </article>
+          }
+        </section>
+
+        <section class="investa-panel">
+          <header class="section-heading"><p class="eyebrow">{{ 'projectRoom.sections.timeline' | translate }}</p></header>
+          @for (item of r.timeline; track item.id) {
+            <p class="timeline-row"><strong>{{ item.title }}</strong> <time>{{ item.createdAt | date:'medium' }}</time></p>
+          }
+        </section>
+      </div>
+    }
+  </div>
+</main>

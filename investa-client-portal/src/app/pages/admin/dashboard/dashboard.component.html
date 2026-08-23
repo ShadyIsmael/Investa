@@ -44,12 +44,12 @@
               <p class="panel-helper">{{ 'dashboard.cashFlow.loading' | translate }}</p>
             } @else if (cashFlowSummary(); as flow) {
               <div class="cash-flow-summary">
-                <div class="cash-flow-primary"><span>{{ 'dashboard.cashFlow.thisMonth' | translate }}</span><strong>{{ flow.expectedIncomeThisMonth | number:'1.2-2' }} {{ flow.currency }}</strong></div>
-                <div><span>{{ 'dashboard.cashFlow.nextPayment' | translate }}</span><strong>{{ flow.nextPaymentAmount | number:'1.2-2' }} {{ flow.currency }}</strong><small>{{ formatCashFlowDate(flow.nextPaymentDate) }}</small></div>
-                <div><span>{{ 'dashboard.cashFlow.nextTwelveMonths' | translate }}</span><strong>{{ flow.expectedNextTwelveMonths | number:'1.2-2' }} {{ flow.currency }}</strong></div>
-                <div><span>{{ 'dashboard.cashFlow.totalInterest' | translate }}</span><strong>{{ flow.totalExpectedInterest | number:'1.2-2' }} {{ flow.currency }}</strong></div>
+                <div class="cash-flow-primary"><span>{{ 'dashboard.cashFlow.thisMonth' | translate }}</span><strong>{{ formatProjectAmount(flow.expectedIncomeThisMonth, flow.currency) }}</strong></div>
+                <div><span>{{ 'dashboard.cashFlow.nextPayment' | translate }}</span><strong>{{ formatProjectAmount(flow.nextPaymentAmount, flow.currency) }}</strong><small>{{ formatCashFlowDate(flow.nextPaymentDate) }}</small></div>
+                <div><span>{{ 'dashboard.cashFlow.nextTwelveMonths' | translate }}</span><strong>{{ formatProjectAmount(flow.expectedNextTwelveMonths, flow.currency) }}</strong></div>
+                <div><span>{{ 'dashboard.cashFlow.totalInterest' | translate }}</span><strong>{{ formatProjectAmount(flow.totalExpectedInterest, flow.currency) }}</strong></div>
                 <div><span>{{ 'dashboard.cashFlow.received' | translate }}</span><strong>{{ 'dashboard.cashFlow.actualUnavailableShort' | translate }}</strong></div>
-                <div><span>{{ 'dashboard.cashFlow.remainingPrincipal' | translate }}</span><strong>{{ flow.remainingPrincipal | number:'1.2-2' }} {{ flow.currency }}</strong></div>
+                <div><span>{{ 'dashboard.cashFlow.remainingPrincipal' | translate }}</span><strong>{{ formatProjectAmount(flow.remainingPrincipal, flow.currency) }}</strong></div>
                 <div class="cash-flow-overdue"><span>{{ 'dashboard.cashFlow.overdue' | translate }}</span><strong>{{ 'dashboard.cashFlow.actualUnavailableShort' | translate }}</strong></div>
               </div>
               <p class="cash-flow-actual-notice">{{ 'dashboard.cashFlow.actualUnavailable' | translate }}</p>
@@ -59,8 +59,8 @@
                   @for (month of monthlyCashFlow(); track month.month) {
                     <div class="cash-flow-month">
                       <div class="cash-flow-bars">
-                        <i class="interest" [style.height.%]="cashFlowBarHeight(month.expectedInterest)" [title]="('dashboard.cashFlow.expectedInterest' | translate) + ': ' + (month.expectedInterest | number:'1.2-2')"></i>
-                        <i class="principal" [style.height.%]="cashFlowBarHeight(month.expectedPrincipal)" [title]="('dashboard.cashFlow.principal' | translate) + ': ' + (month.expectedPrincipal | number:'1.2-2')"></i>
+                        <i class="interest" [style.height.%]="cashFlowBarHeight(month.expectedInterest)" [title]="('dashboard.cashFlow.expectedInterest' | translate) + ': ' + formatProjectAmount(month.expectedInterest, flow.currency)"></i>
+                        <i class="principal" [style.height.%]="cashFlowBarHeight(month.expectedPrincipal)" [title]="('dashboard.cashFlow.principal' | translate) + ': ' + formatProjectAmount(month.expectedPrincipal, flow.currency)"></i>
                       </div><small>{{ month.month | date:'MMM yyyy' }}</small>
                     </div>
                   }
@@ -210,14 +210,17 @@
     </div>
   }
   @if (roleContext.isActiveFounderContext()) {
-    <div class="animate-fade-in p-5 md:p-6">
+    <app-founder-portfolio-dashboard></app-founder-portfolio-dashboard>
+    <!-- Legacy selected-Opportunity founder workspace removed. Operational milestones, payments, room activity, documents, contracts, and investor roster belong outside the portfolio Dashboard. -->
+    @if (false) {
+    <div class="animate-fade-in p-5 md:p-6 founder-dashboard-area">
       @if (selectedFounderProject(); as project) {
         @if (founderProjectDataError()) {
           <div class="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
             {{ founderProjectDataError() }}
           </div>
         }
-        <!-- Row 1: Project Header and Status -->
+        <span hidden>Legacy founder workspace</span>
         <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div class="flex items-center gap-3">
             <div>
@@ -269,7 +272,7 @@
                  [style.width.%]="fp"></div>
           </div>
           <div class="flex justify-between text-xs text-gray-500">
-            <span>{{ 'investmentPreview.amountRaised' | translate }}: <span class="text-white font-semibold">{{ getNativeFundedAmount(project) === null ? '—' : (getNativeFundedAmount(project) | number:'1.2-2') }}</span></span>
+            <span>{{ 'investmentPreview.amountRaised' | translate }}: <span class="text-white font-semibold">{{ getNativeFundedAmount(project) === null ? '—' : formatProjectAmount(getNativeFundedAmount(project), project.currency) }}</span></span>
             <span>{{ 'investmentPreview.target' | translate }}: <span class="text-white font-semibold">{{ formatProjectAmount(project.fundingTarget, project.currency) }}</span></span>
           </div>
         </div>
@@ -278,7 +281,7 @@
           <div class="lg:col-span-2 space-y-5">
 
 
-            <!-- Row 6: Project Execution -->
+            <span hidden>Legacy project execution</span>
             <section class="dashboard-panel">
               <div class="panel-header">
                 <h3 class="panel-title">{{ 'dashboard.projectExecution' | translate }}</h3>
@@ -292,27 +295,37 @@
                   {{ 'dashboard.loading' | translate }}
                 </div>
               } @else {
-                <div class="grid grid-cols-2 gap-3 mb-4">
-                  <div class="bg-slate-800/50 rounded-xl p-3 text-center">
-                    <p class="text-lg font-bold text-white">{{ completedMilestoneCount() }}/{{ totalMilestoneCount() }}</p>
-                    <p class="text-xs text-gray-500">{{ 'dashboard.milestonesProgress' | translate }}</p>
-                  </div>
-                  <div class="bg-slate-800/50 rounded-xl p-3 text-center">
-                    <p class="text-lg font-bold text-white">{{ overdueMilestoneCount() }}</p>
-                    <p class="text-xs text-gray-500">{{ 'dashboard.overdue' | translate }}</p>
-                  </div>
-                </div>
-                @if (nextIncompleteMilestone(); as nextMs) {
-                  <div class="flex items-center justify-between bg-slate-800/30 rounded-xl p-3 mb-2">
-                    <div class="flex items-center gap-2 min-w-0">
-                      <span class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0"></span>
-                      <span class="text-sm text-gray-300">{{ 'dashboard.nextMilestone' | translate }}:</span>
-                      <span class="text-sm font-medium text-white truncate">{{ nextMs.title }}</span>
+                @let milestones = sortedMilestones();
+                @if (milestones.length > 0) {
+                  <div class="ms-timeline">
+                    <div class="ms-track">
+                      @for (ms of milestones; track ms.milestoneId ?? ms.id ?? $index; let i = $index) {
+                        <div class="ms-node"
+                             [class.ms-completed]="isMilestoneCompleted(ms)"
+                             [class.ms-current]="isMilestoneCurrent(ms, i)"
+                             [class.ms-future]="!isMilestoneCompleted(ms) && !isMilestoneCurrent(ms, i)"
+                             [title]="getMilestoneDescription(ms)">
+                          <div class="ms-dot">
+                            @if (isMilestoneCompleted(ms)) {
+                              <svg class="ms-check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 8 7 12 13 4"></polyline></svg>
+                            }
+                          </div>
+                          <div class="ms-label">
+                            <span class="ms-name">{{ ms.title || ms.milestoneName || ms.name || '—' }}</span>
+                            <span class="ms-date">{{ ms.targetDate ? (ms.targetDate | date:'dd/MM/yyyy') : '—' }}</span>
+                          </div>
+                          @if (isMilestoneCurrent(ms, i)) {
+                            <span class="ms-badge">{{ 'dashboard.currentPhase' | translate }}</span>
+                          }
+                          @if (ms.description) {
+                            <div class="ms-tooltip">{{ ms.description }}</div>
+                          }
+                        </div>
+                      }
                     </div>
-                    @if (nextMs.targetDate) {
-                      <span class="text-xs text-gray-500 flex-shrink-0">{{ nextMs.targetDate | date:'mediumDate' }}</span>
-                    }
                   </div>
+                } @else {
+                  <div class="text-sm text-gray-500 py-3">{{ 'dashboard.noMilestones' | translate }}</div>
                 }
                 @if (latestDocument(); as doc) {
                   <div class="flex items-center justify-between bg-slate-800/30 rounded-xl p-3 mb-2">
@@ -336,7 +349,7 @@
                   </div>
                 }
 
-                <!-- Repayment Terms -->
+                <span hidden>Legacy repayment terms</span>
                 <div class="border-t border-slate-700/50 pt-4 mt-2">
                   <div class="grid grid-cols-3 gap-3">
                     <div class="bg-slate-800/50 rounded-xl p-3">
@@ -354,7 +367,7 @@
                   </div>
                 </div>
 
-                <!-- Payments Schedule -->
+                <span hidden>Legacy payment schedule</span>
                 <div class="border-t border-slate-700/50 pt-4 mt-4">
                   <div class="flex items-center justify-between mb-3">
                     <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ 'dashboard.approvedContributions' | translate }}</h4>
@@ -381,7 +394,7 @@
               }
             </section>
 
-            <!-- Row 5: Investors & Engagements -->
+            <span hidden>Legacy investor roster</span>
             <section class="dashboard-panel">
               <div class="panel-header">
                 <h3 class="panel-title">{{ 'dashboard.investorsAndEngagements' | translate }}</h3>
@@ -452,7 +465,7 @@
           </div>
 
           <div class="lg:col-span-1 space-y-5">
-            <!-- Row 8: Requires Your Attention -->
+            <span hidden>Legacy founder actions</span>
             <section class="dashboard-panel action-panel">
               <div class="panel-header">
                 <h3 class="panel-title">{{ 'dashboard.actionNeeded.title' | translate }}</h3>
@@ -471,7 +484,7 @@
               }
             </section>
 
-            <!-- Row 9: Quick Navigation -->
+            <span hidden>Legacy quick navigation</span>
             <div class="bg-slate-900/80 backdrop-blur-sm p-5 rounded-2xl border border-slate-800">
               <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">{{ 'dashboard.quickActions' | translate }}</h3>
               <div class="space-y-2">
@@ -587,7 +600,7 @@
           </div>
         }
       }
-    </div>
+    </div> }
   }
 </div>
 

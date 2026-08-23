@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { usePermissions } from "@/context/AuthContext";
 import { companyFinanceService } from "@/services/companyFinanceService";
+import { formatMoney, defaultIsoCode, ensureCurrenciesLoaded } from "../../utils/currency";
 import type {
   FinanceAccount,
   FinanceOverview,
@@ -43,10 +44,7 @@ const defaultPeriod = () => {
   };
 };
 const amountText = (value: number) =>
-  value.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  formatMoney(value, defaultIsoCode(), { bare: true });
 const percentText = (value: number) =>
   `${value.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 2 })}%`;
 
@@ -178,6 +176,7 @@ export const FinanceOverviewPage: React.FC = () => {
 
   useEffect(() => {
     if (!canView) return;
+    void ensureCurrenciesLoaded();
     void companyFinanceService
       .getAccounts()
       .then((items) => setMasterAccounts(items.filter((item) => item.isActive)))
@@ -844,7 +843,7 @@ export const FinanceOverviewPage: React.FC = () => {
                         className="whitespace-nowrap text-end font-mono text-xs font-semibold tabular-nums"
                         dir="ltr"
                       >
-                        {amountText(item.amount)} {item.currency}
+                        {formatMoney(item.amount, item.currency)}
                       </td>
                       <td>
                         <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
@@ -900,7 +899,7 @@ export const FinanceOverviewPage: React.FC = () => {
                 {t("companyFinance.overview.amount")}
               </dt>
               <dd dir="ltr">
-                {amountText(details.amount)} {details.currency}
+                {formatMoney(details.amount, details.currency)}
               </dd>
               <dt className="text-slate-500">
                 {t("companyFinance.overview.status")}
