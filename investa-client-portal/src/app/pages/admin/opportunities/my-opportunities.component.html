@@ -23,12 +23,10 @@
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Opportunity</th>
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Status</th>
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Category</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Investment Model</th>
           <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Funding</th>
           <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">{{ 'investmentPreview.amountRaised' | translate }}</th>
           <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">{{ 'investmentPreview.remainingFunding' | translate }}</th>
           <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">{{ 'investmentPreview.approvedParticipants' | translate }}</th>
-          <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Minimum</th>
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Created</th>
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Files</th>
           <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Actions</th>
@@ -38,13 +36,11 @@
         <tr *ngFor="let opportunity of opportunities()" class="hover:bg-slate-800/30">
           <td class="px-4 py-4"><p class="font-semibold text-white">{{ title(opportunity) }}</p><p class="mt-1 line-clamp-1 text-sm text-gray-400">{{ description(opportunity) }}</p></td>
           <td class="px-4 py-4"><app-opportunity-status-badge [status]="opportunity.status"></app-opportunity-status-badge></td>
-          <td class="px-4 py-4 text-sm text-gray-300">{{ opportunity.categoryName || opportunity.categoryId || '-' }}</td>
-          <td class="px-4 py-4 text-sm text-gray-300">{{ opportunity.investmentModel || '-' }}</td>
-          <td class="px-4 py-4 text-right text-sm text-gray-300">{{ money(opportunity.fundingTarget) }}</td>
-          <td class="px-4 py-4 text-right text-sm text-gray-300">{{ opportunity.fundedAmount == null ? '—' : money(opportunity.fundedAmount) }}</td>
-          <td class="px-4 py-4 text-right text-sm text-gray-300">{{ opportunity.remainingFundingAmount == null ? '—' : money(opportunity.remainingFundingAmount) }}</td>
+          <td class="px-4 py-4 text-sm text-gray-300">{{ opportunity.projectContext?.category?.name || '-' }}</td>
+          <td class="px-4 py-4 text-right text-sm text-gray-300">{{ opportunity.fundingTarget | currencyDisplay: opportunity.currency }}</td>
+          <td class="px-4 py-4 text-right text-sm text-gray-300">{{ opportunity.fundedAmount == null ? '—' : (opportunity.fundedAmount | currencyDisplay: opportunity.currency) }}</td>
+          <td class="px-4 py-4 text-right text-sm text-gray-300">{{ opportunity.remainingFundingAmount == null ? '—' : (opportunity.remainingFundingAmount | currencyDisplay: opportunity.currency) }}</td>
           <td class="px-4 py-4 text-right text-sm text-gray-300">{{ opportunity.approvedParticipantCount == null ? '—' : opportunity.approvedParticipantCount }}</td>
-          <td class="px-4 py-4 text-right text-sm text-gray-300">{{ money(opportunity.minimumInvestment) }}</td>
           <td class="px-4 py-4 text-sm text-gray-400">{{ formatDate(opportunity.createdAt) }}</td>
           <td class="px-4 py-4">
             <div class="flex flex-wrap gap-1">

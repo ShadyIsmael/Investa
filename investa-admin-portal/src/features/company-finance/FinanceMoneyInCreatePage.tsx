@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { usePermissions } from '@/context/AuthContext';
 import { companyFinanceService } from '@/services/companyFinanceService';
+import { defaultIsoCode, getCurrencies, ensureCurrenciesLoaded } from '../../utils/currency';
 import type { CreateFinanceTransactionRequest, FinanceAccount, FinanceCategory, FinanceSupplier } from './types';
 import { FinancePermissionDenied } from './CompanyFinanceStates';
 
@@ -242,7 +243,8 @@ export const FinanceMoneyInCreatePage: React.FC = () => {
   const [transactionDate, setTransactionDate] = useState('');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
-  const [currency, setCurrency] = useState('EGP');
+  const [currency, setCurrency] = useState(defaultIsoCode());
+  const [currencyOptions, setCurrencyOptions] = useState<string[]>(() => getCurrencies().map((c) => c.isoCode));
   const [destinationAccountId, setDestinationAccountId] = useState('');
   const [sourceAccountId, setSourceAccountId] = useState('');
   const [supplierId, setSupplierId] = useState('');
@@ -259,6 +261,7 @@ export const FinanceMoneyInCreatePage: React.FC = () => {
   const key = (name: string) => t(`companyFinance.moneyInCreate.${name}`);
 
   useEffect(() => {
+    void ensureCurrenciesLoaded().then(() => setCurrencyOptions(getCurrencies().map((c) => c.isoCode)));
     void companyFinanceService
       .getAccounts()
       .then((items) => setAccounts(items.filter((item) => item.isActive)));
@@ -271,7 +274,7 @@ export const FinanceMoneyInCreatePage: React.FC = () => {
       setTransactionDate(transaction.transactionDate.slice(0, 10));
       setDescription(transaction.description || '');
       setAmount(String(transaction.amount));
-      setCurrency(transaction.currency || 'EGP');
+      setCurrency(transaction.currency || defaultIsoCode());
       setDestinationAccountId(transaction.destinationAccountId ? String(transaction.destinationAccountId) : '');
       setSourceAccountId(transaction.sourceAccountId ? String(transaction.sourceAccountId) : '');
       setSupplierId(transaction.supplierId ? String(transaction.supplierId) : '');
@@ -534,7 +537,7 @@ export const FinanceMoneyInCreatePage: React.FC = () => {
               </label>
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
               {key('currency')} <span className="text-rose-600">*</span>
-              <select value={currency} onChange={(event) => setCurrency(event.target.value)} className={fieldClass} dir="ltr"><option value="EGP">EGP</option></select>
+              <select value={currency} onChange={(event) => setCurrency(event.target.value)} className={fieldClass} dir="ltr">{currencyOptions.map((code) => <option key={code} value={code}>{code}</option>)}</select>
               </label>
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
               {key('destinationAccount')} <span className="text-rose-600">*</span>

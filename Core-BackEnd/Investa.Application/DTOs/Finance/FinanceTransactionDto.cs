@@ -1,3 +1,4 @@
+﻿using Investa.Domain;
 using System;
 using Investa.Domain.Entities.Enums;
 
@@ -17,7 +18,7 @@ public class FinanceTransactionDto
     public string Description { get; set; } = string.Empty;
     public string? Notes { get; set; }
     public decimal Amount { get; set; }
-    public string Currency { get; set; } = "EGP";
+    public string Currency { get; set; } = CurrencyMasterDefaults.DefaultCurrency;
     public decimal ExchangeRate { get; set; } = 1.0m;
     public decimal AmountInBaseCurrency { get; set; }
     public string? SourceName { get; set; }
@@ -95,7 +96,7 @@ public class CreateFinanceTransactionDto
     public decimal Amount { get; set; }
 
     /// <summary>Currency (default EGP)</summary>
-    public string Currency { get; set; } = "EGP";
+    public string Currency { get; set; } = CurrencyMasterDefaults.DefaultCurrency;
 
     /// <summary>Exchange rate if foreign currency (default 1.0)</summary>
     public decimal ExchangeRate { get; set; } = 1.0m;
@@ -177,7 +178,7 @@ public class FinanceTransactionListDto
     public DateTime TransactionDate { get; set; }
     public string Description { get; set; } = string.Empty;
     public decimal Amount { get; set; }
-    public string Currency { get; set; } = "EGP";
+    public string Currency { get; set; } = CurrencyMasterDefaults.DefaultCurrency;
     public string? SourceName { get; set; }
     public string? PayerName => SourceName;
     public string? PaymentMethod { get; set; }

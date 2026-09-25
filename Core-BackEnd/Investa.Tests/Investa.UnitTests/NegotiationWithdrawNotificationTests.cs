@@ -46,6 +46,7 @@ public class NegotiationWithdrawNotificationTests
             _userNotifMock.Object,
             _realtimeMock.Object,
             new Mock<IConversationPresenceService>().Object,
+            Mock.Of<IInvestmentContractService>(),
             NullLogger<Investa.Application.Services.NegotiationService>.Instance);
 
         SetupAuthUserValidation();

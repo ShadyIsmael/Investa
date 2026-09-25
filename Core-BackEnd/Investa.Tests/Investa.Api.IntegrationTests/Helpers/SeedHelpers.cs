@@ -16,13 +16,26 @@ public static class SeedHelpers
         var group = new Group { Id = 1, Name = "Finance" };
         db.Groups.Add(group);
 
-        var role = new Investa.Domain.Entities.Security.Role { Id = Guid.NewGuid(), Name = "Account Editor", NormalizedName = "ACCOUNT EDITOR", GroupId = 1 };
+        var role = new Investa.Domain.Entities.Security.Role
+        {
+            Id = Guid.NewGuid(),
+            Name = "Account Editor",
+            NameEn = "Account Editor",
+            NameAr = "محرر الحساب",
+            NormalizedName = "ACCOUNT EDITOR",
+            GroupId = 1
+        };
+        typeof(Investa.Domain.Entities.Security.Role).GetProperty(nameof(Investa.Domain.Entities.Security.Role.RoleCode))!
+            .SetValue(role, "ROL-TEST");
         db.Roles.Add(role);
 
         // Use deterministic seeded user id so integration test auth can resolve the current user
         var user1Id = Guid.Parse("11111111-1111-1111-1111-111111111111");
-        var au1 = new AuthUser { Id = user1Id, Email = "jane.doe@example.com", UserType = UserType.OrgUser, Status = true, CreatedAt = DateTime.UtcNow.AddYears(-2) };
-        db.AuthUsers.Add(au1);
+        var au1 = db.AuthUsers.Find(user1Id)!;
+        au1.Email = "jane.doe@example.com";
+        au1.UserType = UserType.OrgUser;
+        au1.Status = true;
+        au1.CreatedAt = DateTime.UtcNow.AddYears(-2);
 
         var profile1 = new UserProfile { UserId = user1Id, FirstName = "Jane", LastName = "Doe", FullName = "Jane Doe", AvatarUrl = "https://example.com/avatar.jpg", LastLoginDate = DateTime.UtcNow.AddDays(-1), CreatedAt = DateTime.UtcNow.AddYears(-2), UpdatedAt = DateTime.UtcNow.AddMonths(-1) };
         db.UserProfiles.Add(profile1);
@@ -30,7 +43,16 @@ public static class SeedHelpers
         var userRole = new UserRole { UserId = user1Id, RoleId = role.Id };
         db.UserRoles.Add(userRole);
 
-        var session = new UserSession { Id = Guid.NewGuid(), UserId = user1Id, CreatedAt = DateTime.UtcNow.AddDays(-10), ExpiresAt = DateTime.UtcNow.AddDays(20), LastUsedAt = DateTime.UtcNow.AddDays(-1) };
+        var session = new UserSession
+        {
+            Id = Guid.NewGuid(),
+            UserId = user1Id,
+            RefreshTokenHash = "integration-test-token",
+            IpAddress = "127.0.0.1",
+            CreatedAt = DateTime.UtcNow.AddDays(-10),
+            ExpiresAt = DateTime.UtcNow.AddDays(20),
+            LastUsedAt = DateTime.UtcNow.AddDays(-1)
+        };
         db.UserSessions.Add(session);
 
         // second user

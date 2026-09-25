@@ -6,6 +6,7 @@ namespace Investa.Application.DTOs.Profile;
 /// </summary>
 public class UpdateProfileRequestDto
 {
+    public string? PreferredCurrency { get; set; }
     public BasicInfoDto? BasicInfo { get; set; }
     public ContactInfoDto? ContactInfo { get; set; }
 }

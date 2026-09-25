@@ -1,384 +1,156 @@
-using System.Text;
 using System.Text.Json;
-using Investa.Domain.Entities;
-using Investa.Domain.Entities.Chat;
-using Investa.Domain.Entities.Enums;
 using Investa.Infrastructure.Persistence;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Investa.Infrastructure.Identity;
+using ResetBusinessDataRunner;
+
+static bool HasFlag(IReadOnlyList<string> args, string name)
+    => args.Any(value => string.Equals(value, $"--{name}", StringComparison.OrdinalIgnoreCase));
+
+static string? GetOption(IReadOnlyList<string> args, string name)
+{
+    var prefix = $"--{name}=";
+    var inline = args.FirstOrDefault(value => value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
+    if (inline != null) return inline[prefix.Length..];
+
+    for (var index = 0; index < args.Count - 1; index++)
+        if (string.Equals(args[index], $"--{name}", StringComparison.OrdinalIgnoreCase))
+            return args[index + 1];
+    return null;
+}
 
 static string? FindSettingsPath()
 {
-    var dir = new DirectoryInfo(Directory.GetCurrentDirectory());
-    while (dir != null)
+    var startDirectories = new[]
     {
-        var candidate = Path.Combine(dir.FullName, "Investa.API", "appsettings.json");
-        if (File.Exists(candidate)) return candidate;
-        dir = dir.Parent;
+        new DirectoryInfo(Directory.GetCurrentDirectory()),
+        new DirectoryInfo(AppContext.BaseDirectory)
+    };
+
+    foreach (var startDirectory in startDirectories)
+    {
+        var directory = startDirectory;
+        while (directory != null)
+        {
+            var candidates = new[]
+            {
+                Path.Combine(directory.FullName, "Core-BackEnd", "Investa.API", "appsettings.json"),
+                Path.Combine(directory.FullName, "Investa.API", "appsettings.json")
+            };
+            var candidate = candidates.FirstOrDefault(File.Exists);
+            if (candidate != null) return candidate;
+            directory = directory.Parent;
+        }
     }
 
     return null;
 }
 
-static bool HasFlag(string[] args, string flag)
-    => args.Any(a => string.Equals(a, flag, StringComparison.OrdinalIgnoreCase));
+var commandLineArgs = Environment.GetCommandLineArgs().Skip(1).ToArray();
+var dryRun = HasFlag(commandLineArgs, "dry-run");
+var yes = HasFlag(commandLineArgs, "yes") || HasFlag(commandLineArgs, "confirm");
+var environment = GetOption(commandLineArgs, "environment")
+    ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
+    ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
 
-static string? GetArgValue(string[] args, string name)
+if (string.IsNullOrWhiteSpace(environment))
 {
-    // --name value
-    for (var i = 0; i < args.Length - 1; i++)
-    {
-        if (string.Equals(args[i], $"--{name}", StringComparison.OrdinalIgnoreCase))
-            return args[i + 1];
-    }
-
-    // --name=value
-    var prefix = $"--{name}=";
-    var match = args.FirstOrDefault(a => a.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
-    if (match == null) return null;
-    return match.Substring(prefix.Length);
+    Console.Error.WriteLine("SAFETY GUARD: no environment was supplied.");
+    Console.Error.WriteLine("Pass --environment Development or --environment UAT. Production is always refused.");
+    return 2;
 }
 
-static long GetDirectorySizeBytes(string root)
+if (environment.Equals("Production", StringComparison.OrdinalIgnoreCase))
 {
-    if (!Directory.Exists(root)) return 0;
-    long total = 0;
-    foreach (var file in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
-    {
-        try
-        {
-            total += new FileInfo(file).Length;
-        }
-        catch { /* ignore */ }
-    }
-    return total;
+    Console.Error.WriteLine("SAFETY GUARD: Business Data Reset is permanently disabled in Production.");
+    return 2;
 }
 
-static void WriteJson(string path, object payload)
+if (!environment.Equals("Development", StringComparison.OrdinalIgnoreCase)
+    && !environment.Equals("UAT", StringComparison.OrdinalIgnoreCase))
 {
-    Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-    var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });
-    File.WriteAllText(path, json);
+    Console.Error.WriteLine("SAFETY GUARD: only Development and UAT environments may be reset.");
+    return 2;
 }
-
-var dryRun = HasFlag(args: Environment.GetCommandLineArgs().Skip(1).ToArray(), flag: "--dry-run");
-var cleanFileStore = HasFlag(args: Environment.GetCommandLineArgs().Skip(1).ToArray(), flag: "--clean-filestore");
-var minAgeDaysStr = GetArgValue(Environment.GetCommandLineArgs().Skip(1).ToArray(), "min-age-days");
-var minAgeDays = minAgeDaysStr != null && int.TryParse(minAgeDaysStr, out var d) ? d : 0;
 
 var settingsPath = FindSettingsPath();
 if (settingsPath == null)
 {
-    // Deterministic absolute path based on repo layout
-    // Repo root is d:/projects/Investa/gitInvesta by convention in this workspace.
-    var candidate = Path.Combine(
-        "d:/projects/Investa/gitInvesta/Core-BackEnd",
-        "Investa.API",
-        "appsettings.json");
-
-    if (File.Exists(candidate))
-        settingsPath = candidate;
-    else
-    {
-        // Fallback for other working directory layouts
-        candidate = Path.Combine(Directory.GetCurrentDirectory(), "Investa.API", "appsettings.json");
-        if (File.Exists(candidate)) settingsPath = candidate;
-    }
-}
-if (settingsPath == null || !File.Exists(settingsPath))
-{
-    Console.WriteLine("Could not find Investa.API/appsettings.json.");
-    Console.WriteLine($"CurrentDir={Directory.GetCurrentDirectory()}");
-    Console.WriteLine($"BaseDir={AppContext.BaseDirectory}");
-    return;
+    Console.Error.WriteLine("Could not find Investa.API/appsettings.json from the current repository.");
+    return 2;
 }
 
-
-
-var config = new ConfigurationBuilder()
-    .AddJsonFile(settingsPath, optional: false, reloadOnChange: false)
+var settingsDirectory = Path.GetDirectoryName(settingsPath)!;
+var configuration = new ConfigurationBuilder()
+    .SetBasePath(settingsDirectory)
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+    .AddJsonFile($"appsettings.{environment}.json", optional: true, reloadOnChange: false)
+    .AddEnvironmentVariables()
     .Build();
 
-var connectionString = config.GetConnectionString("DefaultConnection");
+var connectionString = configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrWhiteSpace(connectionString))
 {
-    Console.WriteLine("DefaultConnection not found in appsettings.json.");
-    return;
+    Console.Error.WriteLine("ConnectionStrings:DefaultConnection is missing.");
+    return 2;
+}
+
+if (!dryRun && !yes)
+{
+    Console.WriteLine($"Environment: {environment}");
+    Console.WriteLine("This permanently deletes Project/Opportunity/Offer/Participation business data.");
+    Console.WriteLine("Users, roles, permissions, currencies, lookups, finance, and security data are preserved.");
+    Console.Write("Type RESET BUSINESS DATA to continue: ");
+    if (!string.Equals(Console.ReadLine()?.Trim(), "RESET BUSINESS DATA", StringComparison.Ordinal))
+    {
+        Console.WriteLine("Reset cancelled.");
+        return 1;
+    }
 }
 
 var services = new ServiceCollection();
-services.AddLogging(b => b.AddConsole());
-services.AddDbContext<ApplicationDbContext>(o => o.UseSqlServer(connectionString));
-services.AddIdentity<ApplicationIdentityUser, ApplicationIdentityRole>(opt =>
-{
-    // password rules irrelevant for reset
-    opt.User.RequireUniqueEmail = false;
-}).AddEntityFrameworkStores<ApplicationDbContext>();
-
-await using var serviceProvider = services.BuildServiceProvider();
-await using var scope = serviceProvider.CreateAsyncScope();
-
+services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
+await using var provider = services.BuildServiceProvider();
+await using var scope = provider.CreateAsyncScope();
 var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("ResetBusinessDataRunner");
+var connection = db.Database.GetDbConnection();
 
-// Tables to preserve: users/auth + RBAC + admin reference data.
-// Everything else is treated as business/non-auth state and will be cleared.
-
-var authPreservedTables = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+try
 {
-    // ASP.NET Identity (typical)
-    "AspNetUsers",
-    "AspNetRoles",
-    "AspNetUserRoles",
-    "AspNetUserClaims",
-    "AspNetUserLogins",
-    "AspNetUserTokens",
-    // Domain identity
-    "Users",
-    "Roles",
-    "UserRoles",
-    "GroupPermissions", // RBAC
-    "UserGroups", // RBAC
-    "Groups",
-    "Permissions",
-    // Domain master auth
-    "AuthUsers",
-    "UserProfiles",
-    "UserSessions",
-    "RefreshTokens",
-    // Credit/wallet bookkeeping is explicitly NOT preserved (per user request)
-};
+    var startedAt = DateTime.UtcNow;
+    var engine = new BusinessDataResetEngine();
+    var report = await engine.ExecuteAsync(connection, dryRun);
 
-var referencePreservedTables = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-{
-    // Lookup + reference catalogs
-    "Lookups",
-    "BusinessCategories",
-    "ClientStatuses",
-    "FundingGoals",
-    "OpportunityCategories",
-    "OpportunityTags",
-    // Reputation rules are system-defined reference.
-    "ReputationRules",
-    // Credit configurations / plans / service prices
-    "CreditConfigurations",
-    "CreditPlans",
-    "ServicePrices",
-    // Notification templates are admin-configurable reference
-    "NotificationTemplates",
-};
+    Console.WriteLine(dryRun ? "Dry run complete." : "Business data reset committed.");
+    Console.WriteLine("Delete order (child tables first):");
+    foreach (var table in report.DeleteOrder) Console.WriteLine($"  {table}");
 
-// Some tables are strictly “business derived” but are also analytics.
-var preservedOnly = authPreservedTables.Union(referencePreservedTables).ToHashSet(StringComparer.OrdinalIgnoreCase);
+    Console.WriteLine("Major aggregate counts:");
+    foreach (var table in report.Tables.Where(row => BusinessDataResetCatalog.MajorAggregates.Contains(row.Table, StringComparer.OrdinalIgnoreCase)))
+        Console.WriteLine($"  {table.Table}: {table.Before} -> {table.After} (deleted {table.Deleted})");
 
-// Map EF model entity types to table names.
-var allEntityTypes = db.Model.GetEntityTypes().ToList();
-var tableNames = allEntityTypes
-    .Select(et => et.GetTableName())
-    .Where(t => !string.IsNullOrWhiteSpace(t))!
-    .Select(t => t!)
-    .Distinct(StringComparer.OrdinalIgnoreCase)
-    .OrderBy(x => x)
-    .ToList();
+    var remaining = report.Tables.Where(row => row.After > 0).Select(row => row.Schema + "." + row.Table).ToArray();
+    if (remaining.Length > 0)
+        Console.WriteLine("Remaining business tables with rows: " + string.Join(", ", remaining));
 
-var businessTables = tableNames.Where(t => !preservedOnly.Contains(t!)).ToList();
-
-logger.LogInformation("Preserved tables: {count}", preservedOnly.Count);
-logger.LogInformation("Business tables to clear: {count}", businessTables.Count);
-
-var started = DateTime.UtcNow;
-
-
-// Scalar query helper
-async Task<long> CountRowsAsync(string table)
-{
-    // SQL Server
-    var result = await db.Set<DbScalar<long>>().FromSqlInterpolated($"SELECT COUNT(1) as Value FROM [{table}]")
-        .Select(x => x.Value)
-        .FirstAsync();
-    return result;
+    var reportPath = Path.Combine(AppContext.BaseDirectory, "reset-business-data-report.json");
+    await File.WriteAllTextAsync(reportPath, JsonSerializer.Serialize(new
+    {
+        startedAtUtc = startedAt,
+        finishedAtUtc = DateTime.UtcNow,
+        environment,
+        dryRun,
+        deleteOrder = report.DeleteOrder,
+        preservedTables = report.PreservedTables,
+        tables = report.Tables
+    }, new JsonSerializerOptions { WriteIndented = true }));
+    Console.WriteLine($"Report: {reportPath}");
+    return 0;
 }
-
-// Create a dummy scalar entity type at runtime is overkill; instead use raw ADO.NET.
-// We'll switch to ADO.NET for safety.
-
-var affected = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
-var beforeCounts = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
-var afterCounts = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
-
-await using (var conn = db.Database.GetDbConnection())
+catch (Exception exception)
 {
-    await conn.OpenAsync();
-    foreach (var table in businessTables)
-    {
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = $"SELECT COUNT(1) FROM [{table}]";
-        var val = await cmd.ExecuteScalarAsync();
-        var c = val == null || val == DBNull.Value ? 0L : Convert.ToInt64(val);
-        beforeCounts[table] = c;
-    }
-
-    // Deletion: do in dependency-safe order. Simplest: disable FK checks not available in SQL Server.
-    // Instead, use TRUNCATE for heap-like tables where possible; but foreign keys may block.
-    // We'll use DELETE with ORDER: children to parents is hard without FK graph.
-    // Pragmatic approach: do iterative deletes using SQL sys.foreign_keys is complex.
-    // We'll do single pass DELETE with escalating attempts: if a table delete fails due to FK, retry later.
-
-    var deleteQueue = businessTables.ToList();
-    var maxPasses = 6;
-    for (var pass = 1; pass <= maxPasses && deleteQueue.Count > 0; pass++)
-    {
-        logger.LogInformation("Reset pass {pass}/{maxPasses}. Remaining tables: {rem}", pass, maxPasses, deleteQueue.Count);
-        var nextQueue = new List<string>();
-
-        foreach (var table in deleteQueue)
-        {
-            try
-            {
-                // Optional safety: age filter
-                // If a min age is provided, we only delete rows older than the threshold.
-                // However, we can't know column names for all tables, so we ignore age filter for now.
-
-                string sql = $"DELETE FROM [{table}]";
-
-                if (dryRun)
-                {
-                    logger.LogInformation("[dry-run] {sql}", sql);
-                    affected[table] = 0;
-                    continue;
-                }
-
-                await using var cmd = conn.CreateCommand();
-                cmd.CommandText = sql;
-                var rows = await cmd.ExecuteNonQueryAsync();
-                affected[table] = rows;
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Delete failed for {table}; will retry later if still possible.", table);
-                nextQueue.Add(table);
-            }
-        }
-
-        deleteQueue = nextQueue;
-    }
-
-    // Remaining retry failures will be reported.
-
-    foreach (var table in businessTables)
-    {
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = $"SELECT COUNT(1) FROM [{table}]";
-        var val = await cmd.ExecuteScalarAsync();
-        var c = val == null || val == DBNull.Value ? 0L : Convert.ToInt64(val);
-        afterCounts[table] = c;
-    }
+    Console.Error.WriteLine("Business data reset failed; the transaction was rolled back.");
+    Console.Error.WriteLine(exception);
+    return 1;
 }
-
-// Reset derived balances stored on user/profile records.
-// Per request: clear derived wallet/credit/score/reputation balances stored on user/profile records.
-// We treat this as business state and update AuthUsers.
-if (!dryRun)
-{
-    await using (var conn = db.Database.GetDbConnection())
-    {
-        await conn.OpenAsync();
-        var sql = @"UPDATE [AuthUsers]
-                     SET [WalletBalance] = 0,
-                         [CredibilityScore] = 3500,
-                         [ReputationLevel] = [ReputationLevel],
-                         [ActivityScore] = 0,
-                         [ReputationScore] = 0,
-                         [TrustLevel] = [TrustLevel]
-                     ;";
-        // Some columns may not exist depending on schema; we'll do best-effort by checking columns.
-
-        try
-        {
-            await using var cmd = conn.CreateCommand();
-            cmd.CommandText = sql;
-            await cmd.ExecuteNonQueryAsync();
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Balance reset update failed (columns mismatch). Will proceed without it.");
-        }
-    }
-}
-
-// FileStore cleanup
-var filestoreRoot = config["FileStore:BaseUrl"];
-var storageRoot = Path.Combine(Path.GetDirectoryName(settingsPath) ?? "", "..", "..", "..", "InvestaFileStore", "Storage");
-// Better: read from InvestaFileStore/Storage settings? There's no DB mapping. We'll only delete known opportunity folders if requested.
-// Safe heuristic: if cleaning filestore, delete category folders related to opportunities/updates that match known naming.
-
-var filestoreBefore = cleanFileStore && Directory.Exists(storageRoot) ? GetDirectorySizeBytes(storageRoot) : 0;
-var filestoreDeletedFiles = 0L;
-
-if (cleanFileStore && Directory.Exists(storageRoot) && !dryRun)
-{
-    var candidates = new[]
-    {
-        "OpportunityCover",
-        "OpportunityGallery",
-        "OpportunityPublicDocument",
-        "OpportunityPrivateDocument",
-        "uploads-investments-" // not a folder; startsWith
-    };
-
-    foreach (var dir in Directory.EnumerateDirectories(storageRoot))
-    {
-        var name = Path.GetFileName(dir);
-        var shouldDelete = candidates.Any(c => name.Equals(c, StringComparison.OrdinalIgnoreCase))
-                           || name.StartsWith("uploads-investments-", StringComparison.OrdinalIgnoreCase);
-
-        if (!shouldDelete) continue;
-
-        try
-        {
-            foreach (var f in Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
-                filestoreDeletedFiles++;
-
-            Directory.Delete(dir, recursive: true);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to delete filestore folder {dir}", dir);
-        }
-    }
-}
-
-var filestoreAfter = cleanFileStore && Directory.Exists(storageRoot) ? GetDirectorySizeBytes(storageRoot) : filestoreBefore;
-
-// Write report with exact remaining data counts per table.
-var report = new
-{
-    startedAtUtc = started,
-    finishedAtUtc = DateTime.UtcNow,
-    dryRun,
-    cleanFileStore,
-    filestoreRoot = storageRoot,
-    filestoreBeforeBytes = filestoreBefore,
-    filestoreAfterBytes = filestoreAfter,
-    filestoreDeletedFiles,
-    preservedTables = preservedOnly.OrderBy(x => x).ToArray(),
-    businessTables,
-    beforeCounts,
-    afterCounts,
-    affectedCounts = affected,
-    remainingTables = businessTables.Where(t => afterCounts.TryGetValue(t, out var c) && c > 0).ToArray()
-};
-
-var reportPath = Path.Combine(AppContext.BaseDirectory, "reset-business-data-report.json");
-WriteJson(reportPath, report);
-
-Console.WriteLine($"Reset complete. Report: {reportPath}");
-logger.LogInformation("Remaining tables after reset: {n}", report.remainingTables.Length);
-
-// Build EF model includes no reflection; dummy type not used.
-file sealed class DbScalar<T> { public T Value { get; set; } }
-

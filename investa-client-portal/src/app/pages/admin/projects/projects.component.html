@@ -1,0 +1,98 @@
+<main class="projects-page" [attr.dir]="direction()">
+  <div class="projects-shell">
+    <header class="page-header investa-panel">
+      <div class="title-block">
+        <p class="eyebrow">{{ 'projectsList.eyebrow' | translate }}</p>
+        <h1>{{ 'projectsList.title' | translate }}</h1>
+        <p>{{ 'projectsList.subtitle' | translate }}</p>
+      </div>
+      <button type="button" class="primary-button" (click)="router.navigate(['/admin/projects/new'])">
+        {{ 'projectsList.create' | translate }}
+      </button>
+    </header>
+
+    @if (loading()) {
+      <section class="state-card investa-panel"><span class="spinner"></span><h2>{{ 'projectsList.states.loading' | translate }}</h2></section>
+    } @else if (error()) {
+      <section class="state-card state-card--error investa-panel"><span class="state-icon">!</span><h2>{{ error() }}</h2><button type="button" class="secondary-button" (click)="load()">{{ 'projectsList.states.retry' | translate }}</button></section>
+    } @else if (items().length === 0) {
+      <section class="state-card investa-panel">
+        <span class="state-icon">◇</span>
+        <h2>{{ 'projectsList.states.emptyTitle' | translate }}</h2>
+        <p>{{ 'projectsList.states.emptySubtitle' | translate }}</p>
+        <button type="button" class="primary-button" (click)="router.navigate(['/admin/projects/new'])">
+          {{ 'projectsList.create' | translate }}
+        </button>
+      </section>
+    } @else {
+      <section class="project-grid">
+        @for (p of items(); track p.id) {
+          <article class="project-card investa-panel" [class.project-card--expanded]="isProjectExpanded(p.id)">
+            <header class="project-header">
+              <div class="project-title-block">
+                <h2>{{ p.displayName }}</h2>
+                <span class="status-badge" [class.pending]="statusTone(p.status) === 'pending'" [class.success]="statusTone(p.status) === 'success'" [class.danger]="statusTone(p.status) === 'danger'">{{ statusLabel(p.status) | translate }}</span>
+              </div>
+              <p class="project-summary">{{ p.summary }}</p>
+            </header>
+
+            <div class="project-stats">
+              <div class="stat-item">
+                <span>{{ 'projectsList.stats.category' | translate }}</span>
+                <strong>{{ p.category?.name || '-' }}</strong>
+              </div>
+              <div class="stat-item">
+                <span>{{ 'projectsList.stats.opportunities' | translate }}</span>
+                <strong>{{ p.opportunityCount }}</strong>
+              </div>
+              <div class="stat-item stat-item--accent">
+                <span>{{ 'projectsList.stats.fundingTarget' | translate }}</span>
+                <strong>{{ currency.format(p.totalFundingTargetInDefaultCurrency, p.defaultCurrency) }}</strong>
+              </div>
+            </div>
+
+            @if (p.opportunities.length) {
+              <ol class="opportunity-list" [class.opportunity-list--expanded]="isProjectExpanded(p.id)" [id]="'project-opportunities-' + p.id">
+                @for (opp of latestOpportunities(p); track opp.id) {
+                  <li class="opportunity-item">
+                    <button type="button" class="opportunity-link" (click)="router.navigate(['/admin/opportunities', opp.id])">
+                      <strong>#{{ opp.sequenceNumber }} {{ opp.title }}</strong>
+                      <span class="opportunity-meta">{{ opportunityStageLabel(opp) }} · {{ opp.purpose }} · {{ opp.type }} · {{ currency.format(opp.fundingTarget, opp.fundingCurrency) }}</span>
+                    </button>
+                  </li>
+                }
+              </ol>
+              @if (hasMoreOpportunities(p)) {
+                <button
+                  type="button"
+                  class="opportunity-toggle"
+                  [attr.aria-expanded]="isProjectExpanded(p.id)"
+                  [attr.aria-controls]="'project-opportunities-' + p.id"
+                  (click)="toggleProjectOpportunities(p.id)">
+                  <span>{{ (isProjectExpanded(p.id) ? 'projectsList.actions.collapseOpportunities' : 'projectsList.actions.viewAllOpportunities') | translate }}</span>
+                  <span class="opportunity-toggle-icon" aria-hidden="true">{{ isProjectExpanded(p.id) ? '⌃' : '⌄' }}</span>
+                </button>
+              }
+            } @else {
+              <p class="empty-copy">{{ 'projectsList.states.noOpportunities' | translate }}</p>
+            }
+
+            <footer class="project-actions">
+              <button type="button" class="secondary-button" (click)="router.navigate(['/admin/projects', p.id])">
+                {{ 'projectsList.actions.view' | translate }}
+              </button>
+              <button type="button" class="secondary-button" (click)="router.navigate(['/admin/projects', p.id, 'edit'])">
+                {{ 'projectsList.actions.edit' | translate }}
+              </button>
+              @if (p.canCreateOpportunity) {
+                <button type="button" class="primary-button" (click)="router.navigate(['/admin/investments/new'], { queryParams: { projectId: p.id } })">
+                  {{ 'projectsList.actions.createOpportunity' | translate }}
+                </button>
+              }
+            </footer>
+          </article>
+        }
+      </section>
+    }
+  </div>
+</main>

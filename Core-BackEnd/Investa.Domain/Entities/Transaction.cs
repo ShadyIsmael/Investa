@@ -26,6 +26,8 @@ public class Transaction
 
     [Required]
     public DateTime Timestamp { get; set; }
+    public Guid? ExchangeRateSnapshotId { get; set; }
+    public ExchangeRateSnapshot? ExchangeRateSnapshot { get; set; }
 
     // Navigation property
     [ForeignKey(nameof(WalletId))]

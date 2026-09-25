@@ -39,6 +39,11 @@ Thumbs.db
 *.swp
 desktop.ini
 .idea/
+.runtime/
+.blackbox/
+.history-memo/
+.kilo/
+.agents/
 
 # [4] Backups & Temporary Folders
 # -----------------------
@@ -123,6 +128,7 @@ Core-BackEnd/run.log
 Core-BackEnd/migration_output.log
 Core-BackEnd/.tmp-*/
 Core-BackEnd/TestResults/
+**/TestResults/
 Core-BackEnd/scripts/*_results.json
 Core-BackEnd/scripts/*_out.txt
 

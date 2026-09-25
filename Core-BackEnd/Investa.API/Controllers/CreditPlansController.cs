@@ -1,3 +1,4 @@
+﻿using Investa.Domain;
 using Investa.Domain.Entities;
 using Investa.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -72,7 +73,7 @@ public class CreditPlansController : ControllerBase
         public int Credits { get; set; }
         public int BonusCredits { get; set; }
         public decimal Price { get; set; }
-        public string Currency { get; set; } = "EGP";
+        public string Currency { get; set; } = CurrencyMasterDefaults.DefaultCurrency;
         public DateTime? ActiveFrom { get; set; }
         public DateTime? ActiveUntil { get; set; }
         public int DisplayOrder { get; set; }

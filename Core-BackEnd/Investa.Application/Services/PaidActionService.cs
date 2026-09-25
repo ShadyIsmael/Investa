@@ -21,9 +21,21 @@ public class PaidActionService : IPaidActionService
         PricingAction action,
         CancellationToken cancellationToken = default)
     {
-        var rule = await GetActiveRuleAsync(action);
         var wallet = await GetOrCreateWalletAsync(userId);
-        var balanceAfter = _chargingPolicy.IsEnabled ? wallet.CurrentBalance - rule.CreditCost : wallet.CurrentBalance;
+
+        if (!_chargingPolicy.IsEnabled)
+            return new PaidActionQuoteDto
+            {
+                ActionCode = action.ToString(),
+                CreditCost = 0m,
+                CurrentBalance = wallet.CurrentBalance,
+                BalanceAfter = wallet.CurrentBalance,
+                HasSufficientCredit = true,
+                ChargingEnabled = false
+            };
+
+        var rule = await GetActiveRuleAsync(action);
+        var balanceAfter = wallet.CurrentBalance - rule.CreditCost;
 
         return new PaidActionQuoteDto
         {
@@ -31,8 +43,8 @@ public class PaidActionService : IPaidActionService
             CreditCost = rule.CreditCost,
             CurrentBalance = wallet.CurrentBalance,
             BalanceAfter = balanceAfter,
-            HasSufficientCredit = !_chargingPolicy.IsEnabled || balanceAfter >= 0m,
-            ChargingEnabled = _chargingPolicy.IsEnabled
+            HasSufficientCredit = balanceAfter >= 0m,
+            ChargingEnabled = true
         };
     }
 
@@ -43,14 +55,15 @@ public class PaidActionService : IPaidActionService
         string referenceId,
         CancellationToken cancellationToken = default)
     {
+        if (!_chargingPolicy.IsEnabled)
+            return;
+
         if (string.IsNullOrWhiteSpace(referenceId))
             throw new BusinessValidationException("PAID_ACTION_REFERENCE_REQUIRED", "Paid action reference is required.");
 
         var actionCode = action.ToString();
         var rule = await GetActiveRuleAsync(action);
 
-        if (!_chargingPolicy.IsEnabled)
-            return;
         var wallet = await GetOrCreateWalletAsync(userId);
 
         var existingCharge = (await _uow.Repository<WalletTransaction>().FindAsync(t =>

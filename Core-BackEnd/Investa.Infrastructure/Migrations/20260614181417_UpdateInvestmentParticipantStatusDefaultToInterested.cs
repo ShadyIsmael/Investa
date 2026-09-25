@@ -10,11 +10,8 @@ namespace Investa.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "RequestMetadata",
-                table: "InvestmentRequests",
-                type: "nvarchar(max)",
-                nullable: true);
+            migrationBuilder.Sql(
+                "IF COL_LENGTH('InvestmentRequests', 'RequestMetadata') IS NULL ALTER TABLE [InvestmentRequests] ADD [RequestMetadata] nvarchar(max) NULL;");
 
             migrationBuilder.AlterColumn<int>(
                 name: "Status",
@@ -30,10 +27,6 @@ namespace Investa.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "RequestMetadata",
-                table: "InvestmentRequests");
-
             migrationBuilder.AlterColumn<int>(
                 name: "Status",
                 table: "InvestmentParticipants",

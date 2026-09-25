@@ -10,14 +10,14 @@ public class OpportunityMedia
     public int OpportunityId { get; set; }
 
     [Required]
-    [StringLength(1000)]
-    public string FileUrl { get; set; } = string.Empty;
+    [StringLength(500)]
+    public string FileKey { get; set; } = string.Empty;
 
     [StringLength(100)]
     public string? FileId { get; set; }
 
-    [StringLength(500)]
-    public string? FileKey { get; set; }
+    [StringLength(1000)]
+    public string FileUrl { get; set; } = string.Empty;
 
     [Required]
     [StringLength(255)]
@@ -53,6 +53,10 @@ public class OpportunityMedia
     public Guid CreatedByUserId { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public FileScanStatus ScanStatus { get; set; } = FileScanStatus.Pending;
+
+    public DateTime? ScanCompletedAt { get; set; }
 
     public Opportunity? Opportunity { get; set; }
 }

@@ -1,0 +1,21 @@
+:host { display: contents; }
+.offer-modal { position: fixed; inset: 0; z-index: 1100; display: grid; place-items: center; padding: 1rem; background: rgb(2 6 23 / .78); backdrop-filter: blur(4px); }
+.offer-card { width: min(760px, 100%); max-height: 92vh; overflow: auto; padding: 1.5rem; border: 1px solid var(--investa-border, #334155); border-radius: 1.25rem; background: var(--investa-surface, #0f172a); color: var(--investa-text-primary, #f8fafc); box-shadow: 0 24px 80px rgb(0 0 0 / .35); }
+.offer-header, .offer-footer { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.offer-header { border-bottom: 1px solid var(--investa-border, #334155); padding-bottom: 1rem; }
+.offer-header h2 { margin: .25rem 0; font-size: 1.45rem; }
+.offer-header p, .helper { color: var(--investa-text-secondary, #94a3b8); }
+.helper { margin: 1rem 0; font-size: .9rem; line-height: 1.5; }
+.icon-button { border: 0; background: transparent; color: inherit; font-size: 1.5rem; cursor: pointer; }
+.leg-list { display: grid; gap: .75rem; }
+.leg-editor { padding: 1rem; border: 1px solid var(--investa-border, #334155); border-radius: .9rem; background: var(--investa-surface-soft, #111827); }
+.leg-editor.enabled { border-color: var(--investa-primary, #60a5fa); }
+.toggle { display: flex; align-items: center; gap: .6rem; font-weight: 700; cursor: pointer; }
+.fields, .shared-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin-top: .85rem; }
+.fields label, .shared-fields label { display: grid; gap: .35rem; color: var(--investa-text-secondary, #cbd5e1); font-size: .8rem; }
+.fields input, .fields textarea, .shared-fields input, .shared-fields textarea { width: 100%; box-sizing: border-box; padding: .65rem .7rem; border: 1px solid var(--investa-border, #475569); border-radius: .55rem; background: #020617; color: inherit; }
+.wide { grid-column: 1 / -1; }
+.shared-fields { margin: 1rem 0; }
+.offer-footer { align-items: center; padding-top: 1rem; border-top: 1px solid var(--investa-border, #334155); }
+.error { margin: .75rem 0; color: #fca5a5; }
+@media (max-width: 640px) { .fields, .shared-fields { grid-template-columns: 1fr; } .wide { grid-column: auto; } }

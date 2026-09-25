@@ -42,7 +42,7 @@ describe('offerRealtimeAction', () => {
 describe('normalizeOfferStatus', () => {
   it('maps backend string enum values without treating completed offers as pending', () => {
     expect(normalizeOfferStatus('Pending')).toBe(1);
-    expect(normalizeOfferStatus('Countered')).toBe(2);
+    expect(normalizeOfferStatus('Replaced')).toBe(2);
     expect(normalizeOfferStatus('Accepted')).toBe(3);
     expect(normalizeOfferStatus('Rejected')).toBe(4);
     expect(normalizeOfferStatus('Withdrawn')).toBe(5);

@@ -4,6 +4,7 @@ namespace Investa.Application.Interfaces;
 
 public interface IRepository<T> where T : class
 {
+    IQueryable<T> Query();
     Task<T?> GetByIdAsync(int id);
     Task<T?> GetByIdAsync(Guid id);
     Task<T?> GetByIdWithIncludesAsync(int id, params Expression<Func<T, object>>[] includes);

@@ -6,5 +6,6 @@ public enum ProjectStage
     MVP = 2,
     Startup = 3,
     Scaling = 4,
-    Established = 5
+    Established = 5,
+    Other = 6
 }

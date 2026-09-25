@@ -75,16 +75,23 @@ public class CreateNegotiationOfferLegRequest
 public class NegotiationOfferDto
 {
     public int Id { get; set; }
-    public Guid ConversationId { get; set; }
+    public Guid? ConversationId { get; set; }
+    public int? OpportunityId { get; set; }
+    public string? OpportunityTitle { get; set; }
     public Guid CreatedByUserId { get; set; }
     public string CreatedByName { get; set; } = string.Empty;
+    public string CreatedByRole { get; set; } = string.Empty;
     public int Version { get; set; }
-    public int? ParentOfferId { get; set; }
+    public int? ReplacesOfferId { get; set; }
     public NegotiationOfferStatus Status { get; set; }
     public string? Note { get; set; }
     public string Currency { get; set; } = "Credits";
     public DateTime CreatedAt { get; set; }
     public IReadOnlyList<NegotiationOfferLegDto> Legs { get; set; } = Array.Empty<NegotiationOfferLegDto>();
+    public bool CanAccept { get; set; }
+    public bool CanReject { get; set; }
+    public bool CanRespond { get; set; }
+    public bool CanWithdraw { get; set; }
 }
 
 public class NegotiationOfferLegDto
@@ -166,6 +173,7 @@ public class OpportunityViewerStateDto
 {
     public int OpportunityId { get; set; }
     public bool IsFounder { get; set; }
+    public bool CanViewAuthorizedDetails { get; set; }
     public bool HasConversationRequest { get; set; }
     public Guid? ConversationRequestId { get; set; }
     public ConversationRequestStatus? ConversationRequestStatus { get; set; }
@@ -186,6 +194,12 @@ public class OpportunityViewerStateDto
     public bool CanRejectParticipation { get; set; }
     public bool ProjectRoomUnlocked { get; set; }
     public bool CanOpenProjectRoom { get; set; }
+    public bool CanSubmitDirectOffer { get; set; }
+    public NegotiationOfferStatus? DirectOfferStatus { get; set; }
+    public int? DirectOfferId { get; set; }
+    public int? DirectOfferVersion { get; set; }
+    public bool ContractAvailable { get; set; }
+    public int? ContractId { get; set; }
 }
 
 public class NegotiationConversationDetailDto : NegotiationConversationDto

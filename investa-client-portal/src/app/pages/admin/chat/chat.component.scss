@@ -144,12 +144,12 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 [dir='rtl'] .message-bubble { border-radius: 13px 13px 4px 13px; }
 .message-row.own .message-bubble { border-radius: 13px 13px 4px 13px; }
 [dir='rtl'] .message-row.own .message-bubble { border-radius: 13px 13px 13px 4px; }
-body.investa-theme-dark .message-row.own .message-bubble { background: color-mix(in srgb, var(--investa-info) 15%, transparent); border-color: color-mix(in srgb, var(--investa-info) 30%, transparent); color: #fff; }
-body.investa-theme-light .message-row.own .message-bubble { background: var(--investa-primary); border-color: var(--investa-primary); color: var(--investa-primary-contrast); }
+:host-context(body.investa-theme-dark) .message-row.own .message-bubble { background: color-mix(in srgb, var(--investa-info) 15%, transparent); border-color: color-mix(in srgb, var(--investa-info) 30%, transparent); color: #fff; }
+:host-context(body.investa-theme-light) .message-row.own .message-bubble { background: var(--investa-primary); border-color: var(--investa-primary); color: var(--investa-primary-contrast); }
 .message-bubble p { margin: 0; font-size: .82rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: break-word; }
 .message-bubble time { display: block; margin-top: 3px; color: var(--investa-text-secondary); font-size: .58rem; text-align: end; }
-body.investa-theme-dark .message-row.own .message-bubble time { color: var(--investa-text-muted); }
-body.investa-theme-light .message-row.own .message-bubble time { color: var(--investa-text-muted); }
+:host-context(body.investa-theme-dark) .message-row.own .message-bubble time { color: var(--investa-text-muted); }
+:host-context(body.investa-theme-light) .message-row.own .message-bubble time { color: var(--investa-text-muted); }
 
 .offer-card { max-width: 590px; margin: 18px auto; padding: 14px; border: 1px solid var(--investa-border); border-inline-start: 3px solid var(--investa-primary); border-radius: 13px; background: var(--investa-surface); }
 .offer-card--accepted { border-inline-start-color: var(--investa-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--investa-accent) 8%, transparent); }
@@ -240,21 +240,21 @@ body.investa-theme-light .message-row.own .message-bubble time { color: var(--in
   .builder-grid { grid-template-columns: 1fr; }
 }
 
-body.investa-theme-light .conversation-page {
+:host-context(body.investa-theme-light) .conversation-page {
   background: var(--investa-bg);
   border-color: var(--investa-border);
   box-shadow: var(--investa-shadow-md);
 }
 
-body.investa-theme-light .conversation-page::before {
+:host-context(body.investa-theme-light) .conversation-page::before {
   background: radial-gradient(circle at 18% 0%, rgba(16, 185, 129, 0.08), transparent 34%);
   opacity: 1;
 }
 
-body.investa-theme-light .workspace-panel {
+:host-context(body.investa-theme-light) .workspace-panel {
   background: var(--investa-surface);
 }
 
-body.investa-theme-light .chat-panel {
+:host-context(body.investa-theme-light) .chat-panel {
   background: var(--investa-surface-soft);
 }

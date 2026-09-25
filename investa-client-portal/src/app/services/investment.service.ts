@@ -133,11 +133,11 @@ export class InvestmentService {
 
   private mapOpportunityToInvestment(opportunity: Opportunity): Investment {
     const opportunityId = this.getOpportunityId(opportunity);
-    const category = opportunity.category ?? (opportunity.categoryId ? { id: opportunity.categoryId, name: opportunity.categoryName } : null);
+    const category = opportunity.projectContext?.category ?? null;
     const fundingTarget = Number(opportunity.fundingTarget ?? 0);
     const progress = Number(opportunity.fundingProgressPercent ?? 0);
     const founder = opportunity.founder;
-    const categoryName = category ? this.lookupLabel(category) : (opportunity.categoryName || undefined);
+    const categoryName = category ? this.lookupLabel(category) : undefined;
     const created = opportunity.createdAt ? new Date(opportunity.createdAt) : new Date();
 
     return {
@@ -152,7 +152,7 @@ export class InvestmentService {
       initialCapital: 0,
       date: created,
       startDate: created,
-      businessCategoryId: category ? Number(category.id) : this.toNumber(opportunity.categoryId),
+      businessCategoryId: category ? Number(category.id) : undefined,
       businessCategoryName: categoryName,
       businessCategoryNameAr: categoryName,
       minInvestment: this.toNumber(opportunity.minimumInvestmentAmount ?? opportunity.minimumInvestment),
@@ -166,7 +166,7 @@ export class InvestmentService {
       investorCount: 0,
       investedAmount: 0,
       riskLevel: RiskLevel.Medium,
-      currency: 'USD',
+      currency: opportunity.currency ?? '',
       momentumScore: 0,
       momentumLabel: opportunity.latestPublicUpdate || 'Public Opportunity',
       publicActivityCount: opportunity.latestPublicUpdate ? 1 : 0,

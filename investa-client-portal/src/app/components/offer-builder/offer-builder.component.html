@@ -1,0 +1,27 @@
+<div class="offer-modal" role="presentation" (click)="close()">
+  <section class="offer-card" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+    <header class="offer-header">
+      <div><p class="eyebrow">{{ mode === 'direct' ? ('offerBuilder.directEyebrow' | translate) : ('offerBuilder.conversationEyebrow' | translate) }}</p><h2>{{ mode === 'direct' ? ('offerBuilder.directTitle' | translate) : ('offerBuilder.conversationTitle' | translate) }}</h2><p>{{ opportunityTitle }}</p></div>
+      <button type="button" class="icon-button" (click)="close()" [attr.aria-label]="'common.close' | translate">×</button>
+    </header>
+    <p class="helper">{{ mode === 'direct' ? ('offerBuilder.directHelper' | translate) : ('offerBuilder.conversationHelper' | translate) }}</p>
+    <div class="leg-list">
+      @for (type of types; track type) {
+        <section class="leg-editor" [class.enabled]="drafts[type].enabled">
+          <label class="toggle"><input type="checkbox" [(ngModel)]="drafts[type].enabled"><span>{{ legLabel(type) }}</span></label>
+          @if (drafts[type].enabled) {
+            <div class="fields">
+              <label>{{ 'offerBuilder.amount' | translate }}<input type="number" min="0.01" step="0.01" [(ngModel)]="drafts[type].amount"></label>
+              @if (type === 1) { <label>{{ fieldLabel(type) }}<input type="number" min="0.01" max="100" step="0.01" [(ngModel)]="drafts[type].equityPercentage"></label><label class="wide">{{ 'offerBuilder.sharesTerms' | translate }}<input type="text" maxlength="500" [(ngModel)]="drafts[type].sharesTerms"></label> }
+              @if (type === 2) { <label>{{ fieldLabel(type) }}<input type="number" min="0.01" max="100" step="0.01" [(ngModel)]="drafts[type].returnRate"></label><label>{{ 'offerBuilder.termMonths' | translate }}<input type="number" min="1" step="1" [(ngModel)]="drafts[type].termMonths"></label><label>{{ 'offerBuilder.repaymentModel' | translate }}<input type="text" maxlength="100" [(ngModel)]="drafts[type].repaymentModel"></label> }
+              @if (type === 3) { <label>{{ fieldLabel(type) }}<input type="number" min="0.01" max="100" step="0.01" [(ngModel)]="drafts[type].profitSharePercentage"></label><label>{{ 'offerBuilder.termMonths' | translate }}<input type="number" min="1" step="1" [(ngModel)]="drafts[type].termMonths"></label><label class="wide">{{ 'offerBuilder.exitTerms' | translate }}<textarea rows="2" maxlength="1000" [(ngModel)]="drafts[type].exitTerms"></textarea></label> }
+            </div>
+          }
+        </section>
+      }
+    </div>
+    <div class="shared-fields"><label>{{ 'offerBuilder.currency' | translate }}<input type="text" maxlength="10" [(ngModel)]="currencyCode"></label><label class="wide">{{ 'offerBuilder.note' | translate }}<textarea rows="3" maxlength="1000" [(ngModel)]="note"></textarea></label></div>
+    @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+    <footer class="offer-footer"><button type="button" class="secondary-button" (click)="close()">{{ 'conversationWorkspace.actions.cancel' | translate }}</button><button type="button" class="primary-button" (click)="submit()" [disabled]="submitting()">{{ submitting() ? ('offerBuilder.submitting' | translate) : (replacementOffer ? ('offerBuilder.sendReplacement' | translate) : ('offerBuilder.send' | translate)) }}</button></footer>
+  </section>
+</div>

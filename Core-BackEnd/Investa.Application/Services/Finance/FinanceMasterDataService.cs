@@ -1,3 +1,4 @@
+﻿using Investa.Domain;
 using Investa.Application.DTOs.Finance;
 using Investa.Application.Interfaces;
 using Investa.Domain.Entities;
@@ -180,7 +181,7 @@ public sealed class FinanceMasterDataService : IFinanceMasterDataService
         supplier.PaymentTerms = Normalize(dto.PaymentTerms);
         supplier.PaymentDetails = Normalize(dto.PaymentDetails);
         supplier.Notes = Normalize(dto.Notes);
-        supplier.Currency = string.IsNullOrWhiteSpace(dto.Currency) ? "EGP" : dto.Currency.Trim().ToUpperInvariant();
+        supplier.Currency = string.IsNullOrWhiteSpace(dto.Currency) ? CurrencyMasterDefaults.DefaultCurrency : dto.Currency.Trim().ToUpperInvariant();
         supplier.IsActive = dto.IsActive;
         supplier.UpdatedAt = DateTime.UtcNow;
         supplier.UpdatedBy = userId;

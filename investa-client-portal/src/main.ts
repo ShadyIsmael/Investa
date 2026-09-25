@@ -1,5 +1,5 @@
 import { bootstrapApplication } from '@angular/platform-browser';
-import { provideHttpClient, HTTP_INTERCEPTORS } from '@angular/common/http';
+import { provideHttpClient, withInterceptorsFromDi, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { AppComponent } from './app/app.component';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { provideRouter, withHashLocation } from '@angular/router';
@@ -13,7 +13,7 @@ import { preloadTranslationDictionaries, TRANSLATION_DICTIONARIES } from './app/
 preloadTranslationDictionaries().then(dictionaries => bootstrapApplication(AppComponent, {
   providers: [
     provideZonelessChangeDetection(),
-    provideHttpClient(),
+    provideHttpClient(withInterceptorsFromDi()),
     provideRouter(routes, withHashLocation()),
     { provide: HTTP_INTERCEPTORS, useClass: ErrorInterceptor, multi: true },
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },

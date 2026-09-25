@@ -66,7 +66,7 @@ const seedMockGroups = () => {
         membersSample: [
           { id: 'user-guid-5', name: 'Ethan Hunt', email: 'ethan@nexus.com', role: 'Marketing Viewer' },
         ],
-        permissions: ['Marketing.View', 'Campaign.Create'],
+        permissions: ['Marketing.View', 'Opportunity.Create'],
         status: 'Active',
         createdAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
         updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
@@ -270,7 +270,7 @@ export const groupService = {
         'Marketing.View', 'Marketing.Create', 'Marketing.Manage',
         'Code.Review', 'Deploy.Execute',
         'Tickets.View', 'Tickets.Manage',
-        'Campaign.View', 'Campaign.Create', 'Campaign.Manage',
+        'Opportunity.View', 'Opportunity.Create', 'Opportunity.Manage',
       ];
 
       // Merge stored custom permissions with defaults (dedupe)

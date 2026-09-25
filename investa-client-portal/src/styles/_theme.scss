@@ -14,13 +14,15 @@ $z-dropdown: 1000;
 body.investa-theme-dark {
   color-scheme: dark;
 
-  --investa-bg: #0F1418;
-  --investa-surface: #151B20;
-  --investa-surface-soft: #24272B;
-  --investa-surface-2: #1B2329;
-  --investa-surface-3: #242D35;
-  --investa-border: #2A333A;
-  --investa-border-strong: #3A4552;
+  // Institutional blue/slate dark palette. Green remains reserved for brand
+  // accents and positive states, not for the page background.
+  --investa-bg: #0f172a;
+  --investa-surface: #111827;
+  --investa-surface-soft: #1e293b;
+  --investa-surface-2: #172033;
+  --investa-surface-3: #243247;
+  --investa-border: #334155;
+  --investa-border-strong: #475569;
 
   --investa-text-primary: #F5F7F8;
   --investa-text-secondary: #B7C0C7;

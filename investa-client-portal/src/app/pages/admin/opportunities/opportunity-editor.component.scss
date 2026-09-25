@@ -54,6 +54,9 @@
 .field > span:first-child, .group-label { display: block; margin-block-end: 7px; color: var(--investa-text-primary); font-size: .77rem; font-weight: 720; }
 .field b { color: var(--investa-accent); }
 .field input, .field select, .field textarea { width: 100%; min-height: 40px; padding: 8px 10px; border: 1px solid var(--investa-border); border-radius: 10px; outline: none; background: var(--investa-surface-soft); color: var(--investa-text-primary); font: inherit; font-size: .82rem; resize: vertical; }
+.readonly-project { padding: 9px 11px; border: 1.5px solid var(--investa-border); border-radius: 10px; background: var(--investa-surface-soft); }
+.readonly-project strong { display: block; font-size: .88rem; font-weight: 700; }
+.readonly-project small { display: block; margin-block-start: 2px; color: var(--investa-text-secondary); font-size: .7rem; }
 .field textarea { line-height: 1.5; }
 .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--investa-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--investa-accent) 18%, transparent); }
 .field .invalid { border-color: var(--investa-error); }

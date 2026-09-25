@@ -12,6 +12,7 @@
 .room-title-block p { margin:4px 0 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--investa-text-muted); font-size:.6875rem; }
 .room-founder-link { display:block; margin-top:4px; overflow:hidden; color:var(--investa-text-muted); font-size:.6875rem; text-overflow:ellipsis; white-space:nowrap; text-decoration:none; }
 .room-founder-link:hover { color:var(--investa-accent); text-decoration:underline; text-underline-offset:3px; }
+.room-parent-context { margin:4px 0 0; overflow:hidden; color:var(--investa-text-muted); font-size:.6875rem; text-overflow:ellipsis; white-space:nowrap; }
 .room-header-meta { display:flex; align-items:center; gap:24px; }
 .room-header-meta > div { min-width:94px; padding-inline-start:20px; border-inline-start:1px solid var(--investa-border); }
 .room-header-meta span,.room-header-meta strong { display:block; }

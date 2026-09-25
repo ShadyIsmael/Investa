@@ -1,0 +1,117 @@
+<main class="editor-page" [attr.dir]="direction()" [attr.lang]="language()">
+  <div class="editor-shell">
+    <header class="editor-header editor-card">
+      <p class="eyebrow">{{ 'projectEditor.eyebrow' | translate }}</p>
+      <h1>{{ (edit ? 'projectEditor.editTitle' : (id ? 'projectEditor.viewTitle' : 'projectEditor.createTitle')) | translate }}</h1>
+      <p>{{ 'projectEditor.subtitle' | translate }}</p>
+    </header>
+
+    <p *ngIf="error()" class="alert alert-error" role="alert">{{ error() }}</p>
+
+    <form [formGroup]="form" (ngSubmit)="save()" class="editor-card form-card" novalidate>
+      <div class="form-grid">
+        <label class="field field-wide">
+          <span>{{ 'projectEditor.fields.displayName' | translate }} <b>*</b></span>
+          <input formControlName="displayName" [placeholder]="'projectEditor.placeholders.displayName' | translate" [readonly]="id && !edit">
+        </label>
+        <label class="field">
+          <span>{{ 'projectEditor.fields.legalName' | translate }}</span>
+          <input formControlName="legalName" [placeholder]="'projectEditor.placeholders.legalName' | translate" [readonly]="id && !edit">
+        </label>
+        <label class="field field-wide">
+          <span>{{ 'projectEditor.fields.summary' | translate }} <b>*</b></span>
+          <textarea formControlName="summary" rows="2" [placeholder]="'projectEditor.placeholders.summary' | translate" [readonly]="id && !edit"></textarea>
+        </label>
+        <label class="field field-wide">
+          <span>{{ 'projectEditor.fields.description' | translate }} <b>*</b></span>
+          <textarea formControlName="description" rows="4" [placeholder]="'projectEditor.placeholders.description' | translate" [readonly]="id && !edit"></textarea>
+        </label>
+        <label class="field">
+          <span>{{ 'projectEditor.fields.industry' | translate }}</span>
+          <input formControlName="industry" [placeholder]="'projectEditor.placeholders.industry' | translate" [readonly]="id && !edit">
+        </label>
+        <label class="field">
+          <span>{{ 'projectEditor.fields.category' | translate }}</span>
+          <select formControlName="categoryId" [disabled]="id && !edit">
+            <option [ngValue]="null">{{ 'projectEditor.placeholders.category' | translate }}</option>
+            <option *ngFor="let category of categories()" [ngValue]="category.id">{{ category.name || category.label || category.value }}</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>{{ 'projectEditor.fields.geography' | translate }}</span>
+          <input formControlName="geography" [placeholder]="'projectEditor.placeholders.geography' | translate" [readonly]="id && !edit">
+        </label>
+        <label class="field">
+          <span>{{ 'projectEditor.fields.foundedOn' | translate }}</span>
+          <input formControlName="foundedOn" type="date" dir="ltr" [readonly]="id && !edit">
+        </label>
+        <label class="field">
+          <span>{{ 'projectEditor.fields.websiteUrl' | translate }}</span>
+          <input formControlName="websiteUrl" type="url" dir="ltr" [placeholder]="'projectEditor.placeholders.websiteUrl' | translate" [readonly]="id && !edit">
+        </label>
+        <label class="field">
+          <span>{{ 'projectEditor.fields.logoUrl' | translate }}</span>
+          <input formControlName="logoUrl" type="url" dir="ltr" [placeholder]="'projectEditor.placeholders.logoUrl' | translate" [readonly]="id && !edit">
+        </label>
+        <label class="field">
+          <span>{{ 'projectEditor.fields.defaultCurrency' | translate }}</span>
+          <select formControlName="defaultCurrency">
+            <option value="">{{ 'projectEditor.placeholders.defaultCurrency' | translate }}</option>
+            <option *ngFor="let c of currencies()" [value]="c.isoCode">{{ currencyLabel(c) }}</option>
+          </select>
+        </label>
+        <label class="field field-wide">
+          <span>{{ 'projectEditor.fields.teamDescription' | translate }}</span>
+          <textarea formControlName="teamDescription" rows="3" [placeholder]="'projectEditor.placeholders.teamDescription' | translate" [readonly]="id && !edit"></textarea>
+        </label>
+        <label class="field field-wide">
+          <span>{{ 'projectEditor.fields.businessModel' | translate }}</span>
+          <textarea formControlName="businessModel" rows="3" [placeholder]="'projectEditor.placeholders.businessModel' | translate" [readonly]="id && !edit"></textarea>
+        </label>
+        <label class="field field-wide">
+          <span>{{ 'projectEditor.fields.riskDisclosure' | translate }}</span>
+          <textarea formControlName="riskDisclosure" rows="3" [placeholder]="'projectEditor.placeholders.riskDisclosure' | translate" [readonly]="id && !edit"></textarea>
+        </label>
+      </div>
+
+      <footer class="form-actions">
+        <button type="button" class="secondary-button" (click)="router.navigate(['/admin/projects'])">
+          {{ 'projectEditor.actions.back' | translate }}
+        </button>
+        <button *ngIf="edit || !id" type="submit" class="primary-button" [disabled]="form.invalid || saving()">
+          {{ (saving() ? 'projectEditor.actions.saving' : (edit ? 'projectEditor.actions.save' : 'projectEditor.actions.create')) | translate }}
+        </button>
+      </footer>
+    </form>
+
+    <section *ngIf="id && !edit" class="opportunities-section editor-card">
+      <header class="section-header">
+        <div>
+          <p class="eyebrow">{{ 'projectEditor.opportunities.eyebrow' | translate }}</p>
+          <h2>{{ 'projectEditor.opportunities.title' | translate }}</h2>
+        </div>
+        <button
+          *ngIf="project()?.canCreateOpportunity"
+          class="primary-button"
+          (click)="router.navigate(['/admin/investments/new'], { queryParams: { projectId: id } })"
+        >
+          {{ 'projectEditor.opportunities.create' | translate }}
+        </button>
+      </header>
+      <ol *ngIf="project()?.opportunities?.length" class="opportunity-list">
+        <li *ngFor="let opp of project()?.opportunities" class="opportunity-item">
+          <a [routerLink]="['/admin/opportunities', opp.id]" class="opportunity-link">
+            <strong>#{{ opp.sequenceNumber }} {{ opp.title }}</strong>
+            <span class="opportunity-meta">{{ opportunityStageLabel(opp) }} · {{ opp.purpose }} · {{ opp.type }} · {{ opp.fundingTarget | currencyDisplay: opp.fundingCurrency }}</span>
+          </a>
+          <a [routerLink]="['/admin/opportunities', opp.id, 'room']" class="opportunity-room-link">
+            {{ 'projectEditor.opportunities.openRoom' | translate }}
+          </a>
+        </li>
+      </ol>
+      <p *ngIf="project()?.opportunities?.length === 0" class="empty-state">
+        {{ 'projectEditor.opportunities.empty' | translate }}
+      </p>
+    </section>
+  </div>
+</main>

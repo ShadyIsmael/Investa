@@ -148,13 +148,17 @@
                 </div>
                 <span class="status-badge" [class.status-badge--success]="isAcceptedOffer(item.offer)">{{ offerStatusLabel(item.offer.status) }}</span>
               </header>
-              @if (parentOfferVersion(item.offer); as parentVersion) { <p class="offer-relation">↳ {{ 'conversationWorkspace.offers.counters' | translate }} {{ parentVersion }}</p> }
+              @if (replacedOfferVersion(item.offer); as replacedVersion) { <p class="offer-relation">↳ {{ 'conversationWorkspace.offers.replaces' | translate }} {{ replacedVersion }}</p> }
               <div class="offer-terms">
                 @for (leg of item.offer.legs; track leg.id || leg.legType) {
-                  <div><span>{{ offerLegLabel(leg.legType) }}</span><strong>{{ money(leg.amount) }}</strong>
-                    @if (leg.equityPercentage) { <small>{{ leg.equityPercentage }}%</small> }
-                    @if (leg.returnRate) { <small>{{ leg.returnRate }}%</small> }
-                    @if (leg.profitSharePercentage) { <small>{{ leg.profitSharePercentage }}%</small> }
+                  <div><span>{{ offerLegLabel(leg.legType) }}</span><strong>{{ money(leg.amount, item.offer.currency) }}</strong>
+                    @if (leg.equityPercentage) { <small>{{ 'conversationWorkspace.offers.equityPercentage' | translate }}: {{ leg.equityPercentage }}%</small> }
+                    @if (leg.sharesTerms) { <small>{{ leg.sharesTerms }}</small> }
+                    @if (leg.returnRate) { <small>{{ 'conversationWorkspace.offers.returnRate' | translate }}: {{ leg.returnRate }}%</small> }
+                    @if (leg.termMonths) { <small>{{ 'conversationWorkspace.offers.term' | translate }}: {{ leg.termMonths }} {{ 'conversationWorkspace.offers.months' | translate }}</small> }
+                    @if (leg.repaymentModel) { <small>{{ 'conversationWorkspace.offers.repayment' | translate }}: {{ leg.repaymentModel }}</small> }
+                    @if (leg.profitSharePercentage) { <small>{{ 'conversationWorkspace.offers.profitPercentage' | translate }}: {{ leg.profitSharePercentage }}%</small> }
+                    @if (leg.exitTerms) { <small>{{ leg.exitTerms }}</small> }
                   </div>
                 }
               </div>
@@ -162,9 +166,14 @@
               <footer><time>{{ formatDate(item.offer.createdAt) }} · {{ formatTime(item.offer.createdAt) }}</time><div>
                 @if (canReceiveOfferAction(item.offer)) {
                   <button type="button" class="primary-button" (click)="acceptOffer(item.offer)">{{ 'conversationWorkspace.actions.accept' | translate }}</button>
-                  <button type="button" class="secondary-button" (click)="openOfferBuilder(item.offer)">{{ 'conversationWorkspace.actions.counter' | translate }}</button>
+                }
+                @if (canRespondOfferAction(item.offer)) {
+                  <button type="button" class="secondary-button" (click)="openOfferBuilder(item.offer)">{{ 'conversationWorkspace.actions.respondWithOffer' | translate }}</button>
+                }
+                @if (canRejectOfferAction(item.offer)) {
                   <button type="button" class="text-button" (click)="rejectOffer(item.offer)">{{ 'conversationWorkspace.actions.reject' | translate }}</button>
-                } @else if (canWithdrawOffer(item.offer)) {
+                }
+                @if (canWithdrawOffer(item.offer)) {
                   <button type="button" class="text-button" (click)="withdrawOffer(item.offer)">{{ 'conversationWorkspace.actions.withdraw' | translate }}</button>
                 }
               </div></footer>
@@ -220,15 +229,14 @@
         <section class="context-section"><h3>{{ 'conversationWorkspace.context.details' | translate }}</h3><dl class="detail-rows">
           <div><dt>{{ 'conversationWorkspace.context.conversationStatus' | translate }}</dt><dd>{{ statusLabel(conversation.status) }}</dd></div>
           @if (investmentModelLabel(conversation.investmentModel)) { <div><dt>{{ 'conversationWorkspace.context.model' | translate }}</dt><dd>{{ investmentModelLabel(conversation.investmentModel) }}</dd></div> }
-          @if (conversation.fundingTarget) { <div><dt>{{ 'conversationWorkspace.context.target' | translate }}</dt><dd>{{ money(conversation.fundingTarget) }}</dd></div> }
-          @if (conversation.minimumParticipation) { <div><dt>{{ 'conversationWorkspace.context.minimum' | translate }}</dt><dd>{{ money(conversation.minimumParticipation) }}</dd></div> }
+          @if (conversation.fundingTarget) { <div><dt>{{ 'conversationWorkspace.context.target' | translate }}</dt><dd>{{ money(conversation.fundingTarget, conversationCurrency(conversation)) }}</dd></div> }
+          @if (conversation.minimumParticipation) { <div><dt>{{ 'conversationWorkspace.context.minimum' | translate }}</dt><dd>{{ money(conversation.minimumParticipation, conversationCurrency(conversation)) }}</dd></div> }
           <div><dt>{{ 'conversationWorkspace.context.participation' | translate }}</dt><dd>{{ participationSummary() }}</dd></div>
         </dl></section>
         <section class="context-section"><h3>{{ 'conversationWorkspace.context.readiness' | translate }}</h3><div class="readiness-row"><span>{{ 'conversationWorkspace.roles.founder' | translate }}</span><strong [class.ready]="conversation.founderReady">{{ (conversation.founderReady ? 'conversationWorkspace.status.readyShort' : 'conversationWorkspace.status.notReady') | translate }}</strong></div><div class="readiness-row"><span>{{ 'conversationWorkspace.roles.investor' | translate }}</span><strong [class.ready]="conversation.investorReady">{{ (conversation.investorReady ? 'conversationWorkspace.status.readyShort' : 'conversationWorkspace.status.notReady') | translate }}</strong></div><div class="readiness-row"><span>{{ 'conversationWorkspace.context.yourReadyState' | translate }}</span><strong [class.ready]="isCurrentUserReady()">{{ (isCurrentUserReady() ? 'conversationWorkspace.status.readyShort' : 'conversationWorkspace.status.notReady') | translate }}</strong></div>@if (canMarkReady()) { <button type="button" class="secondary-button context-ready-action" (click)="markReadyToProceed()" [disabled]="actionProcessing()">{{ 'conversationWorkspace.actions.ready' | translate }}</button> }</section>
         @if (isClosed()) { <section class="closed-note"><strong>{{ 'conversationWorkspace.events.closed' | translate }}</strong>@if (conversation.closeReason) { <p>{{ conversation.closeReason }}</p> }</section> }
         <div class="context-actions">
           @if (conversation.opportunityId) { <a class="secondary-button" [routerLink]="['/admin/investments', conversation.opportunityId]">{{ 'conversationWorkspace.actions.viewOpportunity' | translate }}</a> }
-          @if (canCreateParticipationRequest()) { <button type="button" class="primary-button" (click)="openParticipationBuilder()">{{ 'conversationWorkspace.actions.participate' | translate }}</button> }
           @if (projectRoomUnlocked() && conversation.opportunityId) { <a class="primary-button primary-button--green" [routerLink]="['/admin/opportunities', conversation.opportunityId, 'room']">{{ 'conversationWorkspace.actions.openRoom' | translate }}</a> }
           @if (canCloseDiscussion()) { <button type="button" class="secondary-button context-danger-action" (click)="closeDiscussion()" [disabled]="actionProcessing()">{{ 'conversationWorkspace.actions.close' | translate }}</button> }
           @if (isClosed()) { <button type="button" class="secondary-button context-danger-action" (click)="removeClosedConversation(conversation)" [disabled]="actionProcessing()">{{ 'conversationWorkspace.actions.remove' | translate }}</button> }
@@ -246,38 +254,20 @@
   </aside>
 </main>
 
-@if (offerBuilderOpen()) {
-  <div class="modal-backdrop" (click)="closeOfferBuilder()">
-    <section class="modal-card offer-builder" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
-      <header><div><p class="eyebrow">{{ counteringOfferId() ? ('chat.offerBuilder.counterOffer' | translate) : ('chat.offerBuilder.makeOffer' | translate) }}</p><h2>{{ 'conversationWorkspace.offers.terms' | translate }}</h2></div><button type="button" class="icon-button" (click)="closeOfferBuilder()">×</button></header>
-      <div class="builder-grid">
-        @for (type of offerLegTypes; track type) {
-          <section class="leg-editor" [class.enabled]="offerDrafts[type].enabled">
-            <label class="check-row"><input type="checkbox" [checked]="offerDrafts[type].enabled" (change)="setOfferLegEnabled(type, $event.target.checked)"><strong>{{ offerLegLabel(type) }}</strong></label>
-            @if (offerDrafts[type].enabled) {
-              <label>{{ 'chat.offerBuilder.amount' | translate }}<input type="number" min="0" [formControl]="offerDrafts[type].amount"></label>
-              @if (type === 1) { <label>{{ 'chat.offerBuilder.equityPercentage' | translate }}<input type="number" min="0" max="100" [formControl]="offerDrafts[1].equityPercentage!"></label> }
-              @if (type === 2) { <label>{{ 'chat.offerBuilder.returnPercentage' | translate }}<input type="number" min="0" [formControl]="offerDrafts[2].returnRate!"></label> }
-              @if (type === 3) { <label>{{ 'conversationWorkspace.offers.profitPercentage' | translate }}<input type="number" min="0" max="100" [formControl]="offerDrafts[3].profitSharePercentage!"></label> }
-            }
-          </section>
-        }
-      </div>
-      <label>{{ 'chat.offerBuilder.offerNote' | translate }}<textarea rows="3" [formControl]="offerNoteControl"></textarea></label>
-      <footer><button type="button" class="secondary-button" (click)="closeOfferBuilder()">{{ 'conversationWorkspace.actions.cancel' | translate }}</button><button type="button" class="primary-button" (click)="submitOffer()" [disabled]="offerProcessing()">{{ counteringOfferId() ? ('chat.offerBuilder.sendCounter' | translate) : ('chat.offerBuilder.sendOffer' | translate) }}</button></footer>
-    </section>
-  </div>
+@if (offerBuilderOpen() && activeConversation(); as conversation) {
+  <app-offer-builder
+    [opportunityId]="conversation.opportunityId || 0"
+    [opportunityTitle]="conversation.opportunityTitle"
+    [conversationId]="conversation.id"
+    mode="conversation"
+    [replacementOffer]="replacementOffer()"
+    (closed)="closeOfferBuilder()"
+    (submitted)="onSharedOfferSubmitted($event)">
+  </app-offer-builder>
 }
-
 @if (reportModalOpen() && activeConversation(); as conversation) {
   <div class="modal-backdrop" (click)="closeReportModal()"><section class="modal-card report-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true"><header><div><p class="eyebrow">{{ conversationReportLabel(conversation) }}</p><h2>{{ conversationReportTargetName(conversation) }}</h2></div><button type="button" class="icon-button" (click)="closeReportModal()">×</button></header>
     @if (reportSuccess()) { <div class="success-note">{{ 'reports.success' | translate }}</div> }
     @else { <label>{{ 'reports.reason' | translate }}<select [value]="reportReason()" (change)="setReportReason($event.target.value)">@for (reason of reportReasons; track reason) { <option [value]="reason">{{ reportReasonLabel(reason) }}</option> }</select></label><label>{{ 'reports.description' | translate }}<textarea rows="4" [value]="reportDescription()" (input)="setReportDescription($event.target.value)"></textarea></label>@if (reportError()) { <p class="inline-error">{{ reportError() }}</p> }<footer><button type="button" class="secondary-button" (click)="closeReportModal()">{{ 'conversationWorkspace.actions.cancel' | translate }}</button><button type="button" class="primary-button" (click)="submitConversationReport()" [disabled]="reportSubmitting()">{{ reportSubmitting() ? ('reports.submitting' | translate) : ('reports.submit' | translate) }}</button></footer> }
   </section></div>
-}
-
-@if (participationBuilderOpen() && activeConversation(); as conversation) {
-  @if (conversation.opportunityId; as opportunityId) {
-    <app-participation-builder [opportunityId]="opportunityId" [opportunityTitle]="conversation.opportunityTitle" source="Conversation" [conversationId]="conversation.id" (closed)="closeParticipationBuilder()" (submitted)="onParticipationSubmitted()"></app-participation-builder>
-  }
 }

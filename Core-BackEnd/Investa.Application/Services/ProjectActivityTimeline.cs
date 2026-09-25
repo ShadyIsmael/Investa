@@ -17,6 +17,7 @@ public static class ProjectActivityTimeline
         public const string DocumentPublished = "InvestorDocumentPublished";
         public const string ContractActivated = "ContractActivated";
         public const string FundingCompleted = "FundingCompleted";
+        public const string OpportunityCreated = "OpportunityCreated";
     }
 
     private static readonly HashSet<string> MaterialTypes = new(StringComparer.Ordinal)
@@ -30,7 +31,8 @@ public static class ProjectActivityTimeline
         Types.MilestoneUpdated,
         Types.DocumentPublished,
         Types.ContractActivated,
-        Types.FundingCompleted
+        Types.FundingCompleted,
+        Types.OpportunityCreated
     };
 
     public static bool IsInvestorVisible(OpportunityEvent entry) =>

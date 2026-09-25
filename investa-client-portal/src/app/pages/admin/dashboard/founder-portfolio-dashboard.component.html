@@ -1,0 +1,150 @@
+<main class="founder-portfolio" [dir]="direction()">
+  @if (loading()) {
+    <section class="loading-state" aria-live="polite" [attr.aria-label]="'dashboard.founder.loading' | translate">
+      <div class="loading-heading"><span></span><span></span></div>
+      <div class="loading-layout"><span></span><span></span><span></span></div>
+      <div class="loading-layout loading-layout-wide"><span></span><span></span></div>
+    </section>
+  } @else if (error()) {
+    <section class="state-panel error-panel" role="alert">
+      <div class="state-icon" aria-hidden="true">!</div>
+      <p class="section-kicker">{{ 'dashboard.founder.errorKicker' | translate }}</p>
+      <h1>{{ 'dashboard.founder.errorTitle' | translate }}</h1>
+      <p>{{ 'dashboard.founder.errorHelper' | translate }}</p>
+      <button type="button" class="button button-primary" (click)="load()">{{ 'dashboard.founder.retry' | translate }}</button>
+    </section>
+  } @else if (dashboard(); as data) {
+    @let m = data.metrics;
+    <header class="page-header">
+      <div class="header-copy">
+        <p class="section-kicker">{{ 'dashboard.founder.eyebrow' | translate }}</p>
+        <h1>{{ 'dashboard.founder.title' | translate }}</h1>
+        <p class="page-description">{{ 'dashboard.founder.subtitle' | translate }}</p>
+      </div>
+      <div class="header-actions">
+        <span class="updated-label">{{ 'dashboard.founder.updated' | translate }} {{ fullDate(lastUpdated()) }}</span>
+        <button type="button" class="button button-secondary" (click)="load()" [disabled]="loading()">
+          <span aria-hidden="true">↻</span>{{ 'dashboard.founder.refresh' | translate }}
+        </button>
+      </div>
+    </header>
+
+    <section class="executive-grid" aria-label="{{ 'dashboard.founder.executiveOverview' | translate }}">
+      <article class="position-panel surface-panel">
+        <div class="panel-topline">
+          <div>
+            <p class="section-kicker">{{ 'dashboard.founder.position.kicker' | translate }}</p>
+            <h2>{{ 'dashboard.founder.position.title' | translate }}</h2>
+          </div>
+          <span class="currency-tag">{{ data.displayCurrency }}</span>
+        </div>
+        <div class="position-figures">
+          <div class="position-figure primary-figure">
+            <span>{{ 'dashboard.founder.metrics.funded' | translate }}</span>
+            <strong>{{ money(m.totalFunded) }}</strong>
+            <small>{{ 'dashboard.founder.position.ofTarget' | translate }} {{ money(m.totalFundingTarget) }}</small>
+          </div>
+          <div class="position-progress" aria-hidden="true">
+            <div class="progress-track large-track"><i [style.width.%]="progress(m.fundingProgressPercentage)"></i></div>
+            <strong>{{ rawProgress(m.fundingProgressPercentage) }}</strong>
+          </div>
+        </div>
+        <div class="position-footer">
+          <span><i class="dot dot-positive"></i>{{ 'dashboard.founder.position.approvedFunding' | translate }}</span>
+          <span>{{ m.totalFunded.approximate ? ('dashboard.founder.approximate' | translate) : ('dashboard.founder.position.authoritative' | translate) }}</span>
+        </div>
+      </article>
+
+      <aside class="attention-panel surface-panel" [class.has-attention]="hasPendingActions()">
+        <div class="panel-topline">
+          <div>
+            <p class="section-kicker">{{ 'dashboard.founder.attention.kicker' | translate }}</p>
+            <h2>{{ 'dashboard.founder.attention.title' | translate }}</h2>
+          </div>
+          @if (hasPendingActions()) { <span class="attention-badge">{{ m.pendingActions }}</span> }
+        </div>
+        @if (hasPendingActions()) {
+          <p class="attention-message">{{ 'dashboard.founder.attention.pendingHelper' | translate }}</p>
+          <a routerLink="/admin/requests" class="button button-primary attention-action">{{ 'dashboard.founder.attention.openActions' | translate }}<span aria-hidden="true">→</span></a>
+        } @else {
+          <div class="clear-state"><span aria-hidden="true">✓</span><strong>{{ 'dashboard.founder.attention.clearTitle' | translate }}</strong><p>{{ 'dashboard.founder.attention.clearHelper' | translate }}</p></div>
+        }
+      </aside>
+    </section>
+
+    <section class="signal-strip" aria-label="{{ 'dashboard.founder.portfolioSignals' | translate }}">
+      <div class="signal-item"><span>{{ 'dashboard.founder.metrics.totalProjects' | translate }}</span><strong>{{ m.totalProjects }}</strong><small>{{ 'dashboard.founder.metrics.portfolio' | translate }}</small></div>
+      <div class="signal-item"><span>{{ 'dashboard.founder.metrics.activeOpportunities' | translate }}</span><strong>{{ m.activeOpportunities }}</strong><small>{{ 'dashboard.founder.metrics.openNow' | translate }}</small></div>
+      <div class="signal-item"><span>{{ 'dashboard.founder.metrics.activeInvestors' | translate }}</span><strong>{{ m.uniqueActiveInvestors }}</strong><small>{{ 'dashboard.founder.metrics.distinctApproved' | translate }}</small></div>
+      <div class="signal-item"><span>{{ 'dashboard.founder.metrics.received' | translate }}</span><strong>{{ money(m.receivedAmount) }}</strong><small>{{ 'dashboard.founder.platformRecorded' | translate }}</small></div>
+      <div class="signal-item quiet-signal"><span>{{ 'dashboard.founder.metrics.earnings' | translate }}</span><strong>{{ money(m.earnings) }}</strong><small>{{ 'dashboard.founder.unavailableSource' | translate }}</small></div>
+    </section>
+
+    <section class="performance-section">
+      <div class="section-header">
+        <div><p class="section-kicker">{{ 'dashboard.founder.performance.kicker' | translate }}</p><h2>{{ 'dashboard.founder.performance.title' | translate }}</h2></div>
+        <span class="section-note">{{ 'dashboard.founder.performance.note' | translate }}</span>
+      </div>
+      <div class="chart-grid">
+        <article class="chart-panel surface-panel">
+          <div class="chart-heading"><div><h3>{{ 'dashboard.founder.charts.fundingTitle' | translate }}</h3><p>{{ 'dashboard.founder.charts.fundingHelper' | translate }}</p></div><span class="chart-unit">{{ data.displayCurrency }}</span></div>
+          @if (fundingSeries().length) {
+            <div class="bar-chart" role="img" [attr.aria-label]="'dashboard.founder.charts.fundingLabel' | translate">
+              @for (point of fundingSeries(); track point.periodStartUtc) {
+                <div class="bar-column"><span class="bar-tooltip">{{ pointMoney(point) }}</span><div class="bar-shell"><i [style.height.%]="barHeight(point, maxFundingPoint())"></i></div><small>{{ date(point.periodStartUtc) }}</small></div>
+              }
+            </div>
+          } @else { <div class="chart-empty"><strong>—</strong><span>{{ 'dashboard.founder.charts.noData' | translate }}</span></div> }
+        </article>
+        <article class="chart-panel surface-panel">
+          <div class="chart-heading"><div><h3>{{ 'dashboard.founder.charts.receivedTitle' | translate }}</h3><p>{{ 'dashboard.founder.charts.receivedHelper' | translate }}</p></div><span class="chart-unit">{{ data.displayCurrency }}</span></div>
+          @if (receivedSeries().length) {
+            <div class="bar-chart received-chart" role="img" [attr.aria-label]="'dashboard.founder.charts.receivedLabel' | translate">
+              @for (point of receivedSeries(); track point.periodStartUtc) {
+                <div class="bar-column"><span class="bar-tooltip">{{ pointMoney(point) }}</span><div class="bar-shell"><i [style.height.%]="barHeight(point, maxReceivedPoint())"></i></div><small>{{ date(point.periodStartUtc) }}</small></div>
+              }
+            </div>
+          } @else { <div class="chart-empty"><strong>—</strong><span>{{ 'dashboard.founder.charts.noData' | translate }}</span></div> }
+        </article>
+      </div>
+    </section>
+
+    <section class="portfolio-section">
+      <div class="section-header">
+        <div><p class="section-kicker">{{ 'dashboard.founder.projects.eyebrow' | translate }}</p><h2>{{ 'dashboard.founder.projects.title' | translate }}</h2><p class="section-description">{{ 'dashboard.founder.projects.helper' | translate }}</p></div>
+        <a routerLink="/admin/projects" class="text-link">{{ 'dashboard.founder.projects.manage' | translate }}<span aria-hidden="true">→</span></a>
+      </div>
+      @if (projects().length) {
+        <div class="project-register">
+          @for (project of projects(); track project.id) {
+            <details class="project-entry surface-panel" open>
+              <summary class="project-summary-row">
+                <div class="project-identity"><span class="project-mark" aria-hidden="true">{{ project.displayName.charAt(0) }}</span><div><h3>{{ project.displayName }}</h3><span class="status-badge" [class]="'status-' + statusTone(project.status)">{{ status(project.status) }}</span></div></div>
+                <div class="project-stat"><span>{{ 'dashboard.founder.projects.opportunities' | translate }}</span><strong>{{ project.opportunityCount }}</strong></div>
+                <div class="project-stat"><span>{{ 'dashboard.founder.projects.funded' | translate }}</span><strong>{{ money(project.totalFunded) }}</strong></div>
+                <div class="project-stat project-progress-stat"><span>{{ 'dashboard.founder.projects.progress' | translate }}</span><strong>{{ rawProgress(project.fundingProgressPercentage) }}</strong><div class="progress-track"><i [style.width.%]="progress(project.fundingProgressPercentage)"></i></div></div>
+                <span class="summary-chevron" aria-hidden="true">⌄</span>
+              </summary>
+              <div class="project-detail">
+                <div class="project-detail-top"><span>{{ 'dashboard.founder.projects.target' | translate }} <strong>{{ money(project.totalFundingTarget) }}</strong></span><a [routerLink]="['/admin/projects', project.id]" class="text-link">{{ 'dashboard.founder.projects.openProject' | translate }}<span aria-hidden="true">↗</span></a></div>
+                <div class="opportunity-register" role="list">
+                  @for (opportunity of project.opportunities; track opportunity.id) {
+                    <div class="opportunity-entry" role="listitem">
+                      <div class="opportunity-identity"><span class="opportunity-number">{{ opportunity.sequenceNumber }}</span><div><strong>{{ opportunity.title }}</strong><span>{{ opportunityStatus(opportunity.status) }} · {{ opportunity.activeInvestorCount }} {{ 'dashboard.founder.projects.investors' | translate }}</span></div></div>
+                      <div class="opportunity-performance"><span>{{ rawProgress(opportunity.fundingProgressPercentage) }}</span><div class="progress-track"><i [style.width.%]="progress(opportunity.fundingProgressPercentage)"></i></div></div>
+                      <div class="opportunity-actions"><a [routerLink]="['/opportunities', opportunity.id]">{{ 'dashboard.founder.projects.publicPage' | translate }}</a>@if (canOpenRoom(opportunity)) { <a [routerLink]="['/admin/opportunities', opportunity.id, 'room']" class="room-link">{{ 'dashboard.founder.projects.room' | translate }}</a> }</div>
+                    </div>
+                  } @empty { <p class="empty-inline">{{ 'dashboard.founder.projects.noOpportunities' | translate }}</p> }
+                </div>
+              </div>
+            </details>
+          }
+        </div>
+      } @else {
+        <div class="empty-panel surface-panel"><div class="empty-mark" aria-hidden="true">+</div><h3>{{ 'dashboard.founder.projects.emptyTitle' | translate }}</h3><p>{{ 'dashboard.founder.projects.emptyHelper' | translate }}</p><a routerLink="/admin/projects/new" class="button button-primary">{{ 'dashboard.founder.projects.create' | translate }}</a></div>
+      }
+    </section>
+
+    <footer class="dashboard-footnote"><span>{{ 'dashboard.founder.footer.authoritative' | translate }}</span><span>{{ 'dashboard.founder.footer.currency' | translate }}: {{ data.displayCurrency }}</span></footer>
+  }
+</main>

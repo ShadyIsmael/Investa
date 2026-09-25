@@ -68,6 +68,8 @@ public class WalletTransaction
     /// <summary>User id of the actor (admin) who triggered the move, if any.</summary>
     public Guid? CreatedByUserId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public Guid? ExchangeRateSnapshotId { get; set; }
+    public ExchangeRateSnapshot? ExchangeRateSnapshot { get; set; }
     // ── Navigation ───────────────────────────────────────────────────
     public Wallet? Wallet { get; set; }
 }

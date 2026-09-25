@@ -42,6 +42,7 @@ public class DatabaseSeeder
         Console.WriteLine("🌱 Starting database seeding...");
 
         await SeedUsersAsync();
+        await SeedReputationRulesAsync();
         await SeedOpportunitiesAsync();
         await SeedParticipationsAsync();
         await SeedWatchlistsAsync();
@@ -204,10 +205,10 @@ public class DatabaseSeeder
             password: "P@ssw0rd",
             userType: UserType.OrgUser,
             clientType: ClientType.Investor,
-            trustLevel: TrustLevel.TrustedActive,
-            reputationScore: 10000,
-            activityScore: 10000,
-            verificationTrustScore: 100
+            trustLevel: TrustLevel.Registered,
+            reputationScore: 0,
+            activityScore: 0,
+            verificationTrustScore: 0
         );
         await EnsureAdminAuthorizationRoleAsync(adminUser, "admin@investa.com", "P@ssw0rd");
         _userIds["admin"] = adminUser.Id;
@@ -215,26 +216,26 @@ public class DatabaseSeeder
         // Demo client users with phone numbers 01022322291 to 01022322310.
         var testUserData = new[]
         {
-            new { Phone = "01022322291", Name = "Ahmed Elmasry", Email = "user92@investa.test", Type = ClientType.Founder, Role = "Trusted Founder", RepScore = 8500, ActScore = 7200, Trust = TrustLevel.TrustedActive, Gender = "Male", City = "Cairo", BirthDate = new DateTime(1988, 3, 14) },
-            new { Phone = "01022322292", Name = "Mariam Hassan", Email = "user93@investa.test", Type = ClientType.Founder, Role = "Active Founder", RepScore = 6200, ActScore = 5800, Trust = TrustLevel.Interactive, Gender = "Female", City = "Alexandria", BirthDate = new DateTime(1991, 7, 22) },
-            new { Phone = "01022322293", Name = "Omar Abdelrahman", Email = "user94@investa.test", Type = ClientType.Founder, Role = "Rising Founder", RepScore = 3800, ActScore = 3200, Trust = TrustLevel.Interactive, Gender = "Male", City = "Giza", BirthDate = new DateTime(1990, 11, 5) },
-            new { Phone = "01022322294", Name = "Nourhan Ali", Email = "user95@investa.test", Type = ClientType.Founder, Role = "Emerging Founder", RepScore = 2100, ActScore = 1800, Trust = TrustLevel.Registered, Gender = "Female", City = "Mansoura", BirthDate = new DateTime(1994, 2, 18) },
-            new { Phone = "01022322295", Name = "Khaled Ibrahim", Email = "user96@investa.test", Type = ClientType.Investor, Role = "Active Partner", RepScore = 7800, ActScore = 6900, Trust = TrustLevel.TrustedActive, Gender = "Male", City = "Cairo", BirthDate = new DateTime(1985, 9, 9) },
-            new { Phone = "01022322296", Name = "Layla Mahmoud", Email = "user97@investa.test", Type = ClientType.Investor, Role = "Top Contributor", RepScore = 9200, ActScore = 8500, Trust = TrustLevel.TrustedActive, Gender = "Female", City = "Tanta", BirthDate = new DateTime(1989, 4, 27) },
-            new { Phone = "01022322297", Name = "Youssef Ali", Email = "user98@investa.test", Type = ClientType.Investor, Role = "Rising Partner", RepScore = 4500, ActScore = 4100, Trust = TrustLevel.Interactive, Gender = "Male", City = "Zagazig", BirthDate = new DateTime(1993, 6, 12) },
-            new { Phone = "01022322298", Name = "Farida Hassan", Email = "user99@investa.test", Type = ClientType.Investor, Role = "New Partner", RepScore = 1200, ActScore = 900, Trust = TrustLevel.Registered, Gender = "Female", City = "Cairo", BirthDate = new DateTime(1996, 1, 30) },
-            new { Phone = "01022322299", Name = "Mahmoud Fathy", Email = "user100@investa.test", Type = ClientType.Founder, Role = "FoodTech Founder", RepScore = 5600, ActScore = 4700, Trust = TrustLevel.Interactive, Gender = "Male", City = "Port Said", BirthDate = new DateTime(1987, 12, 3) },
-            new { Phone = "01022322300", Name = "Salma Mostafa", Email = "user101@investa.test", Type = ClientType.Investor, Role = "Angel Partner", RepScore = 7100, ActScore = 6400, Trust = TrustLevel.TrustedActive, Gender = "Female", City = "Cairo", BirthDate = new DateTime(1992, 8, 16) },
-            new { Phone = "01022322301", Name = "Hossam Nabil", Email = "user102@investa.test", Type = ClientType.Founder, Role = "Logistics Founder", RepScore = 4900, ActScore = 4300, Trust = TrustLevel.Interactive, Gender = "Male", City = "Ismailia", BirthDate = new DateTime(1986, 5, 7) },
-            new { Phone = "01022322302", Name = "Rana Tarek", Email = "user103@investa.test", Type = ClientType.Investor, Role = "Growth Partner", RepScore = 6600, ActScore = 6100, Trust = TrustLevel.Interactive, Gender = "Female", City = "Alexandria", BirthDate = new DateTime(1995, 10, 21) },
-            new { Phone = "01022322303", Name = "Mostafa Salem", Email = "user104@investa.test", Type = ClientType.Founder, Role = "HealthTech Founder", RepScore = 7300, ActScore = 6500, Trust = TrustLevel.TrustedActive, Gender = "Male", City = "Assiut", BirthDate = new DateTime(1984, 2, 2) },
-            new { Phone = "01022322304", Name = "Yasmin Adel", Email = "user105@investa.test", Type = ClientType.Investor, Role = "Strategic Partner", RepScore = 5800, ActScore = 5200, Trust = TrustLevel.Interactive, Gender = "Female", City = "Cairo", BirthDate = new DateTime(1990, 3, 28) },
-            new { Phone = "01022322305", Name = "Karim Fouad", Email = "user106@investa.test", Type = ClientType.Founder, Role = "SaaS Founder", RepScore = 8100, ActScore = 7600, Trust = TrustLevel.TrustedActive, Gender = "Male", City = "Giza", BirthDate = new DateTime(1983, 7, 11) },
-            new { Phone = "01022322306", Name = "Dina Samy", Email = "user107@investa.test", Type = ClientType.Investor, Role = "Portfolio Partner", RepScore = 3400, ActScore = 3000, Trust = TrustLevel.Registered, Gender = "Female", City = "Mansoura", BirthDate = new DateTime(1997, 9, 19) },
-            new { Phone = "01022322307", Name = "Hany Rashad", Email = "user108@investa.test", Type = ClientType.Founder, Role = "AgriTech Founder", RepScore = 5300, ActScore = 4800, Trust = TrustLevel.Interactive, Gender = "Male", City = "Fayoum", BirthDate = new DateTime(1989, 6, 4) },
-            new { Phone = "01022322308", Name = "Mai Gaber", Email = "user109@investa.test", Type = ClientType.Investor, Role = "Fintech Partner", RepScore = 6900, ActScore = 6200, Trust = TrustLevel.TrustedActive, Gender = "Female", City = "Cairo", BirthDate = new DateTime(1991, 12, 25) },
-            new { Phone = "01022322309", Name = "Amr Elshazly", Email = "user110@investa.test", Type = ClientType.Founder, Role = "Manufacturing Founder", RepScore = 4700, ActScore = 3900, Trust = TrustLevel.Interactive, Gender = "Male", City = "Suez", BirthDate = new DateTime(1982, 1, 13) },
-            new { Phone = "01022322310", Name = "Menna Ashraf", Email = "user111@investa.test", Type = ClientType.Investor, Role = "Retail Partner", RepScore = 2500, ActScore = 2100, Trust = TrustLevel.Registered, Gender = "Female", City = "Alexandria", BirthDate = new DateTime(1998, 5, 8) }
+            new { Phone = "01022322291", Name = "Ahmed Elmasry", Email = "user92@investa.test", Type = ClientType.Founder, Role = "Trusted Founder", RepScore = 0, ActScore = 0, Trust = TrustLevel.Registered, Gender = "Male", City = "Cairo", BirthDate = new DateTime(1988, 3, 14) },
+            new { Phone = "01022322292", Name = "Mariam Hassan", Email = "user93@investa.test", Type = ClientType.Founder, Role = "Active Founder", RepScore = 0, ActScore = 0, Trust = TrustLevel.Registered, Gender = "Female", City = "Alexandria", BirthDate = new DateTime(1991, 7, 22) },
+            new { Phone = "01022322293", Name = "Omar Abdelrahman", Email = "user94@investa.test", Type = ClientType.Founder, Role = "Rising Founder", RepScore = 0, ActScore = 0, Trust = TrustLevel.Registered, Gender = "Male", City = "Giza", BirthDate = new DateTime(1990, 11, 5) },
+            new { Phone = "01022322294", Name = "Nourhan Ali", Email = "user95@investa.test", Type = ClientType.Founder, Role = "Emerging Founder", RepScore = 0, ActScore = 0, Trust = TrustLevel.Registered, Gender = "Female", City = "Mansoura", BirthDate = new DateTime(1994, 2, 18) },
+            new { Phone = "01022322295", Name = "Khaled Ibrahim", Email = "user96@investa.test", Type = ClientType.Investor, Role = "Active Partner", RepScore = 0, ActScore = 0, Trust = TrustLevel.Registered, Gender = "Male", City = "Cairo", BirthDate = new DateTime(1985, 9, 9) },
+            new { Phone = "01022322296", Name = "Layla Mahmoud", Email = "user97@investa.test", Type = ClientType.Investor, Role = "Top Contributor", RepScore = 0, ActScore = 0, Trust = TrustLevel.Registered, Gender = "Female", City = "Tanta", BirthDate = new DateTime(1989, 4, 27) },
+            new { Phone = "01022322297", Name = "Youssef Ali", Email = "user98@investa.test", Type = ClientType.Investor, Role = "Rising Partner", RepScore = 0, ActScore = 0, Trust = TrustLevel.Registered, Gender = "Male", City = "Zagazig", BirthDate = new DateTime(1993, 6, 12) },
+            new { Phone = "01022322298", Name = "Farida Hassan", Email = "user99@investa.test", Type = ClientType.Investor, Role = "New Partner", RepScore = 0, ActScore = 0, Trust = TrustLevel.Registered, Gender = "Female", City = "Cairo", BirthDate = new DateTime(1996, 1, 30) },
+            new { Phone = "01022322299", Name = "Mahmoud Fathy", Email = "user100@investa.test", Type = ClientType.Founder, Role = "FoodTech Founder", RepScore = 0, ActScore = 0, Trust = TrustLevel.Registered, Gender = "Male", City = "Port Said", BirthDate = new DateTime(1987, 12, 3) },
+            new { Phone = "01022322300", Name = "Salma Mostafa", Email = "user101@investa.test", Type = ClientType.Investor, Role = "Angel Partner", RepScore = 0, ActScore = 0, Trust = TrustLevel.Registered, Gender = "Female", City = "Cairo", BirthDate = new DateTime(1992, 8, 16) },
+            new { Phone = "01022322301", Name = "Hossam Nabil", Email = "user102@investa.test", Type = ClientType.Founder, Role = "Logistics Founder", RepScore = 0, ActScore = 0, Trust = TrustLevel.Registered, Gender = "Male", City = "Ismailia", BirthDate = new DateTime(1986, 5, 7) },
+            new { Phone = "01022322302", Name = "Rana Tarek", Email = "user103@investa.test", Type = ClientType.Investor, Role = "Growth Partner", RepScore = 0, ActScore = 0, Trust = TrustLevel.Registered, Gender = "Female", City = "Alexandria", BirthDate = new DateTime(1995, 10, 21) },
+            new { Phone = "01022322303", Name = "Mostafa Salem", Email = "user104@investa.test", Type = ClientType.Founder, Role = "HealthTech Founder", RepScore = 0, ActScore = 0, Trust = TrustLevel.Registered, Gender = "Male", City = "Assiut", BirthDate = new DateTime(1984, 2, 2) },
+            new { Phone = "01022322304", Name = "Yasmin Adel", Email = "user105@investa.test", Type = ClientType.Investor, Role = "Strategic Partner", RepScore = 0, ActScore = 0, Trust = TrustLevel.Registered, Gender = "Female", City = "Cairo", BirthDate = new DateTime(1990, 3, 28) },
+            new { Phone = "01022322305", Name = "Karim Fouad", Email = "user106@investa.test", Type = ClientType.Founder, Role = "SaaS Founder", RepScore = 0, ActScore = 0, Trust = TrustLevel.Registered, Gender = "Male", City = "Giza", BirthDate = new DateTime(1983, 7, 11) },
+            new { Phone = "01022322306", Name = "Dina Samy", Email = "user107@investa.test", Type = ClientType.Investor, Role = "Portfolio Partner", RepScore = 0, ActScore = 0, Trust = TrustLevel.Registered, Gender = "Female", City = "Mansoura", BirthDate = new DateTime(1997, 9, 19) },
+            new { Phone = "01022322307", Name = "Hany Rashad", Email = "user108@investa.test", Type = ClientType.Founder, Role = "AgriTech Founder", RepScore = 0, ActScore = 0, Trust = TrustLevel.Registered, Gender = "Male", City = "Fayoum", BirthDate = new DateTime(1989, 6, 4) },
+            new { Phone = "01022322308", Name = "Mai Gaber", Email = "user109@investa.test", Type = ClientType.Investor, Role = "Fintech Partner", RepScore = 0, ActScore = 0, Trust = TrustLevel.Registered, Gender = "Female", City = "Cairo", BirthDate = new DateTime(1991, 12, 25) },
+            new { Phone = "01022322309", Name = "Amr Elshazly", Email = "user110@investa.test", Type = ClientType.Founder, Role = "Manufacturing Founder", RepScore = 0, ActScore = 0, Trust = TrustLevel.Registered, Gender = "Male", City = "Suez", BirthDate = new DateTime(1982, 1, 13) },
+            new { Phone = "01022322310", Name = "Menna Ashraf", Email = "user111@investa.test", Type = ClientType.Investor, Role = "Retail Partner", RepScore = 0, ActScore = 0, Trust = TrustLevel.Registered, Gender = "Female", City = "Alexandria", BirthDate = new DateTime(1998, 5, 8) }
         };
 
         for (int i = 0; i < testUserData.Length; i++)
@@ -252,7 +253,7 @@ public class DatabaseSeeder
                 trustLevel: userData.Trust,
                 reputationScore: userData.RepScore,
                 activityScore: userData.ActScore,
-                verificationTrustScore: userData.Trust == TrustLevel.TrustedActive ? 85 : (userData.Trust == TrustLevel.Interactive ? 60 : 30)
+                verificationTrustScore: 0
             );
 
             // Create user profile
@@ -613,6 +614,71 @@ public class DatabaseSeeder
         Console.WriteLine($"✅ Seeded {notifications.Length} notifications");
     }
 
+    private async Task SeedReputationRulesAsync()
+    {
+        Console.WriteLine("⭐ Seeding reputation rules...");
+
+        var seedRules = new (string Code, string ActivityCode, string Description, int Points, string RoleScope, int SortOrder, bool IsSystem, bool IsAutomatic, bool CanRepeat, int MaxOccurrences)[]
+        {
+            ("AcceptConversationRequest",    "AcceptConversationRequest",    "Accept a conversation request",                        10, "Any",      1, true, true, false, 1),
+            ("SendMessageAfterAcceptance",   "SendMessageAfterAcceptance",   "Send first message after acceptance",                 15, "Any",      2, true, true, false, 1),
+            ("SubmitParticipationRequest",   "SubmitParticipationRequest",   "Submit a participation request",                      20, "Investor", 3, true, true, false, 1),
+            ("ApproveParticipation",         "ApproveParticipation",         "Approve a participation request",                     25, "Founder",  4, true, true, false, 1),
+            ("AcceptStructuredOffer",        "AcceptStructuredOffer",        "Accept a negotiation offer",                          30, "Any",      5, true, true, false, 1),
+        };
+
+        var existing = await _context.ReputationRules
+            .Where(r => seedRules.Select(s => s.Code).Contains(r.RuleCode))
+            .ToListAsync();
+
+        var now = DateTime.UtcNow;
+        var inserted = 0;
+        var updated = 0;
+
+        foreach (var (code, activityCode, description, points, roleScope, sortOrder, isSystem, isAutomatic, canRepeat, maxOccurrences) in seedRules)
+        {
+            var rule = existing.FirstOrDefault(r => r.RuleCode == code);
+            if (rule == null)
+            {
+                _context.ReputationRules.Add(new ReputationRule
+                {
+                    RuleCode = code,
+                    ActivityCode = activityCode,
+                    Description = description,
+                    Points = points,
+                    RoleScope = roleScope,
+                    SortOrder = sortOrder,
+                    IsSystem = isSystem,
+                    IsAutomatic = isAutomatic,
+                    CanRepeat = canRepeat,
+                    MaximumOccurrences = maxOccurrences,
+                    IsActive = true,
+                    IsEnabled = true,
+                    CreatedAt = now
+                });
+                inserted++;
+            }
+            else
+            {
+                rule.ActivityCode = activityCode;
+                rule.Description = description;
+                rule.RoleScope = roleScope;
+                rule.UpdatedAt = now;
+                updated++;
+            }
+        }
+
+        if (inserted > 0 || updated > 0)
+        {
+            await _context.SaveChangesAsync();
+            Console.WriteLine($"✅ Seeded reputation rules: {inserted} inserted, {updated} updated");
+        }
+        else
+        {
+            Console.WriteLine($"ℹ️  All reputation rules already exist");
+        }
+    }
+
     #region Helper Methods
 
 private async Task<AuthUser> GetOrCreateUserAsync(
@@ -679,7 +745,7 @@ string? normalizedPhone = null;
             FirebaseUid = normalizedPhone,
             CreatedAt = DateTime.UtcNow,
             WalletBalance = userType == UserType.Client ? 100000m : 0m,
-            CredibilityScore = 3500,
+            CredibilityScore = 0,
             VerificationTrustScore = verificationTrustScore,
             TrustLevel = trustLevel,
             ReputationScore = reputationScore,

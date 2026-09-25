@@ -11,13 +11,14 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using Microsoft.Extensions.Localization;
 using Serilog;
 using Investa.API.Middlewares;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Investa.API.Authorization;
+using Investa.API.Configuration;
 using Investa.Application.Common;
 using Investa.Application.Interfaces;
 using Investa.Application.Services;
@@ -130,7 +131,7 @@ try
 
     // === AUTHENTICATION & AUTHORIZATION ===
     var jwtSettings = builder.Configuration.GetSection("Jwt");
-    var jwtKey = jwtSettings["Key"] ?? throw new InvalidOperationException("JWT Key is missing!");
+    var jwtKey = StartupSecurityConfiguration.RequireJwtSigningKey(builder.Configuration);
     var jwtIssuer = jwtSettings["Issuer"] ?? throw new InvalidOperationException("JWT Issuer is missing!");
     var jwtAudience = jwtSettings["Audience"] ?? throw new InvalidOperationException("JWT Audience is missing!");
 
@@ -285,6 +286,8 @@ try
         });
     });
 
+    StartupSecurityConfiguration.ValidateActiveFileStore(builder.Configuration);
+
     builder.Services.AddHttpClient();
     builder.Services.AddScoped<IFileStorage, Investa.Infrastructure.Services.FileStoreStorage>();
     builder.Services.AddScoped<IHtmlToPdfRenderer, Investa.Infrastructure.Services.PlaywrightHtmlToPdfRenderer>();
@@ -342,7 +345,17 @@ try
     var credentialsPath = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS")
                           ?? firebaseSection["CredentialsPath"];
 
-    if (isFirebaseEnabled && !string.IsNullOrEmpty(credentialsPath) && File.Exists(credentialsPath))
+    if (builder.Environment.IsEnvironment("Testing"))
+    {
+        isFirebaseEnabled = false;
+        logger.LogInformation("Firebase is disabled for the Testing environment.");
+    }
+
+    if (isFirebaseEnabled && FirebaseApp.DefaultInstance != null)
+    {
+        logger.LogInformation("Firebase Admin SDK is already initialized.");
+    }
+    else if (isFirebaseEnabled && !string.IsNullOrEmpty(credentialsPath) && File.Exists(credentialsPath))
     {
         FirebaseApp.Create(new AppOptions
         {
@@ -371,7 +384,7 @@ try
     }
 
     // === AUTOMATION MAPPER ===
-    builder.Services.AddAutoMapper(typeof(Investa.Application.Mappings.MappingProfile).Assembly);
+    builder.Services.AddAutoMapper(_ => { }, typeof(Investa.Application.Mappings.MappingProfile).Assembly);
 
     // === DEVELOPMENT IDENTITY RESEED (repair-only) ===
     builder.Services.AddDevIdentityReseed();
@@ -442,17 +455,6 @@ try
             result.Migrated,
             result.Skipped);
 
-        var categoryBackfill = scope.ServiceProvider.GetRequiredService<OpportunityCategoryBackfillService>();
-        var categoryResult = await categoryBackfill.BackfillAsync();
-        logger.LogInformation(
-            "Opportunity category backfill result: scanned={Scanned}, validBefore={ValidBefore}, updated={Updated}, skipped={Skipped}, categoriesUsed={CategoriesUsed}, errors={Errors}",
-            categoryResult.Scanned,
-            categoryResult.ValidBeforeFix,
-            categoryResult.Updated,
-            categoryResult.Skipped,
-            string.Join(", ", categoryResult.CategoriesUsed),
-            string.Join(" | ", categoryResult.Errors));
-
         var productFieldsBackfill = scope.ServiceProvider.GetRequiredService<OpportunityProductFieldsBackfillService>();
         var productFieldsResult = await productFieldsBackfill.BackfillAsync();
         logger.LogInformation(
@@ -466,17 +468,6 @@ try
 
         if (app.Environment.IsDevelopment())
         {
-            var roomDemoDataBackfill = scope.ServiceProvider.GetRequiredService<OpportunityRoomDemoDataBackfillService>();
-            var roomDemoDataResult = await roomDemoDataBackfill.BackfillAsync();
-            logger.LogInformation(
-                "Opportunity room demo data backfill result: scanned={Scanned}, populated={Populated}, timelineEventsCreated={TimelineEventsCreated}, mediaCreated={MediaCreated}, joinRequestsCreated={JoinRequestsCreated}, skipped={Skipped}",
-                roomDemoDataResult.Scanned,
-                roomDemoDataResult.OpportunitiesPopulated,
-                roomDemoDataResult.TimelineEventsCreated,
-                roomDemoDataResult.MediaCreated,
-                roomDemoDataResult.JoinRequestsCreated,
-                roomDemoDataResult.Skipped);
-
             // === DEV-ONLY OPPORTUNITY SEED ===
             var opportunitySeed = scope.ServiceProvider.GetRequiredService<Investa.Infrastructure.Services.OpportunitySeedService>();
             var seedResult = await opportunitySeed.SeedAsync(seedValue: 20260712);
@@ -666,13 +657,21 @@ static void RegisterApplicationServices(IServiceCollection services)
     services.AddScoped<IPaidActionService, PaidActionService>();
     services.AddSingleton<IClientInteractionChargingPolicy, ClientInteractionChargingPolicy>();
     services.AddScoped<IReportService, ReportService>();
-    services.AddScoped<IOpportunityService, OpportunityService>();
+      services.AddScoped<IOpportunityService, OpportunityService>();
+      services.AddScoped<IOpportunityObligationCompletionService, OpportunityObligationCompletionService>();
+      services.AddScoped<IProjectRoomService, ProjectRoomService>();
+    services.AddScoped<IProjectService, ProjectService>();
+    services.AddScoped<IFounderDashboardService, FounderDashboardService>();
+    services.AddScoped<IFileValidationService, DefaultFileValidationService>();
+    services.AddScoped<IFileScanService, NullFileScanService>();
+    services.AddScoped<IOpportunityFileAuditService, OpportunityFileAuditService>();
+    services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
+    services.AddScoped<ICurrencyDisplayService, CurrencyDisplayService>();
+    services.AddScoped<IExchangeRateProvider, ConfigurableExchangeRateProvider>();
     services.AddScoped<IInvestmentContractService, InvestmentContractService>();
     services.AddScoped<INegotiationService, NegotiationService>();
     services.AddScoped<InvestmentOpportunityBackfillService>();
-    services.AddScoped<OpportunityCategoryBackfillService>();
     services.AddScoped<OpportunityProductFieldsBackfillService>();
-    services.AddScoped<OpportunityRoomDemoDataBackfillService>();
     services.AddScoped<IChatService, ChatService>();
     services.AddScoped<IGroupService, GroupService>();
     services.AddScoped<IFinanceValidationService, FinanceValidationService>();
@@ -756,20 +755,9 @@ static void ConfigureSwaggerGeneration(IServiceCollection services)
             BearerFormat = "JWT",
             Description = "Enter 'Bearer' followed by a valid JWT token. Example: Bearer eyJhbGc..."
         });
-
-        options.AddSecurityRequirement(new OpenApiSecurityRequirement
+        options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
         {
-            {
-                new OpenApiSecurityScheme
-                {
-                    Reference = new OpenApiReference
-                    {
-                        Type = ReferenceType.SecurityScheme,
-                        Id = "Bearer"
-                    }
-                },
-                new string[] {}
-            }
+            [new OpenApiSecuritySchemeReference("Bearer", document)] = []
         });
 
         // Use full type name as schema ID to avoid conflicts between DTOs with the same name in different namespaces

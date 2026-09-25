@@ -100,7 +100,7 @@ public class OpportunitySeedService
         "Technology enhancement, customer acquisition, operational improvement, team expansion, and market penetration.",
         "Product development, talent recruitment, market entry, technology upgrades, and customer retention programs.",
         "Capital for growth, team expansion, strategic partnerships, technology investment, and market development.",
-        "Inventory expansion, retail space development, marketing campaigns, team hiring, and supply chain optimization.",
+        "Inventory expansion, retail space development, marketing initiatives, team hiring, and supply chain optimization.",
         "Engineering talent, platform scaling, user acquisition, data infrastructure, and compliance development."
     };
 
@@ -134,6 +134,7 @@ public class OpportunitySeedService
         _logger.LogInformation("🌱 [DEV ONLY] Opportunity seed operation starting with seed={Seed}", _seedValue);
 
         var opportunities = await _context.Opportunities
+            .Include(o => o.Project)
             .OrderBy(o => o.Id)
             .ToListAsync(cancellationToken);
 
@@ -460,8 +461,8 @@ public class OpportunitySeedService
         if (opportunity.FundingTarget <= 0)
             errors.Add("FundingTarget must be greater than zero");
 
-        if (!opportunity.CategoryId.HasValue)
-            errors.Add("CategoryId is required");
+        if (opportunity.Project?.CategoryId is null)
+            errors.Add("Project CategoryId is required");
 
         if (!opportunity.FundingGoalId.HasValue)
             errors.Add("FundingGoalId is required");

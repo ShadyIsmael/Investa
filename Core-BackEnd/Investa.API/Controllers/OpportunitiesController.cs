@@ -25,7 +25,7 @@ public class OpportunitiesController : BaseApiController
     {
         var userId = ResolveUserIdFromClaims();
         if (userId == null) return ErrorResponse("Unable to resolve authenticated user", 401);
-        try { return SuccessResponse(await _investmentContractService.GetOpportunityContractsAsync(userId.Value, id, cancellationToken)); }
+        try { return SuccessResponse(await _investmentContractService.GetOpportunityContractsAsync(userId.Value, id, cancellationToken, User.IsInRole("Admin") || User.IsInRole("Reviewer"))); }
         catch (BusinessValidationException ex)
         {
             var status = ex.Code == "OPPORTUNITY_NOT_FOUND" ? 404 : ex.Code == "CONTRACT_ACCESS_DENIED" ? 403 : 400;
@@ -163,7 +163,11 @@ public class OpportunitiesController : BaseApiController
 
         try
         {
-            var opportunity = await _opportunityService.GetFounderOpportunityAsync(userId.Value, id, cancellationToken);
+            var opportunity = await _opportunityService.GetFounderOpportunityAsync(
+                userId.Value,
+                id,
+                cancellationToken,
+                User.IsInRole("Admin") || User.IsInRole("Reviewer"));
             return SuccessResponse(opportunity);
         }
         catch (BusinessValidationException ex)
@@ -175,7 +179,7 @@ public class OpportunitiesController : BaseApiController
     [HttpGet("{id:int}/room")]
     [ProducesResponseType(typeof(ApiResponse<OpportunityRoomDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> GetProjectRoom(int id, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetOpportunityRoom(int id, CancellationToken cancellationToken)
     {
         var userId = ResolveUserIdFromClaims();
         if (userId == null)
@@ -183,8 +187,7 @@ public class OpportunitiesController : BaseApiController
 
         try
         {
-            var opportunity = await _opportunityService.GetProjectRoomAsync(userId.Value, id, cancellationToken);
-            return SuccessResponse(opportunity);
+            return SuccessResponse(await _opportunityService.GetOpportunityRoomAsync(userId.Value, id, cancellationToken, User.IsInRole("Admin") || User.IsInRole("Reviewer")));
         }
         catch (BusinessValidationException ex)
         {
@@ -202,7 +205,7 @@ public class OpportunitiesController : BaseApiController
 
         try
         {
-            return SuccessResponse(await _opportunityService.GetApprovedInvestorsAsync(userId.Value, id, cancellationToken));
+            return SuccessResponse(await _opportunityService.GetApprovedInvestorsAsync(userId.Value, id, cancellationToken, User.IsInRole("Admin") || User.IsInRole("Reviewer")));
         }
         catch (BusinessValidationException ex)
         {
@@ -220,7 +223,7 @@ public class OpportunitiesController : BaseApiController
 
         try
         {
-            return SuccessResponse(await _opportunityService.GetOpportunityPaymentsAsync(userId.Value, id, cancellationToken));
+            return SuccessResponse(await _opportunityService.GetOpportunityPaymentsAsync(userId.Value, id, cancellationToken, User.IsInRole("Admin") || User.IsInRole("Reviewer")));
         }
         catch (BusinessValidationException ex)
         {
@@ -238,7 +241,7 @@ public class OpportunitiesController : BaseApiController
 
         try
         {
-            return SuccessResponse(await _opportunityService.GetInvestorPaymentDetailsAsync(userId.Value, id, investorId, cancellationToken));
+            return SuccessResponse(await _opportunityService.GetInvestorPaymentDetailsAsync(userId.Value, id, investorId, cancellationToken, User.IsInRole("Admin") || User.IsInRole("Reviewer")));
         }
         catch (BusinessValidationException ex)
         {
@@ -249,7 +252,11 @@ public class OpportunitiesController : BaseApiController
     [HttpPost("{id:int}/payments")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(ApiResponse<PaymentTransactionDetailDto>), StatusCodes.Status201Created)]
-    public async Task<IActionResult> RecordPayment(int id, [FromBody] RecordPaymentRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> RecordPayment(
+        int id,
+        [FromBody] RecordPaymentRequest request,
+        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+        CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
             return ErrorResponse("Invalid request", 400, ModelState);
@@ -260,6 +267,7 @@ public class OpportunitiesController : BaseApiController
 
         try
         {
+            request.IdempotencyKey = string.IsNullOrWhiteSpace(idempotencyKey) ? request.IdempotencyKey : idempotencyKey;
             var result = await _opportunityService.RecordPaymentAsync(userId.Value, id, request, cancellationToken);
             return SuccessResponse(result, "Payment recorded successfully", 201);
         }
@@ -519,6 +527,36 @@ public class OpportunitiesController : BaseApiController
         }
     }
 
+    [HttpPost("{id:int}/funding-status")]
+    [ProducesResponseType(typeof(ApiResponse<OpportunityDetailDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> TransitionFunding(int id, [FromBody] TransitionOpportunityFundingRequest request, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid) return ErrorResponse("Invalid request", 400, ModelState);
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null) return ErrorResponse("Unable to resolve authenticated user", 401);
+        try { return SuccessResponse(await _opportunityService.TransitionFundingAsync(userId.Value, id, request, false, cancellationToken)); }
+        catch (BusinessValidationException ex) { return ToBusinessError(ex); }
+    }
+
+    [HttpPost("{id:int}/milestones/{milestoneId:int}/complete")]
+    [ProducesResponseType(typeof(ApiResponse<OpportunityMilestoneDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> CompleteMilestone(int id, int milestoneId, CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null)
+            return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            var milestone = await _opportunityService.CompleteMilestoneAsync(userId.Value, id, milestoneId, cancellationToken);
+            return SuccessResponse(milestone, "Milestone completed successfully");
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
     [HttpGet("{id:int}/events")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<OpportunityEventDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetEvents(int id, CancellationToken cancellationToken)
@@ -588,9 +626,18 @@ public class OpportunitiesController : BaseApiController
         var statusCode = ex.Code switch
         {
             "OPPORTUNITY_NOT_FOUND" => 404,
-            "PROJECT_ROOM_FORBIDDEN" => 403,
+            "PROJECT_NOT_FOUND" => 404,
+            "PROJECT_ROOM_FORBIDDEN" or "OPPORTUNITY_ROOM_FORBIDDEN" => 403,
             "FOUNDER_ACCESS_REQUIRED" => 403,
-            "DUPLICATE_PAYMENT_REFERENCE" or "DUPLICATE_PAYMENT" or "PAYMENT_ALREADY_REVERSED" or "NO_UNPAID_INSTALLMENTS" => 409,
+            "DUPLICATE_JOIN_REQUEST"
+                or "CONCURRENCY_CONFLICT"
+                or "PAYMENT_IDEMPOTENCY_CONFLICT"
+                or "DUPLICATE_PAYMENT_REFERENCE"
+                or "DUPLICATE_PAYMENT"
+                or "PAYMENT_ALREADY_REVERSED"
+                or "NO_UNPAID_INSTALLMENTS"
+                or "INSTALLMENT_ALREADY_CONFIRMED" => 409,
+            "PROJECT_ARCHIVED" => 409,
             _ => 400
         };
         return ErrorResponse(ex.Message, statusCode);

@@ -61,7 +61,7 @@ public class AuthUser
     [Column(TypeName = "decimal(18,2)")]
     public decimal WalletBalance { get; set; } = 0m;
 
-    public int CredibilityScore { get; set; } = 3500;
+    public int CredibilityScore { get; set; } = 0;
 
     // ── Navigation ────────────────────────────────────────────────────────────
     /// <summary>Optional extended profile. Only present for Client accounts.</summary>
@@ -84,7 +84,7 @@ public class AuthUser
     public int ReputationScore { get; set; } = 0;
 
     [StringLength(80)]
-    public string ReputationLevel { get; set; } = "Rising Member";
+    public string ReputationLevel { get; set; } = "New Member";
 
     /// <summary>Activity contribution score (0-10000). Tracks meaningful platform participation.</summary>
     [Range(0, 10000)]

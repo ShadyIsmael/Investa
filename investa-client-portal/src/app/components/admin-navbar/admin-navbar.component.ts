@@ -141,11 +141,11 @@ export class AdminNavbarComponent implements OnInit {
   }
 
   /**
-   * Logs out the current user and redirects to login page
+   * Logs out the current user and redirects to the home page
    */
   logout() {
     this.authService.logout();
-    this.router.navigate(['/login']);
+    window.location.href = 'http://localhost:3000';
   }
 
   /**

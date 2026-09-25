@@ -234,9 +234,14 @@ export class FileStoreService {
       }
     });
     const resp = await firstValueFrom(
-      this.http.post<FileStoreFile>(url, form, { headers: this.authHeaders })
+      this.http.post<FileStoreFile | FileStoreFile[] | { data?: FileStoreFile | FileStoreFile[] }>(url, form, { headers: this.authHeaders })
     );
-    return this.normalizeFile(resp);
+    const body = resp as FileStoreFile | FileStoreFile[] | { data?: FileStoreFile | FileStoreFile[] };
+    const raw: FileStoreFile | FileStoreFile[] =
+      ('data' in body && body.data !== undefined) ? body.data : body as FileStoreFile | FileStoreFile[];
+    const uploadedFile = Array.isArray(raw) ? raw[0] : raw;
+    if (!uploadedFile) throw new Error('The file store returned no uploaded file.');
+    return this.normalizeFile(uploadedFile, category);
   }
 
   getDownloadUrl(category: string, filename: string): string {
@@ -266,10 +271,28 @@ export class FileStoreService {
     return (resp || []).map(item => typeof item === 'string' ? item : item.name || item.key || item.value || '').filter(Boolean);
   }
 
-  private normalizeFile(file: FileStoreFile): FileStoreFile {
+  private normalizeFile(file: FileStoreFile, fallbackCategory?: string): FileStoreFile {
+    const rawFile = file as FileStoreFile & {
+      FileKey?: string;
+      FileName?: string;
+      Category?: string;
+      Url?: string;
+    };
+    const rawUrl = file.url || rawFile.Url || '';
+    const storagePath = rawUrl.split('/storage/')[1]?.split(/[?#]/)[0];
+    const fileKey = file.fileKey
+      || rawFile.FileKey
+      || (storagePath ? decodeURIComponent(storagePath) : undefined)
+      || ((file.category || rawFile.Category || fallbackCategory) && (file.fileName || rawFile.FileName)
+        ? `${file.category || rawFile.Category || fallbackCategory}/${file.fileName || rawFile.FileName}`
+        : undefined);
+
     return {
       ...file,
-      url: this.getPublicUrl(file.url),
+      fileKey,
+      category: file.category || rawFile.Category || fallbackCategory || '',
+      fileName: file.fileName || rawFile.FileName || '',
+      url: this.getPublicUrl(rawUrl),
       previewUrl: file.previewUrl ? this.getPublicUrl(file.previewUrl) : file.previewUrl,
       thumbnailUrl: file.thumbnailUrl ? this.getPublicUrl(file.thumbnailUrl) : file.thumbnailUrl,
       mimeType: file.mimeType || file.contentType,

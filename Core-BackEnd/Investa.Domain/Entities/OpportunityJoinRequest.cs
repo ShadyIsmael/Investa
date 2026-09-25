@@ -12,10 +12,30 @@ public class OpportunityJoinRequest
 
     public Guid InvestorId { get; set; }
 
+    public int ParticipationSequence { get; set; }
+
+    [StringLength(100)]
+    public string? IdempotencyKey { get; set; }
+
     public OpportunityJoinRequestType RequestType { get; set; } = OpportunityJoinRequestType.GeneralParticipation;
 
     [Column(TypeName = "decimal(18,2)")]
     public decimal? RequestedAmount { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal? EnteredAmount { get; set; }
+
+    [StringLength(3)]
+    public string? EnteredCurrency { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal? FundingAmount { get; set; }
+
+    [StringLength(3)]
+    public string? FundingCurrency { get; set; }
+
+    public Guid? ExchangeRateSnapshotId { get; set; }
+    public ExchangeRateSnapshot? ExchangeRateSnapshot { get; set; }
 
     [Column(TypeName = "decimal(18,2)")]
     public decimal? CalculatedTotalAmount { get; set; }
@@ -51,4 +71,7 @@ public class OpportunityJoinRequest
     public AuthUser? Investor { get; set; }
 
     public AuthUser? ReviewedByFounder { get; set; }
+
+    [Timestamp]
+    public byte[] RowVersion { get; set; } = [];
 }

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Pencil, Plus, RotateCcw, Search } from 'lucide-react';
 import { usePermissions } from '@/context/AuthContext';
 import { companyFinanceService } from '@/services/companyFinanceService';
+import { formatMoney, defaultIsoCode, ensureCurrenciesLoaded } from '../../utils/currency';
 import type { FinanceAccount, FinanceAccountInput, FinanceAccountType } from './types';
 import { FinanceEmpty, FinanceError, FinanceLoading, FinancePermissionDenied } from './CompanyFinanceStates';
 
@@ -20,7 +21,7 @@ const emptyAccount: FinanceAccountInput = {
   name: '',
   description: '',
   accountType: 'BankAccount',
-  currency: 'EGP',
+  currency: defaultIsoCode(),
   bankName: '',
   bankAccountNumber: '',
   openingDate: '',
@@ -65,6 +66,7 @@ export const FinanceAccountsPage: React.FC = () => {
 
   useEffect(() => {
     if (canView) {
+      void ensureCurrenciesLoaded();
       void loadAccounts();
     } else {
       setLoading(false);
@@ -232,7 +234,7 @@ export const FinanceAccountsPage: React.FC = () => {
                   <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{formatAccountType(account.accountType)}</td>
                   <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{displayValue(account.bankName)}</td>
                   <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300" dir="ltr">{account.currency}</td>
-                  <td className="px-4 py-3 text-sm tabular-nums text-slate-700 dark:text-slate-300" dir="ltr">{Number(account.currentBalance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td className="px-4 py-3 text-sm tabular-nums text-slate-700 dark:text-slate-300" dir="ltr">{formatMoney(Number(account.currentBalance || 0), account.currency, { bare: true })}</td>
                   <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300" dir="ltr">{lastFourDigits(account.bankAccountNumber)}</td>
                   <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300" dir="ltr">{account.openingDate ? new Date(account.openingDate).toLocaleDateString('en-GB') : '-'}</td>
                   <td className="px-4 py-3"><span className={`rounded-full px-2 py-1 text-xs font-semibold ${account.isActive ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}>{t(account.isActive ? 'companyFinance.accounts.active' : 'companyFinance.accounts.closed')}</span></td>

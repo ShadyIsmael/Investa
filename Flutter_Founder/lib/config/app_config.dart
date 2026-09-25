@@ -1,16 +1,13 @@
 /// Application-wide configuration constants.
 class AppConfig {
   // App Info
-  static const String appName = 'Investa';
+  static const String appName = 'FOPX One';
   static const String appVersion = '2.0.0';
+  static const String platformName = 'FOPX One';
 
   // Network
   static const Duration connectionTimeout = Duration(seconds: 30);
   static const Duration receiveTimeout = Duration(seconds: 30);
-
-  // SignalR
-  static const Duration signalRReconnectDelay = Duration(seconds: 2);
-  static const int signalRMaxReconnectAttempts = 5;
 
   // UI
   static const double defaultPadding = 16.0;

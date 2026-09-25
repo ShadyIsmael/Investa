@@ -287,6 +287,9 @@ public class ProfileController : ControllerBase
 
             // Server-side validation (lengths, URL formats)
             var errors = new List<string>();
+            if (!string.IsNullOrWhiteSpace(updateReq.PreferredCurrency)
+                && (updateReq.PreferredCurrency.Trim().Length != 3 || !updateReq.PreferredCurrency.Trim().All(char.IsLetter)))
+                errors.Add("PreferredCurrency must be a three-letter ISO 4217 code.");
 
             if (updateReq.BasicInfo != null)
             {
@@ -360,6 +363,7 @@ public class ProfileController : ControllerBase
             var profileDto = new UserProfileDto
             {
                 UserId = Guid.Empty, // service ignores this and uses userId from claims
+                PreferredCurrency = updateReq.PreferredCurrency ?? string.Empty,
                 BasicInfo = updateReq.BasicInfo,
                 ContactInfo = updateReq.ContactInfo,
 

@@ -1,0 +1,16 @@
+.direct-offer-inbox { margin-top: 1.25rem; }
+.section-heading { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
+.section-heading h2 { margin: .25rem 0; }
+.section-heading p { color: var(--investa-text-secondary, #94a3b8); }
+.offer-list { display: grid; gap: .85rem; margin-top: 1rem; }
+.direct-offer-card { padding: 1rem; border: 1px solid var(--investa-border, #334155); border-radius: .9rem; }
+.direct-offer-card > header, .direct-offer-card > footer { display: flex; justify-content: space-between; gap: .75rem; align-items: center; flex-wrap: wrap; }
+.direct-offer-card h3 { margin: .25rem 0; }
+.direct-offer-card header p { margin: .15rem 0; color: var(--investa-text-secondary, #94a3b8); }
+.leg-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .6rem; margin: .85rem 0; }
+.leg { display: grid; gap: .25rem; padding: .7rem; border-radius: .65rem; background: var(--investa-surface-soft, #111827); }
+.leg span, .leg small, .note, .state { color: var(--investa-text-secondary, #94a3b8); }
+.note { margin: .5rem 0; }
+.danger-button { color: #fca5a5; }
+.state { padding: 1rem 0; }
+.state--error { color: #fca5a5; }

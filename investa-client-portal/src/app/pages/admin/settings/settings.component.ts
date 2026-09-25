@@ -7,6 +7,7 @@ import { CurrencyPreference, DashboardDensity, DefaultInvestmentTypePreference, 
 import { LanguageService } from '../../../services/language.service';
 import { WalletService } from '../../../services/wallet.service';
 import { FcmService } from '../../../services/fcm.service';
+import { OpportunityService } from '../../../services/opportunity.service';
 
 @Component({
   standalone: true,
@@ -19,6 +20,7 @@ import { FcmService } from '../../../services/fcm.service';
 export class SettingsComponent {
   private settingsService = inject(SettingsService);
   private walletService = inject(WalletService);
+  private opportunityService = inject(OpportunityService);
   languageService = inject(LanguageService);
   fcmService = inject(FcmService);
   platformCreditBalance = this.walletService.balance;
@@ -41,10 +43,20 @@ export class SettingsComponent {
   themeOptions = [ThemePreference.System, ThemePreference.Light, ThemePreference.Dark];
   densityOptions = [DashboardDensity.Comfortable, DashboardDensity.Compact];
   investmentTypeOptions = [DefaultInvestmentTypePreference.Any, DefaultInvestmentTypePreference.Founding, DefaultInvestmentTypePreference.Equity];
-  currencyOptions = [CurrencyPreference.USD, CurrencyPreference.EUR, CurrencyPreference.SAR];
+  currencyOptions: CurrencyPreference[] = [];
 
   constructor() {
     void this.loadCreditBalance();
+    void this.loadCurrencies();
+  }
+
+  private async loadCurrencies(): Promise<void> {
+    try {
+      const currencies = await this.opportunityService.getCurrencies();
+      this.currencyOptions = currencies.map(item => item.isoCode as CurrencyPreference);
+    } catch {
+      this.currencyOptions = [];
+    }
   }
 
   // Sidebar navigation

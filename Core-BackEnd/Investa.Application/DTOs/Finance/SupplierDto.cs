@@ -1,3 +1,4 @@
+﻿using Investa.Domain;
 using System;
 using System.ComponentModel.DataAnnotations;
 using Investa.Domain.Entities.Enums;
@@ -26,7 +27,7 @@ public class SupplierDto
     public string? PaymentTerms { get; set; }
     public string? PaymentDetails { get; set; }
     public string? Notes { get; set; }
-    public string Currency { get; set; } = "EGP";
+    public string Currency { get; set; } = CurrencyMasterDefaults.DefaultCurrency;
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
@@ -78,7 +79,7 @@ public class CreateUpdateSupplierDto
     public string? PaymentTerms { get; set; }
     public string? PaymentDetails { get; set; }
     public string? Notes { get; set; }
-    public string Currency { get; set; } = "EGP";
+    public string Currency { get; set; } = CurrencyMasterDefaults.DefaultCurrency;
     public bool IsActive { get; set; } = true;
 }
 

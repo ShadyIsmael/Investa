@@ -59,6 +59,7 @@ public sealed class NegotiationRealtimeMessageTests
             _notifications.Object,
             _realtime.Object,
             Mock.Of<IConversationPresenceService>(),
+            Mock.Of<IInvestmentContractService>(),
             NullLogger<Investa.Application.Services.NegotiationService>.Instance);
     }
 

@@ -19,6 +19,7 @@ import {
 } from "./CompanyFinanceStates";
 import { FinanceTransactionHistory } from "./FinanceTransactionHistory";
 import { FinanceWorkflowActions } from "./FinanceWorkflowActions";
+import { formatMoney, ensureCurrenciesLoaded } from "../../utils/currency";
 
 const pageSizes = [10, 25, 50];
 const text = (value?: string | null) => value?.trim() || "-";
@@ -75,7 +76,7 @@ export const FinanceReviewQueuePage: React.FC = () => {
   }, [page, pageSize, search, type, incomingType, fromDate, toDate, currency, minAmount, maxAmount, t]);
 
   useEffect(() => {
-    if (canView) void load();
+    if (canView) { void ensureCurrenciesLoaded(); void load(); }
     else setLoading(false);
   }, [load, canView]);
 
@@ -332,7 +333,7 @@ export const FinanceReviewQueuePage: React.FC = () => {
                   </td>
                   <td className="text-end" dir="ltr">
                     <p className="whitespace-nowrap font-semibold text-slate-900 dark:text-white">
-                      {item.amount.toLocaleString("en-US")} {item.currency}
+                      {formatMoney(item.amount, item.currency)}
                     </p>
                   </td>
                   <td className="text-xs text-slate-500" dir="ltr">
@@ -463,7 +464,7 @@ export const FinanceReviewQueuePage: React.FC = () => {
                 {t("companyFinance.reviewQueue.amount")}
               </dt>
               <dd className="font-semibold text-slate-900 dark:text-white" dir="ltr">
-                {details.amount.toLocaleString("en-US")} {details.currency}
+                {formatMoney(details.amount, details.currency)}
               </dd>
 
               <dt className="text-slate-500 dark:text-slate-400">

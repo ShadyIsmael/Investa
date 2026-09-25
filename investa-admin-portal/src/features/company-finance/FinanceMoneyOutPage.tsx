@@ -8,6 +8,7 @@ import type { FinanceTransaction } from './types';
 import { FinanceEmpty, FinanceError, FinanceLoading, FinancePermissionDenied } from './CompanyFinanceStates';
 import { FinanceTransactionHistory } from './FinanceTransactionHistory';
 import { FinanceWorkflowActions } from './FinanceWorkflowActions';
+import { formatMoney, ensureCurrenciesLoaded } from '../../utils/currency';
 
 const PAGE_SIZES = [10, 25, 50];
 const safeText = (value?: string | null) => value?.trim() || '-';
@@ -67,7 +68,7 @@ export const FinanceMoneyOutPage: React.FC = () => {
   }, [t]);
 
   useEffect(() => {
-    if (canView) void load();
+    if (canView) { void ensureCurrenciesLoaded(); void load(); }
     else setLoading(false);
   }, [canView, load]);
 
@@ -182,7 +183,7 @@ export const FinanceMoneyOutPage: React.FC = () => {
                   <td className="whitespace-nowrap text-xs" dir="ltr">{new Date(item.transactionDate).toLocaleDateString('en-GB')}</td>
                   <td><p className="truncate font-medium text-slate-800 dark:text-slate-100">{safeText(item.expenseCategoryName)}</p><p className="mt-1 truncate text-[11px] text-slate-500">{enumLabel('documentation', item.documentationStatus)}</p></td>
                   <td><p className="truncate font-medium text-slate-800 dark:text-slate-100">{safeText(item.supplierName)}</p><p className="mt-1 truncate text-[11px] text-slate-500">{safeText(item.paymentMethod)}</p></td>
-                  <td className="text-end" dir="ltr"><p className="whitespace-nowrap font-semibold tabular-nums text-slate-900 dark:text-white">{item.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p><p className="mt-1 text-[11px] font-medium text-slate-500">{item.currency}</p></td>
+                  <td className="text-end" dir="ltr"><p className="whitespace-nowrap font-semibold tabular-nums text-slate-900 dark:text-white">{formatMoney(item.amount, item.currency, { bare: true })}</p><p className="mt-1 text-[11px] font-medium text-slate-500">{item.currency}</p></td>
                   <td><p className="truncate font-medium text-slate-800 dark:text-slate-100">{safeText(item.sourceAccountName)}</p><p className="mt-1 truncate text-[11px] text-slate-500" dir="auto">{item.invoiceNumber ? `${t('companyFinance.moneyOut.invoiceShort')}: ${item.invoiceNumber}` : ''}{item.invoiceNumber && item.externalReference ? ' · ' : ''}{item.externalReference ? `${t('companyFinance.moneyOut.externalShort')}: ${item.externalReference}` : ''}{!item.invoiceNumber && !item.externalReference ? '-' : ''}</p></td>
                   <td><span className={`inline-flex max-w-full truncate rounded-full px-2 py-1 text-[11px] font-bold ring-1 ring-inset ${statusBadgeClass(item.status)}`}>{enumLabel('statuses', item.status)}</span></td>
                   <td className="text-center"><div className="flex items-center justify-center gap-1"><button type="button" onClick={() => void companyFinanceService.getTransaction(item.id).then(setDetails).catch(() => setError(t('companyFinance.moneyOut.detailsError')))} className="inline-flex h-7 w-7 items-center justify-center rounded-md text-primary transition hover:bg-primary/10" aria-label={t('companyFinance.moneyOut.details')}><Eye size={15} /></button><FinanceWorkflowActions compact transaction={item} onEdit={() => navigate(`/admin/company-finance/money-out/${item.id}/edit`)} onUpdated={(updated) => { setItems((current) => current.map((row) => row.id === updated.id ? updated : row)); if (details?.id === updated.id) setDetails(updated); void load(); }} /></div></td>
@@ -212,7 +213,7 @@ export const FinanceMoneyOutPage: React.FC = () => {
               {[
                 ['description', details.description], ['notes', details.notes], ['expenseCategory', details.expenseCategoryName], ['supplierPayee', details.supplierName], ['sourceAccount', details.sourceAccountName], ['paymentMethod', details.paymentMethod], ['invoiceNumber', details.invoiceNumber], ['externalReference', details.externalReference],
               ].map(([label, value]) => <React.Fragment key={label}><dt className="text-slate-500">{t(`companyFinance.moneyOut.${label}`)}</dt><dd>{safeText(value)}</dd></React.Fragment>)}
-              <dt className="text-slate-500">{t('companyFinance.moneyOut.amount')}</dt><dd dir="ltr">{details.amount.toLocaleString('en-US')} {details.currency}</dd>
+              <dt className="text-slate-500">{t('companyFinance.moneyOut.amount')}</dt><dd dir="ltr">{formatMoney(details.amount, details.currency)}</dd>
             </dl>
             <FinanceTransactionHistory transaction={details} statusLabel={enumLabel('statuses', details.status)} />
             <div className="mt-5 border-t border-border pt-4"><FinanceWorkflowActions transaction={details} onEdit={() => navigate(`/admin/company-finance/money-out/${details.id}/edit`)} onUpdated={(updated) => { setDetails(updated); setItems((current) => current.map((row) => row.id === updated.id ? updated : row)); void load(); }} /></div>

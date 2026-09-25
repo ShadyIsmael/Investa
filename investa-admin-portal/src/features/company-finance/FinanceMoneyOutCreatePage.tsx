@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { usePermissions } from '@/context/AuthContext';
 import { companyFinanceService } from '@/services/companyFinanceService';
+import { defaultIsoCode, ensureCurrenciesLoaded } from '../../utils/currency';
 import type { CreateFinanceTransactionRequest, FinanceAccount, FinanceCategory, FinanceSupplier } from './types';
 import { FinancePermissionDenied } from './CompanyFinanceStates';
 import { SupplierCombobox, type LocalizedFinanceSupplier } from './FinanceMoneyInCreatePage';
@@ -46,7 +47,7 @@ export const FinanceMoneyOutCreatePage: React.FC = () => {
   const [transactionDate, setTransactionDate] = useState('');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
-  const [currency, setCurrency] = useState('EGP');
+  const [currency, setCurrency] = useState(defaultIsoCode());
   const [exchangeRate, setExchangeRate] = useState('');
   const [sourceAccountId, setSourceAccountId] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
@@ -71,6 +72,7 @@ export const FinanceMoneyOutCreatePage: React.FC = () => {
 
   useEffect(() => {
     if (!canAccess) return;
+    void ensureCurrenciesLoaded();
     void Promise.all([
       companyFinanceService.getAccounts(),
       companyFinanceService.getExpenseCategories(),
@@ -89,7 +91,7 @@ export const FinanceMoneyOutCreatePage: React.FC = () => {
       setTransactionDate(transaction.transactionDate.slice(0, 10));
       setDescription(transaction.description || '');
       setAmount(String(transaction.amount));
-      setCurrency(transaction.currency || 'EGP');
+      setCurrency(transaction.currency || defaultIsoCode());
       setExchangeRate(transaction.exchangeRate && transaction.exchangeRate !== 1 ? String(transaction.exchangeRate) : '');
       setSourceAccountId(transaction.sourceAccountId ? String(transaction.sourceAccountId) : '');
       setPaymentMethod(transaction.paymentMethod || '');
@@ -101,8 +103,8 @@ export const FinanceMoneyOutCreatePage: React.FC = () => {
     }).catch(() => setLoadError(key('loadError')));
   }, [transactionId, t]);
 
-  const currencies = useMemo(() => ['EGP', ...new Set(accounts.map((account) => account.currency).filter((value) => value && value !== 'EGP'))], [accounts]);
-  const isForeignCurrency = currency !== 'EGP';
+  const currencies = useMemo(() => [defaultIsoCode(), ...new Set(accounts.map((account) => account.currency).filter((value) => value && value !== defaultIsoCode()))], [accounts]);
+  const isForeignCurrency = currency !== defaultIsoCode();
   const categoryLabel = (category: FinanceCategory) => isArabic
     ? category.nameAr || category.nameEn || category.name || category.code
     : category.nameEn || category.nameAr || category.name || category.code;

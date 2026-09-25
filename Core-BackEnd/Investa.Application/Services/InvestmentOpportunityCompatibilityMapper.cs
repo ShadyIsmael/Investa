@@ -24,31 +24,12 @@ public static class InvestmentOpportunityCompatibilityMapper
             return false;
         }
 
-        if (!ValidateInvestmentBounds(investment.MinInvestment, investment.MaxInvestment, out skipReason))
-            return false;
-
         request = new CreateOpportunityRequest
         {
             Title = ToOpportunityTitle(investment.BusinessName, investment.Id),
             Description = investment.Description,
             FundingTarget = fundingTarget.Value,
-            MinimumInvestmentAmount = investment.MinInvestment,
-            MaximumInvestmentAmount = investment.MaxInvestment,
-            ExpectedDurationMonths = investment.DurationMonths,
-            Currency = investment.Currency,
-            SharePrice = investment.SharePrice,
-            TotalShares = investment.TotalShares,
-            OfferedShares = investment.TotalShares.HasValue && investment.EquityOfferedPercentage.HasValue
-                ? (int?)decimal.Round(investment.TotalShares.Value * investment.EquityOfferedPercentage.Value / 100m, 0)
-                : investment.AvailableShares,
-            ProfitSharePercentage = investment.ProfitPercentage ?? investment.RevenueSharePercentage,
-            ProfitSharingPayoutFrequency = investment.PayoutFrequency ?? investment.RevenueDistributionFrequency,
-            ProfitSharingContractStartDate = investment.ContractStartDate,
-            ProfitSharingContractEndDate = investment.ContractEndDate,
-            InterestRate = investment.InterestRate,
-            RepaymentFrequency = investment.RepaymentFrequency,
-            FinalRepaymentDate = investment.FinalRepaymentDate,
-            InvestmentModel = ToOpportunityInvestmentModel(investment.InvestmentTypeId),
+            FundingCurrency = investment.Currency,
             ProjectStage = ToOpportunityProjectStage(investment.BusinessStageId),
             CoverImageUrl = investment.ImageUrl
         };
@@ -85,7 +66,6 @@ public static class InvestmentOpportunityCompatibilityMapper
             dto.UseOfFunds,
             dto.FundingGoalId,
             dto.TagIds,
-            dto.EquityOfferedPercentage,
             out request,
             out skipReason);
     }
@@ -104,7 +84,6 @@ public static class InvestmentOpportunityCompatibilityMapper
                 dto?.UseOfFunds,
                 dto?.FundingGoalId,
                 dto?.TagIds,
-                dto?.EquityOfferedPercentage,
                 out var createRequest,
                 out skipReason))
             return false;
@@ -117,23 +96,8 @@ public static class InvestmentOpportunityCompatibilityMapper
             UseOfFunds = createRequest.UseOfFunds,
             FundingTarget = createRequest.FundingTarget,
             FundingGoalId = createRequest.FundingGoalId,
-            MinimumInvestmentAmount = createRequest.MinimumInvestmentAmount,
-            MaximumInvestmentAmount = createRequest.MaximumInvestmentAmount,
-            ExpectedDurationMonths = createRequest.ExpectedDurationMonths,
-            Currency = createRequest.Currency,
-            SharePrice = createRequest.SharePrice,
-            TotalShares = createRequest.TotalShares,
-            OfferedShares = createRequest.OfferedShares,
-            EquityOfferedPercentage = createRequest.EquityOfferedPercentage,
-            ProfitSharePercentage = createRequest.ProfitSharePercentage,
-            ProfitSharingPayoutFrequency = createRequest.ProfitSharingPayoutFrequency,
-            ProfitSharingContractStartDate = createRequest.ProfitSharingContractStartDate,
-            ProfitSharingContractEndDate = createRequest.ProfitSharingContractEndDate,
-            InterestRate = createRequest.InterestRate,
-            RepaymentFrequency = createRequest.RepaymentFrequency,
-            FinalRepaymentDate = createRequest.FinalRepaymentDate,
+            FundingCurrency = createRequest.FundingCurrency,
             TagIds = createRequest.TagIds,
-            InvestmentModel = createRequest.InvestmentModel,
             ProjectStage = createRequest.ProjectStage,
             CoverImageUrl = createRequest.CoverImageUrl
         };
@@ -147,7 +111,6 @@ public static class InvestmentOpportunityCompatibilityMapper
         string? useOfFunds,
         int? fundingGoalId,
         IReadOnlyList<int>? tagIds,
-        decimal? equityOfferedPercentage,
         out CreateOpportunityRequest request,
         out string? skipReason)
     {
@@ -177,7 +140,6 @@ public static class InvestmentOpportunityCompatibilityMapper
 
         request.FundingGoalId = fundingGoalId;
         request.TagIds = tagIds ?? Array.Empty<int>();
-        request.EquityOfferedPercentage = equityOfferedPercentage ?? investment.EquityOfferedPercentage;
 
         return true;
     }
@@ -195,31 +157,6 @@ public static class InvestmentOpportunityCompatibilityMapper
             return targetFund.Value;
 
         return initialCapital > 0 ? initialCapital : null;
-    }
-
-    private static bool ValidateInvestmentBounds(decimal? minInvestment, decimal? maxInvestment, out string? skipReason)
-    {
-        skipReason = null;
-
-        if (minInvestment.HasValue && minInvestment.Value <= 0)
-        {
-            skipReason = "Minimum investment is not positive.";
-            return false;
-        }
-
-        if (maxInvestment.HasValue && maxInvestment.Value <= 0)
-        {
-            skipReason = "Maximum investment is not positive.";
-            return false;
-        }
-
-        if (minInvestment.HasValue && maxInvestment.HasValue && maxInvestment.Value < minInvestment.Value)
-        {
-            skipReason = "Maximum investment is less than minimum investment.";
-            return false;
-        }
-
-        return true;
     }
 
     private static string ToRequiredText(string? primary, string? fallback, string fieldName, int minLength, int maxLength, out string? skipReason)
@@ -254,16 +191,6 @@ public static class InvestmentOpportunityCompatibilityMapper
         }
 
         return null;
-    }
-
-    private static InvestmentModel ToOpportunityInvestmentModel(InvestmentType investmentType)
-    {
-        return investmentType switch
-        {
-            InvestmentType.Equity => InvestmentModel.Equity,
-            InvestmentType.Loan => InvestmentModel.LoanInvestment,
-            _ => InvestmentModel.CapitalContributionProfitSharing
-        };
     }
 
     private static ProjectStage ToOpportunityProjectStage(int? businessStageId)

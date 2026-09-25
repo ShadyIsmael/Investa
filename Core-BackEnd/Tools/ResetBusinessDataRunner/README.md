@@ -1,11 +1,46 @@
-# ResetBusinessDataRunner
+# Business Data Reset
 
-Resets **all non-auth / non-reference business state** in the Investa dev/test database while preserving:
-- Users/auth (Identity + domain AuthUsers, UserProfiles, sessions/tokens)
-- RBAC: Roles/Groups/Permissions and assignments
-- Admin reference data (Lookups, BusinessCategories, FundingGoals, etc.)
+**Purpose:** Safely delete all Project/investment business data and return the system to a clean baseline for Development/UAT environments.
 
-It also optionally cleans FileStore folders that are known to be related to opportunities.
+## Safety Features
+
+- **Environment Guard:** Requires an explicit Development or UAT environment and refuses every other environment
+- **Explicit Confirmation:** Requires typing `RESET BUSINESS DATA` before executing (unless `--yes` is used)
+- **Dry-Run Mode:** Preview what will be deleted without making changes
+- **Idempotent:** Can be run multiple times safely
+- **Transaction Safety:** Discovers the live SQL Server FK graph, breaks only nullable business-to-business cycles, and deletes inside one transaction
+- **Detailed Reporting:** Before/after counts for all affected tables
+
+## What Gets Deleted
+
+All business/transactional data related to:
+- Projects
+- Opportunities
+- Offers and OfferVersions
+- OfferLegs
+- Participations and ParticipationLegs
+- Contracts and contract versions/execution records
+- Opportunity Room data/access
+- Conversations/negotiation data related to Projects/Opportunities
+- Requests related to these flows
+- Payments/cash flows/obligations linked to Participations
+- Project/Opportunity media, documents, updates and related business records
+- Favorites/follows or other user-to-project/opportunity business relations
+- Notifications/audit business records that reference deleted business aggregates
+
+## What Gets Preserved
+
+Never deleted/reset:
+- Users/accounts (AspNetUsers, AuthUsers, UserProfiles)
+- Roles and permissions (RBAC system)
+- User-role assignments
+- Currencies and exchange rate snapshots
+- Categories/lookups/reference data (Lookups, BusinessCategories, FundingGoals, etc.)
+- System configuration (Employees, Clients, ClientBusinessCategories)
+- Authentication/security configuration (UserSessions, RefreshTokens, DeviceTokens)
+- Notification templates
+- Credit configurations and pricing rules
+- Support sessions
 
 ## Build
 
@@ -13,29 +48,56 @@ It also optionally cleans FileStore folders that are known to be related to oppo
 dotnet build Core-BackEnd/Investa.sln
 ```
 
-## Run (execute)
+## Business Data Reset
 
-From repo root:
+From repo root, use the permanent runner with an explicit non-production environment:
 
 ```bash
-dotnet run --project Core-BackEnd/Tools/ResetBusinessDataRunner/ResetBusinessDataRunner.csproj -- --clean-filestore
+dotnet run --project Core-BackEnd/Tools/ResetBusinessDataRunner -- --environment Development
 ```
+
+The runner asks for `RESET BUSINESS DATA` before changing rows. For unattended Development/UAT runs, add `--yes`. Production is refused even when `--yes` is supplied.
 
 ## Run (dry-run)
 
 ```bash
-dotnet run --project Core-BackEnd/Tools/ResetBusinessDataRunner/ResetBusinessDataRunner.csproj -- --dry-run
+dotnet run --project Core-BackEnd/Tools/ResetBusinessDataRunner -- --environment Development --dry-run
 ```
 
 ## Flags
 
-- `--dry-run` : prints SQL / skips deletes
-- `--clean-filestore` : deletes FileStore filesystem folders under `InvestaFileStore/Storage` that match opportunity/upload patterns
-- `--min-age-days <n>` : reserved safety gate (not enforced by default)
+- `--dry-run` : Prints SQL and skips deletes (preview mode)
+- `--yes` / `--confirm` : Skips the interactive confirmation prompt; it does not bypass the environment guard
+- `--environment <Development|UAT>` : Selects the configured application environment; every other environment is rejected
 
-## Report output
+## Report Output
 
-Writes:
+Writes detailed JSON report to:
 - `Core-BackEnd/Tools/ResetBusinessDataRunner/bin/<Configuration>/<TFM>/reset-business-data-report.json`
-- (also prints the report path to console)
+
+Report includes:
+- Environment and execution metadata
+- Before/after counts for each table
+- Total rows deleted
+- List of any remaining tables with data
+
+## Tests
+
+Unit tests are located in:
+- `Core-BackEnd/Investa.Tests/Investa.UnitTests/ResetBusinessDataRunnerTests.cs`
+
+Tests verify:
+- Business data is removed
+- Users remain intact
+- Roles/permissions remain intact
+- Currencies/lookups/reference data remain
+- Second reset succeeds (idempotency)
+- No orphan business records remain
+
+The database proof test uses an explicitly isolated database supplied through `INVESTA_RESET_TEST_CONNECTION`; it is skipped unless that variable is set.
+
+Run tests:
+```bash
+dotnet test Core-BackEnd/Investa.Tests/Investa.UnitTests/Investa.UnitTests.csproj --filter "FullyQualifiedName~ResetBusinessDataRunnerTests"
+```
 

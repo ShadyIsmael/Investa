@@ -23,7 +23,8 @@ public class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions
             new Claim("sub", seededUserId),
             new Claim(ClaimTypes.NameIdentifier, seededUserId),
             new Claim(ClaimTypes.Name, "integration-test"),
-            new Claim(ClaimTypes.Role, "Admin")
+            new Claim(ClaimTypes.Role, "Admin"),
+            new Claim(ClaimTypes.Role, "Client")
         };
 
         var identity = new ClaimsIdentity(claims, "Test");

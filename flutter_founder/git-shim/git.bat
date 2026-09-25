@@ -1,1 +1,0 @@
-@"D:\Program Files\Git\cmd\git.exe" %*

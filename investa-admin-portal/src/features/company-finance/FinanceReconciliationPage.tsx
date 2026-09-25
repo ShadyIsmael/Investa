@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Eye, RotateCcw, Search, SlidersHorizontal } 
 import { useTranslation } from 'react-i18next';
 import { usePermissions } from '@/context/AuthContext';
 import { companyFinanceService } from '@/services/companyFinanceService';
+import { formatMoney, ensureCurrenciesLoaded } from '../../utils/currency';
 import type { FinanceAccount, FinanceReconciliationDetailDto, FinanceReconciliationListDto } from './types';
 import { FinanceEmpty, FinanceError, FinanceLoading, FinancePermissionDenied } from './CompanyFinanceStates';
 
@@ -17,7 +18,7 @@ const statusBadgeClass = (status: string) => {
   return 'bg-slate-100 text-slate-700 ring-slate-500/20 dark:bg-slate-800 dark:text-slate-200';
 };
 const fmtDate = (raw: string) => { try { return new Date(raw).toLocaleDateString('en-GB'); } catch { return raw; } };
-const fmtAmount = (value: number, currency: string) => value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + currency;
+const fmtAmount = (value: number, currency: string) => formatMoney(value, currency);
 
 export const FinanceReconciliationPage: React.FC = () => {
   const { t } = useTranslation();
@@ -59,7 +60,7 @@ export const FinanceReconciliationPage: React.FC = () => {
   }, [canView, load]);
 
   useEffect(() => {
-    if (canView) companyFinanceService.getAccounts().then(setAccounts).catch(() => {});
+    if (canView) { void ensureCurrenciesLoaded(); companyFinanceService.getAccounts().then(setAccounts).catch(() => {}); }
   }, [canView]);
 
   useEffect(() => { setPage(1); }, [search, status, fromDate, toDate, accountId, onlyWithDifference, pageSize]);
@@ -131,9 +132,9 @@ export const FinanceReconciliationPage: React.FC = () => {
                   <td><p className="truncate font-medium text-slate-800 dark:text-slate-100">{safeText(item.financeAccountName)}</p><p className="mt-1 truncate text-[11px] text-slate-500">{safeText(item.financeAccountCode)} · {item.financeAccountCurrency}</p></td>
                   <td className="whitespace-nowrap text-xs" dir="ltr">{fmtDate(item.periodEndDate)}</td>
                   <td className="whitespace-nowrap text-xs" dir="ltr">{fmtDate(item.reconciliationDate)}</td>
-                  <td className="text-end" dir="ltr"><p className="whitespace-nowrap font-semibold tabular-nums text-slate-900 dark:text-white">{item.systemCalculatedBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p><p className="mt-1 text-[11px] font-medium text-slate-500">{item.financeAccountCurrency}</p></td>
-                  <td className="text-end" dir="ltr"><p className="whitespace-nowrap font-semibold tabular-nums text-slate-900 dark:text-white">{item.actualStatementBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p><p className="mt-1 text-[11px] font-medium text-slate-500">{item.financeAccountCurrency}</p></td>
-                  <td className="text-end" dir="ltr"><p className={`whitespace-nowrap font-semibold tabular-nums ${item.difference === 0 ? 'text-slate-900 dark:text-white' : 'text-rose-600 dark:text-rose-400'}`}>{item.difference.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p></td>
+                  <td className="text-end" dir="ltr"><p className="whitespace-nowrap font-semibold tabular-nums text-slate-900 dark:text-white">{formatMoney(item.systemCalculatedBalance, item.financeAccountCurrency, { bare: true })}</p><p className="mt-1 text-[11px] font-medium text-slate-500">{item.financeAccountCurrency}</p></td>
+                  <td className="text-end" dir="ltr"><p className="whitespace-nowrap font-semibold tabular-nums text-slate-900 dark:text-white">{formatMoney(item.actualStatementBalance, item.financeAccountCurrency, { bare: true })}</p><p className="mt-1 text-[11px] font-medium text-slate-500">{item.financeAccountCurrency}</p></td>
+                  <td className="text-end" dir="ltr"><p className={`whitespace-nowrap font-semibold tabular-nums ${item.difference === 0 ? 'text-slate-900 dark:text-white' : 'text-rose-600 dark:text-rose-400'}`}>{formatMoney(item.difference, item.financeAccountCurrency, { bare: true })}</p></td>
                   <td><span className={`inline-flex max-w-full truncate rounded-full px-2 py-1 text-[11px] font-bold ring-1 ring-inset ${statusBadgeClass(item.status)}`}>{enumLabel('statuses', item.status)}</span></td>
                   <td className="whitespace-nowrap text-xs">{safeText(item.createdByDisplayName)}</td>
                   <td className="whitespace-nowrap text-xs">{safeText(item.confirmedByDisplayName)}</td>

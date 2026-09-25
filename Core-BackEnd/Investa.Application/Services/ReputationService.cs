@@ -39,8 +39,7 @@ public class ReputationService : IReputationService
 
         await _uow.Repository<ReputationTransaction>().AddAsync(transaction);
 
-        user.ReputationScore = Math.Max(0, Math.Min(10000, user.ReputationScore + points));
-        user.ActivityScore = Math.Max(0, Math.Min(10000, user.ActivityScore + Math.Max(points, 0) / 2));
+        ApplyScoreChanges(user, points);
 
         await _uow.Repository<AuthUser>().UpdateAsync(user);
         await _uow.SaveChangesAsync();
@@ -123,9 +122,7 @@ public class ReputationService : IReputationService
 
         await _uow.Repository<ReputationTransaction>().AddAsync(transaction);
 
-        user.ReputationScore = Math.Max(0, Math.Min(10000, user.ReputationScore + rule.Points));
-        if (rule.Points > 0)
-            user.ActivityScore = Math.Max(0, Math.Min(10000, user.ActivityScore + rule.Points));
+        ApplyScoreChanges(user, rule.Points);
 
         await _uow.Repository<AuthUser>().UpdateAsync(user);
 
@@ -220,8 +217,7 @@ public class ReputationService : IReputationService
         var user = await _uow.Repository<AuthUser>().GetByIdAsync(userId)
             ?? throw new KeyNotFoundException($"User {userId} not found");
 
-        user.ReputationScore = Math.Max(0, Math.Min(10000, user.ReputationScore + rule.Points));
-        user.ActivityScore = Math.Max(0, Math.Min(10000, user.ActivityScore + Math.Max(rule.Points, 0) / 2));
+        ApplyScoreChanges(user, rule.Points);
 
         await _uow.Repository<AuthUser>().UpdateAsync(user);
 
@@ -409,5 +405,26 @@ public class ReputationService : IReputationService
             SourceModuleValue = (int)t.SourceModuleValue,
             OccurredAt = t.OccurredAt
         }).ToList();
+    }
+
+    private void ApplyScoreChanges(AuthUser user, int points)
+    {
+        user.ReputationScore = Math.Max(0, Math.Min(10000, user.ReputationScore + points));
+
+        var positivePoints = Math.Max(points, 0);
+        user.ActivityScore = Math.Max(0, Math.Min(10000, user.ActivityScore + positivePoints));
+        user.CredibilityScore = Math.Max(0, Math.Min(10000, user.CredibilityScore + positivePoints));
+        user.ReputationLevel = GetReputationLevel(user.ReputationScore);
+    }
+
+    public static string GetReputationLevel(int reputationScore)
+    {
+        return reputationScore switch
+        {
+            >= 8500 => "Elite Member",
+            >= 6500 => "Trusted Member",
+            >= 3500 => "Rising Member",
+            _ => "New Member"
+        };
     }
 }

@@ -68,7 +68,7 @@ For Android emulator (backend on same machine):
 flutter run -d android
 ```
 
-See [QUICK_START.md](QUICK_START.md) for full environment setup and `.env` configuration.
+See the [quick-start guide](../docs/flutter-founder/QUICK_START.md) for full environment setup and `.env` configuration.
 
 ---
 
@@ -120,13 +120,11 @@ Core (DI, network, services)
 
 | File | Description |
 |---|---|
-| [QUICK_START.md](QUICK_START.md) | Environment setup and run guide |
-| [CLEAN_ARCHITECTURE_README.md](CLEAN_ARCHITECTURE_README.md) | Architecture patterns used |
-| [FCM_IMPLEMENTATION.md](FCM_IMPLEMENTATION.md) | Firebase Cloud Messaging setup |
-| [FCM_MIGRATION_SUMMARY.md](FCM_MIGRATION_SUMMARY.md) | FCM migration notes |
-| [BACKEND_API_SPEC.md](BACKEND_API_SPEC.md) | API endpoints reference |
-| [ANDROID_BUILD_FIX.md](ANDROID_BUILD_FIX.md) | Android build troubleshooting |
-| [ISSUES/](ISSUES/) | Known issues and resolutions |
+| [Quick start](../docs/flutter-founder/QUICK_START.md) | Environment setup and run guide |
+| [Clean Architecture](../docs/flutter-founder/CLEAN_ARCHITECTURE_README.md) | Architecture patterns used |
+| [Backend API](../docs/flutter-founder/BACKEND_API_SPEC.md) | API endpoints reference |
+| [Dashboard redesign](../docs/flutter-founder/DASHBOARD_REDESIGN.md) | Dashboard design notes |
+| [Known issues](../docs/flutter-founder/issues/) | Known issues and resolutions |
 
 ---
 

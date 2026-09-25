@@ -12,9 +12,8 @@ public class ReputationRule
     [StringLength(50)]
     public string RuleCode { get; set; } = string.Empty;
 
-    [Required]
     [StringLength(100)]
-    public string ActivityCode { get; set; } = string.Empty;
+    public string? ActivityCode { get; set; }
 
     [Required]
     [StringLength(200)]

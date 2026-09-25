@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { Icon } from '@/components/common/Icons';
 import { api } from '@/services/api';
+import { formatMoney, defaultIsoCode, ensureCurrenciesLoaded } from '../../utils/currency';
 
 type PackageId = string | number;
 type PurchaseStatus = 'Pending' | 'Processing' | 'Paid' | 'Failed' | 'Cancelled' | 'Expired' | 'Refunded';
@@ -45,7 +46,7 @@ interface CreditPurchase {
 }
 
 const EMPTY_PACKAGE: PackageDraft = {
-  code: '', nameEn: '', nameAr: '', creditQuantity: 100, sellingPrice: 0, currency: 'EGP',
+  code: '', nameEn: '', nameAr: '', creditQuantity: 100, sellingPrice: 0, currency: defaultIsoCode(),
   bonusCredits: 0, activeFrom: null, activeTo: null, isActive: true, displayOrder: 0, isFeatured: false,
 };
 
@@ -95,8 +96,7 @@ const mapPurchase = (source: any): CreditPurchase => {
 const dateInput = (value: string | null) => value ? value.slice(0, 10) : '';
 const dateLabel = (value?: string | null) => value ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '-';
 const money = (value: number, currency: string) => {
-  try { return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value); }
-  catch { return `${value.toLocaleString()} ${currency}`; }
+  return formatMoney(value, currency);
 };
 
 export const CreditSetup: React.FC = () => {
@@ -135,7 +135,7 @@ export const CreditSetup: React.FC = () => {
     finally { setLoading(false); }
   }, [search, status, t]);
 
-  useEffect(() => { tab === 'packages' ? loadPackages() : loadOrders(); }, [tab, loadPackages, loadOrders]);
+  useEffect(() => { ensureCurrenciesLoaded(); tab === 'packages' ? loadPackages() : loadOrders(); }, [tab, loadPackages, loadOrders]);
 
   const openCreate = () => { setEditing(null); setDraft({ ...EMPTY_PACKAGE }); setShowForm(true); };
   const openEdit = (item: CreditPackage) => {

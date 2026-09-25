@@ -8,7 +8,7 @@ export type NormalizedOfferStatus = 1 | 2 | 3 | 4 | 5;
 
 const OFFER_STATUS_BY_NAME: Record<string, NormalizedOfferStatus> = {
   pending: 1,
-  countered: 2,
+  replaced: 2,
   accepted: 3,
   rejected: 4,
   withdrawn: 5
