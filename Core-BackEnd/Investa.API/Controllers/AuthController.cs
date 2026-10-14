@@ -4,6 +4,7 @@ using Investa.Domain.Entities.Enums;
 using System.Collections.Concurrent;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -23,12 +24,26 @@ namespace Investa.API.Controllers;
 [Route("api/v1/auth")]
 public class AuthController : BaseApiController
 {
-    private static readonly ConcurrentDictionary<string, string> _passwordChangeTokenCache = new();
-    private const string FixedPasswordChangeOtp = "1234";
+    private static readonly ConcurrentDictionary<string, PasswordChangeChallenge> _passwordChangeChallengeCache = new();
     private static readonly ConcurrentDictionary<string, PendingSignup> _signupPendingCache = new();
-    private const string SignupInitOtp = "123456";
+    private static readonly ConcurrentDictionary<string, int> _signupOtpAttempts = new();
 
-    private record PendingSignup(string PhoneNumber, string Password, string FirstName, string LastName, DateTime CreatedAt);
+    private record PendingSignup(string PhoneNumber, string Password, string FirstName, string LastName, ClientType ClientType, string OtpCode, DateTime CreatedAt);
+
+    private sealed class PasswordChangeChallenge
+    {
+        public PasswordChangeChallenge(string resetToken, string otpCode, DateTime expiresAt)
+        {
+            ResetToken = resetToken;
+            OtpCode = otpCode;
+            ExpiresAt = expiresAt;
+        }
+
+        public string ResetToken { get; }
+        public string OtpCode { get; }
+        public DateTime ExpiresAt { get; }
+        public int FailedAttempts;
+    }
 
     private readonly UserManager<ApplicationIdentityUser> _userManager;
     private readonly IJwtTokenService _jwtTokenService;
@@ -74,6 +89,8 @@ public class AuthController : BaseApiController
     {
         if (string.IsNullOrWhiteSpace(request.PhoneNumber) || string.IsNullOrWhiteSpace(request.Password))
             return ErrorResponse("Phone number and password are required", 400);
+        if (!IsSelfServiceClientType(request.ClientType))
+            return ErrorResponse("ClientType must be Investor or Founder.", 400);
 
         var normalizedPhone = PhoneNumberNormalizer.NormalizePhoneNumber(request.PhoneNumber);
         if (normalizedPhone == null)
@@ -130,6 +147,7 @@ public class AuthController : BaseApiController
                     Email = $"{normalizedPhone}@phone.investa.local",
                     PasswordHash = passwordHasher.HashPassword(user, request.Password),
                     UserType = UserType.Client,
+                    ClientType = request.ClientType,
                     Status = true
                 };
                 await _unitOfWork.Repository<AuthUser>().AddAsync(authUser);
@@ -166,14 +184,14 @@ public class AuthController : BaseApiController
             await _unitOfWork.CommitTransactionAsync();
 
             var authResponse = await BuildAuthResponseAsync(user);
-            _logger.LogInformation("User registered successfully: {Phone} (ID: {UserId})", normalizedPhone, user.Id);
+            _logger.LogInformation("User registered successfully with ID {UserId}", user.Id);
 
             return SuccessResponse(authResponse, "User registered successfully", 201);
         }
         catch (Exception ex)
         {
             await _unitOfWork.RollbackTransactionAsync();
-            _logger.LogError(ex, "Error during sign-up for phone: {Phone}", request.PhoneNumber);
+            _logger.LogError(ex, "Error during sign-up");
             return ErrorResponse("An error occurred during registration", 500);
         }
     }
@@ -213,7 +231,7 @@ public class AuthController : BaseApiController
                     identityUser = await TryFindByNameAsync(candidate);
                     if (identityUser != null)
                     {
-                        _logger.LogInformation("Login resolved using phone candidate: {Candidate}", candidate);
+                        _logger.LogInformation("Login resolved using a phone candidate");
                         break;
                     }
                 }
@@ -226,13 +244,13 @@ public class AuthController : BaseApiController
                         if (identityUser != null)
                         {
                             usedLegacyAuthFallback = true;
-                            _logger.LogInformation("Login resolved using legacy phone candidate: {Candidate}", candidate);
+                            _logger.LogInformation("Login resolved using a legacy phone candidate");
                             break;
                         }
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Error during legacy phone authentication fallback for {PhoneCandidate}", candidate);
+                        _logger.LogError(ex, "Error during legacy phone authentication fallback");
                     }
                 }
             }
@@ -240,7 +258,7 @@ public class AuthController : BaseApiController
 
         if (identityUser == null)
         {
-            _logger.LogWarning("Phone login failed: user not found for normalized phone {NormalizedPhone}", normalizedPhone);
+            _logger.LogWarning("Phone login failed because the user was not found");
             return ErrorResponse("Invalid credentials", 401);
         }
 
@@ -249,7 +267,7 @@ public class AuthController : BaseApiController
             var passwordValid = await _userManager.CheckPasswordAsync(identityUser, request.Password);
             if (!passwordValid)
             {
-                _logger.LogWarning("Phone login failed: password mismatch for user {UserId} and normalized phone {NormalizedPhone}", identityUser.Id, normalizedPhone);
+                _logger.LogWarning("Phone login failed because the password did not match");
                 return ErrorResponse("Invalid credentials", 401);
             }
         }
@@ -301,7 +319,7 @@ public class AuthController : BaseApiController
         }
         catch (InvalidCastException ex)
         {
-            _logger.LogWarning(ex, "Identity email lookup failed for {Email}; falling back to AuthUser records", normalizedEmail);
+            _logger.LogWarning(ex, "Identity email lookup failed; falling back to AuthUser records");
             usedLegacyAuthFallback = true;
         }
 
@@ -313,7 +331,7 @@ public class AuthController : BaseApiController
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during legacy email authentication fallback for {Email}", normalizedEmail);
+                _logger.LogError(ex, "Error during legacy email authentication fallback");
             }
 
             if (identityUser == null)
@@ -349,7 +367,7 @@ public class AuthController : BaseApiController
     }
 
     /// <summary>
-    /// Verify current password and issue a fixed test OTP for password change
+    /// Verify the current password and send a one-time password-change code by SMS.
     /// </summary>
     [HttpPost("change-password/send-otp")]
     [Authorize(AuthenticationSchemes = "Bearer")]
@@ -366,11 +384,27 @@ public class AuthController : BaseApiController
         if (!valid)
             return ErrorResponse("Current password is incorrect", 400);
 
-        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-        _passwordChangeTokenCache[user.Id.ToString()] = token;
-        _logger.LogInformation("Password change test OTP issued for user {UserId}; fixed OTP is {FixedOtp}", user.Id, FixedPasswordChangeOtp);
+        if (string.IsNullOrWhiteSpace(user.PhoneNumber) || !user.PhoneNumberConfirmed)
+            return ErrorResponse("A verified phone number is required for password change", 409);
 
-        return SuccessResponse(message: "Fixed test OTP issued; use 1234");
+        var otpCode = CreateOtpCode();
+        var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+        try
+        {
+            await _smsSender.SendSmsAsync(user.PhoneNumber, $"Your password change verification code is {otpCode}");
+        }
+        catch (Exception)
+        {
+            _logger.LogWarning("Password change verification SMS could not be delivered");
+            return ErrorResponse("Phone verification is temporarily unavailable", 503, new { code = "SMS_PROVIDER_UNAVAILABLE" });
+        }
+
+        _passwordChangeChallengeCache[user.Id.ToString()] = new PasswordChangeChallenge(
+            resetToken,
+            otpCode,
+            DateTime.UtcNow.AddMinutes(10));
+
+        return SuccessResponse(message: "Password change verification code sent by SMS");
     }
 
     /// <summary>
@@ -383,25 +417,38 @@ public class AuthController : BaseApiController
         if (string.IsNullOrWhiteSpace(request.Token) || string.IsNullOrWhiteSpace(request.NewPassword))
             return ErrorResponse("OTP token and new password are required", 400);
 
-        if (request.Token != FixedPasswordChangeOtp)
-            return ErrorResponse("Invalid OTP token", 400);
-
         var user = await _userManager.GetUserAsync(User);
         if (user == null)
             return ErrorResponse("Unable to resolve user", 401);
 
-        if (!_passwordChangeTokenCache.TryGetValue(user.Id.ToString(), out var actualToken))
+        var challengeKey = user.Id.ToString();
+        if (!_passwordChangeChallengeCache.TryGetValue(challengeKey, out var challenge))
             return ErrorResponse("OTP has not been requested or has expired", 400);
 
-        var result = await _userManager.ResetPasswordAsync(user, actualToken, request.NewPassword);
+        if (challenge.ExpiresAt <= DateTime.UtcNow)
+        {
+            _passwordChangeChallengeCache.TryRemove(challengeKey, out _);
+            return ErrorResponse("OTP has not been requested or has expired", 400);
+        }
+
+        if (!FixedTimeEquals(challenge.OtpCode, request.Token))
+        {
+            if (Interlocked.Increment(ref challenge.FailedAttempts) >= 5)
+                _passwordChangeChallengeCache.TryRemove(challengeKey, out _);
+            return ErrorResponse("Invalid OTP token", 400);
+        }
+
+        if (!_passwordChangeChallengeCache.TryRemove(challengeKey, out _))
+            return ErrorResponse("OTP has already been used", 400);
+
+        var result = await _userManager.ResetPasswordAsync(user, challenge.ResetToken, request.NewPassword);
         if (!result.Succeeded)
         {
             var errors = result.Errors.Select(e => e.Description).ToList();
             return ErrorResponse("Password change failed", 400, errors);
         }
 
-        _passwordChangeTokenCache.TryRemove(user.Id.ToString(), out _);
-        _logger.LogInformation("Password changed successfully via fixed OTP for user: {UserId}", user.Id);
+        _logger.LogInformation("Password changed successfully after SMS verification");
         return SuccessResponse(message: "Password changed successfully");
     }
 
@@ -429,13 +476,18 @@ public class AuthController : BaseApiController
             var smsMessage = $"Your Investa password reset token is: {token}";
             await _smsSender.SendSmsAsync(normalizedPhone, smsMessage);
 
-            _logger.LogInformation("Password reset token sent to: {Phone}", request.PhoneNumber);
+            _logger.LogInformation("Password reset token sent by SMS");
             return SuccessResponse(message: "Password reset token sent via SMS");
         }
-        catch (Exception ex)
+        catch (SmsProviderUnavailableException)
         {
-            _logger.LogError(ex, "Failed to send password reset SMS to: {Phone}", request.PhoneNumber);
-            return ErrorResponse("Failed to send password reset token", 500);
+            _logger.LogWarning("Password reset SMS provider is unavailable");
+            return ErrorResponse("Phone verification is temporarily unavailable", 503, new { code = "SMS_PROVIDER_UNAVAILABLE" });
+        }
+        catch (Exception)
+        {
+            _logger.LogError("Failed to send password reset SMS");
+            return ErrorResponse("Failed to send password reset token", 503, new { code = "SMS_DELIVERY_FAILED" });
         }
     }
 
@@ -463,7 +515,7 @@ public class AuthController : BaseApiController
         if (!result.Succeeded)
             return ErrorResponse("Password reset failed", 400, result.Errors.Select(e => e.Description));
 
-        _logger.LogInformation("Password reset successfully for: {Phone}", request.PhoneNumber);
+        _logger.LogInformation("Password reset completed successfully");
         return SuccessResponse(message: "Password reset successfully");
     }
 
@@ -541,7 +593,7 @@ public class AuthController : BaseApiController
             var roleResult = await _userManager.AddToRoleAsync(user, "Admin");
             if (!roleResult.Succeeded)
             {
-                _logger.LogError("Failed to assign Admin role to new admin user {Email}: {Errors}", request.Email, roleResult.Errors.Select(e => e.Description));
+                _logger.LogError("Failed to assign Admin role to new admin user: {Errors}", roleResult.Errors.Select(e => e.Description));
                 return ErrorResponse("Failed to assign admin role to new user", 500);
             }
 
@@ -567,12 +619,12 @@ public class AuthController : BaseApiController
             await _unitOfWork.Repository<AuthUser>().AddAsync(authUser);
             await _unitOfWork.SaveChangesAsync();
 
-            _logger.LogInformation("Admin user created: {Email} (ID: {UserId})", request.Email, user.Id);
+            _logger.LogInformation("Admin user created with ID {UserId}", user.Id);
             return SuccessResponse("Admin user created successfully", 201);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to create admin user: {Email}", request.Email);
+            _logger.LogError(ex, "Failed to create admin user");
             return ErrorResponse("Failed to create admin user", 500);
         }
     }
@@ -600,7 +652,7 @@ public class AuthController : BaseApiController
             if (normalizedPhone == null)
             {
                 await _unitOfWork.RollbackTransactionAsync();
-                _logger.LogWarning($"Sign-up attempt with invalid phone number: {request.PhoneNumber}");
+                _logger.LogWarning("Sign-up attempt with invalid phone number");
                 return BadRequest(new
                 {
                     success = false,
@@ -617,7 +669,7 @@ public class AuthController : BaseApiController
                 if (existingUser != null)
                 {
                     await _unitOfWork.RollbackTransactionAsync();
-                    _logger.LogWarning($"Sign-up attempt with existing phone number: {request.PhoneNumber}");
+                    _logger.LogWarning("Sign-up attempt with an existing phone number");
                     return Conflict(new
                     {
                         success = false,
@@ -645,7 +697,7 @@ public class AuthController : BaseApiController
             if (!result.Succeeded)
             {
                 await _unitOfWork.RollbackTransactionAsync();
-                _logger.LogWarning($"User creation failed for phone: {normalizedPhone}. Errors: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                _logger.LogWarning("User creation failed. Identity errors: {Errors}", result.Errors.Select(e => e.Description));
                 return BadRequest(new
                 {
                     success = false,
@@ -675,7 +727,7 @@ public class AuthController : BaseApiController
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to add firebase_uid claim for user {Phone}", request.PhoneNumber);
+                    _logger.LogWarning(ex, "Failed to add firebase_uid claim during sign-up");
                 }
             }
 
@@ -702,12 +754,12 @@ public class AuthController : BaseApiController
                 }
                 else
                 {
-                    _logger.LogWarning($"Unable to use identity user id for AuthUser creation: {user.Id}");
+                    _logger.LogWarning("Unable to use identity user id for AuthUser creation");
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Failed to create AuthUser record: {ex.Message}", ex);
+                _logger.LogError(ex, "Failed to create AuthUser record");
                 throw;
             }
 
@@ -755,7 +807,7 @@ public class AuthController : BaseApiController
             // Generate JWT token for the newly created user (after AuthUser exists)
             var authResponse = await BuildAuthResponseAsync(user);
 
-            _logger.LogInformation($"User registered successfully: {request.PhoneNumber} (ID: {user.Id})");
+            _logger.LogInformation("User registered successfully with ID {UserId}", user.Id);
 
             return Ok(new
             {
@@ -766,18 +818,17 @@ public class AuthController : BaseApiController
         catch (Exception ex)
         {
             await _unitOfWork.RollbackTransactionAsync();
-            _logger.LogError($"Error during sign-up: {ex.Message}", ex);
+            _logger.LogError(ex, "Error during sign-up");
             return StatusCode(StatusCodes.Status500InternalServerError, new
             {
                 success = false,
-                message = "An error occurred during registration. Please try again.",
-                error = ex.Message
+                message = "An error occurred during registration. Please try again."
             });
         }
     }    
 
     /// <summary>
-    /// Step 1 of two-step signup: validate phone, store pending registration, return verification session ID.
+    /// Step 1 of two-step signup: validate phone, deliver a one-time code, and return a verification session ID.
     /// </summary>
     [HttpPost("signup-init")]
     [AllowAnonymous]
@@ -785,6 +836,8 @@ public class AuthController : BaseApiController
     {
         if (string.IsNullOrWhiteSpace(request.PhoneNumber) || string.IsNullOrWhiteSpace(request.Password))
             return ErrorResponse("Phone number and password are required", 400);
+        if (!IsSelfServiceClientType(request.ClientType))
+            return ErrorResponse("ClientType must be Investor or Founder.", 400);
 
         var normalizedPhone = PhoneNumberNormalizer.NormalizePhoneNumber(request.PhoneNumber);
         if (normalizedPhone == null)
@@ -798,10 +851,30 @@ public class AuthController : BaseApiController
                 return Conflict(new { success = false, message = "This phone number is already registered.", code = "PHONE_EXISTS" });
         }
 
+        RemoveExpiredSignupSessions();
         var sessionId = Guid.NewGuid().ToString();
-        _signupPendingCache[sessionId] = new PendingSignup(normalizedPhone, request.Password, request.FirstName ?? "", request.LastName ?? "", DateTime.UtcNow);
+        var otpCode = CreateOtpCode();
+        _signupPendingCache[sessionId] = new PendingSignup(
+            normalizedPhone,
+            request.Password,
+            request.FirstName ?? "",
+            request.LastName ?? "",
+            request.ClientType,
+            otpCode,
+            DateTime.UtcNow);
 
-        _logger.LogInformation("Signup init for phone {Phone}, session {SessionId}", normalizedPhone, sessionId);
+        try
+        {
+            await _smsSender.SendSmsAsync(normalizedPhone, $"Your FOPX verification code is {otpCode}");
+        }
+        catch (Exception)
+        {
+            _signupPendingCache.TryRemove(sessionId, out _);
+            _logger.LogWarning("Signup verification SMS could not be delivered");
+            return ErrorResponse("Phone verification is temporarily unavailable", 503, new { code = "SMS_PROVIDER_UNAVAILABLE" });
+        }
+
+        _logger.LogInformation("Signup verification code sent by SMS");
 
         return Ok(new { success = true, data = new { verificationSessionId = sessionId } });
     }
@@ -816,17 +889,30 @@ public class AuthController : BaseApiController
         if (string.IsNullOrWhiteSpace(request.VerificationSessionId) || string.IsNullOrWhiteSpace(request.OtpCode))
             return ErrorResponse("Verification session ID and OTP code are required", 400);
 
-        if (request.OtpCode != SignupInitOtp)
-            return ErrorResponse("Invalid OTP code", 400);
-
-        if (!_signupPendingCache.TryRemove(request.VerificationSessionId, out var pending))
+        if (!_signupPendingCache.TryGetValue(request.VerificationSessionId, out var pending))
             return ErrorResponse("Verification session not found or expired", 404);
 
         if ((DateTime.UtcNow - pending.CreatedAt).TotalMinutes > 10)
         {
-            _logger.LogWarning("Expired signup session {SessionId}", request.VerificationSessionId);
+            _signupPendingCache.TryRemove(request.VerificationSessionId, out _);
+            _signupOtpAttempts.TryRemove(request.VerificationSessionId, out _);
+            _logger.LogWarning("Expired signup verification session");
             return ErrorResponse("Verification session has expired", 400);
         }
+
+        if (!FixedTimeEquals(pending.OtpCode, request.OtpCode))
+        {
+            if (_signupOtpAttempts.AddOrUpdate(request.VerificationSessionId, 1, (_, attempts) => attempts + 1) >= 5)
+            {
+                _signupPendingCache.TryRemove(request.VerificationSessionId, out _);
+                _signupOtpAttempts.TryRemove(request.VerificationSessionId, out _);
+            }
+            return ErrorResponse("Invalid OTP code", 400);
+        }
+
+        if (!_signupPendingCache.TryRemove(request.VerificationSessionId, out _))
+            return ErrorResponse("Verification session has already been used", 400);
+        _signupOtpAttempts.TryRemove(request.VerificationSessionId, out _);
 
         try
         {
@@ -846,7 +932,7 @@ public class AuthController : BaseApiController
             if (!result.Succeeded)
             {
                 await _unitOfWork.RollbackTransactionAsync();
-                _logger.LogWarning($"User creation failed for phone: {pending.PhoneNumber}. Errors: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                _logger.LogWarning("User creation failed during OTP signup. Identity errors: {Errors}", result.Errors.Select(e => e.Description));
                 return BadRequest(new { success = false, message = "Registration failed.", errors = result.Errors.Select(e => e.Description).ToList() });
             }
 
@@ -866,6 +952,7 @@ public class AuthController : BaseApiController
                     Email = pending.PhoneNumber + "@phone.investa.local",
                     PasswordHash = passwordHasher.HashPassword(user, pending.Password),
                     UserType = Investa.Domain.Entities.Enums.UserType.Client,
+                    ClientType = pending.ClientType,
                     Status = true
                 };
 
@@ -910,14 +997,14 @@ public class AuthController : BaseApiController
 
             var authResponse = await BuildAuthResponseAsync(user);
 
-            _logger.LogInformation("User created via OTP signup: {Phone} (ID: {UserId})", pending.PhoneNumber, user.Id);
+            _logger.LogInformation("User created via OTP signup with ID {UserId}", user.Id);
 
             return Ok(new { success = true, data = authResponse });
         }
         catch (Exception ex)
         {
             await _unitOfWork.RollbackTransactionAsync();
-            _logger.LogError(ex, "Error during signup verification for phone: {Phone}", pending.PhoneNumber);
+            _logger.LogError(ex, "Error during signup verification");
             return StatusCode(StatusCodes.Status500InternalServerError, new { success = false, message = "An error occurred during registration. Please try again." });
         }
     }
@@ -933,10 +1020,37 @@ public class AuthController : BaseApiController
         }
         catch (InvalidCastException ex)
         {
-            _logger.LogWarning(ex, "Identity user lookup failed for {Username}; falling back to legacy auth records", username);
+            _logger.LogWarning(ex, "Identity user lookup failed; falling back to legacy auth records");
             return null;
         }
     }
+
+    private static string CreateOtpCode() =>
+        RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
+
+    private static bool FixedTimeEquals(string expected, string actual)
+    {
+        var expectedBytes = Encoding.UTF8.GetBytes(expected);
+        var actualBytes = Encoding.UTF8.GetBytes(actual);
+        return expectedBytes.Length == actualBytes.Length
+            && CryptographicOperations.FixedTimeEquals(expectedBytes, actualBytes);
+    }
+
+    private static void RemoveExpiredSignupSessions()
+    {
+        var expiryThreshold = DateTime.UtcNow.AddMinutes(-10);
+        foreach (var entry in _signupPendingCache)
+        {
+            if (entry.Value.CreatedAt <= expiryThreshold
+                && _signupPendingCache.TryRemove(entry.Key, out _))
+            {
+                _signupOtpAttempts.TryRemove(entry.Key, out _);
+            }
+        }
+    }
+
+    private static bool IsSelfServiceClientType(ClientType clientType) =>
+        clientType is ClientType.Investor or ClientType.Founder;
 
     private async Task<ApplicationIdentityUser?> TryAuthenticateLegacyEmailUserAsync(string normalizedEmail, string password)
     {
@@ -1001,7 +1115,7 @@ public class AuthController : BaseApiController
 
         if (authUser == null)
         {
-            _logger.LogInformation("Legacy phone login fallback: user not found for {NormalizedPhone}", normalizedPhone);
+            _logger.LogInformation("Legacy phone login fallback: user not found");
             return null;
         }
 

@@ -108,8 +108,8 @@ export interface LegacyRole {
   id: string | number;
   name: string;
   description: string | null;
-  groupId: number | null;
-  groupName?: string;
+  groupId: number | null | undefined;
+  groupName?: string | undefined;
   isActive: boolean;
   createdAt: string;
   members?: string[];

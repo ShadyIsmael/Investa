@@ -140,8 +140,8 @@
             <article class="offer-card" [class.offer-card--accepted]="isAcceptedOffer(item.offer)">
               <header>
                 <div>
-                  <p class="eyebrow">{{ 'conversationWorkspace.offers.version' | translate }} {{ item.offer.version }}</p>
-                  <strong>{{ 'conversationWorkspace.offers.title' | translate }}</strong>
+                  <p class="eyebrow">{{ 'conversationWorkspace.offers.reviewLabel' | translate }}</p>
+                  <strong>{{ 'conversationWorkspace.offers.title' | translate }} · {{ 'conversationWorkspace.offers.version' | translate }} {{ item.offer.version }}</strong>
                   @if (item.offer.createdByName) {
                     <p class="offer-relation">{{ item.offer.createdByName }}@if (item.offer.createdByRole) { · {{ roleLabel(item.offer.createdByRole) }} }</p>
                   }
@@ -149,6 +149,12 @@
                 <span class="status-badge" [class.status-badge--success]="isAcceptedOffer(item.offer)">{{ offerStatusLabel(item.offer.status) }}</span>
               </header>
               @if (replacedOfferVersion(item.offer); as replacedVersion) { <p class="offer-relation">↳ {{ 'conversationWorkspace.offers.replaces' | translate }} {{ replacedVersion }}</p> }
+              <div class="offer-review-meta" [attr.aria-label]="'conversationWorkspace.offers.metadataLabel' | translate">
+                <div><span>{{ 'conversationWorkspace.offers.submittedAt' | translate }}</span><strong>{{ formatDate(item.offer.createdAt) }} · {{ formatTime(item.offer.createdAt) }}</strong></div>
+                <div><span>{{ 'conversationWorkspace.offers.totalAmount' | translate }}</span><strong>{{ money(offerTotalAmount(item.offer), item.offer.currency) }}</strong></div>
+                <div><span>{{ 'conversationWorkspace.offers.legs' | translate }}</span><strong>{{ item.offer.legs.length }}</strong></div>
+              </div>
+              <h4 class="offer-terms-heading">{{ 'conversationWorkspace.offers.terms' | translate }}</h4>
               <div class="offer-terms">
                 @for (leg of item.offer.legs; track leg.id || leg.legType) {
                   <div><span>{{ offerLegLabel(leg.legType) }}</span><strong>{{ money(leg.amount, item.offer.currency) }}</strong>
@@ -156,22 +162,22 @@
                     @if (leg.sharesTerms) { <small>{{ leg.sharesTerms }}</small> }
                     @if (leg.returnRate) { <small>{{ 'conversationWorkspace.offers.returnRate' | translate }}: {{ leg.returnRate }}%</small> }
                     @if (leg.termMonths) { <small>{{ 'conversationWorkspace.offers.term' | translate }}: {{ leg.termMonths }} {{ 'conversationWorkspace.offers.months' | translate }}</small> }
-                    @if (leg.repaymentModel) { <small>{{ 'conversationWorkspace.offers.repayment' | translate }}: {{ leg.repaymentModel }}</small> }
+                    @if (leg.repaymentModel) { <small>{{ 'conversationWorkspace.offers.repayment' | translate }}: {{ repaymentModelLabel(leg.repaymentModel) }}</small> }
                     @if (leg.profitSharePercentage) { <small>{{ 'conversationWorkspace.offers.profitPercentage' | translate }}: {{ leg.profitSharePercentage }}%</small> }
                     @if (leg.exitTerms) { <small>{{ leg.exitTerms }}</small> }
                   </div>
                 }
               </div>
               @if (item.offer.note) { <p class="offer-note">{{ item.offer.note }}</p> }
-              <footer><time>{{ formatDate(item.offer.createdAt) }} · {{ formatTime(item.offer.createdAt) }}</time><div>
+              <footer class="offer-action-box"><div class="offer-action-copy"><span>{{ 'conversationWorkspace.offers.nextAction' | translate }}</span>@if (canReceiveOfferAction(item.offer)) { <strong>{{ 'conversationWorkspace.offers.acceptPrompt' | translate }}</strong> } @else if (canRespondOfferAction(item.offer)) { <strong>{{ 'conversationWorkspace.offers.counterPrompt' | translate }}</strong> } @else if (isAcceptedOffer(item.offer)) { <strong>{{ 'conversationWorkspace.offers.acceptedPrompt' | translate }}</strong> } @else { <strong>{{ 'conversationWorkspace.offers.noAction' | translate }}</strong> }</div><div class="offer-actions">
                 @if (canReceiveOfferAction(item.offer)) {
-                  <button type="button" class="primary-button" (click)="acceptOffer(item.offer)">{{ 'conversationWorkspace.actions.accept' | translate }}</button>
+                  <button type="button" class="primary-button" (click)="acceptOffer(item.offer)" [attr.aria-label]="'conversationWorkspace.actions.accept' | translate">{{ 'conversationWorkspace.actions.accept' | translate }}</button>
                 }
                 @if (canRespondOfferAction(item.offer)) {
-                  <button type="button" class="secondary-button" (click)="openOfferBuilder(item.offer)">{{ 'conversationWorkspace.actions.respondWithOffer' | translate }}</button>
+                  <button type="button" class="secondary-button" (click)="openOfferBuilder(item.offer)" [attr.aria-label]="'conversationWorkspace.actions.respondWithOffer' | translate">{{ 'conversationWorkspace.actions.respondWithOffer' | translate }}</button>
                 }
                 @if (canRejectOfferAction(item.offer)) {
-                  <button type="button" class="text-button" (click)="rejectOffer(item.offer)">{{ 'conversationWorkspace.actions.reject' | translate }}</button>
+                  <button type="button" class="text-button danger-button" (click)="rejectOffer(item.offer)" [attr.aria-label]="'conversationWorkspace.actions.reject' | translate">{{ 'conversationWorkspace.actions.reject' | translate }}</button>
                 }
                 @if (canWithdrawOffer(item.offer)) {
                   <button type="button" class="text-button" (click)="withdrawOffer(item.offer)">{{ 'conversationWorkspace.actions.withdraw' | translate }}</button>

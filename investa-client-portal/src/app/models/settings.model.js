@@ -15,9 +15,3 @@ export var DefaultInvestmentTypePreference;
     DefaultInvestmentTypePreference["Founding"] = "founding";
     DefaultInvestmentTypePreference["Equity"] = "equity";
 })(DefaultInvestmentTypePreference || (DefaultInvestmentTypePreference = {}));
-export var CurrencyPreference;
-(function (CurrencyPreference) {
-    CurrencyPreference["USD"] = "USD";
-    CurrencyPreference["EUR"] = "EUR";
-    CurrencyPreference["SAR"] = "SAR";
-})(CurrencyPreference || (CurrencyPreference = {}));

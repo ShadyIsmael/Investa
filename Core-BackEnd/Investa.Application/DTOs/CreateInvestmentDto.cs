@@ -17,9 +17,7 @@ public class CreateInvestmentDto
     public string Description { get; set; } = string.Empty;
     public string? UseOfFunds { get; set; }
     public DateTime StartDate { get; set; }
-    public int BusinessStageId { get; set; }
-    public int BusinessCategoryId { get; set; }
-    public int? ProjectPhaseId { get; set; }
+    public int ProjectCategoryId { get; set; }
     public int? FundingGoalId { get; set; }
     public IReadOnlyList<int> TagIds { get; set; } = Array.Empty<int>();
     public string Milestone { get; set; } = string.Empty;

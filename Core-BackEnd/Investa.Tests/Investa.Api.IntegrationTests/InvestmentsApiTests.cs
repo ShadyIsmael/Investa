@@ -28,28 +28,28 @@ public class InvestmentsApiTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
-    public async Task GetByCategory_Includes_BusinessCategoryNameAr()
+    public async Task GetByCategory_Includes_ProjectCategoryNameAr()
     {
         var client = CreateClientAndSeed();
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<Investa.Infrastructure.Persistence.ApplicationDbContext>();
 
-        var bc = new Investa.Domain.Entities.BusinessCategory
+        var bc = new Investa.Domain.Entities.ProjectCategory
         {
             Id = 6000,
-            Key = "IntTestCat",
-            Value = "Integration Category",
-            ValueAr = "فئة تكامل",
+            Code = "INTEGRATION-CAT",
+            NameEn = "Integration Category",
+            NameAr = "فئة تكامل",
             SortOrder = 6000
         };
-        db.BusinessCategories.Add(bc);
+        db.ProjectCategories.Add(bc);
 
         var inv = new Investa.Domain.Entities.Investment
         {
             FounderId = Guid.NewGuid(),
             BusinessName = "Integration Investment",
-            BusinessCategoryId = bc.Id,
+            ProjectCategoryId = bc.Id,
             InitialCapital = 100m,
             Date = DateTime.UtcNow,
             Status = "Active"
@@ -62,37 +62,37 @@ public class InvestmentsApiTests : IClassFixture<CustomWebApplicationFactory>
 
         var json = await res.Content.ReadFromJsonAsync<System.Text.Json.Nodes.JsonObject>();
         json.Should().NotBeNull();
-        var data = json!["data"].AsArray();
+        var data = json!["data"]!.AsArray();
 
-        var found = data.FirstOrDefault(n => n["businessCategoryName"]?.ToString() == "Integration Category");
+        var found = data.FirstOrDefault(n => n?["projectCategoryName"]?.ToString() == "Integration Category");
         found.Should().NotBeNull();
-        var categoryNameAr = found!["businessCategoryNameAr"]?.ToString();
+        var categoryNameAr = found!["projectCategoryNameAr"]?.ToString();
         categoryNameAr.Should().Be("فئة تكامل");
     }
 
     [Fact]
-    public async Task Admin_ExportInvestments_Includes_BusinessCategoryNameAndAr()
+    public async Task Admin_ExportInvestments_Includes_ProjectCategoryNameAndAr()
     {
         var client = CreateClientAndSeed();
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<Investa.Infrastructure.Persistence.ApplicationDbContext>();
 
-        var bc = new Investa.Domain.Entities.BusinessCategory
+        var bc = new Investa.Domain.Entities.ProjectCategory
         {
             Id = 6001,
-            Key = "CsvCat2",
-            Value = "CSV Category 2",
-            ValueAr = "فئة CSV 2",
+            Code = "CSV-CAT-2",
+            NameEn = "CSV Category 2",
+            NameAr = "فئة CSV 2",
             SortOrder = 6001
         };
-        db.BusinessCategories.Add(bc);
+        db.ProjectCategories.Add(bc);
 
         var inv = new Investa.Domain.Entities.Investment
         {
             FounderId = Guid.NewGuid(),
             BusinessName = "CSV Investment 2",
-            BusinessCategoryId = bc.Id,
+            ProjectCategoryId = bc.Id,
             InitialCapital = 200m,
             Date = DateTime.UtcNow,
             Status = "Active"
@@ -104,8 +104,8 @@ public class InvestmentsApiTests : IClassFixture<CustomWebApplicationFactory>
         res.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var csv = await res.Content.ReadAsStringAsync();
-        csv.Should().Contain("BusinessCategoryName");
-        csv.Should().Contain("BusinessCategoryNameAr");
+        csv.Should().Contain("ProjectCategoryName");
+        csv.Should().Contain("ProjectCategoryNameAr");
         csv.Should().Contain("فئة CSV 2");
     }
 }

@@ -27,6 +27,7 @@ public class InvestmentsController : ControllerBase
     private readonly IStringLocalizer<SharedResource> _localizer;
     private readonly ILogger<InvestmentsController> _logger;
     private readonly IFileStorage _fileStorage;
+    private readonly IFileUploadService _fileUploadService;
 
     public InvestmentsController(
         IInvestmentService service, 
@@ -36,7 +37,8 @@ public class InvestmentsController : ControllerBase
         INotificationService notificationService, 
         IStringLocalizer<SharedResource> localizer,
         ILogger<InvestmentsController> logger,
-        IFileStorage fileStorage)
+        IFileStorage fileStorage,
+        IFileUploadService fileUploadService)
     {
         _service = service;
         _mapper = mapper;
@@ -46,6 +48,7 @@ public class InvestmentsController : ControllerBase
         _localizer = localizer;
         _logger = logger;
         _fileStorage = fileStorage;
+        _fileUploadService = fileUploadService;
     }
 
     [HttpPost]
@@ -64,16 +67,16 @@ public class InvestmentsController : ControllerBase
         var created = await _service.CreateAsync(dto);
         var outDto = _mapper.Map<InvestmentDto>(created);
 
-        // Populate BusinessCategory names (English + Arabic) for response when available
+         // Populate ProjectCategory names (English + Arabic) for response when available
         try
         {
-            if (outDto.BusinessCategoryId.HasValue)
+            if (outDto.ProjectCategoryId.HasValue)
             {
-                var bc = await _unitOfWork.Repository<Investa.Domain.Entities.BusinessCategory>().GetByIdAsync(outDto.BusinessCategoryId.Value);
+                var bc = await _unitOfWork.Repository<Investa.Domain.Entities.ProjectCategory>().GetByIdAsync(outDto.ProjectCategoryId.Value);
                 if (bc != null)
                 {
-                    outDto.BusinessCategoryName = bc.Value;
-                    outDto.BusinessCategoryNameAr = string.IsNullOrWhiteSpace(bc.ValueAr) ? bc.Value : bc.ValueAr;
+                    outDto.ProjectCategoryName = bc.NameEn;
+                    outDto.ProjectCategoryNameAr = bc.NameAr;
                 }
             }
         }
@@ -269,14 +272,14 @@ public class InvestmentsController : ControllerBase
                 await _unitOfWork.SaveChangesAsync();
             }
 
-            // Upload file to Investa.FileStore first to get valid URL
-            var safeName = Path.GetFileName(file.FileName);
-            var relPath = $"uploads/investments/{investmentId}/{Guid.NewGuid()}_{safeName}";
-
             string url;
             await using (var stream = file.OpenReadStream())
             {
-                url = await _fileStorage.SaveFileAsync(relPath, stream, file.ContentType);
+                var upload = await _fileUploadService.UploadAsync(new FileUploadCommand(
+                    "INVESTMENTIMAGE", stream, file.FileName, file.ContentType, file.Length, userId,
+                    investment.OpportunityId.HasValue ? (await _unitOfWork.Repository<Opportunity>().GetByIdAsync(investment.OpportunityId.Value))?.ProjectId : null,
+                    "InvestmentImage", investmentId.ToString()), HttpContext.RequestAborted);
+                url = upload.Url;
             }
 
             // Create DB record with valid URL
@@ -349,14 +352,13 @@ public class InvestmentsController : ControllerBase
             await _unitOfWork.Repository<InvestmentImage>().AddAsync(video);
             await _unitOfWork.SaveChangesAsync();
 
-            // Upload file to Investa.FileStore (centralized storage)
-            var safeName = Path.GetFileName(file.FileName);
-            var relPath = $"uploads/investments/{investmentId}/videos/{video.Id}_{safeName}";
-
             await using (var stream = file.OpenReadStream())
             {
-                var url = await _fileStorage.SaveFileAsync(relPath, stream, file.ContentType);
-                video.Url = url;
+                var upload = await _fileUploadService.UploadAsync(new FileUploadCommand(
+                    "INVESTMENTVIDEO", stream, file.FileName, file.ContentType, file.Length, userId,
+                    investment.OpportunityId.HasValue ? (await _unitOfWork.Repository<Opportunity>().GetByIdAsync(investment.OpportunityId.Value))?.ProjectId : null,
+                    "InvestmentImage", investmentId.ToString()), HttpContext.RequestAborted);
+                video.Url = upload.Url;
             }
 
             await _unitOfWork.SaveChangesAsync();
@@ -504,8 +506,8 @@ public class InvestmentsController : ControllerBase
 
         var founderIds = dtos.Select(d => d.FounderId).Distinct().ToList();
         var categoryIds = dtos
-            .Where(d => d.BusinessCategoryId.HasValue)
-            .Select(d => d.BusinessCategoryId!.Value)
+            .Where(d => d.ProjectCategoryId.HasValue)
+            .Select(d => d.ProjectCategoryId!.Value)
             .Distinct()
             .ToList();
 
@@ -529,17 +531,17 @@ public class InvestmentsController : ControllerBase
             foreach (var missingFounderId in missingFounderIds)
             {
                 var user = await _unitOfWork.Repository<Investa.Domain.Entities.AuthUser>()
-                    .GetSingleAsync(u => u.Id == missingFounderId, u => u.Profile);
+                    .GetSingleAsync(u => u.Id == missingFounderId, u => u.Profile!);
                 if (user != null)
                     authUsersById[missingFounderId] = user;
             }
         }
 
         // 3. Load business categories individually instead of using a list-based query.
-        var categoriesById = new Dictionary<int, Investa.Domain.Entities.BusinessCategory>();
+        var categoriesById = new Dictionary<int, Investa.Domain.Entities.ProjectCategory>();
         foreach (var categoryId in categoryIds)
         {
-            var bc = await _unitOfWork.Repository<Investa.Domain.Entities.BusinessCategory>().GetByIdAsync(categoryId);
+            var bc = await _unitOfWork.Repository<Investa.Domain.Entities.ProjectCategory>().GetByIdAsync(categoryId);
             if (bc != null)
                 categoriesById[categoryId] = bc;
         }
@@ -584,10 +586,10 @@ public class InvestmentsController : ControllerBase
             else
                 dto.FounderDisplay = "Unknown";
 
-            if (dto.BusinessCategoryId.HasValue && categoriesById.TryGetValue(dto.BusinessCategoryId.Value, out var bc))
+            if (dto.ProjectCategoryId.HasValue && categoriesById.TryGetValue(dto.ProjectCategoryId.Value, out var bc))
             {
-                dto.BusinessCategoryName = bc.Value;
-                dto.BusinessCategoryNameAr = string.IsNullOrWhiteSpace(bc.ValueAr) ? bc.Value : bc.ValueAr;
+                dto.ProjectCategoryName = bc.NameEn;
+                dto.ProjectCategoryNameAr = bc.NameAr;
             }
 
             dto.CredibilityScore = scoresById.TryGetValue(dto.FounderId, out var score) ? score : 0;
@@ -670,22 +672,22 @@ public class InvestmentsController : ControllerBase
             dto.CredibilityScore = 0;
         }
 
-        // Populate BusinessCategory display names (English + Arabic) when available
+        // Populate ProjectCategory display names (English + Arabic) when available
         try
         {
-            if (dto.BusinessCategoryId.HasValue)
+            if (dto.ProjectCategoryId.HasValue)
             {
-                var bc = await _unitOfWork.Repository<Investa.Domain.Entities.BusinessCategory>().GetByIdAsync(dto.BusinessCategoryId.Value);
+                var bc = await _unitOfWork.Repository<Investa.Domain.Entities.ProjectCategory>().GetByIdAsync(dto.ProjectCategoryId.Value);
                 if (bc != null)
                 {
-                    dto.BusinessCategoryName = bc.Value;
-                    dto.BusinessCategoryNameAr = string.IsNullOrWhiteSpace(bc.ValueAr) ? bc.Value : bc.ValueAr;
+                    dto.ProjectCategoryName = bc.NameEn;
+                    dto.ProjectCategoryNameAr = bc.NameAr;
                 }
             }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Could not retrieve BusinessCategory for investment {InvestmentId}", dto.Id);
+            _logger.LogWarning(ex, "Could not retrieve ProjectCategory for investment {InvestmentId}", dto.Id);
         }
 
         // Populate InvestedAmount for the requesting user if available
@@ -719,31 +721,17 @@ public class InvestmentsController : ControllerBase
     // Purchase shares in an investment opportunity
     [HttpPost("{id:int}/purchase")]
     [Authorize(Roles = nameof(UserRoles.Client))]
-    public async Task<IActionResult> PurchaseShares(int id, [FromBody] PurchaseSharesDto dto)
+    public Task<IActionResult> PurchaseShares(int id, [FromBody] PurchaseSharesDto dto)
     {
-        if (dto == null || dto.SharesPurchased <= 0)
-            return BadRequest(new { success = false, message = _localizer["InvalidSharesAmount"].Value });
-
-        // Extract user id from token
-        var userIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
-        if (!Guid.TryParse(userIdClaim, out var userId))
+        // Sprint 1 retires the legacy wallet/CREDIT purchase path. An accepted
+        // negotiation creates a commitment only; no platform money movement
+        // is authorized by this endpoint.
+        return Task.FromResult<IActionResult>(StatusCode(StatusCodes.Status410Gone, new
         {
-            return Unauthorized(new { success = false, message = "Unable to identify user from token" });
-        }
-
-        try
-        {
-            var success = await _service.PurchaseSharesAsync(userId, id, dto.SharesPurchased);
-            if (success)
-            {
-                return Ok(new { success = true, message = _localizer["SharesPurchasedSuccessfully"].Value });
-            }
-            return BadRequest(new { success = false, message = _localizer["PurchaseFailed"].Value });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { success = false, message = ex.Message });
-        }
+            success = false,
+            code = "LEGACY_PURCHASE_RETIRED",
+            message = "Investment purchases are retired. Use the Opportunity negotiation flow; acceptance records a commitment only and does not move funds."
+        }));
     }
 
     // GET /api/v1/investments/{id}/participants
@@ -796,13 +784,13 @@ public class InvestmentsController : ControllerBase
         // Build CSV
         var lines = new List<string>();
         // include both English and Arabic category columns so exports contain localized labels
-        lines.Add("Id,Name,FounderId,FounderDisplay,BusinessRole,BusinessCategoryName,BusinessCategoryNameAr,TargetFund,CurrentFunding,InvestedAmount,InvestorCount,Status");
+        lines.Add("Id,Name,FounderId,FounderDisplay,BusinessRole,ProjectCategoryName,ProjectCategoryNameAr,TargetFund,CurrentFunding,InvestedAmount,InvestorCount,Status");
         foreach (var d in dtos)
         {
             var nameEsc = d.BusinessName?.Replace("\"", "\"\"") ?? string.Empty;
             var roleEsc = (d.BusinessRole ?? string.Empty).Replace("\"", "\"\"");
-            var catNameEsc = (d.BusinessCategoryName ?? string.Empty).Replace("\"", "\"\"");
-            var catNameArEsc = (d.BusinessCategoryNameAr ?? string.Empty).Replace("\"", "\"\"");
+            var catNameEsc = (d.ProjectCategoryName ?? string.Empty).Replace("\"", "\"\"");
+            var catNameArEsc = (d.ProjectCategoryNameAr ?? string.Empty).Replace("\"", "\"\"");
             lines.Add($"{d.Id},\"{nameEsc}\",{d.FounderId},\"{(d.FounderDisplay ?? string.Empty).Replace("\"", "\"\"")}\",\"{roleEsc}\",\"{catNameEsc}\",\"{catNameArEsc}\",{d.TargetFund},{d.CurrentFunding},{d.InvestedAmount},{d.InvestorCount},\"{d.Status}\"");
         }
 

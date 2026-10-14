@@ -1,5 +1,4 @@
 using Investa.Application.Interfaces;
-using Investa.Domain.Entities.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,18 +8,18 @@ namespace Investa.API.Controllers;
 [Route("api/v1/categories")]
 public class CategoriesController : ControllerBase
 {
-    private readonly ICategoryService _categoryService;
+    private readonly IProjectCategoryService _categoryService;
 
-    public CategoriesController(ICategoryService categoryService)
+    public CategoriesController(IProjectCategoryService categoryService)
     {
         _categoryService = categoryService;
     }
 
     [HttpGet]
     [AllowAnonymous]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] bool includeInactive = false, [FromQuery] string? search = null)
     {
-        var items = await _categoryService.GetAllAsync();
+        var items = await _categoryService.GetAllAsync(includeInactive, search);
         return Ok(new { success = true, data = items });
     }
 
@@ -28,7 +27,7 @@ public class CategoriesController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> GetById(int id)
     {
-        var item = await _categoryService.GetByIdAsync(id);
+        var item = await _categoryService.GetByIdAsync(id, includeInactive: true);
         if (item == null) return NotFound(new { success = false, message = "Category not found" });
         return Ok(new { success = true, data = item });
     }

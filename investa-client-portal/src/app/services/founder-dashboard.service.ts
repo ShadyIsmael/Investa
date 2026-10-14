@@ -18,6 +18,7 @@ export class FounderDashboardService {
     const raw = await firstValueFrom(this.http.get<ApiResponse<FounderDashboard>>(
       `${this.apiBase}/api/v1/founder/dashboard`, { headers, params }
     ));
+    if (raw?.success === false) throw new Error(raw.message || 'The Founder Dashboard could not load the authoritative portfolio data.');
     return raw?.data ?? raw as unknown as FounderDashboard;
   }
 }

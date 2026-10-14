@@ -16,9 +16,7 @@ public class UpdateInvestmentDto
     public string? Description { get; set; }
     public string? UseOfFunds { get; set; }
     public DateTime? StartDate { get; set; }
-    public int? BusinessStageId { get; set; }
-    public int? BusinessCategoryId { get; set; }
-    public int? ProjectPhaseId { get; set; }
+    public int? ProjectCategoryId { get; set; }
     public int? FundingGoalId { get; set; }
     public IReadOnlyList<int>? TagIds { get; set; }
     public decimal? TargetFund { get; set; }

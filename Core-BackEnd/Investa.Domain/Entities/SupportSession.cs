@@ -13,7 +13,7 @@ namespace Investa.Domain.Entities
     {
         public Guid Id { get; set; }
         public string UserMobile { get; set; } = string.Empty;
-        public string Category { get; set; } = string.Empty;
+        public string? Category { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public SupportSessionStatus Status { get; set; } = SupportSessionStatus.Open;
         public int UnreadCount { get; set; } = 0;

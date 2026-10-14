@@ -16,7 +16,7 @@ public sealed class ResetBusinessDataRunnerTests
         BusinessDataResetCatalog.PreservedTables.Should().Contain(new[]
         {
             "AspNetUsers", "AspNetRoles", "AspNetUserRoles", "AuthUsers", "Roles", "UserRoles", "Permissions",
-            "Currencies", "Lookups", "OpportunityCategories", "OpportunityTags", "FundingGoals",
+            "Currencies", "Lookups", "ProjectCategories", "OpportunityTags", "FundingGoals",
             "Wallets", "WalletTransactions", "FinanceTransactions", "SupportSessions"
         });
 
@@ -116,7 +116,7 @@ public sealed class ResetBusinessDataRunnerTests
             Summary = "Reset test summary",
             Description = "Reset test description",
             DefaultCurrency = "USD",
-            BusinessStage = Investa.Domain.Entities.Enums.ProjectStage.Idea
+            ProjectStage = Investa.Domain.Entities.Enums.ProjectStage.Idea
         };
         db.Projects.Add(project);
         await db.SaveChangesAsync();

@@ -23,4 +23,9 @@ public sealed class Currency
     public bool SupportsFunding { get; set; }
     public bool SupportsSettlement { get; set; }
     public bool SupportsWallet { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; set; }
+    public Guid? CreatedByUserId { get; set; }
+    public Guid? UpdatedByUserId { get; set; }
 }

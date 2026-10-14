@@ -1,6 +1,6 @@
 import { api } from '@/api/api';
 
-export type OpportunityLookupKind = 'categories' | 'tags' | 'funding-goals';
+export type OpportunityLookupKind = 'tags';
 
 export interface OpportunityLookupItem {
   id: number | string;
@@ -11,9 +11,7 @@ export interface OpportunityLookupItem {
 }
 
 const ENDPOINTS: Record<OpportunityLookupKind, string> = {
-  categories: '/api/v1/lookups/opportunity-categories',
   tags: '/api/v1/lookups/opportunity-tags',
-  'funding-goals': '/api/v1/lookups/funding-goals',
 };
 
 const unwrapList = (value: any): any[] => {

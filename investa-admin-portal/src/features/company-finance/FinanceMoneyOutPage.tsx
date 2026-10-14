@@ -141,7 +141,7 @@ export const FinanceMoneyOutPage: React.FC = () => {
           <p className="mt-0.5 truncate text-sm text-slate-500 dark:text-slate-400">{t('companyFinance.moneyOut.subtitle')} <span className="mx-1 text-slate-300 dark:text-slate-600">·</span> <span dir="ltr">{t('companyFinance.moneyOut.resultCount', { count: filtered.length })}</span></p>
         </div>
         {canCreate && (
-            <button type="button" onClick={() => navigate('/admin/company-finance/money-out/new')} className="inline-flex items-center gap-2 rounded-lg bg-slate-800 px-3 py-2 text-sm font-semibold text-white shadow-sm dark:bg-slate-100 dark:text-slate-900">
+            <button type="button" onClick={() => navigate('/admin/company-finance/money-out/new')} className="btn-primary">
               <Plus size={16} />{t('companyFinance.moneyOut.add')}
             </button>
         )}
@@ -156,7 +156,7 @@ export const FinanceMoneyOutPage: React.FC = () => {
             <button type="button" onClick={() => setShowFilters((current) => !current)} aria-expanded={showFilters} aria-controls="money-out-secondary-filters" className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"><SlidersHorizontal size={14} />{t(showFilters ? 'companyFinance.moneyOut.hideFilters' : 'companyFinance.moneyOut.showFilters')}{activeFilterCount > 0 && <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white" dir="ltr">{activeFilterCount}</span>}</button>
           </div>
           {showFilters && <div id="money-out-secondary-filters" className="mt-2.5 border-t border-border pt-2.5">
-            <div className="mb-2 flex justify-end"><button type="button" onClick={reset} className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-slate-500 transition hover:bg-card dark:text-slate-400"><RotateCcw size={13} />{t('companyFinance.moneyOut.reset')}</button></div>
+            <div className="mb-2 flex justify-end"><button type="button" onClick={reset} className="btn-ghost btn-sm"><RotateCcw size={13} />{t('companyFinance.moneyOut.reset')}</button></div>
           <div className="grid items-end gap-x-2.5 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
             <label className={filterLabelClass}>{t('companyFinance.moneyOut.fromDate')}<input className={filterControlClass} type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} dir="ltr" /></label>
             <label className={filterLabelClass}>{t('companyFinance.moneyOut.toDate')}<input className={filterControlClass} type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} dir="ltr" /></label>
@@ -208,7 +208,7 @@ export const FinanceMoneyOutPage: React.FC = () => {
       {details && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="money-out-details-title">
           <div className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-lg bg-card p-5 text-foreground shadow-2xl">
-            <div className="flex items-center justify-between"><h3 id="money-out-details-title" className="font-bold" dir="ltr">{details.referenceNumber}</h3><button type="button" onClick={() => setDetails(null)}>{t('common.close')}</button></div>
+            <div className="flex items-center justify-between"><h3 id="money-out-details-title" className="font-bold" dir="ltr">{details.referenceNumber}</h3><button type="button" className="btn-ghost btn-sm" onClick={() => setDetails(null)} aria-label={t('common.close')}>{t('common.close')}</button></div>
             <dl className="mt-4 grid gap-x-4 gap-y-3 text-sm sm:grid-cols-[160px_1fr]">
               {[
                 ['description', details.description], ['notes', details.notes], ['expenseCategory', details.expenseCategoryName], ['supplierPayee', details.supplierName], ['sourceAccount', details.sourceAccountName], ['paymentMethod', details.paymentMethod], ['invoiceNumber', details.invoiceNumber], ['externalReference', details.externalReference],

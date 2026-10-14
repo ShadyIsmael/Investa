@@ -24,7 +24,7 @@ public sealed class ProjectDefaultCurrencyTests
         await db.SaveChangesAsync();
 
         var uow = new UnitOfWork(db);
-        var service = new ProjectService(uow, new CurrencyConversionService(uow, []), new CurrencyDisplayService(uow));
+        var service = new ProjectService(uow, new CurrencyConversionService(uow, []), new CurrencyDisplayService(uow), new RiskLevelService(uow));
         var created = await service.CreateAsync(founder.Id, Request());
 
         created.DefaultCurrency.Should().Be("SAR");
@@ -44,7 +44,7 @@ public sealed class ProjectDefaultCurrencyTests
         await db.SaveChangesAsync();
 
         var uow = new UnitOfWork(db);
-        var service = new ProjectService(uow, new CurrencyConversionService(uow, []), new CurrencyDisplayService(uow));
+        var service = new ProjectService(uow, new CurrencyConversionService(uow, []), new CurrencyDisplayService(uow), new RiskLevelService(uow));
         var request = Request();
         request.DefaultCurrency = "USD";
 
@@ -63,7 +63,7 @@ public sealed class ProjectDefaultCurrencyTests
         await db.SaveChangesAsync();
 
         var uow = new UnitOfWork(db);
-        var service = new ProjectService(uow, new CurrencyConversionService(uow, []), new CurrencyDisplayService(uow));
+        var service = new ProjectService(uow, new CurrencyConversionService(uow, []), new CurrencyDisplayService(uow), new RiskLevelService(uow));
         var request = Request();
         request.DefaultCurrency = "XYZ";
 
@@ -81,7 +81,7 @@ public sealed class ProjectDefaultCurrencyTests
         await db.SaveChangesAsync();
 
         var uow = new UnitOfWork(db);
-        var service = new ProjectService(uow, new CurrencyConversionService(uow, []), new CurrencyDisplayService(uow));
+        var service = new ProjectService(uow, new CurrencyConversionService(uow, []), new CurrencyDisplayService(uow), new RiskLevelService(uow));
         var created = await service.CreateAsync(founder.Id, Request());
 
         created.DefaultCurrency.Should().Be(CurrencyMasterDefaults.DefaultCurrency);
@@ -96,7 +96,7 @@ public sealed class ProjectDefaultCurrencyTests
         await db.SaveChangesAsync();
 
         var uow = new UnitOfWork(db);
-        var service = new ProjectService(uow, new CurrencyConversionService(uow, []), new CurrencyDisplayService(uow));
+        var service = new ProjectService(uow, new CurrencyConversionService(uow, []), new CurrencyDisplayService(uow), new RiskLevelService(uow));
         var project = await service.CreateAsync(founder.Id, Request());
 
         db.Opportunities.AddRange(
@@ -130,7 +130,7 @@ public sealed class ProjectDefaultCurrencyTests
         DisplayName = "Durable business",
         Summary = "A durable business summary.",
         Description = "A durable business description.",
-        BusinessStage = ProjectStage.MVP
+        ProjectStage = ProjectStage.MVP
     };
 
     private static Opportunity Opportunity(ProjectDto project, int sequence, decimal target) => new()

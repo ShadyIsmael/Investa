@@ -22,8 +22,8 @@ public sealed class EmailHistoryService : IEmailHistoryService
         _db.EmailHistory.Add(history);
         await _db.SaveChangesAsync(cancellationToken);
         _logger.LogInformation(
-            "Email history recorded id={HistoryId} status={Status} recipient={Recipient}",
-            history.Id, history.Status, history.Recipient);
+            "Email history recorded id={HistoryId} status={Status}",
+            history.Id, history.Status);
         return history;
     }
 

@@ -181,14 +181,14 @@ export const Groups: React.FC = () => {
                           await groupService.ensurePermissionsExist(allNavPermissions);
 
                           setDetailsGroup(d);
-                        }} className="px-2 py-1 text-muted-foreground text-sm hover:text-primary hover:underline">View</button>
+                        }} className="btn-secondary btn-sm">View</button>
                         <PermissionControl permission="Group.Update">
-                          <button onClick={() => openModal(group)} className="px-2 py-1 text-primary text-sm hover:underline">
+                          <button onClick={() => openModal(group)} className="btn-secondary btn-sm">
                             Edit
                           </button>
                         </PermissionControl>
                         <PermissionControl permission="Group.Delete">
-                          <button onClick={() => deleteGroup(group.id)} className="px-2 py-1 text-rose-600 text-sm hover:underline">
+                          <button onClick={() => deleteGroup(group.id)} className="btn-danger-ghost btn-sm">
                             Delete
                           </button>
                         </PermissionControl>

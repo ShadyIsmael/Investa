@@ -49,12 +49,9 @@ public class InvestmentDto
     public string? Description { get; set; }
     public string? ImageUrl { get; set; }
     public string? VideoUrl { get; set; }
-    public int? BusinessStageId { get; set; }
-    public int? BusinessCategoryId { get; set; }
-    public string? BusinessCategoryName { get; set; }
-    // Arabic value for BusinessCategory (optional)
-    public string? BusinessCategoryNameAr { get; set; }
-    public int? ProjectPhaseId { get; set; }
+    public int? ProjectCategoryId { get; set; }
+    public string? ProjectCategoryName { get; set; }
+    public string? ProjectCategoryNameAr { get; set; }
     public string? Milestone { get; set; }
     public string? RiskLevel { get; set; }
     public string? Currency { get; set; }

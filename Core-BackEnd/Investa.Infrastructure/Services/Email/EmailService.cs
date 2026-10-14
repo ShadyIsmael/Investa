@@ -51,13 +51,14 @@ public sealed class EmailService : IEmailService
         await _queue.EnqueueAsync(outbox, cancellationToken);
 
         _logger.LogInformation(
-            "Email queued via EmailService outboxId={OutboxId} recipient={Recipient} subject={Subject} category={Category} priority={Priority}",
-            outbox.Id, request.To, request.Subject, request.Category, request.Priority);
+            "Email queued via EmailService outboxId={OutboxId} category={Category} priority={Priority}",
+            outbox.Id, request.Category, request.Priority);
     }
 
     public async Task<long> SendTemplatedEmailAsync(SendTemplatedEmailRequest request, CancellationToken cancellationToken = default)
     {
-        var renderResult = await _renderer.RenderAsync(request.TemplateName, request.Model, cancellationToken);
+        var model = request.Model ?? throw new ArgumentException("A template model is required.", nameof(request));
+        var renderResult = await _renderer.RenderAsync(request.TemplateName, model, cancellationToken);
         var attachments = await _attachmentProvider.GetAttachmentsAsync(request.TemplateName, string.Empty, cancellationToken);
 
         var outbox = new EmailOutbox
@@ -88,8 +89,8 @@ public sealed class EmailService : IEmailService
         await _queue.EnqueueAsync(outbox, cancellationToken);
 
         _logger.LogInformation(
-            "Templated email queued outboxId={OutboxId} template={Template} recipient={Recipient} category={Category} priority={Priority}",
-            outbox.Id, request.TemplateName, request.Recipient, request.Category, request.Priority);
+            "Templated email queued outboxId={OutboxId} template={Template} category={Category} priority={Priority}",
+            outbox.Id, request.TemplateName, request.Category, request.Priority);
         return outbox.Id;
     }
 

@@ -16,8 +16,15 @@ public static class StartupSecurityConfiguration
         return jwtKey;
     }
 
-    public static void ValidateActiveFileStore(IConfiguration configuration)
+    public static void ValidateActiveFileStore(IConfiguration configuration) =>
+        ValidateActiveFileStore(configuration, required: null);
+
+    public static void ValidateActiveFileStore(IConfiguration configuration, bool? required)
     {
+        var fileStoreRequired = required ?? configuration.GetValue<bool?>("FileStore:Required") ?? true;
+        if (!fileStoreRequired)
+            return;
+
         var baseUrl = configuration["FileStore:BaseUrl"];
         if (string.IsNullOrWhiteSpace(baseUrl))
             throw new InvalidOperationException(

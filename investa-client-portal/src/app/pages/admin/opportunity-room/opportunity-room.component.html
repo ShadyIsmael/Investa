@@ -43,21 +43,57 @@
       </header>
 
       <section class="room-metrics investa-panel p-0">
-        <div><span>{{ 'opportunityRoom.funding.funded' | translate }}</span><strong>{{ money(fundedAmount()) }}</strong></div>
         <div><span>{{ 'opportunityRoom.funding.target' | translate }}</span><strong>{{ money(fundingTarget()) }}</strong></div>
-        <div><span>{{ 'opportunityRoom.funding.remaining' | translate }}</span><strong>{{ money(remainingFundingAmount()) }}</strong></div>
-        <div><span>{{ 'opportunityRoom.funding.participants' | translate }}</span><strong>{{ approvedParticipantCount() ?? '-' }}</strong></div>
+        <div><span>{{ 'opportunityRoom.funding.committed' | translate }}</span><strong>{{ money(committedAmount()) }}</strong></div>
+        <div><span>{{ 'opportunityRoom.funding.declaredReceived' | translate }}</span><strong>{{ money(declaredReceivedAmount()) }}</strong></div>
+        <div><span>{{ 'opportunityRoom.funding.confirmedReceived' | translate }}</span><strong>{{ money(confirmedReceivedAmount()) }}</strong></div>
+        <div><span>{{ 'opportunityRoom.funding.disputed' | translate }}</span><strong>{{ money(disputedAmount()) }}</strong></div>
+        <div><span>{{ 'opportunityRoom.funding.awaitingConfirmation' | translate }}</span><strong>{{ money(awaitingConfirmationAmount()) }}</strong></div>
+        <div><span>{{ 'opportunityRoom.funding.outstanding' | translate }}</span><strong>{{ money(outstandingAmount()) }}</strong></div>
         <div class="room-progress-metric">
-          <span>{{ 'opportunityRoom.funding.progress' | translate }}</span>
+          <span>{{ 'opportunityRoom.funding.confirmedProgress' | translate }}</span>
           <strong>{{ fundingProgress() == null ? '-' : ((fundingProgress() | number:'1.0-2') + '%') }}</strong>
           <div class="room-progress"><i [style.width.%]="fundingProgressBarWidth()"></i></div>
         </div>
       </section>
+      <p class="mx-auto mt-3 max-w-5xl text-xs leading-5 text-gray-400">{{ 'funding.disclaimer' | translate }}</p>
 
       @if (actionSuccess()) { <div class="room-success">{{ actionSuccess() }}</div> }
 
       <div class="room-workspace-grid">
         <aside class="room-navigation investa-panel">
+          @if (projectContext(); as project) {
+            <section class="room-project-context" aria-labelledby="project-context-title">
+              <div class="room-project-identity">
+                <div class="room-project-logo">
+                  @if (projectLogoUrl()) {
+                    <img [src]="projectLogoUrl()" [alt]="project.displayName">
+                  } @else {
+                    <span>{{ projectInitials() }}</span>
+                  }
+                </div>
+                <div class="room-project-heading">
+                  <p class="eyebrow">{{ 'opportunityRoom.projectContext.eyebrow' | translate }}</p>
+                  <h2 id="project-context-title">{{ project.displayName }}</h2>
+                </div>
+              </div>
+              <dl class="room-project-facts">
+                @if (project.category || project.industry) { <div><dt>{{ 'opportunityRoom.projectContext.category' | translate }}</dt><dd>{{ projectCategory() }}</dd></div> }
+                @if (project.projectStage !== null && project.projectStage !== undefined && project.projectStage !== '') { <div><dt>{{ 'opportunityRoom.projectContext.stage' | translate }}</dt><dd>{{ projectStage() }}</dd></div> }
+                @if (project.geography) { <div><dt>{{ 'opportunityRoom.projectContext.location' | translate }}</dt><dd>{{ project.geography }}</dd></div> }
+                <div><dt>{{ 'opportunityRoom.projectContext.company' | translate }}</dt><dd>{{ projectCompany() }}</dd></div>
+                @if (founderSummary() !== '-') { <div><dt>{{ 'opportunityRoom.projectContext.founder' | translate }}</dt><dd>{{ founderSummary() }}</dd></div> }
+              </dl>
+              @if (projectDescription() !== '-') { <p class="room-project-description">{{ projectDescription() }}</p> }
+              <a class="room-project-link" [routerLink]="projectRoute()">{{ 'opportunityRoom.projectContext.viewProject' | translate }}</a>
+            </section>
+          } @else if (room()?.projectDisplayName) {
+            <section class="room-project-context room-project-context--fallback">
+              <p class="eyebrow">{{ 'opportunityRoom.projectContext.eyebrow' | translate }}</p>
+              <h2>{{ room()?.projectDisplayName }}</h2>
+              <a class="room-project-link" [routerLink]="projectRoute()">{{ 'opportunityRoom.projectContext.viewProject' | translate }}</a>
+            </section>
+          }
           <nav>
             @for (tab of tabs; track tab.id) {
               <button type="button" (click)="setTab(tab.id)" [class.active]="activeTab() === tab.id">
@@ -89,13 +125,9 @@
         <article class="investa-panel p-6">
           <h2 class="text-xl font-bold text-current">{{ 'opportunityRoom.overview.title' | translate }}</h2>
           <dl class="mt-5 grid gap-4 md:grid-cols-2">
-            <div class="investa-card-soft p-4"><dt class="text-xs uppercase tracking-[0.16em] investa-meta">{{ 'investmentPreview.amountRaised' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-current">{{ overview().fundedAmount == null ? '—' : money(overview().fundedAmount, overview().currency) }}</dd></div>
-            <div class="investa-card-soft p-4"><dt class="text-xs uppercase tracking-[0.16em] investa-meta">{{ 'investmentPreview.remainingFunding' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-current">{{ overview().remainingFundingAmount == null ? '—' : money(overview().remainingFundingAmount, overview().currency) }}</dd></div>
-            <div class="investa-card-soft p-4"><dt class="text-xs uppercase tracking-[0.16em] investa-meta">{{ 'investmentPreview.fundingProgress' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-current">{{ overview().fundingProgressPercentage == null ? '—' : ((overview().fundingProgressPercentage | number:'1.0-2') + '%') }}</dd></div>
-            <div class="investa-card-soft p-4"><dt class="text-xs uppercase tracking-[0.16em] investa-meta">{{ 'investmentPreview.approvedParticipants' | translate }}</dt><dd class="mt-2 text-sm font-semibold text-current">{{ overview().approvedParticipantCount == null ? '—' : overview().approvedParticipantCount }}</dd></div>
             <div class="investa-card-soft p-4">
               <dt class="text-xs uppercase tracking-[0.16em] investa-meta">{{ 'opportunityRoom.overview.useOfFunds' | translate }}</dt>
-              <dd class="mt-2 whitespace-pre-line text-sm investa-muted">{{ overview().fundingUsage || overview().fundingPurpose || overview().useOfFunds || '-' }}</dd>
+              <dd class="mt-2 whitespace-pre-line text-sm investa-muted">{{ overview().useOfFunds || '-' }}</dd>
             </div>
           </dl>
         </article>
@@ -135,7 +167,7 @@
           <div class="mt-5 investa-empty p-5"><p class="text-sm investa-meta">{{ 'opportunityRoom.participations.empty' | translate }}</p></div>
         } @else {
           <div class="mt-5 space-y-4">
-            @for (participation of roomParticipations(); track participation.participationId + '-' + $index) {
+            @for (participation of roomParticipations(); track participation?.participationId ?? $index) {
               <article class="rounded-2xl border border-slate-700/70 p-4">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -143,33 +175,222 @@
                     <p class="mt-1 text-xs investa-meta">{{ 'opportunityRoom.participations.sequence' | translate }} #{{ participation.sequenceNumber }} · {{ participation.acceptedAt ? (participation.acceptedAt | date:'mediumDate') : '—' }}</p>
                   </div>
                   <div class="text-end">
+                    <p class="text-[10px] uppercase tracking-[0.14em] investa-meta">{{ 'opportunityRoom.participations.approvedAmount' | translate }}</p>
                     <p class="text-sm font-bold text-current">{{ money(participation.approvedAmount, participation.fundingCurrency) }}</p>
                     <p class="mt-1 text-xs text-emerald-300">{{ 'opportunityRoom.participations.immutable' | translate }}</p>
+                    @if (isFounder() && availableToDeclare(participation) > 0) {
+                      <button type="button" (click)="openFundingDeclaration(participation)" class="mt-2 investa-btn-secondary">{{ 'fundingDeclaration.actions.declare' | translate }}</button>
+                    }
                   </div>
                 </div>
                 <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            @for (leg of participation.legs; track participation.participationId + '-' + leg.legNumber + '-' + $index) {
+            @for (leg of participation.legs; track (participation?.participationId ?? '') + '-' + (leg?.legNumber ?? $index) + '-' + $index) {
                     <section class="rounded-xl border border-slate-700/70 bg-slate-950/20 p-3">
                       <div class="flex items-center justify-between gap-2"><span class="text-xs font-bold uppercase tracking-[0.14em] text-current">{{ legTypeLabel(leg.legType) }}</span><span class="text-xs font-semibold text-current">{{ money(leg.amount, leg.currency || participation.fundingCurrency) }}</span></div>
                       <dl class="mt-3 space-y-2 text-xs">
                         @if (leg.equityPercentage != null) { <div class="flex justify-between gap-3"><dt class="investa-meta">{{ 'opportunityRoom.legs.equity' | translate }}</dt><dd class="font-semibold text-current">{{ leg.equityPercentage }}%</dd></div> }
+                        @if (leg.legType === 'Equity') { <div class="flex justify-between gap-3"><dt class="investa-meta">{{ 'opportunityRoom.equity.ownershipModel' | translate }}</dt><dd class="font-semibold text-current">{{ leg.equityOwnershipModel || '—' }}</dd></div>@if (leg.currentOwnershipPercentage != null) { <div class="flex justify-between gap-3"><dt class="investa-meta">{{ 'opportunityRoom.equity.currentOwnership' | translate }}</dt><dd class="font-semibold text-current">{{ leg.currentOwnershipPercentage }}%</dd></div> } @if (leg.currentInvestorShares != null) { <div class="flex justify-between gap-3"><dt class="investa-meta">{{ 'opportunityRoom.equity.shares' | translate }}</dt><dd class="font-semibold text-current">{{ leg.currentInvestorShares }} / {{ leg.currentTotalIssuedShares }}</dd></div> } @if (leg.equityInitialOwnershipPercentage != null && leg.equityDilutionPercentagePoints != null && leg.equityDilutionPercentagePoints !== 0) { <div class="flex justify-between gap-3"><dt class="investa-meta">{{ 'opportunityRoom.equity.dilution' | translate }}</dt><dd class="font-semibold text-current">{{ leg.equityDilutionPercentagePoints }} pp</dd></div> } @if (leg.equityCorporateEvents?.length) { <div class="mt-3"><div class="investa-meta mb-1">{{ 'opportunityRoom.equity.corporateEvents' | translate }}</div><div class="space-y-1 text-xs">@for (event of leg.equityCorporateEvents; track event.eventId) { <div class="flex justify-between gap-2"><span>{{ event.eventType }} · {{ event.effectiveDate | date:'mediumDate' }}</span><span>{{ event.previousOwnershipPercentage }}% → {{ event.newOwnershipPercentage }}%</span></div> }</div></div> } @if (leg.shareClass) { <div class="flex justify-between gap-3"><dt class="investa-meta">{{ 'opportunityRoom.equity.shareClass' | translate }}</dt><dd class="font-semibold text-current">{{ leg.shareClass }}</dd></div> } <div class="mt-3 rounded-lg border border-slate-700/60 p-2 text-xs investa-muted">{{ 'opportunityRoom.equity.disclaimer' | translate }}</div> }
                         @if (leg.returnRate != null) { <div class="flex justify-between gap-3"><dt class="investa-meta">{{ 'opportunityRoom.legs.returnRate' | translate }}</dt><dd class="font-semibold text-current">{{ leg.returnRate }}%</dd></div> }
                         @if (leg.profitSharePercentage != null) { <div class="flex justify-between gap-3"><dt class="investa-meta">{{ 'opportunityRoom.legs.profitShare' | translate }}</dt><dd class="font-semibold text-current">{{ leg.profitSharePercentage }}%</dd></div> }
                         @if (leg.termMonths != null) { <div class="flex justify-between gap-3"><dt class="investa-meta">{{ 'opportunityRoom.legs.term' | translate }}</dt><dd class="font-semibold text-current">{{ leg.termMonths }} {{ 'opportunityRoom.legs.months' | translate }}</dd></div> }
-                        @if (leg.repaymentModel) { <div class="flex justify-between gap-3"><dt class="investa-meta">{{ 'opportunityRoom.legs.cadence' | translate }}</dt><dd class="font-semibold text-current">{{ leg.repaymentModel }}</dd></div> }
+                        @if (leg.repaymentModel) { <div class="flex justify-between gap-3"><dt class="investa-meta">{{ 'opportunityRoom.legs.cadence' | translate }}</dt><dd class="font-semibold text-current">{{ repaymentModelLabel(leg.repaymentModel) }}</dd></div> }
+                        @if (leg.contractualStartDate) { <div class="flex justify-between gap-3"><dt class="investa-meta">{{ 'opportunityRoom.legs.startDate' | translate }}</dt><dd class="font-semibold text-current">{{ leg.contractualStartDate | date:'mediumDate' }}</dd></div> }
+                        @if (leg.contractualMaturityDate) { <div class="flex justify-between gap-3"><dt class="investa-meta">{{ 'opportunityRoom.legs.maturityDate' | translate }}</dt><dd class="font-semibold text-current">{{ leg.contractualMaturityDate | date:'mediumDate' }}</dd></div> }
                       </dl>
                       @if (leg.sharesTerms || leg.exitTerms) { <p class="mt-3 text-xs investa-muted">{{ leg.sharesTerms || leg.exitTerms }}</p> }
                       @if (leg.obligations.length > 0) {
                         <div class="mt-3 border-t border-slate-700/60 pt-3"><p class="text-[10px] font-bold uppercase tracking-[0.14em] investa-meta">{{ 'opportunityRoom.legs.obligations' | translate }}</p><ul class="mt-2 space-y-1 text-xs investa-muted">@for (obligation of leg.obligations; track obligation.party + '-' + obligation.description + '-' + $index) { <li><span class="font-semibold text-current">{{ obligation.party }}:</span> {{ obligation.description }}</li> }</ul></div>
                       }
                       @if (leg.cashFlows.length > 0) { <p class="mt-3 text-xs text-emerald-300">{{ 'opportunityRoom.legs.cashFlowCount' | translate:{ count: leg.cashFlows.length } }}</p> }
+                      @if (leg.isPersistedSchedule && leg.cashFlows.length > 0) {
+                        <div class="mt-3 border-t border-slate-700/60 pt-3">
+                          <p class="text-[10px] font-bold uppercase tracking-[0.14em] investa-meta">{{ 'opportunityRoom.legs.expectedSchedule' | translate }}</p>
+                          <div class="mt-2 overflow-x-auto">
+                            <table class="min-w-full text-left text-xs rtl:text-right">
+                      <thead class="investa-meta">
+                                <tr>
+                                  <th class="px-2 py-2 font-semibold">{{ 'opportunityRoom.legs.scheduleInstallment' | translate }}</th>
+                                  <th class="px-2 py-2 font-semibold">{{ 'opportunityRoom.legs.scheduleDueDate' | translate }}</th>
+                                  <th class="px-2 py-2 font-semibold">{{ 'opportunityRoom.legs.scheduleInterest' | translate }}</th>
+                                  <th class="px-2 py-2 font-semibold">{{ 'opportunityRoom.legs.schedulePrincipal' | translate }}</th>
+                                  <th class="px-2 py-2 font-semibold">{{ 'opportunityRoom.legs.scheduleTotal' | translate }}</th>
+                                  <th class="px-2 py-2 font-semibold">{{ 'opportunityRoom.legs.scheduleStatus' | translate }}</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                @for (installment of leg.cashFlows; track installment.installmentNumber) {
+                                  <tr class="border-t border-slate-800/70">
+                                    <td class="px-2 py-2 font-semibold text-current">#{{ installment.installmentNumber }}</td>
+                                    <td class="whitespace-nowrap px-2 py-2 text-current">{{ installment.dueDate | date:'mediumDate' }}</td>
+                                    <td class="whitespace-nowrap px-2 py-2 text-current">{{ money(installment.expectedInterest, leg.currency || participation.fundingCurrency) }}</td>
+                                    <td class="whitespace-nowrap px-2 py-2 text-current">{{ money(installment.expectedPrincipal, leg.currency || participation.fundingCurrency) }}</td>
+                                    <td class="whitespace-nowrap px-2 py-2 font-semibold text-current">{{ money(installment.expectedTotal, leg.currency || participation.fundingCurrency) }}</td>
+                                    <td class="whitespace-nowrap px-2 py-2 text-emerald-300">{{ installment.status }}</td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
+                          <p class="mt-2 text-xs investa-muted">{{ 'opportunityRoom.legs.expectedScheduleNote' | translate }}</p>
+                        </div>
+                      }
+                      @if (leg.repayment; as repayment) {
+                        <div class="mt-4 border-t border-slate-700/60 pt-3" [id]="'loan-' + leg.loanObligationId">
+                          <div class="flex flex-wrap items-center justify-between gap-2">
+                            <p class="text-[10px] font-bold uppercase tracking-[0.14em] investa-meta">{{ 'opportunityRoom.loanRepayment.title' | translate }}</p>
+                            @if (canDeclareLoanRepayment(leg)) { <button type="button" (click)="openLoanRepaymentDeclaration(participation, leg)" class="investa-btn-secondary text-xs">{{ 'opportunityRoom.loanRepayment.declare' | translate }}</button> }
+                          </div>
+                          <div class="mt-3 grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-3">
+                            <div class="investa-card-soft p-2"><span class="investa-meta">{{ 'opportunityRoom.loanRepayment.lifecycleStatus' | translate }}</span><strong class="block text-current">{{ repayment.loanLifecycleStatus }}</strong></div>
+                            <div class="investa-card-soft p-2"><span class="investa-meta">{{ 'opportunityRoom.loanRepayment.maturityDate' | translate }}</span><strong class="block text-current">{{ repayment.maturityDate ? (repayment.maturityDate | date:'mediumDate') : '—' }}</strong></div>
+                            <div class="investa-card-soft p-2"><span class="investa-meta">{{ 'opportunityRoom.loanRepayment.principalOutstanding' | translate }}</span><strong class="block text-current">{{ money(repayment.principalOutstanding, repayment.currency) }}</strong></div>
+                            <div class="investa-card-soft p-2"><span class="investa-meta">{{ 'opportunityRoom.loanRepayment.interestOutstanding' | translate }}</span><strong class="block text-current">{{ money(repayment.interestOutstanding, repayment.currency) }}</strong></div>
+                            <div class="investa-card-soft p-2"><span class="investa-meta">{{ 'opportunityRoom.loanRepayment.totalOutstanding' | translate }}</span><strong class="block text-current">{{ money(repayment.totalOutstanding, repayment.currency) }}</strong></div>
+                            <div class="investa-card-soft p-2"><span class="investa-meta">{{ 'opportunityRoom.loanRepayment.overdue' | translate }}</span><strong class="block text-current">{{ money(repayment.overdueAmount, repayment.currency) }}</strong></div>
+                            <div class="investa-card-soft p-2"><span class="investa-meta">{{ 'opportunityRoom.loanRepayment.confirmedRepaid' | translate }}</span><strong class="block text-current">{{ money(repayment.confirmedRepaidAmount, repayment.currency) }}</strong></div>
+                            <div class="investa-card-soft p-2"><span class="investa-meta">{{ 'opportunityRoom.loanRepayment.pending' | translate }}</span><strong class="block text-current">{{ money(repayment.pendingConfirmationAmount, repayment.currency) }}</strong></div>
+                            <div class="investa-card-soft p-2"><span class="investa-meta">{{ 'opportunityRoom.loanRepayment.disputed' | translate }}</span><strong class="block text-current">{{ money(repayment.disputedAmount, repayment.currency) }}</strong></div>
+                          </div>
+                          @if (repayment.records.length > 0) {
+                            <div class="mt-3 overflow-x-auto">
+                              <table class="min-w-full text-left text-xs rtl:text-right">
+                                <thead class="investa-meta"><tr><th class="px-2 py-2">{{ 'opportunityRoom.loanRepayment.amount' | translate }}</th><th class="px-2 py-2">{{ 'opportunityRoom.loanRepayment.externalDate' | translate }}</th><th class="px-2 py-2">{{ 'opportunityRoom.loanRepayment.reference' | translate }}</th><th class="px-2 py-2">{{ 'opportunityRoom.loanRepayment.status' | translate }}</th><th class="px-2 py-2">{{ 'opportunityRoom.loanRepayment.declaredAt' | translate }}</th><th class="px-2 py-2"></th></tr></thead>
+                                <tbody>@for (record of repayment.records; track record.id) {
+                                  <tr class="border-t border-slate-800/70"><td class="px-2 py-2 font-semibold text-current">{{ money(record.amount, record.currency) }}</td><td class="whitespace-nowrap px-2 py-2 text-current">{{ record.externalPaymentDate | date:'mediumDate' }}</td><td class="px-2 py-2 text-current">{{ record.externalReference || '—' }}</td><td class="px-2 py-2 text-current">{{ record.status }}</td><td class="whitespace-nowrap px-2 py-2 text-current">{{ record.declaredAt | date:'medium' }}</td><td class="px-2 py-2"><div class="flex flex-wrap gap-2">@if (canDecideLoanRepayment(record)) { <button type="button" (click)="openLoanRepaymentDecision(record, 'confirm')" class="investa-btn-primary text-xs">{{ 'opportunityRoom.loanRepayment.confirm' | translate }}</button><button type="button" (click)="openLoanRepaymentDecision(record, 'dispute')" class="investa-btn-secondary text-xs">{{ 'opportunityRoom.loanRepayment.dispute' | translate }}</button> } @if (record.proofAvailable) { <button type="button" (click)="downloadLoanRepaymentProof(record)" class="investa-btn-secondary text-xs">{{ 'fundingDeclaration.actions.viewProof' | translate }}</button> }</div></td></tr>
+                                  @if (record.confirmationComment || record.disputeReason || record.decidedAt) { <tr class="border-t border-slate-800/70"><td colspan="6" class="px-2 py-2 text-xs investa-muted">@if (record.decidedAt) { {{ 'opportunityRoom.loanRepayment.decidedAt' | translate }}: {{ record.decidedAt | date:'medium' }} } @if (record.confirmationComment) { · {{ 'opportunityRoom.loanRepayment.decisionComment' | translate }}: {{ record.confirmationComment }} } @if (record.disputeReason) { · {{ 'opportunityRoom.loanRepayment.disputeReason' | translate }}: {{ record.disputeReason }} }</td></tr> }
+                                }</tbody>
+                              </table>
+                            </div>
+                          }
+                          @if (repayment.defaultReason || repayment.closedAt || repayment.fullyRepaidAt) {
+                            <div class="mt-3 text-xs investa-muted">
+                              @if (repayment.fullyRepaidAt) { <span>{{ 'opportunityRoom.loanRepayment.fullyRepaidAt' | translate }}: {{ repayment.fullyRepaidAt | date:'medium' }}</span> }
+                              @if (repayment.defaultReason) { <span> · {{ 'opportunityRoom.loanRepayment.defaultReason' | translate }}: {{ repayment.defaultReason }}</span> }
+                              @if (repayment.closedAt) { <span> · {{ 'opportunityRoom.loanRepayment.closedAt' | translate }}: {{ repayment.closedAt | date:'medium' }}{{ repayment.closureReason ? ' · ' + repayment.closureReason : '' }}</span> }
+                            </div>
+                          }
+                          <p class="mt-2 text-xs investa-muted">{{ 'opportunityRoom.loanRepayment.expectedOnly' | translate }}</p>
+                        </div>
+                      }
+                      @if (leg.profitSharingObligationId) {
+                        <div class="mt-4 border-t border-slate-700/60 pt-3">
+                          <p class="text-[10px] font-bold uppercase tracking-[0.14em] investa-meta">{{ 'opportunityRoom.profitSharing.title' | translate }}</p>
+                          <div class="mt-3 grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-3">
+                            <div class="investa-card-soft p-2"><span class="investa-meta">{{ 'opportunityRoom.profitSharing.status' | translate }}</span><strong class="block text-current">{{ leg.profitSharingObligationStatus }}</strong></div>
+                            <div class="investa-card-soft p-2"><span class="investa-meta">{{ 'opportunityRoom.profitSharing.frequency' | translate }}</span><strong class="block text-current">{{ leg.profitSharingReportingFrequency || '—' }}</strong></div>
+                            <div class="investa-card-soft p-2"><span class="investa-meta">{{ 'opportunityRoom.profitSharing.basis' | translate }}</span><strong class="block text-current">{{ leg.profitSharingCalculationBasis || '—' }}</strong></div>
+                            <div class="investa-card-soft p-2"><span class="investa-meta">{{ 'opportunityRoom.profitSharing.startDate' | translate }}</span><strong class="block text-current">{{ leg.contractualStartDate ? (leg.contractualStartDate | date:'mediumDate') : '—' }}</strong></div>
+                            <div class="investa-card-soft p-2"><span class="investa-meta">{{ 'opportunityRoom.profitSharing.endDate' | translate }}</span><strong class="block text-current">{{ leg.contractualMaturityDate ? (leg.contractualMaturityDate | date:'mediumDate') : '—' }}</strong></div>
+                          </div>
+                          @if (leg.profitSharingObligationStatus === 'Matured') {
+                            <p class="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-current">{{ 'opportunityRoom.profitSharing.maturedNotice' | translate }}</p>
+                          } @else if (leg.profitSharingObligationStatus === 'Settled') {
+                            <p class="mt-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-current">{{ 'opportunityRoom.profitSharing.settledNotice' | translate }}</p>
+                          }
+                          <div class="mt-3 grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4">
+                            <div class="investa-card-soft p-2"><span class="investa-meta">{{ 'opportunityRoom.profitSharing.declaredResult' | translate }}</span><strong class="block text-current">{{ leg.profitSharingTotalDeclaredResult != null ? money(leg.profitSharingTotalDeclaredResult, leg.currency || participation.fundingCurrency) : '—' }}</strong></div>
+                            <div class="investa-card-soft p-2"><span class="investa-meta">{{ 'opportunityRoom.profitSharing.entitlement' | translate }}</span><strong class="block text-current">{{ leg.profitSharingTotalEntitlement != null ? money(leg.profitSharingTotalEntitlement, leg.currency || participation.fundingCurrency) : '—' }}</strong></div>
+                            <div class="investa-card-soft p-2"><span class="investa-meta">{{ 'opportunityRoom.profitSharing.confirmedDistributed' | translate }}</span><strong class="block text-current">{{ leg.profitSharingTotalConfirmedDistributed != null ? money(leg.profitSharingTotalConfirmedDistributed, leg.currency || participation.fundingCurrency) : '—' }}</strong></div>
+                            <div class="investa-card-soft p-2"><span class="investa-meta">{{ 'opportunityRoom.profitSharing.pendingConfirmation' | translate }}</span><strong class="block text-current">{{ leg.profitSharingTotalPendingConfirmation != null ? money(leg.profitSharingTotalPendingConfirmation, leg.currency || participation.fundingCurrency) : '—' }}</strong></div>
+                            <div class="investa-card-soft p-2"><span class="investa-meta">{{ 'opportunityRoom.profitSharing.distributionOutstanding' | translate }}</span><strong class="block text-current">{{ leg.profitSharingTotalDistributionOutstanding != null ? money(leg.profitSharingTotalDistributionOutstanding, leg.currency || participation.fundingCurrency) : '—' }}</strong></div>
+                            <div class="investa-card-soft p-2"><span class="investa-meta">{{ 'opportunityRoom.profitSharing.completedPeriods' | translate }}</span><strong class="block text-current">{{ leg.profitSharingCompletedPeriods ?? 0 }} / {{ leg.profitSharingTotalPeriods ?? 0 }}</strong></div>
+                          </div>
+                          @if (leg.profitSharingClosedAt) {
+                            <div class="mt-3 rounded-lg border border-slate-700/60 p-3 text-xs text-current"><strong>{{ 'opportunityRoom.profitSharing.closedSummary' | translate }}</strong><div class="mt-1">{{ 'opportunityRoom.profitSharing.closedAt' | translate }}: {{ leg.profitSharingClosedAt | date:'medium' }}</div><div>{{ 'opportunityRoom.profitSharing.closureReason' | translate }}: {{ leg.profitSharingClosureReason || '—' }}</div></div>
+                          }
+                          @if (leg.profitSharingReportingPeriods && leg.profitSharingReportingPeriods.length > 0) {
+                            <div class="mt-3 overflow-x-auto">
+                              <table class="min-w-full text-left text-xs rtl:text-right">
+                                <caption class="mb-2 text-left text-xs investa-meta rtl:text-right">{{ 'opportunityRoom.profitSharing.expectedNote' | translate }}</caption>
+                                <thead class="investa-meta"><tr><th class="px-2 py-2">{{ 'opportunityRoom.profitSharing.period' | translate }}</th><th class="px-2 py-2">{{ 'opportunityRoom.profitSharing.endDate' | translate }}</th><th class="px-2 py-2">{{ 'opportunityRoom.profitSharing.status' | translate }}</th><th class="px-2 py-2">{{ 'opportunityRoom.profitSharing.declaration' | translate }}</th><th class="px-2 py-2">{{ 'opportunityRoom.profitSharing.entitlement' | translate }}</th><th class="px-2 py-2">{{ 'opportunityRoom.profitSharing.confirmedDistributed' | translate }}</th><th class="px-2 py-2">{{ 'opportunityRoom.profitSharing.pendingConfirmation' | translate }}</th><th class="px-2 py-2">{{ 'opportunityRoom.profitSharing.distributionOutstanding' | translate }}</th><th class="px-2 py-2"></th></tr></thead>
+                                <tbody>@for (period of leg.profitSharingReportingPeriods; track period.id) {
+                                  <tr class="border-t border-slate-800/70"><td class="px-2 py-2 font-semibold text-current">#{{ period.periodNumber }} @if (period.isFinalPeriod) { <span class="investa-meta">· {{ 'opportunityRoom.profitSharing.finalPeriod' | translate }}</span> }</td><td class="whitespace-nowrap px-2 py-2 text-current">{{ period.endDate | date:'mediumDate' }}</td><td class="whitespace-nowrap px-2 py-2 text-current">{{ period.status }}</td><td class="whitespace-nowrap px-2 py-2 text-current">{{ period.hasDeclaration ? (period.declarationStatus || 'Declared') : '—' }}</td><td class="whitespace-nowrap px-2 py-2 text-current">{{ period.investorEntitlement != null ? money(period.investorEntitlement, period.currency) : '—' }}</td><td class="whitespace-nowrap px-2 py-2 text-current">{{ period.confirmedDistributed != null ? money(period.confirmedDistributed, period.currency) : '—' }}</td><td class="whitespace-nowrap px-2 py-2 text-current">{{ period.pendingConfirmation != null ? money(period.pendingConfirmation, period.currency) : '—' }}</td><td class="whitespace-nowrap px-2 py-2 text-current">{{ period.distributionOutstanding != null ? money(period.distributionOutstanding, period.currency) : '—' }}</td><td class="px-2 py-2"><button type="button" (click)="openProfitSharingDistribution(participation, leg, period)" [disabled]="!canDeclareProfitSharingDistribution(leg, period)" class="investa-btn-secondary text-xs disabled:opacity-50">{{ 'opportunityRoom.profitSharing.declareDistribution' | translate }}</button></td></tr>
+                                  @for (distribution of period.distributionDeclarations || []; track distribution.id) {
+                                    <tr class="border-t border-slate-800/40"><td colspan="5" class="px-2 py-2 text-xs investa-muted">{{ 'opportunityRoom.profitSharing.externalDistribution' | translate }} · {{ money(distribution.declaredAmount, distribution.currency) }} · {{ distribution.status }}</td><td colspan="4" class="px-2 py-2 text-xs"><div class="flex flex-wrap gap-2">@if (canDecideProfitSharingDistribution(distribution)) { <button type="button" (click)="openProfitSharingDistributionDecision(distribution, 'confirm')" class="investa-btn-primary text-xs">{{ 'opportunityRoom.profitSharing.confirm' | translate }}</button><button type="button" (click)="openProfitSharingDistributionDecision(distribution, 'dispute')" class="investa-btn-secondary text-xs">{{ 'opportunityRoom.profitSharing.dispute' | translate }}</button> }</div></td></tr>
+                                  }
+                                }</tbody>
+                              </table>
+                            </div>
+                          }
+                        </div>
+                      }
                     </section>
                   }
                 </div>
-                @if (participation.contract) { <p class="mt-4 text-xs investa-meta">{{ 'opportunityRoom.participations.contract' | translate }}: <span class="font-semibold text-current">{{ participation.contract.contractNumber }} · V{{ participation.contract.currentVersionNumber }}</span></p> }
+                <dl class="mt-4 grid gap-3 text-xs sm:grid-cols-2">
+                  <div class="investa-card-soft p-3">
+                    <dt class="investa-meta">{{ 'opportunityRoom.participations.acceptedOffer' | translate }}</dt>
+                    <dd class="mt-1 font-semibold text-current">{{ participation.acceptedOfferId ? ('#' + participation.acceptedOfferId + (participation.contract?.acceptedOfferVersionNumber ? ' · V' + participation.contract?.acceptedOfferVersionNumber : '')) : '—' }}</dd>
+                  </div>
+                  <div class="investa-card-soft p-3">
+                    <dt class="investa-meta">{{ 'opportunityRoom.participations.contract' | translate }}</dt>
+                    <dd class="mt-1 font-semibold text-current">{{ participation.contract ? (participation.contract.contractNumber + ' · V' + participation.contract.currentVersionNumber) : '—' }}</dd>
+                  </div>
+                </dl>
+                @if (participation.contract) {
+                  <button type="button" (click)="openContractSnapshot()" class="mt-3 text-xs font-semibold text-current underline-offset-4 hover:underline">
+                    {{ 'opportunityRoom.participations.viewContractSnapshot' | translate }}
+                  </button>
+                }
               </article>
             }
           </div>
+          <section class="mt-6 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 class="text-sm font-bold uppercase tracking-[0.14em] text-current">{{ 'fundingDeclaration.historyTitle' | translate }}</h3>
+                <p class="mt-1 text-xs investa-meta">{{ 'fundingDeclaration.historyHelper' | translate }}</p>
+              </div>
+              <span class="text-xs font-semibold investa-meta">{{ fundingHistory().length }}</span>
+            </div>
+            @if (fundingHistory().length === 0) {
+              <p class="mt-4 text-sm investa-meta">{{ 'fundingDeclaration.empty' | translate }}</p>
+            } @else {
+              <div class="mt-4 space-y-3">
+                @for (declaration of fundingHistory(); track declaration.id) {
+                  <article class="rounded-xl border border-slate-700/60 bg-slate-950/10 p-4 text-xs">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p class="font-semibold text-current">{{ money(declaration.amount, declaration.currencyCode) }} · {{ declaration.receivedDate | date:'mediumDate' }}</p>
+                        <p class="mt-1 investa-meta">{{ declaration.investorDisplayName }} · {{ ('fundingDeclaration.methods.' + declaration.paymentMethod) | translate }}</p>
+                      </div>
+                      <span class="font-semibold" [class]="fundingDeclarationStatusClass(declaration.status)">{{ ('fundingDeclaration.status.' + declaration.status) | translate }}</span>
+                    </div>
+                    <dl class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      <div><dt class="investa-meta">{{ 'fundingDeclaration.history.declaredAt' | translate }}</dt><dd class="mt-1 font-semibold text-current">{{ fundingHistoryDate(declaration) }}</dd></div>
+                      <div><dt class="investa-meta">{{ 'fundingDeclaration.history.declaredBy' | translate }}</dt><dd class="mt-1 font-semibold text-current">{{ declaration.createdBy || '—' }}</dd></div>
+                      <div><dt class="investa-meta">{{ 'fundingDeclaration.history.proof' | translate }}</dt><dd class="mt-1 font-semibold text-current">{{ declaration.proofAvailable ? ('fundingDeclaration.confirm.attached' | translate) : ('fundingDeclaration.confirm.notProvided' | translate) }}</dd></div>
+                      @if (declaration.externalReference) { <div><dt class="investa-meta">{{ 'fundingDeclaration.history.externalReference' | translate }}</dt><dd class="mt-1 break-all font-semibold text-current">{{ declaration.externalReference }}</dd></div> }
+                      @if (declaration.status === 'Confirmed') {
+                        <div><dt class="investa-meta">{{ 'fundingDeclaration.history.decisionBy' | translate }}</dt><dd class="mt-1 font-semibold text-current">{{ declaration.confirmedByInvestorId || '—' }}</dd></div>
+                        @if (declaration.confirmedAt) { <div><dt class="investa-meta">{{ 'fundingDeclaration.history.decisionAt' | translate }}</dt><dd class="mt-1 font-semibold text-current">{{ declaration.confirmedAt | date:'medium' }}</dd></div> }
+                      }
+                      @if (declaration.status === 'Disputed') {
+                        <div><dt class="investa-meta">{{ 'fundingDeclaration.history.decisionBy' | translate }}</dt><dd class="mt-1 font-semibold text-current">{{ declaration.disputedByInvestorId || '—' }}</dd></div>
+                        @if (declaration.disputedAt) { <div><dt class="investa-meta">{{ 'fundingDeclaration.history.decisionAt' | translate }}</dt><dd class="mt-1 font-semibold text-current">{{ declaration.disputedAt | date:'medium' }}</dd></div> }
+                      }
+                    </dl>
+                    @if (declaration.notes) { <p class="mt-3 whitespace-pre-line investa-muted">{{ declaration.notes }}</p> }
+                    @if (declaration.confirmationComment) { <p class="mt-3 whitespace-pre-line text-emerald-200">{{ 'fundingDeclaration.history.confirmationComment' | translate }}: {{ declaration.confirmationComment }}</p> }
+                    @if (declaration.disputeReason) { <p class="mt-3 whitespace-pre-line text-amber-100">{{ 'fundingDeclaration.history.disputeReason' | translate }}: {{ declaration.disputeReason }}</p> }
+                    <div class="mt-3 flex flex-wrap items-center gap-2">
+                      @if (canDecideFundingDeclaration(declaration)) {
+                        <button type="button" (click)="openFundingDecision(declaration, 'confirm')" class="investa-btn-primary">{{ 'fundingDeclaration.actions.confirm' | translate }}</button>
+                        <button type="button" (click)="openFundingDecision(declaration, 'dispute')" class="investa-btn-secondary">{{ 'fundingDeclaration.actions.dispute' | translate }}</button>
+                      } @else if (!isFounder() && isTerminalFundingDeclaration(declaration)) {
+                        <span class="text-xs investa-meta">{{ 'fundingDeclaration.history.terminal' | translate }}</span>
+                      }
+                      @if (declaration.proofAvailable) {
+                        <button type="button" (click)="downloadFundingProof(declaration)" class="investa-btn-secondary">{{ 'fundingDeclaration.actions.viewProof' | translate }}</button>
+                      } @else {
+                        <span class="investa-meta">{{ 'fundingDeclaration.noProof' | translate }}</span>
+                      }
+                    </div>
+                  </article>
+                }
+              </div>
+            }
+          </section>
         }
       </section>
     }
@@ -694,7 +915,7 @@
             </div>
 
             <div class="mt-6 space-y-6">
-                  @for (participation of detail.participations; track participation.participationRequestId + '-' + $index) {
+                  @for (participation of detail.participations; track participation?.participationRequestId ?? $index) {
                 <section class="investa-card-soft p-5">
                   <div class="flex items-center justify-between gap-3">
                     <div>
@@ -705,7 +926,7 @@
 
                   @if (participation.legs?.length) {
                     <div class="mt-4 grid gap-3 md:grid-cols-2">
-                  @for (leg of participation.legs; track participation.participationRequestId + '-payment-leg-' + leg.legNumber + '-' + $index) {
+                  @for (leg of participation.legs; track (participation?.participationRequestId ?? '') + '-payment-leg-' + (leg?.legNumber ?? $index) + '-' + $index) {
                         <div class="rounded-xl border border-slate-700/70 p-3">
                           <div class="flex items-center justify-between gap-2">
                             <span class="text-xs font-bold uppercase tracking-[0.14em] text-current">{{ legTypeLabel(leg.legType) }}</span>
@@ -865,11 +1086,11 @@
         </div>
         <div>
           <label class="mb-1 block text-xs font-semibold investa-meta">{{ 'opportunityRoom.payments.reference' | translate }}</label>
-          <input type="text" [ngModel]="recordPaymentForm().reference" (ngModelChange)="setRecordPaymentField('reference', $event)" placeholder="Optional reference" class="w-full rounded-lg investa-input">
+          <input type="text" [ngModel]="recordPaymentForm().reference" (ngModelChange)="setRecordPaymentField('reference', $event)" [placeholder]="'opportunityRoom.payments.referencePlaceholder' | translate" class="w-full rounded-lg investa-input">
         </div>
         <div>
           <label class="mb-1 block text-xs font-semibold investa-meta">{{ 'opportunityRoom.payments.notes' | translate }}</label>
-          <textarea [ngModel]="recordPaymentForm().notes" (ngModelChange)="setRecordPaymentField('notes', $event)" rows="3" placeholder="Optional notes" class="w-full rounded-lg investa-input"></textarea>
+          <textarea [ngModel]="recordPaymentForm().notes" (ngModelChange)="setRecordPaymentField('notes', $event)" rows="3" [placeholder]="'opportunityRoom.payments.notesPlaceholder' | translate" class="w-full rounded-lg investa-input"></textarea>
         </div>
         <div class="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
           <p class="text-xs text-amber-200">{{ 'opportunityRoom.payments.disclaimer' | translate }}</p>
@@ -891,7 +1112,7 @@
       <p class="mt-2 text-sm investa-meta">{{ 'opportunityRoom.payments.reverseModalHelper' | translate }}</p>
       <div class="mt-5">
         <label class="mb-1 block text-xs font-semibold investa-meta">{{ 'opportunityRoom.payments.reversalReasonLabel' | translate }}</label>
-        <textarea [ngModel]="reversePaymentForm().reason" (ngModelChange)="setReverseReason($event)" rows="4" placeholder="Explain why this payment is being reversed" class="w-full rounded-lg investa-input"></textarea>
+        <textarea [ngModel]="reversePaymentForm().reason" (ngModelChange)="setReverseReason($event)" rows="4" [placeholder]="'opportunityRoom.payments.reversalReasonPlaceholder' | translate" class="w-full rounded-lg investa-input"></textarea>
       </div>
       @if (actionError()) { <p class="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{{ actionError() }}</p> }
       <div class="mt-6 flex justify-end gap-3">
@@ -910,7 +1131,7 @@
         <div class="mt-4 space-y-2 text-sm">
           <p><span class="font-semibold">{{ 'opportunityRoom.payments.bulkConfirmInstallments' | translate }}:</span> {{ result.confirmedCount }}</p>
           <p><span class="font-semibold">{{ 'opportunityRoom.payments.bulkConfirmTotal' | translate }}:</span> {{ money(result.totalAmount) }}</p>
-          <p><span class="font-semibold">Reputation Points:</span> +{{ result.reputationPointsAwarded }}</p>
+          <p><span class="font-semibold">{{ 'opportunityRoom.payments.reputationPoints' | translate }}:</span> +{{ result.reputationPointsAwarded }}</p>
         </div>
         <div class="mt-6 flex justify-end">
           <button type="button" (click)="closeBulkConfirmModal()" class="investa-btn-primary">{{ 'common.close' | translate }}</button>
@@ -1008,7 +1229,7 @@
         } @else if (previewHtml()) {
           <iframe
             class="contract-preview-frame"
-            title="Contract preview"
+            [title]="'contracts.preview.title' | translate"
             sandbox=""
             [attr.srcdoc]="previewHtml()">
           </iframe>
@@ -1094,6 +1315,173 @@
   </div>
 }
 
+@if (fundingDeclarationModalOpen()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+    <section class="w-full max-w-xl rounded-2xl investa-modal p-6 shadow-2xl">
+      <h2 class="text-xl font-bold text-current">{{ 'fundingDeclaration.modal.title' | translate }}</h2>
+      <p class="mt-2 text-sm investa-meta">{{ 'fundingDeclaration.modal.instruction' | translate }}</p>
+      <p class="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">{{ 'funding.disclaimer' | translate }}</p>
+      <div class="mt-5 space-y-4">
+        <label class="block text-sm font-semibold investa-muted">
+          {{ 'fundingDeclaration.form.amount' | translate }}
+          <input type="number" min="0.01" step="0.01" [ngModel]="fundingDeclarationForm().amount" (ngModelChange)="setFundingDeclarationField('amount', $event)" class="mt-2 w-full rounded-lg investa-input">
+        </label>
+        <label class="block text-sm font-semibold investa-muted">
+          {{ 'fundingDeclaration.form.receivedDate' | translate }}
+          <input type="date" [ngModel]="fundingDeclarationForm().receivedDate" (ngModelChange)="setFundingDeclarationField('receivedDate', $event)" class="mt-2 w-full rounded-lg investa-input">
+        </label>
+        <label class="block text-sm font-semibold investa-muted">
+          {{ 'fundingDeclaration.form.paymentMethod' | translate }}
+          <select [ngModel]="fundingDeclarationForm().paymentMethod" (ngModelChange)="setFundingDeclarationField('paymentMethod', $event)" class="mt-2 w-full rounded-lg investa-input">
+            <option value="BankTransfer">{{ 'fundingDeclaration.methods.BankTransfer' | translate }}</option>
+            <option value="Cash">{{ 'fundingDeclaration.methods.Cash' | translate }}</option>
+            <option value="Cheque">{{ 'fundingDeclaration.methods.Cheque' | translate }}</option>
+            <option value="Other">{{ 'fundingDeclaration.methods.Other' | translate }}</option>
+          </select>
+        </label>
+        <label class="block text-sm font-semibold investa-muted">
+          {{ 'fundingDeclaration.form.reference' | translate }}
+          <input type="text" maxlength="200" [ngModel]="fundingDeclarationForm().externalReference" (ngModelChange)="setFundingDeclarationField('externalReference', $event)" class="mt-2 w-full rounded-lg investa-input">
+        </label>
+        <label class="block text-sm font-semibold investa-muted">
+          {{ 'fundingDeclaration.form.proof' | translate }}
+          <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" (change)="onFundingProofSelected($event)" class="mt-2 w-full rounded-lg investa-input">
+          <span class="mt-1 block text-xs investa-meta">{{ 'fundingDeclaration.form.proofOptional' | translate }}</span>
+        </label>
+        <label class="block text-sm font-semibold investa-muted">
+          {{ 'fundingDeclaration.form.notes' | translate }}
+          <textarea rows="3" maxlength="2000" [ngModel]="fundingDeclarationForm().notes" (ngModelChange)="setFundingDeclarationField('notes', $event)" class="mt-2 w-full rounded-lg investa-input"></textarea>
+        </label>
+      </div>
+      @if (actionError()) { <p class="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{{ actionError() }}</p> }
+      <div class="mt-6 flex justify-end gap-3">
+        <button type="button" (click)="closeFundingDeclarationModal()" class="investa-btn-secondary">{{ 'fundingDeclaration.actions.cancel' | translate }}</button>
+        <button type="button" (click)="submitFundingDeclaration()" [disabled]="fundingDeclarationSubmitting()" class="investa-btn-primary disabled:opacity-50">{{ fundingDeclarationSubmitting() ? ('common.saving' | translate) : ('fundingDeclaration.actions.submit' | translate) }}</button>
+      </div>
+    </section>
+  </div>
+}
+
+@if (fundingDecisionModalOpen() && fundingDecisionDeclaration(); as declaration) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+    <section class="w-full max-w-xl rounded-2xl investa-modal p-6 shadow-2xl">
+      <h2 class="text-xl font-bold text-current">
+        {{ (fundingDecisionType() === 'confirm' ? 'fundingDeclaration.confirm.title' : 'fundingDeclaration.dispute.title') | translate }}
+      </h2>
+      <p class="mt-2 text-sm investa-meta">
+        {{ (fundingDecisionType() === 'confirm' ? 'fundingDeclaration.confirm.instruction' : 'fundingDeclaration.dispute.instruction') | translate }}
+      </p>
+      <dl class="mt-5 grid gap-3 rounded-xl border border-slate-700/60 bg-slate-950/20 p-4 text-sm sm:grid-cols-2">
+        <div><dt class="investa-meta">{{ 'fundingDeclaration.confirm.amount' | translate }}</dt><dd class="font-semibold text-current">{{ money(declaration.amount, declaration.currencyCode) }}</dd></div>
+        <div><dt class="investa-meta">{{ 'fundingDeclaration.confirm.receivedDate' | translate }}</dt><dd class="font-semibold text-current">{{ declaration.receivedDate | date:'mediumDate' }}</dd></div>
+        <div><dt class="investa-meta">{{ 'fundingDeclaration.confirm.founder' | translate }}</dt><dd class="font-semibold text-current">{{ founderSummary() }}</dd></div>
+        <div><dt class="investa-meta">{{ 'fundingDeclaration.confirm.context' | translate }}</dt><dd class="font-semibold text-current">{{ title() }} · {{ 'fundingDeclaration.confirm.participation' | translate }} #{{ declaration.participationId }}</dd></div>
+        <div><dt class="investa-meta">{{ 'fundingDeclaration.confirm.paymentMethod' | translate }}</dt><dd class="font-semibold text-current">{{ ('fundingDeclaration.methods.' + declaration.paymentMethod) | translate }}</dd></div>
+        <div><dt class="investa-meta">{{ 'fundingDeclaration.confirm.proof' | translate }}</dt><dd class="font-semibold text-current">{{ declaration.proofAvailable ? ('fundingDeclaration.confirm.attached' | translate) : ('fundingDeclaration.confirm.notProvided' | translate) }}</dd></div>
+      </dl>
+      @if (fundingDecisionType() === 'confirm') {
+        <label class="mt-5 block text-sm font-semibold investa-muted">
+          {{ 'fundingDeclaration.confirm.comment' | translate }}
+          <textarea rows="3" maxlength="2000" [ngModel]="fundingDecisionReason()" (ngModelChange)="setFundingDecisionReason($event)" class="mt-2 w-full rounded-lg investa-input"></textarea>
+        </label>
+      } @else {
+        <label class="mt-5 block text-sm font-semibold investa-muted">
+          {{ 'fundingDeclaration.dispute.reasonLabel' | translate }}
+          <textarea required rows="4" maxlength="2000" [ngModel]="fundingDecisionReason()" (ngModelChange)="setFundingDecisionReason($event)" class="mt-2 w-full rounded-lg investa-input"></textarea>
+        </label>
+      }
+      <p class="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">{{ 'funding.disclaimer' | translate }}</p>
+      @if (actionError()) { <p class="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{{ actionError() }}</p> }
+      <div class="mt-6 flex justify-end gap-3">
+        <button type="button" (click)="closeFundingDecisionModal()" class="investa-btn-secondary">{{ 'fundingDeclaration.actions.cancel' | translate }}</button>
+        <button type="button" (click)="submitFundingDecision()" [disabled]="fundingDecisionSubmitting()" class="investa-btn-primary disabled:opacity-50">
+          {{ fundingDecisionSubmitting() ? ('common.saving' | translate) : (fundingDecisionType() === 'confirm' ? ('fundingDeclaration.actions.confirm' | translate) : ('fundingDeclaration.actions.dispute' | translate)) }}
+        </button>
+      </div>
+    </section>
+  </div>
+}
+
+@if (loanRepaymentModalOpen() && loanRepaymentLeg(); as leg) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+    <section class="w-full max-w-xl rounded-2xl investa-modal p-6 shadow-2xl">
+      <h2 class="text-xl font-bold text-current">{{ 'opportunityRoom.loanRepayment.declare' | translate }}</h2>
+      <p class="mt-2 text-sm investa-meta">{{ 'opportunityRoom.loanRepayment.expectedOnly' | translate }}</p>
+      <div class="mt-5 space-y-4">
+        <label class="block text-sm font-semibold investa-muted">{{ 'opportunityRoom.loanRepayment.amount' | translate }}
+          <input type="number" min="0.01" step="0.01" [ngModel]="loanRepaymentForm().amount" (ngModelChange)="setLoanRepaymentField('amount', $event)" class="mt-2 w-full rounded-lg investa-input">
+        </label>
+        <label class="block text-sm font-semibold investa-muted">{{ 'opportunityRoom.loanRepayment.externalDate' | translate }}
+          <input type="date" [ngModel]="loanRepaymentForm().externalPaymentDate" (ngModelChange)="setLoanRepaymentField('externalPaymentDate', $event)" class="mt-2 w-full rounded-lg investa-input">
+        </label>
+        <label class="block text-sm font-semibold investa-muted">{{ 'opportunityRoom.loanRepayment.reference' | translate }}
+          <input type="text" maxlength="200" [ngModel]="loanRepaymentForm().externalReference" (ngModelChange)="setLoanRepaymentField('externalReference', $event)" class="mt-2 w-full rounded-lg investa-input">
+        </label>
+        <label class="block text-sm font-semibold investa-muted">{{ 'opportunityRoom.loanRepayment.proof' | translate }}
+          <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" (change)="setLoanRepaymentProof($any($event.target).files?.[0] || null)" class="mt-2 w-full rounded-lg investa-input">
+        </label>
+      </div>
+      @if (actionError()) { <p class="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{{ actionError() }}</p> }
+      <div class="mt-6 flex justify-end gap-3"><button type="button" (click)="closeLoanRepaymentDeclaration()" class="investa-btn-secondary">{{ 'fundingDeclaration.actions.cancel' | translate }}</button><button type="button" (click)="submitLoanRepaymentDeclaration()" [disabled]="loanRepaymentSubmitting()" class="investa-btn-primary disabled:opacity-50">{{ loanRepaymentSubmitting() ? ('common.saving' | translate) : ('opportunityRoom.loanRepayment.declare' | translate) }}</button></div>
+    </section>
+  </div>
+}
+
+@if (loanRepaymentDecisionRecord(); as record) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+    <section class="w-full max-w-xl rounded-2xl investa-modal p-6 shadow-2xl">
+      <h2 class="text-xl font-bold text-current">{{ (loanRepaymentDecisionType() === 'confirm' ? 'opportunityRoom.loanRepayment.confirm' : 'opportunityRoom.loanRepayment.dispute') | translate }}</h2>
+      <p class="mt-2 text-sm investa-meta">{{ money(record.amount, record.currency) }} · {{ record.externalPaymentDate | date:'mediumDate' }} · {{ record.externalReference || '—' }}</p>
+      <label class="mt-5 block text-sm font-semibold investa-muted">{{ (loanRepaymentDecisionType() === 'confirm' ? 'opportunityRoom.loanRepayment.decisionComment' : 'opportunityRoom.loanRepayment.disputeReason') | translate }}
+        <textarea rows="4" maxlength="2000" [ngModel]="loanRepaymentDecisionText()" (ngModelChange)="loanRepaymentDecisionText.set($event)" class="mt-2 w-full rounded-lg investa-input"></textarea>
+      </label>
+      @if (actionError()) { <p class="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{{ actionError() }}</p> }
+      <div class="mt-6 flex justify-end gap-3"><button type="button" (click)="closeLoanRepaymentDecision()" class="investa-btn-secondary">{{ 'fundingDeclaration.actions.cancel' | translate }}</button><button type="button" (click)="submitLoanRepaymentDecision()" [disabled]="loanRepaymentDecisionSubmitting()" class="investa-btn-primary disabled:opacity-50">{{ loanRepaymentDecisionSubmitting() ? ('common.saving' | translate) : (loanRepaymentDecisionType() === 'confirm' ? ('opportunityRoom.loanRepayment.confirm' | translate) : ('opportunityRoom.loanRepayment.dispute' | translate)) }}</button></div>
+    </section>
+  </div>
+}
+
+@if (profitSharingDistributionModalOpen() && profitSharingDistributionPeriod(); as period) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+    <section class="w-full max-w-xl rounded-2xl investa-modal p-6 shadow-2xl">
+      <h2 class="text-xl font-bold text-current">{{ 'opportunityRoom.profitSharing.declareDistribution' | translate }}</h2>
+      <p class="mt-2 text-sm investa-meta">{{ 'opportunityRoom.profitSharing.externalDistribution' | translate }} · {{ money(period.investorEntitlement || 0, period.currency) }}</p>
+      <p class="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">{{ 'funding.disclaimer' | translate }}</p>
+      <div class="mt-5 space-y-4">
+        <label class="block text-sm font-semibold investa-muted">{{ 'opportunityRoom.profitSharing.amount' | translate }}
+          <input type="number" min="0.01" step="0.01" [ngModel]="profitSharingDistributionForm().amount" (ngModelChange)="setProfitSharingDistributionField('amount', $event)" class="mt-2 w-full rounded-lg investa-input">
+        </label>
+        <label class="block text-sm font-semibold investa-muted">{{ 'opportunityRoom.profitSharing.reference' | translate }}
+          <input type="text" maxlength="200" [ngModel]="profitSharingDistributionForm().externalReference" (ngModelChange)="setProfitSharingDistributionField('externalReference', $event)" class="mt-2 w-full rounded-lg investa-input">
+        </label>
+        <label class="block text-sm font-semibold investa-muted">{{ 'opportunityRoom.profitSharing.evidence' | translate }}
+          <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" (change)="setProfitSharingDistributionEvidence($any($event.target).files?.[0] || null)" class="mt-2 w-full rounded-lg investa-input">
+        </label>
+        <label class="block text-sm font-semibold investa-muted">{{ 'opportunityRoom.profitSharing.notes' | translate }}
+          <textarea rows="3" maxlength="2000" [ngModel]="profitSharingDistributionForm().notes" (ngModelChange)="setProfitSharingDistributionField('notes', $event)" class="mt-2 w-full rounded-lg investa-input"></textarea>
+        </label>
+      </div>
+      @if (actionError()) { <p class="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{{ actionError() }}</p> }
+      <div class="mt-6 flex justify-end gap-3"><button type="button" (click)="closeProfitSharingDistribution()" class="investa-btn-secondary">{{ 'fundingDeclaration.actions.cancel' | translate }}</button><button type="button" (click)="submitProfitSharingDistribution()" [disabled]="profitSharingDistributionSubmitting()" class="investa-btn-primary disabled:opacity-50">{{ profitSharingDistributionSubmitting() ? ('common.saving' | translate) : ('opportunityRoom.profitSharing.declareDistribution' | translate) }}</button></div>
+    </section>
+  </div>
+}
+
+@if (profitSharingDistributionDecision(); as distribution) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+    <section class="w-full max-w-xl rounded-2xl investa-modal p-6 shadow-2xl">
+      <h2 class="text-xl font-bold text-current">{{ (profitSharingDistributionDecisionType() === 'confirm' ? 'opportunityRoom.profitSharing.confirm' : 'opportunityRoom.profitSharing.dispute') | translate }}</h2>
+      <p class="mt-2 text-sm investa-meta">{{ money(distribution.declaredAmount, distribution.currency) }} · {{ 'opportunityRoom.profitSharing.acknowledgement' | translate }}</p>
+      <label class="mt-5 block text-sm font-semibold investa-muted">{{ (profitSharingDistributionDecisionType() === 'confirm' ? 'opportunityRoom.profitSharing.comment' : 'opportunityRoom.profitSharing.disputeReason') | translate }}
+        <textarea rows="4" maxlength="2000" [ngModel]="profitSharingDistributionDecisionText()" (ngModelChange)="profitSharingDistributionDecisionText.set($event)" class="mt-2 w-full rounded-lg investa-input"></textarea>
+      </label>
+      <p class="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">{{ 'funding.disclaimer' | translate }}</p>
+      @if (actionError()) { <p class="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{{ actionError() }}</p> }
+      <div class="mt-6 flex justify-end gap-3"><button type="button" (click)="closeProfitSharingDistributionDecision()" class="investa-btn-secondary">{{ 'fundingDeclaration.actions.cancel' | translate }}</button><button type="button" (click)="submitProfitSharingDistributionDecision()" [disabled]="profitSharingDistributionDecisionSubmitting()" class="investa-btn-primary disabled:opacity-50">{{ profitSharingDistributionDecisionSubmitting() ? ('common.saving' | translate) : (profitSharingDistributionDecisionType() === 'confirm' ? ('opportunityRoom.profitSharing.confirm' | translate) : ('opportunityRoom.profitSharing.dispute' | translate)) }}</button></div>
+    </section>
+  </div>
+}
+
 @if (documentModalOpen()) {
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
     <section class="w-full max-w-xl rounded-2xl investa-modal p-6 shadow-2xl">
@@ -1103,17 +1491,17 @@
         <input [ngModel]="documentForm().title" (ngModelChange)="setDocumentTitle($event)" [placeholder]="'opportunityRoom.modals.addDocument.titlePlaceholder' | translate" class="w-full rounded-lg investa-input">
         <input type="file" (change)="onDocumentFileSelected($event)" class="w-full rounded-lg investa-input">
         <select [ngModel]="documentForm().visibility" (ngModelChange)="setDocumentVisibility($event)" class="w-full rounded-lg investa-input">
-          <option value="Private">Private</option>
-          <option value="Public">Public</option>
+          <option value="Private">{{ 'opportunityRoom.modals.addDocument.visibilityPrivate' | translate }}</option>
+          <option value="Public">{{ 'opportunityRoom.modals.addDocument.visibilityPublic' | translate }}</option>
         </select>
         <select [ngModel]="documentForm().purpose" (ngModelChange)="setDocumentPurpose($event)" class="w-full rounded-lg investa-input">
-          <option value="PrivateDocument">Private Document</option>
-          <option value="PublicDocument">Public Document</option>
-          <option value="FinancialReport">Financial Report</option>
-          <option value="Contract">Contract</option>
-          <option value="Legal">Legal</option>
-          <option value="InternalFile">Internal File</option>
-          <option value="General">General</option>
+          <option value="PrivateDocument">{{ 'opportunityRoom.modals.addDocument.purposePrivateDocument' | translate }}</option>
+          <option value="PublicDocument">{{ 'opportunityRoom.modals.addDocument.purposePublicDocument' | translate }}</option>
+          <option value="FinancialReport">{{ 'opportunityRoom.modals.addDocument.purposeFinancialReport' | translate }}</option>
+          <option value="Contract">{{ 'opportunityRoom.modals.addDocument.purposeContract' | translate }}</option>
+          <option value="Legal">{{ 'opportunityRoom.modals.addDocument.purposeLegal' | translate }}</option>
+          <option value="InternalFile">{{ 'opportunityRoom.modals.addDocument.purposeInternalFile' | translate }}</option>
+          <option value="General">{{ 'opportunityRoom.modals.addDocument.purposeGeneral' | translate }}</option>
         </select>
       </div>
       @if (actionError()) { <p class="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{{ actionError() }}</p> }

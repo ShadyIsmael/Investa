@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Pencil, Plus, RotateCcw, Search } from 'lucide-react';
 import { usePermissions } from '@/context/AuthContext';
 import { companyFinanceService } from '@/services/companyFinanceService';
-import { formatMoney, defaultIsoCode, ensureCurrenciesLoaded } from '../../utils/currency';
+import { formatMoney, defaultIsoCode, ensureCurrenciesLoaded, getCurrencies } from '../../utils/currency';
 import type { FinanceAccount, FinanceAccountInput, FinanceAccountType } from './types';
 import { FinanceEmpty, FinanceError, FinanceLoading, FinancePermissionDenied } from './CompanyFinanceStates';
 
@@ -51,6 +51,7 @@ export const FinanceAccountsPage: React.FC = () => {
   const [form, setForm] = useState<FinanceAccountInput>(emptyAccount);
   const [validationError, setValidationError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [currencyOptions, setCurrencyOptions] = useState<string[]>(() => getCurrencies().map((currency) => currency.isoCode));
 
   const loadAccounts = useCallback(async () => {
     setLoading(true);
@@ -66,7 +67,7 @@ export const FinanceAccountsPage: React.FC = () => {
 
   useEffect(() => {
     if (canView) {
-      void ensureCurrenciesLoaded();
+      void ensureCurrenciesLoaded().then(() => setCurrencyOptions(getCurrencies().map((currency) => currency.isoCode)));
       void loadAccounts();
     } else {
       setLoading(false);
@@ -115,7 +116,7 @@ export const FinanceAccountsPage: React.FC = () => {
 
   const openCreate = () => {
     setEditingAccount(null);
-    setForm(emptyAccount);
+    setForm({ ...emptyAccount, currency: defaultIsoCode() });
     setValidationError('');
     setIsModalOpen(true);
   };
@@ -257,7 +258,7 @@ export const FinanceAccountsPage: React.FC = () => {
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('companyFinance.accounts.accountCode')}<input value={form.code} onChange={(event) => updateForm('code', event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white" /></label>
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('companyFinance.accounts.name')}<input value={form.name} onChange={(event) => updateForm('name', event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white" /></label>
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('companyFinance.accounts.type')}<select value={form.accountType} onChange={(event) => updateForm('accountType', event.target.value as FinanceAccountType)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white">{accountTypes.map((accountType) => <option key={accountType} value={accountType}>{formatAccountType(accountType)}</option>)}</select></label>
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('companyFinance.accounts.currency')}<input value={form.currency} maxLength={3} onChange={(event) => updateForm('currency', event.target.value.toUpperCase())} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white" dir="ltr" /></label>
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('companyFinance.accounts.currency')}<select value={form.currency} onChange={(event) => updateForm('currency', event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-800 dark:text-white" dir="ltr">{currencyOptions.map((currency) => <option key={currency} value={currency}>{currency}</option>)}</select></label>
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('companyFinance.accounts.bank')}<input value={form.bankName || ''} onChange={(event) => updateForm('bankName', event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white" /></label>
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('companyFinance.accounts.last4')}<input value={form.bankAccountNumber || ''} onChange={(event) => updateForm('bankAccountNumber', event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white" dir="ltr" /></label>
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('companyFinance.accounts.openingDate')}<input type="date" value={form.openingDate || ''} onChange={(event) => updateForm('openingDate', event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-white" dir="ltr" /></label>

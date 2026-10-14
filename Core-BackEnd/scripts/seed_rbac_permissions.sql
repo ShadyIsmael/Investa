@@ -26,9 +26,6 @@ VALUES
 (11, 'credits.execute', 'Execute Credit Operations', 'Credit', 'Execute', 1, 1, GETUTCDATE()),
 (12, 'credits.*', 'Full Credits Access', 'Credit', 'All', 1, 1, GETUTCDATE()),
 
--- Lookups Management
-(13, 'lookups.read', 'View Lookups', 'Lookup', 'Read', 1, 1, GETUTCDATE()),
-(14, 'lookups.write', 'Manage Lookups', 'Lookup', 'Write', 1, 1, GETUTCDATE()),
 
 -- Admin Tools
 (15, 'admin.*', 'Full Admin Access', 'Admin', 'All', 1, 1, GETUTCDATE()),

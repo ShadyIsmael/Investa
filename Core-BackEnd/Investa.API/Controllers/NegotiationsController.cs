@@ -519,6 +519,6 @@ public class NegotiationsController : BaseApiController
             _ => 400
         };
 
-        return ErrorResponse(ex.Message, statusCode);
+        return ErrorResponse(ex.Message, statusCode, new { code = ex.Code });
     }
 }

@@ -73,7 +73,7 @@ public class DatabaseSeeder
 
             if (user != null)
             {
-                Console.WriteLine($"Deleting user: {email}...");
+                Console.WriteLine("Deleting seeded user...");
 
                 // Delete related data first (due to foreign key constraints)
                 var userId = user.Id;
@@ -174,7 +174,7 @@ public class DatabaseSeeder
 
                 await _context.SaveChangesAsync();
                 deletedCount++;
-                Console.WriteLine($"✅ Deleted {email}");
+                Console.WriteLine("✅ Deleted seeded user");
             }
         }
 
@@ -803,7 +803,7 @@ string? normalizedPhone = null;
         existingUser.IsEmailVerified = true;
 
         await _context.SaveChangesAsync();
-        Console.WriteLine($"Reset password for demo user: {email}");
+        Console.WriteLine("Reset password for demo user");
     }
 
     private async Task EnsureAdminAuthorizationRoleAsync(AuthUser adminUser, string email, string password)
@@ -851,7 +851,7 @@ string? normalizedPhone = null;
             await _userManager.UpdateAsync(identityUser);
         }
 
-        Console.WriteLine($"Assigned role '{adminRoleName}' to seeded admin user: {email}");
+        Console.WriteLine($"Assigned role '{adminRoleName}' to seeded admin user");
     }
 
     private static bool IsSeededDemoPhone(string? normalizedPhone)
@@ -907,7 +907,7 @@ string? normalizedPhone = null;
             Bio = $"Experienced {role} with a proven track record in the investment ecosystem.",
             BusinessRole = role,
             LinkedInUrl = $"https://linkedin.com/in/{name.Replace(" ", "").ToLower()}",
-            AvatarUrl = $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(name)}&background=random",
+            AvatarUrl = null,
             VerificationStatus = VerificationStatus.Verified,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow

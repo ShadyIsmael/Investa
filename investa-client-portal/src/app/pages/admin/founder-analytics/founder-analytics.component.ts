@@ -81,10 +81,10 @@ export class FounderAnalyticsComponent implements OnInit {
 
   // Time filter options
   readonly timeFilters = [
-    { label: 'Last 7 Days', value: 7 },
-    { label: 'Last 30 Days', value: 30 },
-    { label: 'Last 90 Days', value: 90 },
-    { label: 'All Time', value: null }
+    { labelKey: 'founderAnalytics.time.last7Days', value: 7 },
+    { labelKey: 'founderAnalytics.time.last30Days', value: 30 },
+    { labelKey: 'founderAnalytics.time.last90Days', value: 90 },
+    { labelKey: 'founderAnalytics.time.allTime', value: null }
   ];
 
   selectedTimeFilter = signal<number | null>(30);
@@ -169,25 +169,25 @@ export class FounderAnalyticsComponent implements OnInit {
 
     if (summary) {
       if (summary.approvalRate >= 70) {
-        insights.push(`✅ Your approval rate is ${summary.approvalRate.toFixed(1)}%, which is excellent.`);
+        insights.push(this.t('founderAnalytics.insights.approvalExcellent').replace('{rate}', summary.approvalRate.toFixed(1)));
       } else if (summary.approvalRate < 30) {
-        insights.push(`⚠️ Your approval rate is ${summary.approvalRate.toFixed(1)}%. Consider reviewing your investment terms.`);
+        insights.push(this.t('founderAnalytics.insights.approvalNeedsReview').replace('{rate}', summary.approvalRate.toFixed(1)));
       }
 
       if (summary.totalViews > 0 && summary.requestsReceived === 0) {
-        insights.push(`💡 You have ${summary.totalViews} views but no requests. Consider improving your pitch and investment details.`);
+        insights.push(this.t('founderAnalytics.insights.viewsWithoutRequests').replace('{views}', summary.totalViews.toString()));
       }
     }
 
     if (top && top.length > 0) {
       const best = top[0];
-      insights.push(`🏆 "${best.investmentName}" is your top performing opportunity with ${best.requests} requests.`);
+      insights.push(this.t('founderAnalytics.insights.topOpportunity').replace('{name}', best.investmentName).replace('{requests}', best.requests.toString()));
     }
 
     if (low && low.length > 0) {
       const worst = low[0];
       if (worst.views < 50 && worst.requests === 0) {
-        insights.push(`📉 "${worst.investmentName}" needs attention. Consider updating content or promoting it.`);
+        insights.push(this.t('founderAnalytics.insights.needsAttention').replace('{name}', worst.investmentName));
       }
     }
 
@@ -209,5 +209,9 @@ export class FounderAnalyticsComponent implements OnInit {
   formatDate(dateString: string): string {
     const date = new Date(dateString);
     return date.toLocaleDateString(this.currentLang(), { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  private t(path: string): string {
+    return this.languageService.translate(path);
   }
 }

@@ -6,7 +6,6 @@ export interface ApiResponse<T> {
   message?: string;
   data: T;
 }
-
 /**
  * Standard error/failed response returned by backend when `success` is false
  */
@@ -16,18 +15,6 @@ export interface ApiErrorResponse {
   code?: number | string;
   errors?: Record<string, any> | any[];
   data?: any;
-}
-
-/**
- * Business category from backend
- */
-export interface BusinessCategory {
-  id: number;
-  key: string;
-  value: string;
-  valueAr: string;
-  sortOrder: number;
-  createdAt: string;
 }
 
 /**
@@ -44,26 +31,4 @@ export interface TeamMemberDto {
   linkedIn?: string;
   bio?: string;
   clientType?: string;  // The user's client type (Founder, Both)
-}
-
-/**
- * Business Stage lookup
- */
-export interface BusinessStage {
-  id: number;
-  key: string;
-  value: string;
-  valueAr: string;
-  sortOrder?: number;
-}
-
-/**
- * Project Phase lookup
- */
-export interface ProjectPhase {
-  id: number;
-  key: string;
-  value: string;
-  valueAr: string;
-  sortOrder?: number;
 }

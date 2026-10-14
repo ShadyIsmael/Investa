@@ -12,65 +12,87 @@
       <div class="form-grid">
         <label class="field field-wide">
           <span>{{ 'projectEditor.fields.displayName' | translate }} <b>*</b></span>
-          <input formControlName="displayName" [placeholder]="'projectEditor.placeholders.displayName' | translate" [readonly]="id && !edit">
+          <input formControlName="displayName" [attr.aria-invalid]="!!fieldError('displayName')" aria-describedby="project-displayName-error" [placeholder]="'projectEditor.placeholders.displayName' | translate" [readonly]="id && !edit">
+          <small *ngIf="fieldError('displayName')" id="project-displayName-error" class="field-error">{{ fieldError('displayName') }}</small>
         </label>
         <label class="field">
           <span>{{ 'projectEditor.fields.legalName' | translate }}</span>
-          <input formControlName="legalName" [placeholder]="'projectEditor.placeholders.legalName' | translate" [readonly]="id && !edit">
+          <input formControlName="legalName" [attr.aria-invalid]="!!fieldError('legalName')" aria-describedby="project-legalName-error" [placeholder]="'projectEditor.placeholders.legalName' | translate" [readonly]="id && !edit">
+          <small *ngIf="fieldError('legalName')" id="project-legalName-error" class="field-error">{{ fieldError('legalName') }}</small>
         </label>
         <label class="field field-wide">
           <span>{{ 'projectEditor.fields.summary' | translate }} <b>*</b></span>
-          <textarea formControlName="summary" rows="2" [placeholder]="'projectEditor.placeholders.summary' | translate" [readonly]="id && !edit"></textarea>
+          <textarea formControlName="summary" rows="2" [attr.aria-invalid]="!!fieldError('summary')" aria-describedby="project-summary-error" [placeholder]="'projectEditor.placeholders.summary' | translate" [readonly]="id && !edit"></textarea>
+          <small *ngIf="fieldError('summary')" id="project-summary-error" class="field-error">{{ fieldError('summary') }}</small>
         </label>
         <label class="field field-wide">
           <span>{{ 'projectEditor.fields.description' | translate }} <b>*</b></span>
-          <textarea formControlName="description" rows="4" [placeholder]="'projectEditor.placeholders.description' | translate" [readonly]="id && !edit"></textarea>
+          <textarea formControlName="description" rows="4" [attr.aria-invalid]="!!fieldError('description')" aria-describedby="project-description-error" [placeholder]="'projectEditor.placeholders.description' | translate" [readonly]="id && !edit"></textarea>
+          <small *ngIf="fieldError('description')" id="project-description-error" class="field-error">{{ fieldError('description') }}</small>
         </label>
         <label class="field">
           <span>{{ 'projectEditor.fields.industry' | translate }}</span>
-          <input formControlName="industry" [placeholder]="'projectEditor.placeholders.industry' | translate" [readonly]="id && !edit">
+          <input formControlName="industry" [attr.aria-invalid]="!!fieldError('industry')" aria-describedby="project-industry-error" [placeholder]="'projectEditor.placeholders.industry' | translate" [readonly]="id && !edit">
+          <small *ngIf="fieldError('industry')" id="project-industry-error" class="field-error">{{ fieldError('industry') }}</small>
         </label>
         <label class="field">
           <span>{{ 'projectEditor.fields.category' | translate }}</span>
-          <select formControlName="categoryId" [disabled]="id && !edit">
+          <select formControlName="categoryId" [attr.aria-invalid]="!!fieldError('categoryId')" aria-describedby="project-categoryId-error">
             <option [ngValue]="null">{{ 'projectEditor.placeholders.category' | translate }}</option>
-            <option *ngFor="let category of categories()" [ngValue]="category.id">{{ category.name || category.label || category.value }}</option>
+            <option *ngFor="let category of categories()" [ngValue]="category.id">{{ categoryLabel(category) }}</option>
           </select>
+          <small *ngIf="fieldError('categoryId')" id="project-categoryId-error" class="field-error">{{ fieldError('categoryId') }}</small>
+        </label>
+        <label class="field">
+          <span>{{ 'projectEditor.fields.projectStage' | translate }} <b>*</b></span>
+          <select formControlName="projectStage" [attr.aria-invalid]="!!fieldError('projectStage')" aria-describedby="project-projectStage-error">
+            <option [ngValue]="null">{{ 'projectEditor.placeholders.projectStage' | translate }}</option>
+            <option *ngFor="let stage of stages()" [ngValue]="stage.value" [disabled]="!stage.isActive">{{ stageLabel(stage) }}</option>
+          </select>
+          <small *ngIf="fieldError('projectStage')" id="project-projectStage-error" class="field-error">{{ fieldError('projectStage') }}</small>
         </label>
         <label class="field">
           <span>{{ 'projectEditor.fields.geography' | translate }}</span>
-          <input formControlName="geography" [placeholder]="'projectEditor.placeholders.geography' | translate" [readonly]="id && !edit">
+          <input formControlName="geography" [attr.aria-invalid]="!!fieldError('geography')" aria-describedby="project-geography-error" [placeholder]="'projectEditor.placeholders.geography' | translate" [readonly]="id && !edit">
+          <small *ngIf="fieldError('geography')" id="project-geography-error" class="field-error">{{ fieldError('geography') }}</small>
         </label>
         <label class="field">
           <span>{{ 'projectEditor.fields.foundedOn' | translate }}</span>
-          <input formControlName="foundedOn" type="date" dir="ltr" [readonly]="id && !edit">
+          <input formControlName="foundedOn" type="date" dir="ltr" [attr.aria-invalid]="!!fieldError('foundedOn')" aria-describedby="project-foundedOn-error" [readonly]="id && !edit">
+          <small *ngIf="fieldError('foundedOn')" id="project-foundedOn-error" class="field-error">{{ fieldError('foundedOn') }}</small>
         </label>
         <label class="field">
           <span>{{ 'projectEditor.fields.websiteUrl' | translate }}</span>
-          <input formControlName="websiteUrl" type="url" dir="ltr" [placeholder]="'projectEditor.placeholders.websiteUrl' | translate" [readonly]="id && !edit">
+          <input formControlName="websiteUrl" type="url" dir="ltr" [attr.aria-invalid]="!!fieldError('websiteUrl')" aria-describedby="project-websiteUrl-error" [placeholder]="'projectEditor.placeholders.websiteUrl' | translate" [readonly]="id && !edit">
+          <small *ngIf="fieldError('websiteUrl')" id="project-websiteUrl-error" class="field-error">{{ fieldError('websiteUrl') }}</small>
         </label>
         <label class="field">
           <span>{{ 'projectEditor.fields.logoUrl' | translate }}</span>
-          <input formControlName="logoUrl" type="url" dir="ltr" [placeholder]="'projectEditor.placeholders.logoUrl' | translate" [readonly]="id && !edit">
+          <input formControlName="logoUrl" type="url" dir="ltr" [attr.aria-invalid]="!!fieldError('logoUrl')" aria-describedby="project-logoUrl-error" [placeholder]="'projectEditor.placeholders.logoUrl' | translate" [readonly]="id && !edit">
+          <small *ngIf="fieldError('logoUrl')" id="project-logoUrl-error" class="field-error">{{ fieldError('logoUrl') }}</small>
         </label>
         <label class="field">
           <span>{{ 'projectEditor.fields.defaultCurrency' | translate }}</span>
-          <select formControlName="defaultCurrency">
+          <select formControlName="defaultCurrency" [attr.aria-invalid]="!!fieldError('defaultCurrency')" aria-describedby="project-defaultCurrency-error">
             <option value="">{{ 'projectEditor.placeholders.defaultCurrency' | translate }}</option>
             <option *ngFor="let c of currencies()" [value]="c.isoCode">{{ currencyLabel(c) }}</option>
           </select>
+          <small *ngIf="fieldError('defaultCurrency')" id="project-defaultCurrency-error" class="field-error">{{ fieldError('defaultCurrency') }}</small>
         </label>
         <label class="field field-wide">
           <span>{{ 'projectEditor.fields.teamDescription' | translate }}</span>
-          <textarea formControlName="teamDescription" rows="3" [placeholder]="'projectEditor.placeholders.teamDescription' | translate" [readonly]="id && !edit"></textarea>
+          <textarea formControlName="teamDescription" rows="3" [attr.aria-invalid]="!!fieldError('teamDescription')" aria-describedby="project-teamDescription-error" [placeholder]="'projectEditor.placeholders.teamDescription' | translate" [readonly]="id && !edit"></textarea>
+          <small *ngIf="fieldError('teamDescription')" id="project-teamDescription-error" class="field-error">{{ fieldError('teamDescription') }}</small>
         </label>
         <label class="field field-wide">
           <span>{{ 'projectEditor.fields.businessModel' | translate }}</span>
-          <textarea formControlName="businessModel" rows="3" [placeholder]="'projectEditor.placeholders.businessModel' | translate" [readonly]="id && !edit"></textarea>
+          <textarea formControlName="businessModel" rows="3" [attr.aria-invalid]="!!fieldError('businessModel')" aria-describedby="project-businessModel-error" [placeholder]="'projectEditor.placeholders.businessModel' | translate" [readonly]="id && !edit"></textarea>
+          <small *ngIf="fieldError('businessModel')" id="project-businessModel-error" class="field-error">{{ fieldError('businessModel') }}</small>
         </label>
         <label class="field field-wide">
           <span>{{ 'projectEditor.fields.riskDisclosure' | translate }}</span>
-          <textarea formControlName="riskDisclosure" rows="3" [placeholder]="'projectEditor.placeholders.riskDisclosure' | translate" [readonly]="id && !edit"></textarea>
+          <textarea formControlName="riskDisclosure" rows="3" [attr.aria-invalid]="!!fieldError('riskDisclosure')" aria-describedby="project-riskDisclosure-error" [placeholder]="'projectEditor.placeholders.riskDisclosure' | translate" [readonly]="id && !edit"></textarea>
+          <small *ngIf="fieldError('riskDisclosure')" id="project-riskDisclosure-error" class="field-error">{{ fieldError('riskDisclosure') }}</small>
         </label>
       </div>
 
@@ -78,8 +100,11 @@
         <button type="button" class="secondary-button" (click)="router.navigate(['/admin/projects'])">
           {{ 'projectEditor.actions.back' | translate }}
         </button>
-        <button *ngIf="edit || !id" type="submit" class="primary-button" [disabled]="form.invalid || saving()">
+        <button *ngIf="edit || !id" type="submit" class="primary-button" [disabled]="saving()">
           {{ (saving() ? 'projectEditor.actions.saving' : (edit ? 'projectEditor.actions.save' : 'projectEditor.actions.create')) | translate }}
+        </button>
+        <button *ngIf="id && !edit && isDraftProject()" type="button" class="primary-button" [disabled]="saving()" (click)="publishProject()">
+          {{ (saving() ? 'projectEditor.actions.publishing' : 'projectEditor.actions.publish') | translate }}
         </button>
       </footer>
     </form>
@@ -102,7 +127,7 @@
         <li *ngFor="let opp of project()?.opportunities" class="opportunity-item">
           <a [routerLink]="['/admin/opportunities', opp.id]" class="opportunity-link">
             <strong>#{{ opp.sequenceNumber }} {{ opp.title }}</strong>
-            <span class="opportunity-meta">{{ opportunityStageLabel(opp) }} · {{ opp.purpose }} · {{ opp.type }} · {{ opp.fundingTarget | currencyDisplay: opp.fundingCurrency }}</span>
+            <span class="opportunity-meta">{{ opportunityStageLabel(opp) }} · {{ opp.type }} · {{ opp.fundingTarget | currencyDisplay: opp.fundingCurrency }}</span>
           </a>
           <a [routerLink]="['/admin/opportunities', opp.id, 'room']" class="opportunity-room-link">
             {{ 'projectEditor.opportunities.openRoom' | translate }}

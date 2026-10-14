@@ -1,25 +1,25 @@
 <div class="container mx-auto p-6 lg:p-8 max-w-5xl">
   <div class="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
     <div class="flex items-center gap-3">
-      <button type="button" (click)="goBack()" class="p-2 hover:bg-slate-700 rounded-lg transition-colors" aria-label="Back to profile">
+      <button type="button" (click)="goBack()" class="p-2 hover:bg-slate-700 rounded-lg transition-colors" [attr.aria-label]="'common.backToProfile' | translate">
         <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
         </svg>
       </button>
       <div>
-        <h1 class="text-3xl font-bold text-white">Notification Center</h1>
+        <h1 class="text-3xl font-bold text-white">{{ 'notifications.title' | translate }}</h1>
         <p class="text-sm text-gray-400 mt-1">
-          {{ unreadCount() }} unread notification{{ unreadCount() === 1 ? '' : 's' }}
+          {{ 'notifications.unreadCount' | translate:{ count: unreadCount() } }}
         </p>
       </div>
     </div>
 
     <div class="flex flex-wrap items-center gap-3">
       <button type="button" (click)="loadNotifications()" [disabled]="isLoading()" class="inline-flex items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-gray-200 hover:bg-slate-700 disabled:opacity-50">
-        Refresh
+        {{ 'common.refresh' | translate }}
       </button>
       <button type="button" (click)="markAllAsRead()" [disabled]="!hasUnread() || isMarkingAllRead()" class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50">
-        Mark All Read
+        {{ 'notifications.markAllRead' | translate }}
       </button>
     </div>
   </div>
@@ -39,7 +39,7 @@
     <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <p class="text-red-200">{{ errorMessage() }}</p>
       <button type="button" (click)="loadNotifications()" class="rounded-md bg-red-500/20 px-3 py-2 text-sm font-semibold text-red-100 hover:bg-red-500/30">
-        Retry
+        {{ 'common.retry' | translate }}
       </button>
     </div>
   </div>
@@ -49,7 +49,7 @@
       <svg class="w-16 h-16 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a3 3 0 11-5.714 0"/>
       </svg>
-      <p class="text-gray-400">No notifications found.</p>
+      <p class="text-gray-400">{{ 'notifications.noNotifications.title' | translate }}</p>
     </div>
 
     <div *ngIf="notifications().length > 0" class="investa-panel p-0 overflow-hidden">

@@ -49,9 +49,9 @@ public static class BusinessDataResetCatalog
         "ProfileChangeAudits", "EmailPreferences", "EmailVerificationOtps",
 
         // Reference/master data.
-        "Lookups", "BusinessCategories", "OpportunityCategories", "OpportunityTags", "FundingGoals",
+        "Lookups", "ProjectCategories", "OpportunityTags", "FundingGoals",
         "Currencies", "ExchangeRateSnapshots", "ReputationRules", "NotificationTemplates",
-        "CreditConfigurations", "CreditPlans", "ServicePrices", "PricingRules", "ClientBusinessCategories",
+        "CreditPlans", "ServicePrices", "PricingRules", "ClientProjectCategories",
 
         // User balances, support, and company finance are outside this reset.
         "CreditTransactions", "Wallets", "WalletTransactions", "Transactions", "SupportSessions", "Messages",

@@ -5,6 +5,7 @@ import { api } from '@/api/api';
 import { getUserProfile } from '@/services/profileService';
 import { User } from '@/types';
 import { Icon } from '@/components/common/Icons';
+import { countryAdminService, CountryAdminItem } from '@/services/countryAdminService';
 
 interface MyProfileProps {
   user: User;
@@ -12,9 +13,10 @@ interface MyProfileProps {
 }
 
 export const MyProfile: React.FC<MyProfileProps> = ({ user, onProfileUpdated }) => {
+  const { t, i18n } = useTranslation();
   const [isSaving, setIsSaving] = useState(false);
   const [mfaEnabled, setMfaEnabled] = useState(true);
-  const [avatar, setAvatar] = useState<string>(user.avatar);
+  const [avatar, setAvatar] = useState<string>(user.avatar ?? '');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const split = (full: string) => {
@@ -31,55 +33,34 @@ export const MyProfile: React.FC<MyProfileProps> = ({ user, onProfileUpdated }) 
     firstName: nameParts.firstName,
     lastName: nameParts.lastName,
     email: user.email || '',
-    phoneCountry: '+1',
+    phoneCountry: '',
     phoneNumber: '',
     gender: '',
     nationality: '',
     country: '',
     dateOfBirth: ''
   });
+  const [countries, setCountries] = useState<CountryAdminItem[]>([]);
 
 
-  const parsePhone = (value: string) => {
+  const countryByAlpha2 = (value: string, source = countries) => source.find(country => country.isoAlpha2 === String(value || '').trim().toUpperCase());
+  const canonicalCountry = (value: string | null | undefined, source = countries) => countryByAlpha2(value || '', source)?.isoAlpha2 || value || '';
+  const countryLabel = (country: CountryAdminItem) => i18n.dir() === 'rtl' ? country.nameAr || country.nameEn : country.nameEn || country.nameAr;
+
+  const parsePhone = (value: string, source = countries) => {
     const cleaned = String(value || '').replace(/[^\d+]/g, '');
-    const knownCodes = ['+234', '+91', '+61', '+44', '+20', '+1'];
-    let phoneCountry = '+1';
-    let phoneNumber = cleaned.replace(/^\+/, '');
+    let phoneCountry = '';
+    let phoneNumber = cleaned;
 
     if (cleaned.startsWith('+')) {
-      const match = knownCodes.find(code => cleaned.startsWith(code));
-      if (match) {
-        phoneCountry = match;
-        phoneNumber = cleaned.slice(match.length).replace(/[^\d]/g, '');
+      const match = source.filter(country => country.phoneCode).sort((a, b) => (b.phoneCode?.length || 0) - (a.phoneCode?.length || 0)).find(country => cleaned.startsWith(country.phoneCode!));
+      if (match?.phoneCode) {
+        phoneCountry = match.phoneCode;
+        phoneNumber = cleaned.slice(match.phoneCode.length).replace(/[^\d]/g, '');
       }
+      phoneNumber = phoneNumber.replace(/^\+/, '');
     } else {
-      const digits = cleaned.replace(/\D/g, '');
-      // Handle Egyptian local format (starts with 0, 11 digits)
-      if (digits.startsWith('0') && digits.length === 11) {
-        phoneCountry = '+20';
-        phoneNumber = digits.slice(1); // Remove leading zero
-      } else if (digits.startsWith('20') && digits.length === 12) {
-        phoneCountry = '+20';
-        phoneNumber = digits.slice(2);
-      } else if (digits.startsWith('234')) {
-        phoneCountry = '+234';
-        phoneNumber = digits.slice(3);
-      } else if (digits.startsWith('91')) {
-        phoneCountry = '+91';
-        phoneNumber = digits.slice(2);
-      } else if (digits.startsWith('61')) {
-        phoneCountry = '+61';
-        phoneNumber = digits.slice(2);
-      } else if (digits.startsWith('44')) {
-        phoneCountry = '+44';
-        phoneNumber = digits.slice(2);
-      } else if (digits.startsWith('1')) {
-        phoneCountry = '+1';
-        phoneNumber = digits.slice(1);
-      } else {
-        phoneCountry = '+1';
-        phoneNumber = digits;
-      }
+      phoneNumber = cleaned.replace(/\D/g, '');
     }
 
     return { phoneCountry, phoneNumber };
@@ -100,7 +81,8 @@ export const MyProfile: React.FC<MyProfileProps> = ({ user, onProfileUpdated }) 
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        const profile = await getUserProfile();
+        const [loadedCountries, profile] = await Promise.all([countryAdminService.list('', ''), getUserProfile()]);
+        setCountries(loadedCountries);
         if (!profile) return;
 
         setFormData(prev => ({
@@ -109,10 +91,10 @@ export const MyProfile: React.FC<MyProfileProps> = ({ user, onProfileUpdated }) 
           lastName: profile.lastName || prev.lastName,
           email: profile.email || prev.email,
           gender: profile.gender || prev.gender,
-          nationality: profile.nationality || prev.nationality,
-          country: profile.country || prev.country,
+          nationality: canonicalCountry(profile.nationality, loadedCountries) || prev.nationality,
+          country: canonicalCountry(profile.country, loadedCountries) || prev.country,
           dateOfBirth: profile.dateOfBirth ? String(profile.dateOfBirth).slice(0, 10) : prev.dateOfBirth,
-          ...parsePhone(profile.phone || ''),
+          ...parsePhone(profile.phone || '', loadedCountries),
         }));
 
         if (profile.avatarUrl) setAvatar(profile.avatarUrl);
@@ -207,13 +189,12 @@ export const MyProfile: React.FC<MyProfileProps> = ({ user, onProfileUpdated }) 
     reader.readAsDataURL(f);
   };
 
-  const rolePermissions = {
+  const rolePermissions: Record<string, string[]> = {
     Admin: ["Full System Access", "User Management", "Financial Configuration", "Audit Logs"],
     Editor: ["Content Management", "Support Ticket Handling", "Financial View Access"],
     Viewer: ["Read-only Dashboard", "Reporting Export", "Support View"]
   };
 
-  const { t } = useTranslation();
 
   return (
     <>
@@ -262,7 +243,7 @@ export const MyProfile: React.FC<MyProfileProps> = ({ user, onProfileUpdated }) 
           <div className="bg-slate-900 dark:bg-slate-950 p-6 rounded-3xl text-white shadow-xl relative overflow-hidden border border-slate-800">
             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Role Privileges</h4>
             <div className="space-y-3 relative z-10">
-              {rolePermissions[user.role].map((perm, i) => (
+              {(rolePermissions[user.role ?? ''] ?? []).map((perm: string, i: number) => (
                 <div key={i} className="flex items-center gap-3 text-sm font-medium text-slate-200">
                   <Icon name="shield-check" className="w-4 h-4 text-emerald-400" />
                   <span>{perm}</span>
@@ -326,22 +307,28 @@ export const MyProfile: React.FC<MyProfileProps> = ({ user, onProfileUpdated }) 
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.15em]">Nationality</label>
-                <input
-                  type="text"
+                <select
                   value={formData.nationality}
                   onChange={(e) => handleInput('nationality', e.target.value)}
                   className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm"
-                />
+                >
+                  <option value="">Select nationality</option>
+                  {formData.nationality && !countryByAlpha2(formData.nationality) && <option value={formData.nationality}>{formData.nationality} (historical value)</option>}
+                  {countries.map(country => <option key={country.isoAlpha2} value={country.isoAlpha2} disabled={!country.isActive}>{countryLabel(country)}{!country.isActive ? ' (inactive)' : ''}</option>)}
+                </select>
               </div>
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.15em]">Country</label>
-                <input
-                  type="text"
+                <select
                   value={formData.country}
                   onChange={(e) => handleInput('country', e.target.value)}
                   className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm"
-                />
+                >
+                  <option value="">Select country</option>
+                  {formData.country && !countryByAlpha2(formData.country) && <option value={formData.country}>{formData.country} (historical value)</option>}
+                  {countries.map(country => <option key={country.isoAlpha2} value={country.isoAlpha2} disabled={!country.isActive}>{countryLabel(country)}{!country.isActive ? ' (inactive)' : ''}</option>)}
+                </select>
               </div>
 
               <div className="space-y-2">
@@ -359,12 +346,8 @@ export const MyProfile: React.FC<MyProfileProps> = ({ user, onProfileUpdated }) 
                 <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.15em]">Mobile Phone</label>
                 <div className="flex gap-2">
                   <select value={formData.phoneCountry} onChange={(e) => handleInput('phoneCountry', e.target.value)} className="px-3 py-2 rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-sm font-semibold text-slate-900 dark:text-slate-100 focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm">
-                    <option value="+1">+1</option>
-                    <option value="+20">+20</option>
-                    <option value="+44">+44</option>
-                    <option value="+61">+61</option>
-                    <option value="+234">+234</option>
-                    <option value="+91">+91</option>
+                    <option value="">Select country code</option>
+                    {countries.filter(country => country.phoneCode).map(country => <option key={`${country.isoAlpha2}-${country.phoneCode}`} value={country.phoneCode!} disabled={!country.isActive}>{country.phoneCode} - {countryLabel(country)}</option>)}
                   </select>
                   <input
                     type="tel"

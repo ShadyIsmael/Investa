@@ -34,6 +34,7 @@ const SLATimer: React.FC<{ dueAt: string; status: string }> = ({ dueAt, status }
 };
 
 export const SupportRequests: React.FC = () => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [tickets, setTickets] = useState<SupportRequest[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -57,8 +58,6 @@ export const SupportRequests: React.FC = () => {
   );
 
   if (loading) return <div className="h-[40vh] flex items-center justify-center opacity-50"><Icon name="headset" className="w-10 h-10 animate-spin text-slate-200"/></div>;
-
-  const { t } = useTranslation();
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">

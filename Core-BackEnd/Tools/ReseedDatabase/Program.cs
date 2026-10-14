@@ -7,6 +7,31 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Data.SqlClient;
+
+var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+var destructiveResetConfirmed = args.Contains("--confirm-drop-and-reseed", StringComparer.Ordinal);
+var requestedDatabase = args
+    .FirstOrDefault(argument => argument.StartsWith("--target-database=", StringComparison.OrdinalIgnoreCase))?
+    .Split('=', 2)
+    .ElementAtOrDefault(1);
+var requestedServer = args
+    .FirstOrDefault(argument => argument.StartsWith("--target-server=", StringComparison.OrdinalIgnoreCase))?
+    .Split('=', 2)
+    .ElementAtOrDefault(1);
+
+if (!string.Equals(environmentName, "Development", StringComparison.OrdinalIgnoreCase)
+    || !destructiveResetConfirmed
+    || string.IsNullOrWhiteSpace(requestedDatabase)
+    || string.IsNullOrWhiteSpace(requestedServer))
+{
+    Console.Error.WriteLine(
+        "Refusing destructive reset. Set ASPNETCORE_ENVIRONMENT=Development and pass " +
+        "--target-server=<exact configured server> --target-database=<exact configured database> " +
+        "--confirm-drop-and-reseed for a disposable Development database only.");
+    Environment.ExitCode = 2;
+    return;
+}
 
 static string? FindSettingsPath()
 {
@@ -40,6 +65,15 @@ var connectionString = config.GetConnectionString("DefaultConnection");
 if (string.IsNullOrWhiteSpace(connectionString))
 {
     Console.WriteLine("DefaultConnection not found in appsettings.json.");
+    return;
+}
+
+var configuredConnection = new SqlConnectionStringBuilder(connectionString);
+if (!string.Equals(requestedDatabase, configuredConnection.InitialCatalog, StringComparison.OrdinalIgnoreCase)
+    || !string.Equals(requestedServer, configuredConnection.DataSource, StringComparison.OrdinalIgnoreCase))
+{
+    Console.Error.WriteLine("Refusing destructive reset because the explicit target does not match the configured server and database.");
+    Environment.ExitCode = 2;
     return;
 }
 

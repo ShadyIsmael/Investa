@@ -6,10 +6,10 @@ using Investa.Application.DTOs.Users;
 using Investa.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Investa.Domain.Entities.Security;
 
 namespace Investa.API.Controllers.Admin;
 
-[Authorize(Roles = "Admin,Reviewer")]
 [Route("api/v1/admin/opportunities")]
 public class OpportunitiesAdminController : BaseApiController
 {
@@ -21,9 +21,13 @@ public class OpportunitiesAdminController : BaseApiController
     }
 
     [HttpGet]
+    [Authorize(Policy = "RequirePermission:" + SystemPermissions.FopxOpportunitiesView)]
     [ProducesResponseType(typeof(ApiResponse<PagedResultDto<AdminOpportunityListItemDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll([FromQuery] AdminOpportunityListQuery query, CancellationToken cancellationToken)
     {
+        if (!ModelState.IsValid)
+            return ErrorResponse("Invalid request", 400, ModelState);
+
         try
         {
             var opportunities = await _opportunityService.GetAdminOpportunitiesAsync(query, cancellationToken);
@@ -36,6 +40,7 @@ public class OpportunitiesAdminController : BaseApiController
     }
 
     [HttpGet("{id:int}")]
+    [Authorize(Policy = "RequirePermission:" + SystemPermissions.FopxOpportunitiesView)]
     [ProducesResponseType(typeof(ApiResponse<AdminOpportunityDetailDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Get(int id, CancellationToken cancellationToken)
     {
@@ -51,6 +56,7 @@ public class OpportunitiesAdminController : BaseApiController
     }
 
     [HttpPost("{id:int}/approve")]
+    [Authorize(Policy = "RequirePermission:" + SystemPermissions.FopxOpportunitiesReview)]
     [ProducesResponseType(typeof(ApiResponse<AdminOpportunityDetailDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Approve(int id, CancellationToken cancellationToken)
     {
@@ -70,6 +76,7 @@ public class OpportunitiesAdminController : BaseApiController
     }
 
     [HttpPost("{id:int}/reject")]
+    [Authorize(Policy = "RequirePermission:" + SystemPermissions.FopxOpportunitiesReview)]
     [ProducesResponseType(typeof(ApiResponse<AdminOpportunityDetailDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Reject(int id, [FromBody] RejectOpportunityRequest request, CancellationToken cancellationToken)
     {
@@ -92,6 +99,7 @@ public class OpportunitiesAdminController : BaseApiController
     }
 
     [HttpPost("{id:int}/funding-status")]
+    [Authorize(Policy = "RequirePermission:" + SystemPermissions.FopxOpportunitiesManage)]
     public async Task<IActionResult> TransitionFunding(int id, [FromBody] TransitionOpportunityFundingRequest request, CancellationToken cancellationToken)
     {
         var reviewerId = ResolveUserIdFromClaims();

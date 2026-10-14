@@ -84,7 +84,7 @@ namespace Investa.API.Controllers.Admin
 
             var query = _db.Clients.AsNoTracking()
                         .Include(c => c.User)
-                        .Where(c => c.Score > 0 && c.User.UserType != Investa.Domain.Entities.Enums.UserType.OrgUser)
+                        .Where(c => c.Score > 0 && c.User!.UserType != Investa.Domain.Entities.Enums.UserType.OrgUser)
                         .OrderByDescending(c => c.Score)
                         .Take(take)
                         .Select(c => new Investa.Application.DTOs.TopClientDto
@@ -107,8 +107,8 @@ namespace Investa.API.Controllers.Admin
                 .Join(_db.Investments,
                     ip => ip.InvestmentId,
                     inv => inv.Id,
-                    (ip, inv) => new { ip.AmountInvested, inv.BusinessCategoryId })
-                .GroupBy(x => x.BusinessCategoryId)
+                    (ip, inv) => new { ip.AmountInvested, inv.ProjectCategoryId })
+            .GroupBy(x => x.ProjectCategoryId)
                 .Select(g => new
                 {
                     CategoryId = g.Key,
@@ -117,14 +117,14 @@ namespace Investa.API.Controllers.Admin
 
             var grouped = await query.AsNoTracking().ToListAsync();
 
-            var categories = await _db.BusinessCategories.AsNoTracking().ToListAsync();
+            var categories = await _db.ProjectCategories.AsNoTracking().ToListAsync();
 
             var result = grouped.Select(g => new
             {
                 id = $"INV-{(g.CategoryId.HasValue ? g.CategoryId.Value.ToString() : "0")}",
                 total = g.TotalAmount,
-                categoryName = g.CategoryId.HasValue ? (categories.FirstOrDefault(c => c.Id == g.CategoryId.Value)?.Value ?? "Uncategorized") : "Uncategorized",
-                categoryNameAr = g.CategoryId.HasValue ? (categories.FirstOrDefault(c => c.Id == g.CategoryId.Value)?.ValueAr ?? (categories.FirstOrDefault(c => c.Id == g.CategoryId.Value)?.Value ?? "Uncategorized")) : "Uncategorized"
+                categoryName = g.CategoryId.HasValue ? (categories.FirstOrDefault(c => c.Id == g.CategoryId.Value)?.NameEn ?? "Uncategorized") : "Uncategorized",
+                categoryNameAr = g.CategoryId.HasValue ? (categories.FirstOrDefault(c => c.Id == g.CategoryId.Value)?.NameAr ?? (categories.FirstOrDefault(c => c.Id == g.CategoryId.Value)?.NameEn ?? "Uncategorized")) : "Uncategorized"
             }).ToList();
 
             return Ok(new { success = true, data = result });

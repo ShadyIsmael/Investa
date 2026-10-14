@@ -114,9 +114,7 @@ public class Investment
 
     // ==================== Classification ====================
     
-    public int? BusinessStageId { get; set; }
-    public int? BusinessCategoryId { get; set; }
-    public int? ProjectPhaseId { get; set; }
+    public int? ProjectCategoryId { get; set; }
 
     /// <summary>
     /// Total fundraising target

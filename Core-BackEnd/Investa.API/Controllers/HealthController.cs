@@ -1,13 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using System;
-using System.Net;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Hosting;
 
 namespace Investa.API.Controllers
 {
     /// <summary>
     /// Health check controller for monitoring and discovery
-    /// Provides system status, server identity, and network binding information
+    /// Provides the dependency-aware health summary consumed by Central Admin.
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
@@ -15,69 +15,53 @@ namespace Investa.API.Controllers
     public class HealthController : ControllerBase
     {
         private readonly ILogger<HealthController> _logger;
-        private readonly IConfiguration _configuration;
+        private readonly HealthCheckService _healthChecks;
+        private readonly bool _fileStoreRequired;
 
-        public HealthController(ILogger<HealthController> logger, IConfiguration configuration)
+        public HealthController(
+            ILogger<HealthController> logger,
+            HealthCheckService healthChecks,
+            IConfiguration configuration,
+            IHostEnvironment environment)
         {
             _logger = logger;
-            _configuration = configuration;
+            _healthChecks = healthChecks;
+            _fileStoreRequired = configuration.GetValue<bool?>("FileStore:Required") ?? !environment.IsDevelopment();
         }
 
         /// <summary>
         /// GET /api/health
-        /// Returns system health status and network configuration
+        /// Returns process reachability plus individual dependency states.
         /// </summary>
         /// <returns>Health status response</returns>
         [HttpGet]
-        public IActionResult GetHealth()
+        public async Task<IActionResult> GetHealth(CancellationToken cancellationToken)
         {
-            try
-            {
-                var serverName = Environment.MachineName;
-                var binding = "0.0.0.0:5235"; // Configured in Kestrel
-                
-                // Get local IP addresses
-                var hostName = Dns.GetHostName();
-                var ipAddresses = Dns.GetHostEntry(hostName).AddressList
-                    .Where(ip => ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                    .Select(ip => ip.ToString())
-                    .ToList();
+            var report = await _healthChecks.CheckHealthAsync(cancellationToken);
+            var status = report.Status == HealthStatus.Healthy ? "Healthy" : "Degraded";
+            var ready = report.Status == HealthStatus.Healthy
+                || (!_fileStoreRequired
+                    && report.Status == HealthStatus.Degraded
+                    && report.Entries.TryGetValue("database", out var database)
+                    && database.Status == HealthStatus.Healthy);
+            _logger.LogDebug("Central Admin health requested with status {Status}.", status);
 
-                var healthResponse = new
-                {
-                    status = "Healthy",
-                    deviceName = serverName,
-                    hostName = hostName,
-                    binding = binding,
-                    ipAddresses = ipAddresses,
-                    timestamp = DateTime.UtcNow,
-                    environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Unknown",
-                    version = "1.0.0",
-                    endpoints = new
+            return Ok(new
+            {
+                status,
+                api = "Healthy",
+                ready,
+                checks = report.Entries.ToDictionary(
+                    entry => entry.Key,
+                    entry => new
                     {
-                        api = $"http://{serverName}:5235/api",
-                        swagger = $"http://{serverName}:5235/swagger",
-                        notifications = "Firebase Cloud Messaging (FCM)"
-                    }
-                };
-
-                _logger.LogInformation(
-                    "[{Server}] Health check requested from {RemoteIp}",
-                    serverName, HttpContext.Connection.RemoteIpAddress);
-
-                return Ok(healthResponse);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing health check");
-                
-                return StatusCode(500, new
-                {
-                    status = "Unhealthy",
-                    error = ex.Message,
-                    timestamp = DateTime.UtcNow
-                });
-            }
+                        status = entry.Value.Status.ToString(),
+                        description = entry.Value.Description,
+                    }),
+                timestamp = DateTime.UtcNow,
+                environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Unknown",
+                version = typeof(HealthController).Assembly.GetName().Version?.ToString() ?? "unknown",
+            });
         }
 
         /// <summary>

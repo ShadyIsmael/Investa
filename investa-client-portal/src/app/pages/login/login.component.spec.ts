@@ -5,6 +5,7 @@ import { AuthService } from '../../services/auth.service';
 import { ProfileService } from '../../services/profile.service';
 import { RoleContextService } from '../../services/role-context.service';
 import { TRANSLATION_DICTIONARIES } from '../../i18n/translation-dictionaries';
+import { CountryService } from '../../services/country.service';
 
 describe('LoginComponent', () => {
   let component: LoginComponent;
@@ -18,6 +19,7 @@ describe('LoginComponent', () => {
         { provide: AuthService, useValue: jasmine.createSpyObj('AuthService', ['login']) },
         { provide: ProfileService, useValue: jasmine.createSpyObj('ProfileService', ['loadMyProfile']) },
         { provide: RoleContextService, useValue: jasmine.createSpyObj('RoleContextService', ['setActiveContext']) },
+        { provide: CountryService, useValue: { ensureLoaded: async () => undefined, withPhoneCode: () => [], findByPhoneCode: () => undefined, findByAlpha2: () => undefined, label: () => '' } },
         { provide: TRANSLATION_DICTIONARIES, useValue: { en: {}, ar: {} } },
       ]
     }).compileComponents();

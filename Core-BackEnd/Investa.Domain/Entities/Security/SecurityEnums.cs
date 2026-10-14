@@ -80,8 +80,37 @@ namespace Investa.Domain.Entities.Security
         public const string SettingsManage = "Settings.Manage";
         public const string ConfigManage = "Config.Manage";
 
-        public const string CreditConfigure = "Credit.Configure";
         public const string OfferManage = "Offer.Manage";
+
+        // FOPX Opportunity Administration. Legacy Opportunity.* keys remain
+        // valid through the permission-policy compatibility mapping; role names
+        // are not authorization grants.
+        public const string FopxOpportunitiesView = "FOPX.Opportunities.View";
+        public const string FopxOpportunitiesReview = "FOPX.Opportunities.Review";
+        public const string FopxOpportunitiesManage = "FOPX.Opportunities.Manage";
+
+        public const string CompanyCustomersView = "Company.Customers.View";
+        public const string CompanyCustomersCreate = "Company.Customers.Create";
+        public const string CompanyCustomersEdit = "Company.Customers.Edit";
+        public const string CompanyCustomersManage = "Company.Customers.Manage";
+
+        public const string CompanyProductsView = "Company.Products.View";
+        public const string CompanyProductsCreate = "Company.Products.Create";
+        public const string CompanyProductsEdit = "Company.Products.Edit";
+        public const string CompanyProductsManage = "Company.Products.Manage";
+
+        public const string CompanySalesOpportunitiesView = "Company.Sales.Opportunities.View";
+        public const string CompanySalesOpportunitiesCreate = "Company.Sales.Opportunities.Create";
+        public const string CompanySalesOpportunitiesEdit = "Company.Sales.Opportunities.Edit";
+        public const string CompanySalesOpportunitiesManage = "Company.Sales.Opportunities.Manage";
+        public const string CompanySalesQuotationsView = "Company.Sales.Quotations.View";
+        public const string CompanySalesQuotationsCreate = "Company.Sales.Quotations.Create";
+        public const string CompanySalesQuotationsEdit = "Company.Sales.Quotations.Edit";
+        public const string CompanySalesQuotationsManage = "Company.Sales.Quotations.Manage";
+        public const string CompanySalesContractsView = "Company.Sales.Contracts.View";
+        public const string CompanySalesContractsCreate = "Company.Sales.Contracts.Create";
+        public const string CompanySalesContractsEdit = "Company.Sales.Contracts.Edit";
+        public const string CompanySalesContractsManage = "Company.Sales.Contracts.Manage";
 
         public const string SystemDebug = "System.Debug";
 

@@ -51,12 +51,12 @@ Console.WriteLine("Querying investments grouped by Investor and Category...");
 try
 {
     var grouped = db.Investments
-        .Where(i => i.BusinessCategoryId != null)
-        .GroupBy(i => new { i.InvestorId, i.BusinessCategoryId })
+        .Where(i => i.ProjectCategoryId != null)
+        .GroupBy(i => new { i.InvestorId, i.ProjectCategoryId })
         .Select(g => new
         {
             InvestorId = g.Key.InvestorId,
-            BusinessCategoryId = g.Key.BusinessCategoryId,
+            ProjectCategoryId = g.Key.ProjectCategoryId,
             Count = g.Count(),
             TotalAmount = g.Sum(x => x.Amount)
         })
@@ -73,7 +73,7 @@ try
     Console.WriteLine("Top results:");
     foreach (var g in grouped)
     {
-        Console.WriteLine($"Investor: {g.InvestorId}, Category: {g.BusinessCategoryId}, Count: {g.Count}, Total: {g.TotalAmount}");
+    Console.WriteLine($"Investor: {g.InvestorId}, Category: {g.ProjectCategoryId}, Count: {g.Count}, Total: {g.TotalAmount}");
     }
 }
 catch (Exception ex)

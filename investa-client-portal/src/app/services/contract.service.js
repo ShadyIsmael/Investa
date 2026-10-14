@@ -28,6 +28,14 @@ export class ContractService {
             fileName: this.fileNameFromResponse(response) || `contract-v${versionNumber}.pdf`
         };
     }
+    async emailContract(contractId, versionNumber, language) {
+        const operationId = crypto.randomUUID();
+        const headers = this.authHeaders()
+            .set('Idempotency-Key', operationId)
+            .set('Accept-Language', language);
+        const raw = await firstValueFrom(this.http.post(`${this.apiBase}/api/v1/contracts/${encodeURIComponent(String(contractId))}/versions/${encodeURIComponent(String(versionNumber))}/email`, {}, { headers }));
+        return this.extractData(raw, 'Failed to email contract.');
+    }
     async getList(path) {
         const raw = await firstValueFrom(this.http.get(`${this.apiBase}${path}`, { headers: this.authHeaders() }));
         return this.extractData(raw, 'Failed to load contracts.') ?? [];

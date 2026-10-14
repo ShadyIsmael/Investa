@@ -53,6 +53,28 @@ public class CreateNegotiationOfferLegRequest
     [Range(0.01, 100, ErrorMessage = "EquityPercentage must be between 0.01 and 100.")]
     public decimal? EquityPercentage { get; set; }
 
+    public EquityOwnershipModel? EquityOwnershipModel { get; set; }
+
+    [Range(0.000001, double.MaxValue)]
+    public decimal? InvestorShareCount { get; set; }
+
+    [Range(0.000001, double.MaxValue)]
+    public decimal? TotalIssuedShares { get; set; }
+
+    [StringLength(100)]
+    public string? ShareClass { get; set; }
+
+    [Range(0.000001, double.MaxValue)]
+    public decimal? PricePerShare { get; set; }
+
+    [Range(0, double.MaxValue)]
+    public decimal? PreMoneyValuation { get; set; }
+
+    [Range(0, double.MaxValue)]
+    public decimal? PostMoneyValuation { get; set; }
+
+    public DateTime? EffectiveOwnershipDate { get; set; }
+
     [StringLength(500)]
     public string? SharesTerms { get; set; }
 
@@ -67,6 +89,9 @@ public class CreateNegotiationOfferLegRequest
 
     [Range(0.01, 100, ErrorMessage = "ProfitSharePercentage must be between 0.01 and 100.")]
     public decimal? ProfitSharePercentage { get; set; }
+
+    [StringLength(30)]
+    public string? ProfitSharingPayoutFrequency { get; set; }
 
     [StringLength(1000)]
     public string? ExitTerms { get; set; }
@@ -100,11 +125,20 @@ public class NegotiationOfferLegDto
     public NegotiationOfferLegType LegType { get; set; }
     public decimal Amount { get; set; }
     public decimal? EquityPercentage { get; set; }
+    public EquityOwnershipModel? EquityOwnershipModel { get; set; }
+    public decimal? InvestorShareCount { get; set; }
+    public decimal? TotalIssuedShares { get; set; }
+    public string? ShareClass { get; set; }
+    public decimal? PricePerShare { get; set; }
+    public decimal? PreMoneyValuation { get; set; }
+    public decimal? PostMoneyValuation { get; set; }
+    public DateTime? EffectiveOwnershipDate { get; set; }
     public string? SharesTerms { get; set; }
     public decimal? ReturnRate { get; set; }
     public int? TermMonths { get; set; }
     public string? RepaymentModel { get; set; }
     public decimal? ProfitSharePercentage { get; set; }
+    public string? ProfitSharingPayoutFrequency { get; set; }
     public string? ExitTerms { get; set; }
 }
 
@@ -129,6 +163,7 @@ public class NegotiationConversationDto
     public NegotiationUserSummaryDto Investor { get; set; } = new();
     public bool FounderReady { get; set; }
     public bool InvestorReady { get; set; }
+    public bool CurrentUserReady { get; set; }
     public bool CanContinue { get; set; }
     public bool ProjectRoomUnlocked { get; set; }
     public OpportunityJoinRequestStatus? ParticipationStatus { get; set; }

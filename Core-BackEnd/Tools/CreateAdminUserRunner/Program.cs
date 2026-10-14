@@ -162,7 +162,7 @@ VALUES (@id,@un,@nun,@email,@nemail, @ec, @ph, @ss, @cs, @pc, @tf, @le, @af)", c
         var count = Convert.ToInt32(cmd.ExecuteScalar());
         if (count > 0)
         {
-            Console.WriteLine($"Verification: user '{adminEmail}' is assigned role '{adminRole}'.");
+            Console.WriteLine($"Verification: admin role '{adminRole}' is assigned.");
         }
         else
         {

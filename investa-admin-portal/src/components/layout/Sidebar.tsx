@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { NavItem } from '@/types';
-import { NAV_ITEMS } from '@/utils/constants';
+import { NavigationItem, getNavigationForPath } from '@/core/navigation';
 import { Icon } from '@/components/common/Icons';
 import { usePermissions } from '@/context/AuthContext';
 import { useTranslation } from 'react-i18next';
+import { WorkspaceContext } from '@/components/layout/WorkspaceContext';
+import { canAccessPolicy } from '@/core/routePolicy';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -13,105 +14,58 @@ interface SidebarProps {
   toggleCollapse: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({
-  isOpen,
-  toggleSidebar,
-  isCollapsed,
-  toggleCollapse,
-}) => {
-  const { hasAnyPermission, hasAllPermissions } = usePermissions();
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar, isCollapsed, toggleCollapse }) => {
+  const { permissions } = usePermissions();
   const location = useLocation();
   const { t } = useTranslation();
-  const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const navigation = getNavigationForPath(location.pathname);
+  const canRender = (item: NavigationItem) => !item.requiredPermissions?.length ||
+    canAccessPolicy({ requiredPermissions: item.requiredPermissions, anyOf: item.anyOf }, permissions, true);
+  const visibleNavigation = navigation.filter(canRender);
 
   useEffect(() => {
-    if (isCollapsed) return;
-    NAV_ITEMS.forEach(item => {
-      if (item.children?.some(c => c.path === location.pathname)) {
-        setExpandedMenu(item.id);
-      }
-    });
+    if (!isCollapsed) navRef.current?.focus({ preventScroll: true });
   }, [location.pathname, isCollapsed]);
 
-  const toggleExpand = (id: string) => !isCollapsed && setExpandedMenu(p => p === id ? null : id);
-
-  const renderNavItem = (item: NavItem, isSubItem = false) => {
-    if (item.permissions?.length) {
-      const ok = item.requireAll
-        ? hasAllPermissions(...item.permissions)
-        : hasAnyPermission(...item.permissions);
-      if (!ok) return null;
-    }
-
-    const hasChildren = !!item.children?.length;
-    const isExpanded  = expandedMenu === item.id;
-    const isActive    = location.pathname === item.path;
-    const isParent    = item.children?.some(c => location.pathname.startsWith(c.path || ''));
-
-    const inner = (
-      <div
-        className={[
-          'relative flex items-center justify-between gap-2 w-full px-2.5 py-2 rounded-lg text-[13px] transition-all duration-200 group',
-          isActive  ? 'bg-primary/10 text-primary font-semibold' : '',
-          isParent && !hasChildren ? 'text-foreground font-medium' : '',
-          !isActive && !isParent   ? 'text-muted-foreground hover:text-foreground hover:bg-secondary/70 font-medium' : '',
-          isSubItem ? 'ps-5 text-xs py-1.5' : '',
-          isCollapsed ? '!px-2 justify-center' : '',
-        ].join(' ')}
-      >
-        {/* Active accent bar */}
-        {isActive && !isSubItem && (
-          <span className="absolute inset-y-2 start-0 w-[3px] rounded-full bg-primary" />
-        )}
-        <div className={['flex items-center gap-2.5', isCollapsed ? 'justify-center w-full' : ''].join(' ')}>
-          <Icon
-            name={item.iconName}
-            className={[
-              'flex-shrink-0',
-              isActive ? 'w-[18px] h-[18px] text-primary' : 'w-[18px] h-[18px] text-muted-foreground group-hover:text-foreground transition-colors',
-              isSubItem ? '!w-4 !h-4 opacity-70' : '',
-            ].join(' ')}
-          />
-          {!isCollapsed && (
-            <span className="truncate leading-none">{t(item.labelKey || item.label, { defaultValue: item.label })}</span>
-          )}
-        </div>
-        {hasChildren && !isCollapsed && (
-          <Icon name="chevron-right"
-            className={['w-3.5 h-3.5 opacity-40 transition-transform duration-200', isExpanded ? 'rotate-90' : ''].join(' ')}
-          />
-        )}
-      </div>
-    );
-
+  const renderNavItem = (item: NavigationItem) => {
+    const isActive = location.pathname === item.route || (item.route !== '/admin' && location.pathname.startsWith(`${item.route}/`));
     return (
-      <div key={item.id} className="w-full">
-        {hasChildren
-          ? <button className="w-full text-start" title={isCollapsed ? t(item.labelKey || item.label, { defaultValue: item.label }) : undefined} onClick={() => toggleExpand(item.id)}>{inner}</button>
-          : <Link to={item.path || '/'} title={isCollapsed ? t(item.labelKey || item.label, { defaultValue: item.label }) : undefined} onClick={() => { if (window.innerWidth < 768) toggleSidebar(); }}>{inner}</Link>
-        }
-        {!isCollapsed && hasChildren && (
-          <div className={['overflow-hidden transition-all duration-300', isExpanded ? 'max-h-96 mt-0.5 mb-1' : 'max-h-0'].join(' ')}>
-            <div className="ms-5 border-s border-border ps-2 space-y-0.5 py-1">
-              {item.children!.map(c => renderNavItem(c, true))}
-            </div>
-          </div>
-        )}
-      </div>
+      <Link key={item.key} to={item.route} title={isCollapsed ? t(item.labelKey) : undefined} aria-current={isActive ? 'page' : undefined} onClick={() => { if (window.innerWidth < 768) toggleSidebar(); }}>
+        <div className={[
+          'relative flex items-center gap-2 w-full px-2.5 py-2 rounded-md text-[13px] transition-colors duration-200 group',
+          isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/70 font-medium',
+          isCollapsed ? 'justify-center !px-2' : '',
+        ].join(' ')}>
+          {isActive && <span className="absolute inset-y-2 start-0 w-[3px] rounded-full bg-primary" aria-hidden="true" />}
+          <Icon name={item.icon} className={['flex-shrink-0 w-[18px] h-[18px]', isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'].join(' ')} />
+          {!isCollapsed && <span className="truncate leading-none flex items-center gap-2">{t(item.labelKey)}{item.status === 'placeholder' && <span className="text-[9px] uppercase tracking-wide text-muted-foreground/70">{t('centralAdmin.status.planned')}</span>}</span>}
+        </div>
+      </Link>
     );
+  };
+
+  const renderSections = (group: NavigationItem['group']) => {
+    const items = visibleNavigation.filter(item => item.group === group);
+    const sections = [...new Set(items.map(item => item.section || group))];
+    return sections.map(section => {
+      const sectionItems = items.filter(item => (item.section || group) === section);
+      const sectionLabelKey = sectionItems.find(item => item.sectionLabelKey)?.sectionLabelKey ||
+        (group === 'workspace' ? 'centralAdmin.workspaceSection' : group === 'system' ? 'centralAdmin.systemSection' : undefined);
+      return (
+        <React.Fragment key={`${group}-${section}`}>
+          {!isCollapsed && sectionLabelKey && <p className="text-[9px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground/60 px-2.5 pt-4 pb-1.5">{t(sectionLabelKey)}</p>}
+          {sectionItems.map(renderNavItem)}
+        </React.Fragment>
+      );
+    });
   };
 
   return (
     <>
-      {/* Mobile backdrop */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm md:hidden"
-          onClick={toggleSidebar}
-        />
-      )}
-
+      {isOpen && <div className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm md:hidden" onClick={toggleSidebar} aria-hidden="true" />}
       <aside
+        aria-label={t('centralAdmin.sidebar')}
         style={{ zIndex: 'var(--z-fixed)' }}
         className={[
           'fixed md:static inset-y-0 start-0 flex flex-col bg-card border-e border-border transition-all duration-300',
@@ -119,38 +73,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
           isCollapsed ? 'w-16' : 'w-64',
         ].join(' ')}
       >
-        {/* Brand */}
-        <div className={['h-14 flex items-center border-b border-border px-3 flex-shrink-0', isCollapsed ? 'justify-center' : 'gap-2.5'].join(' ')}>
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm shadow-sky-500/30">
-            <Icon name="trending-up" className="w-5 h-5 text-white" />
-          </div>
-          {!isCollapsed && (
-            <div>
-              <span className="text-base font-black tracking-tighter text-foreground select-none">FOPX One</span>
-              <span className="block text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground -mt-0.5">Admin Portal</span>
-            </div>
-          )}
+        <div className={['border-b border-border px-3 py-3 flex-shrink-0', isCollapsed ? 'flex justify-center' : ''].join(' ')}>
+          {isCollapsed ? <div className="w-8 h-8 rounded-md border border-border flex items-center justify-center"><Icon name="shield-check" className="w-4 h-4 text-muted-foreground" /></div> : <WorkspaceContext />}
         </div>
-
-        {/* Nav list */}
-        <nav className="flex-1 overflow-y-auto p-2.5 space-y-0.5">
-          {!isCollapsed && (
-            <p className="text-[9px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground/60 px-2.5 pt-2 pb-1.5">
-              {t('nav.mainMenu', { defaultValue: 'Main Menu' })}
-            </p>
-          )}
-          {NAV_ITEMS.map(item => renderNavItem(item))}
+        <nav ref={navRef} tabIndex={-1} aria-label={t('centralAdmin.navigation')} className="flex-1 overflow-y-auto p-2.5 space-y-0.5 focus:outline-none">
+          {!isCollapsed && <p className="text-[9px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground/60 px-2.5 pt-2 pb-1.5">{t('centralAdmin.navigation')}</p>}
+          {renderSections('company')}
+          {renderSections('workspace')}
+          {renderSections('system')}
         </nav>
-
-
         <div className="p-2.5 border-t border-border">
-          <button
-            onClick={toggleCollapse}
-            title={isCollapsed ? t('nav.expandSidebar', { defaultValue: 'Expand sidebar' }) : t('nav.collapseSidebar', { defaultValue: 'Collapse sidebar' })}
-            className="w-full flex items-center justify-center gap-2 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-all text-xs font-medium"
-          >
+          <button onClick={toggleCollapse} aria-expanded={!isCollapsed} title={isCollapsed ? t('nav.expandSidebar') : t('nav.collapseSidebar')} className="w-full flex items-center justify-center gap-2 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors text-xs font-medium">
             <Icon name={isCollapsed ? 'chevron-right' : 'chevron-left'} className="w-4 h-4" />
-            {!isCollapsed && <span>{t(isCollapsed ? 'nav.expand' : 'nav.collapse', { defaultValue: isCollapsed ? 'Expand' : 'Collapse' })}</span>}
+            {!isCollapsed && <span>{t('nav.collapse')}</span>}
           </button>
         </div>
       </aside>

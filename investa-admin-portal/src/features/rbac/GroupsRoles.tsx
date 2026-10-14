@@ -71,12 +71,12 @@ export const GroupsRoles: React.FC<{ mode?: 'groups' | 'roles' | 'all' }> = ({ m
     if (duplicate) { showToast('Group name already exists', 'error'); return; }
 
     if (g.id === 0) {
-      const created = await groupService.createGroup({ name: g.name, description: g.description });
-      setGroups(prev => [created, ...prev]);
+      const created = await groupService.createGroup({ name: g.name, description: g.description ?? undefined });
+      if (created) setGroups(prev => [created, ...prev]);
       showToast('Group created', 'success');
     } else {
-      const updated = await groupService.updateGroup(g.id, g);
-      setGroups(prev => prev.map(p => p.id === updated.id ? updated : p));
+      const updated = await groupService.updateGroup(g.id, { name: g.name, description: g.description ?? undefined });
+      setGroups(prev => prev.map(p => (p.id === updated.id ? updated : p)));
       showToast('Group updated', 'success');
     }
     setShowGroupModal(false);
@@ -164,13 +164,13 @@ export const GroupsRoles: React.FC<{ mode?: 'groups' | 'roles' | 'all' }> = ({ m
   const getAvailableUsers = () => {
     if (!editingRole) return [] as User[];
     const assigned = new Set((editingRole.members || []).map(String));
-    return users.filter(u => !assigned.has(u.id) && (roleSearch.trim() === '' || u.name.toLowerCase().includes(roleSearch.toLowerCase()) || u.email.toLowerCase().includes(roleSearch.toLowerCase())));
+    return users.filter(u => !assigned.has(u.id) && (roleSearch.trim() === '' || u.name.toLowerCase().includes(roleSearch.toLowerCase()) || (u.email ?? '').toLowerCase().includes(roleSearch.toLowerCase())));
   };
 
   const getAssignedUsers = () => {
     if (!editingRole) return [] as User[];
     const assigned = new Set((editingRole.members || []).map(String));
-    return users.filter(u => assigned.has(u.id) && (assignedSearch.trim() === '' || u.name.toLowerCase().includes(assignedSearch.toLowerCase()) || u.email.toLowerCase().includes(assignedSearch.toLowerCase())));
+    return users.filter(u => assigned.has(u.id) && (assignedSearch.trim() === '' || u.name.toLowerCase().includes(assignedSearch.toLowerCase()) || (u.email ?? '').toLowerCase().includes(assignedSearch.toLowerCase())));
   };
 
   const moveToAssigned = () => {
@@ -478,7 +478,7 @@ export const GroupsRoles: React.FC<{ mode?: 'groups' | 'roles' | 'all' }> = ({ m
 
               <div>
                 <label className="text-sm font-bold">Description</label>
-                <textarea value={editingGroup.description} onChange={(e) => setEditingGroup(prev => prev ? { ...prev, description: e.target.value } : prev)} className="w-full mt-2 px-3 py-2 rounded-lg border" />
+                <textarea value={editingGroup.description ?? ''} onChange={(e) => setEditingGroup(prev => prev ? { ...prev, description: e.target.value } : prev)} className="w-full mt-2 px-3 py-2 rounded-lg border" />
               </div>
 
             </div>
@@ -576,7 +576,7 @@ export const GroupsRoles: React.FC<{ mode?: 'groups' | 'roles' | 'all' }> = ({ m
 
                 <div>
                   <label className="text-sm font-bold">Description</label>
-                  <textarea value={editingRole.description} onChange={(e) => setEditingRole(prev => prev ? { ...prev, description: e.target.value } : prev)} className="w-full mt-2 px-3 py-2 rounded-lg border" />
+                  <textarea value={editingRole.description ?? ''} onChange={(e) => setEditingRole(prev => prev ? { ...prev, description: e.target.value } : prev)} className="w-full mt-2 px-3 py-2 rounded-lg border" />
                 </div>
 
                 <div>

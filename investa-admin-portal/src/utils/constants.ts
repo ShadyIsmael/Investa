@@ -5,8 +5,8 @@
 import { NavItem } from '@/types';
 
 export const BRAND = {
-  name: 'FOPX One',
-  shortName: 'FOPX One',
+  name: 'Company Management',
+  shortName: 'Company Core',
 };
 
 export const NAV_ITEMS: NavItem[] = [
@@ -96,11 +96,11 @@ export const NAV_ITEMS: NavItem[] = [
     permissions: ['User.Manage'],
     children: [
       {
-        id: 'opportunity-categories',
+        id: 'project-categories',
         label: 'Categories',
-        labelKey: 'nav.opportunityCategories',
+        labelKey: 'nav.projectCategories',
         iconName: 'tag',
-        path: '/reference-data/opportunity-categories',
+        path: '/reference-data/project-categories',
         permissions: ['User.Manage'],
       },
       {
@@ -117,6 +117,46 @@ export const NAV_ITEMS: NavItem[] = [
         labelKey: 'nav.fundingGoals',
         iconName: 'cash',
         path: '/reference-data/funding-goals',
+        permissions: ['User.Manage'],
+      },
+      {
+        id: 'currencies',
+        label: 'Currencies',
+        labelKey: 'nav.currencies',
+        iconName: 'cash',
+        path: '/reference-data/currencies',
+        permissions: ['User.Manage'],
+      },
+      {
+        id: 'countries',
+        label: 'Countries',
+        labelKey: 'nav.countries',
+        iconName: 'globe',
+        path: '/reference-data/countries',
+        permissions: ['User.Manage'],
+      },
+      {
+        id: 'project-stages',
+        label: 'Project Stages',
+        labelKey: 'nav.projectStages',
+        iconName: 'activity',
+        path: '/reference-data/project-stages',
+        permissions: ['User.Manage'],
+      },
+      {
+        id: 'risk-levels',
+        label: 'Risk Levels',
+        labelKey: 'nav.riskLevels',
+        iconName: 'activity',
+        path: '/reference-data/risk-levels',
+        permissions: ['User.Manage'],
+      },
+      {
+        id: 'file-categories',
+        label: 'File Categories',
+        labelKey: 'nav.fileCategories',
+        iconName: 'folder',
+        path: '/reference-data/file-categories',
         permissions: ['User.Manage'],
       },
     ],

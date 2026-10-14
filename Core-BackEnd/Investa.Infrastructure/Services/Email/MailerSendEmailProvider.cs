@@ -71,9 +71,7 @@ public sealed class MailerSendEmailProvider : IEmailProvider
 
         try
         {
-            _logger.LogInformation(
-                "Sending email via MailerSend to {Recipient} subject={Subject}",
-                message.Recipient, message.Subject);
+            _logger.LogInformation("Sending email via MailerSend");
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(TimeSpan.FromSeconds(_options.TimeoutSeconds));
@@ -84,9 +82,7 @@ public sealed class MailerSendEmailProvider : IEmailProvider
             if (response.IsSuccessStatusCode)
             {
                 var providerMessageId = ExtractMessageId(body, response);
-                _logger.LogInformation(
-                    "Email sent via MailerSend to {Recipient} messageId={MessageId}",
-                    message.Recipient, providerMessageId);
+                _logger.LogInformation("Email sent via MailerSend");
 
                 return new EmailProviderResult
                 {
@@ -96,9 +92,7 @@ public sealed class MailerSendEmailProvider : IEmailProvider
             }
 
             var failureReason = $"MailerSend API returned {(int)response.StatusCode}: {Truncate(body, 500)}";
-            _logger.LogWarning(
-                "MailerSend API error to {Recipient} status={Status} body={Body}",
-                message.Recipient, (int)response.StatusCode, Truncate(body, 500));
+            _logger.LogWarning("MailerSend API returned HTTP status {Status}", (int)response.StatusCode);
 
             return new EmailProviderResult
             {
@@ -109,7 +103,7 @@ public sealed class MailerSendEmailProvider : IEmailProvider
         }
         catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
-            _logger.LogWarning(ex, "MailerSend request timed out for {Recipient}", message.Recipient);
+            _logger.LogWarning(ex, "MailerSend request timed out");
             return new EmailProviderResult
             {
                 Success = false,
@@ -119,7 +113,7 @@ public sealed class MailerSendEmailProvider : IEmailProvider
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogWarning(ex, "MailerSend HTTP request failed for {Recipient}", message.Recipient);
+            _logger.LogWarning(ex, "MailerSend HTTP request failed");
             return new EmailProviderResult
             {
                 Success = false,
@@ -129,7 +123,7 @@ public sealed class MailerSendEmailProvider : IEmailProvider
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected MailerSend error for {Recipient}", message.Recipient);
+            _logger.LogError(ex, "Unexpected MailerSend error");
             return new EmailProviderResult
             {
                 Success = false,

@@ -54,11 +54,6 @@ export default defineConfig(({ mode }) => {
             changeOrigin: true,
             secure: false,
           },
-          '/support': {
-            target: proxyTarget,
-            changeOrigin: true,
-            secure: false,
-          },
           // Also proxy chathub directly
           '/chathub': {
             target: proxyTarget,
@@ -93,21 +88,19 @@ export default defineConfig(({ mode }) => {
           output: {
             manualChunks(id) {
               if (!id) return undefined;
-              // Split important vendor libs into their own chunks to keep sizes under control
-              if (id.includes('node_modules/react-dom')) return 'vendor-react-dom';
-              if (id.includes('node_modules/react')) return 'vendor-react';
-              if (id.includes('node_modules/@google/genai')) return 'vendor-genai';
-              if (id.includes('node_modules/recharts')) return 'vendor-recharts';
-              if (id.includes('node_modules/react-toastify')) return 'vendor-toastify';
-              if (id.includes('node_modules/zustand')) return 'vendor-zustand';
+              const normalizedId = id.replace(/\\/g, '/');
+              if (!normalizedId.includes('/node_modules/')) return undefined;
 
-              // Feature-specific chunks
-              if (id.includes('/src/features/support/') || id.includes('features/support')) return 'support';
-              if (id.includes('/src/features/rbac/') || id.includes('features/rbac')) return 'rbac';
-              if (id.includes('/src/components/layout/') || id.includes('components/layout')) return 'layout';
-
-              // default for other node_modules
-              if (id.includes('node_modules')) return 'vendor-others';
+              // Keep application modules in Rollup's natural graph. Manual feature
+              // chunks previously split shared layout/support modules into cycles.
+              if (normalizedId.includes('/node_modules/react/')
+                || normalizedId.includes('/node_modules/react-dom/')
+                || normalizedId.includes('/node_modules/react-router')) return 'vendor-react';
+              if (normalizedId.includes('/node_modules/lucide-react/')
+                || normalizedId.includes('/node_modules/react-toastify/')) return 'vendor-ui';
+              if (normalizedId.includes('/node_modules/firebase/')
+                || normalizedId.includes('/node_modules/@google/genai/')) return 'vendor-integrations';
+              return undefined;
             }
           }
         }

@@ -8,6 +8,7 @@ import ChatConversationsListener from '@/features/support/ChatConversationsListe
 import BackendHealthMonitor from '@/services/backendHealth';
 import Notifications from '@/components/common/Notifications';
 import { useTheme } from '@/hooks/useTheme';
+import { useTranslation } from 'react-i18next';
 
 interface MainLayoutProps {
   currentUser: User;
@@ -19,6 +20,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ currentUser, handleLogout, chil
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { t } = useTranslation();
 
   const toggleSidebar  = () => setIsSidebarOpen(o => !o);
   const toggleCollapse = () => setIsCollapsed(c => !c);
@@ -49,8 +51,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ currentUser, handleLogout, chil
         <ChatRequestListener />
         <ChatConversationsListener />
 
-        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-background">
-          <div className="max-w-[1600px] mx-auto px-4 py-5 lg:px-5 lg:py-6 animate-in fade-in slide-up duration-500">
+        <a className="skip-link" href="#main-content">{t('centralAdmin.skipToContent')}</a>
+        <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto overflow-x-hidden bg-background focus:outline-none">
+          <div className="workspace-content animate-in fade-in slide-up duration-500">
             {children || <Outlet />}
           </div>
         </main>

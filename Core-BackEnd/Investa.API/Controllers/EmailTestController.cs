@@ -50,7 +50,7 @@ public class EmailTestController : BaseApiController
 
         try
         {
-            _logger.LogInformation("Recipient={Recipient} Subject={Subject}", recipient, subject);
+            _logger.LogInformation("Email test delivery requested");
 
             var connectionVerified = await _emailService.VerifyConnectionAsync(cancellationToken);
             if (!connectionVerified)
@@ -86,8 +86,8 @@ public class EmailTestController : BaseApiController
 
             await _emailService.SendEmailAsync(emailRequest, cancellationToken);
 
-            _logger.LogInformation("SMTP authenticated. Username={Username}", _emailOptions.Smtp.Username);
-            _logger.LogInformation("Email sent successfully. To={Email} Subject={Subject}", recipient, subject);
+            _logger.LogInformation("SMTP authentication succeeded");
+            _logger.LogInformation("Email test delivered successfully");
 
             return Ok(new ApiResponse<object>
             {
@@ -105,7 +105,7 @@ public class EmailTestController : BaseApiController
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Email test endpoint failed. Email={Email} Subject={Subject}", recipient, subject);
+            _logger.LogError(ex, "Email test endpoint failed");
             return StatusCode(500, new ApiResponse<object>
             {
                 Success = false,

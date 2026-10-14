@@ -39,20 +39,24 @@ public class OpportunityDocumentTests : IClassFixture<CustomWebApplicationFactor
         authenticatedUser.UserType = Investa.Domain.Entities.Enums.UserType.Client;
         authenticatedUser.ClientType = Investa.Domain.Entities.Enums.ClientType.Founder;
 
-        var category = new Investa.Domain.Entities.OpportunityCategory
+        var category = new Investa.Domain.Entities.ProjectCategory
         {
             Id = 7000,
-            Name = "Test Category",
-            Description = "Test opportunity category",
+            Code = "TEST-CATEGORY",
+            NameEn = "Test Category",
+            NameAr = "تصنيف اختباري",
             IsActive = true
         };
-        db.OpportunityCategories.Add(category);
+        db.ProjectCategories.Add(category);
 
         var fundingGoal = new Investa.Domain.Entities.FundingGoal
         {
             Id = 7001,
-            Name = "Test Goal",
-            Description = "Test Goal Description",
+            Code = "TESTGOAL",
+            NameEn = "Test Goal",
+            NameAr = "هدف اختبار",
+            DescriptionEn = "Test Goal Description",
+            DescriptionAr = "وصف هدف الاختبار",
             SortOrder = 7001
         };
         db.FundingGoals.Add(fundingGoal);
@@ -111,20 +115,24 @@ public class OpportunityDocumentTests : IClassFixture<CustomWebApplicationFactor
         authenticatedUser.UserType = Investa.Domain.Entities.Enums.UserType.Client;
         authenticatedUser.ClientType = Investa.Domain.Entities.Enums.ClientType.Founder;
 
-        var category = new Investa.Domain.Entities.OpportunityCategory
+        var category = new Investa.Domain.Entities.ProjectCategory
         {
             Id = 8000,
-            Name = "Test Category 2",
-            Description = "Second test opportunity category",
+            Code = "TEST-CATEGORY-2",
+            NameEn = "Test Category 2",
+            NameAr = "تصنيف اختباري 2",
             IsActive = true
         };
-        db.OpportunityCategories.Add(category);
+        db.ProjectCategories.Add(category);
 
         var fundingGoal = new Investa.Domain.Entities.FundingGoal
         {
             Id = 8001,
-            Name = "Test Goal 2",
-            Description = "Test Goal 2 Description",
+            Code = "TESTGOAL2",
+            NameEn = "Test Goal 2",
+            NameAr = "هدف اختبار 2",
+            DescriptionEn = "Test Goal 2 Description",
+            DescriptionAr = "وصف هدف الاختبار 2",
             SortOrder = 8001
         };
         db.FundingGoals.Add(fundingGoal);

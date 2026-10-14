@@ -304,7 +304,9 @@ const ClientDetails: React.FC<{ clientId: string | number | null; onBack?: () =>
                       const prevProfile = profile;
                       const prevClient = client;
                       try {
-                        const resp = await clientService.updateClientStatus(clientId as string | number, editedStatus ?? (profile?.statusName ?? client?.status), justification.trim());
+                        const nextStatus = editedStatus ?? profile?.statusName ?? client?.status;
+                        if (!nextStatus) return setSaveError('No status to save');
+                        const resp = await clientService.updateClientStatus(clientId as string | number, nextStatus, justification.trim());
                         // assume success; clear dirty and justification
                         setDirty(false);
                         setJustification('');

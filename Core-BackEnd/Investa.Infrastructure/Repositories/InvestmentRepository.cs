@@ -46,7 +46,7 @@ public class InvestmentRepository : Repository<Investment>, IInvestmentRepositor
     public async Task<IEnumerable<Investment>> GetByCategoryWithFullDetailsAsync(int categoryId)
     {
         return await _dbSet
-            .Where(i => i.BusinessCategoryId == categoryId)
+            .Where(i => i.ProjectCategoryId == categoryId)
             .Include(i => i.Images.OrderBy(img => img.SortOrder))
             .Include(i => i.TeamMembers.Where(tm => tm.IsActive).OrderBy(tm => tm.SortOrder))
                 .ThenInclude(tm => tm.User)

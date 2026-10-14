@@ -154,18 +154,6 @@ public class ProfileController : ControllerBase
     {
         try
         {
-            // Log Authorization header and claims for debugging
-            try
-            {
-                var authHeader = Request.Headers["Authorization"].ToString();
-                _logger.LogInformation("Authorization header: {AuthHeader}", string.IsNullOrEmpty(authHeader) ? "<missing>" : authHeader);
-                _logger.LogInformation("Claims present: {Claims}", string.Join(", ", User.Claims.Select(c => $"{c.Type}={c.Value}")));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to read Authorization header or claims");
-            }
-
             // Extract user ID claim value
             var userIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
             Guid userId;
@@ -201,7 +189,7 @@ public class ProfileController : ControllerBase
 
                 if (authUser == null)
                 {
-                    _logger.LogWarning("Unable to resolve AuthUser from token claims (sub/id not a GUID). sub: {Sub}, name: {Name}, firebase_uid: {Firebase}", userIdClaim, userName, firebaseUid);
+                    _logger.LogWarning("Unable to resolve AuthUser from token claims because no supported user identifier was found");
                     return Unauthorized(_localizer["UnableToIdentifyUserFromToken"].Value);
                 }
 
@@ -216,7 +204,7 @@ public class ProfileController : ControllerBase
             // Update last login info (IP and device)
             var profileDto = await _profileService.UpdateLastLoginAsync(userId, clientIp, deviceInfo);
 
-            _logger.LogInformation($"User {userId} retrieved profile from IP: {clientIp}");
+            _logger.LogInformation("Authenticated user profile retrieved");
 
             return Ok(profileDto);
         }
@@ -424,7 +412,7 @@ public class ProfileController : ControllerBase
                 profileDto = await _profileService.SetRegistrationIpAsync(userId, clientIp);
             }
 
-            _logger.LogInformation($"User {userId} profile initialized with registration IP: {clientIp}");
+            _logger.LogInformation("Authenticated user profile initialized");
 
             return Ok(profileDto);
         }
@@ -501,7 +489,7 @@ public class ProfileController : ControllerBase
         try
         {
             var user = await _unitOfWork.Repository<AuthUser>()
-                .GetSingleAsync(candidate => candidate.Id == userId, candidate => candidate.Profile, candidate => candidate.Client);
+                .GetSingleAsync(candidate => candidate.Id == userId, candidate => candidate.Profile!, candidate => candidate.Client!);
             if (user?.Profile == null)
                 return NotFound(new { message = "Profile not found." });
 

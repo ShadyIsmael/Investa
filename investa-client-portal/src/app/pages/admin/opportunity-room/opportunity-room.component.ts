@@ -13,12 +13,17 @@ import {
   OpportunityRoomParticipation,
   ParticipationLeg,
   OpportunityRoomParticipantContext,
+  OpportunityProjectContext,
   OpportunityService,
   InvestorPaymentSummary,
   InvestorPaymentDetail,
   PaymentTransactionDetail,
   MonthlyBulkConfirmPreview,
-  BulkConfirmMonthlyResult
+  BulkConfirmMonthlyResult,
+  FundingDeclaration,
+  LoanRepaymentRecord,
+  ProfitSharingDistributionDeclaration,
+  ProfitSharingReportingPeriod
 } from '../../../services/opportunity.service';
 import { FileStoreService } from '../../../services/file-store.service';
 import { ReportReasonCode, ReportService } from '../../../services/report.service';
@@ -26,6 +31,7 @@ import { LanguageService } from '../../../services/language.service';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
 import { FirebaseClientService, RealtimeEvent } from '../../../services/firebase-client.service';
 import { CurrencyService } from '../../../services/currency.service';
+import { ProjectStageService } from '../../../services/project-stage.service';
 import { Subscription } from 'rxjs';
 import {
   ContractService,
@@ -35,8 +41,9 @@ import {
   InvestmentContractVersionSummary,
   PdfGenerationStatus
 } from '../../../services/contract.service';
+import { repaymentModelLabelKey } from '../../../models/offer.model';
 
-type RoomTab = 'overview' | 'milestones' | 'contracts' | 'timeline' | 'documents' | 'media' | 'payments';
+type RoomTab = 'overview' | 'milestones' | 'contracts' | 'timeline' | 'documents' | 'media';
 
 interface ActivityFeedItem {
   trackKey: string;
@@ -59,7 +66,19 @@ interface InvestorContractGroup {
   contracts: InvestmentContractSummary[];
 }
 
+export interface FundingHistoryEntry extends FundingDeclaration {
+  investorDisplayName: string;
+}
+
 const RECENT_ACTIVITY_LIMIT = 5;
+
+export function opportunityRoomProjectRoute(
+  projectId: number | string | null | undefined,
+  isFounder: boolean
+): Array<string | number> {
+  if (projectId === null || projectId === undefined || projectId === '') return ['/admin/projects'];
+  return ['/admin/projects', projectId];
+}
 
 /**
  * The Room endpoint is authoritative, but a stale or partially failed response
@@ -87,9 +106,20 @@ export function normalizeOpportunityRoomParticipations(
             ? Number(leg.legNumber)
             : index + 1,
           cashFlows: Array.isArray(leg.cashFlows) ? leg.cashFlows : [],
-          obligations: Array.isArray(leg.obligations) ? leg.obligations : []
+          obligations: Array.isArray(leg.obligations) ? leg.obligations : [],
+          profitSharingReportingPeriods: Array.isArray(leg.profitSharingReportingPeriods) ? leg.profitSharingReportingPeriods : []
         }))
     }));
+}
+
+export function calculateConfirmedFundingProgress(
+  fundingTarget: number | string | null | undefined,
+  confirmedReceivedAmount: number | string | null | undefined
+): number | null {
+  const target = Number(fundingTarget);
+  const confirmed = Number(confirmedReceivedAmount);
+  if (!Number.isFinite(target) || target <= 0 || !Number.isFinite(confirmed)) return null;
+  return Math.round((confirmed * 100 / target) * 100) / 100;
 }
 
 @Component({
@@ -109,6 +139,7 @@ export class OpportunityRoomComponent implements OnDestroy {
   private contractService = inject(ContractService);
 private firebaseClient = inject(FirebaseClientService);
 private currencyService = inject(CurrencyService);
+private stageService = inject(ProjectStageService);
   private readonly realtimeSubscriptions = new Subscription();
   private roomRefreshInFlight: Promise<void> | null = null;
   private roomRefreshQueued = false;
@@ -129,7 +160,7 @@ private currencyService = inject(CurrencyService);
     title: '',
     visibility: 'Private' as 'Public' | 'Private',
     purpose: 'PrivateDocument',
-    category: 'OpportunityPrivateDocument',
+    category: 'OPPORTUNITYPRIVATEDOCUMENT',
     searchTags: ''
   });
   selectedDocumentFile = signal<File | null>(null);
@@ -188,6 +219,41 @@ private currencyService = inject(CurrencyService);
   pdfDownloading = signal<string | null>(null);
   contractEmailing = signal<string | null>(null);
   pdfStatusOverrides = signal<Record<string, PdfGenerationStatus>>({});
+  fundingDeclarationModalOpen = signal(false);
+  fundingDeclarationSubmitting = signal(false);
+  fundingDeclarationForm = signal({
+    participationId: 0,
+    amount: 0,
+    receivedDate: new Date().toISOString().split('T')[0],
+    paymentMethod: 'BankTransfer',
+    externalReference: '',
+    notes: '',
+    proofFile: null as File | null
+  });
+  fundingDecisionModalOpen = signal(false);
+  fundingDecisionType = signal<'confirm' | 'dispute'>('confirm');
+  fundingDecisionDeclaration = signal<FundingDeclaration | null>(null);
+  fundingDecisionReason = signal('');
+  fundingDecisionSubmitting = signal(false);
+  loanRepaymentModalOpen = signal(false);
+  loanRepaymentSubmitting = signal(false);
+  loanRepaymentParticipation = signal<OpportunityRoomParticipation | null>(null);
+  loanRepaymentLeg = signal<ParticipationLeg | null>(null);
+  loanRepaymentForm = signal({ amount: 0, externalPaymentDate: new Date().toISOString().split('T')[0], externalReference: '', proofFile: null as File | null });
+  loanRepaymentDecisionRecord = signal<LoanRepaymentRecord | null>(null);
+  loanRepaymentDecisionType = signal<'confirm' | 'dispute'>('confirm');
+  loanRepaymentDecisionText = signal('');
+  loanRepaymentDecisionSubmitting = signal(false);
+  profitSharingDistributionModalOpen = signal(false);
+  profitSharingDistributionSubmitting = signal(false);
+  profitSharingDistributionParticipation = signal<OpportunityRoomParticipation | null>(null);
+  profitSharingDistributionLeg = signal<ParticipationLeg | null>(null);
+  profitSharingDistributionPeriod = signal<ProfitSharingReportingPeriod | null>(null);
+  profitSharingDistributionForm = signal({ amount: 0, externalReference: '', notes: '', evidenceFile: null as File | null });
+  profitSharingDistributionDecision = signal<ProfitSharingDistributionDeclaration | null>(null);
+  profitSharingDistributionDecisionType = signal<'confirm' | 'dispute'>('confirm');
+  profitSharingDistributionDecisionText = signal('');
+  profitSharingDistributionDecisionSubmitting = signal(false);
 
   readonly reportReasons: ReportReasonCode[] = [
     'SuspiciousOpportunity',
@@ -205,17 +271,23 @@ private currencyService = inject(CurrencyService);
     { id: 'contracts', label: '' },
     { id: 'timeline', label: 'Timeline' },
     { id: 'documents', label: 'Documents' },
-    { id: 'media', label: 'Media' },
-    { id: 'payments', label: '' }
+    { id: 'media', label: 'Media' }
   ];
 
   overview = computed(() => (this.room()?.overview ?? {}) as Opportunity & Record<string, any>);
+  projectContext = computed<OpportunityProjectContext | null>(() => this.room()?.projectContext ?? null);
   participantContext = computed(() => (this.room()?.participantContext ?? {}) as OpportunityRoomParticipantContext);
   roomParticipations = computed(() => normalizeOpportunityRoomParticipations(this.room()?.participations));
   documents = computed(() => this.flattenLibrary<OpportunityDocument>(this.room()?.documentsLibrary ?? this.room()?.documents));
   media = computed(() => this.flattenLibrary<OpportunityMedia>(this.room()?.mediaLibrary ?? this.room()?.media));
   milestones = computed(() => this.flattenLibrary<OpportunityMilestone>(this.room()?.milestones));
   timeline = computed(() => this.flattenLibrary<OpportunityEvent>(this.room()?.timeline));
+  fundingHistory = computed<FundingHistoryEntry[]>(() => this.roomParticipations()
+    .flatMap(participation => (participation.fundingDeclarations ?? []).map(declaration => ({
+      ...declaration,
+      investorDisplayName: participation.investorDisplayName
+    })))
+    .sort((left, right) => this.dateValueFromRaw(right.declaredAt) - this.dateValueFromRaw(left.declaredAt)));
 
   milestonesSorted = computed(() => this.sortMilestonesByDateDesc(this.milestones()));
   milestonesInSequence = computed(() => [...this.milestones()].sort((a, b) =>
@@ -276,6 +348,7 @@ private currencyService = inject(CurrencyService);
   });
 
   constructor() {
+    void this.stageService.ensureLoaded();
     void this.load();
     this.realtimeSubscriptions.add(
       this.firebaseClient.onRealtimeEvent.subscribe(event => this.handleRealtimeEvent(event))
@@ -308,9 +381,6 @@ private currencyService = inject(CurrencyService);
     this.activeTab.set(tab);
     if (tab === 'contracts') {
       void this.loadContracts();
-    }
-    if (tab === 'payments') {
-      void this.loadPayments();
     }
   }
 
@@ -385,6 +455,399 @@ private currencyService = inject(CurrencyService);
     this.actionError.set(null);
     this.actionSuccess.set(null);
     this.documentModalOpen.set(true);
+  }
+
+  openFundingDeclaration(participation: OpportunityRoomParticipation): void {
+    if (!this.isFounder()) return;
+    const available = this.availableToDeclare(participation);
+    this.actionError.set(null);
+    this.actionSuccess.set(null);
+    this.fundingDeclarationForm.set({
+      participationId: participation.participationId,
+      amount: available,
+      receivedDate: new Date().toISOString().split('T')[0],
+      paymentMethod: 'BankTransfer',
+      externalReference: '',
+      notes: '',
+      proofFile: null
+    });
+    this.fundingDeclarationModalOpen.set(true);
+  }
+
+  closeFundingDeclarationModal(): void {
+    if (this.fundingDeclarationSubmitting()) return;
+    this.fundingDeclarationModalOpen.set(false);
+  }
+
+  setFundingDeclarationField(field: string, value: string | number): void {
+    this.fundingDeclarationForm.update(form => ({ ...form, [field]: value }));
+  }
+
+  onFundingProofSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.fundingDeclarationForm.update(form => ({ ...form, proofFile: input.files?.[0] ?? null }));
+  }
+
+  availableToDeclare(participation: OpportunityRoomParticipation): number {
+    const declared = (participation.fundingDeclarations ?? []).reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    return Math.max(Number(participation.approvedAmount || 0) - declared, 0);
+  }
+
+  declaredReceivedAmount(): number | null {
+    return this.numberValue((this.overview() as any).declaredReceivedAmount);
+  }
+
+  awaitingConfirmationAmount(): number | null {
+    return this.numberValue((this.overview() as any).awaitingConfirmationAmount);
+  }
+
+  fundingHistoryDate(declaration: FundingDeclaration): string {
+    return this.contractDate(declaration.declaredAt);
+  }
+
+  fundingDeclarationStatusClass(status: string): string {
+    if (status === 'Confirmed') return 'text-emerald-300';
+    if (status === 'Disputed') return 'text-amber-300';
+    return 'text-blue-300';
+  }
+
+  isTerminalFundingDeclaration(declaration: FundingDeclaration): boolean {
+    return declaration.status === 'Confirmed' || declaration.status === 'Disputed';
+  }
+
+  openContractSnapshot(): void {
+    this.setTab('contracts');
+  }
+
+  async submitFundingDeclaration(): Promise<void> {
+    const id = this.opportunityId();
+    const form = this.fundingDeclarationForm();
+    const participation = this.roomParticipations().find(item => item.participationId === form.participationId);
+    if (!id || !participation || form.amount <= 0 || !form.receivedDate) {
+      this.actionError.set(this.t('fundingDeclaration.validation.required'));
+      return;
+    }
+    if (form.amount > this.availableToDeclare(participation)) {
+      this.actionError.set(this.t('fundingDeclaration.validation.exceedsAvailable'));
+      return;
+    }
+    try {
+      this.fundingDeclarationSubmitting.set(true);
+      this.actionError.set(null);
+      this.actionSuccess.set(null);
+      await this.opportunityService.createFundingDeclaration(id, form.participationId, {
+        amount: Number(form.amount),
+        currencyCode: participation.fundingCurrency,
+        receivedDate: form.receivedDate,
+        paymentMethod: form.paymentMethod,
+        externalReference: form.externalReference || undefined,
+        notes: form.notes || undefined,
+        proofFile: form.proofFile
+      });
+      this.fundingDeclarationModalOpen.set(false);
+      this.actionSuccess.set(this.t('fundingDeclaration.success'));
+      await this.refreshRoomData();
+    } catch (error: any) {
+      this.actionError.set(this.fundingDeclarationError(error));
+    } finally {
+      this.fundingDeclarationSubmitting.set(false);
+    }
+  }
+
+  async downloadFundingProof(declaration: FundingDeclaration): Promise<void> {
+    try {
+      const blob = await this.opportunityService.downloadFundingProof(declaration.id);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = declaration.proofFileName || 'funding-proof';
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (error: any) {
+      this.actionError.set(error?.error?.message || error?.message || this.t('fundingDeclaration.validation.proofFailed'));
+    }
+  }
+
+  private fundingDeclarationError(error: any): string {
+    const code = String(error?.backendCode ?? error?.error?.code ?? '');
+    if (code === 'FUNDING_PROOF_UPLOAD_UNAVAILABLE')
+      return this.t('fundingDeclaration.validation.proofUploadUnavailable');
+    const backendMessage = error?.backendMessage ?? error?.error?.message;
+    if (backendMessage) return backendMessage;
+    if (error?.message) return error.message;
+    return this.t('fundingDeclaration.validation.failed');
+  }
+
+  canDecideFundingDeclaration(declaration: FundingDeclaration): boolean {
+    return !this.isFounder()
+      && this.participantContext().isAdmin !== true
+      && this.participantContext().isApprovedParticipant === true
+      && declaration.status === 'PendingConfirmation';
+  }
+
+  openFundingDecision(declaration: FundingDeclaration, type: 'confirm' | 'dispute'): void {
+    if (!this.canDecideFundingDeclaration(declaration)) return;
+    this.actionError.set(null);
+    this.actionSuccess.set(null);
+    this.fundingDecisionDeclaration.set(declaration);
+    this.fundingDecisionType.set(type);
+    this.fundingDecisionReason.set('');
+    this.fundingDecisionModalOpen.set(true);
+  }
+
+  closeFundingDecisionModal(): void {
+    if (this.fundingDecisionSubmitting()) return;
+    this.fundingDecisionModalOpen.set(false);
+    this.fundingDecisionDeclaration.set(null);
+    this.fundingDecisionReason.set('');
+  }
+
+  setFundingDecisionReason(value: string): void {
+    this.fundingDecisionReason.set(value);
+  }
+
+  async submitFundingDecision(): Promise<void> {
+    const declaration = this.fundingDecisionDeclaration();
+    if (!declaration || this.fundingDecisionSubmitting()) return;
+    const type = this.fundingDecisionType();
+    const reason = this.fundingDecisionReason().trim();
+    if (type === 'dispute' && !reason) {
+      this.actionError.set(this.t('fundingDeclaration.validation.disputeReasonRequired'));
+      return;
+    }
+
+    try {
+      this.fundingDecisionSubmitting.set(true);
+      this.actionError.set(null);
+      this.actionSuccess.set(null);
+      if (type === 'confirm') {
+        await this.opportunityService.confirmFundingDeclaration(declaration.id, reason || undefined);
+        this.actionSuccess.set(this.t('fundingDeclaration.confirm.success'));
+      } else {
+        await this.opportunityService.disputeFundingDeclaration(declaration.id, reason);
+        this.actionSuccess.set(this.t('fundingDeclaration.dispute.success'));
+      }
+      this.fundingDecisionModalOpen.set(false);
+      this.fundingDecisionDeclaration.set(null);
+      this.fundingDecisionReason.set('');
+      await this.refreshRoomData();
+    } catch (error: any) {
+      const code = String(error?.error?.code ?? '');
+      const messages: Record<string, string> = {
+        FUNDING_DECLARATION_ALREADY_CONFIRMED: 'fundingDeclaration.validation.alreadyConfirmed',
+        FUNDING_DECLARATION_ALREADY_DISPUTED: 'fundingDeclaration.validation.alreadyDisputed',
+        FUNDING_DECLARATION_CONCURRENCY: 'fundingDeclaration.validation.conflict',
+        FUNDING_DECLARATION_FORBIDDEN: 'fundingDeclaration.validation.forbidden'
+      };
+      this.actionError.set(messages[code] ? this.t(messages[code]) : this.t('fundingDeclaration.validation.decisionFailed'));
+    } finally {
+      this.fundingDecisionSubmitting.set(false);
+    }
+  }
+
+  canDeclareLoanRepayment(leg: ParticipationLeg): boolean {
+    return this.participantContext().isAdmin !== true
+      && this.isFounder()
+      && !!leg.loanObligationId
+      && leg.loanObligationStatus === 'Active';
+  }
+
+  openLoanRepaymentDeclaration(participation: OpportunityRoomParticipation, leg: ParticipationLeg): void {
+    if (!leg.loanObligationId) return;
+    this.actionError.set(null);
+    this.actionSuccess.set(null);
+    this.loanRepaymentParticipation.set(participation);
+    this.loanRepaymentLeg.set(leg);
+    this.loanRepaymentForm.set({ amount: leg.repayment?.nextDueAmount ?? 0, externalPaymentDate: new Date().toISOString().split('T')[0], externalReference: '', proofFile: null });
+    this.loanRepaymentModalOpen.set(true);
+  }
+
+  closeLoanRepaymentDeclaration(): void {
+    if (this.loanRepaymentSubmitting()) return;
+    this.loanRepaymentModalOpen.set(false);
+    this.loanRepaymentParticipation.set(null);
+    this.loanRepaymentLeg.set(null);
+  }
+
+  setLoanRepaymentField(field: 'amount' | 'externalPaymentDate' | 'externalReference', value: string | number): void {
+    this.loanRepaymentForm.update(form => ({ ...form, [field]: value }));
+  }
+
+  setLoanRepaymentProof(file: File | null): void {
+    this.loanRepaymentForm.update(form => ({ ...form, proofFile: file }));
+  }
+
+  async submitLoanRepaymentDeclaration(): Promise<void> {
+    const opportunityId = this.opportunityId();
+    const leg = this.loanRepaymentLeg();
+    const form = this.loanRepaymentForm();
+    if (!opportunityId || !leg?.loanObligationId || !form.amount || !form.externalPaymentDate || this.loanRepaymentSubmitting()) return;
+    try {
+      this.loanRepaymentSubmitting.set(true);
+      this.actionError.set(null);
+      await this.opportunityService.createLoanRepaymentDeclaration(opportunityId, leg.loanObligationId, {
+        amount: Number(form.amount),
+        currency: leg.currency || this.loanRepaymentParticipation()?.fundingCurrency || '',
+        externalPaymentDate: form.externalPaymentDate,
+        externalReference: form.externalReference || undefined,
+        proofFile: form.proofFile
+      });
+      this.actionSuccess.set(this.t('opportunityRoom.loanRepayment.declared'));
+      this.closeLoanRepaymentDeclaration();
+      await this.refreshRoomData();
+    } catch (error: any) {
+      this.actionError.set(error?.error?.message || error?.message || this.t('opportunityRoom.loanRepayment.declareFailed'));
+    } finally {
+      this.loanRepaymentSubmitting.set(false);
+    }
+  }
+
+  canDecideLoanRepayment(record: LoanRepaymentRecord): boolean {
+    return this.participantContext().isAdmin !== true
+      && this.participantContext().isApprovedParticipant === true
+      && !this.isFounder()
+      && record.status === 'PendingConfirmation';
+  }
+
+  openLoanRepaymentDecision(record: LoanRepaymentRecord, type: 'confirm' | 'dispute'): void {
+    this.loanRepaymentDecisionRecord.set(record);
+    this.loanRepaymentDecisionType.set(type);
+    this.loanRepaymentDecisionText.set('');
+  }
+
+  closeLoanRepaymentDecision(): void {
+    if (this.loanRepaymentDecisionSubmitting()) return;
+    this.loanRepaymentDecisionRecord.set(null);
+    this.loanRepaymentDecisionText.set('');
+  }
+
+  async submitLoanRepaymentDecision(): Promise<void> {
+    const record = this.loanRepaymentDecisionRecord();
+    const text = this.loanRepaymentDecisionText().trim();
+    if (!record || this.loanRepaymentDecisionSubmitting() || (this.loanRepaymentDecisionType() === 'dispute' && !text)) return;
+    try {
+      this.loanRepaymentDecisionSubmitting.set(true);
+      this.actionError.set(null);
+      if (this.loanRepaymentDecisionType() === 'confirm') await this.opportunityService.confirmLoanRepayment(record.id, text || undefined);
+      else await this.opportunityService.disputeLoanRepayment(record.id, text);
+      this.actionSuccess.set(this.t(this.loanRepaymentDecisionType() === 'confirm' ? 'opportunityRoom.loanRepayment.confirmed' : 'opportunityRoom.loanRepayment.disputed'));
+      this.closeLoanRepaymentDecision();
+      await this.refreshRoomData();
+    } catch (error: any) {
+      this.actionError.set(error?.error?.message || error?.message || this.t('opportunityRoom.loanRepayment.decisionFailed'));
+    } finally {
+      this.loanRepaymentDecisionSubmitting.set(false);
+    }
+  }
+
+  async downloadLoanRepaymentProof(record: LoanRepaymentRecord): Promise<void> {
+    try {
+      const blob = await this.opportunityService.downloadLoanRepaymentProof(record.id);
+      this.saveBlob(blob, record.proofFileName || 'loan-repayment-proof');
+    } catch (error: any) {
+      this.actionError.set(error?.error?.message || error?.message || 'Unable to download repayment proof.');
+    }
+  }
+
+  canDeclareProfitSharingDistribution(leg: ParticipationLeg, period: ProfitSharingReportingPeriod): boolean {
+    const remaining = Number(period.distributionOutstanding ?? period.investorEntitlement ?? 0) - Number(period.pendingConfirmation ?? 0);
+    return this.isFounder() && this.participantContext().isAdmin !== true
+      && leg.profitSharingObligationStatus === 'Active'
+      && !!leg.profitSharingObligationId
+      && Number(period.investorEntitlement ?? 0) > 0
+      && remaining > 0
+      && period.status !== 'Distributed';
+  }
+
+  openProfitSharingDistribution(participation: OpportunityRoomParticipation, leg: ParticipationLeg, period: ProfitSharingReportingPeriod): void {
+    if (!this.canDeclareProfitSharingDistribution(leg, period)) return;
+    this.actionError.set(null);
+    this.actionSuccess.set(null);
+    this.profitSharingDistributionParticipation.set(participation);
+    this.profitSharingDistributionLeg.set(leg);
+    this.profitSharingDistributionPeriod.set(period);
+    this.profitSharingDistributionForm.set({ amount: Math.max(0, Number(period.distributionOutstanding ?? period.investorEntitlement ?? 0) - Number(period.pendingConfirmation ?? 0)), externalReference: '', notes: '', evidenceFile: null });
+    this.profitSharingDistributionModalOpen.set(true);
+  }
+
+  closeProfitSharingDistribution(): void {
+    if (this.profitSharingDistributionSubmitting()) return;
+    this.profitSharingDistributionModalOpen.set(false);
+    this.profitSharingDistributionParticipation.set(null);
+    this.profitSharingDistributionLeg.set(null);
+    this.profitSharingDistributionPeriod.set(null);
+  }
+
+  setProfitSharingDistributionField(field: 'amount' | 'externalReference' | 'notes', value: string | number): void {
+    this.profitSharingDistributionForm.update(form => ({ ...form, [field]: value }));
+  }
+
+  setProfitSharingDistributionEvidence(file: File | null): void {
+    this.profitSharingDistributionForm.update(form => ({ ...form, evidenceFile: file }));
+  }
+
+  async submitProfitSharingDistribution(): Promise<void> {
+    const opportunityId = this.opportunityId();
+    const leg = this.profitSharingDistributionLeg();
+    const period = this.profitSharingDistributionPeriod();
+    const form = this.profitSharingDistributionForm();
+    if (!opportunityId || !leg?.profitSharingObligationId || !period?.id || !form.amount || this.profitSharingDistributionSubmitting()) return;
+    try {
+      this.profitSharingDistributionSubmitting.set(true);
+      this.actionError.set(null);
+      await this.opportunityService.createProfitSharingDistribution(opportunityId, leg.profitSharingObligationId, period.id, {
+        declaredAmount: Number(form.amount),
+        currency: leg.currency || this.profitSharingDistributionParticipation()?.fundingCurrency || '',
+        externalReference: form.externalReference || undefined,
+        notes: form.notes || undefined,
+        evidenceFile: form.evidenceFile
+      });
+      this.actionSuccess.set(this.t('opportunityRoom.profitSharing.distributionDeclared'));
+      this.closeProfitSharingDistribution();
+      await this.refreshRoomData();
+    } catch (error: any) {
+      this.actionError.set(error?.error?.message || error?.message || this.t('opportunityRoom.profitSharing.distributionFailed'));
+    } finally {
+      this.profitSharingDistributionSubmitting.set(false);
+    }
+  }
+
+  canDecideProfitSharingDistribution(declaration: ProfitSharingDistributionDeclaration): boolean {
+    return !this.isFounder() && this.participantContext().isAdmin !== true
+      && this.participantContext().isApprovedParticipant === true
+      && declaration.status === 'PendingConfirmation';
+  }
+
+  openProfitSharingDistributionDecision(declaration: ProfitSharingDistributionDeclaration, type: 'confirm' | 'dispute'): void {
+    if (!this.canDecideProfitSharingDistribution(declaration)) return;
+    this.profitSharingDistributionDecision.set(declaration);
+    this.profitSharingDistributionDecisionType.set(type);
+    this.profitSharingDistributionDecisionText.set('');
+  }
+
+  closeProfitSharingDistributionDecision(): void {
+    if (this.profitSharingDistributionDecisionSubmitting()) return;
+    this.profitSharingDistributionDecision.set(null);
+    this.profitSharingDistributionDecisionText.set('');
+  }
+
+  async submitProfitSharingDistributionDecision(): Promise<void> {
+    const declaration = this.profitSharingDistributionDecision();
+    const text = this.profitSharingDistributionDecisionText().trim();
+    if (!declaration || this.profitSharingDistributionDecisionSubmitting() || (this.profitSharingDistributionDecisionType() === 'dispute' && !text)) return;
+    try {
+      this.profitSharingDistributionDecisionSubmitting.set(true);
+      this.actionError.set(null);
+      if (this.profitSharingDistributionDecisionType() === 'confirm') await this.opportunityService.confirmProfitSharingDistribution(declaration.id, text || undefined);
+      else await this.opportunityService.disputeProfitSharingDistribution(declaration.id, text);
+      this.actionSuccess.set(this.t(this.profitSharingDistributionDecisionType() === 'confirm' ? 'opportunityRoom.profitSharing.distributionConfirmed' : 'opportunityRoom.profitSharing.distributionDisputed'));
+      this.closeProfitSharingDistributionDecision();
+      await this.refreshRoomData();
+    } catch (error: any) {
+      this.actionError.set(error?.error?.message || error?.message || this.t('opportunityRoom.profitSharing.distributionDecisionFailed'));
+    } finally {
+      this.profitSharingDistributionDecisionSubmitting.set(false);
+    }
   }
 
   openProjectReport(): void {
@@ -875,7 +1338,10 @@ private currencyService = inject(CurrencyService);
       const uploaded = await this.fileStore.uploadFile(category, file, {
         purpose: form.purpose,
         visibility: form.visibility,
-        isPublic: form.visibility === 'Public'
+        isPublic: form.visibility === 'Public',
+        projectId: this.projectContext()?.id ?? this.room()?.projectId ?? undefined,
+        entityType: 'OpportunityDocument',
+        entityId: opportunityId
       });
       await this.opportunityService.createDocument(opportunityId, {
         fileId: uploaded.fileId,
@@ -895,7 +1361,7 @@ private currencyService = inject(CurrencyService);
         searchTags: form.searchTags
       } as any);
       this.actionSuccess.set(this.t('opportunityRoom.toasts.documentAdded'));
-      this.documentForm.set({ title: '', visibility: 'Private', purpose: 'PrivateDocument', category: 'OpportunityPrivateDocument', searchTags: '' });
+      this.documentForm.set({ title: '', visibility: 'Private', purpose: 'PrivateDocument', category: 'OPPORTUNITYPRIVATEDOCUMENT', searchTags: '' });
       this.selectedDocumentFile.set(null);
       this.documentModalOpen.set(false);
       this.activeTab.set('documents');
@@ -927,6 +1393,47 @@ private currencyService = inject(CurrencyService);
     if (normalized === '2' || normalized.includes('loan')) return 'Loan';
     if (normalized === '3' || normalized.includes('profit')) return 'Profit Sharing';
     return String(type ?? 'Participation leg');
+  }
+
+  projectLogoUrl(): string {
+    return this.fileStore.getPublicUrl(this.projectContext()?.logoUrl || '');
+  }
+
+  projectInitials(): string {
+    const name = this.projectContext()?.displayName || this.room()?.projectDisplayName || '';
+    return name.trim().slice(0, 2).toUpperCase() || 'P';
+  }
+
+  projectCategory(): string {
+    const context = this.projectContext();
+    const category = context?.category;
+    const categoryId = context?.categoryId ?? category?.id;
+    if (categoryId !== null && categoryId !== undefined) {
+      const key = `investmentPreview.lookups.categories.${categoryId}`;
+      const translated = this.t(key);
+      if (translated !== key) return translated;
+    }
+    return category?.nameEn || category?.nameAr || context?.industry || '-';
+  }
+
+  projectStage(): string {
+    const value = this.projectContext()?.projectStage;
+    if (value === null || value === undefined || value === '') return '-';
+    const label = this.stageService.label(value, this.languageService.language() === 'ar' ? 'ar' : 'en');
+    return label || String(value);
+  }
+
+  projectCompany(): string {
+    const context = this.projectContext();
+    return context?.legalName || context?.displayName || '-';
+  }
+
+  projectDescription(): string {
+    return this.projectContext()?.summary || this.projectContext()?.description || '-';
+  }
+
+  projectRoute(): Array<string | number> {
+    return opportunityRoomProjectRoute(this.projectContext()?.id ?? this.room()?.projectId, this.isFounder());
   }
 
   paymentLegSummary(detail: InvestorPaymentDetail | null): string {
@@ -962,6 +1469,22 @@ private currencyService = inject(CurrencyService);
     return this.numberValue(this.overview().fundingTarget);
   }
 
+  committedAmount(): number | null {
+    return this.numberValue((this.overview() as any).committedAmount);
+  }
+
+  confirmedReceivedAmount(): number | null {
+    return this.numberValue((this.overview() as any).confirmedReceivedAmount);
+  }
+
+  outstandingAmount(): number | null {
+    return this.numberValue((this.overview() as any).outstandingAmount);
+  }
+
+  disputedAmount(): number | null {
+    return this.numberValue((this.overview() as any).disputedAmount);
+  }
+
   fundedAmount(): number | null {
     return this.numberValue(this.overview().fundedAmount);
   }
@@ -971,7 +1494,7 @@ private currencyService = inject(CurrencyService);
   }
 
   fundingProgress(): number | null {
-    return this.numberValue(this.overview().fundingProgressPercentage);
+    return calculateConfirmedFundingProgress(this.fundingTarget(), this.confirmedReceivedAmount());
   }
 
   fundingProgressBarWidth(): number {
@@ -1126,10 +1649,16 @@ private currencyService = inject(CurrencyService);
   }
 
   sourceParticipationReference(): string {
+    const direct = this.selectedContract()?.contract.participationRequestId;
+    if (direct !== null && direct !== undefined) return String(direct);
     return this.readTermsValue(['sourceParticipationRequestId', 'SourceParticipationRequestId', 'participationRequestId', 'ParticipationRequestId']);
   }
 
   acceptedOfferReference(): string {
+    const contract = this.selectedContract()?.contract;
+    if (contract?.acceptedOfferId !== null && contract?.acceptedOfferId !== undefined) {
+      return contract.acceptedOfferVersionNumber ? `${contract.acceptedOfferId} · V${contract.acceptedOfferVersionNumber}` : String(contract.acceptedOfferId);
+    }
     return this.readTermsValue(['acceptedOfferId', 'AcceptedOfferId', 'acceptedOfferReference', 'AcceptedOfferReference']);
   }
 
@@ -1338,11 +1867,11 @@ private currencyService = inject(CurrencyService);
   }
 
   private documentCategory(purpose: string, visibility: 'Public' | 'Private'): string {
-    if (purpose === 'PublicDocument' || visibility === 'Public') return 'OpportunityPublicDocument';
-    if (purpose === 'FinancialReport') return 'FinancialReport';
-    if (purpose === 'Contract') return 'Contract';
-    if (purpose === 'Legal') return 'Legal';
-    return 'OpportunityPrivateDocument';
+    if (purpose === 'PublicDocument' || visibility === 'Public') return 'OPPORTUNITYPUBLICDOCUMENT';
+    if (purpose === 'FinancialReport') return 'FINANCIALREPORT';
+    if (purpose === 'Contract') return 'CONTRACT';
+    if (purpose === 'Legal') return 'LEGAL';
+    return 'OPPORTUNITYPRIVATEDOCUMENT';
   }
 
   private documentPurposeValue(purpose: string): number {
@@ -1556,6 +2085,11 @@ private currencyService = inject(CurrencyService);
     const key = normalized === '' ? 'unknown' : normalized;
     const translated = this.t(`${prefix}.${key}`);
     return translated === `${prefix}.${key}` ? key : translated;
+  }
+
+  repaymentModelLabel(value: string | null | undefined): string {
+    const key = repaymentModelLabelKey(value);
+    return key ? this.t(key) : String(value ?? '');
   }
 
   private t(path: string): string {

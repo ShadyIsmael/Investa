@@ -8,6 +8,7 @@ using Investa.Infrastructure.Persistence;
 using Investa.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using System.Text.Json;
 using Xunit;
 
@@ -92,6 +93,70 @@ public sealed class ProjectRoomPhase7SecurityTests
     }
 
     [Fact]
+    public async Task Project_document_cannot_be_linked_from_an_unregistered_or_other_context_file()
+    {
+        await using var fixture=await Fixture.Create();
+        fixture.Db.FileCategories.Add(GeneralProjectRoomCategory());
+        await fixture.Db.SaveChangesAsync();
+        await FluentActions.Invoking(()=>fixture.Service.AddDocumentAsync(fixture.Founder.Id,fixture.Project.Id,new CreateProjectRoomDocumentRequest{
+            FileKey="uploads-GENERAL/forged.pdf",CategoryCode="GENERAL",DocumentType="Financial report",Visibility=ProjectRoomDocumentVisibility.ProjectMembers}))
+            .Should().ThrowAsync<BusinessValidationException>().Where(x=>x.Code=="PROJECT_DOCUMENT_UPLOAD_REQUIRED");
+    }
+
+    [Fact]
+    public async Task Founder_links_governed_project_upload_with_server_owned_metadata()
+    {
+        await using var fixture=await Fixture.Create();
+        var key="uploads-GENERAL/financials.pdf";
+        fixture.Db.FileCategories.Add(GeneralProjectRoomCategory());
+        fixture.Db.StoredFiles.Add(new StoredFile{FileId="doc-2",FileKey=key,CategoryCode="GENERAL",OriginalFileName="financials.pdf",Extension=".pdf",
+            MimeType="application/pdf",FileSizeBytes=2048,UploadedByUserId=fixture.Founder.Id,ProjectId=fixture.Project.Id,EntityType="ProjectRoom",EntityId=fixture.Project.Id.ToString()});
+        await fixture.Db.SaveChangesAsync();
+
+        var linked=await fixture.Service.AddDocumentAsync(fixture.Founder.Id,fixture.Project.Id,new CreateProjectRoomDocumentRequest{
+            FileKey=key,CategoryCode="GENERAL",DocumentType="Financial report",Visibility=ProjectRoomDocumentVisibility.ProjectMembers});
+        var room=await fixture.Service.GetAsync(fixture.Founder.Id,fixture.Project.Id,false);
+        var document=room.Documents.Single();
+        linked.FileName.Should().Be("financials.pdf");
+        document.DocumentType.Should().Be("Financial report");
+        document.Category.Should().Be("GENERAL");
+        document.MimeType.Should().Be("application/pdf");
+        document.FileSize.Should().Be(2048);
+        document.CanDownload.Should().BeTrue();
+        document.DownloadUrl.Should().Contain($"/documents/{linked.Id}/download");
+    }
+
+    [Fact]
+    public async Task Founder_only_project_document_is_denied_to_an_approved_project_participant()
+    {
+        await using var fixture=await Fixture.Create();
+        var key="uploads-GENERAL/founder-only.pdf";
+        var stored=new StoredFile{FileId="doc-1",FileKey=key,CategoryCode="GENERAL",OriginalFileName="founder-only.pdf",Extension=".pdf",
+            MimeType="application/pdf",FileSizeBytes=100,UploadedByUserId=fixture.Founder.Id,ProjectId=fixture.Project.Id,EntityType="ProjectRoom",EntityId=fixture.Project.Id.ToString()};
+        var document=new ProjectRoomDocument{ProjectId=fixture.Project.Id,FileKey=key,FileName=stored.OriginalFileName,DocumentType="Legal",Visibility=ProjectRoomDocumentVisibility.FounderOnly,CreatedByUserId=fixture.Founder.Id};
+        fixture.Db.AddRange(stored,document);await fixture.Db.SaveChangesAsync();
+
+        await FluentActions.Invoking(()=>fixture.Service.DownloadDocumentAsync(fixture.InvestorA.Id,fixture.Project.Id,document.Id,false))
+            .Should().ThrowAsync<BusinessValidationException>().Where(x=>x.Code=="PROJECT_ROOM_FORBIDDEN");
+    }
+
+    [Fact]
+    public async Task Project_room_timeline_includes_only_persisted_public_activity_events()
+    {
+        await using var fixture=await Fixture.Create();
+        fixture.Db.OpportunityEvents.AddRange(
+            new OpportunityEvent{OpportunityId=fixture.OpportunityA.Id,EventType="OpportunityCreated",Title="key",CreatedByUserId=fixture.Founder.Id,
+                IsPublic=true,IsImmutableTimelineEntry=true},
+            new OpportunityEvent{OpportunityId=fixture.OpportunityA.Id,EventType="PrivateInternalNote",Title="private",CreatedByUserId=fixture.Founder.Id,
+                IsPublic=false,IsImmutableTimelineEntry=true});
+        await fixture.Db.SaveChangesAsync();
+
+        var room=await fixture.Service.GetAsync(fixture.Founder.Id,fixture.Project.Id,false);
+        room.Timeline.Should().ContainSingle(x=>x.EventType=="OpportunityCreated"&&x.OpportunityId==fixture.OpportunityA.Id);
+        room.Timeline.Should().NotContain(x=>x.Title=="PrivateInternalNote");
+    }
+
+    [Fact]
     public async Task Manipulated_project_and_milestone_ids_cannot_cross_ownership_boundary()
     {
         await using var fixture=await Fixture.Create();
@@ -105,7 +170,7 @@ public sealed class ProjectRoomPhase7SecurityTests
         await FluentActions.Invoking(()=>fixture.Service.CompleteMilestoneAsync(fixture.InvestorB.Id,otherProject.Id,milestone.Id))
             .Should().ThrowAsync<BusinessValidationException>().Where(x=>x.Code=="MILESTONE_NOT_FOUND");
         await FluentActions.Invoking(()=>fixture.Service.AddDocumentAsync(fixture.InvestorA.Id,fixture.Project.Id,new(){
-            FileKey="manipulated",FileName="x.pdf",DocumentType="Other"}))
+            FileKey="manipulated",DocumentType="Other"}))
             .Should().ThrowAsync<BusinessValidationException>().Where(x=>x.Code=="PROJECT_ROOM_FORBIDDEN");
     }
 
@@ -149,7 +214,7 @@ public sealed class ProjectRoomPhase7SecurityTests
         public ApplicationDbContext Db{get;} public ProjectRoomService Service{get;}
         public AuthUser Founder{get;}=User();public AuthUser InvestorA{get;}=User();public AuthUser InvestorB{get;}=User();
         public Project Project{get;private set;}=null!;public Opportunity OpportunityA{get;private set;}=null!;public Opportunity OpportunityB{get;private set;}=null!;
-        private Fixture(){Db=new(new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);Service=new(new UnitOfWork(Db));}
+        private Fixture(){Db=new(new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);Service=new(new UnitOfWork(Db),Mock.Of<Investa.Application.Interfaces.IFileStorage>());}
         public static async Task<Fixture>Create()
         {
             var f=new Fixture();f.Db.AuthUsers.AddRange(f.Founder,f.InvestorA,f.InvestorB);
@@ -165,7 +230,9 @@ public sealed class ProjectRoomPhase7SecurityTests
         public ValueTask DisposeAsync()=>Db.DisposeAsync();
     }
     private static AuthUser User()=>new(){Id=Guid.NewGuid(),Email=$"{Guid.NewGuid():N}@test.local",Status=true};
-    private static Opportunity Opportunity(Project p,Guid founder,int sequence)=>new(){Project=p,FounderId=founder,SequenceNumber=sequence,Purpose="Purpose",Type="Opportunity",
+    private static FileCategory GeneralProjectRoomCategory()=>new(){Code="GENERAL",NameEn="General",NameAr="عام",SortOrder=1,IsActive=true,MaxFileSizeBytes=25*1024*1024,
+        AllowedExtensions=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip",AllowedMimeTypes="application/pdf"};
+    private static Opportunity Opportunity(Project p,Guid founder,int sequence)=>new(){Project=p,FounderId=founder,SequenceNumber=sequence,Type="Opportunity",
         Title=$"Opportunity {sequence}",ShortDescription="short",UseOfFunds="use",FundingTarget=1000,FundingCurrency="EGP",InvestmentModel=InvestmentModel.LoanInvestment,
         ProjectStage=ProjectStage.MVP,Status=OpportunityStatus.Completed,ModerationStatus=OpportunityModerationStatus.Approved,FundingStatus=OpportunityFundingStatus.Closed};
     private static OpportunityJoinRequest Participation(Opportunity o,AuthUser investor,OpportunityJoinRequestStatus status)=>new(){Opportunity=o,InvestorId=investor.Id,

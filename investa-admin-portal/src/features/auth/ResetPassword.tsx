@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/common/Icons';
 
 interface ResetPasswordProps {
@@ -7,6 +8,7 @@ interface ResetPasswordProps {
 }
 
 export const ResetPassword: React.FC<ResetPasswordProps> = ({ onBackToLogin }) => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);

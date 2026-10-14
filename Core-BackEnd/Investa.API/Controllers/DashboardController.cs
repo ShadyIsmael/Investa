@@ -138,26 +138,26 @@ public class DashboardController : ControllerBase
             .Join(_db.Investments,
                 ip => ip.InvestmentId,
                 inv => inv.Id,
-                (ip, inv) => new { ip.AmountInvested, inv.BusinessCategoryId })
-            .Where(x => x.BusinessCategoryId != null)
-            .GroupBy(x => x.BusinessCategoryId)
+                    (ip, inv) => new { ip.AmountInvested, inv.ProjectCategoryId })
+            .Where(x => x.ProjectCategoryId != null)
+            .GroupBy(x => x.ProjectCategoryId)
             .Select(g => new
             {
-                BusinessCategoryId = g.Key!.Value,
+                ProjectCategoryId = g.Key!.Value,
                 TotalAmount = g.Sum(x => x.AmountInvested),
                 InvestmentCount = g.Count()
             })
             .OrderByDescending(x => x.TotalAmount)
             .Take(take)
-            .Join(_db.BusinessCategories,
-                  g => g.BusinessCategoryId,
+            .Join(_db.ProjectCategories,
+                  g => g.ProjectCategoryId,
                   bc => bc.Id,
                   (g, bc) => new InvestmentCategoryCountDto
                   {
-                      BusinessCategoryId = bc.Id,
-                      BusinessCategoryName = bc.Value,
-                      BusinessCategoryNameEn = bc.Value,
-                      BusinessCategoryNameAr = bc.ValueAr,
+                      ProjectCategoryId = bc.Id,
+                      ProjectCategoryName = bc.NameEn,
+                      ProjectCategoryNameEn = bc.NameEn,
+                      ProjectCategoryNameAr = bc.NameAr,
                       InvestmentCount = g.InvestmentCount,
                       TotalShareAmount = g.TotalAmount
                   });
@@ -186,9 +186,9 @@ public class DashboardController : ControllerBase
             .Join(_db.Investments,
                   ip => ip.InvestmentId,
                   inv => inv.Id,
-                  (ip, inv) => new { ip.Id, inv.BusinessCategoryId })
-            .Where(x => x.BusinessCategoryId != null)
-            .GroupBy(x => x.BusinessCategoryId)
+                    (ip, inv) => new { ip.Id, inv.ProjectCategoryId })
+            .Where(x => x.ProjectCategoryId != null)
+            .GroupBy(x => x.ProjectCategoryId)
             .Select(g => new
             {
                 CategoryId = g.Key!.Value,
@@ -196,14 +196,14 @@ public class DashboardController : ControllerBase
             })
             .OrderByDescending(x => x.InvestmentCount)
             .Take(take)
-            .Join(_db.BusinessCategories,
+            .Join(_db.ProjectCategories,
                   g => g.CategoryId,
                   bc => bc.Id,
                   (g, bc) => new InvestmentCategoryCountDto
                   {
-                      BusinessCategoryId = bc.Id,
-                      BusinessCategoryName = bc.Value,
-                      BusinessCategoryNameAr = string.IsNullOrWhiteSpace(bc.ValueAr) ? bc.Value : bc.ValueAr,
+                      ProjectCategoryId = bc.Id,
+                      ProjectCategoryName = bc.NameEn,
+                      ProjectCategoryNameAr = string.IsNullOrWhiteSpace(bc.NameAr) ? bc.NameEn : bc.NameAr,
                       InvestmentCount = g.InvestmentCount
                   });
 
@@ -212,4 +212,4 @@ public class DashboardController : ControllerBase
     }
 
     // (moved) investments/stats/by-category relocated to admin dashboard controller
-} 
+}

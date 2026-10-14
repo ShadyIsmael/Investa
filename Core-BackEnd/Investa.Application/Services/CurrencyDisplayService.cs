@@ -4,23 +4,25 @@ using Investa.Application.DTOs;
 using Investa.Application.Interfaces;
 using Investa.Domain;
 using Investa.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace Investa.Application.Services;
 
 /// <summary>
 /// Default implementation of <see cref="ICurrencyDisplayService"/>.
-/// All display metadata comes from the Currency Master table; the platform default
-/// (<see cref="CurrencyMasterDefaults.DefaultCurrency"/>) is used only as a fallback
-/// when a record is missing, and never to resolve symbols/digits for a known currency.
+/// All display metadata comes from the Currency Master table. Inactive records remain
+/// resolvable for historical records; active-state enforcement belongs to write and
+/// conversion workflows.
 /// </summary>
 public sealed class CurrencyDisplayService(IUnitOfWork uow) : ICurrencyDisplayService
 {
     public async Task<CurrencyDisplayInfo> GetInfoAsync(string isoCode, CancellationToken cancellationToken = default)
     {
         var code = Normalize(isoCode);
-        var currency = await uow.Repository<Currency>().GetSingleAsync(c => c.ISOCode == code);
-        if (currency is not { IsActive: true })
-            throw new BusinessValidationException("UNSUPPORTED_CURRENCY", $"Currency {code} is not active in the Currency Master.");
+        var currency = await uow.Repository<Currency>().Query()
+            .FirstOrDefaultAsync(c => c.ISOCode == code, cancellationToken);
+        if (currency is null)
+            throw new BusinessValidationException("UNSUPPORTED_CURRENCY", $"Currency {code} does not exist in the Currency Master.");
         return CurrencyDisplayInfo.FromEntity(currency);
     }
 

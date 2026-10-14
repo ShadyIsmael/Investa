@@ -57,8 +57,8 @@
               <button type="button" (click)="isDropdownOpen.set(!isDropdownOpen())" 
                 [class]="'relative z-10 w-full bg-slate-800 border border-slate-700 rounded-l-md shadow-sm pl-4 pr-12 py-2.5 text-left cursor-pointer focus:outline-none focus:ring-2 sm:text-sm transition-colors duration-200 ' + theme().ringFocus + ' ' + theme().borderFocus">
                   <span class="flex items-center country-button">
-                  <span class="fi fi-{{ selectedCountry()?.flag }} fi-sm country-flag rounded"></span>
-                  <span class="block truncate text-base text-white">{{ selectedCountry()?.code }}</span>
+                  <span class="fi fi-{{ selectedCountry()?.isoAlpha2?.toLowerCase() }} fi-sm country-flag rounded"></span>
+                  <span class="block truncate text-base text-white">{{ selectedCountry()?.phoneCode }}</span>
                 </span>
                 <span class="ms-3 absolute inset-y-0 end-0 flex items-center pr-3 pointer-events-none">
                   <svg class="h-6 w-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -67,10 +67,10 @@
                 </span>
               </button>
               <div *ngIf="isDropdownOpen()" class="absolute z-20 mt-2 w-72 bg-slate-800 border border-slate-700 shadow-lg max-h-64 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
-                <a *ngFor="let country of countries" (click)="selectCountry(country)" class="text-gray-200 cursor-pointer select-none relative px-4 py-2 hover:bg-slate-700 flex items-center transition-colors duration-150">
-                  <span class="fi fi-{{ country.flag }} fi-sm mr-4 rounded"></span>
-                  <span class="font-semibold block truncate">{{ country.nameKey | translate }}</span>
-                  <span class="text-gray-400 ml-auto pl-3">{{ country.code }}</span>
+                <a *ngFor="let country of countries()" (click)="selectCountry(country)" class="text-gray-200 cursor-pointer select-none relative px-4 py-2 hover:bg-slate-700 flex items-center transition-colors duration-150">
+                  <span class="fi fi-{{ country.isoAlpha2.toLowerCase() }} fi-sm mr-4 rounded"></span>
+                  <span class="font-semibold block truncate">{{ countryService.label(country, languageService.direction() === 'rtl' ? 'ar' : 'en') }}</span>
+                  <span class="text-gray-400 ml-auto pl-3">{{ country.phoneCode }}</span>
                 </a>
               </div>
             </div>
@@ -134,7 +134,7 @@
 
         <p class="mt-8 text-center text-sm text-gray-400">
           {{ 'login.notAMember' | translate }}
-          <a routerLink="/signup" [class]="'font-medium ' + theme().textAccent + ' ' + theme().textHover">{{ 'login.signUpNow' | translate }}</a>
+          <a routerLink="/signup" [queryParams]="{ role: role() }" [class]="'font-medium ' + theme().textAccent + ' ' + theme().textHover">{{ 'login.signUpNow' | translate }}</a>
         </p>
 
       </div>

@@ -343,8 +343,45 @@ public class OpportunitiesController : BaseApiController
         }
     }
 
-    [HttpPost("{id:int}/publish")]
     [HttpPost("{id:int}/submit-review")]
+    [ProducesResponseType(typeof(ApiResponse<OpportunityDetailDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SubmitForReview(int id, CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null)
+            return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            var opportunity = await _opportunityService.SubmitForReviewAsync(userId.Value, id, cancellationToken);
+            return SuccessResponse(opportunity, "Opportunity submitted for review successfully");
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
+    [HttpPost("{id:int}/archive")]
+    [ProducesResponseType(typeof(ApiResponse<OpportunityDetailDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Archive(int id, CancellationToken cancellationToken)
+    {
+        var userId = ResolveUserIdFromClaims();
+        if (userId == null)
+            return ErrorResponse("Unable to resolve authenticated user", 401);
+
+        try
+        {
+            var opportunity = await _opportunityService.ArchiveAsync(userId.Value, id, cancellationToken);
+            return SuccessResponse(opportunity, "Opportunity archived successfully");
+        }
+        catch (BusinessValidationException ex)
+        {
+            return ToBusinessError(ex);
+        }
+    }
+
+    [HttpPost("{id:int}/publish")]
     [ProducesResponseType(typeof(ApiResponse<OpportunityDetailDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Publish(int id, CancellationToken cancellationToken)
     {
@@ -365,6 +402,7 @@ public class OpportunitiesController : BaseApiController
 
     [HttpPost("{id:int}/join-requests")]
     [ProducesResponseType(typeof(ApiResponse<OpportunityJoinRequestDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> CreateJoinRequest(int id, [FromBody] CreateOpportunityJoinRequest request, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
@@ -636,10 +674,13 @@ public class OpportunitiesController : BaseApiController
                 or "DUPLICATE_PAYMENT"
                 or "PAYMENT_ALREADY_REVERSED"
                 or "NO_UNPAID_INSTALLMENTS"
-                or "INSTALLMENT_ALREADY_CONFIRMED" => 409,
+                or "INSTALLMENT_ALREADY_CONFIRMED"
+                or "OFFER_REQUIRED" => 409,
             "PROJECT_ARCHIVED" => 409,
             _ => 400
         };
-        return ErrorResponse(ex.Message, statusCode);
+        return ex.Code == "OFFER_REQUIRED"
+            ? ErrorResponse(ex.Message, statusCode, new { code = ex.Code })
+            : ErrorResponse(ex.Message, statusCode);
     }
 }

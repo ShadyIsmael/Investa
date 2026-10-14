@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE } from '../config/api.token';
 import { ApiResponse } from '../models/api-response.model';
+import { ProjectCategoryReference } from './project-category.service';
 
 export interface MyParticipation {
   projectId: number;
@@ -18,6 +19,12 @@ export interface MyParticipation {
   shortDescription: string | null;
   coverImageUrl: string | null;
   approvedContributionAmount: number | null;
+  committedAmount: number | null;
+  declaredReceivedAmount: number | null;
+  confirmedReceivedAmount: number | null;
+  outstandingAmount: number | null;
+  remainingCommitmentCapacity: number | null;
+  fundingProgress: number | null;
   fundedAmount: number | null;
   fundingTarget: number | null;
   fundingProgressPercentage: number | null;
@@ -59,10 +66,17 @@ export interface MyParticipation {
 
 export interface OpportunityLookup {
   id: number | string;
+  code?: string | null;
   name?: string | null;
+  nameEn?: string | null;
+  nameAr?: string | null;
+  descriptionEn?: string | null;
+  descriptionAr?: string | null;
   value?: string | null;
   label?: string | null;
   key?: string | null;
+  isActive?: boolean | null;
+  sortOrder?: number | null;
 }
 
 export interface OpportunityMedia {
@@ -148,9 +162,9 @@ export interface OpportunityProjectContext {
   summary?: string | null;
   description?: string | null;
   categoryId?: number | null;
-  category?: OpportunityLookup | null;
+   category?: ProjectCategoryReference | null;
   industry?: string | null;
-  businessStage?: string | number | null;
+  projectStage?: string | number | null;
   geography?: string | null;
   foundedOn?: string | null;
   websiteUrl?: string | null;
@@ -175,18 +189,6 @@ export interface ParticipationItem {
   contractNumber: string | null;
   contractVersion: number | null;
   contractDocumentHash: string | null;
-}
-
-export interface CurrencyReference {
-  isoCode: string;
-  englishName: string;
-  arabicName: string;
-  symbol: string;
-  decimalDigits: number;
-  isActive: boolean;
-  supportsFunding: boolean;
-  supportsSettlement: boolean;
-  supportsWallet: boolean;
 }
 
 export interface ApprovedInvestor {
@@ -223,6 +225,7 @@ export interface InvestorPaymentSummary {
 }
 
 export interface ExpectedPaymentScheduleItem {
+  installmentNumber: number;
   dueDate: string;
   expectedInterest: number;
   expectedPrincipal: number;
@@ -260,15 +263,217 @@ export interface ParticipationLeg {
   amount: number;
   currency?: string | null;
   equityPercentage?: number | null;
+  equityOwnershipModel?: 'PercentageBased' | 'ShareBased' | string | null;
+  investorShareCount?: number | null;
+  totalIssuedShares?: number | null;
+  currentInvestorShares?: number | null;
+  currentTotalIssuedShares?: number | null;
+  currentOwnershipPercentage?: number | null;
+  shareClass?: string | null;
+  pricePerShare?: number | null;
+  preMoneyValuation?: number | null;
+  postMoneyValuation?: number | null;
+  effectiveOwnershipDate?: string | null;
+  equityPositionId?: number | null;
+  equityPositionStatus?: string | null;
+  hasInitialEquityHolding?: boolean;
+  equityInitialOwnershipPercentage?: number | null;
+  equityDilutionPercentagePoints?: number | null;
+  equityDilutionRelativeReductionPercentage?: number | null;
+  equityCorporateEvents?: EquityCorporateEventSummary[];
   sharesTerms?: string | null;
   returnRate?: number | null;
   termMonths?: number | null;
   repaymentModel?: string | null;
   profitSharePercentage?: number | null;
   exitTerms?: string | null;
+  loanObligationId?: number | null;
+  loanObligationStatus?: string | null;
+  isPersistedSchedule?: boolean;
+  contractualStartDate?: string | null;
+  contractualMaturityDate?: string | null;
   status: string;
   cashFlows: ExpectedPaymentScheduleItem[];
   obligations: ParticipationObligation[];
+  repayment?: LoanRepaymentSummary | null;
+  profitSharingObligationId?: number | null;
+  profitSharingObligationStatus?: string | null;
+  profitSharingMaturedAt?: string | null;
+  profitSharingSettledAt?: string | null;
+  profitSharingClosedAt?: string | null;
+  profitSharingClosureReason?: string | null;
+  profitSharingClosureSnapshotHash?: string | null;
+  isPersistedReportingPeriods?: boolean;
+  profitSharingReportingFrequency?: string | null;
+  profitSharingCalculationBasis?: string | null;
+  profitSharingTotalEntitlement?: number | null;
+  profitSharingTotalConfirmedDistributed?: number | null;
+  profitSharingTotalPendingConfirmation?: number | null;
+  profitSharingTotalDisputed?: number | null;
+  profitSharingTotalDistributionOutstanding?: number | null;
+  profitSharingTotalDeclaredResult?: number | null;
+  profitSharingCompletedPeriods?: number | null;
+  profitSharingTotalPeriods?: number | null;
+  profitSharingReportingPeriods?: ProfitSharingReportingPeriod[];
+}
+
+export interface EquityCorporateEventSummary {
+  eventId: number;
+  eventType: string;
+  status: string;
+  effectiveDate: string;
+  previousOwnershipPercentage?: number | null;
+  newOwnershipPercentage?: number | null;
+  dilutionPercentagePoints?: number | null;
+  previousInvestorShares?: number | null;
+  newInvestorShares?: number | null;
+  previousTotalIssuedShares?: number | null;
+  newTotalIssuedShares?: number | null;
+}
+
+export interface ProfitSharingReportingPeriod {
+  id: number;
+  obligationId: number;
+  periodNumber: number;
+  isFinalPeriod?: boolean;
+  startDate: string;
+  endDate: string;
+  reportingDueDate?: string | null;
+  currency: string;
+  status: string;
+  hasDeclaration: boolean;
+  declaredBasisAmount?: number | null;
+  declaredResultAmount?: number | null;
+  declarationStatus?: string | null;
+  investorEntitlement?: number | null;
+  distributionOutstanding?: number | null;
+  confirmedDistributed?: number | null;
+  pendingConfirmation?: number | null;
+  disputed?: number | null;
+  distributionDeclarations?: ProfitSharingDistributionDeclaration[];
+}
+
+export interface ProfitSharingDistributionAllocation {
+  id: number;
+  declarationId: number;
+  reportingPeriodId: number;
+  amount: number;
+  currency: string;
+  confirmedAt: string;
+  decisionActorId: string;
+}
+
+export interface ProfitSharingDistributionDeclaration {
+  id: number;
+  obligationId: number;
+  reportingPeriodId: number;
+  entitlementId: number;
+  participationId: number;
+  contractId: number;
+  contractVersionId: number;
+  acceptedOfferId: number;
+  offerLegId: number;
+  founderUserId: string;
+  investorUserId: string;
+  declaredAmount: number;
+  currency: string;
+  declaredAt: string;
+  externalReference?: string | null;
+  notes?: string | null;
+  evidenceAvailable: boolean;
+  evidenceFileName?: string | null;
+  declaredByUserId: string;
+  status: string;
+  decidedAt?: string | null;
+  decidedByUserId?: string | null;
+  confirmationComment?: string | null;
+  disputeReason?: string | null;
+  allocation?: ProfitSharingDistributionAllocation | null;
+}
+
+export interface LoanRepaymentAllocation {
+  installmentNumber: number;
+  interestAllocated: number;
+  principalAllocated: number;
+  totalAllocated: number;
+}
+
+export interface LoanRepaymentRecord {
+  id: number;
+  loanObligationId: number;
+  amount: number;
+  currency: string;
+  externalPaymentDate: string;
+  externalReference?: string | null;
+  proofAvailable: boolean;
+  proofFileName?: string | null;
+  status: string;
+  declaredAt: string;
+  declaredByUserId: string;
+  decidedAt?: string | null;
+  decidedByUserId?: string | null;
+  confirmationComment?: string | null;
+  disputeReason?: string | null;
+  targetInstallmentNumbers: number[];
+  allocations: LoanRepaymentAllocation[];
+}
+
+export interface LoanRepaymentSummary {
+  loanObligationId: number;
+  currency: string;
+  principalOutstanding: number;
+  interestOutstanding: number;
+  totalOutstanding: number;
+  confirmedRepaidAmount: number;
+  pendingConfirmationAmount: number;
+  disputedAmount: number;
+  nextDueAmount: number | null;
+  nextDueDate: string | null;
+  loanLifecycleStatus: string;
+  maturityDate: string | null;
+  overdueAmount: number;
+  fullyRepaidAt?: string | null;
+  defaultedAt?: string | null;
+  defaultedByUserId?: string | null;
+  defaultReason?: string | null;
+  defaultOutstandingPrincipal?: number | null;
+  defaultOutstandingInterest?: number | null;
+  defaultOutstandingTotal?: number | null;
+  closedAt?: string | null;
+  closedByUserId?: string | null;
+  closureReason?: string | null;
+  closedFinalPrincipalOutstanding?: number | null;
+  closedFinalInterestOutstanding?: number | null;
+  closedFinalTotalOutstanding?: number | null;
+  records: LoanRepaymentRecord[];
+}
+
+export interface FundingDeclaration {
+  id: number;
+  participationId: number;
+  opportunityId: number;
+  founderId: string;
+  investorId: string;
+  amount: number;
+  currencyCode: string;
+  receivedDate: string;
+  paymentMethod: string;
+  externalReference?: string | null;
+  notes?: string | null;
+  proofAvailable: boolean;
+  proofFileName?: string | null;
+  proofFileSize?: number | null;
+  proofMimeType?: string | null;
+  proofDownloadUrl?: string | null;
+  status: string;
+  declaredAt: string;
+  createdBy: string;
+  confirmedAt?: string | null;
+  confirmedByInvestorId?: string | null;
+  confirmationComment?: string | null;
+  disputedAt?: string | null;
+  disputedByInvestorId?: string | null;
+  disputeReason?: string | null;
 }
 
 export interface ParticipationObligation {
@@ -280,6 +485,12 @@ export interface ParticipationObligation {
 export interface OpportunityRoomContract {
   contractId: number;
   contractNumber: string;
+  acceptedOfferId?: number | null;
+  acceptedOfferVersionNumber?: number | null;
+  participationRequestId?: number | null;
+  acceptedAmount?: number;
+  acceptedCurrency?: string;
+  acceptanceTimestamp?: string | null;
   currentVersionNumber: number;
   status: string | number;
   documentHash: string;
@@ -299,6 +510,7 @@ export interface OpportunityRoomParticipation {
   termsImmutable: boolean;
   termsSnapshotHash: string;
   legs: ParticipationLeg[];
+  fundingDeclarations?: FundingDeclaration[];
   contract?: OpportunityRoomContract | null;
 }
 
@@ -448,6 +660,7 @@ export interface OpportunityViewerState {
 export interface OpportunityRoom {
   projectId?: number | null;
   projectDisplayName?: string | null;
+  projectContext?: OpportunityProjectContext | null;
   overview?: Opportunity | Record<string, any> | null;
   mediaLibrary?: OpportunityMedia[] | Record<string, OpportunityMedia[]> | null;
   media?: OpportunityMedia[] | Record<string, OpportunityMedia[]> | null;
@@ -470,7 +683,6 @@ export interface Opportunity {
   projectIndustry?: string | null;
   projectLogoUrl?: string | null;
   sequenceNumber?: number | null;
-  purpose?: string | null;
   type?: string | null;
   founderId?: string | null;
   favorited?: boolean;
@@ -483,7 +695,6 @@ export interface Opportunity {
   projectStageCustomName?: string | null;
   fundingGoalId?: number | string | null;
   fundingGoalName?: string | null;
-  fundingPurpose?: string | null;
   useOfFunds?: string | null;
   fundingTarget?: number | null;
   minimumInvestment?: number | null;
@@ -524,6 +735,12 @@ export interface Opportunity {
   expectedReturnSummary?: string | null;
   fundingProgressPercent?: number | null;
   fundingProgressPercentage?: number | null;
+  committedAmount?: number | null;
+  declaredReceivedAmount?: number | null;
+  confirmedReceivedAmount?: number | null;
+  outstandingAmount?: number | null;
+  remainingCommitmentCapacity?: number | null;
+  fundingProgress?: number | null;
   approvedParticipantCount?: number | null;
   fundedAmount?: number | null;
   alreadyFundedAmount?: number | null;
@@ -548,7 +765,6 @@ export interface Opportunity {
   createdAt?: string | null;
   tags?: Array<string | OpportunityLookup>;
   latestPublicUpdate?: string | null;
-  fundingUsage?: string | null;
   risks?: string | null;
   exitStrategy?: string | null;
   media?: OpportunityMedia[];
@@ -582,7 +798,6 @@ export interface OpportunityFilters {
 
 export interface OpportunityUpsert {
   projectId?: number | null;
-  purpose?: string | null;
   type?: string | null;
   title: string;
   shortDescription: string;
@@ -595,7 +810,6 @@ export interface OpportunityUpsert {
   fundingCurrency?: string | null;
   coverImageUrl?: string | null;
   useOfFunds?: string | null;
-  fundingUsage?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -648,6 +862,145 @@ export class OpportunityService {
 
   getOpportunityRoom(id: string | number): Promise<OpportunityRoom> {
     return this.getOne(`/api/v1/opportunities/${encodeURIComponent(String(id))}/room`);
+  }
+
+  createFundingDeclaration(id: string | number, participationId: number, payload: {
+    amount: number;
+    currencyCode: string;
+    receivedDate: string;
+    paymentMethod: string;
+    externalReference?: string | null;
+    notes?: string | null;
+    proofFile?: File | null;
+  }): Promise<FundingDeclaration> {
+    const form = new FormData();
+    form.append('amount', String(payload.amount));
+    form.append('currencyCode', payload.currencyCode);
+    form.append('receivedDate', payload.receivedDate);
+    form.append('paymentMethod', payload.paymentMethod);
+    if (payload.externalReference) form.append('externalReference', payload.externalReference);
+    if (payload.notes) form.append('notes', payload.notes);
+    if (payload.proofFile) form.append('proofFile', payload.proofFile, payload.proofFile.name);
+    const headers = new HttpHeaders({ 'Idempotency-Key': `funding-declaration-${Date.now()}-${Math.random().toString(36).slice(2)}` });
+    return firstValueFrom(this.http.post<ApiResponse<FundingDeclaration>>(
+      `${this.apiBase}/api/v1/funding-declarations/opportunities/${encodeURIComponent(String(id))}/participations/${encodeURIComponent(String(participationId))}`,
+      form,
+      { headers }
+    )).then(raw => this.extractData(raw, 'Failed to record funding declaration.'));
+  }
+
+  async downloadFundingProof(declarationId: number): Promise<Blob> {
+    return firstValueFrom(this.http.get(
+      `${this.apiBase}/api/v1/funding-declarations/${encodeURIComponent(String(declarationId))}/proof`,
+      { headers: new HttpHeaders({ Accept: 'application/octet-stream' }), responseType: 'blob' }
+    ));
+  }
+
+  confirmFundingDeclaration(declarationId: number, comment?: string | null): Promise<FundingDeclaration> {
+    return firstValueFrom(this.http.post<ApiResponse<FundingDeclaration>>(
+      `${this.apiBase}/api/v1/funding-declarations/${encodeURIComponent(String(declarationId))}/confirm`,
+      comment?.trim() ? { comment: comment.trim() } : {}
+    )).then(raw => this.extractData(raw, 'Funding declaration could not be confirmed.'));
+  }
+
+  disputeFundingDeclaration(declarationId: number, reason: string): Promise<FundingDeclaration> {
+    return firstValueFrom(this.http.post<ApiResponse<FundingDeclaration>>(
+      `${this.apiBase}/api/v1/funding-declarations/${encodeURIComponent(String(declarationId))}/dispute`,
+      { reason }
+    )).then(raw => this.extractData(raw, 'Funding declaration could not be disputed.'));
+  }
+
+  createLoanRepaymentDeclaration(opportunityId: string | number, obligationId: number, payload: {
+    amount: number;
+    currency: string;
+    externalPaymentDate: string;
+    externalReference?: string | null;
+    installmentIds?: number[];
+    proofFile?: File | null;
+  }): Promise<LoanRepaymentRecord> {
+    const form = new FormData();
+    form.append('amount', String(payload.amount));
+    form.append('currency', payload.currency);
+    form.append('externalPaymentDate', payload.externalPaymentDate);
+    if (payload.externalReference) form.append('externalReference', payload.externalReference);
+    if (payload.installmentIds?.length) form.append('installmentIdsJson', JSON.stringify(payload.installmentIds));
+    if (payload.proofFile) form.append('proofFile', payload.proofFile, payload.proofFile.name);
+    const headers = new HttpHeaders({ 'Idempotency-Key': `loan-repayment-${Date.now()}-${Math.random().toString(36).slice(2)}` });
+    return firstValueFrom(this.http.post<ApiResponse<LoanRepaymentRecord>>(
+      `${this.apiBase}/api/v1/loan-repayments/opportunities/${encodeURIComponent(String(opportunityId))}/obligations/${encodeURIComponent(String(obligationId))}`,
+      form,
+      { headers }
+    )).then(raw => this.extractData(raw, 'Loan repayment could not be declared.'));
+  }
+
+  confirmLoanRepayment(declarationId: number, comment?: string | null): Promise<LoanRepaymentRecord> {
+    return firstValueFrom(this.http.post<ApiResponse<LoanRepaymentRecord>>(
+      `${this.apiBase}/api/v1/loan-repayments/${encodeURIComponent(String(declarationId))}/confirm`,
+      comment?.trim() ? { comment: comment.trim() } : {}
+    )).then(raw => this.extractData(raw, 'Loan repayment could not be confirmed.'));
+  }
+
+  disputeLoanRepayment(declarationId: number, reason: string): Promise<LoanRepaymentRecord> {
+    return firstValueFrom(this.http.post<ApiResponse<LoanRepaymentRecord>>(
+      `${this.apiBase}/api/v1/loan-repayments/${encodeURIComponent(String(declarationId))}/dispute`,
+      { reason }
+    )).then(raw => this.extractData(raw, 'Loan repayment could not be disputed.'));
+  }
+
+  async downloadLoanRepaymentProof(declarationId: number): Promise<Blob> {
+    return firstValueFrom(this.http.get(
+      `${this.apiBase}/api/v1/loan-repayments/${encodeURIComponent(String(declarationId))}/proof`,
+      { headers: new HttpHeaders({ Accept: 'application/octet-stream' }), responseType: 'blob' }
+    ));
+  }
+
+  createProfitSharingDistribution(opportunityId: string | number, obligationId: number, periodId: number, payload: {
+    declaredAmount: number;
+    currency: string;
+    externalReference?: string | null;
+    notes?: string | null;
+    evidenceFile?: File | null;
+  }): Promise<ProfitSharingDistributionDeclaration> {
+    const form = new FormData();
+    form.append('declaredAmount', String(payload.declaredAmount));
+    form.append('currency', payload.currency);
+    if (payload.externalReference) form.append('externalReference', payload.externalReference);
+    if (payload.notes) form.append('notes', payload.notes);
+    if (payload.evidenceFile) form.append('evidenceFile', payload.evidenceFile, payload.evidenceFile.name);
+    const headers = new HttpHeaders({ 'Idempotency-Key': `profit-sharing-distribution-${Date.now()}-${Math.random().toString(36).slice(2)}` });
+    return firstValueFrom(this.http.post<ApiResponse<ProfitSharingDistributionDeclaration>>(
+      `${this.apiBase}/api/v1/profit-sharing/opportunities/${encodeURIComponent(String(opportunityId))}/obligations/${encodeURIComponent(String(obligationId))}/periods/${encodeURIComponent(String(periodId))}/distributions`,
+      form,
+      { headers }
+    )).then(raw => this.extractData(raw, 'Profit Sharing distribution could not be declared.'));
+  }
+
+  confirmProfitSharingDistribution(declarationId: number, comment?: string | null): Promise<ProfitSharingDistributionDeclaration> {
+    return firstValueFrom(this.http.post<ApiResponse<ProfitSharingDistributionDeclaration>>(
+      `${this.apiBase}/api/v1/profit-sharing/distributions/${encodeURIComponent(String(declarationId))}/confirm`,
+      comment?.trim() ? { comment: comment.trim() } : {}
+    )).then(raw => this.extractData(raw, 'Profit Sharing distribution could not be confirmed.'));
+  }
+
+  disputeProfitSharingDistribution(declarationId: number, reason: string): Promise<ProfitSharingDistributionDeclaration> {
+    return firstValueFrom(this.http.post<ApiResponse<ProfitSharingDistributionDeclaration>>(
+      `${this.apiBase}/api/v1/profit-sharing/distributions/${encodeURIComponent(String(declarationId))}/dispute`,
+      { reason }
+    )).then(raw => this.extractData(raw, 'Profit Sharing distribution could not be disputed.'));
+  }
+
+  async downloadProfitSharingDistributionEvidence(declarationId: number): Promise<Blob> {
+    return firstValueFrom(this.http.get(
+      `${this.apiBase}/api/v1/profit-sharing/distributions/${encodeURIComponent(String(declarationId))}/evidence`,
+      { headers: new HttpHeaders({ Accept: 'application/octet-stream' }), responseType: 'blob' }
+    ));
+  }
+
+  closeProfitSharingObligation(obligationId: number, reason: string): Promise<any> {
+    return firstValueFrom(this.http.post<ApiResponse<any>>(
+      `${this.apiBase}/api/v1/profit-sharing/obligations/${encodeURIComponent(String(obligationId))}/close`,
+      { reason }
+    )).then(raw => this.extractData(raw, 'Profit Sharing obligation could not be closed.'));
   }
 
   transitionFunding(id: string | number, payload: {
@@ -754,26 +1107,14 @@ export class OpportunityService {
     );
   }
 
-  getCategories(): Promise<OpportunityLookup[]> {
-    return this.getList('/api/v1/lookups/opportunity-categories');
-  }
-
   getTags(): Promise<OpportunityLookup[]> {
     return this.getList('/api/v1/lookups/opportunity-tags');
-  }
-
-  getFundingGoals(): Promise<OpportunityLookup[]> {
-    return this.getList('/api/v1/lookups/funding-goals');
-  }
-
-  getCurrencies(purpose?: 'funding' | 'settlement' | 'wallet'): Promise<CurrencyReference[]> {
-    return this.getList(`/api/currency${purpose ? `?purpose=${encodeURIComponent(purpose)}` : ''}`);
   }
 
   label(value: OpportunityLookup | string | number | null | undefined): string {
     if (value === null || value === undefined) return '-';
     if (typeof value === 'string' || typeof value === 'number') return String(value);
-    return value.name || value.value || value.label || value.key || String(value.id);
+     return value.name || value.nameEn || value.nameAr || value.value || value.label || value.key || String(value.id);
   }
 
   private async getList<T = any>(path: string, filters: OpportunityFilters = {}): Promise<T[]> {
@@ -828,12 +1169,11 @@ export class OpportunityService {
   private toOpportunityRequest(payload: OpportunityUpsert): Record<string, unknown> {
     return {
       projectId: payload.projectId ?? null,
-      purpose: payload.purpose ?? null,
       type: payload.type ?? null,
       title: payload.title,
       description: payload.fullDescription ?? null,
       shortDescription: payload.shortDescription,
-      useOfFunds: payload.useOfFunds ?? payload.fundingUsage ?? null,
+      useOfFunds: payload.useOfFunds ?? null,
       fundingTarget: payload.fundingTarget,
       fundingGoalId: payload.fundingGoalId ?? null,
       fundingCurrency: payload.fundingCurrency ?? null,

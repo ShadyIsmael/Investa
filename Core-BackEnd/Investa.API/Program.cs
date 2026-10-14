@@ -9,10 +9,12 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Serilog;
 using Investa.API.Middlewares;
 using FirebaseAdmin;
@@ -20,6 +22,7 @@ using Google.Apis.Auth.OAuth2;
 using Investa.API.Authorization;
 using Investa.API.Configuration;
 using Investa.Application.Common;
+using Investa.Application.DTOs;
 using Investa.Application.Interfaces;
 using Investa.Application.Services;
 using Investa.Application.Services.Finance;
@@ -28,11 +31,20 @@ using Investa.Infrastructure.Services;
 using Investa.Infrastructure.Repositories;
 using Investa.Infrastructure.Seed;
 using Investa.Infrastructure.Services.Firebase;
+using Investa.API.Health;
 
 
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+    var skipStartupDataMutationValue = builder.Configuration["FOPX_SKIP_STARTUP_DATA_MUTATIONS"];
+    var skipStartupDataMutations = string.Equals(skipStartupDataMutationValue, "1", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(skipStartupDataMutationValue, "true", StringComparison.OrdinalIgnoreCase);
+    var demoDataSeedingEnabled = builder.Configuration.GetValue<bool>("FOPX_ENABLE_DEMO_DATA_SEEDING");
+    var maySeedDemoData = DemoDataSeedingPolicy.ShouldSeed(
+        builder.Environment.EnvironmentName,
+        demoDataSeedingEnabled,
+        skipStartupDataMutations);
 
     // Short-circuit full startup when invoked by EF tools to avoid host startup issues (temporary)
     // Set environment variable RUNNING_EF_TOOLS=1 when running EF commands to skip building the host
@@ -42,17 +54,16 @@ try
         return;
     }
 
-    // === KESTREL CONFIGURATION: Bind to 0.0.0.0 for network accessibility ===
-    // Allows access via hostname (DESKTOP-DIH7CQH), IP address, or localhost
-    // Use a single configurable backend port for consistency across logs and messaging
+    // === SERVER URL CONFIGURATION: keep one authoritative binding ===
+    // The application owns the development URL. launchSettings must not also set
+    // ASPNETCORE_URLS, otherwise Kestrel receives the same endpoint twice.
+    // This preserves the intended port while allowing UAT-safe loopback binding.
     const int backendPort = 5235;
-    builder.WebHost.ConfigureKestrel(options =>
-    {
-        // Bind only to the legacy dev API port to remain compatible with frontend defaults
-        // Avoid binding to multiple ports to prevent startup failure if one port is already in use.
-        options.ListenAnyIP(backendPort);
-        // options.ListenAnyIP(5001, listenOptions => listenOptions.UseHttps()); // Uncomment to enable HTTPS
-    });
+    var apiBindAddress = skipStartupDataMutations
+        ? System.Net.IPAddress.Loopback
+        : System.Net.IPAddress.Any;
+    var apiBindAddressText = skipStartupDataMutations ? "127.0.0.1" : "0.0.0.0";
+    builder.WebHost.UseUrls($"http://{apiBindAddressText}:{backendPort}");
 
     // === LOGGING CONFIGURATION ===
     builder.Host.UseSerilog((context, config) =>
@@ -69,7 +80,6 @@ try
 
     Console.WriteLine($"[STARTUP] Environment: {builder.Environment.EnvironmentName}");
     Console.WriteLine($"[STARTUP] Starting configuration...");
-    Console.WriteLine($"[STARTUP] Connection String: {builder.Configuration.GetConnectionString("DefaultConnection")?.Substring(0, Math.Min(50, builder.Configuration.GetConnectionString("DefaultConnection")?.Length ?? 0))}...");
 
     // === DATABASE CONFIGURATION ===
     Console.WriteLine("[STARTUP] Configuring database...");
@@ -192,101 +202,27 @@ try
     });
 
     // === CORS CONFIGURATION ===
-    // Dynamic CORS policy allowing local network discovery without hardcoded IPs
+    // Development allows only the explicitly supported local portal origins.
+    // UAT/Production are exact-origin allowlists from Cors:AllowedOrigins.
     builder.Services.AddCors(options =>
     {
-        // Primary policy: AllowLocalNetwork (Zero-Config Discovery)
-        options.AddPolicy("AllowLocalNetwork", policy =>
+        options.AddPolicy("ApiCors", policy =>
         {
-            policy.SetIsOriginAllowed(origin =>
-            {
-                if (string.IsNullOrWhiteSpace(origin)) return false;
-                
-                string host;
-                try 
-                { 
-                    host = new Uri(origin).Host; 
-                } 
-                catch 
-                { 
-                    return false; 
-                }
+            var origins = CorsConfiguration.GetAllowedOrigins(builder.Configuration, builder.Environment.EnvironmentName);
+            if (origins.Length > 0)
+                policy.WithOrigins(origins);
+            else
+                policy.SetIsOriginAllowed(_ => false);
 
-                // Zero-config local allowance
-                if (host == "localhost") return true;
-                if (host.EndsWith(".local", StringComparison.OrdinalIgnoreCase)) return true;
-                if (host.StartsWith("10.", StringComparison.OrdinalIgnoreCase)) return true;
-                if (host.StartsWith("192.168.", StringComparison.OrdinalIgnoreCase)) return true;
-                if (host.StartsWith("172.", StringComparison.OrdinalIgnoreCase)) 
-                {
-                    // Check if it's in the 172.16.0.0 - 172.31.255.255 range
-                    var parts = host.Split('.');
-                    if (parts.Length >= 2 && int.TryParse(parts[1], out int secondOctet))
-                    {
-                        return secondOctet >= 16 && secondOctet <= 31;
-                    }
-                }
-
-                return false;
-            })
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
-        });
-
-        // Fallback default policy (for backward compatibility with existing config)
-        options.AddDefaultPolicy(policy =>
-        {
-            var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() 
-                ?? new[] { "http://localhost:3000", "http://localhost:5173" };
-
-            var networkConfig = builder.Configuration.GetSection("NetworkConfig");
-            var hostName = networkConfig["HostName"] ?? Environment.MachineName;
-            var frontendPort = networkConfig["FrontendPort"] ?? "5173";
-
-            var dynamicCorsOrigins = new[]
-            {
-                $"http://localhost:{frontendPort}",
-                $"http://{hostName}:{frontendPort}",
-                $"http://{hostName}.local:{frontendPort}"
-            };
-
-            corsOrigins = (corsOrigins ?? Array.Empty<string>()).Concat(dynamicCorsOrigins)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToArray();
-
-            policy.SetIsOriginAllowed(origin =>
-            {
-                if (string.IsNullOrWhiteSpace(origin)) return false;
-                string host;
-                try { host = new Uri(origin).Host; } catch { return false; }
-
-                // Zero-config local allowance
-                if (host == "localhost") return true;
-                if (host.EndsWith(".local", StringComparison.OrdinalIgnoreCase)) return true;
-                if (host.StartsWith("10.", StringComparison.OrdinalIgnoreCase)) return true;
-                if (host.StartsWith("192.168.", StringComparison.OrdinalIgnoreCase)) return true;
-
-                // Check against configured origins
-                return corsOrigins.Any(o => 
-                    string.Equals(o, origin, StringComparison.OrdinalIgnoreCase) || 
-                    new Uri(o).Host == host);
-            })
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
-        });
-
-        // Loose policy without credentials (for public endpoints, if needed)
-        options.AddPolicy("AllowAll", policy =>
-        {
-            policy.SetIsOriginAllowed(origin => true)
-                  .AllowAnyMethod()
-                  .AllowAnyHeader();
+            policy.AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
         });
     });
 
-    StartupSecurityConfiguration.ValidateActiveFileStore(builder.Configuration);
+    StartupSecurityConfiguration.ValidateActiveFileStore(
+        builder.Configuration,
+        builder.Configuration.GetValue<bool?>("FileStore:Required"));
 
     builder.Services.AddHttpClient();
     builder.Services.AddScoped<IFileStorage, Investa.Infrastructure.Services.FileStoreStorage>();
@@ -318,18 +254,25 @@ try
            })
            .ConfigureApiBehaviorOptions(options =>
            {
-               options.InvalidModelStateResponseFactory = context =>
-               {
-                   var localizer = context.HttpContext.RequestServices.GetService<IStringLocalizer<Investa.API.Resources.SharedResource>>();
-                   var message = localizer?[("ValidationFailed")]?.Value ?? "Validation failed";
-                   var errors = context.ModelState.Values.SelectMany(v => v.Errors);
-                   return new BadRequestObjectResult(new
-                   {
-                       success = false,
-                       message = message,
-                       errors = errors.Select(e => e.ErrorMessage)
-                   });
-               };
+            options.InvalidModelStateResponseFactory = context =>
+                {
+                    var localizer = context.HttpContext.RequestServices.GetService<IStringLocalizer<Investa.API.Resources.SharedResource>>();
+                    var message = localizer?[("ValidationFailed")]?.Value ?? "Validation failed";
+                    var errors = context.ModelState.Values.SelectMany(v => v.Errors);
+                    var fieldErrors = context.ModelState
+                        .Where(pair => pair.Value?.Errors.Count > 0)
+                        .ToDictionary(
+                            pair => pair.Key,
+                            pair => pair.Value!.Errors.Select(error => error.ErrorMessage).ToArray());
+                    return new BadRequestObjectResult(new
+                    {
+                        success = false,
+                        code = "INVALID_REQUEST",
+                        message = message,
+                        errors = errors.Select(e => e.ErrorMessage),
+                        data = fieldErrors
+                    });
+                };
            });
 
     // === FIREBASE CONFIGURATION ===
@@ -389,20 +332,26 @@ try
     // === DEVELOPMENT IDENTITY RESEED (repair-only) ===
     builder.Services.AddDevIdentityReseed();
     builder.Services.AddScoped<FinancePermissionBackfillService>();
+    builder.Services.AddScoped<OpportunityPermissionBackfillService>();
+    builder.Services.AddScoped<CompanyCustomerPermissionBackfillService>();
+    builder.Services.AddScoped<CompanyCatalogPermissionBackfillService>();
+    builder.Services.AddScoped<CompanySalesOpportunityPermissionBackfillService>();
+    builder.Services.AddScoped<CompanyQuotationPermissionBackfillService>();
+    builder.Services.AddScoped<CompanyContractPermissionBackfillService>();
 
     // === DEMO DATA SEEDING (runs on startup) ===
     builder.Services.AddDatabaseSeeder();
 
 
     // === DEVELOPMENT OPPORTUNITY SEED (repair-only) ===
-    if (builder.Environment.IsDevelopment())
+    if (maySeedDemoData)
     {
         builder.Services.AddDevOpportunitySeed();
     }
 
 
     // === APPLICATION SERVICES REGISTRATION ===
-    RegisterApplicationServices(builder.Services);
+    RegisterApplicationServices(builder.Services, skipStartupDataMutations);
 
     // === API DOCUMENTATION ===
     builder.Services.AddEndpointsApiExplorer();
@@ -412,22 +361,29 @@ try
     builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
     builder.Services.AddSingleton<IStringLocalizerFactory, ResourceManagerStringLocalizerFactory>();
 
-    // Register a non-generic IStringLocalizer (used by LookupService)
-    builder.Services.AddSingleton<IStringLocalizer>(provider =>
-    {
-        var factory = provider.GetRequiredService<IStringLocalizerFactory>();
-        // Create a localizer for the LookupService type (or use a resources base name)
-        return factory.Create(typeof(Investa.Application.Services.LookupService));
-    });
-
     // === HEALTH CHECKS ===
-    builder.Services.AddHealthChecks();
+    var fileStoreRequired = builder.Configuration.GetValue<bool?>("FileStore:Required")
+        ?? !builder.Environment.IsDevelopment();
+
+    builder.Services.AddHealthChecks()
+        .AddCheck<DatabaseHealthCheck>(
+            "database",
+            failureStatus: HealthStatus.Unhealthy,
+            tags: new[] { "dependency", "readiness" })
+        .AddCheck<Investa.Infrastructure.Services.FileStoreHealthCheck>(
+            "filestore",
+            failureStatus: HealthStatus.Degraded,
+            tags: new[] { "dependency", "readiness" });
 
     // === FIREBASE SERVICES ===
     builder.Services.AddFirebaseServices();
 
     // === BUILD APPLICATION ===
     var app = builder.Build();
+    if (skipStartupDataMutations)
+    {
+        logger.LogWarning("FOPX_SKIP_STARTUP_DATA_MUTATIONS is enabled; startup backfills and seeders are disabled.");
+    }
 
     // === COMPATIBILITY BACKFILLS ===
     try
@@ -437,36 +393,105 @@ try
 
         if (!app.Environment.IsEnvironment("Testing"))
         {
-            await backfillContext.Database.MigrateAsync();
+            // Migrations must be applied explicitly via `dotnet ef database update` or by setting AUTO_MIGRATE=1.
+            // Normal API startup validates DB compatibility without applying arbitrary pending migrations.
+            var autoMigrate = Environment.GetEnvironmentVariable("AUTO_MIGRATE") == "1" && !skipStartupDataMutations;
+            if (autoMigrate)
+            {
+                logger.LogWarning("AUTO_MIGRATE is enabled — applying pending migrations on startup.");
+                await backfillContext.Database.MigrateAsync();
+            }
+            else
+            {
+                var pendingMigrations = await backfillContext.Database.GetPendingMigrationsAsync();
+                var pendingList = pendingMigrations.ToList();
+                if (pendingList.Count > 0)
+                {
+                    logger.LogCritical(
+                        "DATABASE COMPATIBILITY MISMATCH: {Count} pending migration(s) detected: {Migrations}. " +
+                        "Apply them explicitly with `dotnet ef database update` or set AUTO_MIGRATE=1 to auto-apply on startup.",
+                        pendingList.Count,
+                        string.Join(", ", pendingList));
+                    throw new InvalidOperationException(
+                        $"InvestaDb has {pendingList.Count} pending migration(s): {string.Join(", ", pendingList)}. " +
+                        "Apply them explicitly or set AUTO_MIGRATE=1.");
+                }
+
+                logger.LogInformation("Database schema is up-to-date. No pending migrations detected.");
+            }
         }
 
-        var financePermissionBackfill = scope.ServiceProvider.GetRequiredService<FinancePermissionBackfillService>();
-        var addedFinancePermissions = await financePermissionBackfill.BackfillAsync();
-        logger.LogInformation(
-            "Company Finance permission backfill added {Count} keys: {Keys}",
-            addedFinancePermissions.Count,
-            string.Join(", ", addedFinancePermissions));
+        if (!skipStartupDataMutations)
+        {
+            var financePermissionBackfill = scope.ServiceProvider.GetRequiredService<FinancePermissionBackfillService>();
+            var addedFinancePermissions = await financePermissionBackfill.BackfillAsync();
+            logger.LogInformation(
+                "Company Finance permission backfill added {Count} keys: {Keys}",
+                addedFinancePermissions.Count,
+                string.Join(", ", addedFinancePermissions));
 
-        var backfill = scope.ServiceProvider.GetRequiredService<InvestmentOpportunityBackfillService>();
-        var result = await backfill.BackfillAsync();
-        logger.LogInformation(
-            "Investment Opportunity compatibility backfill result: scanned={Scanned}, migrated={Migrated}, skipped={Skipped}",
-            result.Scanned,
-            result.Migrated,
-            result.Skipped);
+            var opportunityPermissionBackfill = scope.ServiceProvider.GetRequiredService<OpportunityPermissionBackfillService>();
+            var opportunityPermissionResult = await opportunityPermissionBackfill.BackfillAsync();
+            logger.LogInformation(
+                "FOPX Opportunity permission migration added {Count} keys, processed {ReviewerRoles} Reviewer roles, added {ReviewerAssignments} explicit View/Review assignments, and removed {LegacyManageAssignments} legacy Manage assignments: {Keys}",
+                opportunityPermissionResult.AddedPermissionKeys.Count,
+                opportunityPermissionResult.ReviewerRolesProcessed,
+                opportunityPermissionResult.ReviewerAssignmentsAdded,
+                opportunityPermissionResult.LegacyManageAssignmentsRemoved,
+                string.Join(", ", opportunityPermissionResult.AddedPermissionKeys));
 
-        var productFieldsBackfill = scope.ServiceProvider.GetRequiredService<OpportunityProductFieldsBackfillService>();
-        var productFieldsResult = await productFieldsBackfill.BackfillAsync();
-        logger.LogInformation(
-            "Opportunity product fields backfill result: scanned={Scanned}, shortDescriptionPopulated={ShortDescriptionPopulated}, useOfFundsPopulated={UseOfFundsPopulated}, equityOfferedPercentageCalculated={EquityOfferedPercentageCalculated}, skipped={Skipped}, errors={Errors}",
-            productFieldsResult.Scanned,
-            productFieldsResult.ShortDescriptionPopulated,
-            productFieldsResult.UseOfFundsPopulated,
-            productFieldsResult.EquityOfferedPercentageCalculated,
-            productFieldsResult.Skipped,
-            string.Join(" | ", productFieldsResult.Errors));
+            var companyCustomerPermissionBackfill = scope.ServiceProvider.GetRequiredService<CompanyCustomerPermissionBackfillService>();
+            var addedCompanyCustomerPermissions = await companyCustomerPermissionBackfill.BackfillAsync();
+            logger.LogInformation(
+                "Company Customer permission backfill added {Count} keys: {Keys}",
+                addedCompanyCustomerPermissions.Count,
+                string.Join(", ", addedCompanyCustomerPermissions));
 
-        if (app.Environment.IsDevelopment())
+            var companyCatalogPermissionBackfill = scope.ServiceProvider.GetRequiredService<CompanyCatalogPermissionBackfillService>();
+            var addedCompanyCatalogPermissions = await companyCatalogPermissionBackfill.BackfillAsync();
+            logger.LogInformation(
+                "Company Catalog permission backfill added {Count} keys: {Keys}",
+                addedCompanyCatalogPermissions.Count,
+                string.Join(", ", addedCompanyCatalogPermissions));
+
+            var companySalesOpportunityPermissionBackfill = scope.ServiceProvider.GetRequiredService<CompanySalesOpportunityPermissionBackfillService>();
+            var addedCompanySalesOpportunityPermissions = await companySalesOpportunityPermissionBackfill.BackfillAsync();
+            logger.LogInformation(
+                "Company Sales Opportunity permission backfill added {Count} keys: {Keys}",
+                addedCompanySalesOpportunityPermissions.Count,
+                string.Join(", ", addedCompanySalesOpportunityPermissions));
+
+            var companyQuotationPermissionBackfill = scope.ServiceProvider.GetRequiredService<CompanyQuotationPermissionBackfillService>();
+            var addedCompanyQuotationPermissions = await companyQuotationPermissionBackfill.BackfillAsync();
+            logger.LogInformation(
+                "Company Quotation permission backfill added {Count} keys: {Keys}",
+                addedCompanyQuotationPermissions.Count,
+                string.Join(", ", addedCompanyQuotationPermissions));
+
+            var companyContractPermissionBackfill = scope.ServiceProvider.GetRequiredService<CompanyContractPermissionBackfillService>();
+            var addedCompanyContractPermissions = await companyContractPermissionBackfill.BackfillAsync();
+            logger.LogInformation(
+                "Company Contract permission backfill added {Count} keys: {Keys}",
+                addedCompanyContractPermissions.Count,
+                string.Join(", ", addedCompanyContractPermissions));
+
+            var productFieldsBackfill = scope.ServiceProvider.GetRequiredService<OpportunityProductFieldsBackfillService>();
+            var productFieldsResult = await productFieldsBackfill.BackfillAsync();
+            logger.LogInformation(
+                "Opportunity product fields backfill result: scanned={Scanned}, shortDescriptionPopulated={ShortDescriptionPopulated}, useOfFundsPopulated={UseOfFundsPopulated}, equityOfferedPercentageCalculated={EquityOfferedPercentageCalculated}, skipped={Skipped}, errors={Errors}",
+                productFieldsResult.Scanned,
+                productFieldsResult.ShortDescriptionPopulated,
+                productFieldsResult.UseOfFundsPopulated,
+                productFieldsResult.EquityOfferedPercentageCalculated,
+                productFieldsResult.Skipped,
+                string.Join(" | ", productFieldsResult.Errors));
+        }
+        else
+        {
+            logger.LogInformation("Startup backfills skipped by FOPX_SKIP_STARTUP_DATA_MUTATIONS.");
+        }
+
+        if (maySeedDemoData)
         {
             // === DEV-ONLY OPPORTUNITY SEED ===
             var opportunitySeed = scope.ServiceProvider.GetRequiredService<Investa.Infrastructure.Services.OpportunitySeedService>();
@@ -536,8 +561,7 @@ try
     // CORS - UseRouting must be called before UseCors when using endpoint routing
     app.UseRouting();
 
-    // Apply AllowLocalNetwork CORS policy (zero-config for local network discovery)
-    app.UseCors("AllowLocalNetwork");
+    app.UseCors("ApiCors");
 
     // Authentication & Authorization
     app.UseAuthentication();
@@ -548,7 +572,15 @@ try
 
     // === ENDPOINT MAPPING ===
     app.MapControllers();
-    app.MapHealthChecks("/health").AllowAnonymous();
+    var readinessOptions = HealthEndpointOptions.CreateReadiness(fileStoreRequired);
+    app.MapHealthChecks("/health", readinessOptions).AllowAnonymous();
+    app.MapHealthChecks("/health/ready", readinessOptions).AllowAnonymous();
+    app.MapHealthChecks("/health/live", new HealthCheckOptions
+    {
+        Predicate = _ => false,
+        ResponseWriter = HealthResponseWriter.WriteAsync,
+    }).AllowAnonymous();
+    app.MapHealthChecks("/health/dependencies", HealthEndpointOptions.CreateDependencies(fileStoreRequired)).AllowAnonymous();
 
     // Determine a friendly host name to present in logs (can be overridden via configuration)
     var networkConfig = builder.Configuration.GetSection("NetworkConfig");
@@ -556,31 +588,34 @@ try
 
     logger.LogInformation("✅ Application configured successfully");
     logger.LogInformation("🖥️  Server: {ServerName}", hostName);
-    logger.LogInformation("🌐 Binding: 0.0.0.0:{Port} (Network accessible)", backendPort);
+    logger.LogInformation("🌐 Binding: {Address}:{Port}", apiBindAddressText, backendPort);
     logger.LogInformation("🔔 Push Notifications: Firebase Cloud Messaging (FCM)");
     logger.LogInformation("🏥 Health: /api/health");
 
     Console.WriteLine($"[STARTUP] ✅ Configuration complete");
     Console.WriteLine($"[STARTUP] 🖥️  Server: {hostName}");
-    Console.WriteLine($"[STARTUP] 🌐 Binding: 0.0.0.0:{backendPort}");
+    Console.WriteLine($"[STARTUP] 🌐 Binding: {apiBindAddressText}:{backendPort}");
     Console.WriteLine($"[STARTUP] 📡 Access via:");
     Console.WriteLine($"[STARTUP]    - http://localhost:{backendPort}");
-    Console.WriteLine($"[STARTUP]    - http://{hostName}:{backendPort}");
-    Console.WriteLine($"[STARTUP]    - http://{hostName}.local:{backendPort}");
-    Console.WriteLine($"[STARTUP] 🏥 Health: http://{hostName}:{backendPort}/api/health");
+    if (!skipStartupDataMutations)
+    {
+        Console.WriteLine($"[STARTUP]    - http://{hostName}:{backendPort}");
+        Console.WriteLine($"[STARTUP]    - http://{hostName}.local:{backendPort}");
+    }
+    Console.WriteLine($"[STARTUP] 🏥 Health: http://{apiBindAddressText}:{backendPort}/api/health");
     Console.WriteLine($"[STARTUP] Press Ctrl+C to shut down.");
 
     // === DEVELOPMENT-ONLY: Safe dev reseed (repair-only) for identity roles & admin mapping ===
-    if (app.Environment.IsDevelopment())
+    if (app.Environment.IsDevelopment() && !skipStartupDataMutations)
     {
         using var scope = app.Services.CreateScope();
         var reseed = scope.ServiceProvider.GetRequiredService<Investa.Infrastructure.Seed.DevIdentityReseedService>();
         await reseed.RepairDevelopmentIdentityDataAsync(builder.Configuration);
     }
 
-    // === DEMO DATA SEEDING (ensures all demo seed entities exist) ===
-    // Runs on every startup in non-Testing environments.
-    if (!app.Environment.IsEnvironment("Testing"))
+    // Demo/test records must never be created as an implicit startup side effect,
+    // especially in Production. Explicit opt-in is Development-only.
+    if (maySeedDemoData)
     {
         try
         {
@@ -592,6 +627,11 @@ try
         {
             Console.WriteLine($"[SEED-WARN] DatabaseSeeder skipped: {ex.Message}");
         }
+    }
+    else
+    {
+        logger.LogInformation(
+            "Demo data seeding skipped. It requires Development plus FOPX_ENABLE_DEMO_DATA_SEEDING=true and startup data mutations enabled.");
     }
 
     await app.RunAsync();
@@ -624,7 +664,7 @@ finally
 /// Registers all application, infrastructure, and domain services with proper lifetimes
 /// Clean Architecture: Services organized by layer and responsibility
 /// </summary>
-static void RegisterApplicationServices(IServiceCollection services)
+static void RegisterApplicationServices(IServiceCollection services, bool skipStartupDataMutations)
 {
     services.AddHttpContextAccessor();
     services.AddScoped<ICurrentUserContext, Investa.API.Services.HttpCurrentUserContext>();
@@ -640,12 +680,11 @@ static void RegisterApplicationServices(IServiceCollection services)
 
     // === APPLICATION LAYER - Business Services (Scoped - per request) ===
     services.AddScoped<IProfileService, ProfileService>();
-    services.AddScoped<ICategoryService, CategoryService>();
+    services.AddScoped<IProjectCategoryService, ProjectCategoryService>();
     services.AddScoped<IClientService, ClientService>();
     services.AddScoped<IOrgUserService, Investa.Infrastructure.Services.OrgUserService>();
     services.AddScoped<IInvestmentService, InvestmentService>();
     services.AddScoped<IInvestmentEventService, InvestmentEventService>();
-    services.AddScoped<ILookupService, LookupService>();
     services.AddScoped<IInvestmentRequestService, InvestmentRequestService>();
     services.AddScoped<IInvestmentAnalyticsService, InvestmentAnalyticsService>();
     services.AddScoped<IScoreService, ScoreService>();
@@ -661,16 +700,37 @@ static void RegisterApplicationServices(IServiceCollection services)
       services.AddScoped<IOpportunityObligationCompletionService, OpportunityObligationCompletionService>();
       services.AddScoped<IProjectRoomService, ProjectRoomService>();
     services.AddScoped<IProjectService, ProjectService>();
+    services.AddSingleton<IProjectStageMetadataService, ProjectStageMetadataService>();
     services.AddScoped<IFounderDashboardService, FounderDashboardService>();
     services.AddScoped<IFileValidationService, DefaultFileValidationService>();
     services.AddScoped<IFileScanService, NullFileScanService>();
     services.AddScoped<IOpportunityFileAuditService, OpportunityFileAuditService>();
     services.AddScoped<ICurrencyConversionService, CurrencyConversionService>();
     services.AddScoped<ICurrencyDisplayService, CurrencyDisplayService>();
+    services.AddScoped<ICurrencyAdminService, CurrencyAdminService>();
+    services.AddScoped<IOpportunityTagAdminService, OpportunityTagAdminService>();
+    services.AddScoped<ICompanyCustomerService, CompanyCustomerService>();
+    services.AddScoped<ICompanyCatalogService, CompanyCatalogService>();
+    services.AddScoped<ICompanySalesOpportunityService, CompanySalesOpportunityService>();
+    services.AddScoped<ICompanyQuotationService, CompanyQuotationService>();
+    services.AddScoped<ICompanyContractService, CompanyContractService>();
+    services.AddScoped<IFundingGoalAdminService, FundingGoalAdminService>();
+    services.AddScoped<IRiskLevelService, RiskLevelService>();
+    services.AddScoped<IFileCategoryService, FileCategoryService>();
+    services.AddScoped<IFileStoragePolicyService, FileStoragePolicyService>();
+    services.AddScoped<IFileUploadService, FileUploadService>();
+    services.AddScoped<IFundingDeclarationService, FundingDeclarationService>();
+      services.AddScoped<ILoanRepaymentService, LoanRepaymentService>();
+      services.AddScoped<ILoanObligationService, LoanObligationService>();
+      services.AddScoped<IProfitSharingObligationService, ProfitSharingObligationService>();
+      services.AddScoped<IEquityPositionService, EquityPositionService>();
+      services.AddScoped<IEquityPhase3Service, EquityPhase3Service>();
+      services.AddScoped<IProfitSharingLifecycleService, ProfitSharingLifecycleService>();
+    services.AddScoped<ILoanLifecycleService, LoanLifecycleService>();
+    services.AddScoped<ICountryService, CountryService>();
     services.AddScoped<IExchangeRateProvider, ConfigurableExchangeRateProvider>();
     services.AddScoped<IInvestmentContractService, InvestmentContractService>();
     services.AddScoped<INegotiationService, NegotiationService>();
-    services.AddScoped<InvestmentOpportunityBackfillService>();
     services.AddScoped<OpportunityProductFieldsBackfillService>();
     services.AddScoped<IChatService, ChatService>();
     services.AddScoped<IGroupService, GroupService>();
@@ -701,7 +761,14 @@ static void RegisterApplicationServices(IServiceCollection services)
     services.AddScoped<IEmailAttachmentProvider, Investa.Infrastructure.Services.Email.NullEmailAttachmentProvider>();
     services.AddScoped<IEmailService, Investa.Infrastructure.Services.Email.EmailService>();
     services.AddScoped<IEmailOtpService, Investa.Infrastructure.Services.Email.EmailOtpService>();
-    services.AddHostedService<Investa.Infrastructure.Workers.EmailDispatcherWorker>();
+    services.AddOptions<LoanLifecycleOptions>().BindConfiguration("LoanLifecycle");
+    services.AddOptions<ProfitSharingLifecycleOptions>().BindConfiguration("ProfitSharingLifecycle");
+    if (!skipStartupDataMutations)
+    {
+        services.AddHostedService<Investa.Infrastructure.Workers.EmailDispatcherWorker>();
+        services.AddHostedService<Investa.Infrastructure.Workers.LoanLifecycleWorker>();
+        services.AddHostedService<Investa.Infrastructure.Workers.ProfitSharingLifecycleWorker>();
+    }
 
 
 

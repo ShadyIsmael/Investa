@@ -3,11 +3,12 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE } from '../config/api.token';
 import { ApiResponse } from '../models/api-response.model';
+import { ProjectCategoryReference } from './project-category.service';
 
 export interface Project {
   id: number; displayName: string; legalName?: string; summary: string; description: string;
-  categoryId?: number | null; category?: { id: number | string; name?: string | null; description?: string | null } | null;
-  businessStage: number; industry?: string; geography?: string; foundedOn?: string;
+  categoryId?: number | null; category?: ProjectCategoryReference | null;
+  projectStage: number; industry?: string; geography?: string; foundedOn?: string;
   websiteUrl?: string; logoUrl?: string; teamDescription?: string; businessModel?: string;
   riskDisclosure?: string; status: number | string; opportunityCount: number; canCreateOpportunity: boolean;
   defaultCurrency: string;
@@ -15,7 +16,7 @@ export interface Project {
   totalFundingTargetInDefaultCurrency: number;
   opportunities: ProjectOpportunity[];
 }
-export interface ProjectOpportunity { id:number; sequenceNumber:number; title:string; purpose:string; type:string; projectStage:number|string; projectStageCustomName?:string|null; status:number|string; moderationStatus:number|string; fundingStatus:number|string; fundingOpensAt?:string; fundingClosesAt?:string; closureReason?:number|string; fundingTarget:number; fundingCurrency:string; createdAt:string; }
+export interface ProjectOpportunity { id:number; sequenceNumber:number; title:string; type:string; projectStage:number|string; projectStageCustomName?:string|null; status:number|string; moderationStatus:number|string; fundingStatus:number|string; fundingOpensAt?:string; fundingClosesAt?:string; closureReason?:number|string; fundingTarget:number; fundingCurrency:string; createdAt:string; }
 export type ProjectUpsert = Omit<Project, 'id'|'status'|'opportunityCount'|'canCreateOpportunity'|'defaultCurrencyInfo'|'totalFundingTargetInDefaultCurrency'>;
 export interface ProjectRoomEntry { id:number; entryType:number|string; title:string; description?:string; dueAt?:string; completedAt?:string; createdAt:string; }
 export interface ProjectRoomDocument { id:number; fileKey:string; fileName:string; documentType:string; visibility:number|string; createdAt:string; }
@@ -46,5 +47,10 @@ export class ProjectService {
   private headers(){const t=localStorage.getItem('accessToken');return new HttpHeaders(t?{Authorization:`Bearer ${t}`}:{})}
   private async get<T>(path:string){return this.unwrap<T>(await firstValueFrom(this.http.get(`${this.base}${path}`,{headers:this.headers()})))}
   private async send<T>(method:'post'|'put',path:string,v:any){const call=method==='post'?this.http.post:this.http.put;return this.unwrap<T>(await firstValueFrom(call.call(this.http,`${this.base}${path}`,v,{headers:this.headers()})))}
-  private unwrap<T>(raw:any):T{const r=raw as ApiResponse<T>;if(r?.data!==undefined)return r.data;return raw as T}
+  private unwrap<T>(raw:any):T{
+    const r=raw as ApiResponse<T>;
+    if (r?.success === false) throw new Error(r.message || 'The project request could not be completed.');
+    if(r?.data!==undefined)return r.data;
+    return raw as T;
+  }
 }

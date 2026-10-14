@@ -23,10 +23,7 @@ public class CreateInvestmentDtoValidator : AbstractValidator<CreateInvestmentDt
         RuleFor(x => x.StartDate)
             .NotEmpty().WithMessage("Start date is required.");
 
-        RuleFor(x => x.BusinessStageId)
-            .GreaterThan(0).WithMessage("Business stage is required.");
-
-        RuleFor(x => x.BusinessCategoryId)
+        RuleFor(x => x.ProjectCategoryId)
             .GreaterThan(0).WithMessage("Business category is required.");
 
         RuleFor(x => x.Milestone)

@@ -12,14 +12,14 @@ public class CreateProjectRequest
     [Required, StringLength(4000, MinimumLength = 20)] public string Description { get; set; } = string.Empty;
     public int? CategoryId { get; set; }
     [StringLength(150)] public string? Industry { get; set; }
-    public ProjectStage? BusinessStage { get; set; }
+    public ProjectStage? ProjectStage { get; set; }
     [StringLength(200)] public string? Geography { get; set; }
     public DateOnly? FoundedOn { get; set; }
     [Url, StringLength(500)] public string? WebsiteUrl { get; set; }
     [Url, StringLength(1000)] public string? LogoUrl { get; set; }
     [StringLength(2000)] public string? TeamDescription { get; set; }
     [StringLength(2000)] public string? BusinessModel { get; set; }
-    [StringLength(50)] public string? RiskLevel { get; set; }
+    [StringLength(80)] public string? RiskLevel { get; set; }
     [StringLength(4000)] public string? RiskDisclosure { get; set; }
 
     /// <summary>Optional ISO 4217 code. When omitted the Founder's preferred currency is used.</summary>

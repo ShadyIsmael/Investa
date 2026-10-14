@@ -10,36 +10,14 @@ var cfg = builder.Configuration;
 var storagePath = Path.GetFullPath(cfg["Storage:RootPath"] ?? "Storage");
 var apiKey      = cfg["Auth:ApiKey"] ?? "change-me";
 var maxMb       = int.TryParse(cfg["Storage:MaxFileSizeMB"], out var mb) ? mb : 50;
+var internalUploadKey = cfg["Auth:InternalUploadKey"] ?? throw new InvalidOperationException("Auth:InternalUploadKey is required.");
 var port        = int.TryParse(cfg["Server:Port"], out var p) ? p : 5240;
+var privateCategories = (cfg["Storage:PrivateCategories"] ?? "FUNDING_PROOF")
+    .Split([',', ';', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
 Directory.CreateDirectory(storagePath);
 var contentTypeProvider = new FileExtensionContentTypeProvider();
-var allowedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-{
-    ".jpg", ".jpeg", ".png", ".webp", ".gif",
-    ".mp4", ".mov", ".avi", ".webm",
-    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
-    ".txt", ".csv", ".rtf", ".zip", ".json"
-};
-var fileCategories = new[]
-{
-    new FileCategoryContract("OpportunityCover", "Opportunity cover image", "image"),
-    new FileCategoryContract("OpportunityGallery", "Opportunity gallery image", "image"),
-    new FileCategoryContract("OpportunityPublicDocument", "Public opportunity document", "document"),
-    new FileCategoryContract("OpportunityPrivateDocument", "Private opportunity document", "document"),
-    new FileCategoryContract("FinancialReport", "Financial reports and statements", "document"),
-    new FileCategoryContract("Contract", "Contracts and agreements", "document"),
-    new FileCategoryContract("Legal", "Legal and compliance documents", "document"),
-    new FileCategoryContract("InternalFile", "Internal business files", "document"),
-    new FileCategoryContract("ProjectUpdateMedia", "Project update media", "media"),
-    new FileCategoryContract("Image", "General image", "image"),
-    new FileCategoryContract("Video", "General video", "video"),
-    new FileCategoryContract("PitchVideo", "Public pitch video", "video"),
-    new FileCategoryContract("Presentation", "Presentation files", "document"),
-    new FileCategoryContract("Spreadsheet", "Spreadsheet files", "document"),
-    new FileCategoryContract("Archive", "Archive files", "archive"),
-    new FileCategoryContract("General", "General business files", "general")
-};
 
 // ── Services ──────────────────────────────────────────────────────────────────
 builder.Services.AddCors(o => o.AddPolicy("AllowAll", p =>
@@ -49,6 +27,24 @@ builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
 var app = builder.Build();
 app.UseCors("AllowAll");
+
+// Private categories must never be reachable through anonymous static-file URLs.
+// The Core Backend proxies authorized downloads after checking business access.
+app.Use(async (ctx, next) =>
+{
+    if (ctx.Request.Path.StartsWithSegments("/storage"))
+    {
+        var segments = ctx.Request.Path.Value?.Split('/', StringSplitOptions.RemoveEmptyEntries) ?? [];
+        var category = segments.Length > 1 ? segments[1] : string.Empty;
+        if (privateCategories.Contains(category)
+            && (!ctx.Request.Headers.TryGetValue("X-Api-Key", out var key) || key != apiKey))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+    }
+    await next(ctx);
+});
 
 // ── Static file serving  (/storage/**) ───────────────────────────────────────
 app.UseStaticFiles(new StaticFileOptions
@@ -69,6 +65,15 @@ app.Use(async (ctx, next) =>
         await next(ctx);
         return;
     }
+    if (HttpMethods.IsPost(ctx.Request.Method) && (ctx.Request.Path.StartsWithSegments("/files") || ctx.Request.Path.StartsWithSegments("/users")))
+    {
+        if (!ctx.Request.Headers.TryGetValue("X-FileStore-Internal-Key", out var internalKey) || internalKey != internalUploadKey)
+        {
+            ctx.Response.StatusCode = 401;
+            await ctx.Response.WriteAsJsonAsync(new { error = "Uploads must be authorized by the Core Backend" });
+            return;
+        }
+    }
     if (!ctx.Request.Headers.TryGetValue("X-Api-Key", out var key) || key != apiKey)
     {
         ctx.Response.StatusCode = 401;
@@ -82,17 +87,24 @@ app.Use(async (ctx, next) =>
 app.MapGet("/health", () => Results.Ok(new { status = "ok", version = "1.0" }));
 
 // File category catalog. Clients should discover supported categories here instead of hardcoding them.
-app.MapGet("/categories", () => Results.Ok(fileCategories.OrderBy(c => c.Name)));
-
 // ── Upload  POST /files/{category} ───────────────────────────────────────────
 app.MapPost("/files/{category}", async (string category, HttpRequest request) =>
 {
-    category = NormalizeCategory(category, fileCategories);
+    category = NormalizeCategory(category);
     if (category.Length == 0)
         return Results.BadRequest(new { error = "Invalid category" });
 
     if (!request.HasFormContentType || !request.Form.Files.Any())
         return Results.BadRequest(new { error = "No file uploaded" });
+
+    var form = await request.ReadFormAsync();
+    if (!long.TryParse(form["declaredFileSize"].FirstOrDefault(), out var declaredFileSize)
+        || !long.TryParse(form["policyMaxFileSizeBytes"].FirstOrDefault(), out var policyMaxFileSizeBytes))
+        return Results.BadRequest(new { error = "Governed upload policy is required" });
+    var policyExtensions = ParsePolicyList(form["policyAllowedExtensions"].FirstOrDefault());
+    var policyMimeTypes = ParsePolicyList(form["policyAllowedMimeTypes"].FirstOrDefault());
+    if (policyMaxFileSizeBytes <= 0 || policyExtensions.Count == 0 || policyMimeTypes.Count == 0)
+        return Results.BadRequest(new { error = "Governed upload policy is invalid" });
 
     var uploads = new List<object>();
 
@@ -101,10 +113,12 @@ app.MapPost("/files/{category}", async (string category, HttpRequest request) =>
         if (file.Length == 0)
             continue;
 
-        if (file.Length > maxMb * 1024L * 1024L)
-            return Results.BadRequest(new { error = $"File exceeds {maxMb} MB limit" });
+        if (file.Length != declaredFileSize)
+            return Results.BadRequest(new { error = "Declared and received file sizes do not match" });
+        if (file.Length > policyMaxFileSizeBytes || file.Length > maxMb * 1024L * 1024L)
+            return Results.BadRequest(new { error = "File exceeds the effective file-size limit" });
 
-        var validationError = ValidateFile(file, allowedExtensions, contentTypeProvider);
+        var validationError = ValidateFile(file, policyExtensions, policyMimeTypes, contentTypeProvider);
         if (validationError is not null)
             return Results.BadRequest(new { error = validationError });
 
@@ -117,6 +131,8 @@ app.MapPost("/files/{category}", async (string category, HttpRequest request) =>
 
         await using var fs = File.Create(fullPath);
         await file.CopyToAsync(fs);
+        if (fs.Length != file.Length)
+            return Results.BadRequest(new { error = "Received file size could not be verified" });
 
         var url = $"/storage/{category}/{safeName}";
         var mimeType = ResolveMimeType(safeName, file.ContentType, contentTypeProvider);
@@ -134,7 +150,7 @@ app.MapPost("/files/{category}", async (string category, HttpRequest request) =>
             ThumbnailUrl: mimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ? url : null,
             Purpose: request.Form["purpose"].FirstOrDefault(),
             Visibility: request.Form["visibility"].FirstOrDefault(),
-            UploadedBy: request.Form["uploadedBy"].FirstOrDefault() ?? request.Headers["X-User-Id"].FirstOrDefault(),
+            UploadedBy: form["userId"].FirstOrDefault() ?? request.Headers["X-User-Id"].FirstOrDefault(),
             UploadedAt: DateTime.UtcNow);
 
         await WriteMetadataAsync(fullPath, metadata);
@@ -147,7 +163,7 @@ app.MapPost("/files/{category}", async (string category, HttpRequest request) =>
 // ── List   GET /files/{category} ─────────────────────────────────────────────
 app.MapGet("/files/{category}", (string category) =>
 {
-    category = NormalizeCategory(category, fileCategories);
+    category = NormalizeCategory(category);
     var dir  = Path.Combine(storagePath, category);
     if (!Directory.Exists(dir))
         return Results.Ok(Array.Empty<object>());
@@ -183,7 +199,7 @@ app.MapGet("/files", () =>
 // Search metadata across categories, or within one category.
 app.MapGet("/files/search", (string? category, string? q) =>
 {
-    var normalizedCategory = string.IsNullOrWhiteSpace(category) ? null : NormalizeCategory(category, fileCategories);
+    var normalizedCategory = string.IsNullOrWhiteSpace(category) ? null : NormalizeCategory(category);
     var roots = normalizedCategory == null
         ? Directory.Exists(storagePath) ? Directory.GetDirectories(storagePath) : Array.Empty<string>()
         : [Path.Combine(storagePath, normalizedCategory)];
@@ -208,21 +224,21 @@ app.MapGet("/files/search", (string? category, string? q) =>
 // Metadata  GET /files/{category}/{filename}/metadata
 app.MapGet("/files/{category}/{filename}/metadata", (string category, string filename) =>
 {
-    var pathResult = ResolveStoredFilePath(storagePath, NormalizeCategory(category, fileCategories), filename);
+    var pathResult = ResolveStoredFilePath(storagePath, NormalizeCategory(category), filename);
     if (pathResult.Error is not null)
         return Results.BadRequest(new { error = pathResult.Error });
 
     if (!File.Exists(pathResult.Path))
         return Results.NotFound(new { error = "File not found" });
 
-    var metadata = ReadMetadataOrFallback(pathResult.Path, NormalizeCategory(category, fileCategories), contentTypeProvider);
+    var metadata = ReadMetadataOrFallback(pathResult.Path, NormalizeCategory(category), contentTypeProvider);
     return Results.Ok(ToUploadResponse(metadata));
 });
 
 // Download  GET /files/{category}/{filename}/download
 app.MapGet("/files/{category}/{filename}/download", (string category, string filename) =>
 {
-    var normalizedCategory = NormalizeCategory(category, fileCategories);
+    var normalizedCategory = NormalizeCategory(category);
     var pathResult = ResolveStoredFilePath(storagePath, normalizedCategory, filename);
     if (pathResult.Error is not null)
         return Results.BadRequest(new { error = pathResult.Error });
@@ -237,7 +253,7 @@ app.MapGet("/files/{category}/{filename}/download", (string category, string fil
 // Preview  GET /files/{category}/{filename}/preview
 app.MapGet("/files/{category}/{filename}/preview", (string category, string filename) =>
 {
-    var normalizedCategory = NormalizeCategory(category, fileCategories);
+    var normalizedCategory = NormalizeCategory(category);
     var pathResult = ResolveStoredFilePath(storagePath, normalizedCategory, filename);
     if (pathResult.Error is not null)
         return Results.BadRequest(new { error = pathResult.Error });
@@ -255,7 +271,7 @@ app.MapGet("/files/{category}/{filename}/preview", (string category, string file
 // ── Delete  DELETE /files/{category}/{filename} ───────────────────────────────
 app.MapDelete("/files/{category}/{filename}", (string category, string filename) =>
 {
-    category = NormalizeCategory(category, fileCategories);
+    category = NormalizeCategory(category);
     filename = SanitizeSegment(filename);
 
     if (category.Length == 0 || filename.Length == 0)
@@ -502,14 +518,9 @@ app.Run();
 static string SanitizeSegment(string segment) =>
     Path.GetFileName(segment.Replace("..", "").Replace("/", "").Replace("\\", "").Trim());
 
-static string NormalizeCategory(string category, IReadOnlyCollection<FileCategoryContract> knownCategories)
-{
-    var sanitized = SanitizeSegment(category);
-    var known = knownCategories.FirstOrDefault(c => string.Equals(c.Name, sanitized, StringComparison.OrdinalIgnoreCase));
-    return known?.Name ?? sanitized;
-}
+static string NormalizeCategory(string category) => SanitizeSegment(category);
 
-static string? ValidateFile(IFormFile file, ISet<string> allowedExtensions, FileExtensionContentTypeProvider contentTypeProvider)
+static string? ValidateFile(IFormFile file, ISet<string> allowedExtensions, ISet<string> allowedMimeTypes, FileExtensionContentTypeProvider contentTypeProvider)
 {
     var originalName = Path.GetFileName(file.FileName);
     var ext = Path.GetExtension(originalName).ToLowerInvariant();
@@ -517,7 +528,7 @@ static string? ValidateFile(IFormFile file, ISet<string> allowedExtensions, File
         return $"File extension '{ext}' is not allowed";
 
     var mimeType = ResolveMimeType(originalName, file.ContentType, contentTypeProvider);
-    if (string.IsNullOrWhiteSpace(mimeType) || mimeType.Equals("application/x-msdownload", StringComparison.OrdinalIgnoreCase))
+    if (string.IsNullOrWhiteSpace(mimeType) || !allowedMimeTypes.Contains(mimeType))
         return "File content type is not allowed";
 
     if (mimeType.Contains("javascript", StringComparison.OrdinalIgnoreCase)
@@ -526,6 +537,8 @@ static string? ValidateFile(IFormFile file, ISet<string> allowedExtensions, File
 
     return null;
 }
+
+static HashSet<string> ParsePolicyList(string? value) => new((value ?? string.Empty).Split([',', ';', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries), StringComparer.OrdinalIgnoreCase);
 
 static string ResolveMimeType(string fileName, string? suppliedContentType, FileExtensionContentTypeProvider contentTypeProvider)
 {
@@ -637,8 +650,6 @@ static (string? Path, string? Error) ResolveStoredFilePath(string storagePath, s
 
     return (resolved, null);
 }
-
-public sealed record FileCategoryContract(string Name, string Description, string Kind);
 
 public sealed record FileMetadataContract(
     string FileId,

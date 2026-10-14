@@ -181,9 +181,9 @@ export class AuthService {
     return (exp.getTime() - now.getTime()) / 1000 < thresholdSeconds;
   }
 
-  async signupInit(phoneNumber: string, password: string, firstName: string, lastName: string): Promise<{ verificationSessionId: string }> {
+  async signupInit(phoneNumber: string, password: string, firstName: string, lastName: string, clientType: 'Investor' | 'Founder' = 'Investor'): Promise<{ verificationSessionId: string }> {
     const url = `${this.apiBase}/api/v1/auth/signup-init`;
-    const payload = { phoneNumber, password, firstName, lastName };
+    const payload = { phoneNumber, password, firstName, lastName, clientType };
     const resp = await firstValueFrom(this.http.post<{ success: boolean; data: { verificationSessionId: string }; message?: string }>(url, payload));
     if (!resp || !resp.success || !resp.data) {
       throw new Error('Signup initiation failed');

@@ -1,10 +1,10 @@
 <div class="founder-analytics-container">
   <div class="header">
-    <h1>{{ 'Founder Analytics' | translate }}</h1>
+    <h1>{{ 'founderAnalytics.title' | translate }}</h1>
     <div class="time-filter">
       <select [(ngModel)]="selectedTimeFilter" (change)="onTimeFilterChange(selectedTimeFilter)">
         @for (filter of timeFilters; track filter.value) {
-          <option [value]="filter.value">{{ filter.label }}</option>
+          <option [value]="filter.value">{{ filter.labelKey | translate }}</option>
         }
       </select>
     </div>
@@ -18,77 +18,77 @@
     <!-- KPI Cards -->
     <div class="kpi-grid">
       <div class="kpi-card investa-panel">
-        <div class="kpi-label">{{ 'Total Opportunities' | translate }}</div>
+        <div class="kpi-label">{{ 'founderAnalytics.summary.totalOpportunities' | translate }}</div>
         <div class="kpi-value">{{ summary()?.totalOpportunities || 0 }}</div>
-        <div class="kpi-subtitle">{{ summary()?.publishedOpportunities || 0 }} {{ 'Published' | translate }}</div>
+        <div class="kpi-subtitle">{{ summary()?.publishedOpportunities || 0 }} {{ 'founderAnalytics.summary.published' | translate }}</div>
       </div>
       <div class="kpi-card investa-panel">
-        <div class="kpi-label">{{ 'Total Views' | translate }}</div>
+        <div class="kpi-label">{{ 'founderAnalytics.summary.totalViews' | translate }}</div>
         <div class="kpi-value">{{ formatNumber(summary()?.totalViews || 0) }}</div>
-        <div class="kpi-subtitle">{{ formatNumber(summary()?.uniqueViews || 0) }} {{ 'Unique' | translate }}</div>
+        <div class="kpi-subtitle">{{ formatNumber(summary()?.uniqueViews || 0) }} {{ 'founderAnalytics.summary.unique' | translate }}</div>
       </div>
       <div class="kpi-card investa-panel">
-        <div class="kpi-label">{{ 'Learn More Opens' | translate }}</div>
+        <div class="kpi-label">{{ 'founderAnalytics.summary.learnMoreOpens' | translate }}</div>
         <div class="kpi-value">{{ formatNumber(summary()?.learnMoreOpens || 0) }}</div>
-        <div class="kpi-subtitle">{{ formatNumber(summary()?.uniqueLearnMoreOpens || 0) }} {{ 'Unique' | translate }}</div>
+        <div class="kpi-subtitle">{{ formatNumber(summary()?.uniqueLearnMoreOpens || 0) }} {{ 'founderAnalytics.summary.unique' | translate }}</div>
       </div>
       <div class="kpi-card investa-panel">
-        <div class="kpi-label">{{ 'Requests Received' | translate }}</div>
+        <div class="kpi-label">{{ 'founderAnalytics.summary.requestsReceived' | translate }}</div>
         <div class="kpi-value">{{ summary()?.requestsReceived || 0 }}</div>
       </div>
       <div class="kpi-card investa-panel">
-        <div class="kpi-label">{{ 'Approved Requests' | translate }}</div>
+        <div class="kpi-label">{{ 'founderAnalytics.summary.approvedRequests' | translate }}</div>
         <div class="kpi-value">{{ summary()?.approvedRequests || 0 }}</div>
       </div>
       <div class="kpi-card investa-panel">
-        <div class="kpi-label">{{ 'Approval Rate' | translate }}</div>
+        <div class="kpi-label">{{ 'founderAnalytics.summary.approvalRate' | translate }}</div>
         <div class="kpi-value">{{ summary()?.approvalRate?.toFixed(1) || 0 }}%</div>
       </div>
       <div class="kpi-card investa-panel">
-        <div class="kpi-label">{{ 'Rejected Requests' | translate }}</div>
+        <div class="kpi-label">{{ 'founderAnalytics.summary.rejectedRequests' | translate }}</div>
         <div class="kpi-value">{{ summary()?.rejectedRequests || 0 }}</div>
       </div>
       <div class="kpi-card investa-panel">
-        <div class="kpi-label">{{ 'Active Conversations' | translate }}</div>
+        <div class="kpi-label">{{ 'founderAnalytics.summary.activeConversations' | translate }}</div>
         <div class="kpi-value">{{ summary()?.activeConversations || 0 }}</div>
       </div>
     </div>
 
     <!-- Conversion Funnel -->
     <div class="section investa-panel">
-      <h2>{{ 'Conversion Funnel' | translate }}</h2>
+      <h2>{{ 'founderAnalytics.sections.conversionFunnel' | translate }}</h2>
       @if (!loadingFunnel()) {
         <div class="funnel-chart">
           <div class="funnel-bar">
-            <div class="funnel-label">{{ 'Views' | translate }}</div>
+            <div class="funnel-label">{{ 'founderAnalytics.metrics.views' | translate }}</div>
             <div class="funnel-track">
               <div class="funnel-fill" [style.width.%]="getPercentage(conversionFunnel()?.uniqueViews || 0, conversionFunnel()?.uniqueViews || 1)"></div>
             </div>
             <div class="funnel-value">{{ formatNumber(conversionFunnel()?.uniqueViews || 0) }}</div>
           </div>
           <div class="funnel-bar">
-            <div class="funnel-label">{{ 'Learn More' | translate }}</div>
+            <div class="funnel-label">{{ 'founderAnalytics.metrics.learnMore' | translate }}</div>
             <div class="funnel-track">
               <div class="funnel-fill" [style.width.%]="getPercentage(conversionFunnel()?.uniqueLearnMore || 0, conversionFunnel()?.uniqueViews || 1)"></div>
             </div>
             <div class="funnel-value">{{ formatNumber(conversionFunnel()?.uniqueLearnMore || 0) }}</div>
           </div>
           <div class="funnel-bar">
-            <div class="funnel-label">{{ 'Requests' | translate }}</div>
+            <div class="funnel-label">{{ 'founderAnalytics.metrics.requests' | translate }}</div>
             <div class="funnel-track">
               <div class="funnel-fill" [style.width.%]="getPercentage(conversionFunnel()?.requests || 0, conversionFunnel()?.views || 1)"></div>
             </div>
             <div class="funnel-value">{{ formatNumber(conversionFunnel()?.requests || 0) }}</div>
           </div>
           <div class="funnel-bar">
-            <div class="funnel-label">{{ 'Approvals' | translate }}</div>
+            <div class="funnel-label">{{ 'founderAnalytics.metrics.approvals' | translate }}</div>
             <div class="funnel-track">
               <div class="funnel-fill" [style.width.%]="getPercentage(conversionFunnel()?.approvals || 0, conversionFunnel()?.views || 1)"></div>
             </div>
             <div class="funnel-value">{{ formatNumber(conversionFunnel()?.approvals || 0) }}</div>
           </div>
           <div class="funnel-bar">
-            <div class="funnel-label">{{ 'Chats' | translate }}</div>
+            <div class="funnel-label">{{ 'founderAnalytics.metrics.chats' | translate }}</div>
             <div class="funnel-track">
               <div class="funnel-fill" [style.width.%]="getPercentage(conversionFunnel()?.chats || 0, conversionFunnel()?.views || 1)"></div>
             </div>
@@ -104,7 +104,7 @@
 
     <!-- Top Performing Opportunities -->
     <div class="section investa-panel">
-      <h2>{{ 'Top Performing Opportunities' | translate }}</h2>
+      <h2>{{ 'founderAnalytics.sections.topPerforming' | translate }}</h2>
       @if (!loadingTopPerforming()) {
         @if (topPerforming().length > 0) {
           <div class="opportunities-grid">
@@ -117,19 +117,19 @@
                   <h3>{{ opp.investmentName }}</h3>
                   <div class="opportunity-metrics">
                     <div class="metric">
-                      <span class="metric-label">{{ 'Views' | translate }}:</span>
+                      <span class="metric-label">{{ 'founderAnalytics.metrics.views' | translate }}:</span>
                       <span class="metric-value">{{ formatNumber(opp.uniqueViews) }}</span>
                     </div>
                     <div class="metric">
-                      <span class="metric-label">{{ 'Requests' | translate }}:</span>
+                      <span class="metric-label">{{ 'founderAnalytics.metrics.requests' | translate }}:</span>
                       <span class="metric-value">{{ opp.requests }}</span>
                     </div>
                     <div class="metric">
-                      <span class="metric-label">{{ 'Approval' | translate }}:</span>
+                      <span class="metric-label">{{ 'founderAnalytics.metrics.approval' | translate }}:</span>
                       <span class="metric-value">{{ opp.approvalRate.toFixed(1) }}%</span>
                     </div>
                     <div class="metric">
-                      <span class="metric-label">{{ 'Learn More Conv.' | translate }}:</span>
+                      <span class="metric-label">{{ 'founderAnalytics.metrics.learnMoreConversion' | translate }}:</span>
                       <span class="metric-value">{{ opp.learnMoreConversion.toFixed(1) }}%</span>
                     </div>
                   </div>
@@ -138,7 +138,7 @@
             }
           </div>
         } @else {
-          <div class="empty-state">{{ 'No opportunities found' | translate }}</div>
+          <div class="empty-state">{{ 'founderAnalytics.empty.noOpportunities' | translate }}</div>
         }
       } @else {
         <div class="loading-small">
@@ -149,19 +149,19 @@
 
     <!-- Low Performing Opportunities -->
     <div class="section investa-panel">
-      <h2>{{ 'Low Performing Opportunities' | translate }}</h2>
+      <h2>{{ 'founderAnalytics.sections.lowPerforming' | translate }}</h2>
       @if (!loadingLowPerforming()) {
         @if (lowPerforming().length > 0) {
           <div class="table-container">
             <table class="performance-table">
               <thead>
                 <tr>
-                  <th>{{ 'Name' | translate }}</th>
-                  <th>{{ 'Views' | translate }}</th>
-                  <th>{{ 'Unique Views' | translate }}</th>
-                  <th>{{ 'Learn More' | translate }}</th>
-                  <th>{{ 'Unique Learn More' | translate }}</th>
-                  <th>{{ 'Requests' | translate }}</th>
+                  <th>{{ 'founderAnalytics.metrics.name' | translate }}</th>
+                  <th>{{ 'founderAnalytics.metrics.views' | translate }}</th>
+                  <th>{{ 'founderAnalytics.metrics.uniqueViews' | translate }}</th>
+                  <th>{{ 'founderAnalytics.metrics.learnMore' | translate }}</th>
+                  <th>{{ 'founderAnalytics.metrics.uniqueLearnMore' | translate }}</th>
+                  <th>{{ 'founderAnalytics.metrics.requests' | translate }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -179,7 +179,7 @@
             </table>
           </div>
         } @else {
-          <div class="empty-state">{{ 'No opportunities found' | translate }}</div>
+          <div class="empty-state">{{ 'founderAnalytics.empty.noOpportunities' | translate }}</div>
         }
       } @else {
         <div class="loading-small">
@@ -191,7 +191,7 @@
     <!-- Founder Insights -->
     @if (insights().length > 0) {
       <div class="section investa-panel">
-        <h2>{{ 'Founder Insights' | translate }}</h2>
+        <h2>{{ 'founderAnalytics.sections.insights' | translate }}</h2>
         <div class="insights-grid">
           @for (insight of insights(); track insight) {
             <div class="insight-card">{{ insight }}</div>

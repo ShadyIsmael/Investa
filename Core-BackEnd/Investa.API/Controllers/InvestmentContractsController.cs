@@ -61,7 +61,7 @@ public class InvestmentContractsController : BaseApiController
         var operationId = Guid.TryParse(idempotencyKey, out var parsed) ? parsed : Guid.NewGuid();
         var language = Request.GetTypedHeaders().AcceptLanguage?
             .Select(x => x.Value.Value)
-            .FirstOrDefault(x => x.StartsWith("ar", StringComparison.OrdinalIgnoreCase)) != null ? "ar" : "en";
+            .FirstOrDefault(x => x?.StartsWith("ar", StringComparison.OrdinalIgnoreCase) == true) != null ? "ar" : "en";
         try
         {
             return SuccessResponse(await _service.EmailContractAsync(

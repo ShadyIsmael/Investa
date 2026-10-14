@@ -53,23 +53,23 @@ public class DashboardApiTests : IClassFixture<CustomWebApplicationFactory>
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<Investa.Infrastructure.Persistence.ApplicationDbContext>();
 
-        // create a business category with Arabic value
-        var bc = new Investa.Domain.Entities.BusinessCategory
+        // create a project category with Arabic value
+        var bc = new Investa.Domain.Entities.ProjectCategory
         {
             Id = 999,
-            Key = "TestCat",
-            Value = "Test Category",
-            ValueAr = "فئة اختبار",
+            Code = "TEST-CAT",
+            NameEn = "Test Category",
+            NameAr = "فئة اختبار",
             SortOrder = 900
         };
-        db.BusinessCategories.Add(bc);
+        db.ProjectCategories.Add(bc);
 
         // create an investment in that category
         var inv = new Investa.Domain.Entities.Investment
         {
             FounderId = Guid.NewGuid(),
             BusinessName = "Seeded Investment",
-            BusinessCategoryId = bc.Id,
+            ProjectCategoryId = bc.Id,
             InitialCapital = 1000m,
             Date = DateTime.UtcNow,
             Status = "Active"
@@ -95,14 +95,14 @@ public class DashboardApiTests : IClassFixture<CustomWebApplicationFactory>
         var json = await res.Content.ReadFromJsonAsync<System.Text.Json.Nodes.JsonObject>();
         json.Should().NotBeNull();
 
-        var data = json["data"].AsArray();
+        var data = json!["data"]!.AsArray();
         data.Count.Should().BeGreaterOrEqualTo(1);
 
         // Find our seeded category row
-        var found = data.FirstOrDefault(n => n["categoryName"]?.ToString() == "Test Category");
+        var found = data.FirstOrDefault(n => n?["categoryName"]?.ToString() == "Test Category");
         found.Should().NotBeNull();
 
-        var categoryNameAr = found["categoryNameAr"]?.ToString();
+        var categoryNameAr = found!["categoryNameAr"]?.ToString();
         categoryNameAr.Should().Be("فئة اختبار");
     }
 }

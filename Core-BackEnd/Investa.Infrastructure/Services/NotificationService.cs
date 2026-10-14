@@ -224,7 +224,7 @@ namespace Investa.Infrastructure.Services
                                 if (exception is FirebaseMessagingException msgEx && IsTokenInvalidError(msgEx))
                                 {
                                     invalidTokens.Add(tokensToSend[i]);
-                                    _logger.LogWarning("Invalid token detected for user {UserId}: {Token}", userId, tokensToSend[i].Substring(0, Math.Min(20, tokensToSend[i].Length)));
+                                    _logger.LogWarning("Invalid device token detected for user {UserId}", userId);
                                 }
                             }
                         }

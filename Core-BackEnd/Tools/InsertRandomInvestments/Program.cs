@@ -52,10 +52,10 @@ if (!Guid.TryParse(userIdStr, out var userId))
 
 var rnd = new Random();
 var businessNames = new[] { "TechStart", "GreenEnergy", "FoodieHub", "MediCare", "EduLearn", "SmartHome", "LogiChain", "FitLife", "AutoDrive", "CryptoWallet" };
-var categories = db.BusinessCategories.Select(c => c.Id).ToArray();
+var categories = db.ProjectCategories.Where(c => c.IsActive).Select(c => c.Id).ToArray();
 if (!categories.Any())
 {
-    // fallback category ids
+    // No category fallback: the canonical Project Category Master is authoritative.
     categories = new[] { 100, 101, 102 };
 }
 
@@ -99,10 +99,10 @@ for (int i = 0; i < createCount; i++)
         Description = "Auto-seeded investment opportunity for testing",
         ImageUrl = null,
         VideoUrl = null,
-        BusinessCategoryId = catId,
+        ProjectCategoryId = catId,
         TargetFund = Math.Round(target, 2),
         Milestone = "Seed",
-        RiskLevel = "Medium",
+        RiskLevel = "MEDIUM",
         Currency = "USD",
         StartDate = startDate,
         EndDate = endDate

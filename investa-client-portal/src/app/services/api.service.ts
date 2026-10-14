@@ -2,7 +2,7 @@ import { Injectable, Inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE } from '../config/api.token';
-import { ApiResponse, BusinessCategory } from '../models/api-response.model';
+import { ApiResponse } from '../models/api-response.model';
 import { AuthService } from './auth.service';
 
 @Injectable({
@@ -28,24 +28,6 @@ export class ApiService {
     return response.data;
   }
 
-  async getBusinessCategories(): Promise<BusinessCategory[]> {
-    const response = await firstValueFrom(
-      this.http.get<ApiResponse<BusinessCategory[]>>(`${this.apiBase}/api/v1/lookups/business-categories`, {
-        headers: this.getHeaders()
-      })
-    );
-    return this.unwrap(response, 'Failed to fetch business categories') ?? [];
-  }
-
-  async getOpportunityCategories(): Promise<BusinessCategory[]> {
-    const response = await firstValueFrom(
-      this.http.get<ApiResponse<BusinessCategory[]>>(`${this.apiBase}/api/v1/lookups/opportunity-categories`, {
-        headers: this.getHeaders()
-      })
-    );
-    return this.unwrap(response, 'Failed to fetch opportunity categories') ?? [];
-  }
-
   async getOpportunityTags(): Promise<any[]> {
     const response = await firstValueFrom(
       this.http.get<ApiResponse<any[]>>(`${this.apiBase}/api/v1/lookups/opportunity-tags`, {
@@ -53,33 +35,6 @@ export class ApiService {
       })
     );
     return this.unwrap(response, 'Failed to fetch opportunity tags') ?? [];
-  }
-
-  async getFundingGoals(): Promise<any[]> {
-    const response = await firstValueFrom(
-      this.http.get<ApiResponse<any[]>>(`${this.apiBase}/api/v1/lookups/funding-goals`, {
-        headers: this.getHeaders()
-      })
-    );
-    return this.unwrap(response, 'Failed to fetch funding goals') ?? [];
-  }
-
-  async getBusinessStages(): Promise<any[]> {
-    const response = await firstValueFrom(
-      this.http.get<ApiResponse<any[]>>(`${this.apiBase}/api/v1/lookups/business-stages`, {
-        headers: this.getHeaders()
-      })
-    );
-    return this.unwrap(response, 'Failed to fetch business stages') ?? [];
-  }
-
-  async getProjectPhases(): Promise<any[]> {
-    const response = await firstValueFrom(
-      this.http.get<ApiResponse<any[]>>(`${this.apiBase}/api/v1/lookups/project-phases`, {
-        headers: this.getHeaders()
-      })
-    );
-    return this.unwrap(response, 'Failed to fetch project phases') ?? [];
   }
 
   async searchUsersByPhone(phoneQuery: string): Promise<{ results: any[]; available: boolean }> {

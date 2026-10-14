@@ -1,14 +1,38 @@
-import { computed, Injectable, inject, signal } from '@angular/core';
+import { computed, effect, Injectable, inject, signal } from '@angular/core';
 import { AuthService } from './auth.service';
 import { ProfileService } from './profile.service';
 
 export type ActiveClientContext = 'founder' | 'investor';
+export type AccountCapability = ActiveClientContext | 'both';
 
 @Injectable({ providedIn: 'root' })
 export class RoleContextService {
   private authService = inject(AuthService);
   private profileService = inject(ProfileService);
   private selectedContext = signal<ActiveClientContext | null>(this.readStoredContext());
+
+  private accountCapability = computed<AccountCapability | null>(() => {
+    const profileClientType = this.profileService.profile()?.coreMetrics?.clientType;
+    if (!this.hasKnownCapability(profileClientType)) return null;
+    const founder = this.matchesFounder(profileClientType);
+    const investor = this.matchesInvestor(profileClientType);
+    if (founder && investor) return 'both';
+    return founder ? 'founder' : 'investor';
+  });
+
+  constructor() {
+    // The backend rejects founder endpoints (403 FOUNDER_ACCESS_REQUIRED) for
+    // accounts that are not Founder/Both. Once the profile reveals an
+    // investor-only account, drop any stored founder context so founder screens
+    // are never rendered for it.
+    effect(() => {
+      if (this.accountCapability() !== 'investor') return;
+      const requested = this.selectedContext() || this.normalizeContext(this.authService.userRole());
+      if (requested === 'founder') {
+        this.setActiveContext('investor');
+      }
+    });
+  }
 
   clientType = computed(() => {
     const profileClientType = this.profileService.profile()?.coreMetrics?.clientType;
@@ -34,7 +58,8 @@ export class RoleContextService {
   }
 
   setActiveContext(context: string | null | undefined): ActiveClientContext {
-    const normalized = this.normalizeContext(context);
+    const requested = this.normalizeContext(context);
+    const normalized = requested ? this.clampToCapability(requested) : null;
     this.selectedContext.set(normalized);
     if (normalized) {
       localStorage.setItem('activeClientContext', normalized);
@@ -51,7 +76,14 @@ export class RoleContextService {
 
   private resolveActiveContext(): ActiveClientContext {
     const selected = this.selectedContext() || this.normalizeContext(this.authService.userRole());
-    return selected || 'investor';
+    return this.clampToCapability(selected || 'investor');
+  }
+
+  private clampToCapability(context: ActiveClientContext): ActiveClientContext {
+    // Investor-only accounts have no founder capability: founder screens would
+    // answer 403 from every founder endpoint. Founder-only accounts keep the
+    // historical behavior and may browse the investor workspace.
+    return this.accountCapability() === 'investor' && context === 'founder' ? 'investor' : context;
   }
 
   private matchesFounder(value: string | null | undefined): boolean {

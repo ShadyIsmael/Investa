@@ -44,7 +44,7 @@ public class Project
     [StringLength(150)]
     public string? Industry { get; set; }
 
-    public ProjectStage BusinessStage { get; set; }
+    public ProjectStage ProjectStage { get; set; }
 
     [StringLength(200)]
     public string? Geography { get; set; }
@@ -88,7 +88,7 @@ public class Project
     [ForeignKey(nameof(FounderId))]
     public AuthUser? Founder { get; set; }
 
-    public OpportunityCategory? Category { get; set; }
+    public ProjectCategory? Category { get; set; }
 
     public ICollection<Opportunity> Opportunities { get; set; } = new List<Opportunity>();
     public ICollection<ProjectRoomEntry> RoomEntries { get; set; } = new List<ProjectRoomEntry>();

@@ -2,6 +2,7 @@ using FluentAssertions;
 using Investa.Application.Interfaces;
 using Investa.Application.Services;
 using Investa.Domain.Entities;
+using Investa.Domain.Entities.Chat;
 using Investa.Domain.Entities.Enums;
 using Investa.Infrastructure.Persistence;
 using Investa.Infrastructure.Repositories;
@@ -65,8 +66,11 @@ public sealed class FounderDashboardServiceTests
         result.Metrics.ActiveOpportunities.Should().Be(2);
         result.Metrics.UniqueActiveInvestors.Should().Be(2);
         result.Metrics.TotalFundingTarget.Value.Should().Be(600m);
-        result.Metrics.TotalFunded.Value.Should().Be(160m);
-        result.Metrics.FundingProgressPercentage.Should().BeApproximately(160m / 600m * 100m, 0.001m);
+        result.Metrics.TotalCommitted.Value.Should().Be(160m);
+        result.Metrics.TotalFunded.Value.Should().Be(0m);
+        result.Metrics.ConfirmedReceivedAmount.Value.Should().Be(0m);
+        result.Metrics.OutstandingAmount.Value.Should().Be(160m);
+        result.Metrics.FundingProgressPercentage.Should().Be(0m);
         result.Projects.Should().HaveCount(2);
         result.Projects.SelectMany(p => p.Opportunities).Should().HaveCount(3);
     }
@@ -87,8 +91,44 @@ public sealed class FounderDashboardServiceTests
 
         var result = await Service(db).GetAsync(founder.Id);
 
-        result.Metrics.ReceivedAmount.Value.Should().Be(35m);
+        result.Metrics.ReceivedAmount.Value.Should().Be(0m);
+        result.Metrics.ConfirmedReceivedAmount.Value.Should().Be(0m);
+        result.Metrics.TotalCommitted.Value.Should().Be(80m);
         result.Metrics.Earnings.Available.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Includes_pending_founder_declarations_without_marking_them_confirmed()
+    {
+        await using var db = CreateDb();
+        var founder = Founder(); var investor = Investor(); db.AuthUsers.AddRange(founder, investor);
+        var project = Project(founder.Id, "Declaration project"); db.Projects.Add(project); await db.SaveChangesAsync();
+        var opportunity = Opportunity(founder.Id, project.Id, "Declaration opportunity", 200m, OpportunityFundingStatus.Open, OpportunityStatus.Funding);
+        db.Opportunities.Add(opportunity); await db.SaveChangesAsync();
+        var participation = Approved(opportunity, investor, 100m); db.OpportunityJoinRequests.Add(participation); await db.SaveChangesAsync();
+        db.FundingDeclarations.Add(new FundingDeclaration
+        {
+            ParticipationId = participation.Id,
+            OpportunityId = opportunity.Id,
+            FounderId = founder.Id,
+            InvestorId = investor.Id,
+            Amount = 25m,
+            CurrencyCode = "EGP",
+            ReceivedDate = DateTime.UtcNow.AddDays(-1),
+            PaymentMethod = FundingPaymentMethod.BankTransfer,
+            Status = FundingDeclarationStatus.PendingConfirmation,
+            CreatedBy = founder.Id
+        });
+        await db.SaveChangesAsync();
+
+        var result = await Service(db).GetAsync(founder.Id);
+
+        result.Metrics.DeclaredReceivedAmount.Value.Should().Be(25m);
+        result.Metrics.AwaitingConfirmationAmount.Value.Should().Be(25m);
+        result.Metrics.UndeclaredCommittedAmount.Value.Should().Be(75m);
+        result.Metrics.ConfirmedReceivedAmount.Value.Should().Be(0m);
+        result.Metrics.OutstandingAmount.Value.Should().Be(100m);
+        result.Metrics.FundingProgressPercentage.Should().Be(0m);
     }
 
     [Fact]
@@ -110,6 +150,72 @@ public sealed class FounderDashboardServiceTests
     }
 
     [Fact]
+    public async Task Pending_actions_count_only_founder_visible_work_in_owned_opportunities()
+    {
+        await using var db = CreateDb();
+        var founder = Founder();
+        var otherFounder = Founder();
+        var investor = Investor();
+        db.AuthUsers.AddRange(founder, otherFounder, investor);
+        var project = Project(founder.Id, "Owned actions");
+        var foreignProject = Project(otherFounder.Id, "Foreign actions");
+        db.Projects.AddRange(project, foreignProject);
+        await db.SaveChangesAsync();
+        var opportunity = Opportunity(
+            founder.Id,
+            project.Id,
+            "Owned opportunity",
+            100m,
+            OpportunityFundingStatus.Open,
+            OpportunityStatus.Funding);
+        var foreignOpportunity = Opportunity(
+            otherFounder.Id,
+            foreignProject.Id,
+            "Foreign opportunity",
+            100m,
+            OpportunityFundingStatus.Open,
+            OpportunityStatus.Funding);
+        db.Opportunities.AddRange(opportunity, foreignOpportunity);
+        await db.SaveChangesAsync();
+
+        db.OpportunityJoinRequests.Add(new OpportunityJoinRequest
+        {
+            OpportunityId = opportunity.Id,
+            InvestorId = investor.Id,
+            RequestType = OpportunityJoinRequestType.InvestmentParticipation,
+            Status = OpportunityJoinRequestStatus.Pending,
+            IsVisibleToFounder = true
+        });
+        db.ConversationRequests.AddRange(
+            new ConversationRequest
+            {
+                OpportunityId = opportunity.Id,
+                RequesterUserId = investor.Id,
+                RecipientUserId = founder.Id,
+                Status = ConversationRequestStatus.Pending
+            },
+            new ConversationRequest
+            {
+                OpportunityId = foreignOpportunity.Id,
+                RequesterUserId = investor.Id,
+                RecipientUserId = founder.Id,
+                Status = ConversationRequestStatus.Pending
+            },
+            new ConversationRequest
+            {
+                OpportunityId = opportunity.Id,
+                RequesterUserId = investor.Id,
+                RecipientUserId = founder.Id,
+                Status = ConversationRequestStatus.Accepted
+            });
+        await db.SaveChangesAsync();
+
+        var result = await Service(db).GetAsync(founder.Id);
+
+        result.Metrics.PendingActions.Should().Be(2);
+    }
+
+    [Fact]
     public async Task Normalizes_target_and_funded_amounts_to_founder_display_currency_with_fx()
     {
         await using var db = CreateDb();
@@ -128,7 +234,8 @@ public sealed class FounderDashboardServiceTests
 
         result.DisplayCurrency.Should().Be("USD");
         result.Metrics.TotalFundingTarget.Value.Should().Be(2m);
-        result.Metrics.TotalFunded.Value.Should().Be(1m);
+        result.Metrics.TotalCommitted.Value.Should().Be(1m);
+        result.Metrics.TotalFunded.Value.Should().Be(0m);
         result.Metrics.TotalFundingTarget.Approximate.Should().BeTrue();
     }
 
@@ -197,7 +304,7 @@ public sealed class FounderDashboardServiceTests
 
     private static AuthUser Founder() => new() { Id = Guid.NewGuid(), Name = "Founder", PasswordHash = "test", UserType = UserType.Client, ClientType = ClientType.Founder, Status = true };
     private static AuthUser Investor() => new() { Id = Guid.NewGuid(), Name = "Investor", PasswordHash = "test", UserType = UserType.Client, ClientType = ClientType.Investor, Status = true };
-    private static Project Project(Guid founderId, string name) => new() { FounderId = founderId, DisplayName = name, Slug = $"{name}-{Guid.NewGuid():N}", Summary = "Summary", Description = "Description", BusinessStage = ProjectStage.Idea, DefaultCurrency = "EGP", Status = ProjectStatus.Active };
+    private static Project Project(Guid founderId, string name) => new() { FounderId = founderId, DisplayName = name, Slug = $"{name}-{Guid.NewGuid():N}", Summary = "Summary", Description = "Description", ProjectStage = ProjectStage.Idea, DefaultCurrency = "EGP", Status = ProjectStatus.Active };
     private static Opportunity Opportunity(Guid founderId, int projectId, string title, decimal target, OpportunityFundingStatus fundingStatus, OpportunityStatus status) => new() { FounderId = founderId, ProjectId = projectId, Title = title, ShortDescription = "Description", UseOfFunds = "Growth", FundingTarget = target, FundingCurrency = "EGP", FundingStatus = fundingStatus, Status = status, InvestmentModel = InvestmentModel.Equity, ProjectStage = ProjectStage.Idea };
     private static OpportunityJoinRequest Approved(Opportunity opportunity, AuthUser investor, decimal amount) => new() { OpportunityId = opportunity.Id, InvestorId = investor.Id, RequestType = OpportunityJoinRequestType.InvestmentParticipation, Status = OpportunityJoinRequestStatus.Approved, FundingAmount = amount, FundingCurrency = "EGP", ReviewedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
 

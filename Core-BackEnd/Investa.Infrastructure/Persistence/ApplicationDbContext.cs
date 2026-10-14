@@ -5,11 +5,15 @@ using Investa.Domain.Entities.Enums;
 
 using Investa.Domain.Entities.Security;
 
+using Investa.Domain.Entities.Company;
+
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
 using Investa.Infrastructure.Identity;
 
 using Microsoft.EntityFrameworkCore;
+
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 
 
@@ -35,6 +39,185 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
 
     {
 
+    }
+
+    private static readonly string[] ImmutableContractProperties =
+    [
+        nameof(InvestmentContract.ContractNumber),
+        nameof(InvestmentContract.OpportunityId),
+        nameof(InvestmentContract.AcceptedOfferId),
+        nameof(InvestmentContract.AcceptedOfferVersionNumber),
+        nameof(InvestmentContract.ParticipationRequestId),
+        nameof(InvestmentContract.FounderUserId),
+        nameof(InvestmentContract.InvestorUserId),
+        nameof(InvestmentContract.InvestmentModel),
+        nameof(InvestmentContract.OpportunityTitleSnapshot),
+        nameof(InvestmentContract.FounderNameSnapshot),
+        nameof(InvestmentContract.InvestorNameSnapshot),
+        nameof(InvestmentContract.AcceptedCurrency),
+        nameof(InvestmentContract.AcceptedAmount),
+        nameof(InvestmentContract.AcceptanceTimestamp),
+        nameof(InvestmentContract.CreatedAt)
+    ];
+
+    private static readonly string[] ImmutableLoanObligationProperties =
+    [
+        nameof(LoanObligation.ParticipationRequestId),
+        nameof(LoanObligation.ContractId),
+        nameof(LoanObligation.ContractVersionId),
+        nameof(LoanObligation.AcceptedOfferId),
+        nameof(LoanObligation.AcceptedOfferVersionNumber),
+        nameof(LoanObligation.OfferLegId),
+        nameof(LoanObligation.OfferLegNumber),
+        nameof(LoanObligation.FounderUserId),
+        nameof(LoanObligation.InvestorUserId),
+        nameof(LoanObligation.Principal),
+        nameof(LoanObligation.Currency),
+        nameof(LoanObligation.InterestRate),
+        nameof(LoanObligation.TermMonths),
+        nameof(LoanObligation.RepaymentModel),
+        nameof(LoanObligation.PrincipalRepaymentMethod),
+        nameof(LoanObligation.ContractualStartDate),
+        nameof(LoanObligation.ContractualMaturityDate),
+        nameof(LoanObligation.CreatedAt)
+    ];
+
+    private static readonly string[] ImmutableLoanInstallmentProperties =
+    [
+        nameof(LoanRepaymentInstallment.LoanObligationId),
+        nameof(LoanRepaymentInstallment.InstallmentNumber),
+        nameof(LoanRepaymentInstallment.DueDate),
+        nameof(LoanRepaymentInstallment.PrincipalDue),
+        nameof(LoanRepaymentInstallment.InterestDue),
+        nameof(LoanRepaymentInstallment.TotalDue),
+        nameof(LoanRepaymentInstallment.Currency),
+        nameof(LoanRepaymentInstallment.CreatedAt)
+    ];
+
+    private static readonly string[] ImmutableEquityPositionProperties =
+    [
+        nameof(EquityPosition.ParticipationRequestId), nameof(EquityPosition.ContractId), nameof(EquityPosition.ContractVersionId),
+        nameof(EquityPosition.AcceptedOfferId), nameof(EquityPosition.AcceptedOfferVersionNumber), nameof(EquityPosition.OfferLegId),
+        nameof(EquityPosition.OfferLegNumber), nameof(EquityPosition.OpportunityId), nameof(EquityPosition.ProjectId),
+        nameof(EquityPosition.FounderUserId), nameof(EquityPosition.InvestorUserId), nameof(EquityPosition.InvestmentAmount), nameof(EquityPosition.Currency),
+        nameof(EquityPosition.OwnershipModel), nameof(EquityPosition.ContractualOwnershipPercentage), nameof(EquityPosition.InvestorShareCount),
+        nameof(EquityPosition.TotalIssuedShares), nameof(EquityPosition.ShareClass), nameof(EquityPosition.PricePerShare), nameof(EquityPosition.PreMoneyValuation),
+        nameof(EquityPosition.PostMoneyValuation), nameof(EquityPosition.EffectiveOwnershipDate), nameof(EquityPosition.CreatedAt)
+    ];
+
+    private static readonly string[] ImmutableEquitySnapshotProperties =
+    [
+        nameof(EquityHoldingSnapshot.EquityPositionId), nameof(EquityHoldingSnapshot.OwnershipModel), nameof(EquityHoldingSnapshot.EffectiveDate),
+        nameof(EquityHoldingSnapshot.ContractualOwnershipPercentage), nameof(EquityHoldingSnapshot.InvestorShareCount), nameof(EquityHoldingSnapshot.TotalIssuedShares),
+        nameof(EquityHoldingSnapshot.DerivedOwnershipPercentage), nameof(EquityHoldingSnapshot.ShareClass), nameof(EquityHoldingSnapshot.PricePerShare),
+        nameof(EquityHoldingSnapshot.PreMoneyValuation), nameof(EquityHoldingSnapshot.PostMoneyValuation), nameof(EquityHoldingSnapshot.ContractId),
+        nameof(EquityHoldingSnapshot.ContractVersionId), nameof(EquityHoldingSnapshot.AcceptedOfferId), nameof(EquityHoldingSnapshot.OfferLegId), nameof(EquityHoldingSnapshot.CreatedAt)
+    ];
+
+    private static readonly string[] ImmutableEquityLedgerProperties =
+    [
+        nameof(EquityHoldingLedgerEntry.EquityPositionId), nameof(EquityHoldingLedgerEntry.EventType), nameof(EquityHoldingLedgerEntry.EffectiveDate),
+        nameof(EquityHoldingLedgerEntry.ShareDelta), nameof(EquityHoldingLedgerEntry.ResultingInvestorShares), nameof(EquityHoldingLedgerEntry.ResultingTotalIssuedShares),
+        nameof(EquityHoldingLedgerEntry.ResultingOwnershipPercentage), nameof(EquityHoldingLedgerEntry.ContractualOwnershipPercentage), nameof(EquityHoldingLedgerEntry.ContractId),
+        nameof(EquityHoldingLedgerEntry.ContractVersionId), nameof(EquityHoldingLedgerEntry.AcceptedOfferId), nameof(EquityHoldingLedgerEntry.OfferLegId), nameof(EquityHoldingLedgerEntry.ActorUserId),
+        nameof(EquityHoldingLedgerEntry.ActorType), nameof(EquityHoldingLedgerEntry.CorrelationId), nameof(EquityHoldingLedgerEntry.CreatedAt)
+    ];
+
+    private static readonly string[] ImmutableEquityCorporateEventProperties =
+    [
+        nameof(EquityCorporateEvent.ProjectId), nameof(EquityCorporateEvent.OpportunityId), nameof(EquityCorporateEvent.EventType),
+        nameof(EquityCorporateEvent.EffectiveDate), nameof(EquityCorporateEvent.InitiatedByUserId), nameof(EquityCorporateEvent.SharesIssued),
+        nameof(EquityCorporateEvent.ResultingTotalIssuedShares), nameof(EquityCorporateEvent.SplitNumerator), nameof(EquityCorporateEvent.SplitDenominator),
+        nameof(EquityCorporateEvent.ShareClass), nameof(EquityCorporateEvent.Currency), nameof(EquityCorporateEvent.PreMoneyValuation),
+        nameof(EquityCorporateEvent.PostMoneyValuation), nameof(EquityCorporateEvent.PricePerShare), nameof(EquityCorporateEvent.Reason),
+        nameof(EquityCorporateEvent.Notes), nameof(EquityCorporateEvent.CreatedAt), nameof(EquityCorporateEvent.BeforeCapitalizationSnapshotJson),
+        nameof(EquityCorporateEvent.AfterCapitalizationSnapshotJson), nameof(EquityCorporateEvent.BeforeSnapshotHash), nameof(EquityCorporateEvent.AfterSnapshotHash),
+        nameof(EquityCorporateEvent.Status), nameof(EquityCorporateEvent.SubmittedAt), nameof(EquityCorporateEvent.ApprovedByUserId),
+        nameof(EquityCorporateEvent.ApprovedAt), nameof(EquityCorporateEvent.AppliedByUserId), nameof(EquityCorporateEvent.AppliedAt),
+        nameof(EquityCorporateEvent.ExpectedTotalIssuedShares), nameof(EquityCorporateEvent.ExpectedLatestAppliedEventId)
+    ];
+
+    private static readonly string[] ImmutableEquityCapitalizationSnapshotProperties =
+    [ nameof(EquityCapitalizationSnapshot.EquityCorporateEventId), nameof(EquityCapitalizationSnapshot.IsBefore), nameof(EquityCapitalizationSnapshot.CapturedAt), nameof(EquityCapitalizationSnapshot.TotalIssuedShares), nameof(EquityCapitalizationSnapshot.Currency), nameof(EquityCapitalizationSnapshot.SnapshotHash) ];
+    private static readonly string[] ImmutableEquityCapitalizationHolderProperties =
+    [ nameof(EquityCapitalizationSnapshotHolder.EquityCapitalizationSnapshotId), nameof(EquityCapitalizationSnapshotHolder.EquityPositionId), nameof(EquityCapitalizationSnapshotHolder.InvestorUserId), nameof(EquityCapitalizationSnapshotHolder.InvestorShares), nameof(EquityCapitalizationSnapshotHolder.OwnershipPercentage), nameof(EquityCapitalizationSnapshotHolder.ShareClass) ];
+
+    private static readonly string[] ImmutableContractVersionProperties =
+    [
+        nameof(InvestmentContractVersion.ContractId),
+        nameof(InvestmentContractVersion.VersionNumber),
+        nameof(InvestmentContractVersion.VersionType),
+        nameof(InvestmentContractVersion.PreviousVersionId),
+        nameof(InvestmentContractVersion.SourceParticipationRequestId),
+        nameof(InvestmentContractVersion.SourceNegotiationOfferId),
+        nameof(InvestmentContractVersion.TermsSnapshotJson),
+        nameof(InvestmentContractVersion.PreviousTermsSnapshotJson),
+        nameof(InvestmentContractVersion.ChangesSnapshotJson),
+        nameof(InvestmentContractVersion.DocumentHash),
+        nameof(InvestmentContractVersion.DocumentContent),
+        nameof(InvestmentContractVersion.CreatedAt),
+        nameof(InvestmentContractVersion.ActivatedAt)
+    ];
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        ValidateImmutableContractChanges();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        ValidateImmutableContractChanges();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    private void ValidateImmutableContractChanges()
+    {
+        ChangeTracker.DetectChanges();
+        foreach (var entry in ChangeTracker.Entries<InvestmentContract>().Where(e => e.State == EntityState.Modified))
+            EnsureImmutablePropertiesUnchanged(entry, ImmutableContractProperties, "Contract legal snapshot fields are immutable after creation.");
+
+        foreach (var entry in ChangeTracker.Entries<InvestmentContractVersion>().Where(e => e.State == EntityState.Modified))
+            EnsureImmutablePropertiesUnchanged(entry, ImmutableContractVersionProperties, "Contract version legal snapshot fields are immutable after activation.");
+
+        foreach (var entry in ChangeTracker.Entries<LoanObligation>().Where(e => e.State == EntityState.Modified))
+            EnsureImmutablePropertiesUnchanged(entry, ImmutableLoanObligationProperties, "Loan obligation contractual terms are immutable after activation.");
+
+        foreach (var entry in ChangeTracker.Entries<LoanRepaymentInstallment>().Where(e => e.State == EntityState.Modified))
+            EnsureImmutablePropertiesUnchanged(entry, ImmutableLoanInstallmentProperties, "Loan repayment schedule terms are immutable after creation.");
+
+        foreach (var entry in ChangeTracker.Entries<EquityPosition>().Where(e => e.State == EntityState.Modified))
+            EnsureImmutablePropertiesUnchanged(entry, ImmutableEquityPositionProperties, "Equity position contractual terms are immutable after creation.");
+        foreach (var entry in ChangeTracker.Entries<EquityHoldingSnapshot>().Where(e => e.State == EntityState.Modified))
+            EnsureImmutablePropertiesUnchanged(entry, ImmutableEquitySnapshotProperties, "Initial Equity holding snapshots are immutable.");
+        foreach (var entry in ChangeTracker.Entries<EquityHoldingLedgerEntry>().Where(e => e.State == EntityState.Modified))
+            EnsureImmutablePropertiesUnchanged(entry, ImmutableEquityLedgerProperties, "Equity ownership ledger entries are immutable.");
+        foreach (var entry in ChangeTracker.Entries<EquityCorporateEvent>().Where(e => e.State == EntityState.Modified))
+        {
+            var originalStatus = entry.Property(nameof(EquityCorporateEvent.Status)).OriginalValue;
+            var wasApplied = Equals(originalStatus, EquityCorporateEventStatus.Applied) || string.Equals(originalStatus?.ToString(), EquityCorporateEventStatus.Applied.ToString(), StringComparison.Ordinal);
+            if (wasApplied) EnsureImmutablePropertiesUnchanged(entry, ImmutableEquityCorporateEventProperties, "Applied Equity corporate events are immutable.");
+        }
+        foreach (var entry in ChangeTracker.Entries<EquityCorporateEvent>().Where(e => e.State == EntityState.Deleted))
+        {
+            var status = entry.Property(nameof(EquityCorporateEvent.Status)).OriginalValue;
+            if (Equals(status, EquityCorporateEventStatus.Applied) || string.Equals(status?.ToString(), EquityCorporateEventStatus.Applied.ToString(), StringComparison.Ordinal))
+                throw new InvalidOperationException("Applied Equity corporate events cannot be deleted.");
+        }
+        foreach (var entry in ChangeTracker.Entries<EquityCapitalizationSnapshot>().Where(e => e.State == EntityState.Modified))
+            EnsureImmutablePropertiesUnchanged(entry, ImmutableEquityCapitalizationSnapshotProperties, "Equity capitalization snapshots are immutable.");
+        foreach (var entry in ChangeTracker.Entries<EquityCapitalizationSnapshotHolder>().Where(e => e.State == EntityState.Modified))
+            EnsureImmutablePropertiesUnchanged(entry, ImmutableEquityCapitalizationHolderProperties, "Equity capitalization snapshot holders are immutable.");
+    }
+
+    private static void EnsureImmutablePropertiesUnchanged(EntityEntry entry, IEnumerable<string> properties, string message)
+    {
+        foreach (var propertyName in properties)
+        {
+            var property = entry.Property(propertyName);
+            if (!Equals(property.OriginalValue, property.CurrentValue))
+                throw new InvalidOperationException(message);
+        }
     }
 
 
@@ -170,7 +353,7 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
 
     // Business category taxonomy used for client classification
 
-    public DbSet<BusinessCategory> BusinessCategories { get; set; }
+    public DbSet<ProjectCategory> ProjectCategories { get; set; }
 
 
 
@@ -224,12 +407,6 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
 
 
 
-    // Configuration table for credit packages/options
-
-    public DbSet<CreditConfiguration> CreditConfigurations { get; set; }
-
-
-
     // Admin-defined credit plans available for purchase
 
     public DbSet<CreditPlan> CreditPlans { get; set; }
@@ -253,18 +430,48 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
     public DbSet<OpportunityDocument> OpportunityDocuments { get; set; }
     public DbSet<OpportunityEvent> OpportunityEvents { get; set; }
     public DbSet<OpportunityJoinRequest> OpportunityJoinRequests { get; set; }
+    public DbSet<FundingDeclaration> FundingDeclarations { get; set; }
+    public DbSet<FundingDeclarationLegAllocation> FundingDeclarationLegAllocations { get; set; }
     public DbSet<ParticipationObligationConfirmation> ParticipationObligationConfirmations { get; set; }
+    public DbSet<LoanObligation> LoanObligations { get; set; }
+    public DbSet<LoanRepaymentInstallment> LoanRepaymentInstallments { get; set; }
+    public DbSet<LoanRepaymentDeclaration> LoanRepaymentDeclarations { get; set; }
+    public DbSet<LoanRepaymentDeclarationInstallment> LoanRepaymentDeclarationInstallments { get; set; }
+    public DbSet<LoanRepaymentAllocation> LoanRepaymentAllocations { get; set; }
+    public DbSet<ProfitSharingObligation> ProfitSharingObligations { get; set; }
+    public DbSet<ProfitSharingReportingPeriod> ProfitSharingReportingPeriods { get; set; }
+    public DbSet<ProfitSharingPeriodDeclaration> ProfitSharingPeriodDeclarations { get; set; }
+    public DbSet<ProfitSharingEntitlement> ProfitSharingEntitlements { get; set; }
+    public DbSet<ProfitSharingDistributionDeclaration> ProfitSharingDistributionDeclarations { get; set; }
+    public DbSet<ProfitSharingDistributionAllocation> ProfitSharingDistributionAllocations { get; set; }
+    public DbSet<EquityPosition> EquityPositions { get; set; }
+    public DbSet<EquityHoldingSnapshot> EquityHoldingSnapshots { get; set; }
+    public DbSet<EquityHoldingLedgerEntry> EquityHoldingLedgerEntries { get; set; }
+    public DbSet<EquityCorporateEvent> EquityCorporateEvents { get; set; }
+    public DbSet<EquityCorporateEventPosition> EquityCorporateEventPositions { get; set; }
+    public DbSet<EquityCapitalizationSnapshot> EquityCapitalizationSnapshots { get; set; }
+    public DbSet<EquityCapitalizationSnapshotHolder> EquityCapitalizationSnapshotHolders { get; set; }
+    public DbSet<EquityDividendDeclaration> EquityDividendDeclarations { get; set; }
+    public DbSet<EquityDividendEntitlement> EquityDividendEntitlements { get; set; }
+    public DbSet<EquityDividendDistributionDeclaration> EquityDividendDistributionDeclarations { get; set; }
+    public DbSet<EquityDividendDistributionConfirmation> EquityDividendDistributionConfirmations { get; set; }
+    public DbSet<EquityTransfer> EquityTransfers { get; set; }
+    public DbSet<EquityClosureSnapshot> EquityClosureSnapshots { get; set; }
     public DbSet<ProjectRoomEntry> ProjectRoomEntries { get; set; }
     public DbSet<ProjectRoomDocument> ProjectRoomDocuments { get; set; }
     public DbSet<ExchangeRateSnapshot> ExchangeRateSnapshots { get; set; }
     public DbSet<Currency> Currencies { get; set; }
+    public DbSet<Country> Countries { get; set; }
     public DbSet<InvestmentContract> InvestmentContracts { get; set; }
     public DbSet<InvestmentContractVersion> InvestmentContractVersions { get; set; }
     public DbSet<ContractEvent> ContractEvents { get; set; }
-    public DbSet<OpportunityCategory> OpportunityCategories { get; set; }
     public DbSet<OpportunityTag> OpportunityTags { get; set; }
     public DbSet<OpportunityTagAssignment> OpportunityTagAssignments { get; set; }
     public DbSet<FundingGoal> FundingGoals { get; set; }
+    public DbSet<RiskLevel> RiskLevels { get; set; }
+    public DbSet<FileCategory> FileCategories { get; set; }
+    public DbSet<FileStoragePolicy> FileStoragePolicies { get; set; }
+    public DbSet<StoredFile> StoredFiles { get; set; }
 
 
 
@@ -289,9 +496,9 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
 
 
 
-    // Many-to-many join between Clients and BusinessCategories
+    // Many-to-many join between Clients and ProjectCategories
 
-    public DbSet<ClientBusinessCategory> ClientBusinessCategories { get; set; }
+    public DbSet<ClientProjectCategory> ClientProjectCategories { get; set; }
 
 
 
@@ -347,6 +554,18 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
     public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
     public DbSet<PaymentAllocation> PaymentAllocations { get; set; }
 
+    // Commercial Company Management counterparties. These are deliberately
+    // separate from Clients, which belong to the FOPX participant domain.
+    public DbSet<CompanyCustomer> CompanyCustomers { get; set; }
+    public DbSet<CompanyCustomerContact> CompanyCustomerContacts { get; set; }
+    public DbSet<CompanyCatalogItem> CompanyCatalogItems { get; set; }
+    public DbSet<CompanySalesOpportunity> CompanySalesOpportunities { get; set; }
+    public DbSet<CompanySalesOpportunityItem> CompanySalesOpportunityItems { get; set; }
+    public DbSet<CompanyQuotation> CompanyQuotations { get; set; }
+    public DbSet<CompanyQuotationLine> CompanyQuotationLines { get; set; }
+    public DbSet<CompanyContract> CompanyContracts { get; set; }
+    public DbSet<CompanyContractLine> CompanyContractLines { get; set; }
+
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -363,6 +582,222 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
         });
 
         ConfigureCompanyFinance(modelBuilder);
+
+        modelBuilder.Entity<CompanyCustomer>(customer =>
+        {
+            customer.HasKey(x => x.Id);
+            customer.Property(x => x.CustomerCode).HasMaxLength(32).IsRequired();
+            customer.Property(x => x.LegalName).HasMaxLength(200).IsRequired();
+            customer.Property(x => x.DisplayName).HasMaxLength(200).IsRequired();
+            customer.Property(x => x.Type).HasConversion<string>().HasMaxLength(24).IsRequired();
+            customer.Property(x => x.Status).HasConversion<string>().HasMaxLength(24).IsRequired();
+            customer.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+            customer.Property(x => x.UpdatedAt).HasDefaultValueSql("GETDATE()");
+            customer.HasIndex(x => x.CustomerCode).IsUnique();
+            customer.HasIndex(x => x.CodeSequence).IsUnique();
+            customer.HasIndex(x => x.TaxId).IsUnique().HasFilter("[TaxId] IS NOT NULL");
+            customer.HasIndex(x => x.Status);
+            customer.HasIndex(x => x.Type);
+            customer.HasIndex(x => x.CreatedAt);
+        });
+
+        modelBuilder.Entity<CompanyCustomerContact>(contact =>
+        {
+            contact.HasKey(x => x.Id);
+            contact.Property(x => x.Name).HasMaxLength(160).IsRequired();
+            contact.Property(x => x.JobTitle).HasMaxLength(120);
+            contact.Property(x => x.Email).HasMaxLength(160);
+            contact.Property(x => x.Phone).HasMaxLength(40);
+            contact.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
+            contact.Property(x => x.UpdatedAt).HasDefaultValueSql("GETDATE()");
+            contact.HasIndex(x => x.CustomerId);
+            contact.HasIndex(x => new { x.CustomerId, x.IsPrimary });
+            contact.HasIndex(x => x.CustomerId).IsUnique().HasFilter("[IsPrimary] = 1 AND [IsActive] = 1");
+            contact.HasOne(x => x.Customer).WithMany(x => x.Contacts).HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CompanyCatalogItem>(item =>
+        {
+            item.HasKey(x => x.Id);
+            item.Property(x => x.Code).HasMaxLength(32).IsRequired();
+            item.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            item.Property(x => x.Description).HasMaxLength(1000);
+            item.Property(x => x.Type).HasConversion<string>().HasMaxLength(32).IsRequired();
+            item.Property(x => x.Status).HasConversion<string>().HasMaxLength(32).IsRequired();
+            item.Property(x => x.WorkspaceKey).HasMaxLength(64);
+            item.Property(x => x.DefaultUnit).HasMaxLength(32);
+            item.Property(x => x.BasePrice).HasColumnType("decimal(18,2)");
+            item.Property(x => x.Currency).HasMaxLength(3);
+            item.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            item.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            item.HasIndex(x => x.Code).IsUnique();
+            item.HasIndex(x => x.CodeSequence).IsUnique();
+            item.HasIndex(x => x.Type);
+            item.HasIndex(x => x.Status);
+            item.HasIndex(x => x.CreatedAt);
+        });
+
+        modelBuilder.Entity<CompanySalesOpportunity>(opportunity =>
+        {
+            opportunity.HasKey(x => x.Id);
+            opportunity.Property(x => x.OpportunityCode).HasMaxLength(32).IsRequired();
+            opportunity.Property(x => x.Title).HasMaxLength(200).IsRequired();
+            opportunity.Property(x => x.Stage).HasConversion<string>().HasMaxLength(32).IsRequired();
+            opportunity.Property(x => x.Status).HasConversion<string>().HasMaxLength(32).IsRequired();
+            opportunity.Property(x => x.Source).HasConversion<string>().HasMaxLength(32);
+            opportunity.Property(x => x.Currency).HasMaxLength(3);
+            opportunity.Property(x => x.ExpectedValue).HasColumnType("decimal(18,2)");
+            opportunity.Property(x => x.ExpectedCloseDate).HasColumnType("date");
+            opportunity.Property(x => x.Description).HasMaxLength(4000);
+            opportunity.Property(x => x.Notes).HasMaxLength(4000);
+            opportunity.Property(x => x.LostReason).HasMaxLength(1000);
+            opportunity.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            opportunity.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            opportunity.HasIndex(x => x.OpportunityCode).IsUnique();
+            opportunity.HasIndex(x => x.CodeSequence).IsUnique();
+            opportunity.HasIndex(x => new { x.CustomerId, x.Status });
+            opportunity.HasIndex(x => new { x.Status, x.Stage });
+            opportunity.HasIndex(x => x.SalesOwnerUserId);
+            opportunity.HasIndex(x => x.ExpectedCloseDate);
+            opportunity.HasIndex(x => x.CreatedAt);
+            opportunity.HasOne(x => x.Customer).WithMany().HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Restrict);
+            opportunity.HasOne(x => x.PrimaryContact).WithMany().HasForeignKey(x => x.PrimaryContactId).OnDelete(DeleteBehavior.Restrict);
+            opportunity.HasOne(x => x.SalesOwnerUser).WithMany().HasForeignKey(x => x.SalesOwnerUserId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<CompanySalesOpportunityItem>(item =>
+        {
+            item.HasKey(x => x.Id);
+            item.Property(x => x.Notes).HasMaxLength(500);
+            item.HasIndex(x => new { x.SalesOpportunityId, x.CatalogItemId }).IsUnique();
+            item.HasIndex(x => x.CatalogItemId);
+            item.HasOne(x => x.SalesOpportunity).WithMany(x => x.InterestedItems).HasForeignKey(x => x.SalesOpportunityId).OnDelete(DeleteBehavior.Restrict);
+            item.HasOne(x => x.CatalogItem).WithMany().HasForeignKey(x => x.CatalogItemId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<CompanyQuotation>(quotation =>
+        {
+            quotation.HasKey(x => x.Id);
+            quotation.Property(x => x.QuotationNumber).HasMaxLength(32).IsRequired();
+            quotation.Property(x => x.CustomerCodeSnapshot).HasMaxLength(32).IsRequired();
+            quotation.Property(x => x.CustomerNameSnapshot).HasMaxLength(200).IsRequired();
+            quotation.Property(x => x.ContactNameSnapshot).HasMaxLength(160);
+            quotation.Property(x => x.ContactEmailSnapshot).HasMaxLength(160);
+            quotation.Property(x => x.ContactPhoneSnapshot).HasMaxLength(40);
+            quotation.Property(x => x.Status).HasConversion<string>().HasMaxLength(32).IsRequired();
+            quotation.Property(x => x.IssueDate).HasColumnType("date");
+            quotation.Property(x => x.ValidUntil).HasColumnType("date");
+            quotation.Property(x => x.Currency).HasMaxLength(3).IsRequired();
+            quotation.Property(x => x.Subtotal).HasColumnType("decimal(18,2)");
+            quotation.Property(x => x.DiscountTotal).HasColumnType("decimal(18,2)");
+            quotation.Property(x => x.TaxTotal).HasColumnType("decimal(18,2)");
+            quotation.Property(x => x.GrandTotal).HasColumnType("decimal(18,2)");
+            quotation.Property(x => x.PaymentTerms).HasMaxLength(4000);
+            quotation.Property(x => x.CommercialTerms).HasMaxLength(4000);
+            quotation.Property(x => x.Notes).HasMaxLength(4000);
+            quotation.Property(x => x.RejectionReason).HasMaxLength(1000);
+            quotation.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            quotation.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            quotation.HasIndex(x => x.QuotationNumber).IsUnique();
+            quotation.HasIndex(x => x.NumberSequence).IsUnique();
+            quotation.HasIndex(x => x.CustomerId);
+            quotation.HasIndex(x => x.SalesOpportunityId);
+            quotation.HasIndex(x => x.Status);
+            quotation.HasIndex(x => x.IssueDate);
+            quotation.HasIndex(x => x.ValidUntil);
+            quotation.HasIndex(x => x.CreatedAt);
+            quotation.HasOne(x => x.Customer).WithMany().HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Restrict);
+            quotation.HasOne(x => x.SalesOpportunity).WithMany().HasForeignKey(x => x.SalesOpportunityId).OnDelete(DeleteBehavior.Restrict);
+            quotation.HasOne(x => x.Contact).WithMany().HasForeignKey(x => x.ContactId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<CompanyQuotationLine>(line =>
+        {
+            line.HasKey(x => x.Id);
+            line.Property(x => x.ItemCodeSnapshot).HasMaxLength(32);
+            line.Property(x => x.ItemNameSnapshot).HasMaxLength(200).IsRequired();
+            line.Property(x => x.Description).HasMaxLength(4000).IsRequired();
+            line.Property(x => x.Unit).HasMaxLength(32).IsRequired();
+            line.Property(x => x.Quantity).HasColumnType("decimal(18,4)");
+            line.Property(x => x.UnitPrice).HasColumnType("decimal(18,2)");
+            line.Property(x => x.DiscountType).HasConversion<string>().HasMaxLength(32).IsRequired();
+            line.Property(x => x.DiscountValue).HasColumnType("decimal(18,4)");
+            line.Property(x => x.DiscountAmount).HasColumnType("decimal(18,2)");
+            line.Property(x => x.TaxRate).HasColumnType("decimal(5,2)");
+            line.Property(x => x.TaxAmount).HasColumnType("decimal(18,2)");
+            line.Property(x => x.LineSubtotal).HasColumnType("decimal(18,2)");
+            line.Property(x => x.LineTotal).HasColumnType("decimal(18,2)");
+            line.HasIndex(x => x.QuotationId);
+            line.HasIndex(x => x.CatalogItemId);
+            line.HasOne(x => x.Quotation).WithMany(x => x.Lines).HasForeignKey(x => x.QuotationId).OnDelete(DeleteBehavior.Cascade);
+            line.HasOne(x => x.CatalogItem).WithMany().HasForeignKey(x => x.CatalogItemId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<CompanyContract>(contract =>
+        {
+            contract.HasKey(x => x.Id);
+            contract.Property(x => x.ContractNumber).HasMaxLength(32).IsRequired();
+            contract.Property(x => x.CustomerCodeSnapshot).HasMaxLength(32).IsRequired();
+            contract.Property(x => x.CustomerNameSnapshot).HasMaxLength(200).IsRequired();
+            contract.Property(x => x.CustomerLegalNameSnapshot).HasMaxLength(200);
+            contract.Property(x => x.ContactNameSnapshot).HasMaxLength(160);
+            contract.Property(x => x.ContactEmailSnapshot).HasMaxLength(160);
+            contract.Property(x => x.ContactPhoneSnapshot).HasMaxLength(40);
+            contract.Property(x => x.Status).HasConversion<string>().HasMaxLength(32).IsRequired();
+            contract.Property(x => x.Currency).HasMaxLength(3).IsRequired();
+            contract.Property(x => x.EffectiveDate).HasColumnType("date");
+            contract.Property(x => x.StartDate).HasColumnType("date");
+            contract.Property(x => x.EndDate).HasColumnType("date");
+            contract.Property(x => x.SignedDate).HasColumnType("date");
+            contract.Property(x => x.Subtotal).HasColumnType("decimal(18,2)");
+            contract.Property(x => x.DiscountTotal).HasColumnType("decimal(18,2)");
+            contract.Property(x => x.TaxTotal).HasColumnType("decimal(18,2)");
+            contract.Property(x => x.GrandTotal).HasColumnType("decimal(18,2)");
+            contract.Property(x => x.PaymentTerms).HasMaxLength(4000);
+            contract.Property(x => x.CommercialTerms).HasMaxLength(4000);
+            contract.Property(x => x.Notes).HasMaxLength(4000);
+            contract.Property(x => x.TerminationReason).HasMaxLength(1000);
+            contract.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            contract.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            contract.HasIndex(x => x.ContractNumber).IsUnique();
+            contract.HasIndex(x => x.NumberSequence).IsUnique();
+            contract.HasIndex(x => x.SourceQuotationId).IsUnique();
+            contract.HasIndex(x => x.CustomerId);
+            contract.HasIndex(x => x.SalesOpportunityId);
+            contract.HasIndex(x => x.Status);
+            contract.HasIndex(x => x.EffectiveDate);
+            contract.HasIndex(x => x.StartDate);
+            contract.HasIndex(x => x.EndDate);
+            contract.HasIndex(x => x.CreatedAt);
+            contract.HasOne(x => x.Customer).WithMany().HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Restrict);
+            contract.HasOne(x => x.SourceQuotation).WithOne(x => x.Contract).HasForeignKey<CompanyContract>(x => x.SourceQuotationId).OnDelete(DeleteBehavior.Restrict);
+            contract.HasOne(x => x.SalesOpportunity).WithMany().HasForeignKey(x => x.SalesOpportunityId).OnDelete(DeleteBehavior.Restrict);
+            contract.HasOne(x => x.Contact).WithMany().HasForeignKey(x => x.ContactId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<CompanyContractLine>(line =>
+        {
+            line.HasKey(x => x.Id);
+            line.Property(x => x.ItemCodeSnapshot).HasMaxLength(32);
+            line.Property(x => x.ItemNameSnapshot).HasMaxLength(200).IsRequired();
+            line.Property(x => x.Description).HasMaxLength(4000).IsRequired();
+            line.Property(x => x.Unit).HasMaxLength(32).IsRequired();
+            line.Property(x => x.Quantity).HasColumnType("decimal(18,4)");
+            line.Property(x => x.UnitPrice).HasColumnType("decimal(18,2)");
+            line.Property(x => x.DiscountType).HasConversion<string>().HasMaxLength(32).IsRequired();
+            line.Property(x => x.DiscountValue).HasColumnType("decimal(18,4)");
+            line.Property(x => x.DiscountAmount).HasColumnType("decimal(18,2)");
+            line.Property(x => x.TaxRate).HasColumnType("decimal(5,2)");
+            line.Property(x => x.TaxAmount).HasColumnType("decimal(18,2)");
+            line.Property(x => x.LineSubtotal).HasColumnType("decimal(18,2)");
+            line.Property(x => x.LineTotal).HasColumnType("decimal(18,2)");
+            line.HasIndex(x => x.ContractId);
+            line.HasIndex(x => x.SourceQuotationLineId);
+            line.HasIndex(x => x.CatalogItemId);
+            line.HasOne(x => x.Contract).WithMany(x => x.Lines).HasForeignKey(x => x.ContractId).OnDelete(DeleteBehavior.Cascade);
+            line.HasOne(x => x.SourceQuotationLine).WithMany().HasForeignKey(x => x.SourceQuotationLineId).OnDelete(DeleteBehavior.Restrict);
+            line.HasOne(x => x.CatalogItem).WithMany().HasForeignKey(x => x.CatalogItemId).OnDelete(DeleteBehavior.Restrict);
+        });
 
 
 
@@ -441,6 +876,13 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
             .HasForeignKey(i => i.FounderId)
 
             .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Investment>()
+            .HasOne<ProjectCategory>()
+            .WithMany()
+            .HasForeignKey(i => i.ProjectCategoryId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
 
 
 
@@ -1094,22 +1536,6 @@ public partial class ApplicationDbContext : IdentityDbContext<ApplicationIdentit
                     .HasFilter("[Status] = 'Pending'");
             });
 
-            // CreditConfiguration mapping
-
-            modelBuilder.Entity<CreditConfiguration>(cc =>
-
-            {
-
-                cc.HasKey(x => x.Id);
-
-                cc.Property(x => x.Amount).HasColumnType("decimal(18,2)");
-
-                cc.Property(x => x.FromDate).HasColumnType("datetime2");
-
-                cc.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
-
-            });
-
         // Configure User entity
 
         // (ApplicationUsers table removed - User entity merged into AuthUsers)
@@ -1284,14 +1710,15 @@ modelBuilder.Entity<UserProfile>()
             p.Property(x => x.Summary).HasMaxLength(500).IsRequired();
             p.Property(x => x.Description).HasMaxLength(4000).IsRequired();
             p.Property(x => x.Industry).HasMaxLength(150);
-            p.Property(x => x.BusinessStage).HasConversion<string>().HasMaxLength(40).IsRequired();
+            p.Property(x => x.ProjectStage).HasConversion<string>().HasMaxLength(40).IsRequired();
             p.Property(x => x.Geography).HasMaxLength(200);
             p.Property(x => x.TagsSnapshotJson).HasColumnType("nvarchar(max)").HasDefaultValue("[]").IsRequired();
             p.Property(x => x.WebsiteUrl).HasMaxLength(500);
             p.Property(x => x.LogoUrl).HasMaxLength(1000);
             p.Property(x => x.TeamDescription).HasMaxLength(2000);
             p.Property(x => x.BusinessModel).HasMaxLength(2000);
-            p.Property(x => x.RiskLevel).HasMaxLength(50);
+            // RiskLevel stores the normalized immutable RiskLevel master Code.
+            p.Property(x => x.RiskLevel).HasMaxLength(80);
             p.Property(x => x.RiskDisclosure).HasMaxLength(4000);
             p.Property(x => x.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
             p.Property(x => x.ArchiveReason).HasMaxLength(1000);
@@ -1324,7 +1751,6 @@ modelBuilder.Entity<UserProfile>()
             o.HasKey(x => x.Id);
             o.Property(x => x.ProjectId).IsRequired();
             o.Property(x => x.SequenceNumber).IsRequired();
-            o.Property(x => x.Purpose).HasMaxLength(200).IsRequired().HasDefaultValue("General funding");
             o.Property(x => x.Type).HasMaxLength(80).IsRequired().HasDefaultValue("Opportunity");
             o.Property(x => x.FounderId).IsRequired();
             o.Property(x => x.Title).HasMaxLength(200).IsRequired();
@@ -1373,6 +1799,8 @@ modelBuilder.Entity<UserProfile>()
             o.HasIndex(x => x.Status);
             o.HasIndex(x => x.ModerationStatus);
             o.HasIndex(x => x.FundingStatus);
+            o.HasIndex(x => x.CreatedAt);
+            o.HasIndex(x => x.UpdatedAt);
             o.HasIndex(x => x.FundingClosesAt);
             o.HasIndex(x => x.FundingGoalId);
             o.HasIndex(x => x.InvestmentModel);
@@ -1456,6 +1884,65 @@ modelBuilder.Entity<UserProfile>()
              .IsRequired(false);
         });
 
+        modelBuilder.Entity<FundingDeclaration>(d =>
+        {
+            d.HasKey(x => x.Id);
+            d.Property(x => x.Amount).HasPrecision(18, 2).IsRequired();
+            d.Property(x => x.CurrencyCode).HasMaxLength(3).IsRequired();
+            d.Property(x => x.PaymentMethod).HasConversion<string>().HasMaxLength(30).IsRequired();
+            d.Property(x => x.ExternalReference).HasMaxLength(200);
+            d.Property(x => x.Notes).HasMaxLength(2000);
+            d.Property(x => x.ConfirmationComment).HasMaxLength(2000);
+            d.Property(x => x.DisputeReason).HasMaxLength(2000);
+            d.Property(x => x.ProofFileId).HasMaxLength(64);
+            d.Property(x => x.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
+            d.Property(x => x.IdempotencyKey).HasMaxLength(100);
+            d.Property(x => x.DeclaredAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            d.Property(x => x.RowVersion).IsRowVersion();
+            d.HasIndex(x => new { x.ParticipationId, x.DeclaredAt });
+            d.HasIndex(x => new { x.OpportunityId, x.Status });
+            d.HasIndex(x => new { x.ParticipationId, x.IdempotencyKey }).IsUnique().HasFilter("[IdempotencyKey] IS NOT NULL");
+            d.HasIndex(x => x.ProofFileId);
+            d.HasOne(x => x.Participation)
+                .WithMany()
+                .HasForeignKey(x => x.ParticipationId)
+                .OnDelete(DeleteBehavior.Restrict);
+            d.HasOne(x => x.Opportunity)
+                .WithMany()
+                .HasForeignKey(x => x.OpportunityId)
+                .OnDelete(DeleteBehavior.Restrict);
+            d.HasOne(x => x.ProofFile)
+                .WithMany()
+                .HasPrincipalKey(x => x.FileId)
+                .HasForeignKey(x => x.ProofFileId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+            d.HasOne<AuthUser>()
+                .WithMany()
+                .HasForeignKey(x => x.ConfirmedByInvestorId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+            d.HasOne<AuthUser>()
+                .WithMany()
+                .HasForeignKey(x => x.DisputedByInvestorId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+        });
+
+        modelBuilder.Entity<FundingDeclarationLegAllocation>(a =>
+        {
+            a.HasKey(x => x.Id);
+            a.Property(x => x.AllocatedAmount).HasPrecision(18, 2).IsRequired();
+            a.Property(x => x.CurrencyCode).HasMaxLength(3).IsRequired();
+            a.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            a.HasIndex(x => new { x.FundingDeclarationId, x.OfferLegId }).IsUnique();
+            a.HasIndex(x => new { x.ParticipationId, x.OfferLegId });
+            a.HasOne(x => x.FundingDeclaration).WithMany(x => x.LegAllocations).HasForeignKey(x => x.FundingDeclarationId).OnDelete(DeleteBehavior.Cascade);
+            a.HasOne(x => x.Participation).WithMany().HasForeignKey(x => x.ParticipationId).OnDelete(DeleteBehavior.Restrict);
+            a.HasOne(x => x.Contract).WithMany().HasForeignKey(x => x.ContractId).OnDelete(DeleteBehavior.Restrict).IsRequired(false);
+            a.HasOne(x => x.OfferLeg).WithMany().HasForeignKey(x => x.OfferLegId).OnDelete(DeleteBehavior.Restrict);
+        });
+
         modelBuilder.Entity<ParticipationObligationConfirmation>(c =>
         {
             c.HasKey(x => x.Id);
@@ -1514,29 +2001,539 @@ modelBuilder.Entity<UserProfile>()
             c.Property(x => x.EnglishName).HasMaxLength(100).IsRequired();
             c.Property(x => x.ArabicName).HasMaxLength(100).IsRequired();
             c.Property(x => x.Symbol).HasMaxLength(10).IsRequired();
+            c.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            c.Property(x => x.UpdatedAt);
             c.HasIndex(x => x.IsActive);
+            var currencySeedCreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
             c.HasData(
-                new Currency { ISOCode = "EGP", EnglishName = "Egyptian Pound", ArabicName = "الجنيه المصري", Symbol = "E£", DecimalDigits = 2, IsActive = true, SupportsFunding = true, SupportsSettlement = true, SupportsWallet = true },
-                new Currency { ISOCode = "USD", EnglishName = "US Dollar", ArabicName = "الدولار الأمريكي", Symbol = "$", DecimalDigits = 2, IsActive = true, SupportsFunding = true, SupportsSettlement = true, SupportsWallet = true },
-                new Currency { ISOCode = "EUR", EnglishName = "Euro", ArabicName = "اليورو", Symbol = "€", DecimalDigits = 2, IsActive = true, SupportsFunding = true, SupportsSettlement = true, SupportsWallet = false },
-                new Currency { ISOCode = "GBP", EnglishName = "British Pound", ArabicName = "الجنيه الإسترليني", Symbol = "£", DecimalDigits = 2, IsActive = true, SupportsFunding = true, SupportsSettlement = true, SupportsWallet = false },
-                new Currency { ISOCode = "SAR", EnglishName = "Saudi Riyal", ArabicName = "الريال السعودي", Symbol = "﷼", DecimalDigits = 2, IsActive = true, SupportsFunding = true, SupportsSettlement = true, SupportsWallet = true },
-                new Currency { ISOCode = "AED", EnglishName = "UAE Dirham", ArabicName = "الدرهم الإماراتي", Symbol = "د.إ", DecimalDigits = 2, IsActive = true, SupportsFunding = true, SupportsSettlement = true, SupportsWallet = true },
-                new Currency { ISOCode = "JPY", EnglishName = "Japanese Yen", ArabicName = "الين الياباني", Symbol = "¥", DecimalDigits = 0, IsActive = true, SupportsFunding = false, SupportsSettlement = true, SupportsWallet = false },
-                new Currency { ISOCode = "KWD", EnglishName = "Kuwaiti Dinar", ArabicName = "الدينار الكويتي", Symbol = "د.ك", DecimalDigits = 3, IsActive = true, SupportsFunding = true, SupportsSettlement = true, SupportsWallet = true });
+                new Currency { ISOCode = "EGP", EnglishName = "Egyptian Pound", ArabicName = "الجنيه المصري", Symbol = "E£", DecimalDigits = 2, IsActive = true, SupportsFunding = true, SupportsSettlement = true, SupportsWallet = true, CreatedAt = currencySeedCreatedAt },
+                new Currency { ISOCode = "USD", EnglishName = "US Dollar", ArabicName = "الدولار الأمريكي", Symbol = "$", DecimalDigits = 2, IsActive = true, SupportsFunding = true, SupportsSettlement = true, SupportsWallet = true, CreatedAt = currencySeedCreatedAt },
+                new Currency { ISOCode = "EUR", EnglishName = "Euro", ArabicName = "اليورو", Symbol = "€", DecimalDigits = 2, IsActive = true, SupportsFunding = true, SupportsSettlement = true, SupportsWallet = false, CreatedAt = currencySeedCreatedAt },
+                new Currency { ISOCode = "GBP", EnglishName = "British Pound", ArabicName = "الجنيه الإسترليني", Symbol = "£", DecimalDigits = 2, IsActive = true, SupportsFunding = true, SupportsSettlement = true, SupportsWallet = false, CreatedAt = currencySeedCreatedAt },
+                new Currency { ISOCode = "SAR", EnglishName = "Saudi Riyal", ArabicName = "الريال السعودي", Symbol = "﷼", DecimalDigits = 2, IsActive = true, SupportsFunding = true, SupportsSettlement = true, SupportsWallet = true, CreatedAt = currencySeedCreatedAt },
+                new Currency { ISOCode = "AED", EnglishName = "UAE Dirham", ArabicName = "الدرهم الإماراتي", Symbol = "د.إ", DecimalDigits = 2, IsActive = true, SupportsFunding = true, SupportsSettlement = true, SupportsWallet = true, CreatedAt = currencySeedCreatedAt },
+                new Currency { ISOCode = "JPY", EnglishName = "Japanese Yen", ArabicName = "الين الياباني", Symbol = "¥", DecimalDigits = 0, IsActive = true, SupportsFunding = false, SupportsSettlement = true, SupportsWallet = false, CreatedAt = currencySeedCreatedAt },
+                new Currency { ISOCode = "KWD", EnglishName = "Kuwaiti Dinar", ArabicName = "الدينار الكويتي", Symbol = "د.ك", DecimalDigits = 3, IsActive = true, SupportsFunding = true, SupportsSettlement = true, SupportsWallet = true, CreatedAt = currencySeedCreatedAt });
+        });
+
+        modelBuilder.Entity<LoanObligation>(o =>
+        {
+            o.HasKey(x => x.Id);
+            o.Property(x => x.Principal).HasPrecision(18, 2).IsRequired();
+            o.Property(x => x.Currency).HasMaxLength(10).IsRequired();
+            o.Property(x => x.InterestRate).HasPrecision(5, 2).IsRequired();
+            o.Property(x => x.RepaymentModel).HasMaxLength(30).IsRequired();
+            o.Property(x => x.PrincipalRepaymentMethod).HasConversion<string>().HasMaxLength(30).IsRequired();
+            o.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            o.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            o.Property(x => x.ActivatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            o.Property(x => x.RepaymentLedgerVersion).IsRequired();
+            o.Property(x => x.DefaultReason).HasMaxLength(2000);
+            o.Property(x => x.ClosureReason).HasMaxLength(2000);
+            o.Property(x => x.DefaultOutstandingPrincipal).HasPrecision(18, 2);
+            o.Property(x => x.DefaultOutstandingInterest).HasPrecision(18, 2);
+            o.Property(x => x.DefaultOutstandingTotal).HasPrecision(18, 2);
+            o.Property(x => x.ClosedFinalPrincipalOutstanding).HasPrecision(18, 2);
+            o.Property(x => x.ClosedFinalInterestOutstanding).HasPrecision(18, 2);
+            o.Property(x => x.ClosedFinalTotalOutstanding).HasPrecision(18, 2);
+            o.Property(x => x.RowVersion).IsRowVersion();
+            o.HasIndex(x => new { x.ParticipationRequestId, x.OfferLegId }).IsUnique();
+            o.HasIndex(x => new { x.ContractId, x.OfferLegId }).IsUnique();
+            o.HasIndex(x => new { x.InvestorUserId, x.Status });
+            o.HasOne(x => x.ParticipationRequest).WithMany().HasForeignKey(x => x.ParticipationRequestId).OnDelete(DeleteBehavior.Restrict);
+            o.HasOne(x => x.Contract).WithMany().HasForeignKey(x => x.ContractId).OnDelete(DeleteBehavior.Restrict);
+            o.HasOne(x => x.ContractVersion).WithMany().HasForeignKey(x => x.ContractVersionId).OnDelete(DeleteBehavior.Restrict);
+            o.HasOne(x => x.AcceptedOffer).WithMany().HasForeignKey(x => x.AcceptedOfferId).OnDelete(DeleteBehavior.Restrict);
+            o.HasOne(x => x.OfferLeg).WithMany().HasForeignKey(x => x.OfferLegId).OnDelete(DeleteBehavior.Restrict);
+            o.HasOne(x => x.FounderUser).WithMany().HasForeignKey(x => x.FounderUserId).OnDelete(DeleteBehavior.Restrict);
+            o.HasOne(x => x.InvestorUser).WithMany().HasForeignKey(x => x.InvestorUserId).OnDelete(DeleteBehavior.Restrict);
+            o.HasMany(x => x.Installments).WithOne(x => x.LoanObligation).HasForeignKey(x => x.LoanObligationId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<LoanRepaymentInstallment>(i =>
+        {
+            i.HasKey(x => x.Id);
+            i.Property(x => x.PrincipalDue).HasPrecision(18, 2).IsRequired();
+            i.Property(x => x.InterestDue).HasPrecision(18, 2).IsRequired();
+            i.Property(x => x.TotalDue).HasPrecision(18, 2).IsRequired();
+            i.Property(x => x.Currency).HasMaxLength(10).IsRequired();
+            i.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            i.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            i.Property(x => x.RowVersion).IsRowVersion();
+            i.HasIndex(x => new { x.LoanObligationId, x.InstallmentNumber }).IsUnique();
+        });
+
+        modelBuilder.Entity<LoanRepaymentDeclaration>(d =>
+        {
+            d.HasKey(x => x.Id);
+            d.Property(x => x.Amount).HasPrecision(18, 2).IsRequired();
+            d.Property(x => x.Currency).HasMaxLength(10).IsRequired();
+            d.Property(x => x.ExternalReference).HasMaxLength(200);
+            d.Property(x => x.ProofFileId).HasMaxLength(64);
+            d.Property(x => x.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
+            d.Property(x => x.ConfirmationComment).HasMaxLength(2000);
+            d.Property(x => x.DisputeReason).HasMaxLength(2000);
+            d.Property(x => x.IdempotencyKey).HasMaxLength(100);
+            d.Property(x => x.DeclaredAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            d.Property(x => x.RowVersion).IsRowVersion();
+            d.HasIndex(x => new { x.LoanObligationId, x.DeclaredAt });
+            d.HasIndex(x => new { x.LoanObligationId, x.IdempotencyKey }).IsUnique().HasFilter("[IdempotencyKey] IS NOT NULL");
+            d.HasOne(x => x.LoanObligation).WithMany(x => x.RepaymentDeclarations).HasForeignKey(x => x.LoanObligationId).OnDelete(DeleteBehavior.Restrict);
+            d.HasOne(x => x.Participation).WithMany().HasForeignKey(x => x.ParticipationId).OnDelete(DeleteBehavior.Restrict);
+            d.HasOne(x => x.Contract).WithMany().HasForeignKey(x => x.ContractId).OnDelete(DeleteBehavior.Restrict);
+            d.HasOne(x => x.ContractVersion).WithMany().HasForeignKey(x => x.ContractVersionId).OnDelete(DeleteBehavior.Restrict);
+            d.HasOne(x => x.AcceptedOffer).WithMany().HasForeignKey(x => x.AcceptedOfferId).OnDelete(DeleteBehavior.Restrict);
+            d.HasOne(x => x.OfferLeg).WithMany().HasForeignKey(x => x.OfferLegId).OnDelete(DeleteBehavior.Restrict);
+            d.HasOne(x => x.ProofFile).WithMany().HasPrincipalKey(x => x.FileId).HasForeignKey(x => x.ProofFileId).OnDelete(DeleteBehavior.Restrict).IsRequired(false);
+        });
+
+        modelBuilder.Entity<LoanRepaymentDeclarationInstallment>(d =>
+        {
+            d.HasKey(x => new { x.LoanRepaymentDeclarationId, x.LoanRepaymentInstallmentId });
+            d.HasOne(x => x.Declaration).WithMany(x => x.Installments).HasForeignKey(x => x.LoanRepaymentDeclarationId).OnDelete(DeleteBehavior.Cascade);
+            d.HasOne(x => x.Installment).WithMany().HasForeignKey(x => x.LoanRepaymentInstallmentId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<LoanRepaymentAllocation>(a =>
+        {
+            a.HasKey(x => x.Id);
+            a.Property(x => x.InterestAllocated).HasPrecision(18, 2).IsRequired();
+            a.Property(x => x.PrincipalAllocated).HasPrecision(18, 2).IsRequired();
+            a.Property(x => x.TotalAllocated).HasPrecision(18, 2).IsRequired();
+            a.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            a.HasIndex(x => new { x.LoanRepaymentDeclarationId, x.LoanRepaymentInstallmentId }).IsUnique();
+            a.HasOne(x => x.Declaration).WithMany(x => x.Allocations).HasForeignKey(x => x.LoanRepaymentDeclarationId).OnDelete(DeleteBehavior.Cascade);
+            a.HasOne(x => x.LoanObligation).WithMany(x => x.RepaymentAllocations).HasForeignKey(x => x.LoanObligationId).OnDelete(DeleteBehavior.Restrict);
+            a.HasOne(x => x.Installment).WithMany().HasForeignKey(x => x.LoanRepaymentInstallmentId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ProfitSharingObligation>(o =>
+        {
+            o.HasKey(x => x.Id);
+            o.Property(x => x.ContributionAmount).HasPrecision(18, 2).IsRequired();
+            o.Property(x => x.Currency).HasMaxLength(10).IsRequired();
+            o.Property(x => x.ProfitSharePercentage).HasPrecision(5, 2).IsRequired();
+            o.Property(x => x.ReportingFrequency).HasMaxLength(30).IsRequired();
+            o.Property(x => x.CalculationBasis).HasConversion<string>().HasMaxLength(20).IsRequired();
+            o.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            o.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            o.Property(x => x.ClosureReason).HasMaxLength(2000);
+            o.Property(x => x.ClosureSnapshotJson).HasColumnType("nvarchar(max)");
+            o.Property(x => x.ClosureSnapshotHash).HasMaxLength(64);
+            o.Property(x => x.ClosureSnapshotVersion).HasMaxLength(30);
+            o.HasIndex(x => new { x.ParticipationRequestId, x.OfferLegId }).IsUnique();
+            o.HasIndex(x => new { x.ContractId, x.OfferLegId }).IsUnique();
+            o.HasIndex(x => new { x.InvestorUserId, x.Status });
+            o.HasOne(x => x.ParticipationRequest).WithMany().HasForeignKey(x => x.ParticipationRequestId).OnDelete(DeleteBehavior.Restrict);
+            o.HasOne(x => x.Contract).WithMany().HasForeignKey(x => x.ContractId).OnDelete(DeleteBehavior.Restrict);
+            o.HasOne(x => x.ContractVersion).WithMany().HasForeignKey(x => x.ContractVersionId).OnDelete(DeleteBehavior.Restrict);
+            o.HasOne(x => x.AcceptedOffer).WithMany().HasForeignKey(x => x.AcceptedOfferId).OnDelete(DeleteBehavior.Restrict);
+            o.HasOne(x => x.OfferLeg).WithMany().HasForeignKey(x => x.OfferLegId).OnDelete(DeleteBehavior.Restrict);
+            o.HasOne(x => x.FounderUser).WithMany().HasForeignKey(x => x.FounderUserId).OnDelete(DeleteBehavior.Restrict);
+            o.HasOne(x => x.InvestorUser).WithMany().HasForeignKey(x => x.InvestorUserId).OnDelete(DeleteBehavior.Restrict);
+            o.HasMany(x => x.ReportingPeriods).WithOne(x => x.Obligation).HasForeignKey(x => x.ProfitSharingObligationId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ProfitSharingReportingPeriod>(p =>
+        {
+            p.HasKey(x => x.Id);
+            p.Property(x => x.Currency).HasMaxLength(10).IsRequired();
+            p.Property(x => x.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
+            p.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            p.Property(x => x.IsFinalPeriod).HasDefaultValue(false);
+            p.HasIndex(x => new { x.ProfitSharingObligationId, x.PeriodNumber }).IsUnique();
+            p.HasOne(x => x.Declaration).WithOne(x => x.ReportingPeriod).HasForeignKey<ProfitSharingPeriodDeclaration>(x => x.ReportingPeriodId).OnDelete(DeleteBehavior.Restrict);
+            p.HasOne(x => x.Entitlement).WithOne(x => x.ReportingPeriod).HasForeignKey<ProfitSharingEntitlement>(x => x.ReportingPeriodId).OnDelete(DeleteBehavior.Restrict);
+            p.HasMany(x => x.DistributionDeclarations).WithOne(x => x.ReportingPeriod).HasForeignKey(x => x.ReportingPeriodId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ProfitSharingPeriodDeclaration>(d =>
+        {
+            d.HasKey(x => x.Id);
+            d.Property(x => x.CalculationBasis).HasConversion<string>().HasMaxLength(20).IsRequired();
+            d.Property(x => x.DeclaredBasisAmount).HasPrecision(18, 2).IsRequired();
+            d.Property(x => x.DeclaredResultAmount).HasPrecision(18, 2).IsRequired();
+            d.Property(x => x.Currency).HasMaxLength(10).IsRequired();
+            d.Property(x => x.ExternalReference).HasMaxLength(200);
+            d.Property(x => x.Notes).HasMaxLength(2000);
+            d.Property(x => x.SupportingEvidenceFileId).HasMaxLength(64);
+            d.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            d.Property(x => x.IdempotencyKey).HasMaxLength(100);
+            d.Property(x => x.CalculationError).HasMaxLength(500);
+            d.Property(x => x.DeclaredAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            d.Property(x => x.RowVersion).IsRowVersion();
+            d.HasIndex(x => x.ReportingPeriodId).IsUnique();
+            d.HasIndex(x => new { x.ProfitSharingObligationId, x.IdempotencyKey }).IsUnique().HasFilter("[IdempotencyKey] IS NOT NULL");
+            d.HasOne(x => x.Obligation).WithMany().HasForeignKey(x => x.ProfitSharingObligationId).OnDelete(DeleteBehavior.Restrict);
+            d.HasOne(x => x.Participation).WithMany().HasForeignKey(x => x.ParticipationId).OnDelete(DeleteBehavior.Restrict);
+            d.HasOne(x => x.Contract).WithMany().HasForeignKey(x => x.ContractId).OnDelete(DeleteBehavior.Restrict);
+            d.HasOne(x => x.ContractVersion).WithMany().HasForeignKey(x => x.ContractVersionId).OnDelete(DeleteBehavior.Restrict);
+            d.HasOne(x => x.SupportingEvidenceFile).WithMany().HasPrincipalKey(x => x.FileId).HasForeignKey(x => x.SupportingEvidenceFileId).OnDelete(DeleteBehavior.Restrict).IsRequired(false);
+        });
+
+        modelBuilder.Entity<ProfitSharingEntitlement>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.CalculationBasis).HasConversion<string>().HasMaxLength(20).IsRequired();
+            e.Property(x => x.BasisAmount).HasPrecision(18, 2).IsRequired();
+            e.Property(x => x.ProfitSharePercentage).HasPrecision(5, 2).IsRequired();
+            e.Property(x => x.EntitlementAmount).HasPrecision(18, 2).IsRequired();
+            e.Property(x => x.DistributionOutstanding).HasPrecision(18, 2).IsRequired();
+            e.Property(x => x.Currency).HasMaxLength(10).IsRequired();
+            e.Property(x => x.CalculationVersion).HasMaxLength(30).IsRequired();
+            e.Property(x => x.CalculatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.Property(x => x.PendingDistributionAmount).HasPrecision(18, 2).IsRequired();
+            e.Property(x => x.RowVersion).IsRowVersion();
+            e.HasIndex(x => x.ReportingPeriodId).IsUnique();
+            e.HasIndex(x => x.DeclarationId).IsUnique();
+            e.HasOne(x => x.Obligation).WithMany().HasForeignKey(x => x.ProfitSharingObligationId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Declaration).WithOne(x => x.Entitlement).HasForeignKey<ProfitSharingEntitlement>(x => x.DeclarationId).OnDelete(DeleteBehavior.Restrict);
+            e.HasMany(x => x.DistributionAllocations).WithOne(x => x.Entitlement).HasForeignKey(x => x.EntitlementId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ProfitSharingDistributionDeclaration>(d =>
+        {
+            d.HasKey(x => x.Id);
+            d.Property(x => x.DeclaredAmount).HasPrecision(18, 2).IsRequired();
+            d.Property(x => x.Currency).HasMaxLength(10).IsRequired();
+            d.Property(x => x.ExternalReference).HasMaxLength(200);
+            d.Property(x => x.Notes).HasMaxLength(2000);
+            d.Property(x => x.SupportingEvidenceFileId).HasMaxLength(64);
+            d.Property(x => x.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
+            d.Property(x => x.IdempotencyKey).HasMaxLength(100);
+            d.Property(x => x.ConfirmationComment).HasMaxLength(2000);
+            d.Property(x => x.DisputeReason).HasMaxLength(2000);
+            d.Property(x => x.DeclaredAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            d.Property(x => x.RowVersion).IsRowVersion();
+            d.HasIndex(x => new { x.ProfitSharingObligationId, x.IdempotencyKey }).IsUnique().HasFilter("[IdempotencyKey] IS NOT NULL");
+            d.HasIndex(x => new { x.ReportingPeriodId, x.Status });
+            d.HasOne(x => x.Obligation).WithMany(x => x.DistributionDeclarations).HasForeignKey(x => x.ProfitSharingObligationId).OnDelete(DeleteBehavior.Restrict);
+            d.HasOne(x => x.ReportingPeriod).WithMany(x => x.DistributionDeclarations).HasForeignKey(x => x.ReportingPeriodId).OnDelete(DeleteBehavior.Restrict);
+            d.HasOne(x => x.Entitlement).WithMany().HasForeignKey(x => x.EntitlementId).OnDelete(DeleteBehavior.Restrict);
+            d.HasOne(x => x.Participation).WithMany().HasForeignKey(x => x.ParticipationId).OnDelete(DeleteBehavior.Restrict);
+            d.HasOne(x => x.Contract).WithMany().HasForeignKey(x => x.ContractId).OnDelete(DeleteBehavior.Restrict);
+            d.HasOne(x => x.ContractVersion).WithMany().HasForeignKey(x => x.ContractVersionId).OnDelete(DeleteBehavior.Restrict);
+            d.HasOne(x => x.AcceptedOffer).WithMany().HasForeignKey(x => x.AcceptedOfferId).OnDelete(DeleteBehavior.Restrict);
+            d.HasOne(x => x.OfferLeg).WithMany().HasForeignKey(x => x.OfferLegId).OnDelete(DeleteBehavior.Restrict);
+            d.HasOne(x => x.FounderUser).WithMany().HasForeignKey(x => x.FounderUserId).OnDelete(DeleteBehavior.Restrict);
+            d.HasOne(x => x.InvestorUser).WithMany().HasForeignKey(x => x.InvestorUserId).OnDelete(DeleteBehavior.Restrict);
+            d.HasOne(x => x.SupportingEvidenceFile).WithMany().HasPrincipalKey(x => x.FileId).HasForeignKey(x => x.SupportingEvidenceFileId).OnDelete(DeleteBehavior.Restrict).IsRequired(false);
+        });
+
+        modelBuilder.Entity<ProfitSharingDistributionAllocation>(a =>
+        {
+            a.HasKey(x => x.Id);
+            a.Property(x => x.Amount).HasPrecision(18, 2).IsRequired();
+            a.Property(x => x.Currency).HasMaxLength(10).IsRequired();
+            a.Property(x => x.ConfirmedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            a.HasIndex(x => x.ProfitSharingDistributionDeclarationId).IsUnique();
+            a.HasIndex(x => new { x.ProfitSharingObligationId, x.ReportingPeriodId });
+            a.HasOne(x => x.Declaration).WithOne(x => x.Allocation).HasForeignKey<ProfitSharingDistributionAllocation>(x => x.ProfitSharingDistributionDeclarationId).OnDelete(DeleteBehavior.Restrict);
+            a.HasOne(x => x.Obligation).WithMany(x => x.DistributionAllocations).HasForeignKey(x => x.ProfitSharingObligationId).OnDelete(DeleteBehavior.Restrict);
+            a.HasOne(x => x.ReportingPeriod).WithMany().HasForeignKey(x => x.ReportingPeriodId).OnDelete(DeleteBehavior.Restrict);
+            a.HasOne(x => x.Entitlement).WithMany(x => x.DistributionAllocations).HasForeignKey(x => x.EntitlementId).OnDelete(DeleteBehavior.Restrict);
+            a.HasOne(x => x.InvestorUser).WithMany().HasForeignKey(x => x.InvestorUserId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<EquityPosition>(o =>
+        {
+            o.HasKey(x => x.Id);
+            o.Property(x => x.InvestmentAmount).HasPrecision(18, 2).IsRequired();
+            o.Property(x => x.Currency).HasMaxLength(10).IsRequired();
+            o.Property(x => x.OwnershipModel).HasConversion<string>().HasMaxLength(30).IsRequired();
+            o.Property(x => x.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
+            o.Property(x => x.ContractualOwnershipPercentage).HasPrecision(9, 6);
+            o.Property(x => x.InvestorShareCount).HasPrecision(18, 6);
+            o.Property(x => x.TotalIssuedShares).HasPrecision(18, 6);
+            o.Property(x => x.PricePerShare).HasPrecision(18, 6);
+            o.Property(x => x.PreMoneyValuation).HasPrecision(18, 2);
+            o.Property(x => x.PostMoneyValuation).HasPrecision(18, 2);
+            o.Property(x => x.ShareClass).HasMaxLength(100);
+            o.Property(x => x.RowVersion).IsRowVersion();
+            o.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            // A transfer can create a second holder for the same contractual
+            // offer leg. Uniqueness is therefore per investor, while the
+            // contract/offer linkage remains unchanged for lineage purposes.
+            o.HasIndex(x => new { x.ParticipationRequestId, x.OfferLegId, x.InvestorUserId }).IsUnique();
+            o.HasIndex(x => new { x.ContractId, x.OfferLegId, x.InvestorUserId }).IsUnique();
+            o.HasIndex(x => new { x.OpportunityId, x.Status });
+            o.HasIndex(x => new { x.InvestorUserId, x.Status });
+            o.HasOne(x => x.ParticipationRequest).WithMany().HasForeignKey(x => x.ParticipationRequestId).OnDelete(DeleteBehavior.Restrict);
+            o.HasOne(x => x.Contract).WithMany().HasForeignKey(x => x.ContractId).OnDelete(DeleteBehavior.Restrict);
+            o.HasOne(x => x.ContractVersion).WithMany().HasForeignKey(x => x.ContractVersionId).OnDelete(DeleteBehavior.Restrict);
+            o.HasOne(x => x.AcceptedOffer).WithMany().HasForeignKey(x => x.AcceptedOfferId).OnDelete(DeleteBehavior.Restrict);
+            o.HasOne(x => x.OfferLeg).WithMany().HasForeignKey(x => x.OfferLegId).OnDelete(DeleteBehavior.Restrict);
+            o.HasOne(x => x.Opportunity).WithMany().HasForeignKey(x => x.OpportunityId).OnDelete(DeleteBehavior.Restrict);
+            o.HasOne(x => x.Project).WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Restrict).IsRequired(false);
+            o.HasOne(x => x.FounderUser).WithMany().HasForeignKey(x => x.FounderUserId).OnDelete(DeleteBehavior.Restrict);
+            o.HasOne(x => x.InvestorUser).WithMany().HasForeignKey(x => x.InvestorUserId).OnDelete(DeleteBehavior.Restrict);
+            o.HasOne(x => x.InitialHoldingSnapshot).WithOne(x => x.EquityPosition).HasForeignKey<EquityHoldingSnapshot>(x => x.EquityPositionId).OnDelete(DeleteBehavior.Cascade);
+            o.HasMany(x => x.LedgerEntries).WithOne(x => x.EquityPosition).HasForeignKey(x => x.EquityPositionId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<EquityHoldingSnapshot>(s =>
+        {
+            s.HasKey(x => x.Id);
+            s.Property(x => x.OwnershipModel).HasConversion<string>().HasMaxLength(30).IsRequired();
+            s.Property(x => x.ContractualOwnershipPercentage).HasPrecision(9, 6);
+            s.Property(x => x.InvestorShareCount).HasPrecision(18, 6);
+            s.Property(x => x.TotalIssuedShares).HasPrecision(18, 6);
+            s.Property(x => x.DerivedOwnershipPercentage).HasPrecision(9, 6);
+            s.Property(x => x.PricePerShare).HasPrecision(18, 6);
+            s.Property(x => x.PreMoneyValuation).HasPrecision(18, 2);
+            s.Property(x => x.PostMoneyValuation).HasPrecision(18, 2);
+            s.Property(x => x.ShareClass).HasMaxLength(100);
+            s.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            s.HasIndex(x => x.EquityPositionId).IsUnique();
+        });
+
+        modelBuilder.Entity<EquityHoldingLedgerEntry>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.EventType).HasConversion<string>().HasMaxLength(40).IsRequired();
+            e.Property(x => x.ShareDelta).HasPrecision(18, 6);
+            e.Property(x => x.ResultingInvestorShares).HasPrecision(18, 6);
+            e.Property(x => x.ResultingTotalIssuedShares).HasPrecision(18, 6);
+            e.Property(x => x.ResultingOwnershipPercentage).HasPrecision(9, 6);
+            e.Property(x => x.ContractualOwnershipPercentage).HasPrecision(9, 6);
+            e.Property(x => x.PreviousInvestorShares).HasPrecision(18, 6);
+            e.Property(x => x.PreviousTotalIssuedShares).HasPrecision(18, 6);
+            e.Property(x => x.PreviousOwnershipPercentage).HasPrecision(9, 6);
+            e.Property(x => x.ShareClass).HasMaxLength(100);
+            e.Property(x => x.ActorType).HasMaxLength(30).IsRequired();
+            e.Property(x => x.CorrelationId).HasMaxLength(100);
+            e.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.HasIndex(x => new { x.EquityPositionId, x.EventType, x.CorporateEventId }).IsUnique();
+            e.HasIndex(x => new { x.EquityPositionId, x.EffectiveDate, x.Id });
+            e.HasIndex(x => x.CorporateEventId);
+            e.HasOne(x => x.EquityPosition).WithMany(x => x.LedgerEntries).HasForeignKey(x => x.EquityPositionId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.CorporateEvent).WithMany(x => x.LedgerEntries).HasForeignKey(x => x.CorporateEventId).OnDelete(DeleteBehavior.Restrict).IsRequired(false);
+        });
+
+        modelBuilder.Entity<EquityCorporateEvent>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.EventType).HasConversion<string>().HasMaxLength(40).IsRequired();
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(40).IsRequired();
+            e.Property(x => x.Reason).HasMaxLength(2000).IsRequired();
+            e.Property(x => x.Notes).HasMaxLength(4000);
+            e.Property(x => x.CorrelationId).HasMaxLength(100);
+            e.Property(x => x.ShareClass).HasMaxLength(100);
+            e.Property(x => x.Currency).HasMaxLength(10);
+            e.Property(x => x.SharesIssued).HasPrecision(18, 6);
+            e.Property(x => x.ResultingTotalIssuedShares).HasPrecision(18, 6);
+            e.Property(x => x.SplitNumerator).HasPrecision(18, 6);
+            e.Property(x => x.SplitDenominator).HasPrecision(18, 6);
+            e.Property(x => x.PreMoneyValuation).HasPrecision(18, 2);
+            e.Property(x => x.PostMoneyValuation).HasPrecision(18, 2);
+            e.Property(x => x.PricePerShare).HasPrecision(18, 6);
+            e.Property(x => x.ExpectedTotalIssuedShares).HasPrecision(18, 6);
+            e.HasIndex(x => new { x.ProjectId, x.Status, x.EffectiveDate });
+            e.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.Property(x => x.RowVersion).IsRowVersion();
+            e.HasIndex(x => new { x.OpportunityId, x.Status, x.EffectiveDate });
+            e.HasIndex(x => x.CorrelationId).IsUnique();
+            e.HasOne(x => x.Project).WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Opportunity).WithMany().HasForeignKey(x => x.OpportunityId).OnDelete(DeleteBehavior.Restrict).IsRequired(false);
+        });
+
+        modelBuilder.Entity<EquityCorporateEventPosition>(e =>
+        {
+            e.HasKey(x => new { x.EquityCorporateEventId, x.EquityPositionId });
+            e.HasOne(x => x.CorporateEvent).WithMany(x => x.Positions).HasForeignKey(x => x.EquityCorporateEventId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.EquityPosition).WithMany().HasForeignKey(x => x.EquityPositionId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<EquityCapitalizationSnapshot>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.TotalIssuedShares).HasPrecision(18, 6);
+            e.Property(x => x.Currency).HasMaxLength(10);
+            e.Property(x => x.SnapshotHash).HasMaxLength(128);
+            e.Property(x => x.CapturedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.HasIndex(x => new { x.EquityCorporateEventId, x.IsBefore }).IsUnique();
+            e.HasOne(x => x.CorporateEvent).WithMany(x => x.CapitalizationSnapshots).HasForeignKey(x => x.EquityCorporateEventId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Holders).WithOne(x => x.Snapshot).HasForeignKey(x => x.EquityCapitalizationSnapshotId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<EquityCapitalizationSnapshotHolder>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.InvestorShares).HasPrecision(18, 6);
+            e.Property(x => x.OwnershipPercentage).HasPrecision(9, 6);
+            e.Property(x => x.ShareClass).HasMaxLength(100);
+            e.HasIndex(x => new { x.EquityCapitalizationSnapshotId, x.EquityPositionId }).IsUnique();
+            e.HasOne(x => x.EquityPosition).WithMany().HasForeignKey(x => x.EquityPositionId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ===== PHASE 3: DIVIDENDS =====
+
+        modelBuilder.Entity<EquityDividendDeclaration>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
+            e.Property(x => x.Currency).HasMaxLength(10).IsRequired();
+            e.Property(x => x.DistributionBasis).HasMaxLength(200).IsRequired();
+            e.Property(x => x.DividendPerShare).HasPrecision(18, 6);
+            e.Property(x => x.TotalDeclaredAmount).HasPrecision(18, 2);
+            e.Property(x => x.Reason).HasMaxLength(2000).IsRequired();
+            e.Property(x => x.Notes).HasMaxLength(4000);
+            e.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.Property(x => x.RowVersion).IsRowVersion();
+            e.HasIndex(x => new { x.ProjectId, x.Status, x.DeclarationDate });
+            e.HasIndex(x => new { x.OpportunityId, x.Status });
+            e.HasOne(x => x.Project).WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Opportunity).WithMany().HasForeignKey(x => x.OpportunityId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.DeclaredByUser).WithMany().HasForeignKey(x => x.DeclaredByUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasMany(x => x.Entitlements).WithOne(x => x.DividendDeclaration).HasForeignKey(x => x.DividendDeclarationId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Distributions).WithOne(x => x.DividendDeclaration).HasForeignKey(x => x.DividendDeclarationId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<EquityDividendEntitlement>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.EligibleShares).HasPrecision(18, 6);
+            e.Property(x => x.EligibleOwnershipPercentage).HasPrecision(9, 6);
+            e.Property(x => x.TotalIssuedSharesAtRecordDate).HasPrecision(18, 6);
+            e.Property(x => x.EntitlementAmount).HasPrecision(18, 2);
+            e.Property(x => x.Currency).HasMaxLength(10).IsRequired();
+            e.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.HasIndex(x => new { x.DividendDeclarationId, x.EquityPositionId }).IsUnique();
+            e.HasIndex(x => new { x.EquityPositionId, x.DividendDeclarationId });
+            e.HasOne(x => x.DividendDeclaration).WithMany(x => x.Entitlements).HasForeignKey(x => x.DividendDeclarationId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.EquityPosition).WithMany().HasForeignKey(x => x.EquityPositionId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.InvestorUser).WithMany().HasForeignKey(x => x.InvestorUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasMany(x => x.Distributions).WithOne(x => x.DividendEntitlement).HasForeignKey(x => x.DividendEntitlementId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<EquityDividendDistributionDeclaration>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Amount).HasPrecision(18, 2);
+            e.Property(x => x.Currency).HasMaxLength(10).IsRequired();
+            e.Property(x => x.Notes).HasMaxLength(2000);
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
+            e.Property(x => x.DeclaredAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.HasIndex(x => new { x.DividendDeclarationId, x.DividendEntitlementId });
+            e.HasOne(x => x.DividendDeclaration).WithMany(x => x.Distributions).HasForeignKey(x => x.DividendDeclarationId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.DividendEntitlement).WithMany(x => x.Distributions).HasForeignKey(x => x.DividendEntitlementId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.DeclaredByUser).WithMany().HasForeignKey(x => x.DeclaredByUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasMany(x => x.Confirmations).WithOne(x => x.DistributionDeclaration).HasForeignKey(x => x.DistributionDeclarationId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<EquityDividendDistributionConfirmation>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Reason).HasMaxLength(2000);
+            e.Property(x => x.ConfirmedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.HasIndex(x => new { x.DistributionDeclarationId, x.ConfirmedByUserId }).IsUnique();
+            e.HasOne(x => x.DistributionDeclaration).WithMany(x => x.Confirmations).HasForeignKey(x => x.DistributionDeclarationId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.ConfirmedByUser).WithMany().HasForeignKey(x => x.ConfirmedByUserId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ===== PHASE 3: TRANSFERS =====
+
+        modelBuilder.Entity<EquityTransfer>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.TransferType).HasConversion<string>().HasMaxLength(30).IsRequired();
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
+            e.Property(x => x.Quantity).HasPrecision(18, 6);
+            e.Property(x => x.Reason).HasMaxLength(2000).IsRequired();
+            e.Property(x => x.Notes).HasMaxLength(4000);
+            e.Property(x => x.ExternalReference).HasMaxLength(200);
+            e.Property(x => x.SourceSharesBefore).HasPrecision(18, 6);
+            e.Property(x => x.SourceSharesAfter).HasPrecision(18, 6);
+            e.Property(x => x.DestinationSharesAfter).HasPrecision(18, 6);
+            e.Property(x => x.SourceOwnershipBefore).HasPrecision(9, 6);
+            e.Property(x => x.SourceOwnershipAfter).HasPrecision(9, 6);
+            e.Property(x => x.DestinationOwnershipAfter).HasPrecision(9, 6);
+            e.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.Property(x => x.RowVersion).IsRowVersion();
+            e.HasIndex(x => new { x.ProjectId, x.Status, x.EffectiveDate });
+            e.HasIndex(x => new { x.OpportunityId, x.Status });
+            e.HasIndex(x => new { x.SourcePositionId, x.Status });
+            e.HasIndex(x => new { x.DestinationInvestorUserId, x.Status });
+            e.HasOne(x => x.Project).WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Opportunity).WithMany().HasForeignKey(x => x.OpportunityId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.SourcePosition).WithMany().HasForeignKey(x => x.SourcePositionId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.DestinationPosition).WithMany().HasForeignKey(x => x.DestinationPositionId).OnDelete(DeleteBehavior.Restrict).IsRequired(false);
+            e.HasOne(x => x.SourceInvestor).WithMany().HasForeignKey(x => x.SourceInvestorUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.DestinationInvestor).WithMany().HasForeignKey(x => x.DestinationInvestorUserId).OnDelete(DeleteBehavior.Restrict).IsRequired(false);
+        });
+
+        // ===== PHASE 3: CLOSURE =====
+
+        modelBuilder.Entity<EquityClosureSnapshot>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.InitialOwnershipPercentage).HasPrecision(9, 6);
+            e.Property(x => x.FinalOwnershipPercentage).HasPrecision(9, 6);
+            e.Property(x => x.InitialInvestorShares).HasPrecision(18, 6);
+            e.Property(x => x.FinalInvestorShares).HasPrecision(18, 6);
+            e.Property(x => x.TotalIssuedSharesAtClosure).HasPrecision(18, 6);
+            e.Property(x => x.TotalDistributionsConfirmed).HasPrecision(18, 2);
+            e.Property(x => x.ClosureReason).HasMaxLength(2000).IsRequired();
+            e.Property(x => x.SnapshotHash).HasMaxLength(128);
+            e.Property(x => x.ClosedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.HasIndex(x => new { x.EquityPositionId, x.ClosedAt }).IsUnique();
+            e.HasIndex(x => new { x.InvestorUserId, x.ProjectId });
+            e.HasOne(x => x.EquityPosition).WithMany().HasForeignKey(x => x.EquityPositionId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.ClosedByUser).WithMany().HasForeignKey(x => x.ClosedByUserId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Country>(c =>
+        {
+            c.HasKey(x => x.Id);
+            c.Property(x => x.Code).HasMaxLength(80).IsRequired();
+            c.Property(x => x.IsoAlpha2).HasMaxLength(2).IsRequired();
+            c.Property(x => x.IsoAlpha3).HasMaxLength(3);
+            c.Property(x => x.NameEn).HasMaxLength(120).IsRequired();
+            c.Property(x => x.NameAr).HasMaxLength(120).IsRequired();
+            c.Property(x => x.PhoneCode).HasMaxLength(20);
+            c.Property(x => x.IsActive).HasDefaultValue(true);
+            c.Property(x => x.SortOrder).HasDefaultValue(0);
+            c.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            c.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            c.HasIndex(x => x.Code).IsUnique();
+            c.HasIndex(x => x.IsoAlpha2).IsUnique();
+            c.HasIndex(x => new { x.IsActive, x.SortOrder });
+            var countrySeedDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            c.HasData(
+                new Country { Id = 1, Code = "EGYPT", IsoAlpha2 = "EG", IsoAlpha3 = "EGY", NameEn = "Egypt", NameAr = "مصر", PhoneCode = "+20", SortOrder = 10, IsActive = true, CreatedAt = countrySeedDate, UpdatedAt = countrySeedDate },
+                new Country { Id = 2, Code = "SAUDIARABIA", IsoAlpha2 = "SA", IsoAlpha3 = "SAU", NameEn = "Saudi Arabia", NameAr = "المملكة العربية السعودية", PhoneCode = "+966", SortOrder = 20, IsActive = true, CreatedAt = countrySeedDate, UpdatedAt = countrySeedDate },
+                new Country { Id = 3, Code = "UNITEDARABEMIRATES", IsoAlpha2 = "AE", IsoAlpha3 = "ARE", NameEn = "United Arab Emirates", NameAr = "الإمارات العربية المتحدة", PhoneCode = "+971", SortOrder = 30, IsActive = true, CreatedAt = countrySeedDate, UpdatedAt = countrySeedDate },
+                new Country { Id = 4, Code = "JORDAN", IsoAlpha2 = "JO", IsoAlpha3 = "JOR", NameEn = "Jordan", NameAr = "الأردن", PhoneCode = "+962", SortOrder = 40, IsActive = true, CreatedAt = countrySeedDate, UpdatedAt = countrySeedDate },
+                new Country { Id = 5, Code = "LEBANON", IsoAlpha2 = "LB", IsoAlpha3 = "LBN", NameEn = "Lebanon", NameAr = "لبنان", PhoneCode = "+961", SortOrder = 50, IsActive = true, CreatedAt = countrySeedDate, UpdatedAt = countrySeedDate },
+                new Country { Id = 6, Code = "UNITEDSTATES", IsoAlpha2 = "US", IsoAlpha3 = "USA", NameEn = "United States", NameAr = "الولايات المتحدة", PhoneCode = "+1", SortOrder = 60, IsActive = true, CreatedAt = countrySeedDate, UpdatedAt = countrySeedDate },
+                new Country { Id = 7, Code = "UNITEDKINGDOM", IsoAlpha2 = "GB", IsoAlpha3 = "GBR", NameEn = "United Kingdom", NameAr = "المملكة المتحدة", PhoneCode = "+44", SortOrder = 70, IsActive = true, CreatedAt = countrySeedDate, UpdatedAt = countrySeedDate },
+                new Country { Id = 8, Code = "INDIA", IsoAlpha2 = "IN", IsoAlpha3 = "IND", NameEn = "India", NameAr = "الهند", PhoneCode = "+91", SortOrder = 80, IsActive = true, CreatedAt = countrySeedDate, UpdatedAt = countrySeedDate },
+                new Country { Id = 9, Code = "CANADA", IsoAlpha2 = "CA", IsoAlpha3 = "CAN", NameEn = "Canada", NameAr = "كندا", PhoneCode = "+1", SortOrder = 90, IsActive = true, CreatedAt = countrySeedDate, UpdatedAt = countrySeedDate },
+                new Country { Id = 10, Code = "AUSTRALIA", IsoAlpha2 = "AU", IsoAlpha3 = "AUS", NameEn = "Australia", NameAr = "أستراليا", PhoneCode = "+61", SortOrder = 100, IsActive = true, CreatedAt = countrySeedDate, UpdatedAt = countrySeedDate },
+                new Country { Id = 11, Code = "JAPAN", IsoAlpha2 = "JP", IsoAlpha3 = "JPN", NameEn = "Japan", NameAr = "اليابان", PhoneCode = "+81", SortOrder = 110, IsActive = true, CreatedAt = countrySeedDate, UpdatedAt = countrySeedDate },
+                new Country { Id = 12, Code = "GERMANY", IsoAlpha2 = "DE", IsoAlpha3 = "DEU", NameEn = "Germany", NameAr = "ألمانيا", PhoneCode = "+49", SortOrder = 120, IsActive = true, CreatedAt = countrySeedDate, UpdatedAt = countrySeedDate });
         });
 
         modelBuilder.Entity<InvestmentContract>(c =>
         {
             c.HasKey(x => x.Id);
             c.Property(x => x.ContractNumber).HasMaxLength(80).IsRequired();
+            c.Property(x => x.OpportunityTitleSnapshot).HasMaxLength(200).IsRequired();
+            c.Property(x => x.FounderNameSnapshot).HasMaxLength(100).IsRequired();
+            c.Property(x => x.InvestorNameSnapshot).HasMaxLength(100).IsRequired();
+            c.Property(x => x.AcceptedCurrency).HasMaxLength(10).IsRequired();
+            c.Property(x => x.AcceptedAmount).HasPrecision(18, 2).IsRequired();
             c.Property(x => x.InvestmentModel).HasConversion<string>().HasMaxLength(50).IsRequired();
             c.Property(x => x.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
             c.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             c.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             c.HasIndex(x => x.ContractNumber).IsUnique();
             c.HasIndex(x => new { x.OpportunityId, x.FounderUserId, x.InvestorUserId, x.InvestmentModel });
+            c.HasIndex(x => x.AcceptedOfferId).IsUnique().HasFilter("[AcceptedOfferId] IS NOT NULL");
+            c.HasIndex(x => x.ParticipationRequestId).IsUnique().HasFilter("[ParticipationRequestId] IS NOT NULL");
             c.HasOne(x => x.Opportunity).WithMany().HasForeignKey(x => x.OpportunityId).OnDelete(DeleteBehavior.Restrict);
+            c.HasOne(x => x.AcceptedOffer).WithMany().HasForeignKey(x => x.AcceptedOfferId).OnDelete(DeleteBehavior.Restrict).IsRequired(false);
+            c.HasOne(x => x.ParticipationRequest).WithMany().HasForeignKey(x => x.ParticipationRequestId).OnDelete(DeleteBehavior.Restrict).IsRequired(false);
             c.HasOne(x => x.FounderUser).WithMany().HasForeignKey(x => x.FounderUserId).OnDelete(DeleteBehavior.Restrict);
             c.HasOne(x => x.InvestorUser).WithMany().HasForeignKey(x => x.InvestorUserId).OnDelete(DeleteBehavior.Restrict);
             c.HasMany(x => x.Versions).WithOne(x => x.Contract).HasForeignKey(x => x.ContractId).OnDelete(DeleteBehavior.Cascade);
@@ -1581,42 +2578,68 @@ modelBuilder.Entity<UserProfile>()
             e.HasOne(x => x.PerformedByUser).WithMany().HasForeignKey(x => x.PerformedByUserId).OnDelete(DeleteBehavior.Restrict);
         });
 
-        modelBuilder.Entity<OpportunityCategory>(c =>
+        modelBuilder.Entity<ProjectCategory>(c =>
         {
             c.HasKey(x => x.Id);
-            c.Property(x => x.Name).HasMaxLength(120).IsRequired();
-            c.Property(x => x.Description).HasMaxLength(500);
+            c.Property(x => x.Code).HasMaxLength(80).IsRequired();
+            c.Property(x => x.NameEn).HasMaxLength(120).IsRequired();
+            c.Property(x => x.NameAr).HasMaxLength(120).IsRequired();
+            c.Property(x => x.DescriptionEn).HasMaxLength(500);
+            c.Property(x => x.DescriptionAr).HasMaxLength(500);
             c.Property(x => x.IsActive).HasDefaultValue(true);
             c.Property(x => x.SortOrder).HasDefaultValue(0);
             c.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             c.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
-            c.HasIndex(x => x.Name).IsUnique();
+            c.HasIndex(x => x.Code).IsUnique();
             c.HasIndex(x => new { x.IsActive, x.SortOrder });
         });
 
         modelBuilder.Entity<OpportunityTag>(t =>
         {
             t.HasKey(x => x.Id);
-            t.Property(x => x.Name).HasMaxLength(120).IsRequired();
-            t.Property(x => x.Description).HasMaxLength(500);
+            t.Property(x => x.Code).HasMaxLength(80).IsRequired();
+            t.Property(x => x.NameEn).HasMaxLength(120).IsRequired();
+            t.Property(x => x.NameAr).HasMaxLength(120).IsRequired();
+            t.Property(x => x.DescriptionEn).HasMaxLength(500);
+            t.Property(x => x.DescriptionAr).HasMaxLength(500);
             t.Property(x => x.IsActive).HasDefaultValue(true);
             t.Property(x => x.SortOrder).HasDefaultValue(0);
             t.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
-            t.HasIndex(x => x.Name).IsUnique();
+            t.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            t.HasIndex(x => x.Code).IsUnique();
             t.HasIndex(x => new { x.IsActive, x.SortOrder });
         });
 
         modelBuilder.Entity<FundingGoal>(g =>
         {
             g.HasKey(x => x.Id);
-            g.Property(x => x.Name).HasMaxLength(120).IsRequired();
-            g.Property(x => x.Description).HasMaxLength(500);
+            g.Property(x => x.Code).HasMaxLength(80).IsRequired();
+            g.Property(x => x.NameEn).HasMaxLength(120).IsRequired();
+            g.Property(x => x.NameAr).HasMaxLength(120).IsRequired();
+            g.Property(x => x.DescriptionEn).HasMaxLength(500);
+            g.Property(x => x.DescriptionAr).HasMaxLength(500);
             g.Property(x => x.IsActive).HasDefaultValue(true);
             g.Property(x => x.SortOrder).HasDefaultValue(0);
             g.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             g.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
-            g.HasIndex(x => x.Name).IsUnique();
+            g.HasIndex(x => x.Code).IsUnique();
             g.HasIndex(x => new { x.IsActive, x.SortOrder });
+        });
+
+        modelBuilder.Entity<RiskLevel>(r =>
+        {
+            r.HasKey(x => x.Id);
+            r.Property(x => x.Code).HasMaxLength(80).IsRequired();
+            r.Property(x => x.NameEn).HasMaxLength(120).IsRequired();
+            r.Property(x => x.NameAr).HasMaxLength(120).IsRequired();
+            r.Property(x => x.DescriptionEn).HasMaxLength(500);
+            r.Property(x => x.DescriptionAr).HasMaxLength(500);
+            r.Property(x => x.IsActive).HasDefaultValue(true);
+            r.Property(x => x.SortOrder).HasDefaultValue(0);
+            r.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            r.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            r.HasIndex(x => x.Code).IsUnique();
+            r.HasIndex(x => new { x.IsActive, x.SortOrder });
         });
 
         modelBuilder.Entity<OpportunityTagAssignment>(ot =>
@@ -2285,17 +3308,17 @@ modelBuilder.Entity<UserProfile>()
 
 
 
-                // Client <-> BusinessCategory many-to-many
+                // Client <-> ProjectCategory many-to-many
 
-                modelBuilder.Entity<ClientBusinessCategory>(j =>
+                modelBuilder.Entity<ClientProjectCategory>(j =>
 
                 {
 
-                        j.HasKey(x => new { x.ClientId, x.BusinessCategoryId });
+                        j.HasKey(x => new { x.ClientId, x.ProjectCategoryId });
 
-                        j.HasOne(x => x.Client).WithMany(c => c.ClientBusinessCategories).HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+                        j.HasOne(x => x.Client).WithMany(c => c.ClientProjectCategories).HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
 
-                        j.HasOne(x => x.BusinessCategory).WithMany(bc => bc.ClientBusinessCategories).HasForeignKey(x => x.BusinessCategoryId).OnDelete(DeleteBehavior.Cascade);
+                        j.HasOne(x => x.ProjectCategory).WithMany(bc => bc.ClientProjectCategories).HasForeignKey(x => x.ProjectCategoryId).OnDelete(DeleteBehavior.Restrict);
 
                 });
 
@@ -2339,55 +3362,6 @@ modelBuilder.Entity<UserProfile>()
 
 
 
-        // Seed BusinessStage (multilingual)
-
-        modelBuilder.Entity<Lookup>().HasData(
-
-            new Lookup { Id = 1, Type = LookupType.BusinessStage, Key = "Idea", Value = "Idea", ValueAr = "فكرة", SortOrder = 1 },
-
-            new Lookup { Id = 2, Type = LookupType.BusinessStage, Key = "MVP", Value = "MVP", ValueAr = "المنتج الأولي", SortOrder = 2 },
-
-            new Lookup { Id = 3, Type = LookupType.BusinessStage, Key = "Startup", Value = "Startup", ValueAr = "شركة ناشئة", SortOrder = 3 },
-
-            new Lookup { Id = 4, Type = LookupType.BusinessStage, Key = "Running", Value = "Running", ValueAr = "قيد التشغيل", SortOrder = 4 },
-
-            new Lookup { Id = 5, Type = LookupType.BusinessStage, Key = "Expanding", Value = "Expanding", ValueAr = "توسع", SortOrder = 5 }
-
-        );
-
-
-
-        // Seed ProjectPhase (multilingual)
-
-        modelBuilder.Entity<Lookup>().HasData(
-
-            new Lookup { Id = 6, Type = LookupType.ProjectPhase, Key = "Initiation", Value = "Initiation", ValueAr = "البدء", SortOrder = 1 },
-
-            new Lookup { Id = 7, Type = LookupType.ProjectPhase, Key = "Planning", Value = "Planning", ValueAr = "التخطيط", SortOrder = 2 },
-
-            new Lookup { Id = 8, Type = LookupType.ProjectPhase, Key = "Execution", Value = "Execution", ValueAr = "التنفيذ", SortOrder = 3 },
-
-            new Lookup { Id = 9, Type = LookupType.ProjectPhase, Key = "Testing", Value = "Testing", ValueAr = "الاختبار", SortOrder = 4 },
-
-            new Lookup { Id = 10, Type = LookupType.ProjectPhase, Key = "Launching", Value = "Launching", ValueAr = "الإطلاق", SortOrder = 5 }
-
-        );
-
-
-
-        // Seed RiskLevel (multilingual)
-
-        modelBuilder.Entity<Lookup>().HasData(
-
-            new Lookup { Id = 11, Type = LookupType.RiskLevel, Key = "Low", Value = "Low", ValueAr = "منخفض", SortOrder = 1 },
-
-            new Lookup { Id = 12, Type = LookupType.RiskLevel, Key = "Medium", Value = "Medium", ValueAr = "متوسط", SortOrder = 2 },
-
-            new Lookup { Id = 13, Type = LookupType.RiskLevel, Key = "High", Value = "High", ValueAr = "مرتفع", SortOrder = 3 }
-
-        );
-
-
         // Seed Reputation rules (system-defined)
 
         modelBuilder.Entity<ReputationRule>().HasData(
@@ -2422,78 +3396,132 @@ modelBuilder.Entity<UserProfile>()
 
         // Seed categories
 
-        modelBuilder.Entity<Lookup>().HasData(
-
-            new Lookup { Id = 100, Type = LookupType.BusinessCategory, Key = "Technology", Value = "Technology", ValueAr = "تكنولوجيا", SortOrder = 1 },
-
-            new Lookup { Id = 101, Type = LookupType.BusinessCategory, Key = "Industry", Value = "Industry", ValueAr = "صناعة", SortOrder = 2 },
-
-            new Lookup { Id = 102, Type = LookupType.BusinessCategory, Key = "Trading", Value = "Trading", ValueAr = "تجارة", SortOrder = 3 }
-
-        );
-
-
-
-        // Seed BusinessCategory table with initial categories (mirror of lookup categories)
-
-        modelBuilder.Entity<BusinessCategory>().HasData(
-
-            new BusinessCategory { Id = 100, Key = "Technology", Value = "Technology", ValueAr = "تكنولوجيا", SortOrder = 1 },
-
-            new BusinessCategory { Id = 101, Key = "Industry", Value = "Industry", ValueAr = "صناعة", SortOrder = 2 },
-
-            new BusinessCategory { Id = 102, Key = "Trading", Value = "Trading", ValueAr = "تجارة", SortOrder = 3 }
-
-        );
-
-
-
         var opportunityLookupSeedDate = new DateTime(2026, 6, 30, 0, 0, 0, DateTimeKind.Utc);
-        modelBuilder.Entity<OpportunityCategory>().HasData(
-            new OpportunityCategory { Id = 1, Name = "Technology", Description = "Technology products, platforms, and services.", IsActive = true, SortOrder = 1, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
-            new OpportunityCategory { Id = 2, Name = "Food & Beverage", Description = "Food production, restaurants, cafes, and beverage ventures.", IsActive = true, SortOrder = 2, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
-            new OpportunityCategory { Id = 3, Name = "Healthcare", Description = "Healthcare services, clinics, medical products, and wellness.", IsActive = true, SortOrder = 3, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
-            new OpportunityCategory { Id = 4, Name = "Education", Description = "Education, training, and learning products.", IsActive = true, SortOrder = 4, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
-            new OpportunityCategory { Id = 5, Name = "Retail", Description = "Retail stores, commerce operations, and consumer goods.", IsActive = true, SortOrder = 5, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
-            new OpportunityCategory { Id = 6, Name = "Manufacturing", Description = "Manufacturing, production lines, and industrial operations.", IsActive = true, SortOrder = 6, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
-            new OpportunityCategory { Id = 7, Name = "Agriculture", Description = "Agriculture, farms, food supply, and agri-tech.", IsActive = true, SortOrder = 7, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
-            new OpportunityCategory { Id = 8, Name = "Real Estate", Description = "Real estate development, operations, and property services.", IsActive = true, SortOrder = 8, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
-            new OpportunityCategory { Id = 9, Name = "Tourism", Description = "Tourism, hospitality, and travel services.", IsActive = true, SortOrder = 9, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
-            new OpportunityCategory { Id = 10, Name = "Transportation", Description = "Transportation, logistics, and mobility.", IsActive = true, SortOrder = 10, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
-            new OpportunityCategory { Id = 11, Name = "Energy", Description = "Energy generation, services, and sustainability.", IsActive = true, SortOrder = 11, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
-            new OpportunityCategory { Id = 12, Name = "Fashion", Description = "Fashion, apparel, accessories, and design.", IsActive = true, SortOrder = 12, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
-            new OpportunityCategory { Id = 13, Name = "Media", Description = "Media, content, publishing, and creative production.", IsActive = true, SortOrder = 13, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
-            new OpportunityCategory { Id = 14, Name = "Gaming", Description = "Games, interactive entertainment, and gaming platforms.", IsActive = true, SortOrder = 14, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
-            new OpportunityCategory { Id = 15, Name = "FinTech", Description = "Financial technology, payments, lending, and finance tools.", IsActive = true, SortOrder = 15, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
-            new OpportunityCategory { Id = 16, Name = "AI", Description = "Artificial intelligence products, services, and infrastructure.", IsActive = true, SortOrder = 16, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate }
+        modelBuilder.Entity<ProjectCategory>().HasData(
+            new ProjectCategory { Id = 1, Code = "TECHNOLOGY", NameEn = "Technology", NameAr = "تكنولوجيا", DescriptionEn = "Technology products, platforms, and services.", IsActive = true, SortOrder = 1, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new ProjectCategory { Id = 2, Code = "FOODBEVERAGE", NameEn = "Food & Beverage", NameAr = "الأغذية والمشروبات", DescriptionEn = "Food production, restaurants, cafes, and beverage ventures.", IsActive = true, SortOrder = 2, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new ProjectCategory { Id = 3, Code = "HEALTHCARE", NameEn = "Healthcare", NameAr = "الرعاية الصحية", DescriptionEn = "Healthcare services, clinics, medical products, and wellness.", IsActive = true, SortOrder = 3, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new ProjectCategory { Id = 4, Code = "EDUCATION", NameEn = "Education", NameAr = "التعليم", DescriptionEn = "Education, training, and learning products.", IsActive = true, SortOrder = 4, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new ProjectCategory { Id = 5, Code = "RETAIL", NameEn = "Retail", NameAr = "التجزئة", DescriptionEn = "Retail stores, commerce operations, and consumer goods.", IsActive = true, SortOrder = 5, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new ProjectCategory { Id = 6, Code = "MANUFACTURING", NameEn = "Manufacturing", NameAr = "التصنيع", DescriptionEn = "Manufacturing, production lines, and industrial operations.", IsActive = true, SortOrder = 6, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new ProjectCategory { Id = 7, Code = "AGRICULTURE", NameEn = "Agriculture", NameAr = "الزراعة", DescriptionEn = "Agriculture, farms, food supply, and agri-tech.", IsActive = true, SortOrder = 7, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new ProjectCategory { Id = 8, Code = "REALESTATE", NameEn = "Real Estate", NameAr = "العقارات", DescriptionEn = "Real estate development, operations, and property services.", IsActive = true, SortOrder = 8, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new ProjectCategory { Id = 9, Code = "TOURISM", NameEn = "Tourism", NameAr = "السياحة", DescriptionEn = "Tourism, hospitality, and travel services.", IsActive = true, SortOrder = 9, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new ProjectCategory { Id = 10, Code = "TRANSPORTATION", NameEn = "Transportation", NameAr = "النقل", DescriptionEn = "Transportation, logistics, and mobility.", IsActive = true, SortOrder = 10, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new ProjectCategory { Id = 11, Code = "ENERGY", NameEn = "Energy", NameAr = "الطاقة", DescriptionEn = "Energy generation, services, and sustainability.", IsActive = true, SortOrder = 11, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new ProjectCategory { Id = 12, Code = "FASHION", NameEn = "Fashion", NameAr = "الأزياء", DescriptionEn = "Fashion, apparel, accessories, and design.", IsActive = true, SortOrder = 12, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new ProjectCategory { Id = 13, Code = "MEDIA", NameEn = "Media", NameAr = "الإعلام", DescriptionEn = "Media, content, publishing, and creative production.", IsActive = true, SortOrder = 13, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new ProjectCategory { Id = 14, Code = "GAMING", NameEn = "Gaming", NameAr = "الألعاب", DescriptionEn = "Games, interactive entertainment, and gaming platforms.", IsActive = true, SortOrder = 14, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new ProjectCategory { Id = 15, Code = "FINTECH", NameEn = "FinTech", NameAr = "التقنية المالية", DescriptionEn = "Financial technology, payments, lending, and finance tools.", IsActive = true, SortOrder = 15, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new ProjectCategory { Id = 16, Code = "AI", NameEn = "AI", NameAr = "الذكاء الاصطناعي", DescriptionEn = "Artificial intelligence products, services, and infrastructure.", IsActive = true, SortOrder = 16, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new ProjectCategory { Id = 17, Code = "INDUSTRY", NameEn = "Industry", NameAr = "الصناعة", IsActive = true, SortOrder = 17, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new ProjectCategory { Id = 18, Code = "TRADING", NameEn = "Trading", NameAr = "التجارة", IsActive = true, SortOrder = 18, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate }
         );
 
         modelBuilder.Entity<OpportunityTag>().HasData(
-            new OpportunityTag { Id = 1, Name = "AI", Description = "Uses or builds artificial intelligence.", IsActive = true, SortOrder = 1, CreatedAt = opportunityLookupSeedDate },
-            new OpportunityTag { Id = 2, Name = "Export", Description = "Export-oriented business.", IsActive = true, SortOrder = 2, CreatedAt = opportunityLookupSeedDate },
-            new OpportunityTag { Id = 3, Name = "Green", Description = "Sustainability or environmentally focused.", IsActive = true, SortOrder = 3, CreatedAt = opportunityLookupSeedDate },
-            new OpportunityTag { Id = 4, Name = "Women-led", Description = "Founded or led by women.", IsActive = true, SortOrder = 4, CreatedAt = opportunityLookupSeedDate },
-            new OpportunityTag { Id = 5, Name = "Franchise", Description = "Franchise or franchisable model.", IsActive = true, SortOrder = 5, CreatedAt = opportunityLookupSeedDate },
-            new OpportunityTag { Id = 6, Name = "B2B", Description = "Business-to-business model.", IsActive = true, SortOrder = 6, CreatedAt = opportunityLookupSeedDate },
-            new OpportunityTag { Id = 7, Name = "B2C", Description = "Business-to-consumer model.", IsActive = true, SortOrder = 7, CreatedAt = opportunityLookupSeedDate },
-            new OpportunityTag { Id = 8, Name = "SaaS", Description = "Software as a service.", IsActive = true, SortOrder = 8, CreatedAt = opportunityLookupSeedDate },
-            new OpportunityTag { Id = 9, Name = "Mobile App", Description = "Mobile application product.", IsActive = true, SortOrder = 9, CreatedAt = opportunityLookupSeedDate },
-            new OpportunityTag { Id = 10, Name = "Local Business", Description = "Local market business.", IsActive = true, SortOrder = 10, CreatedAt = opportunityLookupSeedDate },
-            new OpportunityTag { Id = 11, Name = "High Growth", Description = "Designed for rapid growth.", IsActive = true, SortOrder = 11, CreatedAt = opportunityLookupSeedDate },
-            new OpportunityTag { Id = 12, Name = "Low Entry Ticket", Description = "Accessible minimum investment size.", IsActive = true, SortOrder = 12, CreatedAt = opportunityLookupSeedDate }
+            new OpportunityTag { Id = 1, Code = "AI", NameEn = "AI", NameAr = "الذكاء الاصطناعي", DescriptionEn = "Uses or builds artificial intelligence.", IsActive = true, SortOrder = 1, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new OpportunityTag { Id = 2, Code = "EXPORT", NameEn = "Export", NameAr = "التصدير", DescriptionEn = "Export-oriented business.", IsActive = true, SortOrder = 2, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new OpportunityTag { Id = 3, Code = "GREEN", NameEn = "Green", NameAr = "مشاريع خضراء", DescriptionEn = "Sustainability or environmentally focused.", IsActive = true, SortOrder = 3, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new OpportunityTag { Id = 4, Code = "WOMENLED", NameEn = "Women-led", NameAr = "بقيادة نسائية", DescriptionEn = "Founded or led by women.", IsActive = true, SortOrder = 4, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new OpportunityTag { Id = 5, Code = "FRANCHISE", NameEn = "Franchise", NameAr = "امتياز تجاري", DescriptionEn = "Franchise or franchisable model.", IsActive = true, SortOrder = 5, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new OpportunityTag { Id = 6, Code = "B2B", NameEn = "B2B", NameAr = "أعمال موجهة للشركات", DescriptionEn = "Business-to-business model.", IsActive = true, SortOrder = 6, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new OpportunityTag { Id = 7, Code = "B2C", NameEn = "B2C", NameAr = "أعمال موجهة للمستهلكين", DescriptionEn = "Business-to-consumer model.", IsActive = true, SortOrder = 7, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new OpportunityTag { Id = 8, Code = "SAAS", NameEn = "SaaS", NameAr = "برمجيات كخدمة", DescriptionEn = "Software as a service.", IsActive = true, SortOrder = 8, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new OpportunityTag { Id = 9, Code = "MOBILEAPP", NameEn = "Mobile App", NameAr = "تطبيق جوال", DescriptionEn = "Mobile application product.", IsActive = true, SortOrder = 9, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new OpportunityTag { Id = 10, Code = "LOCALBIZ", NameEn = "Local Business", NameAr = "مشروع محلي", DescriptionEn = "Local market business.", IsActive = true, SortOrder = 10, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new OpportunityTag { Id = 11, Code = "HIGHGROWTH", NameEn = "High Growth", NameAr = "نمو مرتفع", DescriptionEn = "Designed for rapid growth.", IsActive = true, SortOrder = 11, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new OpportunityTag { Id = 12, Code = "LOWENTRY", NameEn = "Low Entry Ticket", NameAr = "حد أدنى منخفض للاستثمار", DescriptionEn = "Accessible minimum investment size.", IsActive = true, SortOrder = 12, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate }
         );
 
         modelBuilder.Entity<FundingGoal>().HasData(
-            new FundingGoal { Id = 1, Name = "Launch New Business", Description = "Funding to start a new venture.", IsActive = true, SortOrder = 1, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
-            new FundingGoal { Id = 2, Name = "Expand Existing Business", Description = "Funding to scale an operating business.", IsActive = true, SortOrder = 2, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
-            new FundingGoal { Id = 3, Name = "Buy Equipment", Description = "Funding to purchase equipment or machinery.", IsActive = true, SortOrder = 3, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
-            new FundingGoal { Id = 4, Name = "Marketing", Description = "Funding for marketing and customer acquisition.", IsActive = true, SortOrder = 4, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
-            new FundingGoal { Id = 5, Name = "Working Capital", Description = "Funding for operating cash flow.", IsActive = true, SortOrder = 5, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
-            new FundingGoal { Id = 6, Name = "Open New Branch", Description = "Funding to open another location.", IsActive = true, SortOrder = 6, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
-            new FundingGoal { Id = 7, Name = "Research & Development", Description = "Funding for product or technical development.", IsActive = true, SortOrder = 7, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
-            new FundingGoal { Id = 8, Name = "Inventory Purchase", Description = "Funding to purchase inventory.", IsActive = true, SortOrder = 8, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
-            new FundingGoal { Id = 9, Name = "Hiring", Description = "Funding to recruit and grow the team.", IsActive = true, SortOrder = 9, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
-            new FundingGoal { Id = 10, Name = "Acquisition", Description = "Funding for acquisition activity.", IsActive = true, SortOrder = 10, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate }
+            new FundingGoal { Id = 1, Code = "LAUNCHNEWBUSINESS", NameEn = "Launch New Business", NameAr = "إطلاق مشروع جديد", DescriptionEn = "Funding to start a new venture.", DescriptionAr = "تمويل لبدء مشروع جديد.", IsActive = true, SortOrder = 1, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new FundingGoal { Id = 2, Code = "EXPANDEXISTINGBUSINESS", NameEn = "Expand Existing Business", NameAr = "التوسع في الأعمال القائمة", DescriptionEn = "Funding to scale an operating business.", DescriptionAr = "تمويل لتوسيع نشاط قائم.", IsActive = true, SortOrder = 2, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new FundingGoal { Id = 3, Code = "BUYEQUIPMENT", NameEn = "Buy Equipment", NameAr = "شراء المعدات", DescriptionEn = "Funding to purchase equipment or machinery.", DescriptionAr = "تمويل لشراء المعدات أو الآلات.", IsActive = true, SortOrder = 3, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new FundingGoal { Id = 4, Code = "MARKETING", NameEn = "Marketing", NameAr = "التسويق", DescriptionEn = "Funding for marketing and customer acquisition.", DescriptionAr = "تمويل للتسويق واكتساب العملاء.", IsActive = true, SortOrder = 4, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new FundingGoal { Id = 5, Code = "WORKINGCAPITAL", NameEn = "Working Capital", NameAr = "رأس المال العامل", DescriptionEn = "Funding for operating cash flow.", DescriptionAr = "تمويل للتدفقات النقدية التشغيلية.", IsActive = true, SortOrder = 5, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new FundingGoal { Id = 6, Code = "OPENNEWBRANCH", NameEn = "Open New Branch", NameAr = "افتتاح فرع جديد", DescriptionEn = "Funding to open another location.", DescriptionAr = "تمويل لافتتاح موقع جديد.", IsActive = true, SortOrder = 6, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new FundingGoal { Id = 7, Code = "RESEARCHDEVELOPMENT", NameEn = "Research & Development", NameAr = "البحث والتطوير", DescriptionEn = "Funding for product or technical development.", DescriptionAr = "تمويل لتطوير المنتجات أو التقنية.", IsActive = true, SortOrder = 7, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new FundingGoal { Id = 8, Code = "INVENTORYPURCHASE", NameEn = "Inventory Purchase", NameAr = "شراء المخزون", DescriptionEn = "Funding to purchase inventory.", DescriptionAr = "تمويل لشراء المخزون.", IsActive = true, SortOrder = 8, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new FundingGoal { Id = 9, Code = "HIRING", NameEn = "Hiring", NameAr = "التوظيف", DescriptionEn = "Funding to recruit and grow the team.", DescriptionAr = "تمويل لاستقطاب الفريق وتنميته.", IsActive = true, SortOrder = 9, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new FundingGoal { Id = 10, Code = "ACQUISITION", NameEn = "Acquisition", NameAr = "الاستحواذ", DescriptionEn = "Funding for acquisition activity.", DescriptionAr = "تمويل لأنشطة الاستحواذ.", IsActive = true, SortOrder = 10, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate }
+        );
+
+        modelBuilder.Entity<RiskLevel>().HasData(
+            new RiskLevel { Id = 1, Code = "LOW", NameEn = "Low", NameAr = "منخفض", DescriptionEn = "Lower relative risk.", DescriptionAr = "مستوى مخاطر نسبي منخفض.", IsActive = true, SortOrder = 1, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new RiskLevel { Id = 2, Code = "MEDIUM", NameEn = "Medium", NameAr = "متوسط", DescriptionEn = "Medium relative risk.", DescriptionAr = "مستوى مخاطر نسبي متوسط.", IsActive = true, SortOrder = 2, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate },
+            new RiskLevel { Id = 3, Code = "HIGH", NameEn = "High", NameAr = "مرتفع", DescriptionEn = "Higher relative risk.", DescriptionAr = "مستوى مخاطر نسبي مرتفع.", IsActive = true, SortOrder = 3, CreatedAt = opportunityLookupSeedDate, UpdatedAt = opportunityLookupSeedDate }
+        );
+
+        modelBuilder.Entity<FileCategory>(c =>
+        {
+            c.HasKey(x => x.Id);
+            c.Property(x => x.Code).HasMaxLength(80).IsRequired();
+            c.Property(x => x.NameEn).HasMaxLength(120).IsRequired();
+            c.Property(x => x.NameAr).HasMaxLength(120).IsRequired();
+            c.Property(x => x.DescriptionEn).HasMaxLength(500);
+            c.Property(x => x.DescriptionAr).HasMaxLength(500);
+            c.Property(x => x.AllowedExtensions).HasMaxLength(2000).IsRequired();
+            c.Property(x => x.AllowedMimeTypes).HasMaxLength(4000).IsRequired();
+            c.HasIndex(x => x.Code).IsUnique();
+            c.HasIndex(x => new { x.IsActive, x.SortOrder });
+        });
+
+        modelBuilder.Entity<FileStoragePolicy>(p =>
+        {
+            p.HasKey(x => x.Id);
+            p.Property(x => x.GlobalMaxFileSizeBytes).IsRequired();
+            p.Property(x => x.DefaultUserQuotaBytes).IsRequired();
+            p.Property(x => x.DefaultProjectQuotaBytes).IsRequired();
+        });
+
+        modelBuilder.Entity<StoredFile>(f =>
+        {
+            f.HasKey(x => x.Id);
+            f.Property(x => x.FileId).HasMaxLength(64).IsRequired();
+            f.Property(x => x.FileKey).HasMaxLength(500).IsRequired();
+            f.Property(x => x.CategoryCode).HasMaxLength(80).IsRequired();
+            f.Property(x => x.OriginalFileName).HasMaxLength(255).IsRequired();
+            f.Property(x => x.Extension).HasMaxLength(20).IsRequired();
+            f.Property(x => x.MimeType).HasMaxLength(150).IsRequired();
+            f.Property(x => x.EntityType).HasMaxLength(80);
+            f.Property(x => x.EntityId).HasMaxLength(100);
+            f.HasIndex(x => x.FileId).IsUnique();
+            f.HasIndex(x => new { x.UploadedByUserId, x.IsDeleted });
+            f.HasIndex(x => new { x.ProjectId, x.IsDeleted });
+            f.HasIndex(x => new { x.CategoryCode, x.EntityType, x.EntityId, x.IsDeleted });
+        });
+
+        modelBuilder.Entity<FileStoragePolicy>().HasData(new FileStoragePolicy
+        {
+            Id = 1,
+            GlobalMaxFileSizeBytes = 50L * 1024 * 1024,
+            DefaultUserQuotaBytes = 500L * 1024 * 1024,
+            DefaultProjectQuotaBytes = 2L * 1024 * 1024 * 1024,
+            UpdatedAt = opportunityLookupSeedDate
+        });
+
+        var fileCategorySeedDate = opportunityLookupSeedDate;
+        modelBuilder.Entity<FileCategory>().HasData(
+            new FileCategory { Id = 1, Code = "OPPORTUNITYCOVER", NameEn = "Opportunity cover", NameAr = "غلاف الفرصة", SortOrder = 1, IsActive = true, MaxFileSizeBytes = 10L * 1024 * 1024, AllowedExtensions = ".jpg,.jpeg,.png,.webp", AllowedMimeTypes = "image/jpeg,image/png,image/webp", CreatedAt = fileCategorySeedDate, UpdatedAt = fileCategorySeedDate },
+            new FileCategory { Id = 2, Code = "OPPORTUNITYGALLERY", NameEn = "Opportunity gallery", NameAr = "معرض الفرصة", SortOrder = 2, IsActive = true, MaxFileSizeBytes = 10L * 1024 * 1024, AllowedExtensions = ".jpg,.jpeg,.png,.webp,.gif", AllowedMimeTypes = "image/jpeg,image/png,image/webp,image/gif", CreatedAt = fileCategorySeedDate, UpdatedAt = fileCategorySeedDate },
+            new FileCategory { Id = 3, Code = "OPPORTUNITYPUBLICDOCUMENT", NameEn = "Public opportunity document", NameAr = "مستند فرصة عام", SortOrder = 3, IsActive = true, MaxFileSizeBytes = 25L * 1024 * 1024, AllowedExtensions = ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv", AllowedMimeTypes = "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,text/csv", CreatedAt = fileCategorySeedDate, UpdatedAt = fileCategorySeedDate },
+            new FileCategory { Id = 4, Code = "OPPORTUNITYPRIVATEDOCUMENT", NameEn = "Private opportunity document", NameAr = "مستند فرصة خاص", SortOrder = 4, IsActive = true, MaxFileSizeBytes = 25L * 1024 * 1024, AllowedExtensions = ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv", AllowedMimeTypes = "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,text/csv", CreatedAt = fileCategorySeedDate, UpdatedAt = fileCategorySeedDate },
+            new FileCategory { Id = 5, Code = "PROJECTIMAGE", NameEn = "Project image", NameAr = "صورة المشروع", SortOrder = 5, IsActive = true, MaxFileSizeBytes = 10L * 1024 * 1024, AllowedExtensions = ".jpg,.jpeg,.png,.webp", AllowedMimeTypes = "image/jpeg,image/png,image/webp", CreatedAt = fileCategorySeedDate, UpdatedAt = fileCategorySeedDate },
+            new FileCategory { Id = 6, Code = "PROJECTUPDATEMEDIA", NameEn = "Project update media", NameAr = "وسائط تحديث المشروع", SortOrder = 6, IsActive = true, MaxFileSizeBytes = 50L * 1024 * 1024, AllowedExtensions = ".jpg,.jpeg,.png,.webp,.gif,.mp4,.mov,.webm", AllowedMimeTypes = "image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime,video/webm", CreatedAt = fileCategorySeedDate, UpdatedAt = fileCategorySeedDate },
+            new FileCategory { Id = 7, Code = "PITCHVIDEO", NameEn = "Pitch video", NameAr = "فيديو العرض", SortOrder = 7, IsActive = true, MaxFileSizeBytes = 50L * 1024 * 1024, AllowedExtensions = ".mp4,.mov,.webm", AllowedMimeTypes = "video/mp4,video/quicktime,video/webm", CreatedAt = fileCategorySeedDate, UpdatedAt = fileCategorySeedDate },
+            new FileCategory { Id = 8, Code = "INVESTMENTIMAGE", NameEn = "Investment image", NameAr = "صورة الاستثمار", SortOrder = 8, IsActive = true, MaxFileSizeBytes = 10L * 1024 * 1024, AllowedExtensions = ".jpg,.jpeg,.png,.webp", AllowedMimeTypes = "image/jpeg,image/png,image/webp", CreatedAt = fileCategorySeedDate, UpdatedAt = fileCategorySeedDate },
+            new FileCategory { Id = 9, Code = "INVESTMENTVIDEO", NameEn = "Investment video", NameAr = "فيديو الاستثمار", SortOrder = 9, IsActive = true, MaxFileSizeBytes = 50L * 1024 * 1024, AllowedExtensions = ".mp4,.mov,.webm", AllowedMimeTypes = "video/mp4,video/quicktime,video/webm", CreatedAt = fileCategorySeedDate, UpdatedAt = fileCategorySeedDate },
+            new FileCategory { Id = 10, Code = "INVESTMENTDOCUMENT", NameEn = "Investment document", NameAr = "مستند الاستثمار", SortOrder = 10, IsActive = true, MaxFileSizeBytes = 25L * 1024 * 1024, AllowedExtensions = ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv", AllowedMimeTypes = "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,text/csv", CreatedAt = fileCategorySeedDate, UpdatedAt = fileCategorySeedDate },
+            new FileCategory { Id = 11, Code = "PROFILEAVATAR", NameEn = "Profile avatar", NameAr = "صورة الملف الشخصي", SortOrder = 11, IsActive = true, MaxFileSizeBytes = 5L * 1024 * 1024, AllowedExtensions = ".jpg,.jpeg,.png,.webp", AllowedMimeTypes = "image/jpeg,image/png,image/webp", MaxFilesPerEntity = 1, CreatedAt = fileCategorySeedDate, UpdatedAt = fileCategorySeedDate },
+            new FileCategory { Id = 12, Code = "PROFILENATIONALID", NameEn = "National ID", NameAr = "الهوية الوطنية", SortOrder = 12, IsActive = true, MaxFileSizeBytes = 10L * 1024 * 1024, AllowedExtensions = ".jpg,.jpeg,.png,.webp,.pdf", AllowedMimeTypes = "image/jpeg,image/png,image/webp,application/pdf", MaxFilesPerEntity = 4, CreatedAt = fileCategorySeedDate, UpdatedAt = fileCategorySeedDate },
+            new FileCategory { Id = 13, Code = "FINANCIALREPORT", NameEn = "Financial report", NameAr = "تقرير مالي", SortOrder = 13, IsActive = true, MaxFileSizeBytes = 25L * 1024 * 1024, AllowedExtensions = ".pdf,.xls,.xlsx,.csv", AllowedMimeTypes = "application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv", CreatedAt = fileCategorySeedDate, UpdatedAt = fileCategorySeedDate },
+            new FileCategory { Id = 14, Code = "CONTRACT", NameEn = "Contract", NameAr = "عقد", SortOrder = 14, IsActive = true, MaxFileSizeBytes = 25L * 1024 * 1024, AllowedExtensions = ".pdf", AllowedMimeTypes = "application/pdf", CreatedAt = fileCategorySeedDate, UpdatedAt = fileCategorySeedDate },
+            new FileCategory { Id = 15, Code = "PRESENTATION", NameEn = "Presentation", NameAr = "عرض تقديمي", SortOrder = 15, IsActive = true, MaxFileSizeBytes = 25L * 1024 * 1024, AllowedExtensions = ".ppt,.pptx,.pdf", AllowedMimeTypes = "application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/pdf", CreatedAt = fileCategorySeedDate, UpdatedAt = fileCategorySeedDate },
+            new FileCategory { Id = 16, Code = "SPREADSHEET", NameEn = "Spreadsheet", NameAr = "جدول بيانات", SortOrder = 16, IsActive = true, MaxFileSizeBytes = 25L * 1024 * 1024, AllowedExtensions = ".xls,.xlsx,.csv", AllowedMimeTypes = "application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv", CreatedAt = fileCategorySeedDate, UpdatedAt = fileCategorySeedDate },
+            new FileCategory { Id = 17, Code = "LEGAL", NameEn = "Legal document", NameAr = "مستند قانوني", SortOrder = 17, IsActive = true, MaxFileSizeBytes = 25L * 1024 * 1024, AllowedExtensions = ".pdf,.doc,.docx", AllowedMimeTypes = "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document", CreatedAt = fileCategorySeedDate, UpdatedAt = fileCategorySeedDate },
+            new FileCategory { Id = 18, Code = "GENERAL", NameEn = "General business file", NameAr = "ملف أعمال عام", SortOrder = 18, IsActive = true, MaxFileSizeBytes = 25L * 1024 * 1024, AllowedExtensions = ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip", AllowedMimeTypes = "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain,text/csv,application/zip", CreatedAt = fileCategorySeedDate, UpdatedAt = fileCategorySeedDate },
+            new FileCategory { Id = 19, Code = "FUNDING_PROOF", NameEn = "Funding payment proof", NameAr = "إثبات دفعة تمويل", SortOrder = 19, IsActive = true, MaxFileSizeBytes = 25L * 1024 * 1024, AllowedExtensions = ".pdf,.jpg,.jpeg,.png,.webp", AllowedMimeTypes = "application/pdf,image/jpeg,image/png,image/webp", CreatedAt = fileCategorySeedDate, UpdatedAt = fileCategorySeedDate },
+            new FileCategory { Id = 20, Code = "PROFIT_SHARING_EVIDENCE", NameEn = "Profit Sharing evidence", NameAr = "إثبات مشاركة الأرباح", SortOrder = 20, IsActive = true, MaxFileSizeBytes = 25L * 1024 * 1024, AllowedExtensions = ".pdf,.jpg,.jpeg,.png,.webp", AllowedMimeTypes = "application/pdf,image/jpeg,image/png,image/webp", CreatedAt = fileCategorySeedDate, UpdatedAt = fileCategorySeedDate }
         );
 
         var pricingSeedDate = new DateTime(2026, 6, 29, 0, 0, 0, DateTimeKind.Utc);
@@ -2571,26 +3599,6 @@ modelBuilder.Entity<UserProfile>()
                 UpdatedAt = pricingSeedDate
             }
         );
-
-        // BusinessCategory mapping
-
-        modelBuilder.Entity<BusinessCategory>(bc =>
-
-        {
-
-            bc.HasKey(b => b.Id);
-
-            bc.Property(b => b.Key).HasMaxLength(200);
-
-            bc.Property(b => b.Value).HasMaxLength(200);
-
-            bc.Property(b => b.ValueAr).HasMaxLength(200);
-
-            bc.Property(b => b.CreatedAt).HasDefaultValueSql("GETDATE()");
-
-        });
-
-
 
         // Investment precision for merged opportunity fields
 
@@ -2743,6 +3751,7 @@ modelBuilder.Entity<UserProfile>()
             l.Property(x => x.ReturnRate).HasPrecision(5, 2);
             l.Property(x => x.RepaymentModel).HasMaxLength(100).IsRequired(false);
             l.Property(x => x.ProfitSharePercentage).HasPrecision(5, 2);
+            l.Property(x => x.ProfitSharingPayoutFrequency).HasMaxLength(30).IsRequired(false);
             l.Property(x => x.ExitTerms).HasMaxLength(1000).IsRequired(false);
             l.HasIndex(x => x.OfferId);
             l.HasOne(x => x.Offer)
@@ -2981,11 +3990,7 @@ modelBuilder.Entity<UserProfile>()
 
             new Permission { Id = 2001, Key = "admin.clients.manage", Name = "Manage Clients", Description = "Create/update/delete clients", CreatedAt = seedCreatedAt },
 
-            new Permission { Id = 2002, Key = "admin.categories.manage", Name = "Manage Categories", Description = "CRUD categories", CreatedAt = seedCreatedAt },
-
             new Permission { Id = 2003, Key = "admin.groups.manage", Name = "Manage Groups", Description = "Manage groups and assignments", CreatedAt = seedCreatedAt },
-
-            new Permission { Id = 2004, Key = "admin.lookups.manage", Name = "Manage Lookups", Description = "Manage lookup values", CreatedAt = seedCreatedAt },
 
             new Permission { Id = 2005, Key = "admin.dev.manage", Name = "Dev Tools", Description = "Development utility endpoints", CreatedAt = seedCreatedAt },
 
@@ -3009,11 +4014,7 @@ modelBuilder.Entity<UserProfile>()
 
             new GroupPermission { Id = 2, GroupId = 1000, PermissionId = 2001, AssignedAt = seedCreatedAt },
 
-            new GroupPermission { Id = 3, GroupId = 1000, PermissionId = 2002, AssignedAt = seedCreatedAt },
-
             new GroupPermission { Id = 4, GroupId = 1000, PermissionId = 2003, AssignedAt = seedCreatedAt },
-
-            new GroupPermission { Id = 5, GroupId = 1000, PermissionId = 2004, AssignedAt = seedCreatedAt },
 
             new GroupPermission { Id = 6, GroupId = 1000, PermissionId = 2005, AssignedAt = seedCreatedAt },
 
@@ -3141,9 +4142,9 @@ modelBuilder.Entity<UserProfile>()
 
                 TargetFund = 100000m,
 
-                BusinessCategoryId = 100,
+                ProjectCategoryId = 1,
 
-                RiskLevel = "Medium",
+                RiskLevel = "MEDIUM",
 
                 Currency = "USD",
 
@@ -3187,9 +4188,9 @@ modelBuilder.Entity<UserProfile>()
 
                 TargetFund = 25000m,
 
-                BusinessCategoryId = 101,
+                ProjectCategoryId = 17,
 
-                RiskLevel = "Low",
+                RiskLevel = "LOW",
 
                 Currency = "USD",
 

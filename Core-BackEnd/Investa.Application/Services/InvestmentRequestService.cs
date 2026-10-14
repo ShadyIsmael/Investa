@@ -421,7 +421,7 @@ _unitOfWork = unitOfWork;
 
             {
 
-                var founder = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.FounderId, u => u.Profile);
+                var founder = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.FounderId, u => u.Profile!);
 
                 mapped.FounderDisplayName = founder?.Profile?.FullName ?? founder?.Name;
 
@@ -445,7 +445,7 @@ _unitOfWork = unitOfWork;
 
             {
 
-                var investor = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.InvestorId, u => u.Profile);
+                var investor = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.InvestorId, u => u.Profile!);
 
                 mapped.InvestorDisplayName = investor?.Profile?.FullName ?? investor?.Name;
 
@@ -549,7 +549,7 @@ _unitOfWork = unitOfWork;
 
             {
 
-                var founder = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.FounderId, u => u.Profile);
+                var founder = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.FounderId, u => u.Profile!);
 
                 dto.FounderDisplayName = founder?.Profile?.FullName ?? founder?.Name;
 
@@ -567,7 +567,7 @@ _unitOfWork = unitOfWork;
 
             {
 
-                var investor = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.InvestorId, u => u.Profile);
+                var investor = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.InvestorId, u => u.Profile!);
 
                 dto.InvestorDisplayName = investor?.Profile?.FullName ?? investor?.Name;
 
@@ -627,7 +627,7 @@ _unitOfWork = unitOfWork;
 
             {
 
-                var founder = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.FounderId, u => u.Profile);
+                var founder = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.FounderId, u => u.Profile!);
 
                 dto.FounderDisplayName = founder?.Profile?.FullName ?? founder?.Name;
 
@@ -645,7 +645,7 @@ _unitOfWork = unitOfWork;
 
             {
 
-                var investor = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.InvestorId, u => u.Profile);
+                var investor = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.InvestorId, u => u.Profile!);
 
                 dto.InvestorDisplayName = investor?.Profile?.FullName ?? investor?.Name;
 
@@ -901,7 +901,7 @@ _unitOfWork = unitOfWork;
 
         {
 
-            var investor = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.InvestorId, u => u.Profile);
+            var investor = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.InvestorId, u => u.Profile!);
 
             dto.InvestorDisplayName = investor?.Profile?.FullName ?? investor?.Name;
 
@@ -1101,7 +1101,7 @@ _unitOfWork = unitOfWork;
 
         {
 
-            var investor = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.InvestorId, u => u.Profile);
+            var investor = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.InvestorId, u => u.Profile!);
 
             dto.InvestorDisplayName = investor?.Profile?.FullName ?? investor?.Name;
 
@@ -1265,7 +1265,7 @@ _unitOfWork = unitOfWork;
 
         {
 
-            var founder = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.FounderId, u => u.Profile);
+            var founder = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.FounderId, u => u.Profile!);
 
             dto.FounderDisplayName = founder?.Profile?.FullName ?? founder?.Name;
 
@@ -1289,7 +1289,7 @@ _unitOfWork = unitOfWork;
 
         {
 
-            var investor = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.InvestorId, u => u.Profile);
+            var investor = await _unitOfWork.Repository<AuthUser>().GetSingleAsync(u => u.Id == request.InvestorId, u => u.Profile!);
 
             dto.InvestorDisplayName = investor?.Profile?.FullName ?? investor?.Name;
 

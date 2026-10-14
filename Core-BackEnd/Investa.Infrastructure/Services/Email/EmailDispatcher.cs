@@ -91,8 +91,8 @@ public sealed class EmailDispatcher : IEmailDispatcher
             catch (Exception ex)
             {
                 _logger.LogError(ex,
-                    "Unexpected error dispatching email outboxId={OutboxId} recipient={Recipient}",
-                    outbox.Id, outbox.Recipient);
+                    "Unexpected error dispatching email outboxId={OutboxId}",
+                    outbox.Id);
                 await FailAsync(outbox, $"Unexpected error: {ex.Message}", true, cancellationToken);
             }
         }

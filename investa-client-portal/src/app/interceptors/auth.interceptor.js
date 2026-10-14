@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-import { HttpErrorResponse } from '@angular/common/http';
 import { BehaviorSubject, throwError, from } from 'rxjs';
 import { catchError, filter, take, switchMap } from 'rxjs/operators';
 import * as i0 from "@angular/core";
@@ -14,8 +13,9 @@ export class AuthInterceptor {
     }
     intercept(req, next) {
         const authorization = this.authService.getAuthorizationHeaderValue();
+        const isAuthEndpoint = req.url.includes('/auth/refresh') || req.url.includes('/auth/login');
         // Proactively refresh if token is expiring soon
-        if (authorization && this.authService.isTokenExpiringSoon()) {
+        if (authorization && !isAuthEndpoint && this.authService.isTokenExpiringSoon()) {
             return from(this.authService.refresh()).pipe(switchMap(() => {
                 const refreshedAuthorization = this.authService.getAuthorizationHeaderValue();
                 const authReq = refreshedAuthorization ? req.clone({ setHeaders: { Authorization: refreshedAuthorization } }) : req;
@@ -26,13 +26,15 @@ export class AuthInterceptor {
             }));
         }
         let authReq = req;
-        if (authorization) {
+        if (authorization && !isAuthEndpoint) {
             authReq = req.clone({ setHeaders: { Authorization: authorization } });
         }
         return next.handle(authReq).pipe(catchError((err) => {
-            if (err instanceof HttpErrorResponse && err.status === 401) {
+            // Use the status value directly as HttpErrorResponse can be wrapped by
+            // different Angular HTTP backends in development and production.
+            if (err?.status === 401) {
                 // Avoid trying to refresh if the 401 came from login/refresh endpoints
-                if (req.url.includes('/auth/refresh') || req.url.includes('/auth/login')) {
+                if (isAuthEndpoint) {
                     this.authService.logout();
                     try {
                         this.router.navigate(['/']);

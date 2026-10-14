@@ -1,21 +1,6 @@
-import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Dashboard } from '@/components/layout/Dashboard';
-import { UsersList } from '@/features/rbac/UsersList';
-import { ClientsList } from '@/features/clients/ClientsList';
-import ClientDetails from '@/features/clients/ClientDetails';
-import { SupportRequests } from '@/features/support/SupportRequests';
-import SupportAdmin from '@/features/support/SupportAdmin';
-import SupportDashboard from '@/features/support/SupportDashboard';
-import ChatView from '@/features/support/ChatView';
-import { CreditSetup } from '@/features/finance/CreditSetup';
-import { ApiTester } from '@/components/common/ApiTester';
-import SystemConfiguration from '@/features/config/SystemConfiguration';
-import NotificationTemplates from '@/features/config/NotificationTemplates';
-import { MyProfile } from '@/features/auth/MyProfile';
-import Groups from '@/features/rbac/Groups';
-import { Roles } from '@/features/rbac/Roles';
 import { Login } from '@/features/auth/Login';
 import { ResetPassword } from '@/features/auth/ResetPassword';
 import { SplashScreen } from '@/components/common/SplashScreen';
@@ -25,24 +10,73 @@ import { AuthProvider, usePermissions } from '@/context/AuthContext';
 import MainLayout from '@/components/layout/MainLayout';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import { SupportProvider } from '@/context/SupportProvider';
-import ReputationRules from '@/features/operations/ReputationRules';
-import PricingManagement from '@/features/operations/PricingManagement';
-import NotificationBroadcasts from '@/features/operations/NotificationBroadcasts';
-import OpportunityLookupPage from '@/features/operations/OpportunityLookupPage';
-import ModerationReports from '@/features/operations/ModerationReports';
-import { CompanyFinanceShell } from '@/features/company-finance/CompanyFinanceShell';
-import { CompanyFinancePage } from '@/features/company-finance/CompanyFinancePage';
-import { FinanceAccountsPage } from '@/features/company-finance/FinanceAccountsPage';
-import { FinanceSuppliersPage } from '@/features/company-finance/FinanceSuppliersPage';
-import { FinanceCategoriesSettingsPage } from '@/features/company-finance/FinanceCategoriesSettingsPage';
-import { FinanceMoneyInPage } from '@/features/company-finance/FinanceMoneyInPage';
-import { FinanceMoneyInCreatePage } from '@/features/company-finance/FinanceMoneyInCreatePage';
-import { FinanceMoneyOutPage } from '@/features/company-finance/FinanceMoneyOutPage';
-import { FinanceMoneyOutCreatePage } from '@/features/company-finance/FinanceMoneyOutCreatePage';
-import { FinanceOverviewPage } from '@/features/company-finance/FinanceOverviewPage';
-import { FinanceReviewQueuePage } from '@/features/company-finance/FinanceReviewQueuePage';
-import { FinanceReconciliationPage } from '@/features/company-finance/FinanceReconciliationPage';
-import { AdminUserReviewQueue } from '@/features/admin-users/AdminUserReviewQueue';
+import { RouteGuard } from '@/components/common/RouteGuard';
+import { LazyRouteBoundary } from '@/components/common/LazyRouteBoundary';
+import { NotFound, PendingModulePage, RouteLoadingBoundary } from '@/components/common/EnterpriseStates';
+import { policyForRoute } from '@/core/routeRegistry';
+import {
+    AccessControlHub,
+    AdminUserReviewQueue,
+    ApiTester,
+    ClientDetails,
+    ClientsList,
+    CompanyFinancePage,
+    CompanyFinanceShell,
+    CountryMasterPage,
+    CreditSetup,
+    CurrencyMasterPage,
+    Dashboard,
+    FileCategoryMasterPage,
+    FinanceAccountsPage,
+    FinanceCategoriesSettingsPage,
+    FinanceMoneyInCreatePage,
+    FinanceMoneyInPage,
+    FinanceMoneyOutCreatePage,
+    FinanceMoneyOutPage,
+    FinanceOverviewPage,
+    FinanceReconciliationPage,
+    FinanceReviewQueuePage,
+    FinanceSuppliersPage,
+    FundingGoalMasterPage,
+    GlobalOverview,
+    CustomerListPage,
+    CustomerDetailPage,
+    CustomerFormPage,
+    CatalogListPage,
+    CatalogDetailPage,
+    CatalogFormPage,
+    SalesOpportunityListPage,
+    SalesOpportunityDetailPage,
+    SalesOpportunityFormPage,
+    QuotationListPage,
+    QuotationDetailPage,
+    QuotationFormPage,
+    QuotationPrintPage,
+    ContractListPage,
+    ContractFormPage,
+    ContractDetailPage,
+    ContractPrintPage,
+    Groups,
+    ModerationReports,
+    MyProfile,
+    NotificationBroadcasts,
+    NotificationTemplates,
+    OpportunityTagMasterPage,
+    OpportunityDetailPage,
+    OpportunityListPage,
+    PlatformStatusPage,
+    PricingManagement,
+    ProjectCategoryMasterPage,
+    ProjectStageMetadataPage,
+    ReputationRules,
+    RiskLevelMasterPage,
+    Roles,
+    SupportAdmin,
+    SupportDashboard,
+    SystemConfiguration,
+    UsersList,
+    ChatView,
+} from '@/core/routeLoaders';
 
 const ComingSoon = ({ title, subtitle }: { title: string; subtitle: string }) => {
     const navigate = useNavigate();
@@ -71,6 +105,11 @@ const ComingSoon = ({ title, subtitle }: { title: string; subtitle: string }) =>
 const ClientDetailsRoute: React.FC = () => {
     const { clientId } = useParams<{ clientId: string }>();
     return <ClientDetails clientId={clientId || null} />;
+};
+
+const LegacyClientDetailsRedirect: React.FC = () => {
+    const { clientId } = useParams<{ clientId: string }>();
+    return <Navigate to={`/admin/fopx/users/${clientId || ''}`} replace />;
 };
 
 const AppContent: React.FC = () => {
@@ -182,17 +221,86 @@ const AppContent: React.FC = () => {
                     element={
                         <ProtectedRoute>
                             <MainLayout currentUser={currentUser} handleLogout={handleLogout}>
-                                <Routes>
-                                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                                    <Route path="/dashboard" element={<Dashboard />} />
-                                    <Route path="/clients" element={<ClientsList />} />
-                                    <Route path="/clients/:clientId" element={<ClientDetailsRoute />} />
+                                <LazyRouteBoundary>
+                                    <Suspense fallback={<RouteLoadingBoundary />}>
+                                        <Routes>
+                                    <Route path="/" element={<Navigate to="/admin" replace />} />
+
+                                    {/* Company Core routes. Business modules are intentionally structural placeholders in Phase 1. */}
+                                    <Route path="/admin" element={<RouteGuard policy={policyForRoute('/admin')}><GlobalOverview /></RouteGuard>} />
+                                    <Route path="/admin/customers" element={<RouteGuard policy={policyForRoute('/admin/customers')}><CustomerListPage /></RouteGuard>} />
+                                    <Route path="/admin/customers/new" element={<RouteGuard policy={policyForRoute('/admin/customers/new')}><CustomerFormPage /></RouteGuard>} />
+                                    <Route path="/admin/customers/:customerId" element={<RouteGuard policy={policyForRoute('/admin/customers/:customerId')}><CustomerDetailPage /></RouteGuard>} />
+                                    <Route path="/admin/customers/:customerId/edit" element={<RouteGuard policy={policyForRoute('/admin/customers/:customerId/edit')}><CustomerFormPage /></RouteGuard>} />
+                                    <Route path="/admin/sales/opportunities" element={<RouteGuard policy={policyForRoute('/admin/sales/opportunities')}><SalesOpportunityListPage /></RouteGuard>} />
+                                    <Route path="/admin/sales/opportunities/new" element={<RouteGuard policy={policyForRoute('/admin/sales/opportunities/new')}><SalesOpportunityFormPage /></RouteGuard>} />
+                                    <Route path="/admin/sales/opportunities/:opportunityId" element={<RouteGuard policy={policyForRoute('/admin/sales/opportunities/:opportunityId')}><SalesOpportunityDetailPage /></RouteGuard>} />
+                                    <Route path="/admin/sales/opportunities/:opportunityId/edit" element={<RouteGuard policy={policyForRoute('/admin/sales/opportunities/:opportunityId/edit')}><SalesOpportunityFormPage /></RouteGuard>} />
+                                    <Route path="/admin/sales/quotations" element={<RouteGuard policy={policyForRoute('/admin/sales/quotations')}><QuotationListPage /></RouteGuard>} />
+                                    <Route path="/admin/sales/quotations/new" element={<RouteGuard policy={policyForRoute('/admin/sales/quotations/new')}><QuotationFormPage /></RouteGuard>} />
+                                    <Route path="/admin/sales/quotations/:quotationId" element={<RouteGuard policy={policyForRoute('/admin/sales/quotations/:quotationId')}><QuotationDetailPage /></RouteGuard>} />
+                                    <Route path="/admin/sales/quotations/:quotationId/edit" element={<RouteGuard policy={policyForRoute('/admin/sales/quotations/:quotationId/edit')}><QuotationFormPage /></RouteGuard>} />
+                                    <Route path="/admin/sales/quotations/:quotationId/print" element={<RouteGuard policy={policyForRoute('/admin/sales/quotations/:quotationId/print')}><QuotationPrintPage /></RouteGuard>} />
+                                    <Route path="/admin/sales/contracts" element={<RouteGuard policy={policyForRoute('/admin/sales/contracts')}><ContractListPage /></RouteGuard>} />
+                                    <Route path="/admin/sales/contracts/from-quotation/:quotationId" element={<RouteGuard policy={policyForRoute('/admin/sales/contracts/from-quotation/:quotationId')}><ContractFormPage /></RouteGuard>} />
+                                    <Route path="/admin/sales/contracts/:contractId/edit" element={<RouteGuard policy={policyForRoute('/admin/sales/contracts/:contractId/edit')}><ContractFormPage /></RouteGuard>} />
+                                    <Route path="/admin/sales/contracts/:contractId/print" element={<RouteGuard policy={policyForRoute('/admin/sales/contracts/:contractId/print')}><ContractPrintPage /></RouteGuard>} />
+                                    <Route path="/admin/sales/contracts/:contractId" element={<RouteGuard policy={policyForRoute('/admin/sales/contracts/:contractId')}><ContractDetailPage /></RouteGuard>} />
+                                    <Route path="/admin/catalog/products" element={<RouteGuard policy={policyForRoute('/admin/catalog/products')}><CatalogListPage /></RouteGuard>} />
+                                    <Route path="/admin/catalog/products/new" element={<RouteGuard policy={policyForRoute('/admin/catalog/products/new')}><CatalogFormPage /></RouteGuard>} />
+                                    <Route path="/admin/catalog/products/:itemId" element={<RouteGuard policy={policyForRoute('/admin/catalog/products/:itemId')}><CatalogDetailPage /></RouteGuard>} />
+                                    <Route path="/admin/catalog/products/:itemId/edit" element={<RouteGuard policy={policyForRoute('/admin/catalog/products/:itemId/edit')}><CatalogFormPage /></RouteGuard>} />
+                                    <Route path="/admin/licensing/licenses" element={<RouteGuard policy={policyForRoute('/admin/licensing/licenses')}><PendingModulePage title={t('centralAdmin.companyNav.licenses')} description={t('centralAdmin.placeholders.companyModule')} /></RouteGuard>} />
+                                    <Route path="/admin/licensing/subscriptions" element={<RouteGuard policy={policyForRoute('/admin/licensing/subscriptions')}><PendingModulePage title={t('centralAdmin.companyNav.subscriptions')} description={t('centralAdmin.placeholders.companyModule')} /></RouteGuard>} />
+                                    <Route path="/admin/licensing/renewals" element={<RouteGuard policy={policyForRoute('/admin/licensing/renewals')}><PendingModulePage title={t('centralAdmin.companyNav.renewals')} description={t('centralAdmin.placeholders.companyModule')} /></RouteGuard>} />
+                                    <Route path="/admin/finance/invoices" element={<RouteGuard policy={policyForRoute('/admin/finance/invoices')}><PendingModulePage title={t('centralAdmin.companyNav.invoices')} description={t('centralAdmin.placeholders.companyModule')} /></RouteGuard>} />
+                                    <Route path="/admin/finance/collections" element={<RouteGuard policy={policyForRoute('/admin/finance/collections')}><PendingModulePage title={t('centralAdmin.companyNav.collections')} description={t('centralAdmin.placeholders.companyModule')} /></RouteGuard>} />
+                                    <Route path="/admin/finance/expenses" element={<RouteGuard policy={policyForRoute('/admin/finance/expenses')}><PendingModulePage title={t('centralAdmin.companyNav.expenses')} description={t('centralAdmin.placeholders.companyModule')} /></RouteGuard>} />
+                                    <Route path="/admin/accounting/chart-of-accounts" element={<RouteGuard policy={policyForRoute('/admin/accounting/chart-of-accounts')}><PendingModulePage title={t('centralAdmin.companyNav.chartOfAccounts')} description={t('centralAdmin.placeholders.companyModule')} /></RouteGuard>} />
+                                    <Route path="/admin/accounting/journals" element={<RouteGuard policy={policyForRoute('/admin/accounting/journals')}><PendingModulePage title={t('centralAdmin.companyNav.journals')} description={t('centralAdmin.placeholders.companyModule')} /></RouteGuard>} />
+                                    <Route path="/admin/accounting/general-ledger" element={<RouteGuard policy={policyForRoute('/admin/accounting/general-ledger')}><PendingModulePage title={t('centralAdmin.companyNav.generalLedger')} description={t('centralAdmin.placeholders.companyModule')} /></RouteGuard>} />
+                                    <Route path="/admin/accounting/trial-balance" element={<RouteGuard policy={policyForRoute('/admin/accounting/trial-balance')}><PendingModulePage title={t('centralAdmin.companyNav.trialBalance')} description={t('centralAdmin.placeholders.companyModule')} /></RouteGuard>} />
+                                    <Route path="/admin/accounting/statements" element={<RouteGuard policy={policyForRoute('/admin/accounting/statements')}><PendingModulePage title={t('centralAdmin.companyNav.statements')} description={t('centralAdmin.placeholders.companyModule')} /></RouteGuard>} />
+                                    <Route path="/admin/company" element={<RouteGuard policy={policyForRoute('/admin/company')}><PendingModulePage title={t('centralAdmin.companyNav.company')} description={t('centralAdmin.placeholders.companyModule')} /></RouteGuard>} />
+                                    <Route path="/admin/users" element={<RouteGuard policy={policyForRoute('/admin/users')}><UsersList /></RouteGuard>} />
+                                    <Route path="/admin/access" element={<RouteGuard policy={policyForRoute('/admin/access')}><AccessControlHub /></RouteGuard>} />
+                                    <Route path="/admin/access/groups" element={<RouteGuard policy={policyForRoute('/admin/access/groups')}><Groups /></RouteGuard>} />
+                                    <Route path="/admin/access/roles" element={<RouteGuard policy={policyForRoute('/admin/access/roles')}><Roles /></RouteGuard>} />
+                                    <Route path="/admin/access/approvals" element={<RouteGuard policy={policyForRoute('/admin/access/approvals')}><AdminUserReviewQueue /></RouteGuard>} />
+                                    <Route path="/admin/audit" element={<RouteGuard policy={policyForRoute('/admin/audit')}><PendingModulePage title={t('centralAdmin.nav.audit')} description={t('centralAdmin.placeholders.globalAudit')} /></RouteGuard>} />
+                                    <Route path="/admin/notifications" element={<RouteGuard policy={policyForRoute('/admin/notifications')}><NotificationTemplates /></RouteGuard>} />
+                                    <Route path="/admin/system" element={<RouteGuard policy={policyForRoute('/admin/system')}><SystemConfiguration /></RouteGuard>} />
+                                    <Route path="/admin/integrations" element={<RouteGuard policy={policyForRoute('/admin/integrations')}><PlatformStatusPage /></RouteGuard>} />
+                                    <Route path="/admin/settings" element={<RouteGuard policy={policyForRoute('/admin/settings')}><PendingModulePage title={t('centralAdmin.nav.settings')} description={t('centralAdmin.placeholders.globalSettings')} /></RouteGuard>} />
+
+                                    {/* FOPX workspace routes. Existing domain screens remain the source of truth. */}
+                                    <Route path="/admin/fopx" element={<Navigate to="/admin/fopx/overview" replace />} />
+                                    <Route path="/admin/fopx/overview" element={<RouteGuard policy={policyForRoute('/admin/fopx/overview')}><Dashboard /></RouteGuard>} />
+                                    <Route path="/admin/fopx/projects" element={<RouteGuard policy={policyForRoute('/admin/fopx/projects')}><PendingModulePage title={t('centralAdmin.fopxNav.projects')} description={t('centralAdmin.placeholders.projects')} /></RouteGuard>} />
+                                    <Route path="/admin/fopx/opportunities" element={<RouteGuard policy={policyForRoute('/admin/fopx/opportunities')}><OpportunityListPage /></RouteGuard>} />
+                                    <Route path="/admin/fopx/opportunities/:opportunityId" element={<RouteGuard policy={policyForRoute('/admin/fopx/opportunities/:opportunityId')}><OpportunityDetailPage /></RouteGuard>} />
+                                    <Route path="/admin/fopx/conversations" element={<RouteGuard policy={policyForRoute('/admin/fopx/conversations')}><SupportAdmin /></RouteGuard>} />
+                                    <Route path="/admin/fopx/deals" element={<RouteGuard policy={policyForRoute('/admin/fopx/deals')}><PendingModulePage title={t('centralAdmin.fopxNav.deals')} description={t('centralAdmin.placeholders.deals')} /></RouteGuard>} />
+                                    <Route path="/admin/fopx/funding" element={<RouteGuard policy={policyForRoute('/admin/fopx/funding')}><PendingModulePage title={t('centralAdmin.fopxNav.funding')} description={t('centralAdmin.placeholders.funding')} /></RouteGuard>} />
+                                    <Route path="/admin/fopx/contracts" element={<RouteGuard policy={policyForRoute('/admin/fopx/contracts')}><PendingModulePage title={t('centralAdmin.fopxNav.contracts')} description={t('centralAdmin.placeholders.contracts')} /></RouteGuard>} />
+                                    <Route path="/admin/fopx/moderation" element={<RouteGuard policy={policyForRoute('/admin/fopx/moderation')}><ModerationReports /></RouteGuard>} />
+                                    <Route path="/admin/fopx/users" element={<RouteGuard policy={policyForRoute('/admin/fopx/users')}><ClientsList /></RouteGuard>} />
+                                    <Route path="/admin/fopx/users/:clientId" element={<RouteGuard policy={policyForRoute('/admin/fopx/users/:clientId')}><ClientDetailsRoute /></RouteGuard>} />
+                                    <Route path="/admin/fopx/notifications" element={<RouteGuard policy={policyForRoute('/admin/fopx/notifications')}><NotificationBroadcasts /></RouteGuard>} />
+                                    <Route path="/admin/fopx/audit" element={<RouteGuard policy={policyForRoute('/admin/fopx/audit')}><PendingModulePage title={t('centralAdmin.fopxNav.audit')} description={t('centralAdmin.placeholders.workspaceAudit')} /></RouteGuard>} />
+                                    <Route path="/admin/fopx/integrations" element={<RouteGuard policy={policyForRoute('/admin/fopx/integrations')}><PlatformStatusPage /></RouteGuard>} />
+                                    <Route path="/admin/fopx/settings" element={<RouteGuard policy={policyForRoute('/admin/fopx/settings')}><PendingModulePage title={t('centralAdmin.fopxNav.settings')} description={t('centralAdmin.placeholders.workspaceSettings')} /></RouteGuard>} />
+
+                                    {/* Legacy aliases retained for existing bookmarks and workflows. */}
+                                    <Route path="/dashboard" element={<Navigate to="/admin/fopx/overview" replace />} />
+                                    <Route path="/clients" element={<Navigate to="/admin/fopx/users" replace />} />
+                                    <Route path="/clients/:clientId" element={<LegacyClientDetailsRedirect />} />
                                     <Route path="/user-onboarding" element={<ComingSoon title={t('pages.userOnboarding')} subtitle={t('messages.comingSoonSubtitle')} />} />
-                                    <Route path="/groups" element={<Groups />} />
-                                    <Route path="/users" element={<UsersList />} />
-                                    <Route path="/roles" element={<Roles />} />
+                                    <Route path="/groups" element={<Navigate to="/admin/access/groups" replace />} />
+                                    <Route path="/users" element={<Navigate to="/admin/users" replace />} />
+                                    <Route path="/roles" element={<Navigate to="/admin/access/roles" replace />} />
                                     <Route path="/permissions" element={<ComingSoon title={t('breadcrumb.permissions')} subtitle={t('messages.comingSoonSubtitle')} />} />
-                                    <Route path="/support" element={<SupportRequests />} />
+                                    <Route path="/support" element={<Navigate to="/admin-support" replace />} />
                                     <Route path="/support-dashboard" element={<SupportDashboard />} />
                                     <Route path="/admin-support" element={<SupportAdmin />} />
                                     <Route path="/admin-support/chat/:conversationId" element={<ChatView />} />
@@ -200,6 +308,7 @@ const AppContent: React.FC = () => {
                                     <Route path="/operations/pricing" element={<PricingManagement />} />
                                     <Route path="/operations/notifications" element={<NotificationBroadcasts />} />
                                     <Route path="/operations/reports" element={<ModerationReports />} />
+                                    <Route path="/reference-data/file-categories" element={<FileCategoryMasterPage />} />
                                     <Route path="/company-finance" element={<CompanyFinanceShell />}>
                                         <Route index element={<FinanceOverviewPage />} />
                                         <Route path="overview" element={<FinanceOverviewPage />} />
@@ -231,19 +340,26 @@ const AppContent: React.FC = () => {
                                         <Route path="reconciliations" element={<FinanceReconciliationPage />} />
                                         <Route path="review-queue" element={<FinanceReviewQueuePage />} />
                                     </Route>
-                                    <Route path="/reference-data/opportunity-categories" element={<OpportunityLookupPage kind="categories" title="Opportunity Categories" description="Read-only visibility into configured opportunity categories." />} />
-                                    <Route path="/reference-data/opportunity-tags" element={<OpportunityLookupPage kind="tags" title="Opportunity Tags" description="Read-only visibility into configured opportunity tags." showSortOrder={false} />} />
-                                    <Route path="/reference-data/funding-goals" element={<OpportunityLookupPage kind="funding-goals" title="Funding Goals" description="Read-only visibility into configured funding goals." />} />
+                                    <Route path="/reference-data/project-categories" element={<ProjectCategoryMasterPage />} />
+                                    <Route path="/reference-data/opportunity-tags" element={<OpportunityTagMasterPage />} />
+                                    <Route path="/reference-data/funding-goals" element={<FundingGoalMasterPage />} />
+                                    <Route path="/reference-data/currencies" element={<CurrencyMasterPage />} />
+                                    <Route path="/reference-data/countries" element={<CountryMasterPage />} />
+                                    <Route path="/reference-data/project-stages" element={<ProjectStageMetadataPage />} />
+                                    <Route path="/reference-data/risk-levels" element={<RiskLevelMasterPage />} />
                                     <Route path="/finance/*" element={<Navigate to="/company-finance" replace />} />
                                     <Route path="/reporting/*" element={<Navigate to="/company-finance/reports" replace />} />
                                     <Route path="/profile" element={<MyProfile user={currentUser} onProfileUpdated={handleProfileUpdated} />} />
                                     <Route path="/credit" element={<CreditSetup />} />
                                     <Route path="/config/credit" element={<CreditSetup />} />
                                     <Route path="/apitester" element={<ApiTester />} />
-                                    <Route path="/system-config" element={<SystemConfiguration />} />
-                                    <Route path="/config/notification-templates" element={<NotificationTemplates />} />
-                                    <Route path="admin-users/approval" element={<AdminUserReviewQueue />} />
-                                </Routes>
+                                    <Route path="/system-config" element={<Navigate to="/admin/system" replace />} />
+                                    <Route path="/config/notification-templates" element={<Navigate to="/admin/notifications" replace />} />
+                                    <Route path="/admin-users/approval" element={<Navigate to="/admin/access/approvals" replace />} />
+                                    <Route path="*" element={<NotFound />} />
+                                        </Routes>
+                                    </Suspense>
+                                </LazyRouteBoundary>
                             </MainLayout>
                         </ProtectedRoute>
                     }

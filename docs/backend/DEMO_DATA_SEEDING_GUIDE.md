@@ -2,6 +2,8 @@
 
 This guide provides comprehensive documentation for the Investa platform demo data seeding system.
 
+> **Safety:** Automatic demo seeding is disabled by default. It is permitted only in the `Development` environment when `FOPX_ENABLE_DEMO_DATA_SEEDING=true` is explicitly set. It never runs in `Production` or `Testing`. Demo accounts and records must not be used as real business data.
+
 ## Overview
 
 The demo data seeder generates realistic testing data across the entire Investa ecosystem to support:
@@ -163,51 +165,40 @@ The seeded data includes realistic momentum and reputation distribution:
 
 ### Step 1: Register Seeder Service
 
-Add the following line to `Program.cs` after other service registrations:
+The API already registers the seeder. Do not add an unconditional startup call.
+To opt in to demo data, set this environment variable only for a Development
+run:
 
-```csharp
-builder.Services.AddDatabaseSeeder();
+```powershell
+$env:FOPX_ENABLE_DEMO_DATA_SEEDING = "true"
 ```
 
-### Step 2: Run Seeder on Startup
-
-Add the following code to `Program.cs` after `var app = builder.Build();`:
-
-```csharp
-// Seed database with demo data
-await app.SeedDatabaseAsync();
-```
-
-**Note**: The `Program.cs` file in this project appears to be corrupted (contains null bytes). You may need to:
-1. Restore the file from version control
-2. Manually add the seeder registration
-3. Or run the seeder manually using the code below
-
-### Alternative: Manual Seeder Execution
-
-If you cannot modify `Program.cs`, create a temporary console application or use the following code in a controller endpoint:
-
-```csharp
-using (var scope = app.Services.CreateScope())
-{
-    var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
-    await seeder.SeedAsync();
-}
-```
+Unset the variable to leave seeding disabled. The app additionally enforces
+that the environment is `Development` and startup data mutations are enabled;
+setting the variable cannot enable demo seeding in Production or Testing.
 
 ## Running the Seeder
 
 ### Automatic Seeding
 
-The seeder runs automatically on application startup when properly registered in `Program.cs`.
+The API runs demo seeding only when both conditions are met:
+
+1. `ASPNETCORE_ENVIRONMENT=Development`
+2. `FOPX_ENABLE_DEMO_DATA_SEEDING=true`
+
+Startup data mutations must not be disabled. Production and Testing are always
+excluded by the API policy. The separate `Tools/ReseedDatabase` utility is
+destructive and requires a Development environment, explicit matching server
+and database targets, and a confirmation flag; this opt-in seeder setting does
+not invoke or authorize that reset tool.
 
 ### Manual Seeding
 
 To run the seeder manually:
 
-1. Build the solution
-2. Run the application
-3. The seeder will execute during startup
+Run only against an explicitly selected Development database. Before enabling
+the setting, verify the connection target and confirm that demo accounts and
+records are acceptable there.
 
 ### Re-seeding
 
@@ -216,11 +207,9 @@ The seeder includes idempotency checks to prevent duplicate data:
 - Opportunities are not re-created if they exist
 - Watchlist items are checked for duplicates
 
-To completely reset and re-seed:
-
-1. Drop the database: `dotnet ef database drop --force`
-2. Re-create migrations: `dotnet ef database update`
-3. Run the application (seeder will execute)
+Do not drop a database to re-seed. Seeding is additive/idempotent for records
+it recognizes; it is not a data-reset tool. Any reset requires a separately
+reviewed, explicit target and backup.
 
 ## Data Validation
 
@@ -357,9 +346,9 @@ Entity Framework's `SaveChangesAsync()` wraps operations in transactions by defa
 **Issue**: Seeder doesn't execute on startup
 
 **Solutions**:
-1. Verify service registration in `Program.cs`
-2. Check that `await app.SeedDatabaseAsync();` is called after `app.Build()`
-3. Review application logs for errors
+1. Confirm the environment is exactly `Development`.
+2. Confirm `FOPX_ENABLE_DEMO_DATA_SEEDING=true` is explicitly set for that run.
+3. Confirm startup data mutations are not disabled and review application logs.
 
 ### Duplicate Data
 
@@ -378,15 +367,6 @@ Entity Framework's `SaveChangesAsync()` wraps operations in transactions by defa
 1. Ensure all required NuGet packages are installed
 2. Verify entity namespaces are correct
 3. Check that ApplicationDbContext is accessible
-
-### Program.cs Corruption
-
-**Issue**: Cannot modify Program.cs (contains null bytes)
-
-**Solutions**:
-1. Restore Program.cs from version control
-2. Create a new Program.cs file
-3. Use manual seeder execution via controller endpoint
 
 ## Customization
 
@@ -434,12 +414,12 @@ Modify the `Momentum`, `RepScore`, `ActScore` values in the data arrays to creat
 
 ## Best Practices
 
-1. **Development**: Run the seeder after database migrations
-2. **Testing**: Use the seeder before running automated tests
-3. **Staging**: Use modified seed data for staging environments
-4. **Production**: Never run the seeder in production with test credentials
-5. **Version Control**: Commit seeder code but exclude sensitive credentials
-6. **Security**: Change default passwords before deploying to production
+1. **Development**: Opt in only on a disposable/isolated Development data set.
+2. **Testing**: Use isolated test fixtures; API startup seeding is disabled.
+3. **Staging**: Do not use demo seeding; provision approved staging fixtures separately.
+4. **Production**: Demo seeding is rejected by the API policy, regardless of the flag.
+5. **Version Control**: Never commit credentials or real user data in seed files.
+6. **Security**: Treat any previously seeded demo credentials as compromised and remove or rotate them through an approved process.
 
 ## Support
 

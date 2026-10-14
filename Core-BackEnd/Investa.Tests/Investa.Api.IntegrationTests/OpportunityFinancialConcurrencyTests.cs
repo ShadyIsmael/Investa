@@ -172,7 +172,7 @@ public sealed class OpportunityFinancialConcurrencyTests
             Slug = $"concurrency-project-{Guid.NewGuid():N}",
             Summary = "Relational concurrency test",
             Description = "Seed data for concurrency tests",
-            BusinessStage = ProjectStage.Startup,
+            ProjectStage = ProjectStage.Startup,
             Status = ProjectStatus.Active,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow

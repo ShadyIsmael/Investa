@@ -6,11 +6,8 @@ import React, {
   useState,
 } from "react";
 import {
-  ArrowDownRight,
-  ArrowUpRight,
   ChevronLeft,
   ChevronRight,
-  Minus,
   RefreshCw,
   Search,
 } from "lucide-react";
@@ -18,133 +15,29 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { usePermissions } from "@/context/AuthContext";
 import { companyFinanceService } from "@/services/companyFinanceService";
-import { formatMoney, defaultIsoCode, ensureCurrenciesLoaded } from "../../utils/currency";
+import { ensureCurrenciesLoaded, formatMoney } from "../../utils/currency";
 import type {
   FinanceAccount,
   FinanceOverview,
   FinanceRecentActivity,
-  FinanceTransaction,
 } from "./types";
 import { FinanceEmpty, FinancePermissionDenied } from "./CompanyFinanceStates";
 import { FinanceTransactionHistory } from "./FinanceTransactionHistory";
 import { FinanceWorkflowActions } from "./FinanceWorkflowActions";
+import {
+  amountText,
+  defaultPeriod,
+  localDate,
+  percentText,
+  safeText,
+} from "./shared/financeFormat";
+import { useTransactionDetails } from "./shared/useTransactionDetails";
+import {
+  DashboardSkeleton,
+  KpiCard,
+} from "./overview/OverviewWidgets";
 
 const ACCOUNT_PAGE_SIZE = 5;
-const safeText = (value?: string | null) => value?.trim() || "-";
-const localDate = (date: Date) => {
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${date.getFullYear()}-${month}-${day}`;
-};
-const defaultPeriod = () => {
-  const today = new Date();
-  return {
-    dateFrom: localDate(new Date(today.getFullYear(), today.getMonth(), 1)),
-    dateTo: localDate(today),
-  };
-};
-const amountText = (value: number) =>
-  formatMoney(value, defaultIsoCode(), { bare: true });
-const percentText = (value: number) =>
-  `${value.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 2 })}%`;
-
-const DashboardSkeleton: React.FC = () => (
-  <div className="animate-pulse space-y-4" aria-hidden="true">
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      {Array.from({ length: 4 }, (_, index) => (
-        <div
-          key={index}
-          className="h-28 rounded-lg bg-slate-200/70 dark:bg-slate-800"
-        />
-      ))}
-    </div>
-    <div className="h-80 rounded-lg bg-slate-200/70 dark:bg-slate-800" />
-    <div className="grid gap-3 xl:grid-cols-2">
-      <div className="h-72 rounded-lg bg-slate-200/70 dark:bg-slate-800" />
-      <div className="h-72 rounded-lg bg-slate-200/70 dark:bg-slate-800" />
-    </div>
-  </div>
-);
-
-const ChangeIndicator: React.FC<{ value: number; label: string }> = ({
-  value,
-  label,
-}) => {
-  const positive = value > 0;
-  const negative = value < 0;
-  const Icon = positive ? ArrowUpRight : negative ? ArrowDownRight : Minus;
-  const color = positive
-    ? "text-emerald-600 dark:text-emerald-400"
-    : negative
-      ? "text-rose-600 dark:text-rose-400"
-      : "text-slate-500 dark:text-slate-400";
-  return (
-    <span
-      className={`inline-flex items-center gap-1 text-xs font-semibold ${color}`}
-      dir="ltr"
-    >
-      <Icon size={14} />
-      {percentText(value)}{" "}
-      <span
-        className="font-normal text-slate-500 dark:text-slate-400"
-        dir="auto"
-      >
-        {label}
-      </span>
-    </span>
-  );
-};
-
-interface KpiCardProps {
-  title: string;
-  value: string;
-  currencyLabel: string;
-  change?: number;
-  changeLabel: string;
-  tone: "positive" | "negative" | "neutral";
-  children?: React.ReactNode;
-}
-const KpiCard: React.FC<KpiCardProps> = ({
-  title,
-  value,
-  currencyLabel,
-  change,
-  changeLabel,
-  tone,
-  children,
-}) => {
-  const accent =
-    tone === "positive"
-      ? "border-s-emerald-500"
-      : tone === "negative"
-        ? "border-s-rose-500"
-        : "border-s-slate-400";
-  return (
-    <article
-      className={`rounded-lg border border-border border-s-4 bg-card p-4 shadow-sm ${accent}`}
-    >
-      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-        {title}
-      </p>
-      <p
-        className="mt-2 text-2xl font-bold tracking-tight text-slate-900 dark:text-white"
-        dir="ltr"
-      >
-        {value}
-      </p>
-      <div className="mt-1 min-h-5 text-xs text-slate-500 dark:text-slate-400">
-        {currencyLabel}
-      </div>
-      <div className="mt-2 min-h-5">
-        {change !== undefined ? (
-          <ChangeIndicator value={change} label={changeLabel} />
-        ) : (
-          children
-        )}
-      </div>
-    </article>
-  );
-};
 
 export const FinanceOverviewPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -166,8 +59,8 @@ export const FinanceOverviewPage: React.FC = () => {
   const [accountSearch, setAccountSearch] = useState("");
   const [accountType, setAccountType] = useState("");
   const [accountPage, setAccountPage] = useState(1);
-  const [details, setDetails] = useState<FinanceTransaction | null>(null);
-  const [detailsError, setDetailsError] = useState("");
+  const { details, detailsError, openDetails, closeDetails, replaceDetails } =
+    useTransactionDetails();
   const requestId = useRef(0);
   const isArabic = i18n.language === "ar";
   const baseCurrencyLabel = t("companyFinance.overview.baseCurrency");
@@ -282,13 +175,8 @@ export const FinanceOverviewPage: React.FC = () => {
     item.transactionType === "MoneyIn" && item.incomingMoneyType
       ? enumLabel("incomingTypes", item.incomingMoneyType)
       : enumLabel("transactionTypes", item.transactionType);
-  const openDetails = (id: number) => {
-    setDetailsError("");
-    void companyFinanceService
-      .getTransaction(id)
-      .then(setDetails)
-      .catch(() => setDetailsError(t("companyFinance.overview.detailsError")));
-  };
+  const openOverviewDetails = (id: number) =>
+    openDetails(id, t("companyFinance.overview.detailsError"));
 
   if (!canView) return <FinancePermissionDenied />;
 
@@ -819,9 +707,9 @@ export const FinanceOverviewPage: React.FC = () => {
                     <tr
                       key={item.id}
                       tabIndex={0}
-                      onClick={() => openDetails(item.id)}
+                      onClick={() => openOverviewDetails(item.id)}
                       onKeyDown={(event) => {
-                        if (event.key === "Enter") openDetails(item.id);
+                        if (event.key === "Enter") openOverviewDetails(item.id);
                       }}
                       className="h-14 cursor-pointer hover:bg-slate-50/70 focus:bg-primary/5 focus:outline-none dark:hover:bg-slate-800/40"
                     >
@@ -886,7 +774,7 @@ export const FinanceOverviewPage: React.FC = () => {
               <h3 id="overview-details-title" className="font-bold" dir="ltr">
                 {details.referenceNumber}
               </h3>
-              <button type="button" onClick={() => setDetails(null)}>
+              <button type="button" className="btn-ghost btn-sm" onClick={closeDetails} aria-label={t("common.close")}>
                 {t("common.close")}
               </button>
             </div>
@@ -926,7 +814,7 @@ export const FinanceOverviewPage: React.FC = () => {
                 transaction={details}
                 onEdit={() => navigate(details.transactionType === "MoneyOut" ? `/admin/company-finance/money-out/${details.id}/edit` : `/admin/company-finance/money-in/${details.id}/edit`)}
                 onUpdated={(updated) => {
-                  setDetails(updated);
+                  replaceDetails(updated);
                   void load();
                 }}
               />

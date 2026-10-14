@@ -6,38 +6,64 @@ using Investa.Domain;
 using Investa.Domain.Entities;
 using Investa.Domain.Entities.Enums;
 using Investa.Domain.Entities.Security;
+using Microsoft.EntityFrameworkCore;
 
 namespace Investa.Application.Services;
 
 public sealed class ProjectService(
     IUnitOfWork uow,
     ICurrencyConversionService currencyConversion,
-    ICurrencyDisplayService currencyDisplay) : IProjectService
+    ICurrencyDisplayService currencyDisplay,
+    IRiskLevelService riskLevels) : IProjectService
 {
     public async Task<IReadOnlyList<ProjectDto>> GetMineAsync(Guid founderId)
     {
         await ValidateFounderAsync(founderId);
-        var projects = (await uow.Repository<Project>().FindWithIncludesAsync(
-            p => p.FounderId == founderId, p => p.Opportunities, p => p.Category!)).ToList();
+        var projects = await uow.Repository<Project>().Query()
+            .Where(p => p.FounderId == founderId)
+            .Include(p => p.Opportunities)
+            .Include(p => p.Category)
+            .ToListAsync();
         var result = new List<ProjectDto>(projects.Count);
         foreach (var project in projects.OrderByDescending(p => p.UpdatedAt))
             result.Add(await ToDtoAsync(project));
         return result;
     }
 
-    public async Task<ProjectDto> GetAsync(Guid founderId, int id) => await ToDtoAsync(await GetOwnedAsync(founderId, id));
+    public async Task<ProjectDto> GetAsync(Guid actorId, int id, bool isAdmin = false)
+    {
+        var project = await uow.Repository<Project>().GetSingleAsync(
+            p => p.Id == id, p => p.Opportunities, p => p.Category!);
+        if (project == null) throw new BusinessValidationException("PROJECT_NOT_FOUND", "Project was not found.");
+
+        var isFounder = project.FounderId == actorId;
+        if (!isAdmin && !isFounder)
+        {
+            var opportunityIds = project.Opportunities.Select(opportunity => opportunity.Id).ToArray();
+            var hasApprovedParticipation = opportunityIds.Length > 0 && await uow.Repository<OpportunityJoinRequest>().ExistsAsync(request =>
+                request.InvestorId == actorId
+                && opportunityIds.Contains(request.OpportunityId)
+                && request.Status == OpportunityJoinRequestStatus.Approved
+                && request.RequestType == OpportunityJoinRequestType.InvestmentParticipation);
+            if (!hasApprovedParticipation)
+                throw new BusinessValidationException("PROJECT_VIEW_FORBIDDEN", "Project Details require an approved Participation in this Project.");
+        }
+
+        return await ToDtoAsync(project, isFounder || isAdmin, isFounder, isAdmin);
+    }
 
     public async Task<ProjectDto> CreateAsync(Guid founderId, CreateProjectRequest request)
     {
         await ValidateFounderAsync(founderId);
         Validate(request);
         await ValidateCategoryAsync(request.CategoryId);
+        var riskLevel = await riskLevels.ValidateActiveCodeAsync(request.RiskLevel);
         var now = DateTime.UtcNow;
         var project = new Project { FounderId = founderId, Slug = $"project-{Guid.NewGuid():N}", Status = ProjectStatus.Draft, CreatedAt = now, UpdatedAt = now };
         project.DefaultCurrency = await ResolveDefaultCurrencyAsync(founderId, request.DefaultCurrency);
-        Apply(project, request);
+        Apply(project, request, riskLevel);
         project.Category = request.CategoryId.HasValue
-            ? await uow.Repository<OpportunityCategory>().GetByIdAsync(request.CategoryId.Value)
+            ? await uow.Repository<ProjectCategory>().GetByIdAsync(request.CategoryId.Value)
             : null;
         await uow.Repository<Project>().AddAsync(project);
         await uow.SaveChangesAsync();
@@ -50,13 +76,14 @@ public sealed class ProjectService(
     {
         Validate(request);
         await ValidateCategoryAsync(request.CategoryId);
+        var riskLevel = await riskLevels.ValidateActiveCodeAsync(request.RiskLevel);
         var project = await GetOwnedAsync(founderId, id);
         if (project.Status == ProjectStatus.Archived)
             throw new BusinessValidationException("PROJECT_ARCHIVED", "Archived projects cannot be edited.");
         var before = JsonSerializer.Serialize(await ToDtoAsync(project));
-        Apply(project, request);
+        Apply(project, request, riskLevel);
         project.Category = request.CategoryId.HasValue
-            ? await uow.Repository<OpportunityCategory>().GetByIdAsync(request.CategoryId.Value)
+            ? await uow.Repository<ProjectCategory>().GetByIdAsync(request.CategoryId.Value)
             : null;
         if (!string.IsNullOrWhiteSpace(request.DefaultCurrency))
             project.DefaultCurrency = await ResolveDefaultCurrencyAsync(founderId, request.DefaultCurrency);
@@ -165,10 +192,10 @@ public sealed class ProjectService(
         return total;
     }
 
-    private async Task<ProjectDto> ToDtoAsync(Project p)
+    private async Task<ProjectDto> ToDtoAsync(Project p, bool canCreateOpportunity = true, bool canEdit = true, bool isAdmin = false)
     {
         if (p.Category == null && p.CategoryId.HasValue)
-            p.Category = await uow.Repository<OpportunityCategory>().GetByIdAsync(p.CategoryId.Value);
+            p.Category = await uow.Repository<ProjectCategory>().GetByIdAsync(p.CategoryId.Value);
         var defaultCurrency = string.IsNullOrWhiteSpace(p.DefaultCurrency)
             ? CurrencyMasterDefaults.DefaultCurrency
             : p.DefaultCurrency;
@@ -176,13 +203,20 @@ public sealed class ProjectService(
         var dto = new ProjectDto {
             Id=p.Id, FounderId=p.FounderId, DisplayName=p.DisplayName, LegalName=p.LegalName, Slug=p.Slug,
             Summary=p.Summary, Description=p.Description, CategoryId=p.CategoryId, Category=ToLookupDto(p.Category), Industry=p.Industry,
-            BusinessStage=p.BusinessStage, Geography=p.Geography, FoundedOn=p.FoundedOn, WebsiteUrl=p.WebsiteUrl,
+            ProjectStage=p.ProjectStage, Geography=p.Geography, FoundedOn=p.FoundedOn, WebsiteUrl=p.WebsiteUrl,
             LogoUrl=p.LogoUrl, TeamDescription=p.TeamDescription, BusinessModel=p.BusinessModel, RiskLevel=p.RiskLevel,
             RiskDisclosure=p.RiskDisclosure, Status=p.Status, ArchiveReason=p.ArchiveReason,
             DefaultCurrency=defaultCurrency,
             OpportunityCount=p.Opportunities.Count,
+            CanEdit=canEdit && p.Status != ProjectStatus.Archived,
+            CanCreateOpportunity = canCreateOpportunity && p.Status != ProjectStatus.Archived,
+            AvailableStatusTransitions = canEdit
+                ? Enum.GetValues<ProjectStatus>()
+                    .Where(target => target != p.Status && IsAllowed(p.Status, target, isAdmin))
+                    .ToArray()
+                : Array.Empty<ProjectStatus>(),
             Opportunities=p.Opportunities.OrderBy(o=>o.SequenceNumber).Select(o=>new ProjectOpportunityDto {
-                Id=o.Id, SequenceNumber=o.SequenceNumber, Title=o.Title, Purpose=o.Purpose, Type=o.Type,
+                Id=o.Id, SequenceNumber=o.SequenceNumber, Title=o.Title, Type=o.Type,
                 ProjectStage=o.ProjectStage, ProjectStageCustomName=o.ProjectStageCustomName,
                 Status=o.Status, ModerationStatus=o.ModerationStatus, FundingStatus=o.FundingStatus,
                 FundingOpensAt=o.FundingOpensAt, FundingClosesAt=o.FundingClosesAt, ClosureReason=o.ClosureReason,
@@ -215,7 +249,8 @@ public sealed class ProjectService(
 
     private async Task ValidateFounderAsync(Guid founderId)
     {
-        var user = await uow.Repository<AuthUser>().GetByIdAsync(founderId);
+        var user = await uow.Repository<AuthUser>().Query()
+            .FirstOrDefaultAsync(u => u.Id == founderId);
         var suspended = user?.SuspendedUntil is DateTime until && until > DateTime.UtcNow;
         if (user == null || !user.Status || suspended || user.UserType != UserType.Client
             || user.ClientType is not (ClientType.Founder or ClientType.Both))
@@ -227,36 +262,43 @@ public sealed class ProjectService(
         if (string.IsNullOrWhiteSpace(request.DisplayName) || string.IsNullOrWhiteSpace(request.Summary)
             || string.IsNullOrWhiteSpace(request.Description))
             throw new BusinessValidationException("PROJECT_FIELDS_REQUIRED", "Project name, summary, and description are required.");
-        if (request.BusinessStage.HasValue && !Enum.IsDefined(request.BusinessStage.Value))
+        if (request.ProjectStage.HasValue && !Enum.IsDefined(request.ProjectStage.Value))
             throw new BusinessValidationException("INVALID_PROJECT_STAGE", "Unknown project stage.");
-        if (request.FoundedOn > DateOnly.FromDateTime(DateTime.UtcNow))
+        // FoundedOn is a calendar date, so compare it with the server's current
+        // calendar date without converting through an instant in UTC.
+        if (request.FoundedOn > DateOnly.FromDateTime(DateTime.Today))
             throw new BusinessValidationException("INVALID_FOUNDED_DATE", "Founded date cannot be in the future.");
     }
 
-    private static void Apply(Project p, CreateProjectRequest r)
+    private static void Apply(Project p, CreateProjectRequest r, string? riskLevel)
     {
         p.DisplayName = r.DisplayName.Trim(); p.LegalName = Normalize(r.LegalName);
         p.Summary = r.Summary.Trim(); p.Description = r.Description.Trim();
         p.CategoryId = r.CategoryId; p.Industry = Normalize(r.Industry);
-        p.BusinessStage = r.BusinessStage ?? ProjectStage.Idea; p.Geography = Normalize(r.Geography);
+        p.ProjectStage = r.ProjectStage ?? ProjectStage.Idea; p.Geography = Normalize(r.Geography);
         p.FoundedOn = r.FoundedOn; p.WebsiteUrl = Normalize(r.WebsiteUrl); p.LogoUrl = Normalize(r.LogoUrl);
         p.TeamDescription = Normalize(r.TeamDescription); p.BusinessModel = Normalize(r.BusinessModel);
-        p.RiskLevel = Normalize(r.RiskLevel); p.RiskDisclosure = Normalize(r.RiskDisclosure);
+        p.RiskLevel = riskLevel; p.RiskDisclosure = Normalize(r.RiskDisclosure);
     }
 
     private async Task ValidateCategoryAsync(int? categoryId)
     {
         if (!categoryId.HasValue) return;
-        var category = await uow.Repository<OpportunityCategory>().GetByIdAsync(categoryId.Value);
+        var category = await uow.Repository<ProjectCategory>().GetByIdAsync(categoryId.Value);
         if (category == null || !category.IsActive)
             throw new BusinessValidationException("INVALID_CATEGORY", "CategoryId must reference an active project category.");
     }
 
-    private static OpportunityLookupDto? ToLookupDto(OpportunityCategory? category) => category == null ? null : new()
+    private static ProjectCategoryDto? ToLookupDto(ProjectCategory? category) => category == null ? null : new()
     {
         Id = category.Id,
-        Name = category.Name,
-        Description = category.Description
+        Code = category.Code,
+        NameEn = category.NameEn,
+        NameAr = category.NameAr,
+        DescriptionEn = category.DescriptionEn,
+        DescriptionAr = category.DescriptionAr,
+        SortOrder = category.SortOrder,
+        IsActive = category.IsActive
     };
 
     private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

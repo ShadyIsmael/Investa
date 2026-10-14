@@ -4,32 +4,13 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { usePermissions } from '@/context/AuthContext';
 import { companyFinanceService } from '@/services/companyFinanceService';
-import { defaultIsoCode, ensureCurrenciesLoaded } from '../../utils/currency';
+import { defaultIsoCode, ensureCurrenciesLoaded, getCurrencies } from '../../utils/currency';
 import type { CreateFinanceTransactionRequest, FinanceAccount, FinanceCategory, FinanceSupplier } from './types';
 import { FinancePermissionDenied } from './CompanyFinanceStates';
-import { SupplierCombobox, type LocalizedFinanceSupplier } from './FinanceMoneyInCreatePage';
+import { SupplierCombobox, type LocalizedFinanceSupplier } from './shared/SupplierCombobox';
+import { MONEY_INPUT, formatMoneyInput, normalizeNumberInput, todayLocal } from './shared/moneyInput';
 
-const MONEY_INPUT = /^\d*(?:\.\d{0,2})?$/;
 const RATE_INPUT = /^\d*(?:\.\d{0,6})?$/;
-
-const todayLocal = () => {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${now.getFullYear()}-${month}-${day}`;
-};
-
-const normalizedNumberInput = (value: string, pattern: RegExp) => {
-  const normalized = value.replace(/,/g, '');
-  return pattern.test(normalized) ? normalized : null;
-};
-
-const formatMoney = (value: string) => {
-  if (!value) return '';
-  const [whole, fraction] = value.split('.');
-  const grouped = Number(whole || '0').toLocaleString('en-US');
-  return fraction === undefined ? `${grouped}.00` : `${grouped}.${fraction}`;
-};
 
 export const FinanceMoneyOutCreatePage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -72,7 +53,7 @@ export const FinanceMoneyOutCreatePage: React.FC = () => {
 
   useEffect(() => {
     if (!canAccess) return;
-    void ensureCurrenciesLoaded();
+    void ensureCurrenciesLoaded().then(() => setCurrency(current => current || defaultIsoCode()));
     void Promise.all([
       companyFinanceService.getAccounts(),
       companyFinanceService.getExpenseCategories(),
@@ -103,7 +84,7 @@ export const FinanceMoneyOutCreatePage: React.FC = () => {
     }).catch(() => setLoadError(key('loadError')));
   }, [transactionId, t]);
 
-  const currencies = useMemo(() => [defaultIsoCode(), ...new Set(accounts.map((account) => account.currency).filter((value) => value && value !== defaultIsoCode()))], [accounts]);
+  const currencies = useMemo(() => getCurrencies().map((currency) => currency.isoCode), [accounts, isMasterDataLoading]);
   const isForeignCurrency = currency !== defaultIsoCode();
   const categoryLabel = (category: FinanceCategory) => isArabic
     ? category.nameAr || category.nameEn || category.name || category.code
@@ -217,8 +198,8 @@ export const FinanceMoneyOutCreatePage: React.FC = () => {
           <div className="min-w-0"><h2 className="text-lg font-bold text-slate-900 dark:text-white">{isEdit ? t('companyFinance.workflow.editMoneyOutTitle') : key('title')}</h2><p className="mt-0.5 truncate text-sm text-slate-500 dark:text-slate-400">{isEdit ? t('companyFinance.workflow.editSubtitle') : key('subtitle')}</p></div>
         </div>
         <div className="flex shrink-0 items-center gap-2 sm:ms-auto">
-          <button type="button" onClick={() => navigate('/admin/company-finance/money-out')} className="h-9 rounded-lg border border-border px-4 text-sm font-semibold text-foreground transition hover:bg-slate-100 dark:hover:bg-slate-800">{key('cancel')}</button>
-          <button type="submit" form="money-out-create-form" disabled={isSaving} className="h-9 rounded-lg bg-slate-800 px-4 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-100 dark:text-slate-900">{isSaving ? key('saving') : isEdit ? t('companyFinance.workflow.saveChanges') : key('saveDraft')}</button>
+          <button type="button" onClick={() => navigate('/admin/company-finance/money-out')} className="btn-secondary">{key('cancel')}</button>
+          <button type="submit" form="money-out-create-form" disabled={isSaving} className="btn-primary">{isSaving ? key('saving') : isEdit ? t('companyFinance.workflow.saveChanges') : key('saveDraft')}</button>
         </div>
       </header>
 
@@ -237,9 +218,9 @@ export const FinanceMoneyOutCreatePage: React.FC = () => {
           <section className="py-4">
             <div className="mb-3"><h3 className="text-sm font-semibold text-slate-900 dark:text-white">{key('sectionPayment')}</h3><p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{key('sectionPaymentHint')}</p></div>
             <div className="grid grid-flow-row-dense items-start gap-x-4 gap-y-3.5 md:grid-cols-2 xl:grid-cols-3">
-              <label className={`${labelClass} order-1`}>{key('amount')} <span className="text-rose-600">*</span><input ref={(element) => { fieldRefs.current.amount = element; }} type="text" inputMode="decimal" value={isAmountFocused ? amount : formatMoney(amount)} onFocus={() => setIsAmountFocused(true)} onBlur={() => { setIsAmountFocused(false); validateField('amount'); }} onChange={(event) => { const next = normalizedNumberInput(event.target.value, MONEY_INPUT); if (next !== null) { setAmount(next); if (next && Number(next) > 0) setFieldError('amount'); } }} onKeyDown={(event) => { if (['e', 'E', '+', '-'].includes(event.key)) event.preventDefault(); }} className={fieldClass} dir="ltr" />{fieldErrors.amount && <p className="mt-1 text-xs text-rose-600">{fieldErrors.amount}</p>}</label>
+              <label className={`${labelClass} order-1`}>{key('amount')} <span className="text-rose-600">*</span><input ref={(element) => { fieldRefs.current.amount = element; }} type="text" inputMode="decimal" value={isAmountFocused ? amount : formatMoneyInput(amount)} onFocus={() => setIsAmountFocused(true)} onBlur={() => { setIsAmountFocused(false); validateField('amount'); }} onChange={(event) => { const next = normalizeNumberInput(event.target.value, MONEY_INPUT); if (next !== null) { setAmount(next); if (next && Number(next) > 0) setFieldError('amount'); } }} onKeyDown={(event) => { if (['e', 'E', '+', '-'].includes(event.key)) event.preventDefault(); }} className={fieldClass} dir="ltr" />{fieldErrors.amount && <p className="mt-1 text-xs text-rose-600">{fieldErrors.amount}</p>}</label>
               <label className={`${labelClass} order-2`}>{key('currency')} <span className="text-rose-600">*</span><select ref={(element) => { fieldRefs.current.currency = element; }} value={currency} onChange={(event) => { setCurrency(event.target.value); setFieldError('currency'); }} onBlur={() => validateField('currency')} className={fieldClass} dir="ltr">{currencies.map((value) => <option key={value} value={value}>{value}</option>)}</select>{fieldErrors.currency && <p className="mt-1 text-xs text-rose-600">{fieldErrors.currency}</p>}</label>
-              {isForeignCurrency && <label className={`${labelClass} order-3`}>{key('exchangeRate')} <span className="text-rose-600">*</span><input ref={(element) => { fieldRefs.current.exchangeRate = element; }} type="text" inputMode="decimal" value={exchangeRate} onChange={(event) => { const next = normalizedNumberInput(event.target.value, RATE_INPUT); if (next !== null) { setExchangeRate(next); if (Number(next) > 0) setFieldError('exchangeRate'); } }} onBlur={() => validateField('exchangeRate')} className={fieldClass} dir="ltr" />{fieldErrors.exchangeRate && <p className="mt-1 text-xs text-rose-600">{fieldErrors.exchangeRate}</p>}</label>}
+              {isForeignCurrency && <label className={`${labelClass} order-3`}>{key('exchangeRate')} <span className="text-rose-600">*</span><input ref={(element) => { fieldRefs.current.exchangeRate = element; }} type="text" inputMode="decimal" value={exchangeRate} onChange={(event) => { const next = normalizeNumberInput(event.target.value, RATE_INPUT); if (next !== null) { setExchangeRate(next); if (Number(next) > 0) setFieldError('exchangeRate'); } }} onBlur={() => validateField('exchangeRate')} className={fieldClass} dir="ltr" />{fieldErrors.exchangeRate && <p className="mt-1 text-xs text-rose-600">{fieldErrors.exchangeRate}</p>}</label>}
               <label className={`${labelClass} md:col-span-2 ${isForeignCurrency ? 'order-5 xl:col-span-2' : 'order-4 xl:col-span-3'}`}>{key('sourceAccount')} <span className="text-rose-600">*</span><select ref={(element) => { fieldRefs.current.sourceAccountId = element; }} disabled={isMasterDataLoading} value={sourceAccountId} onChange={(event) => { setSourceAccountId(event.target.value); if (event.target.value) setFieldError('sourceAccountId'); }} onBlur={() => validateField('sourceAccountId')} className={fieldClass}><option value="">{isMasterDataLoading ? key('loadingAccounts') : key('selectAccount')}</option>{accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}</select>{fieldErrors.sourceAccountId && <p className="mt-1 text-xs text-rose-600">{fieldErrors.sourceAccountId}</p>}</label>
               <label className={`${labelClass} ${isForeignCurrency ? 'order-4' : 'order-3 md:col-span-2 xl:col-span-1'}`}>{key('paymentMethod')}<input maxLength={100} value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)} onBlur={() => setPaymentMethod((value) => value.trim())} className={fieldClass} /></label>
             </div>

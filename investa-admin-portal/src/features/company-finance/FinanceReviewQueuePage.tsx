@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ChevronLeft,
-  ChevronRight,
   Eye,
   RotateCcw,
   Search,
@@ -20,11 +18,11 @@ import {
 import { FinanceTransactionHistory } from "./FinanceTransactionHistory";
 import { FinanceWorkflowActions } from "./FinanceWorkflowActions";
 import { formatMoney, ensureCurrenciesLoaded } from "../../utils/currency";
+import { dateLabel, dateTimeLabel, text } from "./shared/financeFormat";
+import { useTransactionDetails } from "./shared/useTransactionDetails";
+import { FinancePagination } from "./shared/FinancePagination";
 
 const pageSizes = [10, 25, 50];
-const text = (value?: string | null) => value?.trim() || "-";
-const dateLabel = (value?: string | null) => value ? new Date(value).toLocaleDateString("en-GB") : "-";
-const dateTimeLabel = (value?: string | null) => value ? new Date(value).toLocaleString("en-GB") : "-";
 
 export const FinanceReviewQueuePage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -46,7 +44,8 @@ export const FinanceReviewQueuePage: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [details, setDetails] = useState<FinanceTransaction | null>(null);
+  const { details, replaceDetails, closeDetails } =
+    useTransactionDetails();
 
   const activeFilterCount = [type, incomingType, fromDate, toDate, currency, account, minAmount, maxAmount].filter(Boolean).length;
 
@@ -114,14 +113,14 @@ export const FinanceReviewQueuePage: React.FC = () => {
     setError(null);
     void companyFinanceService
       .getTransaction(id)
-      .then(setDetails)
+      .then(replaceDetails)
       .catch(() => setError(t("companyFinance.reviewQueue.detailsError")));
-  }, [t]);
+  }, [replaceDetails, t]);
 
   const handleWorkflowUpdated = useCallback((updated: FinanceTransaction) => {
-    setDetails(updated);
+    replaceDetails(updated);
     reloadCurrentPage();
-  }, [reloadCurrentPage]);
+  }, [reloadCurrentPage, replaceDetails]);
 
   if (!canView) return <FinancePermissionDenied />;
   if (loading && !items.length) return <FinanceLoading />;
@@ -357,7 +356,7 @@ export const FinanceReviewQueuePage: React.FC = () => {
                               row.id === updated.id ? updated : row
                             )
                           );
-                          if (details?.id === updated.id) setDetails(updated);
+                          if (details?.id === updated.id) replaceDetails(updated);
                           reloadCurrentPage();
                         }}
                       />
@@ -377,43 +376,25 @@ export const FinanceReviewQueuePage: React.FC = () => {
         </div>
 
         {totalCount > 0 && (
-          <footer className="admin-table-footer flex items-center justify-between border-t px-3 py-2.5 text-sm">
-            <span dir="ltr">
-              {t("companyFinance.reviewQueue.showing", {
-                from,
-                to,
-                total: totalCount,
-              })}
-            </span>
-            <div className="flex items-center gap-2">
-              <select
-                value={pageSize}
-                onChange={(e) => setPageSize(Number(e.target.value))}
-                className="rounded border border-border bg-card px-2 py-1 text-xs"
-              >
-                {pageSizes.map((x) => (
-                  <option key={x}>{x}</option>
-                ))}
-              </select>
-              <button
-                disabled={page === 1}
-                onClick={() => setPage(page - 1)}
-                className="inline-flex h-7 w-7 items-center justify-center rounded text-slate-600 disabled:opacity-30 dark:text-slate-300"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <span dir="ltr" className="text-xs">
-                {page}/{pages}
-              </span>
-              <button
-                disabled={page === pages}
-                onClick={() => setPage(page + 1)}
-                className="inline-flex h-7 w-7 items-center justify-center rounded text-slate-600 disabled:opacity-30 dark:text-slate-300"
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          </footer>
+          <FinancePagination
+            from={from}
+            to={to}
+            total={totalCount}
+            page={page}
+            pageCount={pages}
+            pageSize={pageSize}
+            pageSizes={pageSizes}
+            showingText={t("companyFinance.reviewQueue.showing", {
+              from,
+              to,
+              total: totalCount,
+            })}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            selectClassName="rounded border border-border bg-card px-2 py-1 text-xs"
+            navButtonClassName="inline-flex h-7 w-7 items-center justify-center rounded text-slate-600 disabled:opacity-30 dark:text-slate-300"
+            pageLabelClassName="text-xs"
+          />
         )}
       </section>
 
@@ -425,7 +406,7 @@ export const FinanceReviewQueuePage: React.FC = () => {
                 {details.referenceNumber}
               </h3>
               <button
-                onClick={() => setDetails(null)}
+                onClick={closeDetails}
                 className="rounded-md p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 {t("common.close")}

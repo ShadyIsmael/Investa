@@ -5,6 +5,7 @@
 
 import { logger } from '../utils/logger';
 import { getDynamicBaseUrl, storage } from '../utils/environment';
+import { getConfiguredEnvironment, normalizeApiBaseUrl, validateApiConfiguration } from '@/core/environment';
 
 export const ADMIN_ACCESS_TOKEN_KEY = 'admin_access_token';
 export const ADMIN_AUTHENTICATED_KEY = 'admin_is_authenticated';
@@ -14,11 +15,12 @@ export const ADMIN_REFRESH_EXPIRES_AT_KEY = 'admin_refresh_expires_at';
 
 const LEGACY_ACCESS_TOKEN_KEY = 'token';
 
-const DEFAULT_BASE_URL = getDynamicBaseUrl();
+const DEFAULT_BASE_URL = normalizeApiBaseUrl(getDynamicBaseUrl());
+const CONFIGURED_ENVIRONMENT = getConfiguredEnvironment();
 
 // Initialize BASE_URL with dynamic resolution
 let BASE_URL: string = (() => {
-  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  const envUrl = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL);
   if (envUrl) return envUrl;
 
   const stored = storage.get('apiBaseUrl');
@@ -26,6 +28,11 @@ let BASE_URL: string = (() => {
 
   return DEFAULT_BASE_URL;
 })();
+
+const configurationIssues = validateApiConfiguration(CONFIGURED_ENVIRONMENT, BASE_URL);
+if (configurationIssues.length > 0) {
+  logger.error(`Invalid ${CONFIGURED_ENVIRONMENT} API configuration`, configurationIssues);
+}
 
 // Persist chosen BASE_URL
 storage.set('apiBaseUrl', BASE_URL);
@@ -36,7 +43,7 @@ let USE_MOCKS: boolean = (() => {
   if (stored !== null) return stored !== 'false';
   
   const envUse = import.meta.env.VITE_USE_MOCKS;
-  return typeof envUse !== 'undefined' ? envUse === 'true' : true;
+  return typeof envUse !== 'undefined' ? envUse === 'true' : false;
 })();
 
 // API configuration functions
@@ -87,8 +94,20 @@ export function getAuthToken(): string | null {
 }
 
 // Custom API Error class
+export interface ApiErrorResponse {
+  success?: boolean;
+  code?: string;
+  message?: string;
+  errors?: string[];
+  data?: Record<string, string[]>;
+}
+
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(
+    public status: number,
+    message: string,
+    public readonly response?: ApiErrorResponse
+  ) {
     super(message);
     this.name = 'ApiError';
   }
@@ -106,6 +125,8 @@ function buildUrl(endpoint: string): string {
   if (/^https?:\/\//i.test(endpoint)) return endpoint;
   
   const base = (BASE_URL || '').replace(/\/+$/, '');
+
+  if (import.meta.env.DEV && endpoint.startsWith('/api/')) return endpoint;
 
   // Handle API routes
   if (endpoint.startsWith('/api/')) {
@@ -126,7 +147,34 @@ function buildUrl(endpoint: string): string {
   return `${base}/${ep}`;
 }
 
+async function getSafeErrorMessage(response: Response, fallback: string): Promise<string> {
+  const text = await response.clone().text().catch(() => '');
+  if (!text) return fallback;
+  try {
+    const parsed = JSON.parse(text);
+    return typeof parsed?.message === 'string' && parsed.message.trim()
+      ? parsed.message.trim()
+      : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 // Emit global events for auth and connection issues
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  if (error !== null && typeof error === 'object' && 'message' in error) {
+    const message = (error as Record<string, unknown>).message;
+    if (typeof message === 'string' && message.trim()) return message;
+  }
+  try {
+    return String(error);
+  } catch {
+    return 'Unknown error';
+  }
+}
+
 function emitUnauthorizedEvent(message: string): void {
   try {
     window.dispatchEvent(
@@ -190,20 +238,23 @@ export const api = {
       logger.api.response('GET', endpoint, response.status);
 
       if (!response.ok) {
-        const text = await response.text().catch(() => response.statusText);
-        let msg = text;
+        const msg = await getSafeErrorMessage(response, response.statusText || 'Request failed');
+        let errorResponse: ApiErrorResponse | undefined;
+        
         try {
-          const parsed = JSON.parse(text);
-          msg = parsed?.message || text;
+          const text = await response.clone().text();
+          if (text) {
+            errorResponse = JSON.parse(text) as ApiErrorResponse;
+          }
         } catch {
-          // Not JSON
+          // Ignore parse errors
         }
 
         if (response.status === 401) {
           emitUnauthorizedEvent(msg);
         }
 
-        throw new ApiError(response.status, `Failed to fetch: ${msg}`);
+        throw new ApiError(response.status, `Failed to fetch: ${msg}`, errorResponse);
       }
 
       const contentType = response.headers.get('content-type') || '';
@@ -214,9 +265,11 @@ export const api = {
       const text = await response.text();
       return text as unknown as T;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.api.error('GET', endpoint, error);
-      emitBackendUnreachableEvent(endpoint, error?.message || String(error));
+      if (!(error instanceof ApiError)) {
+        emitBackendUnreachableEvent(endpoint, getErrorMessage(error));
+      }
 
       // 🚨 BACKEND UNREACHABLE: Fall back to mock data if available
       if (mockData !== undefined) {
@@ -226,11 +279,11 @@ export const api = {
       }
 
       if (error instanceof ApiError) throw error;
-      throw new ApiError(0, error?.message || String(error));
+      throw new ApiError(0, getErrorMessage(error));
     }
   },
 
-  async post<T>(endpoint: string, body: any, mockData?: T): Promise<T> {
+  async post<T>(endpoint: string, body: unknown, mockData?: T): Promise<T> {
     logger.api.request('POST', endpoint, body);
 
     if (USE_MOCKS && mockData !== undefined) {
@@ -275,20 +328,23 @@ export const api = {
       logger.api.response('POST', endpoint, response.status);
 
       if (!response.ok) {
-        const text = await response.text().catch(() => response.statusText);
-        let msg = text;
+        const msg = await getSafeErrorMessage(response, response.statusText || 'Request failed');
+        let errorResponse: ApiErrorResponse | undefined;
+        
         try {
-          const parsed = JSON.parse(text);
-          msg = parsed?.message || text;
+          const text = await response.clone().text();
+          if (text) {
+            errorResponse = JSON.parse(text) as ApiErrorResponse;
+          }
         } catch {
-          // Not JSON
+          // Ignore parse errors
         }
 
         if (response.status === 401) {
           emitUnauthorizedEvent(msg);
         }
 
-        throw new ApiError(response.status, `POST failed: ${msg}`);
+        throw new ApiError(response.status, `POST failed: ${msg}`, errorResponse);
       }
 
       const contentType = response.headers.get('content-type') || '';
@@ -299,9 +355,11 @@ export const api = {
       const text = await response.text();
       return text as unknown as T;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.api.error('POST', endpoint, error);
-      emitBackendUnreachableEvent(endpoint, error?.message || String(error));
+      if (!(error instanceof ApiError)) {
+        emitBackendUnreachableEvent(endpoint, getErrorMessage(error));
+      }
 
       // 🚨 BACKEND UNREACHABLE: Fall back to mock data if available
       if (mockData !== undefined) {
@@ -311,11 +369,11 @@ export const api = {
       }
 
       if (error instanceof ApiError) throw error;
-      throw new ApiError(0, error?.message || String(error));
+      throw new ApiError(0, getErrorMessage(error));
     }
   },
 
-  async put<T>(endpoint: string, body: any, mockData?: T): Promise<T> {
+  async put<T>(endpoint: string, body: unknown, mockData?: T): Promise<T> {
     logger.api.request('PUT', endpoint, body);
 
     if (USE_MOCKS && mockData !== undefined) {
@@ -342,8 +400,19 @@ export const api = {
       logger.api.response('PUT', endpoint, response.status);
 
       if (!response.ok) {
-        const text = await response.text().catch(() => response.statusText);
-        throw new ApiError(response.status, `PUT failed: ${text}`);
+        const message = await getSafeErrorMessage(response, response.statusText || 'Request failed');
+        let errorResponse: ApiErrorResponse | undefined;
+        
+        try {
+          const text = await response.clone().text();
+          if (text) {
+            errorResponse = JSON.parse(text) as ApiErrorResponse;
+          }
+        } catch {
+          // Ignore parse errors
+        }
+
+        throw new ApiError(response.status, `PUT failed: ${message}`, errorResponse);
       }
 
       const contentType = response.headers.get('content-type') || '';
@@ -354,7 +423,7 @@ export const api = {
       const text = await response.text();
       return text as unknown as T;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.api.error('PUT', endpoint, error);
 
       // 🚨 BACKEND UNREACHABLE: Fall back to mock data if available
@@ -365,11 +434,11 @@ export const api = {
       }
 
       if (error instanceof ApiError) throw error;
-      throw new ApiError(0, error?.message || String(error));
+      throw new ApiError(0, getErrorMessage(error));
     }
   },
 
-  async patch<T>(endpoint: string, body: any, mockData?: T): Promise<T> {
+  async patch<T>(endpoint: string, body: unknown, mockData?: T): Promise<T> {
     logger.api.request('PATCH', endpoint, body);
 
     if (USE_MOCKS && mockData !== undefined) {
@@ -414,20 +483,23 @@ export const api = {
       logger.api.response('PATCH', endpoint, response.status);
 
       if (!response.ok) {
-        const text = await response.text().catch(() => response.statusText);
-        let msg = text;
+        const msg = await getSafeErrorMessage(response, response.statusText || 'Request failed');
+        let errorResponse: ApiErrorResponse | undefined;
+        
         try {
-          const parsed = JSON.parse(text);
-          msg = parsed?.message || text;
+          const text = await response.clone().text();
+          if (text) {
+            errorResponse = JSON.parse(text) as ApiErrorResponse;
+          }
         } catch {
-          // Not JSON
+          // Ignore parse errors
         }
 
         if (response.status === 401) {
           emitUnauthorizedEvent(msg);
         }
 
-        throw new ApiError(response.status, `PATCH failed: ${msg}`);
+        throw new ApiError(response.status, `PATCH failed: ${msg}`, errorResponse);
       }
 
       const contentType = response.headers.get('content-type') || '';
@@ -438,9 +510,11 @@ export const api = {
       const text = await response.text();
       return text as unknown as T;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.api.error('PATCH', endpoint, error);
-      emitBackendUnreachableEvent(endpoint, error?.message || String(error));
+      if (!(error instanceof ApiError)) {
+        emitBackendUnreachableEvent(endpoint, getErrorMessage(error));
+      }
 
       // 🚨 BACKEND UNREACHABLE: Fall back to mock data if available
       if (mockData !== undefined) {
@@ -450,7 +524,7 @@ export const api = {
       }
 
       if (error instanceof ApiError) throw error;
-      throw new ApiError(0, error?.message || String(error));
+      throw new ApiError(0, getErrorMessage(error));
     }
   },
 
@@ -480,8 +554,19 @@ export const api = {
       logger.api.response('DELETE', endpoint, response.status);
 
       if (!response.ok) {
-        const text = await response.text().catch(() => response.statusText);
-        throw new ApiError(response.status, `DELETE failed: ${text}`);
+        const message = await getSafeErrorMessage(response, response.statusText || 'Request failed');
+        let errorResponse: ApiErrorResponse | undefined;
+        
+        try {
+          const text = await response.clone().text();
+          if (text) {
+            errorResponse = JSON.parse(text) as ApiErrorResponse;
+          }
+        } catch {
+          // Ignore parse errors
+        }
+
+        throw new ApiError(response.status, `DELETE failed: ${message}`, errorResponse);
       }
 
       const contentType = response.headers.get('content-type') || '';
@@ -492,7 +577,7 @@ export const api = {
       const text = await response.text();
       return text as unknown as T;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.api.error('DELETE', endpoint, error);
 
       // 🚨 BACKEND UNREACHABLE: Fall back to mock data if available
@@ -503,7 +588,7 @@ export const api = {
       }
 
       if (error instanceof ApiError) throw error;
-      throw new ApiError(0, error?.message || String(error));
+      throw new ApiError(0, getErrorMessage(error));
     }
   }
 };

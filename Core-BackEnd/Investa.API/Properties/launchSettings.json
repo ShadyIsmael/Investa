@@ -14,10 +14,8 @@
       "dotnetRunMessages": true,
       "launchBrowser": false,
       "launchUrl": "swagger",
-      "applicationUrl": "http://0.0.0.0:5235",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "ASPNETCORE_URLS": "http://0.0.0.0:5235",
         "Firebase__Enabled": "true",
         "GOOGLE_APPLICATION_CREDENTIALS": "C:\\Secrets\\Firebase\\fopx-3fb91-firebase-adminsdk-fbsvc-9f59adda1d.json"
       }
@@ -27,20 +25,16 @@
       "dotnetRunMessages": true,
       "launchBrowser": false,
       "launchUrl": "swagger",
-      "applicationUrl": "http://0.0.0.0:5235",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Staging",
-        "ASPNETCORE_URLS": "http://0.0.0.0:5235"
+        "ASPNETCORE_ENVIRONMENT": "Staging"
       }
     },
     "Production": {
       "commandName": "Project",
       "dotnetRunMessages": false,
       "launchBrowser": false,
-      "applicationUrl": "http://0.0.0.0:80",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Production",
-        "ASPNETCORE_URLS": "http://0.0.0.0:80"
+        "ASPNETCORE_ENVIRONMENT": "Production"
       }
     },
     "IIS Express": {

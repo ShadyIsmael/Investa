@@ -12,7 +12,13 @@ public sealed class ProjectRoomDto
     public bool IsFounder{get;set;} public bool HasProjectAccess{get;set;}
     public IReadOnlyList<ProjectRoomEntryDto> Updates{get;set;}=[];public IReadOnlyList<ProjectRoomEntryDto> Milestones{get;set;}=[];
     public IReadOnlyList<ProjectRoomEntryDto> Timeline{get;set;}=[];public IReadOnlyList<ProjectRoomDocumentDto> Documents{get;set;}=[];
+    public IReadOnlyList<ProjectRoomDocumentCategoryDto> AvailableDocumentCategories{get;set;}=[];
     public IReadOnlyList<ProjectRoomOpportunityDto> Opportunities{get;set;}=[];
+}
+public sealed class ProjectRoomDocumentCategoryDto
+{
+    public string Code{get;set;}=string.Empty;public string NameEn{get;set;}=string.Empty;public string NameAr{get;set;}=string.Empty;
+    public string AllowedExtensions{get;set;}=string.Empty;public long MaxFileSizeBytes{get;set;}
 }
 public sealed class ProjectRoomOpportunityDto
 {
@@ -26,11 +32,15 @@ public sealed class ProjectRoomEntryDto
 {
     public long Id{get;set;}public ProjectRoomEntryType EntryType{get;set;}public string Title{get;set;}=string.Empty;
     public string? Description{get;set;}public DateTime? DueAt{get;set;}public DateTime? CompletedAt{get;set;}public Guid CreatedByUserId{get;set;}public DateTime CreatedAt{get;set;}
+    public string? EventType{get;set;}public int? OpportunityId{get;set;}
 }
 public sealed class ProjectRoomDocumentDto
 {
-    public long Id{get;set;}public string FileKey{get;set;}=string.Empty;public string FileName{get;set;}=string.Empty;
-    public string DocumentType{get;set;}=string.Empty;public ProjectRoomDocumentVisibility Visibility{get;set;}public DateTime CreatedAt{get;set;}
+    public long Id{get;set;}public string FileName{get;set;}=string.Empty;
+    public string DocumentType{get;set;}=string.Empty;public string Category{get;set;}=string.Empty;public string MimeType{get;set;}=string.Empty;
+    public long FileSize{get;set;}public string DownloadUrl{get;set;}=string.Empty;public string? PreviewUrl{get;set;}
+    public bool CanDownload{get;set;}
+    public ProjectRoomDocumentVisibility Visibility{get;set;}public DateTime CreatedAt{get;set;}
 }
 public sealed class CreateProjectRoomEntryRequest
 {
@@ -39,6 +49,8 @@ public sealed class CreateProjectRoomEntryRequest
 }
 public sealed class CreateProjectRoomDocumentRequest
 {
-    [Required,StringLength(500)]public string FileKey{get;set;}=string.Empty;[Required,StringLength(200)]public string FileName{get;set;}=string.Empty;
+    [Required,StringLength(500)]public string FileKey{get;set;}=string.Empty;
+    [Required,StringLength(80)]public string CategoryCode{get;set;}=string.Empty;
     [Required,StringLength(100)]public string DocumentType{get;set;}=string.Empty;public ProjectRoomDocumentVisibility Visibility{get;set;}=ProjectRoomDocumentVisibility.ProjectMembers;
 }
+public sealed record ProjectRoomDocumentContent(byte[] Content,string FileName,string MimeType);

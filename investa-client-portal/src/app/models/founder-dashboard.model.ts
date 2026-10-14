@@ -10,6 +10,10 @@ export interface FounderDashboardMetrics {
   activeOpportunities: number;
   uniqueActiveInvestors: number;
   totalFundingTarget: FounderDashboardMoney;
+  totalCommitted: FounderDashboardMoney;
+  declaredReceivedAmount: FounderDashboardMoney;
+  confirmedReceivedAmount: FounderDashboardMoney;
+  outstandingAmount: FounderDashboardMoney;
   totalFunded: FounderDashboardMoney;
   fundingProgressPercentage: number | null;
   receivedAmount: FounderDashboardMoney;
@@ -26,6 +30,10 @@ export interface FounderDashboardOpportunity {
   fundingTarget: number;
   fundingCurrency: string;
   totalFundingTarget: FounderDashboardMoney;
+  totalCommitted: FounderDashboardMoney;
+  declaredReceivedAmount: FounderDashboardMoney;
+  confirmedReceivedAmount: FounderDashboardMoney;
+  outstandingAmount: FounderDashboardMoney;
   totalFunded: FounderDashboardMoney;
   activeInvestorCount: number;
   fundingProgressPercentage: number | null;
@@ -38,6 +46,10 @@ export interface FounderDashboardProject {
   defaultCurrency: string;
   opportunityCount: number;
   totalFundingTarget: FounderDashboardMoney;
+  totalCommitted: FounderDashboardMoney;
+  declaredReceivedAmount: FounderDashboardMoney;
+  confirmedReceivedAmount: FounderDashboardMoney;
+  outstandingAmount: FounderDashboardMoney;
   totalFunded: FounderDashboardMoney;
   fundingProgressPercentage: number | null;
   opportunities: FounderDashboardOpportunity[];

@@ -36,7 +36,6 @@ public sealed class MultipleOpportunitiesPhase3Tests
         {
             ProjectId = project.Id,
             Title = "First funding round",
-            Purpose = "Seed funding",
             Type = "Seed",
             FundingTarget = 50000,
             FundingCurrency = "EGP",
@@ -55,7 +54,6 @@ public sealed class MultipleOpportunitiesPhase3Tests
         {
             ProjectId = project.Id,
             Title = "Second funding round",
-            Purpose = "Growth funding",
             Type = "Series A",
             FundingTarget = 200000,
             FundingCurrency = "EGP",
@@ -66,7 +64,7 @@ public sealed class MultipleOpportunitiesPhase3Tests
         second.SequenceNumber.Should().Be(2);
 
         var projectUow = new UnitOfWork(db);
-        var projectDto = await new ProjectService(projectUow, new CurrencyConversionService(projectUow, []), new CurrencyDisplayService(projectUow)).GetAsync(founder.Id, project.Id);
+        var projectDto = await new ProjectService(projectUow, new CurrencyConversionService(projectUow, []), new CurrencyDisplayService(projectUow), new RiskLevelService(projectUow)).GetAsync(founder.Id, project.Id);
         projectDto.Opportunities.Should().HaveCount(2);
         projectDto.Opportunities.Select(o => o.SequenceNumber).Should().Equal(1, 2);
         projectDto.Opportunities.Select(o => o.Title).Should().Equal("First funding round", "Second funding round");
@@ -91,7 +89,6 @@ public sealed class MultipleOpportunitiesPhase3Tests
             Project = project,
             FounderId = founder.Id,
             SequenceNumber = 1,
-            Purpose = "Seed",
             Type = "Seed",
             Title = "First",
             ShortDescription = "First opportunity",
@@ -105,7 +102,6 @@ public sealed class MultipleOpportunitiesPhase3Tests
             Project = project,
             FounderId = founder.Id,
             SequenceNumber = 2,
-            Purpose = "Growth",
             Type = "Growth",
             Title = "Second",
             ShortDescription = "Second opportunity",
@@ -168,7 +164,6 @@ public sealed class MultipleOpportunitiesPhase3Tests
         {
             ProjectId = project.Id,
             Title = "Unauthorized",
-            Purpose = "Hack",
             Type = "Hack",
             FundingTarget = 1000,
             FundingCurrency = "EGP",

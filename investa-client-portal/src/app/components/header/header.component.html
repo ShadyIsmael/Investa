@@ -18,11 +18,11 @@
     </nav>
 
     <div class="header-actions">
-      <button (click)="toggleLanguage($event)" class="header-action-btn" title="Toggle language">
+      <button (click)="toggleLanguage($event)" class="header-action-btn" [title]="'header.toggleLanguage' | translate">
         {{ 'language.toggle' | translate }}
       </button>
 
-      <button (click)="toggleTheme($event)" class="header-action-btn" title="Toggle theme">
+      <button (click)="toggleTheme($event)" class="header-action-btn" [title]="'header.toggleTheme' | translate">
         @if (isDarkTheme()) {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         } @else {
@@ -50,9 +50,9 @@
 
           @if (isUserMenuOpen()) {
             <div class="header-dropdown">
-              @for (item of userMenuItems(); track item.label) {
-                <button (click)="handleUserMenuItemClick(item)" class="header-dropdown-item">
-                  <span>{{ item.label }}</span>
+          @for (item of userMenuItems(); track item.key) {
+            <button (click)="handleUserMenuItemClick(item)" class="header-dropdown-item">
+              <span>{{ (item.key === 'logout' ? 'adminNav.logout' : 'adminNav.userMenu.' + item.key) | translate }}</span>
                 </button>
               }
             </div>
@@ -80,7 +80,7 @@
         <a href="#" (click)="openLoginModal($event); closeMobileMenu()" class="header-mobile-link">{{ 'header.login' | translate }}</a>
         <a routerLink="/signup" class="header-mobile-link header-mobile-signup" (click)="closeMobileMenu()">{{ 'header.signup' | translate }}</a>
       } @else {
-        <a routerLink="/admin/dashboard" class="header-mobile-link" (click)="closeMobileMenu()">My Office</a>
+        <a routerLink="/admin/dashboard" class="header-mobile-link" (click)="closeMobileMenu()">{{ 'adminNav.dashboard' | translate }}</a>
       }
     </div>
   }

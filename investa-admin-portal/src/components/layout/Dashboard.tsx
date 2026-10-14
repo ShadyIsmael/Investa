@@ -8,6 +8,7 @@ import { generateExecutiveSummary } from '@/services/geminiService';
 import { AiStatus, DashboardStat, ChartDataPoint, Client } from '@/types';
 import { Icon } from '@/components/common/Icons';
 import { useTranslation } from 'react-i18next';
+import { defaultIsoCode, ensureCurrenciesLoaded, formatMoney } from '@/utils/currency';
 
 const ACCENT_COLORS = ['#0ea5e9','#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4'];
 
@@ -56,8 +57,10 @@ export const Dashboard: React.FC = () => {
   const [creditPlanStats, setCreditPlanStats] = useState<{ name: string; value: number; credits: number }[]>([]);
   const [aiStatus,   setAiStatus]   = useState<AiStatus>(AiStatus.IDLE);
   const [aiResponse, setAiResponse] = useState<string | null>(null);
+  const [, setCurrencyReady] = useState(false);
 
   useEffect(() => {
+    void ensureCurrenciesLoaded().then(() => setCurrencyReady(true));
     (async () => {
       try {
         const [cl] = await Promise.allSettled([clientService.getTopClients()]);
@@ -162,7 +165,7 @@ export const Dashboard: React.FC = () => {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(v: number | undefined) => [`${((v ?? 0) / 1_000_000).toFixed(1)}M EGP`, ''] as [string, string]}
+                    formatter={(v: number | undefined) => [`${formatMoney((v ?? 0) / 1_000_000, defaultIsoCode(), { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M`, ''] as [string, string]}
                     contentStyle={{ borderRadius: '0.75rem', border: '1px solid hsl(var(--border))', backgroundColor: 'hsl(var(--card))', fontSize: '12px' }}
                   />
                   <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '12px' }} />
@@ -202,7 +205,7 @@ export const Dashboard: React.FC = () => {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(v: number) => [`${v.toLocaleString()} purchases`, 'Count'] as [string, string]}
+                    formatter={(v?: number | string) => [`${Number(v ?? 0).toLocaleString()} purchases`, 'Count'] as [string, string]}
                     contentStyle={{
                       borderRadius: '0.75rem', border: '1px solid hsl(var(--border))',
                       backgroundColor: 'hsl(var(--card))', fontSize: '12px',

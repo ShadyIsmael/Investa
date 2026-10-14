@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Investa.Application.Common;
 using Investa.Application.DTOs;
+using Investa.Application.Interfaces;
 using Investa.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,10 +18,12 @@ namespace Investa.API.Controllers
     public class ClientsController : ControllerBase
     {
         private readonly ApplicationDbContext _db;
+        private readonly ICountryService _countries;
 
-        public ClientsController(ApplicationDbContext db)
+        public ClientsController(ApplicationDbContext db, ICountryService countries)
         {
             _db = db;
+            _countries = countries;
         }
 
         [HttpGet("{userId:guid}")]
@@ -82,6 +85,7 @@ namespace Investa.API.Controllers
             if (existing != null)
                 return Conflict(new { message = "Client profile already exists for this user" });
 
+            model.Country = await _countries.NormalizeActiveSelectionAsync(model.Country);
             var entity = MapFromDto(model);
             entity.UserId = userGuid;
             entity.MobileNumber = entity.MobileNumber ?? normalized;
@@ -108,7 +112,7 @@ namespace Investa.API.Controllers
             client.MobileNumber = model.MobileNumber ?? client.MobileNumber;
             client.Phone = model.Phone ?? client.Phone;
             client.Email = model.Email ?? client.Email;
-            client.Country = model.Country;
+            client.Country = await _countries.NormalizeActiveSelectionAsync(model.Country, client.Country);
             client.City = model.City;
             client.District = model.District;
             client.Address1 = model.Address1;
@@ -196,7 +200,7 @@ namespace Investa.API.Controllers
                 LinkedInUrl = c.LinkedInUrl,
                 FacebookUrl = c.FacebookUrl,
                 BusinessTitle = c.BusinessRole,
-                CategoryIds = c.ClientBusinessCategories.Select(x => x.BusinessCategoryId).ToArray(),
+                CategoryIds = c.ClientProjectCategories.Select(x => x.ProjectCategoryId).ToArray(),
                 Score = c.Score,
                 Credit = c.Credit,
                 CreatedAt = c.CreatedAt,
@@ -238,7 +242,7 @@ namespace Investa.API.Controllers
                 UpdatedAt = DateTime.UtcNow,
                 StatusId = c.StatusId,
                 PenaltyDurationDays = c.PenaltyDurationDays,
-                ClientBusinessCategories = c.CategoryIds != null ? new System.Collections.Generic.List<Investa.Domain.Entities.ClientBusinessCategory>(c.CategoryIds.Select(id => new Investa.Domain.Entities.ClientBusinessCategory { BusinessCategoryId = id })) : new System.Collections.Generic.List<Investa.Domain.Entities.ClientBusinessCategory>()
+                ClientProjectCategories = c.CategoryIds != null ? new System.Collections.Generic.List<Investa.Domain.Entities.ClientProjectCategory>(c.CategoryIds.Select(id => new Investa.Domain.Entities.ClientProjectCategory { ProjectCategoryId = id })) : new System.Collections.Generic.List<Investa.Domain.Entities.ClientProjectCategory>()
             };
         }
     }

@@ -738,8 +738,8 @@ public class OrgUserService : IOrgUserService
             var identityUser = await _userManager.FindByIdAsync(userId.ToString());
             if (identityUser != null && identityUser.Email != null)
             {
-                var token = await _userManager.GeneratePasswordResetTokenAsync(identityUser);
-                _logger.LogInformation("Invite token generated for user {UserId}: {Token}", userId, token);
+                _ = await _userManager.GeneratePasswordResetTokenAsync(identityUser);
+                _logger.LogInformation("Password reset token generated for organizational-user invitation");
             }
 
             await LogAuditAsync(null, "OrgUser", userId.ToString(), "Invite", message ?? "Invitation sent", Information);

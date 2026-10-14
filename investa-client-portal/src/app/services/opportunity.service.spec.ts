@@ -43,7 +43,7 @@ describe('OpportunityService Project Context contract', () => {
           teamDescription: 'Operations and engineering team.',
           businessModel: 'B2B2C',
           status: 'Active',
-          businessStage: 'Growth',
+          projectStage: 'Growth',
           defaultCurrency: 'EGP'
         }
       }
@@ -76,5 +76,45 @@ describe('OpportunityService Project Context contract', () => {
     expect(opportunity.projectContext?.displayName).toBe('North Star Foods');
     expect(opportunity.fundingTarget).toBe(250000);
     expect((opportunity.projectContext as any)?.fundingTarget).toBeUndefined();
+  });
+
+  it('sends Use of Funds once in Create payloads', async () => {
+    const result = service.createOpportunity({
+      title: 'Working capital round',
+      shortDescription: 'A sufficiently detailed opportunity summary.',
+      useOfFunds: 'Fund the initial production and distribution rollout.'
+    });
+    const request = http.expectOne('https://api.test/api/v1/opportunities');
+
+    expect(request.request.body.useOfFunds).toBe('Fund the initial production and distribution rollout.');
+    request.flush({ data: { id: 24, title: 'Working capital round' } });
+    await result;
+  });
+
+  it('loads parent Project context with the Opportunity Room', async () => {
+    const result = service.getOpportunityRoom(24);
+    const request = http.expectOne('https://api.test/api/v1/opportunities/24/room');
+
+    request.flush({
+      data: {
+        projectId: 9,
+        projectDisplayName: 'North Star Foods',
+        projectContext: {
+          id: 9,
+          displayName: 'North Star Foods',
+          summary: 'Food distribution network.',
+          industry: 'Food and beverage',
+          geography: 'Cairo',
+          projectStage: 'Growth',
+          logoUrl: '/projects/9/logo.png'
+        },
+        overview: { id: 24, title: 'Working capital round', useOfFunds: 'Fund distribution.' }
+      }
+    });
+
+    const room = await result;
+    expect(room.projectContext?.displayName).toBe('North Star Foods');
+    expect(room.projectContext?.projectStage).toBe('Growth');
+    expect(room.overview?.useOfFunds).toBe('Fund distribution.');
   });
 });

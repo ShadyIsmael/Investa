@@ -29,8 +29,22 @@
 .room-progress { grid-column:1 / -1; height:5px; overflow:hidden; border-radius:999px; background:var(--investa-surface-soft); }
 .room-progress i { display:block; height:100%; border-radius:inherit; background:var(--investa-accent); }
 .room-success { margin-top:10px; padding:9px 12px; border-radius:9px; border:1px solid rgba(34,197,50,.25); background:rgba(34,197,50,.09); color:var(--investa-text-primary); font-size:.72rem; }
-.room-workspace-grid { display:grid; grid-template-columns:150px minmax(0,1fr); gap:12px; margin-top:12px; align-items:start; }
+.room-workspace-grid { display:grid; grid-template-columns:260px minmax(0,1fr); gap:12px; margin-top:12px; align-items:start; }
 .room-navigation { position:sticky; top:70px; padding:6px; }
+.room-project-context { padding:10px; margin-bottom:8px; border-bottom:1px solid var(--investa-border); }
+.room-project-identity { display:flex; align-items:center; gap:9px; min-width:0; }
+.room-project-logo { width:42px; height:42px; flex:0 0 auto; display:grid; place-items:center; overflow:hidden; border-radius:9px; background:linear-gradient(135deg, var(--investa-primary), #394047); color:#fff; font-size:.8rem; font-weight:900; }
+.room-project-logo img { width:100%; height:100%; object-fit:cover; }
+.room-project-heading { min-width:0; }
+.room-project-heading .eyebrow { margin:0; }
+.room-project-heading h2,.room-project-context--fallback h2 { margin:3px 0 0; overflow:hidden; color:var(--investa-text-primary); font-size:.8rem; font-weight:850; text-overflow:ellipsis; white-space:nowrap; }
+.room-project-facts { display:grid; gap:6px; margin:11px 0 0; }
+.room-project-facts div { display:flex; justify-content:space-between; gap:8px; font-size:.64rem; }
+.room-project-facts dt { color:var(--investa-text-muted); }
+.room-project-facts dd { min-width:0; overflow:hidden; color:var(--investa-text-secondary); text-align:end; text-overflow:ellipsis; white-space:nowrap; }
+.room-project-description { display:-webkit-box; margin:11px 0 0; overflow:hidden; color:var(--investa-text-muted); font-size:.66rem; line-height:1.45; -webkit-box-orient:vertical; -webkit-line-clamp:3; }
+.room-project-link { display:inline-flex; margin-top:11px; color:var(--investa-accent); font-size:.66rem; font-weight:800; text-decoration:none; }
+.room-project-link:hover { text-decoration:underline; text-underline-offset:3px; }
 .room-navigation nav { display:flex; flex-direction:column; gap:3px; }
 .room-navigation button { display:grid; grid-template-columns:22px minmax(0,1fr) auto; align-items:center; min-height:38px; padding:7px 9px; border-radius:9px; color:var(--investa-text-secondary); font-size:.7rem; font-weight:750; text-align:start; transition:background .16s ease,color .16s ease; }
 .room-navigation button:hover { background:var(--investa-surface-soft); color:var(--investa-text-primary); }

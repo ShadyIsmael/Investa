@@ -38,7 +38,7 @@ string sql = File.ReadAllText(sqlPath);
 bool autoConfirm = args.Any(a => string.Equals(a, "--confirm", StringComparison.OrdinalIgnoreCase));
 if (!autoConfirm)
 {
-    Console.WriteLine("This will normalize bilingual fields for Lookups, BusinessCategories, and ClientStatuses (set Arabic to English if missing).\nNo schema changes will be made.");
+    Console.WriteLine("This will normalize bilingual fields for Lookups, ProjectCategories, and ClientStatuses (set Arabic to English if missing).\nNo schema changes will be made.");
     Console.Write("Type CONFIRM to proceed: ");
     string? confirmation = Console.ReadLine();
     if (confirmation?.Trim() != "CONFIRM")
@@ -71,9 +71,9 @@ try
     using (var cmd = new NpgsqlCommand("SELECT COUNT(*) FROM \"Lookups\" WHERE \"ValueAr\" IS NULL OR \"ValueAr\" = '';", conn))
         missingLookupAr = Convert.ToInt32(cmd.ExecuteScalar());
 
-    using (var cmd = new NpgsqlCommand("SELECT COUNT(*) FROM \"BusinessCategories\";", conn))
+    using (var cmd = new NpgsqlCommand("SELECT COUNT(*) FROM \"ProjectCategories\";", conn))
         totalCategories = Convert.ToInt32(cmd.ExecuteScalar());
-    using (var cmd = new NpgsqlCommand("SELECT COUNT(*) FROM \"BusinessCategories\" WHERE \"ValueAr\" IS NULL OR \"ValueAr\" = '';", conn))
+    using (var cmd = new NpgsqlCommand("SELECT COUNT(*) FROM \"ProjectCategories\" WHERE \"NameAr\" IS NULL OR \"NameAr\" = '';", conn))
         missingCategoryAr = Convert.ToInt32(cmd.ExecuteScalar());
 
     using (var cmd = new NpgsqlCommand("SELECT COUNT(*) FROM \"ClientStatuses\";", conn))
@@ -82,7 +82,7 @@ try
         missingClientStatusAr = Convert.ToInt32(cmd.ExecuteScalar());
 
     Console.WriteLine($"Lookups: {totalLookups} total, missing Arabic: {missingLookupAr}");
-    Console.WriteLine($"BusinessCategories: {totalCategories} total, missing Arabic: {missingCategoryAr}");
+    Console.WriteLine($"ProjectCategories: {totalCategories} total, missing Arabic: {missingCategoryAr}");
     Console.WriteLine($"ClientStatuses: {totalClientStatuses} total, missing Arabic: {missingClientStatusAr}");
 
     // Show counts per LookupType

@@ -12,8 +12,15 @@
   <!-- <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"> -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@latest/css/flag-icons.min.css">
   <script src="https://d3js.org/d3.v7.min.js"></script>
-  <!-- Google Maps JavaScript API with Places library -->
-  <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA4ztts5AGByDwNkxmviihGmyX7wccfe3g&libraries=places&loading=async"></script>
+  <!-- Google Maps JavaScript API: lazy-loaded on demand by components that need it.
+       Do NOT load globally here: a global load fires Tracking Prevention
+       ("blocked access to storage") + gen_204 ERR_BLOCKED_BY_CLIENT (ad-blocker)
+       on every page including /login, even though login never uses maps.
+       See src/app/services/google-maps-loader.service.ts pattern:
+         const loader = inject(GoogleMapsLoaderService);
+         await loader.loadPlacesLibrary();
+  <script async src="https://maps.googleapis.com/maps/api/js?key=YOUR_KEY&libraries=places&loading=async"></script>
+  -->
   <style>
     /*
       If your backend runs on a different host/port during development,

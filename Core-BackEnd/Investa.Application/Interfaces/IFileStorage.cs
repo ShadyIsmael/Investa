@@ -22,6 +22,7 @@ public record FileStoreMetadataDto
 public interface IFileStorage
 {
     Task<string> SaveFileAsync(string relativePath, Stream data, string contentType);
+    Task<FileStoreUploadResult> UploadWithPolicyAsync(string categoryCode, string originalFileName, Stream data, string contentType, long declaredFileSize, FileStoreUploadPolicy policy, FileStoreUploadContext context, CancellationToken cancellationToken = default);
     Task<byte[]> ReadFileAsync(string storedPath, CancellationToken cancellationToken = default);
 
     Task<bool> DeleteFileAsync(string relativePath);
@@ -30,3 +31,7 @@ public interface IFileStorage
 
     Task<FileStoreMetadataDto?> GetFileMetadataAsync(string fileKey, CancellationToken cancellationToken = default);
 }
+
+public sealed record FileStoreUploadPolicy(long MaxFileSizeBytes, IReadOnlyCollection<string> AllowedExtensions, IReadOnlyCollection<string> AllowedMimeTypes);
+public sealed record FileStoreUploadContext(Guid UserId, int? ProjectId, string? EntityType, string? EntityId);
+public sealed record FileStoreUploadResult(string FileId, string FileKey, string FileName, string OriginalFileName, string Extension, string MimeType, long FileSize, string Category, string Url, string? PreviewUrl, string? ThumbnailUrl);

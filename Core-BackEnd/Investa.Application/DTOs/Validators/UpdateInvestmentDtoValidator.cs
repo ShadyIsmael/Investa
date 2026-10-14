@@ -23,13 +23,9 @@ public class UpdateInvestmentDtoValidator : AbstractValidator<UpdateInvestmentDt
             .NotEmpty()
             .When(x => x.StartDate.HasValue);
 
-        RuleFor(x => x.BusinessStageId)
+        RuleFor(x => x.ProjectCategoryId)
             .GreaterThan(0)
-            .When(x => x.BusinessStageId.HasValue);
-
-        RuleFor(x => x.BusinessCategoryId)
-            .GreaterThan(0)
-            .When(x => x.BusinessCategoryId.HasValue);
+            .When(x => x.ProjectCategoryId.HasValue);
 
         RuleFor(x => x.TargetFund)
             .GreaterThan(0m)

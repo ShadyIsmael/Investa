@@ -8,14 +8,25 @@ public class InvestmentContract
     public int Id { get; set; }
     [Required, StringLength(80)] public string ContractNumber { get; set; } = string.Empty;
     public int OpportunityId { get; set; }
+    public int? AcceptedOfferId { get; set; }
+    public int? AcceptedOfferVersionNumber { get; set; }
+    public int? ParticipationRequestId { get; set; }
     public Guid FounderUserId { get; set; }
     public Guid InvestorUserId { get; set; }
     public InvestmentModel InvestmentModel { get; set; }
+    [Required, StringLength(200)] public string OpportunityTitleSnapshot { get; set; } = string.Empty;
+    [Required, StringLength(100)] public string FounderNameSnapshot { get; set; } = string.Empty;
+    [Required, StringLength(100)] public string InvestorNameSnapshot { get; set; } = string.Empty;
+    [Required, StringLength(10)] public string AcceptedCurrency { get; set; } = string.Empty;
+    public decimal AcceptedAmount { get; set; }
+    public DateTime AcceptanceTimestamp { get; set; }
     public int CurrentVersionNumber { get; set; }
     public InvestmentContractStatus Status { get; set; } = InvestmentContractStatus.Active;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public Opportunity? Opportunity { get; set; }
+    public Chat.NegotiationOffer? AcceptedOffer { get; set; }
+    public OpportunityJoinRequest? ParticipationRequest { get; set; }
     public AuthUser? FounderUser { get; set; }
     public AuthUser? InvestorUser { get; set; }
     public ICollection<InvestmentContractVersion> Versions { get; set; } = new List<InvestmentContractVersion>();

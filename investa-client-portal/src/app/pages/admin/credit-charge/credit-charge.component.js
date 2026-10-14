@@ -1,388 +1,611 @@
-import { Component, ChangeDetectionStrategy, signal, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
-import { UserService } from '../../../services/user.service';
-import { AuthService } from '../../../services/auth.service';
-import { API_BASE } from '../../../config/api.token';
+import { ActivatedRoute, Router } from '@angular/router';
+import { TranslatePipe } from '../../../pipes/translate.pipe';
+import { LanguageService } from '../../../services/language.service';
+import { CurrencyService } from '../../../services/currency.service';
+import { WalletService } from '../../../services/wallet.service';
+import { CreditPurchaseService } from '../../../services/credit-purchase.service';
 import * as i0 from "@angular/core";
-import * as i1 from "@angular/common";
-function CreditChargeComponent_div_19_Template(rf, ctx) { if (rf & 1) {
-    i0.ɵɵelementStart(0, "div", 31)(1, "div", 32);
-    i0.ɵɵnamespaceSVG();
-    i0.ɵɵelementStart(2, "svg", 33);
-    i0.ɵɵelement(3, "path", 34);
-    i0.ɵɵelementEnd();
-    i0.ɵɵnamespaceHTML();
-    i0.ɵɵelementStart(4, "p");
-    i0.ɵɵtext(5);
-    i0.ɵɵelementEnd()()();
-} if (rf & 2) {
-    const ctx_r0 = i0.ɵɵnextContext();
-    i0.ɵɵadvance(5);
-    i0.ɵɵtextInterpolate(ctx_r0.errorMessage());
-} }
-function CreditChargeComponent_div_25_Template(rf, ctx) { if (rf & 1) {
-    i0.ɵɵelementStart(0, "div", 35);
-    i0.ɵɵnamespaceSVG();
-    i0.ɵɵelementStart(1, "svg", 36);
-    i0.ɵɵelement(2, "circle", 37)(3, "path", 38);
-    i0.ɵɵelementEnd();
-    i0.ɵɵnamespaceHTML();
-    i0.ɵɵelementStart(4, "p", 39);
-    i0.ɵɵtext(5, "Loading plans...");
-    i0.ɵɵelementEnd()();
-} }
-function CreditChargeComponent_div_26_Template(rf, ctx) { if (rf & 1) {
-    i0.ɵɵelementStart(0, "div", 35);
-    i0.ɵɵnamespaceSVG();
-    i0.ɵɵelementStart(1, "svg", 40);
-    i0.ɵɵelement(2, "path", 41);
-    i0.ɵɵelementEnd();
-    i0.ɵɵnamespaceHTML();
-    i0.ɵɵelementStart(3, "p", 42);
-    i0.ɵɵtext(4, "No plans available at the moment. Please check back later.");
-    i0.ɵɵelementEnd()();
-} }
-function CreditChargeComponent_div_27_div_1_div_1_Template(rf, ctx) { if (rf & 1) {
-    i0.ɵɵelementStart(0, "div", 57);
-    i0.ɵɵnamespaceSVG();
-    i0.ɵɵelementStart(1, "svg", 58);
-    i0.ɵɵelement(2, "path", 59);
-    i0.ɵɵelementEnd()();
-} }
-function CreditChargeComponent_div_27_div_1_Template(rf, ctx) { if (rf & 1) {
-    const _r2 = i0.ɵɵgetCurrentView();
-    i0.ɵɵelementStart(0, "div", 45);
-    i0.ɵɵlistener("click", function CreditChargeComponent_div_27_div_1_Template_div_click_0_listener() { const plan_r3 = i0.ɵɵrestoreView(_r2).$implicit; const ctx_r0 = i0.ɵɵnextContext(2); return i0.ɵɵresetView(ctx_r0.selectPlan(plan_r3.id)); });
-    i0.ɵɵtemplate(1, CreditChargeComponent_div_27_div_1_div_1_Template, 3, 0, "div", 46);
-    i0.ɵɵelementStart(2, "span", 47);
+const _forTrack0 = ($index, $item) => $item.id;
+function CreditChargeComponent_Conditional_28_Template(rf, ctx) { if (rf & 1) {
+    const _r1 = i0.ɵɵgetCurrentView();
+    i0.ɵɵdomElementStart(0, "div", 6);
+    i0.ɵɵtext(1);
+    i0.ɵɵdomElementStart(2, "button", 9);
+    i0.ɵɵdomListener("click", function CreditChargeComponent_Conditional_28_Template_button_click_2_listener() { i0.ɵɵrestoreView(_r1); const ctx_r1 = i0.ɵɵnextContext(); return i0.ɵɵresetView(ctx_r1.load()); });
     i0.ɵɵtext(3);
-    i0.ɵɵelementEnd();
-    i0.ɵɵelementStart(4, "h3", 48);
-    i0.ɵɵtext(5);
-    i0.ɵɵelementEnd();
-    i0.ɵɵelementStart(6, "div", 49)(7, "span", 50);
-    i0.ɵɵtext(8);
-    i0.ɵɵelementEnd();
-    i0.ɵɵelementStart(9, "span", 51);
-    i0.ɵɵtext(10, "EGP");
-    i0.ɵɵelementEnd()();
-    i0.ɵɵelementStart(11, "div", 52);
-    i0.ɵɵnamespaceSVG();
-    i0.ɵɵelementStart(12, "svg", 53);
-    i0.ɵɵelement(13, "path", 54);
-    i0.ɵɵelementEnd();
-    i0.ɵɵnamespaceHTML();
-    i0.ɵɵelementStart(14, "span", 55);
-    i0.ɵɵtext(15);
-    i0.ɵɵelementEnd()();
-    i0.ɵɵelementStart(16, "p", 56);
-    i0.ɵɵtext(17);
-    i0.ɵɵelementEnd()();
+    i0.ɵɵpipe(4, "translate");
+    i0.ɵɵdomElementEnd()();
 } if (rf & 2) {
-    const plan_r3 = ctx.$implicit;
-    const ctx_r0 = i0.ɵɵnextContext(2);
-    i0.ɵɵclassMap("relative cursor-pointer rounded-xl p-6 border-2 transition-all hover:shadow-lg " + (ctx_r0.selectedPlanId() === plan_r3.id ? "border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/20" : "border-slate-700 bg-slate-800/50 hover:border-slate-600"));
+    const ctx_r1 = i0.ɵɵnextContext();
     i0.ɵɵadvance();
-    i0.ɵɵproperty("ngIf", ctx_r0.selectedPlanId() === plan_r3.id);
+    i0.ɵɵtextInterpolate1("", ctx_r1.error(), " ");
     i0.ɵɵadvance(2);
-    i0.ɵɵtextInterpolate1(" ", ctx_r0.BILLING_LABELS[plan_r3.billingPeriod], " ");
-    i0.ɵɵadvance(2);
-    i0.ɵɵtextInterpolate(plan_r3.name);
-    i0.ɵɵadvance(2);
-    i0.ɵɵclassMap(ctx_r0.selectedPlanId() === plan_r3.id ? "text-blue-400" : "text-white");
-    i0.ɵɵadvance();
-    i0.ɵɵtextInterpolate1(" ", plan_r3.price.toLocaleString(), " ");
-    i0.ɵɵadvance(7);
-    i0.ɵɵtextInterpolate1("", plan_r3.credits.toLocaleString(), " Credits");
-    i0.ɵɵadvance(2);
-    i0.ɵɵtextInterpolate1("", (plan_r3.price / plan_r3.credits).toFixed(2), " EGP / credit");
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(4, 2, "creditPurchase.retry"));
 } }
-function CreditChargeComponent_div_27_Template(rf, ctx) { if (rf & 1) {
-    i0.ɵɵelementStart(0, "div", 43);
-    i0.ɵɵtemplate(1, CreditChargeComponent_div_27_div_1_Template, 18, 10, "div", 44);
-    i0.ɵɵelementEnd();
+function CreditChargeComponent_Conditional_29_Template(rf, ctx) { if (rf & 1) {
+    i0.ɵɵdomElementStart(0, "div", 7);
+    i0.ɵɵtext(1);
+    i0.ɵɵpipe(2, "translate");
+    i0.ɵɵdomElementEnd();
 } if (rf & 2) {
-    const ctx_r0 = i0.ɵɵnextContext();
     i0.ɵɵadvance();
-    i0.ɵɵproperty("ngForOf", ctx_r0.adminPlans());
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(2, 1, "creditPurchase.loading"));
 } }
-function CreditChargeComponent_div_32_Template(rf, ctx) { if (rf & 1) {
-    i0.ɵɵelementStart(0, "div", 60);
-    i0.ɵɵnamespaceSVG();
-    i0.ɵɵelementStart(1, "svg", 61);
-    i0.ɵɵelement(2, "path", 62);
-    i0.ɵɵelementEnd();
-    i0.ɵɵnamespaceHTML();
-    i0.ɵɵelementStart(3, "p", 63);
-    i0.ɵɵtext(4, "Select a plan to continue");
-    i0.ɵɵelementEnd()();
+function CreditChargeComponent_Conditional_30_Conditional_5_Template(rf, ctx) { if (rf & 1) {
+    i0.ɵɵdomElementStart(0, "div", 7);
+    i0.ɵɵtext(1);
+    i0.ɵɵpipe(2, "translate");
+    i0.ɵɵdomElementEnd();
+} if (rf & 2) {
+    i0.ɵɵadvance();
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(2, 1, "creditPurchase.noPackages"));
 } }
-function CreditChargeComponent_div_33_span_22_Template(rf, ctx) { if (rf & 1) {
-    i0.ɵɵelementStart(0, "span");
-    i0.ɵɵtext(1, "Purchase Now");
-    i0.ɵɵelementEnd();
+function CreditChargeComponent_Conditional_30_Conditional_6_For_2_Conditional_1_Template(rf, ctx) { if (rf & 1) {
+    i0.ɵɵdomElementStart(0, "span", 20);
+    i0.ɵɵtext(1);
+    i0.ɵɵpipe(2, "translate");
+    i0.ɵɵdomElementEnd();
+} if (rf & 2) {
+    i0.ɵɵadvance();
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(2, 1, "creditPurchase.featured"));
 } }
-function CreditChargeComponent_div_33_span_23_Template(rf, ctx) { if (rf & 1) {
-    i0.ɵɵelementStart(0, "span", 72);
-    i0.ɵɵnamespaceSVG();
-    i0.ɵɵelementStart(1, "svg", 73);
-    i0.ɵɵelement(2, "circle", 37)(3, "path", 38);
-    i0.ɵɵelementEnd();
-    i0.ɵɵtext(4, " Processing... ");
-    i0.ɵɵelementEnd();
+function CreditChargeComponent_Conditional_30_Conditional_6_For_2_Conditional_8_Template(rf, ctx) { if (rf & 1) {
+    i0.ɵɵdomElementStart(0, "span", 22);
+    i0.ɵɵtext(1);
+    i0.ɵɵpipe(2, "translate");
+    i0.ɵɵdomElementEnd();
+} if (rf & 2) {
+    const item_r5 = i0.ɵɵnextContext().$implicit;
+    const ctx_r1 = i0.ɵɵnextContext(3);
+    i0.ɵɵadvance();
+    i0.ɵɵtextInterpolate2("+ ", ctx_r1.formatNumber(item_r5.bonusCredits), " ", i0.ɵɵpipeBind1(2, 2, "creditPurchase.bonus"));
 } }
-function CreditChargeComponent_div_33_Template(rf, ctx) { if (rf & 1) {
+function CreditChargeComponent_Conditional_30_Conditional_6_For_2_Template(rf, ctx) { if (rf & 1) {
     const _r4 = i0.ɵɵgetCurrentView();
-    i0.ɵɵelementStart(0, "div", 64)(1, "div", 65)(2, "span", 42);
-    i0.ɵɵtext(3, "Plan:");
-    i0.ɵɵelementEnd();
-    i0.ɵɵelementStart(4, "span", 66);
+    i0.ɵɵdomElementStart(0, "button", 19);
+    i0.ɵɵdomListener("click", function CreditChargeComponent_Conditional_30_Conditional_6_For_2_Template_button_click_0_listener() { const item_r5 = i0.ɵɵrestoreView(_r4).$implicit; const ctx_r1 = i0.ɵɵnextContext(3); return i0.ɵɵresetView(ctx_r1.selectPackage(item_r5.id)); });
+    i0.ɵɵconditionalCreate(1, CreditChargeComponent_Conditional_30_Conditional_6_For_2_Conditional_1_Template, 3, 3, "span", 20);
+    i0.ɵɵdomElementStart(2, "strong");
+    i0.ɵɵtext(3);
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(4, "span", 21);
     i0.ɵɵtext(5);
-    i0.ɵɵelementEnd()();
-    i0.ɵɵelementStart(6, "div", 65)(7, "span", 42);
-    i0.ɵɵtext(8, "Credits:");
-    i0.ɵɵelementEnd();
-    i0.ɵɵelementStart(9, "span", 66);
-    i0.ɵɵtext(10);
-    i0.ɵɵelementEnd()();
-    i0.ɵɵelementStart(11, "div", 65)(12, "span", 42);
-    i0.ɵɵtext(13, "Billing:");
-    i0.ɵɵelementEnd();
-    i0.ɵɵelementStart(14, "span", 66);
-    i0.ɵɵtext(15);
-    i0.ɵɵelementEnd()();
-    i0.ɵɵelementStart(16, "div", 67)(17, "span", 66);
-    i0.ɵɵtext(18, "Total:");
-    i0.ɵɵelementEnd();
-    i0.ɵɵelementStart(19, "span", 68);
-    i0.ɵɵtext(20);
-    i0.ɵɵelementEnd()();
-    i0.ɵɵelementStart(21, "button", 69);
-    i0.ɵɵlistener("click", function CreditChargeComponent_div_33_Template_button_click_21_listener() { i0.ɵɵrestoreView(_r4); const ctx_r0 = i0.ɵɵnextContext(); return i0.ɵɵresetView(ctx_r0.purchasePackage()); });
-    i0.ɵɵtemplate(22, CreditChargeComponent_div_33_span_22_Template, 2, 0, "span", 70)(23, CreditChargeComponent_div_33_span_23_Template, 5, 0, "span", 71);
-    i0.ɵɵelementEnd()();
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(6, "span");
+    i0.ɵɵtext(7);
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵconditionalCreate(8, CreditChargeComponent_Conditional_30_Conditional_6_For_2_Conditional_8_Template, 3, 4, "span", 22);
+    i0.ɵɵdomElementEnd();
 } if (rf & 2) {
-    const ctx_r0 = i0.ɵɵnextContext();
-    i0.ɵɵadvance(5);
-    i0.ɵɵtextInterpolate(ctx_r0.selectedPlan().name);
-    i0.ɵɵadvance(5);
-    i0.ɵɵtextInterpolate(ctx_r0.selectedPlan().credits.toLocaleString());
-    i0.ɵɵadvance(5);
-    i0.ɵɵtextInterpolate(ctx_r0.BILLING_LABELS[ctx_r0.selectedPlan().billingPeriod]);
-    i0.ɵɵadvance(5);
-    i0.ɵɵtextInterpolate1("", ctx_r0.selectedPlan().price.toLocaleString(), " EGP");
+    const item_r5 = ctx.$implicit;
+    const ctx_r1 = i0.ɵɵnextContext(3);
+    i0.ɵɵclassProp("package--selected", ctx_r1.selectedPackageId() === item_r5.id);
     i0.ɵɵadvance();
-    i0.ɵɵproperty("disabled", ctx_r0.isLoading());
-    i0.ɵɵadvance();
-    i0.ɵɵproperty("ngIf", !ctx_r0.isLoading());
-    i0.ɵɵadvance();
-    i0.ɵɵproperty("ngIf", ctx_r0.isLoading());
-} }
-function CreditChargeComponent_div_47_div_11_Template(rf, ctx) { if (rf & 1) {
-    i0.ɵɵelementStart(0, "div", 84)(1, "p", 85);
-    i0.ɵɵtext(2, "Reference Number");
-    i0.ɵɵelementEnd();
-    i0.ɵɵelementStart(3, "p", 86);
-    i0.ɵɵtext(4);
-    i0.ɵɵelementEnd()();
-} if (rf & 2) {
-    const ctx_r0 = i0.ɵɵnextContext(2);
-    i0.ɵɵadvance(4);
-    i0.ɵɵtextInterpolate(ctx_r0.referenceNumber());
-} }
-function CreditChargeComponent_div_47_Template(rf, ctx) { if (rf & 1) {
-    i0.ɵɵelementStart(0, "div", 74)(1, "div", 75)(2, "div", 76)(3, "div", 77);
-    i0.ɵɵnamespaceSVG();
-    i0.ɵɵelementStart(4, "svg", 78);
-    i0.ɵɵelement(5, "path", 79);
-    i0.ɵɵelementEnd()();
-    i0.ɵɵnamespaceHTML();
-    i0.ɵɵelementStart(6, "h3", 80);
-    i0.ɵɵtext(7, "Purchase Successful!");
-    i0.ɵɵelementEnd();
-    i0.ɵɵelementStart(8, "p", 81);
-    i0.ɵɵtext(9);
-    i0.ɵɵpipe(10, "number");
-    i0.ɵɵelementEnd();
-    i0.ɵɵtemplate(11, CreditChargeComponent_div_47_div_11_Template, 5, 1, "div", 82);
-    i0.ɵɵelementStart(12, "p", 83);
-    i0.ɵɵtext(13, "Redirecting to your profile\u2026");
-    i0.ɵɵelementEnd()()()();
-} if (rf & 2) {
-    const ctx_r0 = i0.ɵɵnextContext();
-    i0.ɵɵadvance(9);
-    i0.ɵɵtextInterpolate1("", i0.ɵɵpipeBind1(10, 2, ctx_r0.purchasedCredits()), " credits have been added to your account.");
+    i0.ɵɵconditional(item_r5.isFeatured ? 1 : -1);
     i0.ɵɵadvance(2);
-    i0.ɵɵproperty("ngIf", ctx_r0.referenceNumber());
+    i0.ɵɵtextInterpolate(ctx_r1.packageName(item_r5));
+    i0.ɵɵadvance(2);
+    i0.ɵɵtextInterpolate(ctx_r1.formatMoney(item_r5.price, item_r5.currency));
+    i0.ɵɵadvance(2);
+    i0.ɵɵtextInterpolate1("", ctx_r1.formatNumber(item_r5.credits), " CREDIT");
+    i0.ɵɵadvance();
+    i0.ɵɵconditional(item_r5.bonusCredits > 0 ? 8 : -1);
+} }
+function CreditChargeComponent_Conditional_30_Conditional_6_Template(rf, ctx) { if (rf & 1) {
+    i0.ɵɵdomElementStart(0, "div", 12);
+    i0.ɵɵrepeaterCreate(1, CreditChargeComponent_Conditional_30_Conditional_6_For_2_Template, 9, 7, "button", 18, _forTrack0);
+    i0.ɵɵdomElementEnd();
+} if (rf & 2) {
+    const ctx_r1 = i0.ɵɵnextContext(2);
+    i0.ɵɵadvance();
+    i0.ɵɵrepeater(ctx_r1.packages());
+} }
+function CreditChargeComponent_Conditional_30_Conditional_11_Template(rf, ctx) { if (rf & 1) {
+    const _r6 = i0.ɵɵgetCurrentView();
+    i0.ɵɵdomElementStart(0, "dl")(1, "div")(2, "dt");
+    i0.ɵɵtext(3);
+    i0.ɵɵpipe(4, "translate");
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(5, "dd");
+    i0.ɵɵtext(6);
+    i0.ɵɵdomElementEnd()();
+    i0.ɵɵdomElementStart(7, "div")(8, "dt");
+    i0.ɵɵtext(9);
+    i0.ɵɵpipe(10, "translate");
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(11, "dd");
+    i0.ɵɵtext(12);
+    i0.ɵɵdomElementEnd()();
+    i0.ɵɵdomElementStart(13, "div")(14, "dt");
+    i0.ɵɵtext(15);
+    i0.ɵɵpipe(16, "translate");
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(17, "dd");
+    i0.ɵɵtext(18);
+    i0.ɵɵdomElementEnd()();
+    i0.ɵɵdomElementStart(19, "div", 23)(20, "dt");
+    i0.ɵɵtext(21);
+    i0.ɵɵpipe(22, "translate");
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(23, "dd");
+    i0.ɵɵtext(24);
+    i0.ɵɵdomElementEnd()()();
+    i0.ɵɵdomElementStart(25, "button", 24);
+    i0.ɵɵdomListener("click", function CreditChargeComponent_Conditional_30_Conditional_11_Template_button_click_25_listener() { i0.ɵɵrestoreView(_r6); const ctx_r1 = i0.ɵɵnextContext(2); return i0.ɵɵresetView(ctx_r1.createOrder()); });
+    i0.ɵɵtext(26);
+    i0.ɵɵpipe(27, "translate");
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(28, "p", 25);
+    i0.ɵɵtext(29);
+    i0.ɵɵpipe(30, "translate");
+    i0.ɵɵdomElementEnd();
+} if (rf & 2) {
+    const item_r7 = ctx;
+    const ctx_r1 = i0.ɵɵnextContext(2);
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(4, 11, "creditPurchase.package"));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(ctx_r1.packageName(item_r7));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(10, 13, "creditPurchase.credits"));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(ctx_r1.formatNumber(item_r7.credits));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(16, 15, "creditPurchase.bonus"));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(ctx_r1.formatNumber(item_r7.bonusCredits));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(22, 17, "creditPurchase.total"));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(ctx_r1.formatMoney(item_r7.price, item_r7.currency));
+    i0.ɵɵadvance();
+    i0.ɵɵdomProperty("disabled", ctx_r1.submitting());
+    i0.ɵɵadvance();
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(27, 19, ctx_r1.submitting() ? "creditPurchase.creating" : "creditPurchase.buy"));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(30, 21, "creditPurchase.verificationNote"));
+} }
+function CreditChargeComponent_Conditional_30_Conditional_12_Template(rf, ctx) { if (rf & 1) {
+    i0.ɵɵdomElementStart(0, "div", 14);
+    i0.ɵɵtext(1);
+    i0.ɵɵpipe(2, "translate");
+    i0.ɵɵdomElementEnd();
+} if (rf & 2) {
+    i0.ɵɵadvance();
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(2, 1, "creditPurchase.selectPrompt"));
+} }
+function CreditChargeComponent_Conditional_30_Conditional_21_Template(rf, ctx) { if (rf & 1) {
+    i0.ɵɵdomElementStart(0, "div", 7);
+    i0.ɵɵtext(1);
+    i0.ɵɵpipe(2, "translate");
+    i0.ɵɵdomElementEnd();
+} if (rf & 2) {
+    i0.ɵɵadvance();
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(2, 1, "creditPurchase.noOrders"));
+} }
+function CreditChargeComponent_Conditional_30_Conditional_22_For_25_Template(rf, ctx) { if (rf & 1) {
+    const _r8 = i0.ɵɵgetCurrentView();
+    i0.ɵɵdomElementStart(0, "tr")(1, "td");
+    i0.ɵɵtext(2);
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(3, "td");
+    i0.ɵɵtext(4);
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(5, "td");
+    i0.ɵɵtext(6);
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(7, "td");
+    i0.ɵɵtext(8);
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(9, "td")(10, "span");
+    i0.ɵɵtext(11);
+    i0.ɵɵpipe(12, "translate");
+    i0.ɵɵdomElementEnd()();
+    i0.ɵɵdomElementStart(13, "td");
+    i0.ɵɵtext(14);
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(15, "td")(16, "button", 26);
+    i0.ɵɵdomListener("click", function CreditChargeComponent_Conditional_30_Conditional_22_For_25_Template_button_click_16_listener() { const order_r9 = i0.ɵɵrestoreView(_r8).$implicit; const ctx_r1 = i0.ɵɵnextContext(3); return i0.ɵɵresetView(ctx_r1.viewReceipt(order_r9)); });
+    i0.ɵɵtext(17);
+    i0.ɵɵpipe(18, "translate");
+    i0.ɵɵdomElementEnd()()();
+} if (rf & 2) {
+    const order_r9 = ctx.$implicit;
+    const ctx_r1 = i0.ɵɵnextContext(3);
+    i0.ɵɵadvance(2);
+    i0.ɵɵtextInterpolate(order_r9.referenceNumber);
+    i0.ɵɵadvance(2);
+    i0.ɵɵtextInterpolate(ctx_r1.packageName(order_r9));
+    i0.ɵɵadvance(2);
+    i0.ɵɵtextInterpolate(ctx_r1.formatNumber(order_r9.credits + order_r9.bonusCredits));
+    i0.ɵɵadvance(2);
+    i0.ɵɵtextInterpolate(ctx_r1.formatMoney(order_r9.pricePaid, order_r9.currency));
+    i0.ɵɵadvance(2);
+    i0.ɵɵclassMap(ctx_r1.statusTone(order_r9.paymentStatus));
+    i0.ɵɵadvance();
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(12, 9, ctx_r1.statusKey(order_r9.paymentStatus)));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(ctx_r1.formatDate(order_r9.createdAt));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(18, 11, "creditPurchase.details"));
+} }
+function CreditChargeComponent_Conditional_30_Conditional_22_Template(rf, ctx) { if (rf & 1) {
+    i0.ɵɵdomElementStart(0, "div", 17)(1, "table")(2, "thead")(3, "tr")(4, "th");
+    i0.ɵɵtext(5);
+    i0.ɵɵpipe(6, "translate");
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(7, "th");
+    i0.ɵɵtext(8);
+    i0.ɵɵpipe(9, "translate");
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(10, "th");
+    i0.ɵɵtext(11);
+    i0.ɵɵpipe(12, "translate");
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(13, "th");
+    i0.ɵɵtext(14);
+    i0.ɵɵpipe(15, "translate");
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(16, "th");
+    i0.ɵɵtext(17);
+    i0.ɵɵpipe(18, "translate");
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(19, "th");
+    i0.ɵɵtext(20);
+    i0.ɵɵpipe(21, "translate");
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElement(22, "th");
+    i0.ɵɵdomElementEnd()();
+    i0.ɵɵdomElementStart(23, "tbody");
+    i0.ɵɵrepeaterCreate(24, CreditChargeComponent_Conditional_30_Conditional_22_For_25_Template, 19, 13, "tr", null, _forTrack0);
+    i0.ɵɵdomElementEnd()()();
+} if (rf & 2) {
+    const ctx_r1 = i0.ɵɵnextContext(2);
+    i0.ɵɵadvance(5);
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(6, 6, "creditPurchase.reference"));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(9, 8, "creditPurchase.package"));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(12, 10, "creditPurchase.totalCredits"));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(15, 12, "creditPurchase.amount"));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(18, 14, "creditPurchase.statusLabel"));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(21, 16, "creditPurchase.date"));
+    i0.ɵɵadvance(4);
+    i0.ɵɵrepeater(ctx_r1.orders());
+} }
+function CreditChargeComponent_Conditional_30_Template(rf, ctx) { if (rf & 1) {
+    const _r3 = i0.ɵɵgetCurrentView();
+    i0.ɵɵdomElementStart(0, "section", 10)(1, "div", 11)(2, "h2");
+    i0.ɵɵtext(3);
+    i0.ɵɵpipe(4, "translate");
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵconditionalCreate(5, CreditChargeComponent_Conditional_30_Conditional_5_Template, 3, 3, "div", 7)(6, CreditChargeComponent_Conditional_30_Conditional_6_Template, 3, 0, "div", 12);
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(7, "aside", 13)(8, "h2");
+    i0.ɵɵtext(9);
+    i0.ɵɵpipe(10, "translate");
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵconditionalCreate(11, CreditChargeComponent_Conditional_30_Conditional_11_Template, 31, 23)(12, CreditChargeComponent_Conditional_30_Conditional_12_Template, 3, 3, "div", 14);
+    i0.ɵɵdomElementEnd()();
+    i0.ɵɵdomElementStart(13, "section", 15)(14, "div", 16)(15, "h2");
+    i0.ɵɵtext(16);
+    i0.ɵɵpipe(17, "translate");
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(18, "button", 9);
+    i0.ɵɵdomListener("click", function CreditChargeComponent_Conditional_30_Template_button_click_18_listener() { i0.ɵɵrestoreView(_r3); const ctx_r1 = i0.ɵɵnextContext(); return i0.ɵɵresetView(ctx_r1.load()); });
+    i0.ɵɵtext(19);
+    i0.ɵɵpipe(20, "translate");
+    i0.ɵɵdomElementEnd()();
+    i0.ɵɵconditionalCreate(21, CreditChargeComponent_Conditional_30_Conditional_21_Template, 3, 3, "div", 7)(22, CreditChargeComponent_Conditional_30_Conditional_22_Template, 26, 18, "div", 17);
+    i0.ɵɵdomElementEnd();
+} if (rf & 2) {
+    let tmp_4_0;
+    const ctx_r1 = i0.ɵɵnextContext();
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(4, 7, "creditPurchase.packages"));
+    i0.ɵɵadvance(2);
+    i0.ɵɵconditional(ctx_r1.packages().length === 0 ? 5 : 6);
+    i0.ɵɵadvance(4);
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(10, 9, "creditPurchase.review"));
+    i0.ɵɵadvance(2);
+    i0.ɵɵconditional((tmp_4_0 = ctx_r1.selectedPackage()) ? 11 : 12, tmp_4_0);
+    i0.ɵɵadvance(5);
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(17, 11, "creditPurchase.history"));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(20, 13, "creditPurchase.refresh"));
+    i0.ɵɵadvance(2);
+    i0.ɵɵconditional(ctx_r1.orders().length === 0 ? 21 : 22);
+} }
+function CreditChargeComponent_Conditional_31_Conditional_50_Template(rf, ctx) { if (rf & 1) {
+    i0.ɵɵdomElementStart(0, "p", 29);
+    i0.ɵɵtext(1);
+    i0.ɵɵpipe(2, "translate");
+    i0.ɵɵdomElementEnd();
+} if (rf & 2) {
+    i0.ɵɵadvance();
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(2, 1, "creditPurchase.providerUnavailable"));
+} }
+function CreditChargeComponent_Conditional_31_Template(rf, ctx) { if (rf & 1) {
+    const _r10 = i0.ɵɵgetCurrentView();
+    i0.ɵɵdomElementStart(0, "div", 8)(1, "article", 27)(2, "button", 28);
+    i0.ɵɵpipe(3, "translate");
+    i0.ɵɵdomListener("click", function CreditChargeComponent_Conditional_31_Template_button_click_2_listener() { i0.ɵɵrestoreView(_r10); const ctx_r1 = i0.ɵɵnextContext(); return i0.ɵɵresetView(ctx_r1.closeReceipt()); });
+    i0.ɵɵtext(4, "\u00D7");
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(5, "p", 3);
+    i0.ɵɵtext(6);
+    i0.ɵɵpipe(7, "translate");
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(8, "h2");
+    i0.ɵɵtext(9);
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(10, "span");
+    i0.ɵɵtext(11);
+    i0.ɵɵpipe(12, "translate");
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(13, "dl")(14, "div")(15, "dt");
+    i0.ɵɵtext(16);
+    i0.ɵɵpipe(17, "translate");
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(18, "dd");
+    i0.ɵɵtext(19);
+    i0.ɵɵdomElementEnd()();
+    i0.ɵɵdomElementStart(20, "div")(21, "dt");
+    i0.ɵɵtext(22);
+    i0.ɵɵpipe(23, "translate");
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(24, "dd");
+    i0.ɵɵtext(25);
+    i0.ɵɵdomElementEnd()();
+    i0.ɵɵdomElementStart(26, "div")(27, "dt");
+    i0.ɵɵtext(28);
+    i0.ɵɵpipe(29, "translate");
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(30, "dd");
+    i0.ɵɵtext(31);
+    i0.ɵɵdomElementEnd()();
+    i0.ɵɵdomElementStart(32, "div")(33, "dt");
+    i0.ɵɵtext(34);
+    i0.ɵɵpipe(35, "translate");
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(36, "dd");
+    i0.ɵɵtext(37);
+    i0.ɵɵdomElementEnd()();
+    i0.ɵɵdomElementStart(38, "div")(39, "dt");
+    i0.ɵɵtext(40);
+    i0.ɵɵpipe(41, "translate");
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(42, "dd");
+    i0.ɵɵtext(43);
+    i0.ɵɵdomElementEnd()();
+    i0.ɵɵdomElementStart(44, "div")(45, "dt");
+    i0.ɵɵtext(46);
+    i0.ɵɵpipe(47, "translate");
+    i0.ɵɵdomElementEnd();
+    i0.ɵɵdomElementStart(48, "dd");
+    i0.ɵɵtext(49);
+    i0.ɵɵdomElementEnd()()();
+    i0.ɵɵconditionalCreate(50, CreditChargeComponent_Conditional_31_Conditional_50_Template, 3, 3, "p", 29);
+    i0.ɵɵdomElementStart(51, "p", 25);
+    i0.ɵɵtext(52);
+    i0.ɵɵpipe(53, "translate");
+    i0.ɵɵdomElementEnd()()();
+} if (rf & 2) {
+    const order_r11 = ctx;
+    const ctx_r1 = i0.ɵɵnextContext();
+    i0.ɵɵadvance(2);
+    i0.ɵɵattribute("aria-label", i0.ɵɵpipeBind1(3, 20, "creditPurchase.close"));
+    i0.ɵɵadvance(4);
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(7, 22, "creditPurchase.receipt"));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(order_r11.referenceNumber);
+    i0.ɵɵadvance();
+    i0.ɵɵclassMap(ctx_r1.statusTone(order_r11.paymentStatus));
+    i0.ɵɵadvance();
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(12, 24, ctx_r1.statusKey(order_r11.paymentStatus)));
+    i0.ɵɵadvance(5);
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(17, 26, "creditPurchase.package"));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(ctx_r1.packageName(order_r11));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(23, 28, "creditPurchase.credits"));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(ctx_r1.formatNumber(order_r11.credits));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(29, 30, "creditPurchase.bonus"));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(ctx_r1.formatNumber(order_r11.bonusCredits));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(35, 32, "creditPurchase.amount"));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(ctx_r1.formatMoney(order_r11.pricePaid, order_r11.currency));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(41, 34, "creditPurchase.date"));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(ctx_r1.formatDate(order_r11.createdAt));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(47, 36, "creditPurchase.paidAt"));
+    i0.ɵɵadvance(3);
+    i0.ɵɵtextInterpolate(ctx_r1.formatDate(order_r11.paidAt));
+    i0.ɵɵadvance();
+    i0.ɵɵconditional(!order_r11.providerConfigured && order_r11.paymentStatus === "Pending" ? 50 : -1);
+    i0.ɵɵadvance(2);
+    i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(53, 38, "creditPurchase.receiptNote"));
 } }
 export class CreditChargeComponent {
     constructor() {
+        this.purchases = inject(CreditPurchaseService);
+        this.wallet = inject(WalletService);
+        this.language = inject(LanguageService);
+        this.route = inject(ActivatedRoute);
         this.router = inject(Router);
-        this.userService = inject(UserService);
-        this.authService = inject(AuthService);
-        this.http = inject(HttpClient);
-        this.apiBase = inject(API_BASE);
-        // State
-        this.isLoading = signal(false, ...(ngDevMode ? [{ debugName: "isLoading" }] : []));
-        this.errorMessage = signal(null, ...(ngDevMode ? [{ debugName: "errorMessage" }] : []));
-        this.selectedPlanId = signal(null, ...(ngDevMode ? [{ debugName: "selectedPlanId" }] : []));
-        this.showSuccessDialog = signal(false, ...(ngDevMode ? [{ debugName: "showSuccessDialog" }] : []));
-        this.plansLoading = signal(true, ...(ngDevMode ? [{ debugName: "plansLoading" }] : []));
-        this.referenceNumber = signal(null, ...(ngDevMode ? [{ debugName: "referenceNumber" }] : []));
-        this.purchasedCredits = signal(0, ...(ngDevMode ? [{ debugName: "purchasedCredits" }] : []));
-        // Current credits from UserService
-        this.currentCredits = this.userService.credits;
-        // Admin-created plans from API
-        this.adminPlans = signal([], ...(ngDevMode ? [{ debugName: "adminPlans" }] : []));
-        this.BILLING_LABELS = {
-            'monthly': 'Monthly',
-            'yearly': 'Yearly',
-            'one-time': 'One-Time',
-        };
-        // Computed values
-        this.selectedPlan = computed(() => {
-            const id = this.selectedPlanId();
-            if (id === null)
-                return null;
-            return this.adminPlans().find(p => p.id === id) ?? null;
-        }, ...(ngDevMode ? [{ debugName: "selectedPlan" }] : []));
+        this.currencyService = inject(CurrencyService);
+        this.packages = signal([], ...(ngDevMode ? [{ debugName: "packages" }] : []));
+        this.orders = signal([], ...(ngDevMode ? [{ debugName: "orders" }] : []));
+        this.selectedPackageId = signal(null, ...(ngDevMode ? [{ debugName: "selectedPackageId" }] : []));
+        this.selectedOrder = signal(null, ...(ngDevMode ? [{ debugName: "selectedOrder" }] : []));
+        this.loading = signal(true, ...(ngDevMode ? [{ debugName: "loading" }] : []));
+        this.submitting = signal(false, ...(ngDevMode ? [{ debugName: "submitting" }] : []));
+        this.error = signal(null, ...(ngDevMode ? [{ debugName: "error" }] : []));
+        this.currentBalance = this.wallet.balance;
+        this.selectedPackage = computed(() => this.packages().find(item => item.id === this.selectedPackageId()) ?? null, ...(ngDevMode ? [{ debugName: "selectedPackage" }] : []));
     }
-    ngOnInit() {
-        this.loadPlans();
+    async ngOnInit() {
+        await this.load();
+        const orderId = this.route.snapshot.queryParamMap.get('orderId');
+        if (orderId)
+            await this.refreshOrder(orderId);
     }
-    async loadPlans() {
+    async load() {
+        this.loading.set(true);
+        this.error.set(null);
         try {
-            this.plansLoading.set(true);
-            const token = this.authService.getAccessToken();
-            const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
-            const plans = await firstValueFrom(this.http.get(`${this.apiBase}/api/credit-plans`, { headers }));
-            this.adminPlans.set(plans ?? []);
+            const [packages, orders] = await Promise.all([
+                this.purchases.getActivePackages(),
+                this.purchases.getMyOrders(),
+                this.wallet.loadBalance()
+            ]);
+            this.packages.set(packages);
+            this.orders.set(orders.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)));
         }
-        catch (e) {
-            this.errorMessage.set('Could not load credit plans. Please try again later.');
-            console.error('Failed to load credit plans:', e);
+        catch (error) {
+            this.error.set(this.errorText(error));
         }
         finally {
-            this.plansLoading.set(false);
+            this.loading.set(false);
         }
     }
-    selectPlan(id) {
-        this.selectedPlanId.set(id);
-    }
-    async purchasePackage() {
-        const plan = this.selectedPlan();
-        if (!plan)
+    selectPackage(id) { this.selectedPackageId.set(id); }
+    async createOrder() {
+        const selected = this.selectedPackage();
+        if (!selected || this.submitting())
             return;
-        await this.processPurchase(plan.credits, plan.price);
-    }
-    async processPurchase(credits, price) {
-        const plan = this.selectedPlan();
-        if (!plan)
-            return;
+        this.submitting.set(true);
+        this.error.set(null);
         try {
-            this.isLoading.set(true);
-            this.errorMessage.set(null);
-            const token = this.authService.getAccessToken();
-            const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
-            const result = await firstValueFrom(this.http.post(`${this.apiBase}/api/credit-plans/${plan.id}/purchase`, {}, { headers }));
-            // Update credits from server-returned balance
-            this.userService.setCredits(result.newBalance);
-            this.referenceNumber.set(result.referenceNumber);
-            this.purchasedCredits.set(result.creditsAdded);
-            // Show success dialog
-            this.showSuccessDialog.set(true);
-            // Navigate back after 4 seconds
-            setTimeout(() => {
-                this.showSuccessDialog.set(false);
-                this.router.navigate(['/admin/profile']);
-            }, 4000);
+            const order = await this.purchases.createOrder(selected.id);
+            this.selectedOrder.set(order);
+            this.orders.update(items => [order, ...items.filter(item => item.id !== order.id)]);
+            if (order.redirectUrl)
+                window.location.assign(order.redirectUrl);
         }
-        catch (e) {
-            this.errorMessage.set('Purchase failed. Please try again.');
-            console.error('Purchase error:', e);
+        catch (error) {
+            this.error.set(this.errorText(error));
         }
         finally {
-            this.isLoading.set(false);
+            this.submitting.set(false);
         }
     }
-    goBack() {
-        this.router.navigate(['/admin/profile']);
+    async refreshOrder(id) {
+        try {
+            const order = await this.purchases.getOrder(id);
+            this.selectedOrder.set(order);
+            this.orders.update(items => [order, ...items.filter(item => item.id !== order.id)]);
+            if (order.paymentStatus === 'Paid')
+                await this.wallet.loadBalance();
+        }
+        catch (error) {
+            this.error.set(this.errorText(error));
+        }
+    }
+    viewReceipt(order) { this.selectedOrder.set(order); }
+    closeReceipt() { this.selectedOrder.set(null); }
+    goBack() { this.router.navigate(['/admin/profile/wallet']); }
+    packageName(item) {
+        if ('planName' in item)
+            return this.language.language() === 'ar' ? item.planNameAr : item.planName;
+        return this.language.language() === 'ar' ? item.nameAr : item.name;
+    }
+    formatMoney(value, currency) {
+        return this.currencyService.format(value, currency);
+    }
+    formatNumber(value) { return new Intl.NumberFormat(this.language.language() === 'ar' ? 'ar-EG' : 'en-US').format(value); }
+    formatDate(value) { return value ? new Intl.DateTimeFormat(this.language.language() === 'ar' ? 'ar-EG' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '—'; }
+    statusKey(status) { return `creditPurchase.status.${status}`; }
+    statusTone(status) {
+        if (status === 'Paid')
+            return 'status status--paid';
+        if (status === 'Failed' || status === 'Cancelled' || status === 'Expired')
+            return 'status status--failed';
+        if (status === 'Refunded')
+            return 'status status--refunded';
+        return 'status status--pending';
+    }
+    errorText(error) {
+        const value = error;
+        return value?.error?.message || value?.message || this.language.translate('creditPurchase.error');
     }
     static { this.ɵfac = function CreditChargeComponent_Factory(__ngFactoryType__) { return new (__ngFactoryType__ || CreditChargeComponent)(); }; }
-    static { this.ɵcmp = /*@__PURE__*/ i0.ɵɵdefineComponent({ type: CreditChargeComponent, selectors: [["app-credit-charge"]], decls: 48, vars: 8, consts: [[1, "container", "mx-auto", "p-6", "lg:p-8", "max-w-6xl"], [1, "flex", "items-center", "justify-between", "mb-8"], [1, "text-gray-400", "hover:text-white", "mb-4", "flex", "items-center", "gap-2", "transition-colors", 3, "click"], ["fill", "none", "stroke", "currentColor", "viewBox", "0 0 24 24", 1, "w-5", "h-5"], ["stroke-linecap", "round", "stroke-linejoin", "round", "stroke-width", "2", "d", "M10 19l-7-7m0 0l7-7m-7 7h18"], [1, "text-3xl", "font-bold", "text-white"], [1, "text-gray-400", "mt-2"], [1, "bg-slate-800/50", "rounded-xl", "p-4", "text-center"], [1, "text-sm", "text-gray-400"], [1, "text-3xl", "font-bold", "text-blue-400", "mt-1"], [1, "text-xs", "text-gray-500", "mt-1"], ["class", "mb-6 p-4 rounded-lg bg-red-800/20 border border-red-800 text-red-300", 4, "ngIf"], [1, "grid", "grid-cols-1", "lg:grid-cols-3", "gap-8"], [1, "lg:col-span-2"], [1, "bg-slate-900/80", "backdrop-blur-sm", "border", "border-slate-800", "rounded-xl", "shadow-2xl", "p-6"], [1, "text-xl", "font-bold", "text-white", "mb-6"], ["class", "text-center py-12", 4, "ngIf"], ["class", "grid grid-cols-1 md:grid-cols-2 gap-4", 4, "ngIf"], [1, "lg:col-span-1"], [1, "bg-slate-900/80", "backdrop-blur-sm", "border", "border-slate-800", "rounded-xl", "shadow-2xl", "p-6", "sticky", "top-8"], ["class", "text-center py-8", 4, "ngIf"], ["class", "space-y-4", 4, "ngIf"], [1, "mt-8", "pt-6", "border-t", "border-slate-800"], [1, "text-xs", "text-gray-500", "mb-4", "text-center"], [1, "flex", "items-center", "justify-center", "gap-4"], [1, "bg-white", "rounded", "px-2", "py-1"], [1, "text-blue-600", "font-bold", "text-sm"], [1, "text-orange-600", "font-bold", "text-sm"], [1, "bg-blue-600", "rounded", "px-2", "py-1"], [1, "text-white", "font-bold", "text-sm"], ["class", "fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm", 4, "ngIf"], [1, "mb-6", "p-4", "rounded-lg", "bg-red-800/20", "border", "border-red-800", "text-red-300"], [1, "flex", "items-start", "gap-3"], ["fill", "currentColor", "viewBox", "0 0 20 20", 1, "w-5", "h-5", "flex-shrink-0", "mt-0.5"], ["fill-rule", "evenodd", "d", "M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z", "clip-rule", "evenodd"], [1, "text-center", "py-12"], ["xmlns", "http://www.w3.org/2000/svg", "fill", "none", "viewBox", "0 0 24 24", 1, "animate-spin", "w-8", "h-8", "mx-auto", "text-blue-400"], ["cx", "12", "cy", "12", "r", "10", "stroke", "currentColor", "stroke-width", "4", 1, "opacity-25"], ["fill", "currentColor", "d", "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z", 1, "opacity-75"], [1, "text-gray-400", "mt-3"], ["fill", "none", "stroke", "currentColor", "viewBox", "0 0 24 24", 1, "w-14", "h-14", "mx-auto", "mb-4", "text-gray-600"], ["stroke-linecap", "round", "stroke-linejoin", "round", "stroke-width", "1.5", "d", "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"], [1, "text-gray-400"], [1, "grid", "grid-cols-1", "md:grid-cols-2", "gap-4"], [3, "class", "click", 4, "ngFor", "ngForOf"], [3, "click"], ["class", "absolute top-3 right-3 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center", 4, "ngIf"], [1, "inline-block", "mb-4", "px-2", "py-0.5", "rounded-full", "text-[11px]", "font-bold", "uppercase", "tracking-wider", "bg-slate-700", "text-gray-300"], [1, "text-lg", "font-bold", "text-white", "mb-1"], [1, "flex", "items-end", "gap-1", "mt-3", "mb-3"], [1, "text-3xl", "font-black"], [1, "text-gray-400", "mb-1", "text-sm"], [1, "flex", "items-center", "gap-2", "px-3", "py-2", "bg-slate-700/50", "rounded-lg"], ["fill", "none", "stroke", "currentColor", "viewBox", "0 0 24 24", 1, "w-4", "h-4", "text-blue-400", "flex-shrink-0"], ["stroke-linecap", "round", "stroke-linejoin", "round", "stroke-width", "2", "d", "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"], [1, "text-sm", "font-semibold", "text-gray-200"], [1, "text-xs", "text-gray-500", "mt-2"], [1, "absolute", "top-3", "right-3", "w-6", "h-6", "bg-blue-500", "rounded-full", "flex", "items-center", "justify-center"], ["fill", "none", "stroke", "currentColor", "viewBox", "0 0 24 24", 1, "w-3.5", "h-3.5", "text-white"], ["stroke-linecap", "round", "stroke-linejoin", "round", "stroke-width", "3", "d", "M5 13l4 4L19 7"], [1, "text-center", "py-8"], ["fill", "none", "stroke", "currentColor", "viewBox", "0 0 24 24", 1, "w-16", "h-16", "mx-auto", "mb-4", "text-gray-600"], ["stroke-linecap", "round", "stroke-linejoin", "round", "stroke-width", "2", "d", "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"], [1, "text-gray-400", "text-sm"], [1, "space-y-4"], [1, "flex", "items-center", "justify-between", "py-3", "border-b", "border-slate-700"], [1, "text-white", "font-semibold"], [1, "flex", "items-center", "justify-between", "py-3", "text-lg"], [1, "text-blue-400", "font-bold", "text-2xl"], ["type", "button", 1, "w-full", "bg-gradient-to-r", "from-blue-500", "to-purple-600", "text-white", "font-semibold", "py-3", "px-6", "rounded-lg", "hover:opacity-90", "disabled:opacity-50", "disabled:cursor-not-allowed", "transition-all", "mt-6", 3, "click", "disabled"], [4, "ngIf"], ["class", "flex items-center justify-center gap-2", 4, "ngIf"], [1, "flex", "items-center", "justify-center", "gap-2"], ["xmlns", "http://www.w3.org/2000/svg", "fill", "none", "viewBox", "0 0 24 24", 1, "animate-spin", "h-5", "w-5", "text-white"], [1, "fixed", "inset-0", "z-50", "flex", "items-center", "justify-center", "p-4", "bg-black/60", "backdrop-blur-sm"], [1, "bg-slate-900", "border", "border-slate-800", "rounded-xl", "shadow-2xl", "p-8", "max-w-md", "w-full", "animate-fade-in"], [1, "text-center"], [1, "w-20", "h-20", "mx-auto", "mb-4", "bg-green-500/20", "rounded-full", "flex", "items-center", "justify-center"], ["fill", "none", "stroke", "currentColor", "viewBox", "0 0 24 24", 1, "w-12", "h-12", "text-green-400"], ["stroke-linecap", "round", "stroke-linejoin", "round", "stroke-width", "2", "d", "M5 13l4 4L19 7"], [1, "text-2xl", "font-bold", "text-white", "mb-2"], [1, "text-gray-400", "mb-4"], ["class", "mt-4 bg-slate-800 rounded-lg px-4 py-3", 4, "ngIf"], [1, "text-xs", "text-gray-500", "mt-4"], [1, "mt-4", "bg-slate-800", "rounded-lg", "px-4", "py-3"], [1, "text-xs", "text-gray-500", "mb-1"], [1, "text-blue-400", "font-mono", "font-semibold", "tracking-wider"]], template: function CreditChargeComponent_Template(rf, ctx) { if (rf & 1) {
-            i0.ɵɵelementStart(0, "div", 0)(1, "div", 1)(2, "div")(3, "button", 2);
-            i0.ɵɵlistener("click", function CreditChargeComponent_Template_button_click_3_listener() { return ctx.goBack(); });
-            i0.ɵɵnamespaceSVG();
-            i0.ɵɵelementStart(4, "svg", 3);
-            i0.ɵɵelement(5, "path", 4);
-            i0.ɵɵelementEnd();
-            i0.ɵɵnamespaceHTML();
-            i0.ɵɵelementStart(6, "span");
-            i0.ɵɵtext(7, "Back");
-            i0.ɵɵelementEnd()();
-            i0.ɵɵelementStart(8, "h1", 5);
-            i0.ɵɵtext(9, "Charge Credits");
-            i0.ɵɵelementEnd();
-            i0.ɵɵelementStart(10, "p", 6);
-            i0.ɵɵtext(11, "Purchase credits to unlock investment opportunities and features");
-            i0.ɵɵelementEnd()();
-            i0.ɵɵelementStart(12, "div", 7)(13, "p", 8);
-            i0.ɵɵtext(14, "Current Balance");
-            i0.ɵɵelementEnd();
-            i0.ɵɵelementStart(15, "p", 9);
-            i0.ɵɵtext(16);
-            i0.ɵɵelementEnd();
-            i0.ɵɵelementStart(17, "p", 10);
-            i0.ɵɵtext(18, "Credits");
-            i0.ɵɵelementEnd()()();
-            i0.ɵɵtemplate(19, CreditChargeComponent_div_19_Template, 6, 1, "div", 11);
-            i0.ɵɵelementStart(20, "div", 12)(21, "div", 13)(22, "div", 14)(23, "h2", 15);
-            i0.ɵɵtext(24, "Select a Plan");
-            i0.ɵɵelementEnd();
-            i0.ɵɵtemplate(25, CreditChargeComponent_div_25_Template, 6, 0, "div", 16)(26, CreditChargeComponent_div_26_Template, 5, 0, "div", 16)(27, CreditChargeComponent_div_27_Template, 2, 1, "div", 17);
-            i0.ɵɵelementEnd()();
-            i0.ɵɵelementStart(28, "div", 18)(29, "div", 19)(30, "h2", 15);
-            i0.ɵɵtext(31, "Order Summary");
-            i0.ɵɵelementEnd();
-            i0.ɵɵtemplate(32, CreditChargeComponent_div_32_Template, 5, 0, "div", 20)(33, CreditChargeComponent_div_33_Template, 24, 7, "div", 21);
-            i0.ɵɵelementStart(34, "div", 22)(35, "p", 23);
-            i0.ɵɵtext(36, "Secure Payment");
-            i0.ɵɵelementEnd();
-            i0.ɵɵelementStart(37, "div", 24)(38, "div", 25)(39, "span", 26);
-            i0.ɵɵtext(40, "VISA");
-            i0.ɵɵelementEnd()();
-            i0.ɵɵelementStart(41, "div", 25)(42, "span", 27);
-            i0.ɵɵtext(43, "Mastercard");
-            i0.ɵɵelementEnd()();
-            i0.ɵɵelementStart(44, "div", 28)(45, "span", 29);
-            i0.ɵɵtext(46, "PayPal");
-            i0.ɵɵelementEnd()()()()()()();
-            i0.ɵɵtemplate(47, CreditChargeComponent_div_47_Template, 14, 4, "div", 30);
-            i0.ɵɵelementEnd();
+    static { this.ɵcmp = /*@__PURE__*/ i0.ɵɵdefineComponent({ type: CreditChargeComponent, selectors: [["app-credit-charge"]], decls: 32, vars: 23, consts: [[1, "credit-page"], [1, "page-header"], ["type", "button", 1, "back", 3, "click"], [1, "eyebrow"], [1, "balance"], [1, "service-note"], [1, "alert", "alert--error"], [1, "state"], ["role", "dialog", "aria-modal", "true", 1, "modal"], ["type", "button", 3, "click"], [1, "purchase-grid"], [1, "panel"], [1, "package-grid"], [1, "panel", "summary"], [1, "state", "state--compact"], [1, "panel", "history"], [1, "section-heading"], [1, "table-wrap"], ["type", "button", 1, "package", 3, "package--selected"], ["type", "button", 1, "package", 3, "click"], [1, "featured"], [1, "price"], [1, "bonus"], [1, "total"], ["type", "button", 1, "primary", 3, "click", "disabled"], [1, "verification-note"], ["type", "button", 1, "link", 3, "click"], [1, "receipt"], ["type", "button", 1, "close", 3, "click"], [1, "alert"]], template: function CreditChargeComponent_Template(rf, ctx) { if (rf & 1) {
+            i0.ɵɵdomElementStart(0, "main", 0)(1, "header", 1)(2, "button", 2);
+            i0.ɵɵdomListener("click", function CreditChargeComponent_Template_button_click_2_listener() { return ctx.goBack(); });
+            i0.ɵɵtext(3, "\u2039 ");
+            i0.ɵɵdomElementStart(4, "span");
+            i0.ɵɵtext(5);
+            i0.ɵɵpipe(6, "translate");
+            i0.ɵɵdomElementEnd()();
+            i0.ɵɵdomElementStart(7, "div")(8, "p", 3);
+            i0.ɵɵtext(9);
+            i0.ɵɵpipe(10, "translate");
+            i0.ɵɵdomElementEnd();
+            i0.ɵɵdomElementStart(11, "h1");
+            i0.ɵɵtext(12);
+            i0.ɵɵpipe(13, "translate");
+            i0.ɵɵdomElementEnd();
+            i0.ɵɵdomElementStart(14, "p");
+            i0.ɵɵtext(15);
+            i0.ɵɵpipe(16, "translate");
+            i0.ɵɵdomElementEnd()();
+            i0.ɵɵdomElementStart(17, "aside", 4)(18, "span");
+            i0.ɵɵtext(19);
+            i0.ɵɵpipe(20, "translate");
+            i0.ɵɵdomElementEnd();
+            i0.ɵɵdomElementStart(21, "strong");
+            i0.ɵɵtext(22);
+            i0.ɵɵdomElementEnd();
+            i0.ɵɵdomElementStart(23, "small");
+            i0.ɵɵtext(24, "CREDIT");
+            i0.ɵɵdomElementEnd()()();
+            i0.ɵɵdomElementStart(25, "p", 5);
+            i0.ɵɵtext(26);
+            i0.ɵɵpipe(27, "translate");
+            i0.ɵɵdomElementEnd();
+            i0.ɵɵconditionalCreate(28, CreditChargeComponent_Conditional_28_Template, 5, 4, "div", 6);
+            i0.ɵɵconditionalCreate(29, CreditChargeComponent_Conditional_29_Template, 3, 3, "div", 7)(30, CreditChargeComponent_Conditional_30_Template, 23, 15);
+            i0.ɵɵconditionalCreate(31, CreditChargeComponent_Conditional_31_Template, 54, 40, "div", 8);
+            i0.ɵɵdomElementEnd();
         } if (rf & 2) {
-            i0.ɵɵadvance(16);
-            i0.ɵɵtextInterpolate(ctx.currentCredits());
-            i0.ɵɵadvance(3);
-            i0.ɵɵproperty("ngIf", ctx.errorMessage());
-            i0.ɵɵadvance(6);
-            i0.ɵɵproperty("ngIf", ctx.plansLoading());
-            i0.ɵɵadvance();
-            i0.ɵɵproperty("ngIf", !ctx.plansLoading() && ctx.adminPlans().length === 0);
-            i0.ɵɵadvance();
-            i0.ɵɵproperty("ngIf", !ctx.plansLoading());
+            let tmp_10_0;
+            i0.ɵɵattribute("dir", ctx.language.direction());
             i0.ɵɵadvance(5);
-            i0.ɵɵproperty("ngIf", ctx.selectedPlan() === null);
+            i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(6, 11, "creditPurchase.back"));
+            i0.ɵɵadvance(4);
+            i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(10, 13, "creditPurchase.eyebrow"));
+            i0.ɵɵadvance(3);
+            i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(13, 15, "creditPurchase.title"));
+            i0.ɵɵadvance(3);
+            i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(16, 17, "creditPurchase.subtitle"));
+            i0.ɵɵadvance(4);
+            i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(20, 19, "creditPurchase.balance"));
+            i0.ɵɵadvance(3);
+            i0.ɵɵtextInterpolate(ctx.formatNumber(ctx.currentBalance()));
+            i0.ɵɵadvance(4);
+            i0.ɵɵtextInterpolate(i0.ɵɵpipeBind1(27, 21, "creditPurchase.serviceOnly"));
+            i0.ɵɵadvance(2);
+            i0.ɵɵconditional(ctx.error() ? 28 : -1);
             i0.ɵɵadvance();
-            i0.ɵɵproperty("ngIf", ctx.selectedPlan());
-            i0.ɵɵadvance(14);
-            i0.ɵɵproperty("ngIf", ctx.showSuccessDialog());
-        } }, dependencies: [CommonModule, i1.NgForOf, i1.NgIf, i1.DecimalPipe], styles: ["@keyframes _ngcontent-%COMP%_fade-in {\r\n  from {\r\n    opacity: 0;\r\n    transform: translateY(-10px);\r\n  }\r\n  to {\r\n    opacity: 1;\r\n    transform: translateY(0);\r\n  }\r\n}\r\n\r\n.animate-fade-in[_ngcontent-%COMP%] {\r\n  animation: _ngcontent-%COMP%_fade-in 0.3s ease-out;\r\n}\r\n\r\n//[_ngcontent-%COMP%]   Package[_ngcontent-%COMP%]   card[_ngcontent-%COMP%]   hover[_ngcontent-%COMP%]   effects\r\n.package-card[_ngcontent-%COMP%] {\r\n  transition: all 0.3s ease;\r\n  \r\n  &:hover {\r\n    transform: translateY(-4px);\r\n  }\r\n}\r\n\r\n//[_ngcontent-%COMP%]   Custom[_ngcontent-%COMP%]   number[_ngcontent-%COMP%]   input[_ngcontent-%COMP%]   styling\r\ninput[type=\"number\"][_ngcontent-%COMP%]::-webkit-inner-spin-button, \r\ninput[type=\"number\"][_ngcontent-%COMP%]::-webkit-outer-spin-button {\r\n  opacity: 1;\r\n}"], changeDetection: 0 }); }
+            i0.ɵɵconditional(ctx.loading() ? 29 : 30);
+            i0.ɵɵadvance(2);
+            i0.ɵɵconditional((tmp_10_0 = ctx.selectedOrder()) ? 31 : -1, tmp_10_0);
+        } }, dependencies: [CommonModule, TranslatePipe], styles: ["[_nghost-%COMP%]{display:block;color:var(--text-primary,#e5e7eb)}.credit-page[_ngcontent-%COMP%]{max-width:1200px;margin:auto;padding:2rem}.page-header[_ngcontent-%COMP%]{display:flex;gap:1.25rem;align-items:center;margin-bottom:1rem}.page-header[_ngcontent-%COMP%]   h1[_ngcontent-%COMP%]{font-size:2rem;margin:.2rem 0}.page-header[_ngcontent-%COMP%]   p[_ngcontent-%COMP%]{color:var(--text-secondary,#94a3b8)}.eyebrow[_ngcontent-%COMP%]{text-transform:uppercase;letter-spacing:.12em;font-size:.72rem;color:var(--primary-color,#60a5fa)!important}.back[_ngcontent-%COMP%], .link[_ngcontent-%COMP%], .section-heading[_ngcontent-%COMP%]   button[_ngcontent-%COMP%]{border:0;background:transparent;color:var(--primary-color,#60a5fa);cursor:pointer}.balance[_ngcontent-%COMP%]{margin-inline-start:auto;text-align:center;background:var(--surface-card,#0f172a);border:1px solid var(--border-color,#334155);border-radius:1rem;padding:1rem;min-width:130px}.balance[_ngcontent-%COMP%]   span[_ngcontent-%COMP%], .balance[_ngcontent-%COMP%]   small[_ngcontent-%COMP%]{display:block;color:var(--text-secondary,#94a3b8)}.balance[_ngcontent-%COMP%]   strong[_ngcontent-%COMP%]{display:block;font-size:1.8rem;color:var(--primary-color,#60a5fa)}.service-note[_ngcontent-%COMP%], .alert[_ngcontent-%COMP%]{padding:1rem;border-radius:.75rem;background:color-mix(in srgb,var(--primary-color,#3b82f6) 12%,transparent);border:1px solid color-mix(in srgb,var(--primary-color,#3b82f6) 25%,transparent)}.alert--error[_ngcontent-%COMP%]{border-color:#ef4444;color:#fca5a5;margin:1rem 0}.alert[_ngcontent-%COMP%]   button[_ngcontent-%COMP%]{float:inline-end}.purchase-grid[_ngcontent-%COMP%]{display:grid;grid-template-columns:2fr 1fr;gap:1.25rem;margin:1.25rem 0}.panel[_ngcontent-%COMP%]{background:var(--surface-card,#0f172a);border:1px solid var(--border-color,#334155);border-radius:1rem;padding:1.25rem}.package-grid[_ngcontent-%COMP%]{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.package[_ngcontent-%COMP%]{position:relative;text-align:start;padding:1.25rem;border-radius:.9rem;border:2px solid var(--border-color,#334155);background:var(--surface-ground,#111827);color:inherit;cursor:pointer;display:flex;flex-direction:column;gap:.55rem}.package--selected[_ngcontent-%COMP%]{border-color:var(--primary-color,#3b82f6)}.price[_ngcontent-%COMP%]{font-size:1.7rem;font-weight:800}.bonus[_ngcontent-%COMP%]{color:#34d399}.featured[_ngcontent-%COMP%]{position:absolute;inset-block-start:.5rem;inset-inline-end:.5rem;font-size:.7rem;background:#7c3aed;color:#fff;padding:.25rem .5rem;border-radius:99px}.summary[_ngcontent-%COMP%]   dl[_ngcontent-%COMP%], .receipt[_ngcontent-%COMP%]   dl[_ngcontent-%COMP%]{margin:0}.summary[_ngcontent-%COMP%]   dl[_ngcontent-%COMP%]   div[_ngcontent-%COMP%], .receipt[_ngcontent-%COMP%]   dl[_ngcontent-%COMP%]   div[_ngcontent-%COMP%]{display:flex;justify-content:space-between;gap:1rem;padding:.75rem 0;border-bottom:1px solid var(--border-color,#334155)}dt[_ngcontent-%COMP%]{color:var(--text-secondary,#94a3b8)}dd[_ngcontent-%COMP%]{margin:0;font-weight:650}.total[_ngcontent-%COMP%]{font-size:1.15rem}.primary[_ngcontent-%COMP%]{width:100%;padding:.85rem;border:0;border-radius:.7rem;background:var(--primary-color,#2563eb);color:white;font-weight:700;cursor:pointer}.primary[_ngcontent-%COMP%]:disabled{opacity:.55}.verification-note[_ngcontent-%COMP%]{font-size:.8rem;line-height:1.5;color:var(--text-secondary,#94a3b8)}.state[_ngcontent-%COMP%]{text-align:center;padding:3rem;color:var(--text-secondary,#94a3b8)}.state--compact[_ngcontent-%COMP%]{padding:2rem}.section-heading[_ngcontent-%COMP%]{display:flex;justify-content:space-between;align-items:center}.table-wrap[_ngcontent-%COMP%]{overflow:auto}table[_ngcontent-%COMP%]{width:100%;border-collapse:collapse}th[_ngcontent-%COMP%], td[_ngcontent-%COMP%]{text-align:start;padding:.8rem;border-bottom:1px solid var(--border-color,#334155);white-space:nowrap}.status[_ngcontent-%COMP%]{display:inline-flex;padding:.25rem .6rem;border-radius:99px;font-size:.75rem;font-weight:700}.status--paid[_ngcontent-%COMP%]{background:#064e3b;color:#a7f3d0}.status--pending[_ngcontent-%COMP%]{background:#78350f;color:#fde68a}.status--failed[_ngcontent-%COMP%]{background:#7f1d1d;color:#fecaca}.status--refunded[_ngcontent-%COMP%]{background:#4c1d95;color:#ddd6fe}.modal[_ngcontent-%COMP%]{position:fixed;inset:0;background:#000a;display:grid;place-items:center;padding:1rem;z-index:1000}.receipt[_ngcontent-%COMP%]{position:relative;width:min(520px,100%);max-height:90vh;overflow:auto;background:var(--surface-card,#0f172a);border:1px solid var(--border-color,#334155);border-radius:1rem;padding:1.5rem}.close[_ngcontent-%COMP%]{position:absolute;inset-block-start:.8rem;inset-inline-end:.8rem;border:0;background:transparent;color:inherit;font-size:1.7rem;cursor:pointer}[dir=rtl][_ngcontent-%COMP%]   th[_ngcontent-%COMP%], [dir=rtl][_ngcontent-%COMP%]   td[_ngcontent-%COMP%]{text-align:right}@media(max-width:800px){.credit-page[_ngcontent-%COMP%]{padding:1rem}.page-header[_ngcontent-%COMP%]{align-items:flex-start;flex-wrap:wrap}.balance[_ngcontent-%COMP%]{margin-inline-start:0}.purchase-grid[_ngcontent-%COMP%]{grid-template-columns:1fr}.package-grid[_ngcontent-%COMP%]{grid-template-columns:1fr}}"], changeDetection: 0 }); }
 }
 (() => { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(CreditChargeComponent, [{
         type: Component,
-        args: [{ standalone: true, selector: 'app-credit-charge', changeDetection: ChangeDetectionStrategy.OnPush, imports: [CommonModule], template: "<div class=\"container mx-auto p-6 lg:p-8 max-w-6xl\">\r\n  <!-- Header -->\r\n  <div class=\"flex items-center justify-between mb-8\">\r\n    <div>\r\n      <button (click)=\"goBack()\" class=\"text-gray-400 hover:text-white mb-4 flex items-center gap-2 transition-colors\">\r\n        <svg class=\"w-5 h-5\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\r\n          <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M10 19l-7-7m0 0l7-7m-7 7h18\"/>\r\n        </svg>\r\n        <span>Back</span>\r\n      </button>\r\n      <h1 class=\"text-3xl font-bold text-white\">Charge Credits</h1>\r\n      <p class=\"text-gray-400 mt-2\">Purchase credits to unlock investment opportunities and features</p>\r\n    </div>\r\n    <div class=\"bg-slate-800/50 rounded-xl p-4 text-center\">\r\n      <p class=\"text-sm text-gray-400\">Current Balance</p>\r\n      <p class=\"text-3xl font-bold text-blue-400 mt-1\">{{ currentCredits() }}</p>\r\n      <p class=\"text-xs text-gray-500 mt-1\">Credits</p>\r\n    </div>\r\n  </div>\r\n\r\n  <!-- Error Message -->\r\n  <div *ngIf=\"errorMessage()\" class=\"mb-6 p-4 rounded-lg bg-red-800/20 border border-red-800 text-red-300\">\r\n    <div class=\"flex items-start gap-3\">\r\n      <svg class=\"w-5 h-5 flex-shrink-0 mt-0.5\" fill=\"currentColor\" viewBox=\"0 0 20 20\">\r\n        <path fill-rule=\"evenodd\" d=\"M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z\" clip-rule=\"evenodd\"/>\r\n      </svg>\r\n      <p>{{ errorMessage() }}</p>\r\n    </div>\r\n  </div>\r\n\r\n  <div class=\"grid grid-cols-1 lg:grid-cols-3 gap-8\">\r\n    <!-- Left Column: Admin Credit Plans -->\r\n    <div class=\"lg:col-span-2\">\r\n      <div class=\"bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl p-6\">\r\n        <h2 class=\"text-xl font-bold text-white mb-6\">Select a Plan</h2>\r\n\r\n        <!-- No plans available -->\r\n        <div *ngIf=\"plansLoading()\" class=\"text-center py-12\">\r\n          <svg class=\"animate-spin w-8 h-8 mx-auto text-blue-400\" xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 24 24\">\r\n            <circle class=\"opacity-25\" cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-width=\"4\"></circle>\r\n            <path class=\"opacity-75\" fill=\"currentColor\" d=\"M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z\"></path>\r\n          </svg>\r\n          <p class=\"text-gray-400 mt-3\">Loading plans...</p>\r\n        </div>\r\n\r\n        <div *ngIf=\"!plansLoading() && adminPlans().length === 0\" class=\"text-center py-12\">\r\n          <svg class=\"w-14 h-14 mx-auto mb-4 text-gray-600\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\r\n            <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\" d=\"M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z\"/>\r\n          </svg>\r\n          <p class=\"text-gray-400\">No plans available at the moment. Please check back later.</p>\r\n        </div>\r\n\r\n        <div *ngIf=\"!plansLoading()\" class=\"grid grid-cols-1 md:grid-cols-2 gap-4\">\r\n          <div *ngFor=\"let plan of adminPlans()\"\r\n               (click)=\"selectPlan(plan.id)\"\r\n               [class]=\"'relative cursor-pointer rounded-xl p-6 border-2 transition-all hover:shadow-lg ' +\r\n                        (selectedPlanId() === plan.id\r\n                          ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/20'\r\n                          : 'border-slate-700 bg-slate-800/50 hover:border-slate-600')\">\r\n\r\n            <!-- Selected indicator -->\r\n            <div *ngIf=\"selectedPlanId() === plan.id\"\r\n                 class=\"absolute top-3 right-3 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center\">\r\n              <svg class=\"w-3.5 h-3.5 text-white\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\r\n                <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M5 13l4 4L19 7\"/>\r\n              </svg>\r\n            </div>\r\n\r\n            <!-- Billing period badge -->\r\n            <span class=\"inline-block mb-4 px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-slate-700 text-gray-300\">\r\n              {{ BILLING_LABELS[plan.billingPeriod] }}\r\n            </span>\r\n\r\n            <h3 class=\"text-lg font-bold text-white mb-1\">{{ plan.name }}</h3>\r\n\r\n            <div class=\"flex items-end gap-1 mt-3 mb-3\">\r\n              <span class=\"text-3xl font-black\" [class]=\"selectedPlanId() === plan.id ? 'text-blue-400' : 'text-white'\">\r\n                {{ plan.price.toLocaleString() }}\r\n              </span>\r\n              <span class=\"text-gray-400 mb-1 text-sm\">EGP</span>\r\n            </div>\r\n\r\n            <div class=\"flex items-center gap-2 px-3 py-2 bg-slate-700/50 rounded-lg\">\r\n              <svg class=\"w-4 h-4 text-blue-400 flex-shrink-0\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\r\n                <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z\"/>\r\n              </svg>\r\n              <span class=\"text-sm font-semibold text-gray-200\">{{ plan.credits.toLocaleString() }} Credits</span>\r\n            </div>\r\n\r\n            <p class=\"text-xs text-gray-500 mt-2\">{{ (plan.price / plan.credits).toFixed(2) }} EGP / credit</p>\r\n          </div>\r\n        </div>\r\n      </div>\r\n    </div>\r\n\r\n    <!-- Right Column: Summary & Purchase -->\r\n    <div class=\"lg:col-span-1\">\r\n      <div class=\"bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-xl shadow-2xl p-6 sticky top-8\">\r\n        <h2 class=\"text-xl font-bold text-white mb-6\">Order Summary</h2>\r\n\r\n        <div *ngIf=\"selectedPlan() === null\" class=\"text-center py-8\">\r\n          <svg class=\"w-16 h-16 mx-auto mb-4 text-gray-600\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\r\n            <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2\"/>\r\n          </svg>\r\n          <p class=\"text-gray-400 text-sm\">Select a plan to continue</p>\r\n        </div>\r\n\r\n        <div *ngIf=\"selectedPlan()\" class=\"space-y-4\">\r\n          <div class=\"flex items-center justify-between py-3 border-b border-slate-700\">\r\n            <span class=\"text-gray-400\">Plan:</span>\r\n            <span class=\"text-white font-semibold\">{{ selectedPlan()!.name }}</span>\r\n          </div>\r\n          <div class=\"flex items-center justify-between py-3 border-b border-slate-700\">\r\n            <span class=\"text-gray-400\">Credits:</span>\r\n            <span class=\"text-white font-semibold\">{{ selectedPlan()!.credits.toLocaleString() }}</span>\r\n          </div>\r\n          <div class=\"flex items-center justify-between py-3 border-b border-slate-700\">\r\n            <span class=\"text-gray-400\">Billing:</span>\r\n            <span class=\"text-white font-semibold\">{{ BILLING_LABELS[selectedPlan()!.billingPeriod] }}</span>\r\n          </div>\r\n          <div class=\"flex items-center justify-between py-3 text-lg\">\r\n            <span class=\"text-white font-semibold\">Total:</span>\r\n            <span class=\"text-blue-400 font-bold text-2xl\">{{ selectedPlan()!.price.toLocaleString() }} EGP</span>\r\n          </div>\r\n\r\n          <button\r\n            type=\"button\"\r\n            (click)=\"purchasePackage()\"\r\n            [disabled]=\"isLoading()\"\r\n            class=\"w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all mt-6\">\r\n            <span *ngIf=\"!isLoading()\">Purchase Now</span>\r\n            <span *ngIf=\"isLoading()\" class=\"flex items-center justify-center gap-2\">\r\n              <svg class=\"animate-spin h-5 w-5 text-white\" xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 24 24\">\r\n                <circle class=\"opacity-25\" cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-width=\"4\"></circle>\r\n                <path class=\"opacity-75\" fill=\"currentColor\" d=\"M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z\"></path>\r\n              </svg>\r\n              Processing...\r\n            </span>\r\n          </button>\r\n        </div>\r\n\r\n        <!-- Payment Methods -->\r\n        <div class=\"mt-8 pt-6 border-t border-slate-800\">\r\n          <p class=\"text-xs text-gray-500 mb-4 text-center\">Secure Payment</p>\r\n          <div class=\"flex items-center justify-center gap-4\">\r\n            <div class=\"bg-white rounded px-2 py-1\">\r\n              <span class=\"text-blue-600 font-bold text-sm\">VISA</span>\r\n            </div>\r\n            <div class=\"bg-white rounded px-2 py-1\">\r\n              <span class=\"text-orange-600 font-bold text-sm\">Mastercard</span>\r\n            </div>\r\n            <div class=\"bg-blue-600 rounded px-2 py-1\">\r\n              <span class=\"text-white font-bold text-sm\">PayPal</span>\r\n            </div>\r\n          </div>\r\n        </div>\r\n      </div>\r\n    </div>\r\n  </div>\r\n\r\n  <!-- Success Dialog -->\r\n  <div *ngIf=\"showSuccessDialog()\" class=\"fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm\">\r\n    <div class=\"bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-8 max-w-md w-full animate-fade-in\">\r\n      <div class=\"text-center\">\r\n        <div class=\"w-20 h-20 mx-auto mb-4 bg-green-500/20 rounded-full flex items-center justify-center\">\r\n          <svg class=\"w-12 h-12 text-green-400\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\r\n            <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M5 13l4 4L19 7\"/>\r\n          </svg>\r\n        </div>\r\n        <h3 class=\"text-2xl font-bold text-white mb-2\">Purchase Successful!</h3>\r\n        <p class=\"text-gray-400 mb-4\">{{ purchasedCredits() | number }} credits have been added to your account.</p>\r\n        <div *ngIf=\"referenceNumber()\" class=\"mt-4 bg-slate-800 rounded-lg px-4 py-3\">\r\n          <p class=\"text-xs text-gray-500 mb-1\">Reference Number</p>\r\n          <p class=\"text-blue-400 font-mono font-semibold tracking-wider\">{{ referenceNumber() }}</p>\r\n        </div>\r\n        <p class=\"text-xs text-gray-500 mt-4\">Redirecting to your profile\u2026</p>\r\n      </div>\r\n    </div>\r\n  </div>\r\n</div>\r\n", styles: ["@keyframes fade-in {\r\n  from {\r\n    opacity: 0;\r\n    transform: translateY(-10px);\r\n  }\r\n  to {\r\n    opacity: 1;\r\n    transform: translateY(0);\r\n  }\r\n}\r\n\r\n.animate-fade-in {\r\n  animation: fade-in 0.3s ease-out;\r\n}\r\n\r\n// Package card hover effects\r\n.package-card {\r\n  transition: all 0.3s ease;\r\n  \r\n  &:hover {\r\n    transform: translateY(-4px);\r\n  }\r\n}\r\n\r\n// Custom number input styling\r\ninput[type=\"number\"]::-webkit-inner-spin-button,\r\ninput[type=\"number\"]::-webkit-outer-spin-button {\r\n  opacity: 1;\r\n}\r\n"] }]
+        args: [{ standalone: true, selector: 'app-credit-charge', imports: [CommonModule, TranslatePipe], changeDetection: ChangeDetectionStrategy.OnPush, template: "<main class=\"credit-page\" [attr.dir]=\"language.direction()\">\n  <header class=\"page-header\">\n    <button type=\"button\" class=\"back\" (click)=\"goBack()\">\u2039 <span>{{ 'creditPurchase.back' | translate }}</span></button>\n    <div>\n      <p class=\"eyebrow\">{{ 'creditPurchase.eyebrow' | translate }}</p>\n      <h1>{{ 'creditPurchase.title' | translate }}</h1>\n      <p>{{ 'creditPurchase.subtitle' | translate }}</p>\n    </div>\n    <aside class=\"balance\"><span>{{ 'creditPurchase.balance' | translate }}</span><strong>{{ formatNumber(currentBalance()) }}</strong><small>CREDIT</small></aside>\n  </header>\n\n  <p class=\"service-note\">{{ 'creditPurchase.serviceOnly' | translate }}</p>\n  @if (error()) { <div class=\"alert alert--error\">{{ error() }} <button type=\"button\" (click)=\"load()\">{{ 'creditPurchase.retry' | translate }}</button></div> }\n\n  @if (loading()) {\n    <div class=\"state\">{{ 'creditPurchase.loading' | translate }}</div>\n  } @else {\n    <section class=\"purchase-grid\">\n      <div class=\"panel\">\n        <h2>{{ 'creditPurchase.packages' | translate }}</h2>\n        @if (packages().length === 0) {\n          <div class=\"state\">{{ 'creditPurchase.noPackages' | translate }}</div>\n        } @else {\n          <div class=\"package-grid\">\n            @for (item of packages(); track item.id) {\n              <button type=\"button\" class=\"package\" [class.package--selected]=\"selectedPackageId() === item.id\" (click)=\"selectPackage(item.id)\">\n                @if (item.isFeatured) { <span class=\"featured\">{{ 'creditPurchase.featured' | translate }}</span> }\n                <strong>{{ packageName(item) }}</strong>\n                <span class=\"price\">{{ formatMoney(item.price, item.currency) }}</span>\n                <span>{{ formatNumber(item.credits) }} CREDIT</span>\n                @if (item.bonusCredits > 0) { <span class=\"bonus\">+ {{ formatNumber(item.bonusCredits) }} {{ 'creditPurchase.bonus' | translate }}</span> }\n              </button>\n            }\n          </div>\n        }\n      </div>\n\n      <aside class=\"panel summary\">\n        <h2>{{ 'creditPurchase.review' | translate }}</h2>\n        @if (selectedPackage(); as item) {\n          <dl>\n            <div><dt>{{ 'creditPurchase.package' | translate }}</dt><dd>{{ packageName(item) }}</dd></div>\n            <div><dt>{{ 'creditPurchase.credits' | translate }}</dt><dd>{{ formatNumber(item.credits) }}</dd></div>\n            <div><dt>{{ 'creditPurchase.bonus' | translate }}</dt><dd>{{ formatNumber(item.bonusCredits) }}</dd></div>\n            <div class=\"total\"><dt>{{ 'creditPurchase.total' | translate }}</dt><dd>{{ formatMoney(item.price, item.currency) }}</dd></div>\n          </dl>\n          <button type=\"button\" class=\"primary\" [disabled]=\"submitting()\" (click)=\"createOrder()\">{{ (submitting() ? 'creditPurchase.creating' : 'creditPurchase.buy') | translate }}</button>\n          <p class=\"verification-note\">{{ 'creditPurchase.verificationNote' | translate }}</p>\n        } @else { <div class=\"state state--compact\">{{ 'creditPurchase.selectPrompt' | translate }}</div> }\n      </aside>\n    </section>\n\n    <section class=\"panel history\">\n      <div class=\"section-heading\"><h2>{{ 'creditPurchase.history' | translate }}</h2><button type=\"button\" (click)=\"load()\">{{ 'creditPurchase.refresh' | translate }}</button></div>\n      @if (orders().length === 0) { <div class=\"state\">{{ 'creditPurchase.noOrders' | translate }}</div> }\n      @else {\n        <div class=\"table-wrap\"><table><thead><tr><th>{{ 'creditPurchase.reference' | translate }}</th><th>{{ 'creditPurchase.package' | translate }}</th><th>{{ 'creditPurchase.totalCredits' | translate }}</th><th>{{ 'creditPurchase.amount' | translate }}</th><th>{{ 'creditPurchase.statusLabel' | translate }}</th><th>{{ 'creditPurchase.date' | translate }}</th><th></th></tr></thead>\n          <tbody>@for (order of orders(); track order.id) { <tr><td>{{ order.referenceNumber }}</td><td>{{ packageName(order) }}</td><td>{{ formatNumber(order.credits + order.bonusCredits) }}</td><td>{{ formatMoney(order.pricePaid, order.currency) }}</td><td><span [class]=\"statusTone(order.paymentStatus)\">{{ statusKey(order.paymentStatus) | translate }}</span></td><td>{{ formatDate(order.createdAt) }}</td><td><button type=\"button\" class=\"link\" (click)=\"viewReceipt(order)\">{{ 'creditPurchase.details' | translate }}</button></td></tr> }</tbody>\n        </table></div>\n      }\n    </section>\n  }\n\n  @if (selectedOrder(); as order) {\n    <div class=\"modal\" role=\"dialog\" aria-modal=\"true\"><article class=\"receipt\">\n      <button type=\"button\" class=\"close\" (click)=\"closeReceipt()\" [attr.aria-label]=\"'creditPurchase.close' | translate\">\u00D7</button>\n      <p class=\"eyebrow\">{{ 'creditPurchase.receipt' | translate }}</p><h2>{{ order.referenceNumber }}</h2>\n      <span [class]=\"statusTone(order.paymentStatus)\">{{ statusKey(order.paymentStatus) | translate }}</span>\n      <dl><div><dt>{{ 'creditPurchase.package' | translate }}</dt><dd>{{ packageName(order) }}</dd></div><div><dt>{{ 'creditPurchase.credits' | translate }}</dt><dd>{{ formatNumber(order.credits) }}</dd></div><div><dt>{{ 'creditPurchase.bonus' | translate }}</dt><dd>{{ formatNumber(order.bonusCredits) }}</dd></div><div><dt>{{ 'creditPurchase.amount' | translate }}</dt><dd>{{ formatMoney(order.pricePaid, order.currency) }}</dd></div><div><dt>{{ 'creditPurchase.date' | translate }}</dt><dd>{{ formatDate(order.createdAt) }}</dd></div><div><dt>{{ 'creditPurchase.paidAt' | translate }}</dt><dd>{{ formatDate(order.paidAt) }}</dd></div></dl>\n      @if (!order.providerConfigured && order.paymentStatus === 'Pending') { <p class=\"alert\">{{ 'creditPurchase.providerUnavailable' | translate }}</p> }\n      <p class=\"verification-note\">{{ 'creditPurchase.receiptNote' | translate }}</p>\n    </article></div>\n  }\n</main>\n", styles: [":host{display:block;color:var(--text-primary,#e5e7eb)}.credit-page{max-width:1200px;margin:auto;padding:2rem}.page-header{display:flex;gap:1.25rem;align-items:center;margin-bottom:1rem}.page-header h1{font-size:2rem;margin:.2rem 0}.page-header p{color:var(--text-secondary,#94a3b8)}.eyebrow{text-transform:uppercase;letter-spacing:.12em;font-size:.72rem;color:var(--primary-color,#60a5fa)!important}.back,.link,.section-heading button{border:0;background:transparent;color:var(--primary-color,#60a5fa);cursor:pointer}.balance{margin-inline-start:auto;text-align:center;background:var(--surface-card,#0f172a);border:1px solid var(--border-color,#334155);border-radius:1rem;padding:1rem;min-width:130px}.balance span,.balance small{display:block;color:var(--text-secondary,#94a3b8)}.balance strong{display:block;font-size:1.8rem;color:var(--primary-color,#60a5fa)}.service-note,.alert{padding:1rem;border-radius:.75rem;background:color-mix(in srgb,var(--primary-color,#3b82f6) 12%,transparent);border:1px solid color-mix(in srgb,var(--primary-color,#3b82f6) 25%,transparent)}.alert--error{border-color:#ef4444;color:#fca5a5;margin:1rem 0}.alert button{float:inline-end}.purchase-grid{display:grid;grid-template-columns:2fr 1fr;gap:1.25rem;margin:1.25rem 0}.panel{background:var(--surface-card,#0f172a);border:1px solid var(--border-color,#334155);border-radius:1rem;padding:1.25rem}.package-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.package{position:relative;text-align:start;padding:1.25rem;border-radius:.9rem;border:2px solid var(--border-color,#334155);background:var(--surface-ground,#111827);color:inherit;cursor:pointer;display:flex;flex-direction:column;gap:.55rem}.package--selected{border-color:var(--primary-color,#3b82f6)}.price{font-size:1.7rem;font-weight:800}.bonus{color:#34d399}.featured{position:absolute;inset-block-start:.5rem;inset-inline-end:.5rem;font-size:.7rem;background:#7c3aed;color:#fff;padding:.25rem .5rem;border-radius:99px}.summary dl,.receipt dl{margin:0}.summary dl div,.receipt dl div{display:flex;justify-content:space-between;gap:1rem;padding:.75rem 0;border-bottom:1px solid var(--border-color,#334155)}dt{color:var(--text-secondary,#94a3b8)}dd{margin:0;font-weight:650}.total{font-size:1.15rem}.primary{width:100%;padding:.85rem;border:0;border-radius:.7rem;background:var(--primary-color,#2563eb);color:white;font-weight:700;cursor:pointer}.primary:disabled{opacity:.55}.verification-note{font-size:.8rem;line-height:1.5;color:var(--text-secondary,#94a3b8)}.state{text-align:center;padding:3rem;color:var(--text-secondary,#94a3b8)}.state--compact{padding:2rem}.section-heading{display:flex;justify-content:space-between;align-items:center}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse}th,td{text-align:start;padding:.8rem;border-bottom:1px solid var(--border-color,#334155);white-space:nowrap}.status{display:inline-flex;padding:.25rem .6rem;border-radius:99px;font-size:.75rem;font-weight:700}.status--paid{background:#064e3b;color:#a7f3d0}.status--pending{background:#78350f;color:#fde68a}.status--failed{background:#7f1d1d;color:#fecaca}.status--refunded{background:#4c1d95;color:#ddd6fe}.modal{position:fixed;inset:0;background:#000a;display:grid;place-items:center;padding:1rem;z-index:1000}.receipt{position:relative;width:min(520px,100%);max-height:90vh;overflow:auto;background:var(--surface-card,#0f172a);border:1px solid var(--border-color,#334155);border-radius:1rem;padding:1.5rem}.close{position:absolute;inset-block-start:.8rem;inset-inline-end:.8rem;border:0;background:transparent;color:inherit;font-size:1.7rem;cursor:pointer}[dir=rtl] th,[dir=rtl] td{text-align:right}@media(max-width:800px){.credit-page{padding:1rem}.page-header{align-items:flex-start;flex-wrap:wrap}.balance{margin-inline-start:0}.purchase-grid{grid-template-columns:1fr}.package-grid{grid-template-columns:1fr}}\n"] }]
     }], null, null); })();
-(() => { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassDebugInfo(CreditChargeComponent, { className: "CreditChargeComponent", filePath: "src/app/pages/admin/credit-charge/credit-charge.component.ts", lineNumber: 29 }); })();
+(() => { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassDebugInfo(CreditChargeComponent, { className: "CreditChargeComponent", filePath: "src/app/pages/admin/credit-charge/credit-charge.component.ts", lineNumber: 18 }); })();

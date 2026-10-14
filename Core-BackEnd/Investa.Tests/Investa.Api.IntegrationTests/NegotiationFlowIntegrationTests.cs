@@ -42,9 +42,9 @@ public sealed class NegotiationFlowIntegrationTests
             Currency = "USD",
             Legs = new[]
             {
-                new CreateNegotiationOfferLegRequest { LegType = NegotiationOfferLegType.Equity, Amount = 10000, EquityPercentage = 8 },
+                new CreateNegotiationOfferLegRequest { LegType = NegotiationOfferLegType.Equity, Amount = 10000, EquityOwnershipModel = EquityOwnershipModel.PercentageBased, EquityPercentage = 8 },
                 new CreateNegotiationOfferLegRequest { LegType = NegotiationOfferLegType.Loan, Amount = 5000, ReturnRate = 9, TermMonths = 24, RepaymentModel = "Monthly" },
-                new CreateNegotiationOfferLegRequest { LegType = NegotiationOfferLegType.ProfitSharing, Amount = 2500, ProfitSharePercentage = 12, TermMonths = 18, ExitTerms = "At maturity" }
+                new CreateNegotiationOfferLegRequest { LegType = NegotiationOfferLegType.ProfitSharing, Amount = 2500, ProfitSharePercentage = 12, TermMonths = 18, ProfitSharingPayoutFrequency = "Quarterly", ExitTerms = "At maturity" }
             }
         };
 
@@ -63,6 +63,74 @@ public sealed class NegotiationFlowIntegrationTests
         await FluentActions.Invoking(() => service.GetDirectOffersAsync(outsider.Id, opportunity.Id))
             .Should().ThrowAsync<BusinessValidationException>()
             .Where(e => e.Code == "OFFER_FORBIDDEN");
+    }
+
+    [Fact]
+    public async Task Profit_sharing_offer_requires_canonical_frequency_and_contract_snapshots_exact_offer_leg_frequency()
+    {
+        await using var db = Db();
+        var founder = User();
+        var investor = User();
+        var opportunity = AddOpportunity(db, founder, "Profit Sharing frequency flow");
+        db.AuthUsers.AddRange(founder, investor);
+        await db.SaveChangesAsync();
+
+        var contractService = new InvestmentContractService(new UnitOfWork(db), null!, null!, NullLogger<InvestmentContractService>.Instance);
+        var service = new NegotiationService(
+            new UnitOfWork(db), Mock.Of<IPaidActionService>(), Mock.Of<IReputationService>(),
+            Mock.Of<IUserNotificationService>(), Mock.Of<IRealtimeEventPublisher>(),
+            Mock.Of<IConversationPresenceService>(), contractService, NullLogger<NegotiationService>.Instance);
+
+        var invalid = new CreateNegotiationOfferRequest
+        {
+            Currency = "EGP",
+            Legs = new[]
+            {
+                new CreateNegotiationOfferLegRequest
+                {
+                    LegType = NegotiationOfferLegType.ProfitSharing,
+                    Amount = 1_000m,
+                    ProfitSharePercentage = 20m,
+                    TermMonths = 12,
+                    ProfitSharingPayoutFrequency = "EveryMonth",
+                    ExitTerms = "At maturity"
+                }
+            }
+        };
+
+        await FluentActions.Invoking(() => service.SubmitDirectOfferAsync(investor.Id, opportunity.Id, invalid))
+            .Should().ThrowAsync<BusinessValidationException>()
+            .Where(e => e.Code == "PROFIT_SHARING_FREQUENCY_REQUIRED");
+
+        var offer = await service.SubmitDirectOfferAsync(investor.Id, opportunity.Id, new CreateNegotiationOfferRequest
+        {
+            Currency = "EGP",
+            Legs = new[]
+            {
+                new CreateNegotiationOfferLegRequest
+                {
+                    LegType = NegotiationOfferLegType.ProfitSharing,
+                    Amount = 1_000m,
+                    ProfitSharePercentage = 20m,
+                    TermMonths = 12,
+                    ProfitSharingPayoutFrequency = "Quarterly",
+                    ExitTerms = "At maturity"
+                }
+            }
+        });
+
+        offer.Legs.Single().ProfitSharingPayoutFrequency.Should().Be("Quarterly");
+        await service.AcceptDirectOfferAsync(founder.Id, opportunity.Id, offer.Id);
+
+        var participation = await db.OpportunityJoinRequests.SingleAsync(r => r.AcceptedOfferId == offer.Id);
+        var storedLeg = await db.NegotiationOfferLegs.SingleAsync(l => l.OfferId == offer.Id);
+        storedLeg.ProfitSharingPayoutFrequency.Should().Be("Quarterly");
+        var version = await db.InvestmentContractVersions.SingleAsync(v => v.SourceNegotiationOfferId == offer.Id);
+        using var snapshot = JsonDocument.Parse(version.TermsSnapshotJson!);
+        var legSnapshot = snapshot.RootElement.GetProperty("sourceAgreedTerms").EnumerateArray().Single();
+        legSnapshot.GetProperty("reportingFrequency").GetString().Should().Be("Quarterly");
+        legSnapshot.GetProperty("payoutFrequency").GetString().Should().Be("Quarterly");
+        participation.TermsSnapshotJson.Should().Contain("ProfitSharingPayoutFrequency");
     }
 
     [Fact]
@@ -186,9 +254,9 @@ public sealed class NegotiationFlowIntegrationTests
             Currency = "EGP",
             Legs = new[]
             {
-                new CreateNegotiationOfferLegRequest { LegType = NegotiationOfferLegType.Equity, Amount = 10000, EquityPercentage = 8, SharesTerms = "800 shares" },
+                new CreateNegotiationOfferLegRequest { LegType = NegotiationOfferLegType.Equity, Amount = 10000, EquityOwnershipModel = EquityOwnershipModel.PercentageBased, EquityPercentage = 8, SharesTerms = "800 shares" },
                 new CreateNegotiationOfferLegRequest { LegType = NegotiationOfferLegType.Loan, Amount = 5000, ReturnRate = 9, TermMonths = 24, RepaymentModel = "Monthly" },
-                new CreateNegotiationOfferLegRequest { LegType = NegotiationOfferLegType.ProfitSharing, Amount = 2500, ProfitSharePercentage = 12, TermMonths = 18, ExitTerms = "At maturity" }
+                new CreateNegotiationOfferLegRequest { LegType = NegotiationOfferLegType.ProfitSharing, Amount = 2500, ProfitSharePercentage = 12, TermMonths = 18, ProfitSharingPayoutFrequency = "Quarterly", ExitTerms = "At maturity" }
             }
         });
 
@@ -230,7 +298,7 @@ public sealed class NegotiationFlowIntegrationTests
             Currency = "USD",
             Legs = new[]
             {
-                new CreateNegotiationOfferLegRequest { LegType = NegotiationOfferLegType.Loan, Amount = 15000, ReturnRate = 10, TermMonths = 12, RepaymentModel = "Bullet" }
+                new CreateNegotiationOfferLegRequest { LegType = NegotiationOfferLegType.Loan, Amount = 15000, ReturnRate = 10, TermMonths = 12, RepaymentModel = "Monthly" }
             }
         });
 
@@ -262,7 +330,6 @@ public sealed class NegotiationFlowIntegrationTests
             Project = project,
             FounderId = founder.Id,
             SequenceNumber = 1,
-            Purpose = "Test",
             Type = "Test",
             Title = "Negotiation opportunity",
             ShortDescription = "Test opportunity for negotiation flow",
@@ -294,7 +361,7 @@ public sealed class NegotiationFlowIntegrationTests
             Status = NegotiationOfferStatus.Pending,
             Legs = new List<NegotiationOfferLeg>
             {
-                new() { LegType = NegotiationOfferLegType.Equity, Amount = 10000, EquityPercentage = 10 }
+                new() { LegType = NegotiationOfferLegType.Equity, Amount = 10000, EquityOwnershipModel = EquityOwnershipModel.PercentageBased, EquityPercentage = 10 }
             }
         };
         db.NegotiationOffers.Add(offer);
@@ -344,7 +411,6 @@ public sealed class NegotiationFlowIntegrationTests
             Project = project,
             FounderId = founder.Id,
             SequenceNumber = 1,
-            Purpose = "Test",
             Type = "Test",
             Title = "Closed opportunity",
             ShortDescription = "Already closed",
@@ -374,7 +440,7 @@ public sealed class NegotiationFlowIntegrationTests
             Status = NegotiationOfferStatus.Pending,
             Legs = new List<NegotiationOfferLeg>
             {
-                new() { LegType = NegotiationOfferLegType.Equity, Amount = 10000, EquityPercentage = 10 }
+                new() { LegType = NegotiationOfferLegType.Equity, Amount = 10000, EquityOwnershipModel = EquityOwnershipModel.PercentageBased, EquityPercentage = 10 }
             }
         };
         db.NegotiationOffers.Add(offer);
@@ -414,7 +480,6 @@ public sealed class NegotiationFlowIntegrationTests
             Project = project,
             FounderId = founder.Id,
             SequenceNumber = 1,
-            Purpose = "Test",
             Type = "Test",
             Title = title,
             ShortDescription = title,
@@ -433,7 +498,7 @@ public sealed class NegotiationFlowIntegrationTests
         Currency = "USD",
         Legs = new[]
         {
-            new CreateNegotiationOfferLegRequest { LegType = NegotiationOfferLegType.Equity, Amount = 10000, EquityPercentage = 10 }
+            new CreateNegotiationOfferLegRequest { LegType = NegotiationOfferLegType.Equity, Amount = 10000, EquityOwnershipModel = EquityOwnershipModel.PercentageBased, EquityPercentage = 10 }
         }
     };
 

@@ -44,7 +44,7 @@ if (string.IsNullOrWhiteSpace(connStr))
     return 1;
 }
 
-Console.WriteLine("Using connection string: " + (connStr!.Length > 40 ? connStr[..40] + "..." : connStr));
+Console.WriteLine("Using configured database connection.");
 
 using var conn = new SqlConnection(connStr);
 await conn.OpenAsync();
