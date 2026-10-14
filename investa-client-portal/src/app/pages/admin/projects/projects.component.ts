@@ -3,6 +3,7 @@ import { CommonModule } from "@angular/common";
 import { Router } from "@angular/router";
 import { Project, ProjectService } from "../../../services/project.service";
 import { CurrencyService } from "../../../services/currency.service";
+import { ProjectStageService } from "../../../services/project-stage.service";
 import { LanguageService } from "../../../services/language.service";
 import { TranslatePipe } from "../../../pipes/translate.pipe";
 @Component({
@@ -17,12 +18,14 @@ export class ProjectsComponent {
   direction = this.languageService.direction;
   private api = inject(ProjectService);
   currency = inject(CurrencyService);
+  stageService = inject(ProjectStageService);
   items = signal<Project[]>([]);
   expandedProjectId = signal<number | null>(null);
   error = signal("");
   loading = signal(true);
   constructor() {
     this.currency.ensureLoaded();
+    this.stageService.ensureLoaded();
     this.load();
   }
   async load() {
@@ -31,10 +34,14 @@ export class ProjectsComponent {
     try {
       this.items.set(await this.api.list());
     } catch (e: any) {
-      this.error.set(e.message);
+      this.error.set(this.readableError(e, 'Unable to load your projects.'));
     } finally {
       this.loading.set(false);
     }
+  }
+
+  private readableError(error: any, fallback: string): string {
+    return error?.error?.message || error?.error?.error || error?.message || fallback;
   }
   statusLabel(status: number | string): string {
     const key = String(status);
@@ -91,11 +98,17 @@ export class ProjectsComponent {
   }
 
   opportunityStageLabel(opportunity: Project['opportunities'][number]): string {
-    const names: Record<string, number> = { Idea: 1, MVP: 2, Startup: 3, Scaling: 4, Established: 5, Other: 6 };
-    const stage = Number(opportunity.projectStage) || names[String(opportunity.projectStage)] || 0;
-    const label = this.languageService.translate(`opportunityEditor.projectStages.${stage}`);
-    return stage === 6 && opportunity.projectStageCustomName?.trim()
+    const label = this.stageService.label(opportunity.projectStage, this.languageService.language() as 'en' | 'ar') || String(opportunity.projectStage ?? '');
+    return this.stageService.find(opportunity.projectStage)?.allowsCustomName && opportunity.projectStageCustomName?.trim()
       ? `${label}: ${opportunity.projectStageCustomName.trim()}`
       : label;
+  }
+
+  categoryLabel(project: Project): string {
+    const category = project.category;
+    if (!category) return '-';
+    return this.languageService.language() === 'ar'
+      ? category.nameAr || category.nameEn
+      : category.nameEn || category.nameAr;
   }
 }

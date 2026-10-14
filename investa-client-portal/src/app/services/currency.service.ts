@@ -22,7 +22,9 @@ const ARABIC_INDIC_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨
  * System-wide shared currency display formatter.
  *
  * Currency symbols, bilingual names, decimal-digit rules and supported capabilities
- * are resolved ONLY from the active Currency Master endpoint (GET /api/currency).
+ * are resolved ONLY from the Currency Master endpoint (GET /api/currency). The cache
+ * includes inactive records so historical amounts can still be displayed; selector
+ * consumers must filter to active records/capabilities.
  * No component may hardcode symbols/codes or use a generic number pipe for money.
  *
  * Amounts converted from an investor's preferred currency are approximate display
@@ -52,10 +54,10 @@ export class CurrencyService {
   private async loadCurrencies(): Promise<void> {
     try {
       const raw = await firstValueFrom(
-        this.http.get<CurrencyReference[] | { data: CurrencyReference[] }>(`${this.apiBase}/api/currency`)
+        this.http.get<CurrencyReference[] | { data: CurrencyReference[] }>(`${this.apiBase}/api/currency?includeInactive=true`)
       );
       const list = Array.isArray(raw) ? raw : (raw as any)?.data ?? [];
-      this._master.set(Array.isArray(list) ? list.filter(c => c.isActive) : []);
+      this._master.set(Array.isArray(list) ? list : []);
     } catch {
       this._master.set([]);
     }
@@ -71,11 +73,11 @@ export class CurrencyService {
     return this.find(code);
   }
 
-  /** Platform default ISO code (first active funding currency, else 'EGP'). */
+  /** Platform default ISO code from the active Currency Master. */
   defaultIsoCode(code?: string | null): string {
     const found = this.find(code);
     if (found) return found.isoCode;
-    return this.master().find(c => c.supportsFunding)?.isoCode ?? this.master()[0]?.isoCode ?? 'EGP';
+    return this.master().find(c => c.isActive && c.supportsFunding)?.isoCode ?? this.master().find(c => c.isActive)?.isoCode ?? '';
   }
 
   symbol(code?: string | null): string {

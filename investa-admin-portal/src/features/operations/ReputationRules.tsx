@@ -196,7 +196,7 @@ const ReputationRules: React.FC = () => {
 
   const handleToggle = async (rule: ReputationRule) => {
     try {
-      await api.patch(`/api/v1/reputation/rules/${rule.id}/toggle`);
+      await api.patch(`/api/v1/reputation/rules/${rule.id}/toggle`, {});
       toast.success('Reputation rule updated');
       await fetchRules();
     } catch (e: any) {

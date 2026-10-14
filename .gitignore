@@ -29,8 +29,11 @@ obj/
 .pub-cache/
 .pub/
 build/
-# تجاهل ملفات الويب الناتجة عن البناء
-/flutter/
+# Android build outputs — never commit binaries (GitHub rejects files > 100 MB)
+*.apk
+*.aab
+*.apks
+*.xapk
 
 # [3] OS & IDE Specific
 # -----------------------
@@ -155,3 +158,6 @@ Core-BackEnd/check_*.sql
 Flutter_Partner/android/.gradle/buildOutputCleanup/buildOutputCleanup.lock
 Flutter_Partner/android/.gradle/buildOutputCleanup/buildOutputCleanup.lock
 Flutter_Partner/android/.gradle/8.10.2/fileHashes/fileHashes.lock
+
+# Local Gradle project cache used to avoid Windows file-mapping locks
+/.fopx-project-gradle-cache/

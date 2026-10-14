@@ -11,7 +11,7 @@
           @else { <span aria-hidden="true">{{ avatarInitials() }}</span> }
           @if (isUploadingAvatar()) { <span class="avatar-loading profile-spinner" aria-hidden="true"></span> }
         </button>
-        <input #avatarInput type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden (change)="onAvatarFileSelected($event)">
+        <input #avatarInput type="file" [accept]="avatarAccept()" hidden (change)="onAvatarFileSelected($event)">
         <div class="identity-block">
           <div class="identity-title">
             <div>
@@ -22,7 +22,7 @@
           </div>
           <div class="header-meta">
             @if (person.basicInfo?.companyName) { <span>{{ person.basicInfo?.companyName }}</span> }
-            @if (person.contactInfo?.city || person.basicInfo?.country) { <span>{{ person.contactInfo?.city }}@if (person.contactInfo?.city && person.basicInfo?.country) {, }{{ person.basicInfo?.country }}</span> }
+            @if (person.contactInfo?.city || person.basicInfo?.country) { <span>{{ person.contactInfo?.city }}@if (person.contactInfo?.city && person.basicInfo?.country) {, }{{ getCountryLabel(person.basicInfo?.country) }}</span> }
             <span class="status-badge status-badge--green">{{ verificationLabel() }}</span>
           </div>
         </div>
@@ -82,14 +82,14 @@
                   <label>{{ 'profile.personalInfo.lastName' | translate }}<input formControlName="lastName" autocomplete="family-name"></label>
                   <label>{{ 'profile.personalInfo.dateOfBirth' | translate }}<input type="date" formControlName="dateOfBirth"></label>
                   <label>{{ 'profile.personalInfo.gender' | translate }}<select formControlName="gender"><option value="">{{ 'profile.personalInfo.genderSelect' | translate }}</option><option value="M">{{ 'profile.personalInfo.male' | translate }}</option><option value="F">{{ 'profile.personalInfo.female' | translate }}</option></select></label>
-                  <label>{{ 'profile.personalInfo.nationality' | translate }}<select formControlName="nationality"><option value="">{{ 'profile.personalInfo.nationalitySelect' | translate }}</option>@for (country of nationalityOptions; track country.code) { <option [value]="country.code">{{ country.key | translate }}</option> }</select></label>
-                  <label>{{ 'profile.personalInfo.country' | translate }}<select formControlName="country"><option value="">{{ 'profile.personalInfo.countrySelect' | translate }}</option>@for (country of nationalityOptions; track country.code) { <option [value]="country.code">{{ country.key | translate }}</option> }</select></label>
+                  <label>{{ 'profile.personalInfo.nationality' | translate }}<select formControlName="nationality"><option value="">{{ 'profile.personalInfo.nationalitySelect' | translate }}</option>@if (profileForm.get('nationality')?.value && !isKnownCountry(profileForm.get('nationality')?.value)) { <option [value]="profileForm.get('nationality')?.value">{{ historicalCountryLabel(profileForm.get('nationality')?.value) }}</option> } @for (country of countryOptions(); track country.isoAlpha2) { <option [value]="country.isoAlpha2" [disabled]="!country.isActive">{{ countryService.label(country, isRtl() ? 'ar' : 'en') }}@if (!country.isActive) { ({{ 'profile.personalInfo.inactive' | translate }}) }</option> }</select></label>
+                  <label>{{ 'profile.personalInfo.country' | translate }}<select formControlName="country"><option value="">{{ 'profile.personalInfo.countrySelect' | translate }}</option>@if (profileForm.get('country')?.value && !isKnownCountry(profileForm.get('country')?.value)) { <option [value]="profileForm.get('country')?.value">{{ historicalCountryLabel(profileForm.get('country')?.value) }}</option> } @for (country of countryOptions(); track country.isoAlpha2) { <option [value]="country.isoAlpha2" [disabled]="!country.isActive">{{ countryService.label(country, isRtl() ? 'ar' : 'en') }}@if (!country.isActive) { ({{ 'profile.personalInfo.inactive' | translate }}) }</option> }</select></label>
                   <label class="span-2">{{ 'profile.personalInfo.bio' | translate }}<textarea rows="4" formControlName="bio"></textarea></label>
                 </div></div>
 
                 <div class="form-section identity-section"><h3>{{ 'profile.identityDocuments' | translate }}</h3><div class="form-grid">
                   <label>{{ 'profile.personalInfo.nationalId' | translate }}<input formControlName="nationalId" inputmode="numeric"></label>
-                  <div class="file-field"><span>{{ 'profile.personalInfo.uploadId' | translate }}</span><button type="button" class="quiet-action" (click)="triggerNationalIdSelect()">{{ 'profile.personalInfo.chooseFile' | translate }}</button><small>{{ nationalIdFileName() || ('profile.personalInfo.noFileChosen' | translate) }}</small><input #nationalIdInput type="file" accept="image/*,.pdf" hidden multiple (change)="onFileChange($event)"></div>
+                  <div class="file-field"><span>{{ 'profile.personalInfo.uploadId' | translate }}</span><button type="button" class="quiet-action" (click)="triggerNationalIdSelect()">{{ 'profile.personalInfo.chooseFile' | translate }}</button><small>{{ nationalIdFileName() || ('profile.personalInfo.noFileChosen' | translate) }}</small><input #nationalIdInput type="file" [accept]="nationalIdAccept()" hidden multiple (change)="onFileChange($event)"></div>
                   @if (nationalIdFiles().length) { <div class="file-list span-2">@for (file of nationalIdFiles(); track file.fileName; let index = $index) { <article><a [href]="file.url" target="_blank" rel="noopener noreferrer">{{ file.fileName }}</a><button type="button" class="quiet-action" (click)="triggerNationalIdSelect(index)">{{ 'profile.personalInfo.replaceFile' | translate }}</button></article> }</div> }
                 </div></div>
 

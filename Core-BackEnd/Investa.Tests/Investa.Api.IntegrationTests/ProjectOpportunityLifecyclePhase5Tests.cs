@@ -22,9 +22,9 @@ public sealed class ProjectOpportunityLifecyclePhase5Tests
         var founder = Founder(); var stranger = Founder();
         db.AuthUsers.AddRange(founder, stranger); await db.SaveChangesAsync();
         var uow = new UnitOfWork(db);
-        var service = new ProjectService(uow, new CurrencyConversionService(uow, []), new CurrencyDisplayService(uow));
+        var service = new ProjectService(uow, new CurrencyConversionService(uow, []), new CurrencyDisplayService(uow), new RiskLevelService(uow));
         var project = await service.CreateAsync(founder.Id, new CreateProjectRequest {
-            DisplayName="Lifecycle business", Summary="Durable business summary", Description="Durable business description", BusinessStage=ProjectStage.MVP
+            DisplayName="Lifecycle business", Summary="Durable business summary", Description="Durable business description", ProjectStage=ProjectStage.MVP
         });
 
         var active = await service.TransitionStatusAsync(founder.Id, project.Id,

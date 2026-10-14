@@ -10,6 +10,21 @@ export class WalletService {
         this.apiBase = apiBase;
         this._balance = signal(0, ...(ngDevMode ? [{ debugName: "_balance" }] : []));
         this.balance = this._balance.asReadonly();
+        this.chargingEnabledCache = null;
+    }
+    async loadChargingEnabled() {
+        if (this.chargingEnabledCache !== null) {
+            return this.chargingEnabledCache;
+        }
+        try {
+            const raw = await firstValueFrom(this.http.get(`${this.apiBase}/api/v1/config/features`, { headers: this.authHeaders() }));
+            const flags = this.extractData(raw, 'Failed to load platform features.');
+            this.chargingEnabledCache = flags.clientInteractionChargingEnabled === true;
+        }
+        catch {
+            this.chargingEnabledCache = true;
+        }
+        return this.chargingEnabledCache;
     }
     async loadCurrentUserWallet() {
         const [wallet, balance, transactions] = await Promise.all([

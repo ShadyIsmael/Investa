@@ -35,8 +35,8 @@ Never deleted/reset:
 - Roles and permissions (RBAC system)
 - User-role assignments
 - Currencies and exchange rate snapshots
-- Categories/lookups/reference data (Lookups, BusinessCategories, FundingGoals, etc.)
-- System configuration (Employees, Clients, ClientBusinessCategories)
+- Categories/lookups/reference data (Lookups, ProjectCategories, FundingGoals, etc.)
+- System configuration (Employees, Clients, ClientProjectCategories)
 - Authentication/security configuration (UserSessions, RefreshTokens, DeviceTokens)
 - Notification templates
 - Credit configurations and pricing rules

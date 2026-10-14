@@ -7,7 +7,7 @@ import { CurrencyPreference, DashboardDensity, DefaultInvestmentTypePreference, 
 import { LanguageService } from '../../../services/language.service';
 import { WalletService } from '../../../services/wallet.service';
 import { FcmService } from '../../../services/fcm.service';
-import { OpportunityService } from '../../../services/opportunity.service';
+import { CurrencyReference, CurrencyService } from '../../../services/currency.service';
 
 @Component({
   standalone: true,
@@ -20,7 +20,7 @@ import { OpportunityService } from '../../../services/opportunity.service';
 export class SettingsComponent {
   private settingsService = inject(SettingsService);
   private walletService = inject(WalletService);
-  private opportunityService = inject(OpportunityService);
+  private currencyService = inject(CurrencyService);
   languageService = inject(LanguageService);
   fcmService = inject(FcmService);
   platformCreditBalance = this.walletService.balance;
@@ -33,7 +33,6 @@ export class SettingsComponent {
   ThemePreference = ThemePreference;
   DashboardDensity = DashboardDensity;
   DefaultInvestmentTypePreference = DefaultInvestmentTypePreference;
-  CurrencyPreference = CurrencyPreference;
 
   settings = this.settingsService.settings;
   draft = signal<UserSettings>(this.cloneSettings(this.settingsService.settings()));
@@ -43,7 +42,7 @@ export class SettingsComponent {
   themeOptions = [ThemePreference.System, ThemePreference.Light, ThemePreference.Dark];
   densityOptions = [DashboardDensity.Comfortable, DashboardDensity.Compact];
   investmentTypeOptions = [DefaultInvestmentTypePreference.Any, DefaultInvestmentTypePreference.Founding, DefaultInvestmentTypePreference.Equity];
-  currencyOptions: CurrencyPreference[] = [];
+  currencyOptions: CurrencyReference[] = [];
 
   constructor() {
     void this.loadCreditBalance();
@@ -52,11 +51,18 @@ export class SettingsComponent {
 
   private async loadCurrencies(): Promise<void> {
     try {
-      const currencies = await this.opportunityService.getCurrencies();
-      this.currencyOptions = currencies.map(item => item.isoCode as CurrencyPreference);
+      await this.currencyService.ensureLoaded();
+      const currencies = this.currencyService.master().filter(currency => currency.isActive);
+      this.currencyOptions = currencies;
+      if (!this.draft().currency && currencies[0]) this.updateDraft({ currency: currencies[0].isoCode });
     } catch {
       this.currencyOptions = [];
     }
+  }
+
+  currencyLabel(currency: CurrencyReference): string {
+    const name = this.languageService.language() === 'ar' ? currency.arabicName : currency.englishName;
+    return `${currency.symbol} ${currency.isoCode} — ${name}`;
   }
 
   // Sidebar navigation
@@ -80,8 +86,8 @@ export class SettingsComponent {
     this.updateDraft({ language: lang });
   }
   setCurrency(cur: string) {
-    const currency = this.currencyOptions.find(option => option === cur);
-    if (currency) this.updateDraft({ currency });
+    const currency = this.currencyOptions.find(option => option.isoCode === cur);
+    if (currency) this.updateDraft({ currency: currency.isoCode as CurrencyPreference });
   }
   setLanguageFromEvent(event: Event): void {
     if (event.target instanceof HTMLSelectElement) this.setLanguage(event.target.value);

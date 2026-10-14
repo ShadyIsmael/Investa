@@ -48,7 +48,7 @@ SET ""Role"" = 'Client'
 WHERE ""Email"" LIKE '%{phone}%' OR ""Name"" LIKE '%{phone}%';
 ";
 
-    Console.WriteLine($"Updating role to Client for user with phone: {phone}");
+    Console.WriteLine("Updating role to Client for the selected user.");
     Console.Write("Type CONFIRM to proceed: ");
     string? confirmation = Console.ReadLine();
     if (confirmation?.Trim() != "CONFIRM")
@@ -66,7 +66,7 @@ SET ""Role"" = 'Client'
 WHERE ""Email"" LIKE '%{phone}%' OR ""Name"" LIKE '%{phone}%';
 ";
 
-    Console.WriteLine($"Auto-confirming update of role to Client for user with phone: {phone}");
+    Console.WriteLine("Confirming role update to Client.");
 }
 
 try

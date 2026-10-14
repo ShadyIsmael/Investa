@@ -1,19 +1,15 @@
 
 import React, { useEffect, useState } from 'react';
 import { Icon } from '@/components/common/Icons';
+import { useTranslation } from 'react-i18next';
 
 export const SplashScreen: React.FC = () => {
   const [progress, setProgress] = useState(0);
-  const [status, setStatus] = useState('Initializing Core...');
+  const { t } = useTranslation();
+  const [status, setStatus] = useState('centralAdmin.loading.initializing');
 
   useEffect(() => {
-    const statusMessages = [
-      'Initializing Core...',
-      'Securing Neural Handshake...',
-      'Syncing Ledger Data...',
-      'Loading Financial Assets...',
-      'System Ready.'
-    ];
+    const statusMessages = ['centralAdmin.loading.initializing', 'centralAdmin.loading.securing', 'centralAdmin.loading.syncing', 'centralAdmin.loading.loading', 'centralAdmin.loading.ready'];
 
     let currentStep = 0;
     const interval = setInterval(() => {
@@ -50,8 +46,8 @@ export const SplashScreen: React.FC = () => {
         </div>
 
         <div className="text-center mb-10">
-          <h1 className="text-3xl font-black text-text tracking-tighter mb-2">FOPX One</h1>
-          <p className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.4em]">Institutional Ledger Portal</p>
+          <h1 className="text-3xl font-black text-text tracking-tighter mb-2">{t('centralAdmin.identity')}</h1>
+          <p className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.4em]">{t('centralAdmin.loginDescription')}</p>
         </div>
 
         {/* Progress Bar Container */}
@@ -64,7 +60,7 @@ export const SplashScreen: React.FC = () => {
           </div>
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground/60 text-[9px] font-black uppercase tracking-widest animate-pulse">
-              {status}
+              {t(status)}
             </span>
             <span className="text-text font-mono text-[10px] font-bold">
               {progress}%
@@ -76,9 +72,8 @@ export const SplashScreen: React.FC = () => {
         <div className="absolute bottom-12 flex flex-col items-center gap-2">
           <div className="flex items-center gap-2 opacity-30">
             <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-            <span className="text-[9px] font-black text-text uppercase tracking-widest">Secure Environment</span>
+            <span className="text-[9px] font-black text-text uppercase tracking-widest">{t('centralAdmin.environment.label')}</span>
           </div>
-          <p className="text-muted-foreground/50 text-[8px] font-bold uppercase tracking-widest mt-2">v4.0.12 Stable Build</p>
         </div>
       </div>
 

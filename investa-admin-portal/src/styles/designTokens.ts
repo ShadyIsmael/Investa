@@ -46,6 +46,25 @@ export const colors = {
   },
 } as const;
 
+/** Semantic names consumed by the Company Management shell. Legacy color
+ * exports remain available so existing FOPX screens can migrate incrementally. */
+export const semanticTokens = {
+  canvas: 'hsl(var(--canvas))',
+  surface: 'hsl(var(--card))',
+  surfaceSubtle: 'hsl(var(--surface-subtle))',
+  border: 'hsl(var(--border))',
+  borderStrong: 'hsl(var(--border-strong))',
+  textPrimary: 'hsl(var(--text-primary))',
+  textSecondary: 'hsl(var(--text-secondary))',
+  textMuted: 'hsl(var(--text-muted))',
+  accent: 'hsl(var(--accent-enterprise))',
+  success: 'var(--success)',
+  warning: 'var(--warning)',
+  danger: 'var(--error)',
+  info: 'var(--info)',
+  focus: 'hsl(var(--focus-ring))',
+} as const;
+
 // ── 2. Spacing ─────────────────────────────────────────────────────────────
 export const spacing = {
   0: '0px', 1: '0.25rem', 2: '0.5rem', 3: '0.75rem',

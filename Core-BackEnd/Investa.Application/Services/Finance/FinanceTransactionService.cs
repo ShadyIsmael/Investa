@@ -272,7 +272,8 @@ public class FinanceTransactionService : IFinanceTransactionService
         if (!isValid)
             throw new InvalidOperationException($"Cannot confirm: {string.Join(", ", errors)}");
 
-        var transaction = await _repository.GetTransactionByIdAsync(id);
+        var transaction = await _repository.GetTransactionByIdAsync(id)
+            ?? throw new KeyNotFoundException($"Transaction {id} not found");
         var conversion = await _currencyConversionService.ConvertForExecutionAsync(
             transaction.Amount,
             transaction.Currency,
@@ -310,7 +311,8 @@ public class FinanceTransactionService : IFinanceTransactionService
         if (!isValid)
             throw new InvalidOperationException($"Cannot reverse: {string.Join(", ", errors)}");
 
-        var originalTransaction = await _repository.GetTransactionByIdAsync(id);
+        var originalTransaction = await _repository.GetTransactionByIdAsync(id)
+            ?? throw new KeyNotFoundException($"Transaction {id} not found");
 
         // Create reversal transaction
         var reversalDto = new CreateFinanceTransactionDto

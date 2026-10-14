@@ -1,5 +1,5 @@
 import { Injectable, signal, computed } from '@angular/core';
-import { CurrencyPreference, DashboardDensity, DefaultInvestmentTypePreference, ThemePreference } from '../models/settings.model';
+import { DashboardDensity, DefaultInvestmentTypePreference, ThemePreference } from '../models/settings.model';
 import * as i0 from "@angular/core";
 const STORAGE_KEY = 'investa:userSettings';
 export class SettingsService {
@@ -17,33 +17,35 @@ export class SettingsService {
     }
     update(partial) {
         const next = { ...this._settings(), ...partial };
+        if (!this.saveToStorage(next))
+            return false;
         this._settings.set(next);
-        this.saveToStorage(next);
+        return true;
     }
     setTheme(theme) {
-        this.update({ theme });
+        return this.update({ theme });
     }
     setLanguage(language) {
-        this.update({ language });
+        return this.update({ language });
     }
     setCurrency(currency) {
-        this.update({ currency });
+        return this.update({ currency });
     }
     setNotifications(notifications) {
-        this.update({ notifications });
+        return this.update({ notifications });
     }
     setPrivacy(privacy) {
-        this.update({ privacy });
+        return this.update({ privacy });
     }
     setPersonalization(personalization) {
-        this.update({ personalization });
+        return this.update({ personalization });
     }
     setSupport(support) {
-        this.update({ support });
+        return this.update({ support });
     }
     setSessionTimeout(minutes) {
         const nextTimeout = minutes && isFinite(minutes) && minutes > 0 ? Math.floor(minutes) : null;
-        this.update({ sessionTimeoutMinutes: nextTimeout ?? undefined });
+        return this.update({ sessionTimeoutMinutes: nextTimeout ?? undefined });
     }
     loadFromStorage() {
         try {
@@ -61,16 +63,17 @@ export class SettingsService {
     saveToStorage(settings) {
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+            return true;
         }
         catch {
-            // ignore
+            return false;
         }
     }
     defaultSettings() {
         return {
             theme: ThemePreference.System,
             language: 'en',
-            currency: CurrencyPreference.USD,
+            currency: '',
             notifications: { email: true, push: true, sms: false },
             privacy: { showPublicProfile: true, sharePortfolioPerformance: false },
             personalization: {

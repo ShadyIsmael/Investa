@@ -69,7 +69,8 @@ describe('SignupComponent', () => {
         validFormValues.mobile,
         validFormValues.password,
         validFormValues.firstName,
-        validFormValues.lastName
+        validFormValues.lastName,
+        'Investor'
       );
     }));
 

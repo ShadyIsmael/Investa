@@ -4,6 +4,21 @@ export enum OfferLegType {
   ProfitSharing = 3
 }
 
+export const EQUITY_OWNERSHIP_MODELS = ['PercentageBased', 'ShareBased'] as const;
+export type EquityOwnershipModel = typeof EQUITY_OWNERSHIP_MODELS[number];
+
+export const REPAYMENT_MODELS = ['Monthly', 'Quarterly', 'SemiAnnual', 'Annual'] as const;
+export type RepaymentModel = typeof REPAYMENT_MODELS[number];
+export const PROFIT_SHARING_FREQUENCIES = ['Monthly', 'Quarterly', 'SemiAnnual', 'Annual'] as const;
+export type ProfitSharingFrequency = typeof PROFIT_SHARING_FREQUENCIES[number];
+
+export function repaymentModelLabelKey(value: string | null | undefined): string | null {
+  const normalized = String(value ?? '').trim();
+  return REPAYMENT_MODELS.includes(normalized as RepaymentModel)
+    ? 'offerBuilder.repaymentModels.' + normalized
+    : null;
+}
+
 export enum OfferStatus {
   Pending = 1,
   Replaced = 2,
@@ -17,11 +32,20 @@ export interface OfferLeg {
   legType: OfferLegType;
   amount: number;
   equityPercentage?: number | null;
+  equityOwnershipModel?: EquityOwnershipModel | string | null;
+  investorShareCount?: number | null;
+  totalIssuedShares?: number | null;
+  shareClass?: string | null;
+  pricePerShare?: number | null;
+  preMoneyValuation?: number | null;
+  postMoneyValuation?: number | null;
+  effectiveOwnershipDate?: string | Date | null;
   sharesTerms?: string | null;
   returnRate?: number | null;
   termMonths?: number | null;
   repaymentModel?: string | null;
   profitSharePercentage?: number | null;
+  profitSharingPayoutFrequency?: ProfitSharingFrequency | string | null;
   exitTerms?: string | null;
 }
 

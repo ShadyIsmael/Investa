@@ -96,6 +96,9 @@ public static class TermsSnapshotParser
                 case Domain.Entities.Enums.NegotiationOfferLegType.ProfitSharing:
                     CopyProperty(leg, "ProfitSharePercentage", "profitSharePercentageSnapshot", props);
                     CopyProperty(leg, "ProfitSharePercentage", "profitSharePercentage", props);
+                    CopyProperty(leg, "ProfitSharingPayoutFrequency", "profitSharingPayoutFrequency", props);
+                    CopyProperty(leg, "ProfitSharingPayoutFrequency", "payoutFrequencySnapshot", props);
+                    CopyProperty(leg, "ProfitSharingPayoutFrequency", "reportingFrequency", props);
                     break;
             }
         }

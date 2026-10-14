@@ -170,6 +170,9 @@ public class DevIdentityReseedService
                 }
                 else
                 {
+                    if (existingAuthUser == null || existingIdentityUser == null)
+                        throw new InvalidOperationException("Admin identity records are in an inconsistent state.");
+
                     var passwordHash = new PasswordHasher<AuthUser>().HashPassword(existingAuthUser, adminPassword);
                     if (existingAuthUser.PasswordHash != passwordHash)
                     {

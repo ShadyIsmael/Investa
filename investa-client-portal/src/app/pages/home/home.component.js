@@ -21,7 +21,7 @@ export class HomeComponent {
             CtaComponent,
             TestimonialsComponent,
             BlogComponent,
-            FooterComponent], styles: [".home-root[_ngcontent-%COMP%] {\n  min-height: 100vh;\n  background: var(--investa-bg);\n  color: var(--investa-text-primary);\n}"], changeDetection: 0 }); }
+            FooterComponent], styles: [".home-root[_ngcontent-%COMP%] {\r\n  min-height: 100vh;\r\n  background: var(--investa-bg);\r\n  color: var(--investa-text-primary);\r\n}"], changeDetection: 0 }); }
 }
 (() => { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(HomeComponent, [{
         type: Component,
@@ -33,6 +33,6 @@ export class HomeComponent {
                     TestimonialsComponent,
                     BlogComponent,
                     FooterComponent
-                ], template: "\n<div class=\"home-root\">\n  <main>\n    <app-hero></app-hero>\n    <app-features></app-features>\n    <app-about></app-about>\n    <app-cta></app-cta>\n    <app-testimonials></app-testimonials>\n    <app-blog></app-blog>\n  </main>\n  <app-footer></app-footer>\n</div>\n", styles: [".home-root {\n  min-height: 100vh;\n  background: var(--investa-bg);\n  color: var(--investa-text-primary);\n}\n"] }]
+                ], template: "\r\n<div class=\"home-root\">\r\n  <main>\r\n    <app-hero></app-hero>\r\n    <app-features></app-features>\r\n    <app-about></app-about>\r\n    <app-cta></app-cta>\r\n    <app-testimonials></app-testimonials>\r\n    <app-blog></app-blog>\r\n  </main>\r\n  <app-footer></app-footer>\r\n</div>\r\n", styles: [".home-root {\r\n  min-height: 100vh;\r\n  background: var(--investa-bg);\r\n  color: var(--investa-text-primary);\r\n}\r\n"] }]
     }], null, null); })();
 (() => { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassDebugInfo(HomeComponent, { className: "HomeComponent", filePath: "src/app/pages/home/home.component.ts", lineNumber: 27 }); })();

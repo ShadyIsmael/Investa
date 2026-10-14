@@ -50,8 +50,7 @@ public sealed class FirebasePushSender : IFirebasePushSender
                 _ => FirebasePushSendStatus.PermanentFailure
             };
 
-            _logger.LogDebug("FCM send result: {Status} for token prefix {TokenPrefix}",
-                status, registrationToken[..Math.Min(20, registrationToken.Length)]);
+            _logger.LogDebug("FCM send result: {Status}", status);
 
             return new FirebasePushSendResult
             {
@@ -62,8 +61,7 @@ public sealed class FirebasePushSender : IFirebasePushSender
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "FCM send failed unexpectedly for token prefix {TokenPrefix}",
-                registrationToken[..Math.Min(20, registrationToken.Length)]);
+            _logger.LogWarning(ex, "FCM send failed unexpectedly");
 
             return new FirebasePushSendResult
             {

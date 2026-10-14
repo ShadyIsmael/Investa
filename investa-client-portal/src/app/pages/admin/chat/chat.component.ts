@@ -6,7 +6,7 @@ import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http
 import { firstValueFrom, Subscription } from 'rxjs';
 import { API_BASE } from '../../../config/api.token';
 import { OfferBuilderComponent } from '../../../components/offer-builder/offer-builder.component';
-import { OfferStatus as OfferStatusEnum, OfferVersion } from '../../../models/offer.model';
+import { OfferStatus as OfferStatusEnum, OfferVersion, repaymentModelLabelKey } from '../../../models/offer.model';
 import { LanguageService } from '../../../services/language.service';
 import { CurrencyService } from '../../../services/currency.service';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
@@ -298,7 +298,8 @@ private currencyService = inject(CurrencyService);
   });
   canMarkReady = computed(() => {
     const conversation = this.activeConversation();
-    return !!conversation && !this.isReadOnly(conversation) && !this.isCurrentUserReady() && !this.actionProcessing();
+    const canTransition = conversation?.status === 'Founder Accepted' || conversation?.status === 'Negotiation in Progress';
+    return !!conversation && canTransition && !this.isReadOnly(conversation) && !this.isCurrentUserReady() && !this.actionProcessing();
   });
   canCloseDiscussion = computed(() => {
     const conversation = this.activeConversation();
@@ -582,7 +583,8 @@ private currencyService = inject(CurrencyService);
 
   async markReadyToProceed(): Promise<void> {
     const conversation = this.activeConversation();
-    if (!conversation || this.isCurrentUserReady() || this.isReadOnly(conversation) || this.actionProcessing()) return;
+    const canTransition = conversation?.status === 'Founder Accepted' || conversation?.status === 'Negotiation in Progress';
+    if (!conversation || !canTransition || this.isCurrentUserReady() || this.isReadOnly(conversation) || this.actionProcessing()) return;
 
     const confirmation = window.confirm(
       this.t('chat.confirm.readyToProceed')
@@ -701,6 +703,10 @@ private currencyService = inject(CurrencyService);
     await this.offerAction(offer, 'withdraw');
   }
 
+  offerTotalAmount(offer: NegotiationOffer): number {
+    return offer.legs.reduce((total, leg) => total + Number(leg.amount || 0), 0);
+  }
+
   canReceiveOfferAction(offer: NegotiationOffer): boolean {
     return offer.status === 1 && offer.canAccept === true && !this.isReadOnly(this.activeConversation()) && !this.offerProcessing();
   }
@@ -730,6 +736,11 @@ private currencyService = inject(CurrencyService);
       case 5: return this.t('conversationWorkspace.offerStatus.withdrawn');
       default: return this.t('conversationWorkspace.status.unavailable');
     }
+  }
+
+  repaymentModelLabel(value: string | null | undefined): string {
+    const key = repaymentModelLabelKey(value);
+    return key ? this.t(key) : String(value ?? '');
   }
 
   offerLegLabel(type: OfferLegType): string {
@@ -772,13 +783,13 @@ private currencyService = inject(CurrencyService);
   }
 
   closedByLabel(conversation: NegotiationConversation): string {
-    if (this.sameId(conversation.closedByUserId, conversation.founderUserId)) return conversation.founderName || 'Founder';
-    if (this.sameId(conversation.closedByUserId, conversation.investorUserId)) return conversation.investorName || 'Investor';
-    if (this.sameId(conversation.closedByUserId, conversation.requesterUserId)) return conversation.requesterName || 'Requester';
-    if (this.sameId(conversation.closedByUserId, conversation.recipientUserId)) return conversation.recipientName || 'Recipient';
-    if (conversation.status === 'Declined by Founder') return conversation.founderName || 'Founder';
-    if (conversation.status === 'You withdrew') return 'You';
-    return 'A participant';
+    if (this.sameId(conversation.closedByUserId, conversation.founderUserId)) return conversation.founderName || this.t('conversationWorkspace.roles.founder');
+    if (this.sameId(conversation.closedByUserId, conversation.investorUserId)) return conversation.investorName || this.t('conversationWorkspace.roles.investor');
+    if (this.sameId(conversation.closedByUserId, conversation.requesterUserId)) return conversation.requesterName || this.t('conversationWorkspace.roles.requester');
+    if (this.sameId(conversation.closedByUserId, conversation.recipientUserId)) return conversation.recipientName || this.t('conversationWorkspace.roles.recipient');
+    if (conversation.status === 'Declined by Founder') return conversation.founderName || this.t('conversationWorkspace.roles.founder');
+    if (conversation.status === 'You withdrew') return this.t('conversationWorkspace.roles.you');
+    return this.t('conversationWorkspace.roles.participant');
   }
 
   statusBadgeClass(status: NegotiationStatus): string {
@@ -867,7 +878,9 @@ private currencyService = inject(CurrencyService);
       closeReason: this.optionalString(row['closeReason']),
       founderReady: this.booleanValue(row['founderReady']),
       investorReady: this.booleanValue(row['investorReady']),
-      currentUserReady: this.resolveCurrentUserReady(row, direction),
+      currentUserReady: row['currentUserReady'] !== undefined
+        ? this.booleanValue(row['currentUserReady'])
+        : this.resolveCurrentUserReady(row, direction),
       archived: this.booleanValue(row['archived']),
       readOnly: this.booleanValue(row['readOnly']) || status === 'Discussion Closed' || status === 'You withdrew' || status === 'Declined by Founder'
     };
@@ -1012,10 +1025,10 @@ private currencyService = inject(CurrencyService);
       return { name: conversation.investorName || conversation.requesterName || 'Investor', role: 'Investor' };
     }
     if (this.sameId(senderId, conversation.requesterUserId)) {
-      return { name: conversation.requesterName || conversation.investorName || 'Investor', role: this.normalizeRole(conversation.requesterRole || 'Investor') };
+      return { name: conversation.requesterName || conversation.investorName || this.t('conversationWorkspace.roles.investor'), role: this.normalizeRole(conversation.requesterRole || 'Investor') };
     }
     if (this.sameId(senderId, conversation.recipientUserId)) {
-      return { name: conversation.recipientName || conversation.founderName || 'Founder', role: this.normalizeRole(conversation.recipientRole || 'Founder') };
+      return { name: conversation.recipientName || conversation.founderName || this.t('conversationWorkspace.roles.founder'), role: this.normalizeRole(conversation.recipientRole || 'Founder') };
     }
     if (this.sameId(senderId, conversation.counterpartyUserId)) {
       return { name: conversation.counterpartyName, role: this.normalizeRole(conversation.counterpartyRole || '') };
@@ -1031,6 +1044,8 @@ private currencyService = inject(CurrencyService);
   private async offerAction(offer: NegotiationOffer, action: 'accept' | 'reject' | 'withdraw'): Promise<void> {
     const conversation = this.activeConversation();
     if (!conversation || this.offerProcessing()) return;
+    const confirmationKey = action === 'accept' ? 'acceptOffer' : action === 'reject' ? 'rejectOffer' : 'withdrawOffer';
+    if (!window.confirm(this.t(`conversationWorkspace.confirm.${confirmationKey}`))) return;
     try {
       this.offerProcessing.set(true);
       this.messagesError.set(null);
@@ -1147,28 +1162,28 @@ private currencyService = inject(CurrencyService);
   }
 
   private buildStageSummary(conversation: NegotiationConversation | null): string {
-    if (!conversation) return 'Select a conversation to see its current stage.';
+    if (!conversation) return this.t('conversationWorkspace.stageSummary.select');
     switch (conversation.status) {
       case 'Founder Accepted':
-        return 'Negotiation is open and ready for discussion.';
+        return this.t('conversationWorkspace.stageSummary.founderAccepted');
       case 'Negotiation in Progress':
-        return 'Negotiation is active. Keep the discussion focused on the opportunity.';
+        return this.t('conversationWorkspace.stageSummary.inProgress');
       case 'Ready for Participation':
-        return 'One or both parties are ready to proceed.';
+        return this.t('conversationWorkspace.stageSummary.ready');
       case 'Participation Created':
-        return 'A participation request has been created and is waiting for approval.';
+        return this.t('conversationWorkspace.stageSummary.participationCreated');
       case 'Participation Approved':
-        return 'Participation is approved and Project Room is unlocked.';
+        return this.t('conversationWorkspace.stageSummary.participationApproved');
       case 'Participation Rejected':
-        return 'The participation request was not approved.';
+        return this.t('conversationWorkspace.stageSummary.participationRejected');
       case 'Declined by Founder':
-        return 'The Founder declined this discussion.';
+        return this.t('conversationWorkspace.stageSummary.declined');
       case 'You withdrew':
-        return 'You withdrew from this discussion.';
+        return this.t('conversationWorkspace.stageSummary.withdrawn');
       case 'Discussion Closed':
-        return 'This discussion is closed.';
+        return this.t('conversationWorkspace.stageSummary.closed');
       default:
-        return 'Review the conversation thread and the readiness state below.';
+        return this.t('conversationWorkspace.stageSummary.default');
     }
   }
 
@@ -1191,16 +1206,16 @@ private currencyService = inject(CurrencyService);
   }
 
   private buildNextStep(conversation: NegotiationConversation | null): string {
-    if (!conversation) return 'No conversation selected.';
-    if (this.isReadOnly(conversation)) return 'This conversation is read-only.';
-    if (conversation.status === 'Founder Accepted') return 'Continue the discussion and negotiate the details.';
-    if (conversation.status === 'Negotiation in Progress' && !this.isCurrentUserReady()) return 'Mark yourself ready when you are prepared to proceed.';
-    if (conversation.status === 'Ready for Participation' && !this.bothReady()) return 'Readiness helps the negotiation, but an Investor must still submit a Participation Request explicitly.';
-    if (this.bothReady() && !this.buildParticipationSummary(conversation).toLowerCase().includes('pending')) return 'Both parties are ready. You can now submit your Participation Request.';
-    if (conversation.status === 'Participation Created') return 'Wait for Founder approval of the participation request.';
-    if (conversation.status === 'Participation Approved') return 'Open Project Room to continue collaboration.';
-    if (conversation.status === 'Participation Rejected') return 'The participation request was declined.';
-    return 'Use the message thread to continue the discussion.';
+    if (!conversation) return this.t('conversationWorkspace.nextStep.select');
+    if (this.isReadOnly(conversation)) return this.t('conversationWorkspace.nextStep.readOnly');
+    if (conversation.status === 'Founder Accepted') return this.t('conversationWorkspace.nextStep.founderAccepted');
+    if (conversation.status === 'Negotiation in Progress' && !this.isCurrentUserReady()) return this.t('conversationWorkspace.nextStep.markReady');
+    if (conversation.status === 'Ready for Participation' && !this.bothReady()) return this.t('conversationWorkspace.nextStep.readyState');
+    if (this.bothReady() && !this.buildParticipationSummary(conversation).toLowerCase().includes('pending')) return this.t('conversationWorkspace.nextStep.submitRequest');
+    if (conversation.status === 'Participation Created') return this.t('conversationWorkspace.nextStep.waitApproval');
+    if (conversation.status === 'Participation Approved') return this.t('conversationWorkspace.nextStep.openRoom');
+    if (conversation.status === 'Participation Rejected') return this.t('conversationWorkspace.nextStep.rejected');
+    return this.t('conversationWorkspace.nextStep.default');
   }
 
   private normalizeStatus(value: unknown): NegotiationStatus {
@@ -1438,8 +1453,12 @@ private currencyService = inject(CurrencyService);
 
   private errorMessage(error: unknown, fallback: string): string {
     if (error instanceof HttpErrorResponse) {
-      if (error.status === 403) return 'You do not have access to this negotiation.';
-      if (error.status === 404) return 'This negotiation was not found.';
+      const response = this.asRecord(error.error);
+      const details = this.asRecord(response['data']);
+      const code = String(details['code'] ?? '').toUpperCase();
+      if (code === 'INVALID_CONVERSATION_STATUS') return this.t('chat.errors.readyInvalidState');
+      if (code === 'CONVERSATION_FORBIDDEN' || error.status === 403) return this.t('chat.errors.noAccess');
+      if (error.status === 404) return this.t('chat.errors.notFound');
       return error.error?.message || error.message || fallback;
     }
     return error instanceof Error ? error.message : fallback;

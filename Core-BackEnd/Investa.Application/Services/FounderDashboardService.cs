@@ -64,14 +64,12 @@ public sealed class FounderDashboardService(
                 o.FundingCurrency))
             .ToListAsync(cancellationToken);
 
-        var payments = await (from p in uow.Repository<PaymentTransaction>().Query()
-            join r in uow.Repository<OpportunityJoinRequest>().Query() on p.ParticipationRequestId equals r.Id
-            join o in uow.Repository<Opportunity>().Query() on r.OpportunityId equals o.Id
-            join project in uow.Repository<Project>().Query() on o.ProjectId equals project.Id
-            where opportunityIds.Contains(o.Id) && project.FounderId == founderId
-            select new PaymentRow(
-                p.Id, p.Amount, p.PaymentDate, p.IsReversed, p.ReversedAt,
-                o.Id, r.FundingCurrency, o.FundingCurrency))
+        var declarations = await (from d in uow.Repository<FundingDeclaration>().Query()
+            join o in uow.Repository<Opportunity>().Query() on d.OpportunityId equals o.Id
+            join p in uow.Repository<Project>().Query() on o.ProjectId equals p.Id
+            where opportunityIds.Contains(d.OpportunityId)
+                && p.FounderId == founderId
+            select new DeclaredFundingRow(d.Id, d.OpportunityId, d.Amount, d.CurrencyCode, d.DeclaredAt, d.Status))
             .ToListAsync(cancellationToken);
 
         var pendingActions = await CountPendingActionsAsync(founderId, opportunityIds, cancellationToken);
@@ -80,14 +78,26 @@ public sealed class FounderDashboardService(
 
         var targetRows = opportunities
             .Select(o => new MoneyRow(o.FundingTarget, NormalizeCurrencyOrNull(o.FundingCurrency), false));
-        var fundedRows = approved.Where(r => r.Amount > 0)
+        var committedRows = approved.Where(r => r.Amount > 0)
             .Select(r => new MoneyRow(r.Amount, NormalizeCurrencyOrNull(ResolveFundingCurrency(r)), r.Approximate));
-        var receivedRows = payments.Where(p => !p.IsReversed && p.Amount > 0)
-            .Select(p => new MoneyRow(p.Amount, NormalizeCurrencyOrNull(ResolvePaymentCurrency(p)), string.IsNullOrWhiteSpace(p.RequestCurrency)));
 
         var target = await ConvertRowsAsync(targetRows, displayCurrency, fxCache, cancellationToken);
-        var funded = await ConvertRowsAsync(fundedRows, displayCurrency, fxCache, cancellationToken);
-        var received = await ConvertRowsAsync(receivedRows, displayCurrency, fxCache, cancellationToken);
+        var committed = await ConvertRowsAsync(committedRows, displayCurrency, fxCache, cancellationToken);
+        var declared = await ConvertRowsAsync(
+            declarations.Where(d => d.Amount > 0).Select(d => new MoneyRow(d.Amount, NormalizeCurrencyOrNull(d.Currency), false)),
+            displayCurrency, fxCache, cancellationToken);
+        var awaiting = await ConvertRowsAsync(
+            declarations.Where(d => d.Status == FundingDeclarationStatus.PendingConfirmation && d.Amount > 0)
+                .Select(d => new MoneyRow(d.Amount, NormalizeCurrencyOrNull(d.Currency), false)),
+            displayCurrency, fxCache, cancellationToken);
+        var disputed = await ConvertRowsAsync(
+            declarations.Where(d => d.Status == FundingDeclarationStatus.Disputed && d.Amount > 0)
+                .Select(d => new MoneyRow(d.Amount, NormalizeCurrencyOrNull(d.Currency), false)),
+            displayCurrency, fxCache, cancellationToken);
+        var confirmed = await ConvertRowsAsync(
+            declarations.Where(d => d.Status == FundingDeclarationStatus.Confirmed && d.Amount > 0)
+                .Select(d => new MoneyRow(d.Amount, NormalizeCurrencyOrNull(d.Currency), false)),
+            displayCurrency, fxCache, cancellationToken);
 
         var projectDtos = new List<FounderDashboardProjectDto>(projects.Count);
         foreach (var project in projects)
@@ -96,18 +106,38 @@ public sealed class FounderDashboardService(
             var projectTarget = await ConvertRowsAsync(
                 childOpportunities.Select(o => new MoneyRow(o.FundingTarget, NormalizeCurrencyOrNull(o.FundingCurrency), false)),
                 NormalizeCurrencyOrNull(project.DefaultCurrency), fxCache, cancellationToken);
-            var projectFunded = await ConvertRowsAsync(
+            var projectCommitted = await ConvertRowsAsync(
                 approved.Where(r => childOpportunities.Any(o => o.Id == r.OpportunityId))
                     .Where(r => r.Amount > 0)
                     .Select(r => new MoneyRow(r.Amount, NormalizeCurrencyOrNull(ResolveFundingCurrency(r)), r.Approximate)),
+                NormalizeCurrencyOrNull(project.DefaultCurrency), fxCache, cancellationToken);
+            var projectConfirmed = await ConvertRowsAsync(
+                declarations.Where(d => childOpportunities.Any(o => o.Id == d.OpportunityId) && d.Status == FundingDeclarationStatus.Confirmed && d.Amount > 0)
+                    .Select(d => new MoneyRow(d.Amount, NormalizeCurrencyOrNull(d.Currency), false)),
                 NormalizeCurrencyOrNull(project.DefaultCurrency), fxCache, cancellationToken);
 
             var childDtos = new List<FounderDashboardOpportunityDto>(childOpportunities.Count);
             foreach (var opportunity in childOpportunities)
             {
-                var opportunityFunded = await ConvertRowsAsync(
+                var opportunityCommitted = await ConvertRowsAsync(
                     approved.Where(r => r.OpportunityId == opportunity.Id && r.Amount > 0)
                         .Select(r => new MoneyRow(r.Amount, NormalizeCurrencyOrNull(ResolveFundingCurrency(r)), r.Approximate)),
+                    NormalizeCurrencyOrNull(opportunity.FundingCurrency), fxCache, cancellationToken);
+                var opportunityDeclared = await ConvertRowsAsync(
+                    declarations.Where(r => r.OpportunityId == opportunity.Id && r.Amount > 0)
+                        .Select(r => new MoneyRow(r.Amount, NormalizeCurrencyOrNull(r.Currency), false)),
+                    NormalizeCurrencyOrNull(opportunity.FundingCurrency), fxCache, cancellationToken);
+                var opportunityAwaiting = await ConvertRowsAsync(
+                    declarations.Where(r => r.OpportunityId == opportunity.Id && r.Status == FundingDeclarationStatus.PendingConfirmation && r.Amount > 0)
+                        .Select(r => new MoneyRow(r.Amount, NormalizeCurrencyOrNull(r.Currency), false)),
+                    NormalizeCurrencyOrNull(opportunity.FundingCurrency), fxCache, cancellationToken);
+                var opportunityDisputed = await ConvertRowsAsync(
+                    declarations.Where(r => r.OpportunityId == opportunity.Id && r.Status == FundingDeclarationStatus.Disputed && r.Amount > 0)
+                        .Select(r => new MoneyRow(r.Amount, NormalizeCurrencyOrNull(r.Currency), false)),
+                    NormalizeCurrencyOrNull(opportunity.FundingCurrency), fxCache, cancellationToken);
+                var opportunityConfirmed = await ConvertRowsAsync(
+                    declarations.Where(r => r.OpportunityId == opportunity.Id && r.Status == FundingDeclarationStatus.Confirmed && r.Amount > 0)
+                        .Select(r => new MoneyRow(r.Amount, NormalizeCurrencyOrNull(r.Currency), false)),
                     NormalizeCurrencyOrNull(opportunity.FundingCurrency), fxCache, cancellationToken);
                 childDtos.Add(new FounderDashboardOpportunityDto
                 {
@@ -121,12 +151,17 @@ public sealed class FounderDashboardService(
                     TotalFundingTarget = HasCurrency(opportunity.FundingCurrency)
                         ? FounderDashboardMoneyDto.From(opportunity.FundingTarget, false)
                         : FounderDashboardMoneyDto.Unavailable("Opportunity funding currency is missing"),
-                    TotalFunded = opportunityFunded,
+                    TotalCommitted = opportunityCommitted,
+                    DeclaredReceivedAmount = opportunityDeclared,
+                    AwaitingConfirmationAmount = opportunityAwaiting,
+                    DisputedAmount = opportunityDisputed,
+                    UndeclaredCommittedAmount = SubtractMoney(opportunityCommitted, opportunityDeclared),
+                    ConfirmedReceivedAmount = opportunityConfirmed,
+                    OutstandingAmount = SubtractMoney(opportunityCommitted, opportunityConfirmed),
+                    TotalFunded = opportunityConfirmed,
                     ActiveInvestorCount = approved.Where(r => r.OpportunityId == opportunity.Id)
                         .Select(r => r.InvestorId).Distinct().Count(),
-                    FundingProgressPercentage = Progress(opportunityFunded, HasCurrency(opportunity.FundingCurrency)
-                        ? FounderDashboardMoneyDto.From(opportunity.FundingTarget, false)
-                        : FounderDashboardMoneyDto.Unavailable("Opportunity funding currency is missing"))
+                    FundingProgressPercentage = FundingSemantics.CalculateFundingProgress(opportunity.FundingTarget, opportunityConfirmed.Value ?? 0m)
                 });
             }
 
@@ -138,8 +173,31 @@ public sealed class FounderDashboardService(
                 DefaultCurrency = project.DefaultCurrency,
                 OpportunityCount = childOpportunities.Count,
                 TotalFundingTarget = projectTarget,
-                TotalFunded = projectFunded,
-                FundingProgressPercentage = Progress(projectFunded, projectTarget),
+                TotalCommitted = projectCommitted,
+                DeclaredReceivedAmount = await ConvertRowsAsync(
+                    declarations.Where(d => childOpportunities.Any(o => o.Id == d.OpportunityId) && d.Amount > 0)
+                        .Select(d => new MoneyRow(d.Amount, NormalizeCurrencyOrNull(d.Currency), false)),
+                    NormalizeCurrencyOrNull(project.DefaultCurrency), fxCache, cancellationToken),
+                AwaitingConfirmationAmount = await ConvertRowsAsync(
+                    declarations.Where(d => childOpportunities.Any(o => o.Id == d.OpportunityId) && d.Status == FundingDeclarationStatus.PendingConfirmation && d.Amount > 0)
+                        .Select(d => new MoneyRow(d.Amount, NormalizeCurrencyOrNull(d.Currency), false)),
+                    NormalizeCurrencyOrNull(project.DefaultCurrency), fxCache, cancellationToken),
+                DisputedAmount = await ConvertRowsAsync(
+                    declarations.Where(d => childOpportunities.Any(o => o.Id == d.OpportunityId) && d.Status == FundingDeclarationStatus.Disputed && d.Amount > 0)
+                        .Select(d => new MoneyRow(d.Amount, NormalizeCurrencyOrNull(d.Currency), false)),
+                    NormalizeCurrencyOrNull(project.DefaultCurrency), fxCache, cancellationToken),
+                UndeclaredCommittedAmount = SubtractMoney(
+                    projectCommitted,
+                    await ConvertRowsAsync(
+                        declarations.Where(d => childOpportunities.Any(o => o.Id == d.OpportunityId) && d.Amount > 0)
+                            .Select(d => new MoneyRow(d.Amount, NormalizeCurrencyOrNull(d.Currency), false)),
+                        NormalizeCurrencyOrNull(project.DefaultCurrency), fxCache, cancellationToken)),
+                ConfirmedReceivedAmount = projectConfirmed,
+                OutstandingAmount = SubtractMoney(projectCommitted, projectConfirmed),
+                TotalFunded = projectConfirmed,
+                FundingProgressPercentage = projectTarget.Value is > 0m
+                    ? decimal.Round((projectConfirmed.Value ?? 0m) * 100m / projectTarget.Value.Value, 2)
+                    : 0m,
                 Opportunities = childDtos
             });
         }
@@ -154,9 +212,16 @@ public sealed class FounderDashboardService(
                 ActiveOpportunities = activeOpportunities,
                 UniqueActiveInvestors = activeInvestors,
                 TotalFundingTarget = target,
-                TotalFunded = funded,
-                FundingProgressPercentage = Progress(funded, target),
-                ReceivedAmount = received,
+                TotalCommitted = committed,
+                DeclaredReceivedAmount = declared,
+                AwaitingConfirmationAmount = awaiting,
+                DisputedAmount = disputed,
+                UndeclaredCommittedAmount = SubtractMoney(committed, declared),
+                ConfirmedReceivedAmount = confirmed,
+                OutstandingAmount = SubtractMoney(committed, confirmed),
+                TotalFunded = confirmed,
+                FundingProgressPercentage = target.Value is > 0m ? decimal.Round((confirmed.Value ?? 0m) * 100m / target.Value.Value, 2) : 0m,
+                ReceivedAmount = confirmed,
                 Earnings = FounderDashboardMoneyDto.Unavailable("realized earnings source is not implemented"),
                 PendingActions = pendingActions
             },
@@ -164,7 +229,7 @@ public sealed class FounderDashboardService(
             TimeSeries = new FounderDashboardTimeSeriesDto
             {
                 FundingApprovals = await BuildFundingSeriesAsync(approved, seriesFrom, seriesTo, displayCurrency, fxCache, cancellationToken),
-                ReceivedAmounts = await BuildReceivedSeriesAsync(payments, seriesFrom, seriesTo, displayCurrency, fxCache, cancellationToken),
+                ReceivedAmounts = [],
                 Earnings = []
             },
             Availability = new FounderDashboardAvailabilityDto()
@@ -390,9 +455,17 @@ public sealed class FounderDashboardService(
         return value?.Length == 3 && value.All(char.IsLetter) ? value : null;
     }
 
+    private static FounderDashboardMoneyDto SubtractMoney(FounderDashboardMoneyDto left, FounderDashboardMoneyDto right)
+    {
+        if (!left.Available || !right.Available || left.Value is null || right.Value is null)
+            return FounderDashboardMoneyDto.Unavailable("Unable to calculate the undeclared committed amount in the selected currency");
+        return FounderDashboardMoneyDto.From(Math.Max(left.Value.Value - right.Value.Value, 0m), left.Approximate || right.Approximate);
+    }
+
     private sealed record ProjectRow(int Id, string DisplayName, ProjectStatus Status, string? DefaultCurrency);
     private sealed record OpportunityRow(int Id, int ProjectId, int SequenceNumber, string Title, OpportunityStatus Status, OpportunityFundingStatus FundingStatus, DateTime? FundingOpensAt, DateTime? FundingClosesAt, decimal FundingTarget, string? FundingCurrency, ProjectStatus ProjectStatus);
     private sealed record ApprovedFundingRow(int Id, int OpportunityId, Guid InvestorId, decimal Amount, string? FundingCurrency, bool Approximate, DateTime EventAt, string? OpportunityCurrency);
+    private sealed record DeclaredFundingRow(int Id, int OpportunityId, decimal Amount, string Currency, DateTime DeclaredAt, FundingDeclarationStatus Status);
     private sealed record PaymentRow(int Id, decimal Amount, DateTime PaymentDate, bool IsReversed, DateTime? ReversedAt, int OpportunityId, string? RequestCurrency, string? OpportunityCurrency);
     private sealed record MoneyRow(decimal Amount, string? Currency, bool Approximate);
     private sealed record SeriesRow(DateTime Period, decimal Amount, string? Currency, bool Approximate);

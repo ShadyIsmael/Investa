@@ -80,6 +80,14 @@
   color: var(--editor-text);
 }
 .field b { color: var(--editor-green); }
+.field-error {
+  color: #b42318;
+  font-size: .76rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+:host-context(body.investa-theme-dark) .field-error,
+:host-context(.dark) .field-error { color: #ff8a80; }
 .field input, .field textarea, .field select {
   padding: 9px 11px;
   border: 1.5px solid var(--editor-border);

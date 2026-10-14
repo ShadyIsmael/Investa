@@ -1,10 +1,11 @@
 import { Injectable, signal, inject, DestroyRef } from '@angular/core';
 import { toObservable, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { skip } from 'rxjs';
-import { Investment, RiskLevel, InvestmentCategory, InvestmentType, InvestmentStatus } from '../models/investment.model';
+import { Investment, InvestmentCategory, InvestmentType, InvestmentStatus } from '../models/investment.model';
 import { AuthService } from './auth.service';
 import { FileStoreService } from './file-store.service';
 import { Opportunity, OpportunityLookup, OpportunityService } from './opportunity.service';
+import { ProjectCategoryService } from './project-category.service';
 
 @Injectable({
   providedIn: 'root'
@@ -13,6 +14,7 @@ export class InvestmentService {
   private authService = inject(AuthService);
   private fileStoreService = inject(FileStoreService);
   private opportunityService = inject(OpportunityService);
+  private categoryService = inject(ProjectCategoryService);
   private destroyRef = inject(DestroyRef);
 
   private _loadSeq = 0;
@@ -37,16 +39,17 @@ export class InvestmentService {
 
   async loadCategories(): Promise<void> {
     try {
-      const cats = await this.opportunityService.getCategories();
+      await this.categoryService.ensureLoaded();
+      const cats = this.categoryService.active();
       this._categories.set(cats.map(c => ({
         id: Number(c.id),
-        key: c.key || String(c.id),
-        value: this.opportunityService.label(c),
-        valueAr: this.opportunityService.label(c)
+        key: c.code || String(c.id),
+        value: c.nameEn,
+        valueAr: c.nameAr
       })));
     } catch (error) {
-      console.warn('Failed to load opportunity categories from API, falling back to loaded opportunities', error);
-      this.extractCategories(this._investments());
+      console.warn('Failed to load Project Category Master from API', error);
+      this._categories.set([]);
     }
   }
 
@@ -135,7 +138,7 @@ export class InvestmentService {
     const opportunityId = this.getOpportunityId(opportunity);
     const category = opportunity.projectContext?.category ?? null;
     const fundingTarget = Number(opportunity.fundingTarget ?? 0);
-    const progress = Number(opportunity.fundingProgressPercent ?? 0);
+    const progress = Number(opportunity.fundingProgress ?? opportunity.fundingProgressPercent ?? 0);
     const founder = opportunity.founder;
     const categoryName = category ? this.lookupLabel(category) : undefined;
     const created = opportunity.createdAt ? new Date(opportunity.createdAt) : new Date();
@@ -152,20 +155,23 @@ export class InvestmentService {
       initialCapital: 0,
       date: created,
       startDate: created,
-      businessCategoryId: category ? Number(category.id) : undefined,
-      businessCategoryName: categoryName,
-      businessCategoryNameAr: categoryName,
+      categoryId: category ? Number(category.id) : undefined,
+      categoryName: categoryName,
+      categoryNameAr: categoryName,
       minInvestment: this.toNumber(opportunity.minimumInvestmentAmount ?? opportunity.minimumInvestment),
       maxInvestment: this.toNumber(opportunity.maximumInvestmentAmount ?? opportunity.maximumInvestment),
       expectedROI: this.extractPercent(opportunity.expectedReturnSummary),
       investmentType: this.mapInvestmentModel(opportunity.investmentModel),
       status: this.mapOpportunityStatus(opportunity.status),
       targetFund: fundingTarget,
-      currentFunding: fundingTarget > 0 ? fundingTarget * (progress / 100) : 0,
+      // The legacy card field represents commitment capacity, while the
+      // progress field is confirmed cash received. Sprint 1 exposes both
+      // explicitly on the source Opportunity.
+      currentFunding: this.toNumber((opportunity as any).committedAmount ?? 0),
       fundingPercentage: progress,
       investorCount: 0,
       investedAmount: 0,
-      riskLevel: RiskLevel.Medium,
+      riskLevel: opportunity.projectContext?.riskLevel ?? '',
       currency: opportunity.currency ?? '',
       momentumScore: 0,
       momentumLabel: opportunity.latestPublicUpdate || 'Public Opportunity',
@@ -179,10 +185,9 @@ export class InvestmentService {
       projectStage: opportunity.projectStage || undefined,
       shortDescription: opportunity.shortDescription || undefined,
       fullDescription: opportunity.fullDescription || opportunity.description || undefined,
-      fundingGoalName: opportunity.fundingGoal ? this.lookupLabel(opportunity.fundingGoal) : opportunity.fundingGoalName || undefined,
+      fundingGoalName: opportunity.fundingGoal ? this.lookupLabel(opportunity.fundingGoal) : undefined,
       expectedReturnSummary: opportunity.expectedReturnSummary || undefined,
       publicInvestmentTermsSummary: opportunity.publicInvestmentTermsSummary || undefined,
-      fundingPurpose: opportunity.fundingPurpose || opportunity.fundingUsage || undefined,
       tags: opportunity.tags?.map(tag => this.lookupLabel(tag)).filter(Boolean),
       images: this.mapOpportunityMedia(opportunity),
       publicEvents: this.mapOpportunityEvents(opportunity),
@@ -311,18 +316,4 @@ export class InvestmentService {
     return match ? Number(match[1]) : undefined;
   }
 
-  private extractCategories(investments: Investment[]): void {
-    const unique = new Map<number, InvestmentCategory>();
-    investments.forEach(inv => {
-      if (inv.businessCategoryId && inv.businessCategoryName) {
-        unique.set(inv.businessCategoryId, {
-          id: inv.businessCategoryId,
-          key: String(inv.businessCategoryId),
-          value: inv.businessCategoryName,
-          valueAr: inv.businessCategoryNameAr || inv.businessCategoryName
-        });
-      }
-    });
-    this._categories.set(Array.from(unique.values()));
-  }
 }

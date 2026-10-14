@@ -59,33 +59,28 @@ public class GmailSmtpEmailService : IEmailService
 
             await smtp.SendAsync(message, cancellationToken);
 
-            _logger.LogInformation(
-                "Email sent. To={To} Subject={Subject} Host={Host} Sender={Sender}",
-                request.To,
-                request.Subject,
-                _options.Smtp.Host,
-                _options.Sender.Email);
+            _logger.LogInformation("Email sent through configured SMTP provider");
 
             await smtp.DisconnectAsync(true, cancellationToken);
         }
         catch (SmtpCommandException ex)
         {
-            _logger.LogError(ex, "SMTP command failed while sending email. To={To} Subject={Subject} Host={Host}", request.To, request.Subject, _options.Smtp.Host);
+            _logger.LogError(ex, "SMTP command failed while sending email");
             throw;
         }
         catch (SmtpProtocolException ex)
         {
-            _logger.LogError(ex, "SMTP protocol error while sending email. To={To} Subject={Subject} Host={Host}", request.To, request.Subject, _options.Smtp.Host);
+            _logger.LogError(ex, "SMTP protocol error while sending email");
             throw;
         }
         catch (System.Net.Sockets.SocketException ex)
         {
-            _logger.LogError(ex, "SMTP connection error while sending email. To={To} Subject={Subject} Host={Host}", request.To, request.Subject, _options.Smtp.Host);
+            _logger.LogError(ex, "SMTP connection error while sending email");
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Email failed. To={To} Subject={Subject} Host={Host} Sender={Sender}", request.To, request.Subject, _options.Smtp.Host, _options.Sender.Email);
+            _logger.LogError(ex, "Email delivery failed");
             throw;
         }
     }
@@ -111,7 +106,7 @@ public class GmailSmtpEmailService : IEmailService
             if (!string.IsNullOrWhiteSpace(_options.Smtp.Username) && !string.IsNullOrWhiteSpace(_options.Smtp.Password))
             {
                 await smtp.AuthenticateAsync(_options.Smtp.Username, _options.Smtp.Password, cancellationToken);
-                _logger.LogInformation("SMTP authenticated. Username={Username}", _options.Smtp.Username);
+                _logger.LogInformation("SMTP authentication succeeded");
             }
 
             await smtp.DisconnectAsync(true, cancellationToken);

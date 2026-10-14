@@ -38,9 +38,9 @@ export class HeaderComponent {
   isUserMenuOpen = signal(false);
 
   userMenuItems = signal([
-    { label: 'Profile', routerLink: '/admin/profile' },
-    { label: 'Settings', routerLink: '/admin/settings' },
-    { label: 'Logout', action: 'logout' }
+    { key: 'profile', routerLink: '/admin/profile' },
+    { key: 'settings', routerLink: '/admin/settings' },
+    { key: 'logout', action: 'logout' }
   ]);
 
   isAuthenticated = this.authService.isAuthenticated;

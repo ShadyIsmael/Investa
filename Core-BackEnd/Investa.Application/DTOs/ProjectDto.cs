@@ -44,9 +44,9 @@ public class ProjectDto
     public string Summary { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public int? CategoryId { get; set; }
-    public OpportunityLookupDto? Category { get; set; }
+    public ProjectCategoryDto? Category { get; set; }
     public string? Industry { get; set; }
-    public ProjectStage BusinessStage { get; set; }
+    public ProjectStage ProjectStage { get; set; }
     public string? Geography { get; set; }
     public DateOnly? FoundedOn { get; set; }
     public string? WebsiteUrl { get; set; }
@@ -68,7 +68,9 @@ public class ProjectDto
     public decimal TotalFundingTargetInDefaultCurrency { get; set; }
 
     public int OpportunityCount { get; set; }
-    public bool CanCreateOpportunity => Status != ProjectStatus.Archived;
+    public bool CanEdit { get; set; }
+    public bool CanCreateOpportunity { get; set; }
+    public IReadOnlyList<ProjectStatus> AvailableStatusTransitions { get; set; } = Array.Empty<ProjectStatus>();
     public IReadOnlyList<ProjectOpportunityDto> Opportunities { get; set; } = Array.Empty<ProjectOpportunityDto>();
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
@@ -79,7 +81,6 @@ public class ProjectOpportunityDto
     public int Id { get; set; }
     public int SequenceNumber { get; set; }
     public string Title { get; set; } = string.Empty;
-    public string Purpose { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty;
     public ProjectStage ProjectStage { get; set; }
     public string? ProjectStageCustomName { get; set; }

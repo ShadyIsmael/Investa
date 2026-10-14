@@ -24,7 +24,7 @@ public sealed class ProjectsController(IProjectService projects) : BaseApiContro
     {
         var userId = ResolveUserId();
         if (userId == null) return ErrorResponse("Unable to resolve authenticated user", 401);
-        try { return SuccessResponse(await projects.GetAsync(userId.Value, id)); }
+        try { return SuccessResponse(await projects.GetAsync(userId.Value, id, User.IsInRole("Admin"))); }
         catch (BusinessValidationException ex) { return BusinessError(ex); }
     }
 
@@ -73,6 +73,25 @@ public sealed class ProjectsController(IProjectService projects) : BaseApiContro
         return Guid.TryParse(claim, out var id) ? id : null;
     }
 
-    private IActionResult BusinessError(BusinessValidationException ex) =>
-        ErrorResponse(ex.Message, ex.Code == "PROJECT_NOT_FOUND" ? 404 : ex.Code == "FOUNDER_ACCESS_REQUIRED" ? 403 : ex.Code == "PROJECT_ARCHIVED" ? 409 : 400);
+    private IActionResult BusinessError(BusinessValidationException ex)
+    {
+        var status = ex.Code == "PROJECT_NOT_FOUND" ? 404
+            : ex.Code is "FOUNDER_ACCESS_REQUIRED" or "PROJECT_VIEW_FORBIDDEN" ? 403
+            : ex.Code == "PROJECT_ARCHIVED" ? 409
+            : 400;
+        object? fieldErrors = ex.Code switch
+        {
+            "INVALID_FOUNDED_DATE" => new Dictionary<string, string[]> { [nameof(CreateProjectRequest.FoundedOn)] = [ex.Message] },
+            "INVALID_PROJECT_STAGE" => new Dictionary<string, string[]> { [nameof(CreateProjectRequest.ProjectStage)] = [ex.Message] },
+            "INVALID_CATEGORY" => new Dictionary<string, string[]> { [nameof(CreateProjectRequest.CategoryId)] = [ex.Message] },
+            "PROJECT_FIELDS_REQUIRED" => new Dictionary<string, string[]>
+            {
+                [nameof(CreateProjectRequest.DisplayName)] = [ex.Message],
+                [nameof(CreateProjectRequest.Summary)] = [ex.Message],
+                [nameof(CreateProjectRequest.Description)] = [ex.Message]
+            },
+            _ => null
+        };
+        return ErrorResponse(ex.Message, status, fieldErrors);
+    }
 }

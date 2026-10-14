@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent } from '@angular/common/http';
+import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { ErrorMappingService } from '../services/error-mapping.service';
@@ -15,6 +15,11 @@ export class ErrorInterceptor implements HttpInterceptor {
           return throwError(() => error);
         }
         const mapped = this.errorMapping.parseError(error);
+        if (error instanceof HttpErrorResponse && error.error) {
+          const body = error.error;
+          if (body.code) mapped.backendCode = body.code;
+          if (body.message) mapped.backendMessage = body.message;
+        }
         return throwError(() => mapped);
       })
     );

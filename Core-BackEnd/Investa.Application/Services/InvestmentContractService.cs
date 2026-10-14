@@ -18,6 +18,7 @@ public class InvestmentContractService : IInvestmentContractService
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { WriteIndented = false };
     private readonly IUnitOfWork _uow;
     private readonly IFileStorage _fileStorage;
+    private readonly IFileUploadService? _fileUploadService;
     private readonly IHtmlToPdfRenderer _pdfRenderer;
     private readonly IEmailService? _emailService;
     private readonly ILogger<InvestmentContractService> _logger;
@@ -28,13 +29,15 @@ public class InvestmentContractService : IInvestmentContractService
         IFileStorage fileStorage,
         IHtmlToPdfRenderer pdfRenderer,
         ILogger<InvestmentContractService> logger,
-        IEmailService? emailService = null)
+        IEmailService? emailService = null,
+        IFileUploadService? fileUploadService = null)
     {
         _uow = uow;
         _fileStorage = fileStorage;
         _pdfRenderer = pdfRenderer;
         _logger = logger;
         _emailService = emailService;
+        _fileUploadService = fileUploadService;
     }
 
     public async Task GenerateForApprovedParticipationAsync(Opportunity opportunity, OpportunityJoinRequest request, DateTime approvedAt, CancellationToken cancellationToken = default)
@@ -42,23 +45,48 @@ public class InvestmentContractService : IInvestmentContractService
         if (request.RequestType != OpportunityJoinRequestType.InvestmentParticipation)
             return;
 
-        if (await _uow.Repository<InvestmentContractVersion>().ExistsAsync(v => v.SourceParticipationRequestId == request.Id))
+        if (await _uow.Repository<InvestmentContractVersion>().ExistsAsync(v => v.SourceParticipationRequestId == request.Id)
+            || await _uow.Repository<InvestmentContract>().ExistsAsync(c => c.ParticipationRequestId == request.Id))
             return;
+
+        if (!request.AcceptedOfferId.HasValue)
+            throw new BusinessValidationException("CONTRACT_ACCEPTED_OFFER_REQUIRED", "Investment contracts must be generated from an accepted structured offer.");
+
+        var acceptedOffer = await _uow.Repository<NegotiationOffer>().GetSingleAsync(
+            o => o.Id == request.AcceptedOfferId.Value && o.Status == NegotiationOfferStatus.Accepted,
+            o => o.Legs);
+        if (acceptedOffer == null || acceptedOffer.OpportunityId != opportunity.Id)
+            throw new BusinessValidationException("CONTRACT_ACCEPTED_OFFER_NOT_FOUND", "The exact accepted offer for this participation could not be resolved.");
+        if (acceptedOffer.Legs.Count == 0)
+            throw new BusinessValidationException("CONTRACT_OFFER_LEGS_REQUIRED", "The accepted offer must contain at least one offer leg.");
 
         var founder = await _uow.Repository<AuthUser>().GetByIdAsync(opportunity.FounderId)
             ?? throw new BusinessValidationException("CONTRACT_FOUNDER_NOT_FOUND", "Contract founder could not be resolved.");
         var investor = await _uow.Repository<AuthUser>().GetByIdAsync(request.InvestorId)
             ?? throw new BusinessValidationException("CONTRACT_INVESTOR_NOT_FOUND", "Contract investor could not be resolved.");
 
-        var participationModel = ResolveParticipationInvestmentModel(request, opportunity.InvestmentModel);
+        var acceptedLegs = acceptedOffer.Legs.OrderBy(l => l.Id).ToList();
+        var acceptedModels = acceptedLegs.Select(l => ToInvestmentModel(l.LegType)).Distinct().ToList();
+        var participationModel = acceptedModels.Count == 1 ? acceptedModels[0] : InvestmentModel.Unspecified;
+        var acceptedAmount = acceptedLegs.Sum(l => l.Amount);
+        var acceptedCurrency = string.IsNullOrWhiteSpace(acceptedOffer.Currency) ? "Unspecified" : acceptedOffer.Currency.Trim().ToUpperInvariant();
         var now = approvedAt;
         var contract = new InvestmentContract
         {
             ContractNumber = $"INV-{opportunity.Id}-{request.Id}-{request.InvestorId.ToString("N")[..8].ToUpperInvariant()}",
             OpportunityId = opportunity.Id,
+            AcceptedOfferId = acceptedOffer.Id,
+            AcceptedOfferVersionNumber = acceptedOffer.Version,
+            ParticipationRequestId = request.Id,
             FounderUserId = opportunity.FounderId,
             InvestorUserId = request.InvestorId,
             InvestmentModel = participationModel,
+            OpportunityTitleSnapshot = opportunity.Title,
+            FounderNameSnapshot = founder.Name,
+            InvestorNameSnapshot = investor.Name,
+            AcceptedCurrency = acceptedCurrency,
+            AcceptedAmount = acceptedAmount,
+            AcceptanceTimestamp = now,
             Status = InvestmentContractStatus.Active,
             CreatedAt = now,
             UpdatedAt = now
@@ -66,15 +94,14 @@ public class InvestmentContractService : IInvestmentContractService
         await _uow.Repository<InvestmentContract>().AddAsync(contract);
 
         const int versionNumber = 1;
-        var acceptedOffer = await FindAcceptedOfferAsync(request.SourceConversationId, request.AcceptedOfferId);
         var exchangeRateSnapshot = request.ExchangeRateSnapshotId.HasValue
             ? await _uow.Repository<ExchangeRateSnapshot>().GetByIdAsync(request.ExchangeRateSnapshotId.Value)
             : null;
         if (request.ExchangeRateSnapshotId.HasValue && exchangeRateSnapshot == null)
             throw new BusinessValidationException("FX_SNAPSHOT_NOT_FOUND", "The participation exchange-rate snapshot could not be resolved.");
-        var terms = BuildTermsSnapshot(contract.ContractNumber, versionNumber, opportunity, request, founder, investor, acceptedOffer?.Id, exchangeRateSnapshot, now);
+        var terms = BuildTermsSnapshot(opportunity, contract, versionNumber, request, founder, investor, acceptedOffer, exchangeRateSnapshot, now);
         const InvestmentContractVersionType versionType = InvestmentContractVersionType.InitialAgreement;
-        var document = BuildDocument(contract.ContractNumber, versionNumber, opportunity.Title, founder.Name, investor.Name, participationModel, terms);
+        var document = BuildDocument(contract.ContractNumber, versionNumber, contract.OpportunityTitleSnapshot, contract.FounderNameSnapshot, contract.InvestorNameSnapshot, participationModel, terms);
         var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(document))).ToLowerInvariant();
 
         var version = new InvestmentContractVersion
@@ -84,7 +111,7 @@ public class InvestmentContractService : IInvestmentContractService
             VersionType = versionType,
             PreviousVersionId = null,
             SourceParticipationRequestId = request.Id,
-            SourceNegotiationOfferId = acceptedOffer?.Id,
+            SourceNegotiationOfferId = acceptedOffer.Id,
             Status = InvestmentContractVersionStatus.Active,
             TermsSnapshotJson = terms,
             PreviousTermsSnapshotJson = null,
@@ -149,8 +176,8 @@ public class InvestmentContractService : IInvestmentContractService
         await _uow.Repository<InvestmentContractVersion>().UpdateAsync(version);
         await _uow.SaveChangesAsync();
         var displayDocument = BuildDocument(contract.ContractNumber, versionNumber,
-            contract.Opportunity?.Title ?? string.Empty, contract.FounderUser?.Name ?? string.Empty,
-            contract.InvestorUser?.Name ?? string.Empty, contract.InvestmentModel, version.TermsSnapshotJson);
+            contract.OpportunityTitleSnapshot, contract.FounderNameSnapshot,
+            contract.InvestorNameSnapshot, contract.InvestmentModel, version.TermsSnapshotJson);
         var displayHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(displayDocument))).ToLowerInvariant();
         return new InvestmentContractDocumentDto(contract.ContractNumber, versionNumber, "text/html", displayDocument, displayHash);
     }
@@ -184,15 +211,29 @@ public class InvestmentContractService : IInvestmentContractService
             try
             {
                 var displayDocument = BuildDocument(contract.ContractNumber, versionNumber,
-                    contract.Opportunity?.Title ?? string.Empty, contract.FounderUser?.Name ?? string.Empty,
-                    contract.InvestorUser?.Name ?? string.Empty, contract.InvestmentModel, version.TermsSnapshotJson);
+                    contract.OpportunityTitleSnapshot, contract.FounderNameSnapshot,
+                    contract.InvestorNameSnapshot, contract.InvestmentModel, version.TermsSnapshotJson);
                 var pdf = await _pdfRenderer.RenderAsync(displayDocument, $"{contract.ContractNumber} - V{versionNumber}", cancellationToken);
                 if (pdf.Length < 5 || Encoding.ASCII.GetString(pdf, 0, 5) != "%PDF-")
                     throw new InvalidDataException("Renderer did not return a valid PDF document.");
                 var hash = Convert.ToHexString(SHA256.HashData(pdf)).ToLowerInvariant();
-                var path = $"contracts/{contract.OpportunityId}/{contract.Id}/v{versionNumber}/{fileName}";
                 await using var stream = new MemoryStream(pdf, writable: false);
-                var url = await _fileStorage.SaveFileAsync(path, stream, "application/pdf");
+                if (_fileUploadService is null)
+                    throw new InvalidOperationException("Governed file upload service is not configured.");
+                var upload = await _fileUploadService.UploadAsync(
+                    new FileUploadCommand(
+                        "CONTRACT",
+                        stream,
+                        fileName,
+                        "application/pdf",
+                        pdf.LongLength,
+                        userId,
+                        contract.Opportunity?.ProjectId,
+                        "InvestmentContractVersion",
+                        version.Id.ToString(),
+                        BypassProjectAuthorization: true),
+                    cancellationToken);
+                var url = upload.Url;
 
                 version.PdfDocumentUrl = url;
                 version.PdfDocumentHash = hash;
@@ -251,7 +292,7 @@ public class InvestmentContractService : IInvestmentContractService
 
         var pdf = await GetPdfAsync(userId, contractId, versionNumber, cancellationToken);
         var isArabic = language.Equals("ar", StringComparison.OrdinalIgnoreCase);
-        var opportunityTitle = contract.Opportunity?.Title ?? "Investment Opportunity";
+        var opportunityTitle = string.IsNullOrWhiteSpace(contract.OpportunityTitleSnapshot) ? "Investment Opportunity" : contract.OpportunityTitleSnapshot;
         var subject = isArabic
             ? $"عقدك على FOPX One — {opportunityTitle}"
             : $"Your FOPX One Contract — {opportunityTitle}";
@@ -324,24 +365,53 @@ public class InvestmentContractService : IInvestmentContractService
         return contract;
     }
 
-    private async Task<NegotiationOffer?> FindAcceptedOfferAsync(Guid? conversationId, int? offerId)
+    private static string BuildTermsSnapshot(Opportunity opportunity, InvestmentContract contract, int version, OpportunityJoinRequest request, AuthUser founder, AuthUser investor, NegotiationOffer acceptedOffer, ExchangeRateSnapshot? exchangeRateSnapshot, DateTime generatedAt)
     {
-        if (offerId.HasValue)
-            return (await _uow.Repository<NegotiationOffer>().FindAsync(o => o.Id == offerId && o.Status == NegotiationOfferStatus.Accepted)).FirstOrDefault();
-        if (!conversationId.HasValue) return null;
-        return (await _uow.Repository<NegotiationOffer>().FindAsync(o => o.ConversationId == conversationId && o.Status == NegotiationOfferStatus.Accepted))
-            .OrderByDescending(o => o.Version).FirstOrDefault();
-    }
+        var acceptedLegs = acceptedOffer.Legs.OrderBy(l => l.Id).Select((leg, index) => new
+        {
+            legNumber = index + 1,
+            offerLegId = leg.Id,
+            legType = leg.LegType.ToString(),
+            investmentModel = ToInvestmentModel(leg.LegType).ToString(),
+            amount = leg.Amount,
+            currency = contract.AcceptedCurrency,
+            equityPercentage = leg.EquityPercentage,
+            equityOwnershipModel = leg.EquityOwnershipModel?.ToString(),
+            investorShareCount = leg.InvestorShareCount,
+            totalIssuedShares = leg.TotalIssuedShares,
+            shareClass = leg.ShareClass,
+            pricePerShare = leg.PricePerShare,
+            preMoneyValuation = leg.PreMoneyValuation,
+            postMoneyValuation = leg.PostMoneyValuation,
+            effectiveOwnershipDate = leg.EffectiveOwnershipDate,
+            sharesTerms = leg.SharesTerms,
+            returnRate = leg.ReturnRate,
+            termMonths = leg.TermMonths,
+            repaymentModel = leg.RepaymentModel,
+            contractualStartDate = contract.AcceptanceTimestamp,
+            contractualMaturityDate = leg.TermMonths.HasValue ? contract.AcceptanceTimestamp.AddMonths(leg.TermMonths.Value) : (DateTime?)null,
+            profitSharePercentage = leg.ProfitSharePercentage,
+            payoutFrequency = leg.LegType == NegotiationOfferLegType.ProfitSharing ? leg.ProfitSharingPayoutFrequency : null,
+            reportingFrequency = leg.LegType == NegotiationOfferLegType.ProfitSharing ? leg.ProfitSharingPayoutFrequency : null,
+            calculationBasis = leg.LegType == NegotiationOfferLegType.ProfitSharing ? "Profit" : null,
+            exitTerms = leg.ExitTerms
+        }).ToList();
 
-    private static string BuildTermsSnapshot(string number, int version, Opportunity opportunity, OpportunityJoinRequest request, AuthUser founder, AuthUser investor, int? offerId, ExchangeRateSnapshot? exchangeRateSnapshot, DateTime generatedAt)
-    {
-        using var source = JsonDocument.Parse(request.TermsSnapshotJson ?? "{}");
+        var modelNames = acceptedLegs.Select(l => l.investmentModel).Distinct().ToList();
         return JsonSerializer.Serialize(new
         {
-            contractNumber = number, versionNumber = version, opportunityId = opportunity.Id, opportunityTitle = opportunity.Title,
-            founder = new { userId = founder.Id, partyRole = "Founder", displayName = founder.Name, snapshotAt = generatedAt },
-            investor = new { userId = investor.Id, partyRole = "Investor", displayName = investor.Name, snapshotAt = generatedAt },
-            investmentModel = ResolveParticipationInvestmentModel(request, opportunity.InvestmentModel).ToString(), currency = ReadCurrency(source.RootElement, request.FundingCurrency ?? opportunity.FundingCurrency),
+            snapshotSchemaVersion = 1,
+            contractNumber = contract.ContractNumber,
+            versionNumber = version,
+            opportunity = new { id = contract.OpportunityId, title = contract.OpportunityTitleSnapshot },
+            founder = new { userId = contract.FounderUserId, identifier = founder.Email, partyRole = "Founder", displayName = contract.FounderNameSnapshot, snapshotAt = generatedAt },
+            investor = new { userId = contract.InvestorUserId, identifier = investor.Email, partyRole = "Investor", displayName = contract.InvestorNameSnapshot, snapshotAt = generatedAt },
+            acceptedOffer = new { id = acceptedOffer.Id, versionNumber = acceptedOffer.Version, currency = contract.AcceptedCurrency, amount = contract.AcceptedAmount },
+            participation = new { id = request.Id, acceptedAt = contract.AcceptanceTimestamp, investorSubmittedAt = request.CreatedAt, founderApprovedAt = request.ReviewedAt ?? generatedAt },
+            investmentModel = modelNames.Count == 1 ? modelNames[0] : "Mixed",
+            currency = contract.AcceptedCurrency,
+            acceptedAmount = contract.AcceptedAmount,
+            acceptanceTimestamp = contract.AcceptanceTimestamp,
             fxExecution = new
             {
                 enteredAmount = request.EnteredAmount,
@@ -351,69 +421,29 @@ public class InvestmentContractService : IInvestmentContractService
                 exchangeRate = exchangeRateSnapshot?.ExchangeRate,
                 executionTimestamp = exchangeRateSnapshot?.RateTimestamp
             },
-            loanTerms = ResolveParticipationInvestmentModel(request, opportunity.InvestmentModel) == InvestmentModel.LoanInvestment ? new
-            {
-                interestRate = opportunity.InterestRate,
-                repaymentFrequency = opportunity.RepaymentFrequency,
-                finalRepaymentDate = opportunity.FinalRepaymentDate,
-                expectedDurationMonths = opportunity.ExpectedDurationMonths
-            } : null,
-            participationRequestId = request.Id, acceptedOfferId = offerId, investorSubmittedAt = request.CreatedAt,
-            founderApprovedAt = request.ReviewedAt ?? generatedAt, generatedAt,
-            sourceAgreedTerms = source.RootElement.Clone(),
+            sourceAgreedTerms = acceptedLegs,
+            legs = acceptedLegs,
             platformDisclaimer = "Investa CREDIT is a platform service balance only and is unrelated to investment value, share price, shares, loan principal, or contribution amount."
         }, JsonOptions);
     }
 
-    private static string ReadCurrency(JsonElement source, string? fallback)
+    private static InvestmentModel ToInvestmentModel(NegotiationOfferLegType legType) => legType switch
     {
-        if (source.ValueKind == JsonValueKind.Object
-            && (source.TryGetProperty("CurrencySnapshot", out var value)
-                || source.TryGetProperty("currencySnapshot", out value)))
-        {
-            return value.ValueKind == JsonValueKind.String
-                ? value.GetString() ?? fallback ?? "Unspecified"
-                : value.ToString();
-        }
-
-        return string.IsNullOrWhiteSpace(fallback) ? "Unspecified" : fallback;
-    }
-
-    private static InvestmentModel ResolveParticipationInvestmentModel(OpportunityJoinRequest request, InvestmentModel fallback)
-    {
-        var terms = TermsSnapshotParser.Parse(request.TermsSnapshotJson).Normalized;
-        if (terms is not { ValueKind: JsonValueKind.Object }) return fallback;
-
-        string? Read(params string[] names)
-        {
-            foreach (var property in terms.Value.EnumerateObject())
-                if (names.Any(name => string.Equals(name, property.Name, StringComparison.OrdinalIgnoreCase)))
-                    return property.Value.ToString();
-            return null;
-        }
-
-        var legType = Read("legTypeName");
-        var raw = !string.IsNullOrWhiteSpace(legType) ? legType : Read("InvestmentModel", "investmentModel");
-        if (string.IsNullOrWhiteSpace(raw)) return fallback;
-        if (string.IsNullOrWhiteSpace(legType) && int.TryParse(raw, out var numeric) && Enum.IsDefined(typeof(InvestmentModel), numeric))
-            return (InvestmentModel)numeric;
-
-        var normalized = raw.Replace(" ", string.Empty, StringComparison.Ordinal)
-            .Replace("_", string.Empty, StringComparison.Ordinal)
-            .Replace("-", string.Empty, StringComparison.Ordinal)
-            .ToLowerInvariant();
-        if (normalized.Contains("loan")) return InvestmentModel.LoanInvestment;
-        if (normalized.Contains("profit")) return InvestmentModel.CapitalContributionProfitSharing;
-        if (normalized.Contains("equity")) return InvestmentModel.Equity;
-        return fallback;
-    }
+        NegotiationOfferLegType.Equity => InvestmentModel.Equity,
+        NegotiationOfferLegType.Loan => InvestmentModel.LoanInvestment,
+        NegotiationOfferLegType.ProfitSharing => InvestmentModel.CapitalContributionProfitSharing,
+        _ => InvestmentModel.Unspecified
+    };
 
     private static string BuildDocument(string number, int version, string title, string founder, string investor, InvestmentModel model, string terms)
     {
         using var snapshot = JsonDocument.Parse(string.IsNullOrWhiteSpace(terms) ? "{}" : terms);
         var root = snapshot.RootElement;
-        var approvedAt = ReadJsonText(root, "founderApprovedAt");
+        var participation = root.TryGetProperty("participation", out var participationSnapshot) ? participationSnapshot : default;
+        var approvedAt = ReadJsonText(root, "acceptanceTimestamp");
+        if (string.IsNullOrWhiteSpace(approvedAt)) approvedAt = ReadJsonText(participation, "acceptedAt");
         var currency = ReadJsonText(root, "currency");
+        var modelLabel = ReadJsonText(root, "investmentModel");
         var fx = root.TryGetProperty("fxExecution", out var fxExecution) ? fxExecution : default;
         var enteredAmount = ReadJsonText(fx, "enteredAmount");
         var enteredCurrency = ReadJsonText(fx, "enteredCurrency");
@@ -431,6 +461,19 @@ public class InvestmentContractService : IInvestmentContractService
                     .Append(WebUtility.HtmlEncode(Humanize(property.Name)))
                     .Append("</span><strong>")
                     .Append(WebUtility.HtmlEncode(FormatJsonValue(property.Value)))
+                    .Append("</strong></div>");
+            }
+        }
+        else if (agreedTerms.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var leg in agreedTerms.EnumerateArray())
+            {
+                var legNumber = ReadJsonText(leg, "legNumber");
+                var legType = ReadJsonText(leg, "investmentModel");
+                termRows.Append("<div class=\"term-row\"><span>")
+                    .Append(WebUtility.HtmlEncode($"Leg {legNumber}: {Humanize(legType)}"))
+                    .Append("</span><strong>")
+                    .Append(WebUtility.HtmlEncode(FormatJsonValue(leg)))
                     .Append("</strong></div>");
             }
         }
@@ -475,7 +518,7 @@ public class InvestmentContractService : IInvestmentContractService
         <div class="field wide"><span>Opportunity</span><strong>{{{E(title)}}}</strong></div>
         <div class="field"><span>Contract reference</span><strong>{{{E(number)}}}</strong></div>
         <div class="field"><span>Effective date</span><strong>{{{E(FormatContractDate(approvedAt))}}}</strong></div>
-        <div class="field"><span>Investment model</span><strong>{{{E(Humanize(model.ToString()))}}}</strong></div>
+        <div class="field"><span>Investment model</span><strong>{{{E(string.IsNullOrWhiteSpace(modelLabel) ? Humanize(model.ToString()) : Humanize(modelLabel))}}}</strong></div>
         <div class="field"><span>Currency</span><strong>{{{E(string.IsNullOrWhiteSpace(currency) ? "—" : currency)}}}</strong></div>
         <div class="field"><span>Entered Amount + Currency</span><strong>{{{E($"{enteredAmount} {enteredCurrency}".Trim())}}}</strong></div>
         <div class="field"><span>Official Funding Amount + Currency</span><strong>{{{E($"{fundingAmount} {fundingCurrency}".Trim())}}}</strong></div>
@@ -528,7 +571,23 @@ public class InvestmentContractService : IInvestmentContractService
     };
 
     private static ContractEvent NewEvent(ContractEventType type, Guid? userId, string description, DateTime at) => new() { EventType = type, PerformedByUserId = userId, Description = description, CreatedAt = at };
-    private static InvestmentContractSummaryDto ToSummary(InvestmentContract c) => new(c.Id, c.ContractNumber, c.InvestorUserId, c.FounderUser?.Name ?? string.Empty, c.InvestorUser?.Name ?? string.Empty, c.InvestmentModel, c.CurrentVersionNumber, c.Status, c.Versions.Max(v => v.ActivatedAt ?? v.CreatedAt), c.Versions.Count);
+    private static InvestmentContractSummaryDto ToSummary(InvestmentContract c) => new(
+        c.Id,
+        c.ContractNumber,
+        c.InvestorUserId,
+        string.IsNullOrWhiteSpace(c.FounderNameSnapshot) ? c.FounderUser?.Name ?? string.Empty : c.FounderNameSnapshot,
+        string.IsNullOrWhiteSpace(c.InvestorNameSnapshot) ? c.InvestorUser?.Name ?? string.Empty : c.InvestorNameSnapshot,
+        c.InvestmentModel,
+        c.CurrentVersionNumber,
+        c.Status,
+        c.Versions.Max(v => v.ActivatedAt ?? v.CreatedAt),
+        c.Versions.Count,
+        c.AcceptedOfferId,
+        c.AcceptedOfferVersionNumber,
+        c.ParticipationRequestId,
+        c.AcceptedAmount,
+        c.AcceptedCurrency,
+        c.AcceptanceTimestamp);
     private static InvestmentContractVersionSummaryDto ToVersionSummary(InvestmentContractVersion v) => new(v.VersionNumber, v.VersionType, v.Status, v.CreatedAt, v.ActivatedAt, v.DocumentHash);
     private static void EnsureStoredPdfIntegrity(byte[] pdf, string? expectedHash)
     {

@@ -39,7 +39,6 @@ public partial class DefaultFileValidationService : IFileValidationService
         "application/x-javascript", "text/ecmascript", "application/ecmascript"
     };
 
-    private static readonly int MaxFileSizeBytes = 100 * 1024 * 1024;
     private static readonly int MaxFileNameLength = 200;
     private static readonly int MaxNameLength = 255;
     private static readonly int MaxDescriptionLength = 1000;

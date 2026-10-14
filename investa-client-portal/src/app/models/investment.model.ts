@@ -1,13 +1,4 @@
 /**
- * Risk level for investments
- */
-export enum RiskLevel {
-  Low = 'Low',
-  Medium = 'Medium',
-  High = 'High',
-}
-
-/**
  * Investment type enumeration - matches backend InvestmentType enum
  * Supports Founding, Equity, Revenue Sharing, and Loan/Debt
  */
@@ -150,7 +141,7 @@ export enum InvestmentStatus {
 }
 
 /**
- * Investment category (will be loaded from BusinessCategory API)
+ * Investment category projection resolved from the Project Category Master.
  */
 export interface InvestmentCategory {
   id: number;
@@ -237,11 +228,9 @@ export interface Investment {
   endDate?: Date;
   
   // Category and classification
-  businessCategoryId?: number;
-  businessCategoryName?: string;
-  businessCategoryNameAr?: string;
-  businessStageId?: number;
-  projectPhaseId?: number;
+  categoryId?: number;
+  categoryName?: string;
+  categoryNameAr?: string;
   milestone?: string;
   projectStage?: string;
   shortDescription?: string;
@@ -249,7 +238,6 @@ export interface Investment {
   fundingGoalName?: string;
   expectedReturnSummary?: string;
   publicInvestmentTermsSummary?: string;
-  fundingPurpose?: string;
   tags?: string[];
   publicEvents?: Array<{
     id?: number | string;
@@ -266,10 +254,9 @@ export interface Investment {
     fileSize?: number | null;
     fileUrl?: string | null;
     previewUrl?: string | null;
-    purpose?: string | null;
     visibility?: string | null;
   }>;
-  riskLevel: RiskLevel;
+  riskLevel: string;
   currency?: string;
   momentumScore?: number;
   momentumLabel?: string;

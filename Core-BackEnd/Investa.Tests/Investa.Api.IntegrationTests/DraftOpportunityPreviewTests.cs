@@ -102,15 +102,16 @@ public sealed class DraftOpportunityPreviewTests
             Slug = $"draft-preview-{Guid.NewGuid():N}",
             Summary = "Draft preview project summary",
             Description = "Draft preview project description",
-            BusinessStage = ProjectStage.Idea,
-            Status = ProjectStatus.Draft
+            ProjectStage = ProjectStage.Idea,
+            Status = status == OpportunityStatus.Published
+                ? ProjectStatus.Active
+                : ProjectStatus.Draft
         };
         var opportunity = new Opportunity
         {
             Project = project,
             FounderId = founderId,
             SequenceNumber = 1,
-            Purpose = "Draft funding need",
             Type = "Growth",
             Title = "Draft opportunity preview",
             ShortDescription = "Draft opportunity preview summary",

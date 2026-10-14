@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Investa.Application.Common;
 using Investa.Application.DTOs;
 using Investa.Application.Interfaces;
 using Investa.Domain.Entities;
@@ -247,6 +248,95 @@ public sealed class NegotiationJourneyTests
 
         founderConv.ConversationStatus.Should().Be(ConversationStatus.ReadyForParticipation);
         investorConv.ConversationStatus.Should().Be(ConversationStatus.ReadyForParticipation);
+    }
+
+    [Fact]
+    public async Task ConversationDto_CurrentUserReady_ShouldReflectViewerRole()
+    {
+        var conversation = CreateConversation(ConversationStatus.ReadyForParticipation, founderReady: true, investorReady: false);
+        _conversations.Setup(x => x.GetSingleAsync(
+                It.IsAny<System.Linq.Expressions.Expression<Func<Conversation, bool>>>(),
+                It.IsAny<System.Linq.Expressions.Expression<Func<Conversation, object>>[]>()))
+            .ReturnsAsync(conversation);
+
+        var founderConv = await _service.GetConversationAsync(_founderId, _conversationId);
+        var investorConv = await _service.GetConversationAsync(_investorId, _conversationId);
+
+        founderConv.CurrentUserReady.Should().BeTrue();
+        investorConv.CurrentUserReady.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ConversationDetail_reuses_authorized_conversation_and_returns_messages_in_order()
+    {
+        var conversation = CreateConversation(ConversationStatus.Negotiation);
+        _conversations.Setup(x => x.GetSingleAsync(
+                It.IsAny<System.Linq.Expressions.Expression<Func<Conversation, bool>>>(),
+                It.IsAny<System.Linq.Expressions.Expression<Func<Conversation, object>>[]>()))
+            .ReturnsAsync(conversation);
+
+        var olderMessage = new ChatMessage
+        {
+            Id = Guid.NewGuid(),
+            ConversationId = _conversationId,
+            SenderUserId = _investorId,
+            SenderId = _investorId.ToString(),
+            MessageText = "Earlier message",
+            Timestamp = DateTime.UtcNow.AddMinutes(-1)
+        };
+        var newerMessage = new ChatMessage
+        {
+            Id = Guid.NewGuid(),
+            ConversationId = _conversationId,
+            SenderUserId = _founderId,
+            SenderId = _founderId.ToString(),
+            MessageText = "Later message",
+            Timestamp = DateTime.UtcNow
+        };
+        _messages.Setup(x => x.FindAsync(
+                It.IsAny<System.Linq.Expressions.Expression<Func<ChatMessage, bool>>>()))
+            .ReturnsAsync(new[] { newerMessage, olderMessage });
+
+        var detail = await _service.GetConversationAsync(_founderId, _conversationId);
+
+        detail.Messages.Select(message => message.Message)
+            .Should().Equal("Earlier message", "Later message");
+        _conversations.Verify(x => x.GetSingleAsync(
+            It.IsAny<System.Linq.Expressions.Expression<Func<Conversation, bool>>>(),
+            It.IsAny<System.Linq.Expressions.Expression<Func<Conversation, object>>[]>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task MarkReadyToProceed_ShouldRejectConversationOutsideActiveNegotiation()
+    {
+        var conversation = CreateConversation(ConversationStatus.ReadyForParticipation);
+        _conversations.Setup(x => x.GetSingleAsync(
+                It.IsAny<System.Linq.Expressions.Expression<Func<Conversation, bool>>>(),
+                It.IsAny<System.Linq.Expressions.Expression<Func<Conversation, object>>[]>()))
+            .ReturnsAsync(conversation);
+
+        var action = () => _service.MarkReadyToProceedAsync(_founderId, _conversationId);
+
+        var exception = await FluentActions.Invoking(action).Should().ThrowAsync<BusinessValidationException>();
+        exception.Which.Code.Should().Be("INVALID_CONVERSATION_STATUS");
+    }
+
+    [Fact]
+    public async Task MarkReadyToProceed_ShouldSetFounderReadyForActiveConversation()
+    {
+        var conversation = CreateConversation(ConversationStatus.Negotiation);
+        _conversations.Setup(x => x.GetSingleAsync(
+                It.IsAny<System.Linq.Expressions.Expression<Func<Conversation, bool>>>(),
+                It.IsAny<System.Linq.Expressions.Expression<Func<Conversation, object>>[]>()))
+            .ReturnsAsync(conversation);
+        _conversations.Setup(x => x.UpdateAsync(It.IsAny<Conversation>())).Returns(Task.CompletedTask);
+        _uow.Setup(x => x.SaveChangesAsync()).ReturnsAsync(1);
+
+        var result = await _service.MarkReadyToProceedAsync(_founderId, _conversationId);
+
+        conversation.FounderReady.Should().BeTrue();
+        result.CurrentUserReady.Should().BeTrue();
+        result.ConversationStatus.Should().Be(ConversationStatus.Negotiation);
     }
 
     [Fact]

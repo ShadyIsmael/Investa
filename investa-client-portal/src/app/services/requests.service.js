@@ -18,10 +18,8 @@ export class RequestsService {
         this.apiBase = inject(API_BASE);
         this._incoming = signal([], ...(ngDevMode ? [{ debugName: "_incoming" }] : []));
         this._outgoing = signal([], ...(ngDevMode ? [{ debugName: "_outgoing" }] : []));
-        this._participationRevision = signal(0, ...(ngDevMode ? [{ debugName: "_participationRevision" }] : []));
         this.incoming = this._incoming.asReadonly();
         this.outgoing = this._outgoing.asReadonly();
-        this.participationRevision = this._participationRevision.asReadonly();
     }
     async refreshRequests() {
         await this.loadRequests();
@@ -30,58 +28,29 @@ export class RequestsService {
         this._incoming.set([]);
         this._outgoing.set([]);
     }
-    async createOpportunityRequest(investment, ..._args) {
-        const opportunityId = investment.opportunityId ?? investment.id;
-        if (!opportunityId) {
-            throw new Error('Opportunity is not available.');
-        }
-        await firstValueFrom(this.http.post(`${this.apiBase}/api/v1/opportunities/${encodeURIComponent(String(opportunityId))}/conversations`, {}, this.authService.getAuthorizedJsonOptions()));
-        await this.loadRequests();
-    }
     async acceptRequest(request) {
-        let acceptedConversationId;
-        if (request.requestType === OpportunityRequestKind.Conversation) {
-            const raw = await this.postConversationRequestAction(request.id, 'accept');
-            const data = raw?.data ?? raw;
-            acceptedConversationId = data?.acceptedConversationId;
-        }
-        else {
-            await firstValueFrom(this.http.post(`${this.apiBase}/api/v1/opportunity-join-requests/${request.id}/approve`, {}, this.authService.getAuthorizedJsonOptions()));
-            this._participationRevision.update(value => value + 1);
-        }
+        const raw = await this.postConversationRequestAction(request.id, 'accept');
+        const data = raw?.data ?? raw;
+        const acceptedConversationId = data?.acceptedConversationId;
         await this.loadRequests();
         this.notifications.showToast({
-            title: request.requestType === OpportunityRequestKind.Conversation
-                ? this.t('requests.notifications.chatAccepted')
-                : this.t('requests.notifications.participationApproved'),
+            title: this.t('requests.notifications.chatAccepted'),
             message: this.interpolate(this.t('requests.notifications.acceptedMessage'), { projectName: request.projectName }),
             type: 'success'
         });
         return acceptedConversationId;
     }
     async declineRequest(request) {
-        if (request.requestType === OpportunityRequestKind.Conversation) {
-            await this.postConversationRequestAction(request.id, 'reject');
-        }
-        else {
-            await firstValueFrom(this.http.post(`${this.apiBase}/api/v1/opportunity-join-requests/${request.id}/reject`, { reason: 'Declined from Client Portal' }, this.authService.getAuthorizedJsonOptions()));
-        }
+        await this.postConversationRequestAction(request.id, 'reject');
         await this.loadRequests();
         this.notifications.showToast({
-            title: request.requestType === OpportunityRequestKind.Conversation
-                ? this.t('requests.notifications.chatDeclined')
-                : this.t('requests.notifications.participationRejected'),
+            title: this.t('requests.notifications.chatDeclined'),
             message: this.interpolate(this.t('requests.notifications.declinedMessage'), { projectName: request.projectName }),
             type: 'warning'
         });
     }
     async withdrawRequest(request) {
-        if (request.requestType === OpportunityRequestKind.Conversation) {
-            await this.postConversationRequestAction(request.id, 'withdraw');
-        }
-        else {
-            await firstValueFrom(this.http.post(`${this.apiBase}/api/v1/opportunity-join-requests/${request.id}/cancel`, {}, this.authService.getAuthorizedJsonOptions()));
-        }
+        await this.postConversationRequestAction(request.id, 'withdraw');
         await this.loadRequests();
         this.notifications.showToast({
             title: this.t('requests.notifications.withdrawn'),
@@ -97,23 +66,10 @@ export class RequestsService {
             catch (profileError) {
                 console.warn('Unable to refresh role context before loading requests:', profileError);
             }
-            const activeContext = this.roleContext.activeContext();
-            const canLoadFounderParticipation = activeContext === 'founder' && this.roleContext.isFounderUser();
-            const canLoadInvestorParticipation = activeContext === 'investor' && this.roleContext.isInvestorUser();
-            const [conversationRequestRaw, founderIncomingJoinRaw, investorOutgoingJoinRaw] = await Promise.all([
-                firstValueFrom(this.http.get(`${this.apiBase}/api/v1/conversation-requests`, this.authService.getAuthorizedJsonOptions())),
-                canLoadFounderParticipation
-                    ? firstValueFrom(this.http.get(`${this.apiBase}/api/v1/opportunities/incoming-join-requests`, this.authService.getAuthorizedJsonOptions()))
-                    : Promise.resolve([]),
-                canLoadInvestorParticipation
-                    ? firstValueFrom(this.http.get(`${this.apiBase}/api/v1/opportunities/my-join-requests`, this.authService.getAuthorizedJsonOptions()))
-                    : Promise.resolve([])
-            ]);
+            const conversationRequestRaw = await firstValueFrom(this.http.get(`${this.apiBase}/api/v1/conversation-requests`, this.authService.getAuthorizedJsonOptions()));
             const conversationRequests = this.extractArray(conversationRequestRaw).map(row => this.mapConversationRequest(row));
-            const founderIncomingJoinRequests = this.extractArray(founderIncomingJoinRaw).map(row => this.mapJoinRequest(row, 'incoming'));
-            const investorOutgoingJoinRequests = this.extractArray(investorOutgoingJoinRaw).map(row => this.mapJoinRequest(row, 'outgoing'));
-            const joinRequests = [...founderIncomingJoinRequests, ...investorOutgoingJoinRequests];
-            const all = [...conversationRequests, ...joinRequests].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+            await this.hydrateConversationCounterpartyNames(conversationRequests);
+            const all = conversationRequests.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
             this._incoming.set(all.filter(request => request.direction === 'incoming'));
             this._outgoing.set(all.filter(request => request.direction === 'outgoing'));
         }
@@ -149,103 +105,64 @@ export class RequestsService {
             requestMetadata: data
         };
     }
-    mapJoinRequest(data, directionFallback) {
-        const terms = this.parseTermsSnapshot(data.termsSnapshotJson);
-        const loanTerms = this.toLoanTermsSnapshot(terms);
-        const profitSharingTerms = this.toProfitSharingTermsSnapshot(terms);
-        const investmentModel = data.investmentModel ?? terms.InvestmentModel ?? terms.investmentModel ?? null;
-        return {
-            id: data.id ?? data.requestId,
-            type: 'participation',
-            direction: this.normalizeDirection(data.direction, directionFallback),
-            projectName: data.opportunityTitle || this.t('requests.fallbacks.opportunity'),
-            projectImageUrl: '',
-            counterpartName: data.counterpartyFullName || data.counterpartyName || data.investorDisplayName || data.investorFullName || data.investorName || data.founderFullName || data.founderName || this.t('requests.fallbacks.participant'),
-            senderName: data.requesterFullName || data.requesterName || data.investorDisplayName || data.investorFullName || data.investorName,
-            receiverName: data.recipientFullName || data.recipientName || data.founderFullName || data.founderName,
-            status: this.normalizeStatus(data.status),
-            createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
-            requestedAmount: data.requestedAmount ?? data.calculatedTotalAmount ?? terms.TotalInvestmentAmount ?? terms.CalculatedTotalAmount ?? loanTerms?.requestedAmount ?? loanTerms?.contributionAmount ?? profitSharingTerms?.requestedAmount ?? profitSharingTerms?.contributionAmount,
-            shares: data.numberOfShares ?? data.shares ?? terms.SelectedShares,
-            sharePriceSnapshot: data.sharePriceSnapshot ?? terms.SharePriceSnapshot,
-            calculatedTotalAmount: data.calculatedTotalAmount ?? data.totalAmount ?? terms.CalculatedTotalAmount ?? terms.TotalInvestmentAmount ?? loanTerms?.expectedTotalRepaymentAmount ?? profitSharingTerms?.calculatedTotalAmount,
-            currencySnapshot: data.currency ?? terms.CurrencySnapshot ?? loanTerms?.currencySnapshot ?? profitSharingTerms?.currencySnapshot,
-            opportunityId: this.toNumber(data.opportunityId),
-            investorId: data.investorId,
-            founderId: data.founderId,
-            requestType: OpportunityRequestKind.Participation,
-            investmentModel: investmentModel ? String(investmentModel) : null,
-            loanTermsSnapshot: loanTerms,
-            profitSharingTermsSnapshot: profitSharingTerms,
-            acceptedConversationId: data.acceptedConversationId ?? data.sourceConversationId ?? null,
-            canAccept: data.canApprove,
-            canReject: data.canReject,
-            requestMetadata: { ...data, termsSnapshot: terms }
-        };
+    async hydrateConversationCounterpartyNames(requests) {
+        await Promise.all(requests.map(async (request) => {
+            const currentName = request.direction === 'incoming' ? request.senderName : request.receiverName;
+            const fallback = request.direction === 'incoming'
+                ? this.t('requests.fallbacks.investor')
+                : this.t('requests.fallbacks.founder');
+            if (this.isRealCounterpartyName(currentName, fallback)) {
+                request.counterpartName = currentName.trim();
+                return;
+            }
+            const counterpartyId = request.direction === 'incoming' ? request.investorId : request.founderId;
+            const resolvedName = await this.loadPublicUserName(counterpartyId);
+            if (!resolvedName)
+                return;
+            request.counterpartName = resolvedName;
+            if (request.direction === 'incoming')
+                request.senderName = resolvedName;
+            else
+                request.receiverName = resolvedName;
+        }));
     }
-    parseTermsSnapshot(value) {
-        if (!value || typeof value !== 'string')
-            return {};
+    async loadPublicUserName(userId) {
+        if (!userId)
+            return null;
         try {
-            const parsed = JSON.parse(value);
-            return parsed && typeof parsed === 'object' ? parsed : {};
+            const raw = await firstValueFrom(this.http.get(`${this.apiBase}/api/profile/${encodeURIComponent(String(userId))}/public`, this.authService.getAuthorizedJsonOptions()));
+            const profile = raw?.data ?? raw;
+            return this.firstNonEmpty(profile?.displayName, profile?.fullName, this.joinName(profile?.firstName, profile?.lastName));
         }
         catch {
-            return {};
+            return null;
         }
     }
-    toLoanTermsSnapshot(terms) {
-        const model = terms.InvestmentModel ?? terms.investmentModel;
-        const modelKey = String(model ?? '').toLowerCase().replace(/[\s_-]+/g, '');
-        const hasLoanShape = modelKey === 'loaninvestment' || modelKey === 'loan' || modelKey === '3' || terms.ContributionAmount !== undefined || terms.ReturnRateSnapshot !== undefined;
-        if (!hasLoanShape)
-            return null;
-        return {
-            investmentModel: model ? String(model) : 'LoanInvestment',
-            contributionAmount: this.toNullableNumber(terms.ContributionAmount),
-            requestedAmount: this.toNullableNumber(terms.RequestedAmount),
-            currencySnapshot: terms.CurrencySnapshot ?? null,
-            returnRateSnapshot: this.toNullableNumber(terms.ReturnRateSnapshot),
-            returnRateTypeSnapshot: terms.ReturnRateTypeSnapshot ?? null,
-            termValueSnapshot: this.toNullableNumber(terms.TermValueSnapshot),
-            termUnitSnapshot: terms.TermUnitSnapshot ?? null,
-            repaymentModelSnapshot: terms.RepaymentModelSnapshot ?? null,
-            expectedReturnAmount: this.toNullableNumber(terms.ExpectedReturnAmount),
-            expectedTotalRepaymentAmount: this.toNullableNumber(terms.ExpectedTotalRepaymentAmount),
-            calculatedTotalAmount: this.toNullableNumber(terms.CalculatedTotalAmount)
-        };
+    isRealCounterpartyName(value, translatedFallback) {
+        const normalized = String(value ?? '').trim().toLowerCase();
+        if (!normalized)
+            return false;
+        return ![
+            'participant',
+            'investor',
+            'founder',
+            'مشارك',
+            'المشارك',
+            'المستثمر',
+            'المؤسس',
+            translatedFallback.trim().toLowerCase()
+        ].includes(normalized);
     }
-    toProfitSharingTermsSnapshot(terms) {
-        const model = terms.InvestmentModel ?? terms.investmentModel;
-        const modelKey = String(model ?? '').toLowerCase().replace(/[\s_-]+/g, '');
-        const hasProfitSharingShape = modelKey === 'capitalcontributionprofitsharing'
-            || modelKey === 'profitsharing'
-            || modelKey === 'profitshare'
-            || modelKey === '2'
-            || terms.ProposedSharePercentage !== undefined
-            || terms.proposedSharePercentage !== undefined
-            || terms.ProfitSharePercentageSnapshot !== undefined
-            || terms.profitSharePercentage !== undefined;
-        if (!hasProfitSharingShape)
-            return null;
-        return {
-            investmentModel: model ? String(model) : 'CapitalContributionProfitSharing',
-            contributionAmount: this.toNullableNumber(terms.ContributionAmount ?? terms.contributionAmount ?? terms.RequestedAmount ?? terms.requestedAmount),
-            requestedAmount: this.toNullableNumber(terms.RequestedAmount ?? terms.requestedAmount),
-            currencySnapshot: terms.CurrencySnapshot ?? terms.currencySnapshot ?? null,
-            profitSharePercentageSnapshot: this.toNullableNumber(terms.ProfitSharePercentage ?? terms.profitSharePercentage ?? terms.ProfitSharePercentageSnapshot ?? terms.profitSharePercentageSnapshot ?? terms.ProfitSharingPercentageSnapshot),
-            proposedSharePercentage: this.toNullableNumber(terms.ProposedSharePercentage ?? terms.proposedSharePercentage),
-            expectedProfitAmount: this.toNullableNumber(terms.ExpectedProfitAmount ?? terms.expectedProfitAmount),
-            expectedTotalPayoutAmount: this.toNullableNumber(terms.ExpectedTotalPayoutAmount ?? terms.expectedTotalPayoutAmount),
-            opportunityTotalExpectedPayout: this.toNullableNumber(terms.OpportunityTotalExpectedPayout ?? terms.opportunityTotalExpectedPayout),
-            termValueSnapshot: this.toNullableNumber(terms.TermValueSnapshot ?? terms.termValueSnapshot ?? terms.termValue),
-            termUnitSnapshot: terms.TermUnitSnapshot ?? terms.termUnitSnapshot ?? terms.termUnit ?? null,
-            expectedDurationMonthsSnapshot: this.toNullableNumber(terms.ExpectedDurationMonthsSnapshot ?? terms.expectedDurationMonthsSnapshot ?? terms.expectedDurationMonths),
-            exitTermsSnapshot: terms.ExitTerms ?? terms.exitTerms ?? terms.ExitTermsSnapshot ?? terms.exitTermsSnapshot ?? null,
-            contractStartDate: terms.ContractStartDate ?? terms.contractStartDate ?? null,
-            contractEndDate: terms.ContractEndDate ?? terms.contractEndDate ?? null,
-            calculatedTotalAmount: this.toNullableNumber(terms.CalculatedTotalAmount ?? terms.calculatedTotalAmount)
-        };
+    joinName(firstName, lastName) {
+        return [firstName, lastName].map(value => String(value ?? '').trim()).filter(Boolean).join(' ');
+    }
+    firstNonEmpty(...values) {
+        for (const value of values) {
+            const text = String(value ?? '').trim();
+            if (text && this.isRealCounterpartyName(text, ''))
+                return text;
+        }
+        return null;
     }
     normalizeStatus(value) {
         const raw = String(value || 'Pending').toLowerCase();

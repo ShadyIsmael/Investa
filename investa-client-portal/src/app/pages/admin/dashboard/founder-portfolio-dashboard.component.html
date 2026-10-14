@@ -10,7 +10,7 @@
       <div class="state-icon" aria-hidden="true">!</div>
       <p class="section-kicker">{{ 'dashboard.founder.errorKicker' | translate }}</p>
       <h1>{{ 'dashboard.founder.errorTitle' | translate }}</h1>
-      <p>{{ 'dashboard.founder.errorHelper' | translate }}</p>
+      <p>{{ error() || ('dashboard.founder.errorHelper' | translate) }}</p>
       <button type="button" class="button button-primary" (click)="load()">{{ 'dashboard.founder.retry' | translate }}</button>
     </section>
   } @else if (dashboard(); as data) {
@@ -40,8 +40,8 @@
         </div>
         <div class="position-figures">
           <div class="position-figure primary-figure">
-            <span>{{ 'dashboard.founder.metrics.funded' | translate }}</span>
-            <strong>{{ money(m.totalFunded) }}</strong>
+            <span>{{ 'dashboard.founder.metrics.committed' | translate }}</span>
+            <strong>{{ money(m.totalCommitted) }}</strong>
             <small>{{ 'dashboard.founder.position.ofTarget' | translate }} {{ money(m.totalFundingTarget) }}</small>
           </div>
           <div class="position-progress" aria-hidden="true">
@@ -50,8 +50,8 @@
           </div>
         </div>
         <div class="position-footer">
-          <span><i class="dot dot-positive"></i>{{ 'dashboard.founder.position.approvedFunding' | translate }}</span>
-          <span>{{ m.totalFunded.approximate ? ('dashboard.founder.approximate' | translate) : ('dashboard.founder.position.authoritative' | translate) }}</span>
+          <span><i class="dot dot-positive"></i>{{ 'dashboard.founder.position.committedFunding' | translate }}</span>
+          <span>{{ m.totalCommitted.approximate ? ('dashboard.founder.approximate' | translate) : ('dashboard.founder.position.authoritative' | translate) }}</span>
         </div>
       </article>
 
@@ -76,7 +76,7 @@
       <div class="signal-item"><span>{{ 'dashboard.founder.metrics.totalProjects' | translate }}</span><strong>{{ m.totalProjects }}</strong><small>{{ 'dashboard.founder.metrics.portfolio' | translate }}</small></div>
       <div class="signal-item"><span>{{ 'dashboard.founder.metrics.activeOpportunities' | translate }}</span><strong>{{ m.activeOpportunities }}</strong><small>{{ 'dashboard.founder.metrics.openNow' | translate }}</small></div>
       <div class="signal-item"><span>{{ 'dashboard.founder.metrics.activeInvestors' | translate }}</span><strong>{{ m.uniqueActiveInvestors }}</strong><small>{{ 'dashboard.founder.metrics.distinctApproved' | translate }}</small></div>
-      <div class="signal-item"><span>{{ 'dashboard.founder.metrics.received' | translate }}</span><strong>{{ money(m.receivedAmount) }}</strong><small>{{ 'dashboard.founder.platformRecorded' | translate }}</small></div>
+      <div class="signal-item"><span>{{ 'dashboard.founder.metrics.confirmedReceived' | translate }}</span><strong>{{ money(m.confirmedReceivedAmount) }}</strong><small>{{ 'dashboard.founder.confirmationUnavailable' | translate }}</small></div>
       <div class="signal-item quiet-signal"><span>{{ 'dashboard.founder.metrics.earnings' | translate }}</span><strong>{{ money(m.earnings) }}</strong><small>{{ 'dashboard.founder.unavailableSource' | translate }}</small></div>
     </section>
 
@@ -121,7 +121,7 @@
               <summary class="project-summary-row">
                 <div class="project-identity"><span class="project-mark" aria-hidden="true">{{ project.displayName.charAt(0) }}</span><div><h3>{{ project.displayName }}</h3><span class="status-badge" [class]="'status-' + statusTone(project.status)">{{ status(project.status) }}</span></div></div>
                 <div class="project-stat"><span>{{ 'dashboard.founder.projects.opportunities' | translate }}</span><strong>{{ project.opportunityCount }}</strong></div>
-                <div class="project-stat"><span>{{ 'dashboard.founder.projects.funded' | translate }}</span><strong>{{ money(project.totalFunded) }}</strong></div>
+                <div class="project-stat"><span>{{ 'dashboard.founder.projects.committed' | translate }}</span><strong>{{ money(project.totalCommitted) }}</strong></div>
                 <div class="project-stat project-progress-stat"><span>{{ 'dashboard.founder.projects.progress' | translate }}</span><strong>{{ rawProgress(project.fundingProgressPercentage) }}</strong><div class="progress-track"><i [style.width.%]="progress(project.fundingProgressPercentage)"></i></div></div>
                 <span class="summary-chevron" aria-hidden="true">⌄</span>
               </summary>

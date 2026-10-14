@@ -29,8 +29,8 @@ public sealed class EmailQueue : IEmailQueue
         _db.EmailOutbox.Add(outbox);
         await _db.SaveChangesAsync(cancellationToken);
         _logger.LogInformation(
-            "Email queued outboxId={OutboxId} recipient={Recipient} subject={Subject}",
-            outbox.Id, outbox.Recipient, outbox.Subject);
+            "Email queued outboxId={OutboxId}",
+            outbox.Id);
         return outbox;
     }
 

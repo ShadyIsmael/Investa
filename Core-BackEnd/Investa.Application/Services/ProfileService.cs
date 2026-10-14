@@ -18,13 +18,15 @@ public class ProfileService : IProfileService
     private readonly IMapper _mapper;
     private readonly IWalletService _walletService;
     private readonly ITrustService _trustService;
+    private readonly ICountryService _countryService;
 
-    public ProfileService(IUnitOfWork unitOfWork, IMapper mapper, IWalletService walletService, ITrustService trustService)
+    public ProfileService(IUnitOfWork unitOfWork, IMapper mapper, IWalletService walletService, ITrustService trustService, ICountryService countryService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _walletService = walletService;
         _trustService = trustService;
+        _countryService = countryService;
     }
 
 
@@ -96,6 +98,8 @@ public class ProfileService : IProfileService
         // Update basic info
         if (profileDto.BasicInfo != null)
         {
+            var selectedCountry = await _countryService.NormalizeActiveSelectionAsync(profileDto.BasicInfo.Country, profile.Country);
+            var selectedNationality = await _countryService.NormalizeActiveSelectionAsync(profileDto.BasicInfo.Nationality, profile.Nationality);
             profile.FullName = profileDto.BasicInfo.FullName;
             profile.FirstName = profileDto.BasicInfo.FirstName;
             profile.LastName = profileDto.BasicInfo.LastName;
@@ -117,8 +121,8 @@ public class ProfileService : IProfileService
                 profile.DateOfBirth = profileDto.BasicInfo.DateOfBirth;
             }
 
-            profile.Country = profileDto.BasicInfo.Country;
-            profile.Nationality = profileDto.BasicInfo.Nationality;
+            profile.Country = selectedCountry;
+            profile.Nationality = selectedNationality;
             profile.CompanyName = profileDto.BasicInfo.CompanyName;
             profile.BusinessRole = profileDto.BasicInfo.JobTitle;
             profile.Bio = profileDto.BasicInfo.Bio;
@@ -167,7 +171,7 @@ public class ProfileService : IProfileService
 
             // Map contact-level country and city if provided
             if (!string.IsNullOrEmpty(profileDto.ContactInfo.Country))
-                profile.Country = profileDto.ContactInfo.Country;
+                profile.Country = await _countryService.NormalizeActiveSelectionAsync(profileDto.ContactInfo.Country, profile.Country);
             if (!string.IsNullOrEmpty(profileDto.ContactInfo.City))
                 profile.City = profileDto.ContactInfo.City;
         }
@@ -256,23 +260,19 @@ public class ProfileService : IProfileService
         // attempt to include client metrics (Score) from Client entity
         var client = await _unitOfWork.Repository<Client>().GetSingleAsync(c => c.UserId == user.Id);
 
-        if (dto.BasicInfo == null)
-            dto.BasicInfo = new BasicInfoDto();
+        var basicInfo = dto.BasicInfo ??= new BasicInfoDto();
 
         // Ledger-backed balance for all visible balance/credit fields
         // NOTE: `basicInfo.credit` is legacy-named but must remain in sync with the wallet ledger.
         // TODO: remove/rename this field once the API contract is modernized.
-        if (dto.BasicInfo != null)
-        {
-            // Use wallet ledger as the single source of truth for visible credits/balances.
-            dto.BasicInfo.Credit = await _walletService.GetBalanceAsync(user.Id);
-        }
+        // Use wallet ledger as the single source of truth for visible credits/balances.
+        basicInfo.Credit = await _walletService.GetBalanceAsync(user.Id);
 
 
         if (client != null)
         {
-            dto.BasicInfo.Score = client.Score;
-            dto.BasicInfo.WebsiteUrl = client.WebsiteUrl;
+            basicInfo.Score = client.Score;
+            basicInfo.WebsiteUrl = client.WebsiteUrl;
             // TODO: `client.Credit` is legacy and should not be used for visible balance.
             // Keep it for backward compatibility elsewhere.
         }

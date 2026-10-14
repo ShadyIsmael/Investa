@@ -32,9 +32,9 @@ export async function ensureCurrenciesLoaded(): Promise<void> {
   if (loadPromise) return loadPromise;
   loadPromise = (async () => {
     try {
-      const raw = await api.get<CurrencyReference[] | { data?: CurrencyReference[] }>('/api/currency');
+      const raw = await api.get<CurrencyReference[] | { data?: CurrencyReference[] }>('/api/currency?includeInactive=true');
       const list = Array.isArray(raw) ? raw : (raw as any)?.data ?? [];
-      master = (Array.isArray(list) ? list : []).filter(c => c.isActive);
+      master = Array.isArray(list) ? list : [];
     } catch {
       master = [];
     } finally {
@@ -46,7 +46,7 @@ export async function ensureCurrenciesLoaded(): Promise<void> {
 
 /** Active master list (already cached; call ensureCurrenciesLoaded first if needed). */
 export function getCurrencies(): CurrencyReference[] {
-  return master;
+  return master.filter(c => c.isActive);
 }
 
 function find(code?: string | null): CurrencyReference | undefined {
@@ -71,11 +71,11 @@ export function currencyName(code?: string | null): string {
   return code ?? '';
 }
 
-/** Platform default ISO code (first active funding currency, else 'EGP'). */
+/** Platform default ISO code from the active Currency Master. */
 export function defaultIsoCode(code?: string | null): string {
   const f = find(code);
   if (f) return f.isoCode;
-  return master.find(c => c.supportsFunding)?.isoCode ?? master[0]?.isoCode ?? 'EGP';
+  return master.find(c => c.isActive && c.supportsFunding)?.isoCode ?? master.find(c => c.isActive)?.isoCode ?? '';
 }
 
 function toArabicIndic(value: string): string {

@@ -80,26 +80,26 @@ describe('CurrencyService', () => {
   describe('ensureLoaded', () => {
     it('should load currencies from API', async () => {
       const loadPromise = service.ensureLoaded();
-      const req = httpMock.expectOne('http://localhost:3000/api/currency');
+      const req = httpMock.expectOne('http://localhost:3000/api/currency?includeInactive=true');
       req.flush(mockCurrencies);
       await loadPromise;
 
-      expect(service.master()).toEqual(mockCurrencies.filter(c => c.isActive));
+      expect(service.master()).toEqual(mockCurrencies);
       expect(service.ready()).toBe(true);
     });
 
     it('should handle API response with data wrapper', async () => {
       const loadPromise = service.ensureLoaded();
-      const req = httpMock.expectOne('http://localhost:3000/api/currency');
+      const req = httpMock.expectOne('http://localhost:3000/api/currency?includeInactive=true');
       req.flush({ data: mockCurrencies });
       await loadPromise;
 
-      expect(service.master()).toEqual(mockCurrencies.filter(c => c.isActive));
+      expect(service.master()).toEqual(mockCurrencies);
     });
 
     it('should handle API errors gracefully', async () => {
       const loadPromise = service.ensureLoaded();
-      const req = httpMock.expectOne('http://localhost:3000/api/currency');
+      const req = httpMock.expectOne('http://localhost:3000/api/currency?includeInactive=true');
       req.flush('Error', { status: 500, statusText: 'Server Error' });
       await loadPromise;
 
@@ -109,22 +109,22 @@ describe('CurrencyService', () => {
 
     it('should not reload if already loaded', async () => {
       const loadPromise1 = service.ensureLoaded();
-      const req1 = httpMock.expectOne('http://localhost:3000/api/currency');
+      const req1 = httpMock.expectOne('http://localhost:3000/api/currency?includeInactive=true');
       req1.flush(mockCurrencies);
       await loadPromise1;
 
       const loadPromise2 = service.ensureLoaded();
-      httpMock.expectNone('http://localhost:3000/api/currency');
+      httpMock.expectNone('http://localhost:3000/api/currency?includeInactive=true');
       await loadPromise2;
 
-      expect(service.master()).toEqual(mockCurrencies.filter(c => c.isActive));
+      expect(service.master()).toEqual(mockCurrencies);
     });
   });
 
   describe('resolve', () => {
     beforeEach(async () => {
       const loadPromise = service.ensureLoaded();
-      const req = httpMock.expectOne('http://localhost:3000/api/currency');
+      const req = httpMock.expectOne('http://localhost:3000/api/currency?includeInactive=true');
       req.flush(mockCurrencies);
       await loadPromise;
     });
@@ -154,7 +154,7 @@ describe('CurrencyService', () => {
   describe('defaultIsoCode', () => {
     beforeEach(async () => {
       const loadPromise = service.ensureLoaded();
-      const req = httpMock.expectOne('http://localhost:3000/api/currency');
+      const req = httpMock.expectOne('http://localhost:3000/api/currency?includeInactive=true');
       req.flush(mockCurrencies);
       await loadPromise;
     });
@@ -173,16 +173,16 @@ describe('CurrencyService', () => {
       expect(service.defaultIsoCode('XXX')).toBe('USD');
     });
 
-    it('should return EGP as fallback when no currencies loaded', () => {
+    it('should return an empty code when the master is not loaded', () => {
       service['_master'].set([]);
-      expect(service.defaultIsoCode('XXX')).toBe('EGP');
+      expect(service.defaultIsoCode('XXX')).toBe('');
     });
   });
 
   describe('symbol', () => {
     beforeEach(async () => {
       const loadPromise = service.ensureLoaded();
-      const req = httpMock.expectOne('http://localhost:3000/api/currency');
+      const req = httpMock.expectOne('http://localhost:3000/api/currency?includeInactive=true');
       req.flush(mockCurrencies);
       await loadPromise;
     });
@@ -205,7 +205,7 @@ describe('CurrencyService', () => {
   describe('decimalDigits', () => {
     beforeEach(async () => {
       const loadPromise = service.ensureLoaded();
-      const req = httpMock.expectOne('http://localhost:3000/api/currency');
+      const req = httpMock.expectOne('http://localhost:3000/api/currency?includeInactive=true');
       req.flush(mockCurrencies);
       await loadPromise;
     });
@@ -233,7 +233,7 @@ describe('CurrencyService', () => {
   describe('englishName', () => {
     beforeEach(async () => {
       const loadPromise = service.ensureLoaded();
-      const req = httpMock.expectOne('http://localhost:3000/api/currency');
+      const req = httpMock.expectOne('http://localhost:3000/api/currency?includeInactive=true');
       req.flush(mockCurrencies);
       await loadPromise;
     });
@@ -250,7 +250,7 @@ describe('CurrencyService', () => {
   describe('arabicName', () => {
     beforeEach(async () => {
       const loadPromise = service.ensureLoaded();
-      const req = httpMock.expectOne('http://localhost:3000/api/currency');
+      const req = httpMock.expectOne('http://localhost:3000/api/currency?includeInactive=true');
       req.flush(mockCurrencies);
       await loadPromise;
     });
@@ -267,7 +267,7 @@ describe('CurrencyService', () => {
   describe('format', () => {
     beforeEach(async () => {
       const loadPromise = service.ensureLoaded();
-      const req = httpMock.expectOne('http://localhost:3000/api/currency');
+      const req = httpMock.expectOne('http://localhost:3000/api/currency?includeInactive=true');
       req.flush(mockCurrencies);
       await loadPromise;
     });
@@ -332,7 +332,7 @@ describe('CurrencyService', () => {
       const arLanguageService = TestBed.inject(LanguageService);
 
       const loadPromise = arService.ensureLoaded();
-      const req = arHttpMock.expectOne('http://localhost:3000/api/currency');
+      const req = arHttpMock.expectOne('http://localhost:3000/api/currency?includeInactive=true');
       req.flush(mockCurrencies);
       await loadPromise;
 

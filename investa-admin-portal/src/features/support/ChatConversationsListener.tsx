@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react';
-import { onMessageListener } from '@/services/fcmService';
 import { useChatStore } from '@/services/chatStore';
 import { supportService } from '@/services/supportService';
 import { Conversation, Message } from '@/types';
@@ -60,7 +59,13 @@ export const ChatConversationsListener: React.FC = () => {
       }
     };
 
-    const unsubscribeFcm = onMessageListener(handleFcmMessage);
+    let active = true;
+    let unsubscribeFcm: (() => void) | undefined;
+    void import('@/services/fcmService')
+      .then(({ onMessageListener }) => {
+        if (active) unsubscribeFcm = onMessageListener(handleFcmMessage);
+      })
+      .catch(() => console.warn('[ChatConversationsListener] Notification integration is unavailable.'));
 
     // Listen for UI-driven open-conversation events from toasts
     const onOpenConversation = async (e: any) => {
@@ -79,7 +84,8 @@ export const ChatConversationsListener: React.FC = () => {
     window.addEventListener('investa:ui:open-conversation', onOpenConversation as EventListener);
 
     return () => {
-      unsubscribeFcm();
+      active = false;
+      unsubscribeFcm?.();
       window.removeEventListener('investa:ui:open-conversation', onOpenConversation as EventListener);
     };
   }, [addConversation, receiveMessage, setActiveConversation]);

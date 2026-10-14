@@ -26,7 +26,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onForgotPassword }) => {
   const [error, setError] = useState<string | null>(null);
   const [showApiSettings, setShowApiSettings] = useState(false);
   const [apiUrlInput, setApiUrlInput] = useState(getBaseUrl());
-  const [useMocksLocal, setUseMocksLocal] = useState(localStorage.getItem('useMocks') !== 'false');
+  const [useMocksLocal, setUseMocksLocal] = useState(localStorage.getItem('useMocks') === 'true');
 
   const handleSaveApi = () => {
     setBaseUrl(apiUrlInput || '');
@@ -115,8 +115,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onForgotPassword }) => {
             <div className="w-14 h-14 bg-gradient-to-br from-indigo-600 to-indigo-500 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-600/20 mb-4 transform hover:scale-110 transition-transform duration-300">
               <Icon name="hands" className="text-white w-8 h-8" />
             </div>
-            <h1 className="text-2xl font-black text-text tracking-tight">{t('pages.investaPortal', { defaultValue: 'FOPX One Portal' })}</h1>
-            <p className="text-muted-foreground text-sm font-medium mt-1">{t('pages.investaPortalDescription', { defaultValue: 'Institutional Grade Financial Access' })}</p>
+            <h1 className="text-2xl font-black text-text tracking-tight">{t('centralAdmin.identity')}</h1>
+            <p className="text-muted-foreground text-sm font-medium mt-1">{t('centralAdmin.loginDescription')}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">

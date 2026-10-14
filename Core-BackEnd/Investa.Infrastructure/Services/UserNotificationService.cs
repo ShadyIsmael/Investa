@@ -142,7 +142,11 @@ public sealed class UserNotificationService : IUserNotificationService
         }
 
         await TryPublishRealtimeAsync(notification, creation, cancellationToken);
-        await TrySendPushAsync(notification, StableGuid(creation.IdempotencyKey), cancellationToken);
+        await TrySendPushAsync(
+            notification,
+            StableGuid(creation.IdempotencyKey),
+            cancellationToken,
+            creation.EventType);
         return notification;
     }
 
@@ -196,7 +200,11 @@ public sealed class UserNotificationService : IUserNotificationService
         return new Guid(bytes.AsSpan(0, 16));
     }
 
-    private async Task TrySendPushAsync(UserNotification notification, Guid entityId, CancellationToken cancellationToken)
+    private async Task TrySendPushAsync(
+        UserNotification notification,
+        Guid entityId,
+        CancellationToken cancellationToken,
+        string? eventType = null)
     {
         try
         {
@@ -208,7 +216,8 @@ public sealed class UserNotificationService : IUserNotificationService
                 notification.ActionUrl,
                 notification.Title,
                 notification.Body,
-                cancellationToken);
+                cancellationToken,
+                eventType);
         }
         catch (Exception ex)
         {

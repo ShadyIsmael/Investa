@@ -62,8 +62,8 @@
                 <label class="field">
                   <span>{{ 'settings.localization.currency.label' | translate }}</span>
                   <select [value]="draft().currency" (change)="setCurrencyFromEvent($event)">
-                    @for (cur of currencyOptions; track cur) {
-                      <option [value]="cur">{{ ('settings.localization.currency.options.' + cur) | translate }}</option>
+                    @for (cur of currencyOptions; track cur.isoCode) {
+                      <option [value]="cur.isoCode">{{ currencyLabel(cur) }}</option>
                     }
                   </select>
                 </label>

@@ -84,7 +84,7 @@ export class SettingsService {
     return {
       theme: ThemePreference.System,
       language: 'en',
-      currency: CurrencyPreference.USD,
+      currency: '',
       notifications: { email: true, push: true, sms: false },
       privacy: { showPublicProfile: true, sharePortfolioPerformance: false },
       personalization: {

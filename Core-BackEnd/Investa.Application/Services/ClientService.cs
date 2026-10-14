@@ -20,7 +20,7 @@ public class ClientService : IClientService
     {
         // Get all Client users (external users), excluding OrgUsers (internal staff)
         var all = (await _uow.Repository<Client>()
-            .FindAsync(c => c.User.UserType == Investa.Domain.Entities.Enums.UserType.Client))
+            .FindAsync(c => c.User!.UserType == Investa.Domain.Entities.Enums.UserType.Client))
             .ToList();
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -49,7 +49,7 @@ public class ClientService : IClientService
 
         // Get all Client users (external users), excluding OrgUsers (internal staff)
         var all = (await _uow.Repository<Client>()
-            .FindAsync(c => c.User.UserType == Investa.Domain.Entities.Enums.UserType.Client))
+            .FindAsync(c => c.User!.UserType == Investa.Domain.Entities.Enums.UserType.Client))
             .ToList();
 
         var top = all.OrderByDescending(c => c.Score)
@@ -67,7 +67,7 @@ public class ClientService : IClientService
         await _uow.BeginTransactionAsync();
         try
         {
-            var client = await _uow.Repository<Client>().GetSingleAsync(c => c.Id == clientId, c => c.Status);
+            var client = await _uow.Repository<Client>().GetSingleAsync(c => c.Id == clientId, c => c.Status!);
             if (client == null) return null;
 
             var oldStatusId = client.StatusId;

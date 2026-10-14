@@ -66,4 +66,13 @@ public class LocalFileStorage : IFileStorage
     {
         return Task.FromResult<FileStoreMetadataDto?>(null);
     }
+
+    public async Task<FileStoreUploadResult> UploadWithPolicyAsync(string categoryCode, string originalFileName, Stream data, string contentType, long declaredFileSize, FileStoreUploadPolicy policy, FileStoreUploadContext context, CancellationToken cancellationToken = default)
+    {
+        var extension = Path.GetExtension(Path.GetFileName(originalFileName)).ToLowerInvariant();
+        var fileName = $"{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}_{Guid.NewGuid():N}{extension}";
+        var relativePath = $"uploads/{categoryCode}/{fileName}";
+        var url = await SaveFileAsync(relativePath, data, contentType);
+        return new FileStoreUploadResult(Guid.NewGuid().ToString("N"), $"uploads-{categoryCode}/{fileName}", fileName, Path.GetFileName(originalFileName), extension, contentType, declaredFileSize, categoryCode, url, null, null);
+    }
 }

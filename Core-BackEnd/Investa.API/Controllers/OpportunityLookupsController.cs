@@ -16,14 +16,6 @@ public class OpportunityLookupsController : BaseApiController
         _opportunityService = opportunityService;
     }
 
-    [HttpGet("opportunity-categories")]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<OpportunityLookupDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetOpportunityCategories(CancellationToken cancellationToken)
-    {
-        var categories = await _opportunityService.GetOpportunityCategoriesAsync(cancellationToken);
-        return SuccessResponse(categories);
-    }
-
     [HttpGet("opportunity-tags")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<OpportunityLookupDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetOpportunityTags(CancellationToken cancellationToken)
@@ -32,11 +24,4 @@ public class OpportunityLookupsController : BaseApiController
         return SuccessResponse(tags);
     }
 
-    [HttpGet("funding-goals")]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<OpportunityLookupDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetFundingGoals(CancellationToken cancellationToken)
-    {
-        var goals = await _opportunityService.GetFundingGoalsAsync(cancellationToken);
-        return SuccessResponse(goals);
-    }
 }

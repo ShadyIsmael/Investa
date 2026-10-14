@@ -16,25 +16,25 @@ class Logger {
     return true;
   }
 
-  debug(message: string, ...args: any[]): void {
+  debug(message: string, ...args: unknown[]): void {
     if (this.shouldLog('debug')) {
       console.debug(`[DEBUG] ${message}`, ...args);
     }
   }
 
-  info(message: string, ...args: any[]): void {
+  info(message: string, ...args: unknown[]): void {
     if (this.shouldLog('info')) {
       console.info(`[INFO] ${message}`, ...args);
     }
   }
 
-  warn(message: string, ...args: any[]): void {
+  warn(message: string, ...args: unknown[]): void {
     if (this.shouldLog('warn')) {
       console.warn(`[WARN] ${message}`, ...args);
     }
   }
 
-  error(message: string, ...args: any[]): void {
+  error(message: string, ...args: unknown[]): void {
     if (this.shouldLog('error')) {
       console.error(`[ERROR] ${message}`, ...args);
     }
@@ -42,13 +42,15 @@ class Logger {
 
   // Specialized loggers for specific domains
   api = {
-    request: (method: string, endpoint: string, data?: any) => {
-      this.debug(`API ${method} ${endpoint}`, data);
+    request: (method: string, endpoint: string, _data?: unknown) => {
+      // Never log request bodies: admin payloads may contain passwords, tokens,
+      // personal data, or governed business information.
+      this.debug(`API ${method} ${endpoint}`);
     },
     response: (method: string, endpoint: string, status: number) => {
       this.debug(`API ${method} ${endpoint} → ${status}`);
     },
-    error: (method: string, endpoint: string, error: any) => {
+    error: (method: string, endpoint: string, error: unknown) => {
       this.error(`API ${method} ${endpoint} failed`, error);
     }
   };

@@ -34,4 +34,7 @@ public class RegisterDto
     /// the firebase uid as a claim on the Identity user.
     /// </summary>
     public string FirebaseUid { get; set; } = string.Empty;
+
+    /// <summary>Capability requested for the new client account. Both is reserved for controlled account administration.</summary>
+    public ClientType ClientType { get; set; } = ClientType.Investor;
 }

@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE } from '../config/api.token';
 import { ApiResponse } from '../models/api-response.model';
+import { LanguageService } from './language.service';
 
 export interface ClientNotification {
   id: number | string;
@@ -30,6 +31,7 @@ interface BackendNotification {
   isRead?: boolean | null;
   read?: boolean | null;
   type?: string | null;
+  eventType?: string | null;
   actionUrl?: string | null;
 }
 
@@ -41,7 +43,8 @@ interface BackendConversation {
 export class ClientNotificationsService {
   constructor(
     private http: HttpClient,
-    @Inject(API_BASE) private apiBase: string
+    @Inject(API_BASE) private apiBase: string,
+    private language: LanguageService
   ) {}
 
   async getNotifications(): Promise<ClientNotification[]> {
@@ -130,7 +133,9 @@ export class ClientNotificationsService {
     return {
       id: notification.id,
       title: notification.title || 'Notification',
-      message: notification.message || notification.body || '',
+      message: notification.eventType === 'FundingDeclared'
+        ? this.language.translate('notifications.fundingDeclared')
+        : notification.message || notification.body || '',
       createdAt: notification.createdAt || notification.timestamp || '',
       isRead: notification.isRead ?? notification.read ?? false,
       type: notification.type || 'info',

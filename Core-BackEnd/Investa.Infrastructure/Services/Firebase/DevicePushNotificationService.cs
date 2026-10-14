@@ -30,7 +30,8 @@ public sealed class DevicePushNotificationService
         string? targetUrl,
         string title,
         string body,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? eventType = null)
     {
         try
         {
@@ -48,6 +49,7 @@ public sealed class DevicePushNotificationService
                 ["entityId"] = entityId.ToString(),
                 ["targetUrl"] = targetUrl ?? string.Empty
             };
+            if (!string.IsNullOrWhiteSpace(eventType)) data["eventType"] = eventType;
 
             foreach (var deviceToken in activeTokens)
             {

@@ -12,9 +12,6 @@ public class CreateOpportunityRequest
     /// </summary>
     public int? ProjectId { get; set; }
 
-    [StringLength(200)]
-    public string? Purpose { get; set; }
-
     [StringLength(80)]
     public string? Type { get; set; }
 
@@ -49,16 +46,10 @@ public class CreateOpportunityRequest
 
     [StringLength(120)]
     public string? ProjectStageCustomName { get; set; }
-
-    [StringLength(1000)]
-    public string? CoverImageUrl { get; set; }
 }
 
 public class UpdateOpportunityRequest
 {
-    [StringLength(200)]
-    public string? Purpose { get; set; }
-
     [StringLength(80)]
     public string? Type { get; set; }
 
@@ -95,9 +86,6 @@ public class UpdateOpportunityRequest
     public string? ProjectStageCustomName { get; set; }
 
     public OpportunityStatus? Status { get; set; }
-
-    [StringLength(1000)]
-    public string? CoverImageUrl { get; set; }
 }
 
 public class CreateOpportunityMediaRequest
@@ -174,7 +162,6 @@ public class OpportunityDto
     public string? ProjectIndustry { get; set; }
     public string? ProjectLogoUrl { get; set; }
     public int SequenceNumber { get; set; }
-    public string Purpose { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty;
     public InvestmentModel InvestmentModel { get; set; }
     public Guid FounderId { get; set; }
@@ -187,7 +174,6 @@ public class OpportunityDto
     public string? UseOfFunds { get; set; }
     public decimal FundingTarget { get; set; }
     public OpportunityLookupDto? FundingGoal { get; set; }
-    public string? FundingPurpose { get; set; }
     public decimal? MinimumInvestmentAmount { get; set; }
     public decimal? MaximumInvestmentAmount { get; set; }
     public int? ExpectedDurationMonths { get; set; }
@@ -212,7 +198,16 @@ public class OpportunityDto
     public DateTime? FinalRepaymentDate { get; set; }
     public string? PublicInvestmentTermsSummary { get; set; }
     public string? ExpectedReturnSummary { get; set; }
+    public decimal CommittedAmount { get; set; }
+    public decimal DeclaredReceivedAmount { get; set; }
+    public decimal AwaitingConfirmationAmount { get; set; }
+    public decimal UndeclaredCommittedAmount { get; set; }
+    public decimal ConfirmedReceivedAmount { get; set; }
+    public decimal OutstandingAmount { get; set; }
+    public decimal RemainingCommitmentCapacity { get; set; }
+    public decimal FundingProgress { get; set; }
     public decimal FundingProgressPercent { get; set; }
+    /// <summary>Compatibility field. This is confirmed received money only, never an accepted commitment.</summary>
     public decimal FundedAmount { get; set; }
     public decimal RemainingFundingAmount { get; set; }
     public decimal FundingProgressPercentage { get; set; }
@@ -254,9 +249,9 @@ public sealed class OpportunityProjectContextDto
     public string Summary { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public int? CategoryId { get; set; }
-    public OpportunityLookupDto? Category { get; set; }
+    public ProjectCategoryDto? Category { get; set; }
     public string? Industry { get; set; }
-    public ProjectStage BusinessStage { get; set; }
+    public ProjectStage ProjectStage { get; set; }
     public string? Geography { get; set; }
     public DateOnly? FoundedOn { get; set; }
     public string? WebsiteUrl { get; set; }
@@ -273,6 +268,10 @@ public sealed class OpportunityProjectContextDto
 
 public class OpportunityDetailDto : OpportunityDto
 {
+    public bool CanFounderEdit { get; set; }
+    public bool CanFounderSubmitForReview { get; set; }
+    public bool CanFounderPublish { get; set; }
+    public bool CanFounderArchive { get; set; }
     public OpportunityProjectContextDto? ProjectContext { get; set; }
     public IReadOnlyList<OpportunityMediaDto> Media { get; set; } = Array.Empty<OpportunityMediaDto>();
     public IReadOnlyList<OpportunityDocumentDto> Documents { get; set; } = Array.Empty<OpportunityDocumentDto>();
@@ -309,6 +308,7 @@ public class OpportunityRoomDto
 {
     public int ProjectId { get; set; }
     public string ProjectDisplayName { get; set; } = string.Empty;
+    public OpportunityProjectContextDto? ProjectContext { get; set; }
     public OpportunityRoomOverviewDto Overview { get; set; } = new();
     public IReadOnlyList<OpportunityRoomMediaGroupDto> MediaLibrary { get; set; } = Array.Empty<OpportunityRoomMediaGroupDto>();
     public IReadOnlyList<OpportunityRoomDocumentGroupDto> DocumentsLibrary { get; set; } = Array.Empty<OpportunityRoomDocumentGroupDto>();
@@ -334,12 +334,19 @@ public sealed class OpportunityRoomParticipationDto
     public string TermsSnapshotHash { get; set; } = string.Empty;
     public IReadOnlyList<ParticipationLegDto> Legs { get; set; } = Array.Empty<ParticipationLegDto>();
     public OpportunityRoomContractDto? Contract { get; set; }
+    public IReadOnlyList<FundingDeclarationDto> FundingDeclarations { get; set; } = Array.Empty<FundingDeclarationDto>();
 }
 
 public sealed class OpportunityRoomContractDto
 {
     public int ContractId { get; set; }
     public string ContractNumber { get; set; } = string.Empty;
+    public int? AcceptedOfferId { get; set; }
+    public int? AcceptedOfferVersionNumber { get; set; }
+    public int? ParticipationRequestId { get; set; }
+    public decimal AcceptedAmount { get; set; }
+    public string AcceptedCurrency { get; set; } = string.Empty;
+    public DateTime? AcceptanceTimestamp { get; set; }
     public int CurrentVersionNumber { get; set; }
     public InvestmentContractStatus Status { get; set; }
     public string DocumentHash { get; set; } = string.Empty;
@@ -369,6 +376,14 @@ public class OpportunityRoomOverviewDto
     public string? ProjectStageCustomName { get; set; }
     public FounderSummaryDto Founder { get; set; } = new();
     public decimal FundingTarget { get; set; }
+    public decimal CommittedAmount { get; set; }
+    public decimal DeclaredReceivedAmount { get; set; }
+    public decimal AwaitingConfirmationAmount { get; set; }
+    public decimal DisputedAmount { get; set; }
+    public decimal UndeclaredCommittedAmount { get; set; }
+    public decimal ConfirmedReceivedAmount { get; set; }
+    public decimal OutstandingAmount { get; set; }
+    public decimal RemainingCommitmentCapacity { get; set; }
     public decimal FundingProgress { get; set; }
     public decimal FundingProgressPercent { get; set; }
     public decimal FundedAmount { get; set; }
@@ -448,6 +463,14 @@ public class MyParticipationDto
     public decimal FundingTarget { get; set; }
     public decimal RemainingFundingAmount { get; set; }
     public decimal FundingProgressPercentage { get; set; }
+    public decimal CommittedAmount { get; set; }
+    public decimal DeclaredReceivedAmount { get; set; }
+    public decimal AwaitingConfirmationAmount { get; set; }
+    public decimal UndeclaredCommittedAmount { get; set; }
+    public decimal ConfirmedReceivedAmount { get; set; }
+    public decimal OutstandingAmount { get; set; }
+    public decimal RemainingCommitmentCapacity { get; set; }
+    public decimal FundingProgress { get; set; }
     public int ApprovedParticipantCount { get; set; }
     public int? ApprovedShares { get; set; }
     public decimal? SharePrice { get; set; }
@@ -472,6 +495,33 @@ public class MyParticipationDto
     public DateTime? ContractEndDate { get; set; }
     public decimal? ExpectedProfit { get; set; }
     public decimal? ExpectedTotalPayout { get; set; }
+
+    // Investor-owned Loan position facts. These are scoped to this investor's
+    // participation(s); opportunity-wide funding totals remain separate.
+    public decimal? LoanPrincipal { get; set; }
+    public decimal? LoanTotalDue { get; set; }
+    public decimal? LoanTotalRepaid { get; set; }
+    public decimal? LoanOutstanding { get; set; }
+    public decimal? LoanNextDueAmount { get; set; }
+    public DateTime? LoanNextDueDate { get; set; }
+    public DateTime? LoanMaturityDate { get; set; }
+    public string? LoanObligationStatus { get; set; }
+    public DateTime? LoanFullyRepaidAt { get; set; }
+    public DateTime? LoanClosedAt { get; set; }
+    // Short, contract-facing names for dashboard clients.
+    public decimal? ConfirmedFundingAmount { get; set; }
+    public decimal? TotalDue { get; set; }
+    public decimal? TotalRepaid { get; set; }
+    public string? LoanStatus { get; set; }
+    public decimal? NextDueAmount { get; set; }
+    public DateTime? NextDueDate { get; set; }
+    public DateTime? MaturityDate { get; set; }
+
+    // Explicit opportunity aggregate fields for consumers that need them.
+    public decimal? OpportunityCommittedAmount { get; set; }
+    public decimal? OpportunityConfirmedReceivedAmount { get; set; }
+    public decimal? OpportunityOutstandingAmount { get; set; }
+    public decimal? OpportunityFundingProgress { get; set; }
 }
 
 public class ParticipationItemDto
@@ -499,6 +549,13 @@ public class OpportunityLookupDto
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
+    public string? Code { get; set; }
+    public string? NameEn { get; set; }
+    public string? NameAr { get; set; }
+    public string? DescriptionEn { get; set; }
+    public string? DescriptionAr { get; set; }
+    public bool? IsActive { get; set; }
+    public int? SortOrder { get; set; }
 }
 
 public class OpportunityDiscoveryQuery
@@ -518,6 +575,18 @@ public class OpportunityDiscoveryQuery
 public class AdminOpportunityListQuery
 {
     public OpportunityStatus? Status { get; set; }
+    public OpportunityModerationStatus? ModerationStatus { get; set; }
+    public OpportunityFundingStatus? FundingStatus { get; set; }
+    public int? ProjectId { get; set; }
+    public Guid? FounderId { get; set; }
+    /// <summary>Inclusive UTC lower bound. Unspecified input is interpreted as UTC.</summary>
+    public DateTime? CreatedFrom { get; set; }
+    /// <summary>Exclusive UTC upper bound. Unspecified input is interpreted as UTC.</summary>
+    public DateTime? CreatedTo { get; set; }
+    /// <summary>Inclusive UTC lower bound. Unspecified input is interpreted as UTC.</summary>
+    public DateTime? UpdatedFrom { get; set; }
+    /// <summary>Exclusive UTC upper bound. Unspecified input is interpreted as UTC.</summary>
+    public DateTime? UpdatedTo { get; set; }
     public string? Search { get; set; }
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 20;
@@ -529,10 +598,17 @@ public class AdminOpportunityListItemDto
 {
     public int Id { get; set; }
     public string Title { get; set; } = string.Empty;
+    public int ProjectId { get; set; }
+    public string? ProjectDisplayName { get; set; }
+    public Guid FounderId { get; set; }
     public FounderSummaryDto Founder { get; set; } = new();
     public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
     public OpportunityStatus Status { get; set; }
+    public OpportunityModerationStatus ModerationStatus { get; set; }
+    public OpportunityFundingStatus FundingStatus { get; set; }
     public decimal FundingTarget { get; set; }
+    public string FundingCurrency { get; set; } = CurrencyMasterDefaults.DefaultCurrency;
     public InvestmentModel InvestmentModel { get; set; }
     public ProjectStage ProjectStage { get; set; }
 }
@@ -598,6 +674,14 @@ public class OpportunityParticipationFormDto
     public decimal AlreadyFundedAmount { get; set; }
     public decimal RemainingFundingAmount { get; set; }
     public decimal FundingProgressPercentage { get; set; }
+    public decimal CommittedAmount { get; set; }
+    public decimal DeclaredReceivedAmount { get; set; }
+    public decimal AwaitingConfirmationAmount { get; set; }
+    public decimal UndeclaredCommittedAmount { get; set; }
+    public decimal ConfirmedReceivedAmount { get; set; }
+    public decimal OutstandingAmount { get; set; }
+    public decimal RemainingCommitmentCapacity { get; set; }
+    public decimal FundingProgress { get; set; }
     public int ApprovedParticipantCount { get; set; }
     public string Currency { get; set; } = "Credits";
     public string FundingCurrency { get; set; } = CurrencyMasterDefaults.DefaultCurrency;
@@ -680,6 +764,9 @@ public sealed class ApprovedInvestorDto
     public string? AvatarUrl { get; set; }
     public DateTime ApprovedAt { get; set; }
     public decimal TotalApprovedContribution { get; set; }
+    public decimal TotalCommittedAmount { get; set; }
+    public decimal ConfirmedReceivedAmount { get; set; }
+    public decimal OutstandingAmount { get; set; }
     public IReadOnlyList<ApprovedParticipationSummaryDto> Participations { get; set; } = [];
 }
 
@@ -688,6 +775,9 @@ public sealed class ApprovedParticipationSummaryDto
     public int ParticipationRequestId { get; set; }
     public string InvestmentModel { get; set; } = string.Empty;
     public decimal ApprovedContribution { get; set; }
+    public decimal CommittedAmount { get; set; }
+    public decimal ConfirmedReceivedAmount { get; set; }
+    public decimal OutstandingAmount { get; set; }
     public string? Currency { get; set; }
     public string FundingCurrency { get; set; } = CurrencyMasterDefaults.DefaultCurrency;
     public string? DisplayCurrency { get; set; }

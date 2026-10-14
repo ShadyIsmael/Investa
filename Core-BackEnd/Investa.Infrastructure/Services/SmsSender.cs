@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 namespace Investa.Infrastructure.Services;
 
 /// <summary>
-/// Simple SMS sender implementation for development. In production replace with provider integration (Twilio, Nexmo, etc.).
+/// Fails closed until a real SMS provider is configured.
 /// </summary>
 public class SmsSender : ISmsSender
 {
@@ -17,8 +17,7 @@ public class SmsSender : ISmsSender
 
     public Task SendSmsAsync(string phoneNumber, string message)
     {
-        // In production send via provider. For now, log the message so operators can retrieve it from logs.
-        _logger.LogInformation("[SMS] To: {Phone} Message: {Message}", phoneNumber, message);
-        return Task.CompletedTask;
+        _logger.LogError("SMS delivery requested, but no SMS provider is configured");
+        throw new SmsProviderUnavailableException();
     }
 }

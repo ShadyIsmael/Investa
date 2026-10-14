@@ -8,6 +8,7 @@ import { ProfileService } from '../../services/profile.service';
 import { TranslatePipe } from '../../pipes/translate.pipe';
 import { RoleContextService } from '../../services/role-context.service';
 import { ErrorResult } from '../../services/error-mapping.service';
+import { CountryReference, CountryService } from '../../services/country.service';
 
 export function composeInternationalPhone(countryCode: string | null | undefined, mobile: string | null | undefined): string {
   const dialCode = String(countryCode ?? '').trim();
@@ -31,8 +32,9 @@ export class LoginComponent {
   private router: Router = inject(Router);
   private route: ActivatedRoute = inject(ActivatedRoute);
   private profileService: ProfileService = inject(ProfileService);
-  private languageService: LanguageService = inject(LanguageService);
+  public languageService: LanguageService = inject(LanguageService);
   private roleContext: RoleContextService = inject(RoleContextService);
+  public countryService = inject(CountryService);
 
   role = signal<UserRole>('investor');
   errorMessage = signal<string | null>(null);
@@ -56,29 +58,25 @@ export class LoginComponent {
     };
   });
 
-  countries = [
-    { code: '+20', flag: 'eg', nameKey: 'login.countries.egypt' },
-    { code: '+1', flag: 'us', nameKey: 'login.countries.usa' },
-    { code: '+44', flag: 'gb', nameKey: 'login.countries.uk' },
-    { code: '+91', flag: 'in', nameKey: 'login.countries.india' },
-    { code: '+61', flag: 'au', nameKey: 'login.countries.australia' },
-    { code: '+81', flag: 'jp', nameKey: 'login.countries.japan' },
-    { code: '+49', flag: 'de', nameKey: 'login.countries.germany' },
-  ];
+  countries = computed(() => this.countryService.withPhoneCode());
 
   // Default to Egypt
   loginForm = new FormGroup({
-    countryCode: new FormControl(this.countries[0].code, [Validators.required]),
+    countryCode: new FormControl('', [Validators.required]),
     mobile: new FormControl('', [Validators.required, Validators.pattern('^[0-9]{6,15}$')]),
     password: new FormControl('', [Validators.required, Validators.minLength(6)])
   });
 
   selectedCountry = computed(() => {
     const countryCode = this.loginForm.get('countryCode')!.value;
-    return this.countries.find(c => c.code === countryCode);
+    return this.countryService.findByPhoneCode(countryCode);
   });
 
   constructor() {
+    void this.countryService.ensureLoaded().then(() => {
+      const egypt = this.countryService.findByAlpha2('EG');
+      if (!this.loginForm.get('countryCode')?.value && egypt?.phoneCode) this.loginForm.get('countryCode')?.setValue(egypt.phoneCode);
+    }).catch(() => this.errorMessage.set(this.languageService.translate('login.countryLoadError')));
     // initialize role from query param snapshot (handles direct navigation)
     const initial = this.route.snapshot.queryParamMap.get('role');
     if (initial === 'investor' || initial === 'founder') {
@@ -96,8 +94,8 @@ export class LoginComponent {
 
   isFounder = computed(() => this.role() === 'founder');
 
-  selectCountry(country: any) {
-    this.loginForm.get('countryCode')!.setValue(country.code);
+  selectCountry(country: CountryReference) {
+    this.loginForm.get('countryCode')!.setValue(country.phoneCode ?? '');
     this.isDropdownOpen.set(false);
   }
 
@@ -116,7 +114,7 @@ export class LoginComponent {
 
     try {
       await this.authService.login(fullMobile, password, role);
-      const activeContext = this.roleContext.setActiveContext(role);
+      this.roleContext.setActiveContext(role);
       this.authService.startNotificationLoading();
 
       // Load profile from backend after successful login
@@ -129,7 +127,11 @@ export class LoginComponent {
         // Non-fatal: continue navigation even if profile load fails
       }
 
-      this.router.navigate([activeContext === 'investor' ? '/admin/investments' : '/admin/dashboard']);
+      // Resolve the destination from the account's real capabilities, not the
+      // login screen role chip, so a non-founder account never lands on
+      // founder-only screens that would answer 403.
+      const targetContext = this.roleContext.activeContext();
+      this.router.navigate([targetContext === 'investor' ? '/admin/investments' : '/admin/dashboard']);
     } catch (err: any) {
       let key = 'login.errorGeneric';
       if (err && err.type) {

@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ChevronLeft,
-  ChevronRight,
   Eye,
   Plus,
   RotateCcw,
@@ -12,7 +10,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { usePermissions } from "@/context/AuthContext";
 import { companyFinanceService } from "@/services/companyFinanceService";
-import type { FinanceAccount, FinanceCategory, FinanceTransaction } from "./types";
+import type { FinanceTransaction } from "./types";
 import {
   FinanceEmpty,
   FinanceError,
@@ -22,9 +20,11 @@ import {
 import { FinanceTransactionHistory } from "./FinanceTransactionHistory";
 import { FinanceWorkflowActions } from "./FinanceWorkflowActions";
 import { formatMoney, ensureCurrenciesLoaded } from "../../utils/currency";
+import { text } from "./shared/financeFormat";
+import { useTransactionDetails } from "./shared/useTransactionDetails";
+import { FinancePagination } from "./shared/FinancePagination";
 
 const pageSizes = [10, 25, 50];
-const text = (value?: string | null) => value?.trim() || "-";
 export const FinanceMoneyInPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -45,16 +45,7 @@ export const FinanceMoneyInPage: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [details, setDetails] = useState<FinanceTransaction | null>(null);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [destinationAccounts, setDestinationAccounts] = useState<
-    FinanceAccount[]
-  >([]);
-  const [incomeCategories, setIncomeCategories] = useState<FinanceCategory[]>([]);
-  const [createIncomingType, setCreateIncomingType] = useState("CompanyRevenue");
-  const [payerName, setPayerName] = useState("");
-  const [incomeCategoryId, setIncomeCategoryId] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("");
+  const { details, replaceDetails, closeDetails } = useTransactionDetails();
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -76,22 +67,6 @@ export const FinanceMoneyInPage: React.FC = () => {
     if (canView) { void ensureCurrenciesLoaded(); void load(); }
     else setLoading(false);
   }, [canView, load]);
-  useEffect(() => {
-    if (!isCreateModalOpen) return;
-    void Promise.all([companyFinanceService.getAccounts(), companyFinanceService.getIncomeCategories()])
-      .then(([accounts, categories]) => { setDestinationAccounts(accounts.filter((account) => account.isActive)); setIncomeCategories(categories.filter((category) => category.isActive)); })
-      .catch(() =>
-        setError(
-          t("companyFinance.moneyIn.accountsError", {
-            defaultValue:
-              i18n.language === "ar"
-                ? "تعذر تحميل الحسابات."
-                : "Unable to load accounts.",
-          }),
-        ),
-      );
-  }, [i18n.language, isCreateModalOpen, t]);
-  useEffect(() => { if (createIncomingType !== "CompanyRevenue") { setPayerName(""); setIncomeCategoryId(""); setPaymentMethod(""); } }, [createIncomingType]);
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
     return items.filter((item) => {
@@ -247,7 +222,7 @@ export const FinanceMoneyInPage: React.FC = () => {
           </div>
           {showFilters && <div id="money-in-secondary-filters" className="mt-2.5 border-t border-border pt-2.5">
             <div className="mb-2 flex justify-end">
-              <button type="button" onClick={reset} className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-slate-500 transition hover:bg-card dark:text-slate-400"><RotateCcw size={13} />{t("companyFinance.moneyIn.reset")}</button>
+              <button type="button" onClick={reset} className="btn-ghost btn-sm"><RotateCcw size={13} />{t("companyFinance.moneyIn.reset")}</button>
             </div>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
             <input
@@ -377,7 +352,7 @@ export const FinanceMoneyInPage: React.FC = () => {
                       onClick={() =>
                         void companyFinanceService
                           .getTransaction(item.id)
-                          .then(setDetails)
+                          .then(replaceDetails)
                           .catch(() =>
                             setError(t("companyFinance.moneyIn.detailsError")),
                           )
@@ -387,7 +362,7 @@ export const FinanceMoneyInPage: React.FC = () => {
                     >
                       <Eye size={16} />
                     </button>
-                    <FinanceWorkflowActions compact transaction={item} onEdit={() => navigate(`/company-finance/money-in/${item.id}/edit`)} onUpdated={(updated) => { setItems((current) => current.map((row) => row.id === updated.id ? updated : row)); if (details?.id === updated.id) setDetails(updated); void load(); }} />
+                    <FinanceWorkflowActions compact transaction={item} onEdit={() => navigate(`/company-finance/money-in/${item.id}/edit`)} onUpdated={(updated) => { setItems((current) => current.map((row) => row.id === updated.id ? updated : row)); if (details?.id === updated.id) replaceDetails(updated); void load(); }} />
                     </div>
                   </td>
                 </tr>
@@ -403,37 +378,22 @@ export const FinanceMoneyInPage: React.FC = () => {
           </table>
         </div>
         {filtered.length > 0 && (
-          <footer className="admin-table-footer flex items-center justify-between border-t px-3 py-2.5 text-sm">
-            <span dir="ltr">
-              {t("companyFinance.moneyIn.showing", {
-                from,
-                to,
-                total: filtered.length,
-              })}
-            </span>
-            <div className="flex items-center gap-2">
-              <select
-                value={pageSize}
-                onChange={(e) => setPageSize(Number(e.target.value))}
-              >
-                {pageSizes.map((x) => (
-                  <option key={x}>{x}</option>
-                ))}
-              </select>
-              <button disabled={page === 1} onClick={() => setPage(page - 1)}>
-                <ChevronLeft size={16} />
-              </button>
-              <span dir="ltr">
-                {page}/{pages}
-              </span>
-              <button
-                disabled={page === pages}
-                onClick={() => setPage(page + 1)}
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          </footer>
+          <FinancePagination
+            from={from}
+            to={to}
+            total={filtered.length}
+            page={page}
+            pageCount={pages}
+            pageSize={pageSize}
+            pageSizes={pageSizes}
+            showingText={t("companyFinance.moneyIn.showing", {
+              from,
+              to,
+              total: filtered.length,
+            })}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         )}
       </section>
       {details && (
@@ -441,7 +401,7 @@ export const FinanceMoneyInPage: React.FC = () => {
           <div className="max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-lg bg-white p-5 dark:bg-slate-900">
             <div className="flex justify-between">
               <h3 className="font-bold">{details.referenceNumber}</h3>
-              <button onClick={() => setDetails(null)}>
+              <button type="button" className="btn-ghost btn-sm" onClick={closeDetails} aria-label={t("common.close")}>
                 {t("common.close")}
               </button>
             </div>
@@ -462,104 +422,7 @@ export const FinanceMoneyInPage: React.FC = () => {
               </dd>
             </dl>
             <FinanceTransactionHistory transaction={details} statusLabel={label("statuses", details.status)} />
-            <div className="mt-5 border-t border-border pt-4"><FinanceWorkflowActions transaction={details} onEdit={() => navigate(`/company-finance/money-in/${details.id}/edit`)} onUpdated={(updated) => { setDetails(updated); setItems((current) => current.map((row) => row.id === updated.id ? updated : row)); void load(); }} /></div>
-          </div>
-        </div>
-      )}
-      {isCreateModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-5"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="flex max-h-[calc(100vh-1.5rem)] w-full max-w-2xl flex-col overflow-hidden rounded-lg bg-white shadow-2xl dark:bg-slate-900 sm:max-h-[calc(100vh-2.5rem)]">
-            <header className="shrink-0 border-b border-slate-200 px-5 py-3.5 dark:border-slate-700">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                {i18n.language === "ar" ? "إضافة أموال واردة" : "Add Money In"}
-              </h3>
-            </header>
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-              <div className="grid gap-3.5 sm:grid-cols-2">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {t("companyFinance.moneyIn.date")}
-                  <input
-                    type="date"
-                    className="mt-1 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
-                    dir="ltr"
-                  />
-                </label>
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {t("companyFinance.moneyIn.incomingType")}
-                  <select value={createIncomingType} onChange={(event) => setCreateIncomingType(event.target.value)} className="mt-1 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground">
-                    {types.map((value) => (
-                      <option key={value} value={value}>
-                        {label("types", value)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="sm:col-span-2 text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {t("companyFinance.moneyIn.description")}
-                  <textarea
-                    rows={3}
-                    className="mt-1 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
-                  />
-                </label>
-                {createIncomingType === "CompanyRevenue" && <><label className="text-sm font-medium text-slate-700 dark:text-slate-300">{t("companyFinance.moneyIn.source")}<input value={payerName} onChange={(event) => setPayerName(event.target.value)} className="mt-1 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground" /></label><label className="text-sm font-medium text-slate-700 dark:text-slate-300">{t("companyFinance.moneyIn.category")}<select value={incomeCategoryId} onChange={(event) => setIncomeCategoryId(event.target.value)} className="mt-1 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"><option value="">{i18n.language === "ar" ? "اختر الفئة" : "Select category"}</option>{incomeCategories.map((category) => <option key={category.id} value={category.id}>{i18n.language === "ar" ? category.nameAr || category.nameEn || category.name : category.nameEn || category.name || category.nameAr}</option>)}</select></label><label className="sm:col-span-2 text-sm font-medium text-slate-700 dark:text-slate-300">{i18n.language === "ar" ? "طريقة الدفع" : "Payment Method"}<input value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)} className="mt-1 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground" /></label></>}
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {t("companyFinance.moneyIn.amount")}
-                  <input
-                    type="number"
-                    className="mt-1 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
-                    dir="ltr"
-                  />
-                </label>
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {t("companyFinance.moneyIn.currency")}
-                  <select
-                    className="mt-1 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
-                    dir="ltr"
-                  >
-                    {currencies.map((value) => (
-                      <option key={value} value={value}>
-                        {value}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="sm:col-span-2 text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {t("companyFinance.moneyIn.receivingAccount")}
-                  <select className="mt-1 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground">
-                    <option value="">
-                      {i18n.language === "ar"
-                        ? "اختر الحساب"
-                        : "Select account"}
-                    </option>
-                    {destinationAccounts.map((account) => (
-                      <option key={account.id} value={account.id}>
-                        {account.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            </div>
-            <footer className="flex shrink-0 justify-end gap-3 border-t border-slate-200 bg-slate-50/80 px-5 py-3 dark:border-slate-700 dark:bg-slate-800/50">
-              <button
-                type="button"
-                onClick={() => setIsCreateModalOpen(false)}
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-600 dark:text-slate-200"
-              >
-                {t("common.cancel")}
-              </button>
-              <button
-                type="button"
-                disabled
-                className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white opacity-50 dark:bg-slate-100 dark:text-slate-900"
-              >
-                {i18n.language === "ar" ? "حفظ كمسودة" : "Save Draft"}
-              </button>
-            </footer>
+            <div className="mt-5 border-t border-border pt-4"><FinanceWorkflowActions transaction={details} onEdit={() => navigate(`/company-finance/money-in/${details.id}/edit`)} onUpdated={(updated) => { replaceDetails(updated); setItems((current) => current.map((row) => row.id === updated.id ? updated : row)); void load(); }} /></div>
           </div>
         </div>
       )}

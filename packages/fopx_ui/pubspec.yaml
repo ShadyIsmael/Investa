@@ -1,0 +1,16 @@
+name: fopx_ui
+description: Shared persona-aware FOPX mobile visual primitives.
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: '>=3.7.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  fopx_core:
+    path: ../fopx_core
+
+flutter:
+  uses-material-design: true

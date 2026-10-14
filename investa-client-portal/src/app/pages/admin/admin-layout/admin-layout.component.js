@@ -14,6 +14,6 @@ export class AdminLayoutComponent {
 }
 (() => { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassMetadata(AdminLayoutComponent, [{
         type: Component,
-        args: [{ standalone: true, selector: 'app-admin-layout', changeDetection: ChangeDetectionStrategy.OnPush, imports: [RouterOutlet, AdminNavbarComponent], template: "\r\n<div class=\"admin-shell investa-page\">\n  <app-admin-navbar></app-admin-navbar>\n  <main>\n    <router-outlet></router-outlet>\n  </main>\n</div>\n", styles: ["@use 'variables' as *;\r\n@use 'mixins' as *;\r\n\r\n.admin-layout { min-height: 100vh; display: flex; }\r\n.admin-layout .content { flex: 1; padding: $spacing-6; }"] }]
+        args: [{ standalone: true, selector: 'app-admin-layout', changeDetection: ChangeDetectionStrategy.OnPush, imports: [RouterOutlet, AdminNavbarComponent], template: "\r\n<div class=\"admin-shell investa-page\">\r\n  <app-admin-navbar></app-admin-navbar>\r\n  <main>\r\n    <router-outlet></router-outlet>\r\n  </main>\r\n</div>\r\n", styles: ["@use 'variables' as *;\r\n@use 'mixins' as *;\r\n\r\n.admin-layout { min-height: 100vh; display: flex; }\r\n.admin-layout .content { flex: 1; padding: $spacing-6; }"] }]
     }], null, null); })();
 (() => { (typeof ngDevMode === "undefined" || ngDevMode) && i0.ɵsetClassDebugInfo(AdminLayoutComponent, { className: "AdminLayoutComponent", filePath: "src/app/pages/admin/admin-layout/admin-layout.component.ts", lineNumber: 14 }); })();

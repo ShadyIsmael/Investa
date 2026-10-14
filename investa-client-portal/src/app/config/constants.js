@@ -2,6 +2,10 @@
  * Application-wide constants for the Investa Client Portal
  * Centralized configuration values to avoid magic numbers
  */
+export const BRAND = {
+    name: 'FOPX One',
+    shortName: 'FOPX One',
+};
 /**
  * User Types - matches backend UserType enum
  * Two types only: OrgUser (internal staff) and Client (all external users)

@@ -3,12 +3,16 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Opportunity, OpportunityDocument, OpportunityEvent, OpportunityLookup, OpportunityMedia, OpportunityService, OpportunityUpsert } from '../../../services/opportunity.service';
+import { CurrencyReference, CurrencyService } from '../../../services/currency.service';
 import { NotificationService } from '../../../services/notification.service';
-import { FileStoreFile, FileStoreService } from '../../../services/file-store.service';
+import { FileCategoryPolicy, FileStoreFile, FileStoreService } from '../../../services/file-store.service';
 import { WalletService } from '../../../services/wallet.service';
 import { LanguageService } from '../../../services/language.service';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
 import { Project, ProjectService } from '../../../services/project.service';
+import { OpportunityTagReference, OpportunityTagService } from '../../../services/opportunity-tag.service';
+import { FundingGoalReference, FundingGoalService } from '../../../services/funding-goal.service';
+import { ProjectStageReference, ProjectStageService } from '../../../services/project-stage.service';
 
 type PendingUploadKind = 'cover' | 'gallery' | 'video' | 'publicDocument' | 'privateDocument';
 
@@ -19,11 +23,10 @@ interface PendingUpload {
   file: File;
 }
 
-type OpportunityLookupKind = 'tags' | 'fundingGoals';
+type OpportunityLookupKind = 'tags';
 
 interface OpportunityEditorFormValue {
   projectId: number | null;
-  purpose: string;
   type: string;
   title: string;
   shortDescription: string;
@@ -34,7 +37,7 @@ interface OpportunityEditorFormValue {
   fundingTarget: number | null;
   coverImageUrl: string;
   currency: string;
-  fundingUsage: string;
+  useOfFunds: string;
   risks: string;
   exitStrategy: string;
 }
@@ -57,12 +60,16 @@ export class OpportunityEditorComponent {
   private walletService = inject(WalletService);
   private languageService = inject(LanguageService);
   private projectService = inject(ProjectService);
+  private currencyService = inject(CurrencyService);
+  private tagService = inject(OpportunityTagService);
+  private fundingGoalService = inject(FundingGoalService);
+  private stageService = inject(ProjectStageService);
   readonly direction = this.languageService.direction;
   readonly language = this.languageService.language;
 
-  currencies: string[] = [];
+  currencies: CurrencyReference[] = [];
   readonly uploadKinds: readonly PendingUploadKind[] = ['cover', 'gallery', 'video', 'publicDocument', 'privateDocument'];
-  readonly projectStages = [1, 2, 3, 4, 5, 6] as const;
+  readonly projectStages = signal<ProjectStageReference[]>([]);
   readonly wizardSteps = [
     { id: 1, key: 'details' },
     { id: 2, key: 'funding' },
@@ -76,8 +83,8 @@ export class OpportunityEditorComponent {
   savingMode = signal<'draft' | 'publish' | null>(null);
   errorMessage = signal<string | null>(null);
   stepErrorMessage = signal<string | null>(null);
-  tags = signal<OpportunityLookup[]>([]);
-  fundingGoals = signal<OpportunityLookup[]>([]);
+  tags = signal<OpportunityTagReference[]>([]);
+  fundingGoals = signal<FundingGoalReference[]>([]);
   availableProjects = signal<Project[]>([]);
   preselectedProject = signal<Project | null>(null);
   selectedTags = signal<Array<string | number>>([]);
@@ -89,6 +96,7 @@ export class OpportunityEditorComponent {
   isUploading = signal(false);
   uploadMessage = signal<string | null>(null);
   fileStoreCategories = signal<string[]>([]);
+  fileCategoryPolicies = signal<FileCategoryPolicy[]>([]);
   editId = this.route.snapshot.paramMap.get('id');
   isEdit = computed(() => !!this.editId);
   existingStatus = signal<string | number | null>(null);
@@ -100,7 +108,6 @@ export class OpportunityEditorComponent {
   constructor() {
     this.form = this.fb.group({
       projectId: [this.route.snapshot.queryParamMap.get('projectId') ? Number(this.route.snapshot.queryParamMap.get('projectId')) : null, [Validators.required]],
-      purpose: ['General funding', [Validators.required, Validators.maxLength(200)]],
       type: ['Opportunity', [Validators.required, Validators.maxLength(80)]],
       title: ['', [Validators.required, Validators.maxLength(200)]],
       shortDescription: ['', [Validators.required, Validators.minLength(20), Validators.maxLength(300)]],
@@ -111,7 +118,7 @@ export class OpportunityEditorComponent {
       fundingTarget: [null, [Validators.required, Validators.min(1)]],
       coverImageUrl: ['', [Validators.maxLength(1000)]],
       currency: ['', [Validators.required]],
-      fundingUsage: ['', [Validators.required, Validators.minLength(30), Validators.maxLength(2000)]],
+      useOfFunds: ['', [Validators.required, Validators.minLength(30), Validators.maxLength(2000)]],
       risks: [''],
       exitStrategy: ['']
     });
@@ -125,17 +132,25 @@ export class OpportunityEditorComponent {
       this.isLoading.set(true);
       const initialProjectId = this.route.snapshot.queryParamMap.get('projectId');
       const projectsPromise = this.isEdit() ? Promise.resolve([]) : this.projectService.list();
-      const [tags, fundingGoals, currencies, projects] = await Promise.all([
-        this.service.getTags(),
-        this.service.getFundingGoals(),
-        this.service.getCurrencies('funding'),
-        projectsPromise
+      const [projects] = await Promise.all([
+        projectsPromise,
+        this.currencyService.ensureLoaded(),
+        this.tagService.ensureLoaded(),
+        this.fundingGoalService.ensureLoaded(),
+        this.stageService.ensureLoaded()
       ]);
-      this.fileStore.getCategories().then(items => this.fileStoreCategories.set(items)).catch(() => this.fileStoreCategories.set([]));
-      this.tags.set(tags);
-      this.fundingGoals.set(fundingGoals);
+      this.fileStore.getFileCategories().then(items => {
+        this.fileCategoryPolicies.set(items);
+        this.fileStoreCategories.set(items.map(item => item.code));
+      }).catch(() => {
+        this.fileCategoryPolicies.set([]);
+        this.fileStoreCategories.set([]);
+      });
+      this.tags.set(this.tagService.active());
+      this.fundingGoals.set(this.fundingGoalService.active());
+      this.projectStages.set(this.stageService.all());
       this.availableProjects.set(projects.filter(project => project.canCreateOpportunity));
-      this.currencies = currencies.map(currency => currency.isoCode);
+      this.currencies = this.currencyService.master().filter(currency => currency.isActive && currency.supportsFunding);
       if (initialProjectId) {
         const matched = this.availableProjects().find(p => p.id === Number(initialProjectId));
         if (matched) {
@@ -148,6 +163,19 @@ export class OpportunityEditorComponent {
         const existing = await this.service.getFounderOpportunity(this.editId);
         this.existingStatus.set(existing.status ?? null);
         const mapped = this.mapOpportunityToForm(existing);
+        const historicalGoal = existing.fundingGoal;
+        if (historicalGoal && historicalGoal.isActive === false && !this.fundingGoals().some(goal => goal.id === Number(historicalGoal.id))) {
+          this.fundingGoals.set([...this.fundingGoals(), {
+            id: Number(historicalGoal.id),
+            code: historicalGoal.code ?? '',
+            nameEn: historicalGoal.nameEn ?? '',
+            nameAr: historicalGoal.nameAr ?? historicalGoal.nameEn ?? '',
+            descriptionEn: historicalGoal.descriptionEn ?? null,
+            descriptionAr: historicalGoal.descriptionAr ?? null,
+            sortOrder: historicalGoal.sortOrder ?? 0,
+            isActive: false
+          }]);
+        }
         this.form.patchValue(mapped, { emitEvent: false });
         this.updateCustomStageValidation();
         this.selectedTags.set(this.mapTagIds(existing.tags ?? []));
@@ -190,7 +218,6 @@ export class OpportunityEditorComponent {
   private mapOpportunityToForm(existing: Opportunity): OpportunityEditorFormValue {
     return {
       projectId: existing.projectId ? Number(existing.projectId) : null,
-      purpose: existing.purpose ?? 'General funding',
       type: existing.type ?? 'Opportunity',
       title: existing.title ?? '',
       shortDescription: existing.shortDescription ?? '',
@@ -201,7 +228,7 @@ export class OpportunityEditorComponent {
       fundingTarget: this.toNullableNumber(existing.fundingTarget),
       coverImageUrl: existing.coverImageUrl ?? '',
       currency: existing.currency ?? '',
-      fundingUsage: existing.useOfFunds ?? '',
+      useOfFunds: existing.useOfFunds ?? '',
       risks: '',
       exitStrategy: ''
     };
@@ -213,7 +240,7 @@ export class OpportunityEditorComponent {
         if (typeof value !== 'string') return value.id;
         const normalized = value.trim();
         const reference = this.tags().find(tag =>
-          [tag.id, tag.name, tag.value, tag.label, tag.key]
+          [tag.id, tag.code, tag.nameEn, tag.nameAr]
             .some(candidate => candidate !== null && candidate !== undefined && String(candidate) === normalized)
         );
         if (reference) return reference.id;
@@ -256,8 +283,8 @@ export class OpportunityEditorComponent {
       ['fundingTarget', 'currency'].forEach(field => form.get(field)?.markAsTouched());
       if (form.get('fundingTarget')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.fundingTargetPositive'));
       if (form.get('currency')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.currencyRequired'));
-      form.get('fundingUsage')?.markAsTouched();
-      if (form.get('fundingUsage')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.useOfFundsRequired'));
+      form.get('useOfFunds')?.markAsTouched();
+      if (form.get('useOfFunds')?.invalid) invalidFields.push(this.t('opportunityEditor.validation.useOfFundsRequired'));
     }
     // Step 3 and 4 have no required validation
 
@@ -292,9 +319,9 @@ export class OpportunityEditorComponent {
 
   isStepInvalid(stepId: number): boolean {
     const names = stepId === 1
-      ? ['projectId', 'purpose', 'type', 'title', 'shortDescription', 'projectStage', 'projectStageCustomName']
+      ? ['projectId', 'type', 'title', 'shortDescription', 'projectStage', 'projectStageCustomName']
       : stepId === 2
-        ? ['fundingTarget', 'currency', 'fundingUsage']
+        ? ['fundingTarget', 'currency', 'useOfFunds']
         : [];
     return names.some(name => {
       const control = this.form.get(name);
@@ -375,18 +402,17 @@ export class OpportunityEditorComponent {
   }
 
   projectStageKey(value: unknown): string {
-    const stage = this.mapProjectStageToEnum(value);
-    return stage ? `opportunityEditor.projectStages.${stage}` : 'opportunityEditor.review.notAvailable';
+    return this.stageService.label(value, this.language() as 'en' | 'ar') || this.t('opportunityEditor.review.notAvailable');
   }
 
   projectStageDisplay(stage: unknown, customName: unknown): string {
-    const translated = this.t(this.projectStageKey(stage));
+    const translated = this.projectStageKey(stage);
     const custom = String(customName ?? '').trim();
-    return this.mapProjectStageToEnum(stage) === 6 && custom ? `${translated}: ${custom}` : translated;
+    return this.stageService.find(stage)?.allowsCustomName && custom ? `${translated}: ${custom}` : translated;
   }
 
   isProjectStageUnavailable(stage: number): boolean {
-    if (stage === 6) return false;
+    if (this.stageService.find(stage)?.allowsCustomName) return false;
     const project = this.selectedProject();
     const ownId = Number(this.editId ?? 0);
     return !!project?.opportunities?.some(opportunity =>
@@ -394,15 +420,23 @@ export class OpportunityEditorComponent {
     );
   }
 
-  lookupLabel(items: OpportunityLookup[], id: string | number | null | undefined, kind: OpportunityLookupKind): string {
+  isCustomProjectStage(stage: unknown): boolean {
+    return this.stageService.find(stage)?.allowsCustomName === true;
+  }
+
+  lookupLabel(items: FundingGoalReference[], id: string | number | null | undefined): string {
     const item = items.find(candidate => String(candidate.id) === String(id));
-    return item ? this.localizedLookupLabel(item, kind) : this.t('opportunityEditor.review.notAvailable');
+    return item ? this.fundingGoalLabel(item) : this.t('opportunityEditor.review.notAvailable');
+  }
+
+  tagLabel(item: OpportunityTagReference): string {
+    return this.tagService.label(item, this.language());
   }
 
   selectedTagLabels(): string {
     const labels = this.tags()
       .filter(tag => this.isTagSelected(tag.id))
-      .map(tag => this.localizedLookupLabel(tag, 'tags'));
+      .map(tag => this.tagLabel(tag));
     return labels.length ? labels.join(', ') : this.t('opportunityEditor.review.notAvailable');
   }
 
@@ -439,19 +473,18 @@ export class OpportunityEditorComponent {
     const text = (input: unknown): string | null => String(input ?? '').trim() || null;
     const payload: OpportunityUpsert = {
       projectId: this.isEdit() ? undefined : this.toNullableNumber(value.projectId),
-      purpose: text(value.purpose),
       type: text(value.type),
       title: String(value.title ?? '').trim(),
       shortDescription: String(value.shortDescription ?? '').trim(),
       fullDescription: text(value.fullDescription),
       projectStage: value.projectStage,
-      projectStageCustomName: Number(value.projectStage) === 6 ? text(value.projectStageCustomName) : null,
+      projectStageCustomName: this.stageService.find(value.projectStage)?.allowsCustomName ? text(value.projectStageCustomName) : null,
       tagIds: this.selectedTags(),
       fundingGoalId: value.fundingGoalId,
       fundingTarget: value.fundingTarget,
       fundingCurrency: text(value.currency),
       coverImageUrl: text(value.coverImageUrl),
-      fundingUsage: String(value.fundingUsage ?? '').trim()
+      useOfFunds: String(value.useOfFunds ?? '').trim()
     };
     return payload;
   }
@@ -467,18 +500,19 @@ export class OpportunityEditorComponent {
       const rejected = route.fields.filter(field => raw.includes(field));
       if (!rejected.length) continue;
       this.step.set(route.step);
-      const controls: Record<string, string> = { useoffunds: 'fundingUsage' };
+      const controls: Record<string, string> = { useoffunds: 'useOfFunds' };
       rejected.forEach(field => this.form.get(controls[field] ?? field)?.markAsTouched());
       return;
     }
   }
 
   private mapProjectStageToEnum(value: unknown): number | null {
-    const names: Record<string, number> = { idea: 1, mvp: 2, startup: 3, scaling: 4, established: 5, other: 6 };
-    const normalized = String(value ?? '').trim().toLowerCase();
-    const numeric = Number(normalized);
-    if (Number.isInteger(numeric) && numeric >= 1 && numeric <= 6) return numeric;
-    return names[normalized] ?? null;
+    return this.stageService.find(value)?.value ?? null;
+  }
+
+  currencyLabel(currency: CurrencyReference): string {
+    const name = this.language() === 'ar' ? currency.arabicName : currency.englishName;
+    return `${currency.symbol} ${currency.isoCode} — ${name}`;
   }
 
   private selectedProject(): Project | null {
@@ -490,7 +524,7 @@ export class OpportunityEditorComponent {
 
   private updateCustomStageValidation(): void {
     const customName = this.form.get('projectStageCustomName');
-    if (this.mapProjectStageToEnum(this.form.get('projectStage')?.value) === 6) {
+    if (this.stageService.find(this.form.get('projectStage')?.value)?.allowsCustomName) {
       customName?.setValidators([this.trimmedRequired, Validators.maxLength(120)]);
     } else {
       customName?.clearValidators();
@@ -585,28 +619,17 @@ export class OpportunityEditorComponent {
     }
   }
 
-  label(item: OpportunityLookup): string {
-    return this.service.label(item);
-  }
-
-  localizedLookupLabel(item: OpportunityLookup, kind: OpportunityLookupKind): string {
-    const key = `opportunityEditor.lookups.${kind}.${item.id}`;
-    const translated = this.t(key);
-    if (translated !== key) return translated;
-    const apiLabel = this.label(item);
-    if (this.language() === 'ar' && !/[\u0600-\u06ff]/.test(apiLabel)) {
-      return this.t('opportunityEditor.review.notAvailable');
-    }
-    return apiLabel;
+  fundingGoalLabel(item: FundingGoalReference): string {
+    return this.fundingGoalService.label(item, this.language());
   }
 
   categoryFor(kind: PendingUploadKind): string {
     switch (kind) {
-      case 'cover': return 'OpportunityCover';
-      case 'gallery': return 'OpportunityGallery';
-      case 'video': return 'Video';
-      case 'publicDocument': return 'OpportunityPublicDocument';
-      case 'privateDocument': return 'OpportunityPrivateDocument';
+      case 'cover': return 'OPPORTUNITYCOVER';
+      case 'gallery': return 'OPPORTUNITYGALLERY';
+      case 'video': return 'PITCHVIDEO';
+      case 'publicDocument': return 'OPPORTUNITYPUBLICDOCUMENT';
+      case 'privateDocument': return 'OPPORTUNITYPRIVATEDOCUMENT';
     }
   }
 
@@ -616,11 +639,11 @@ export class OpportunityEditorComponent {
 
   uploadedCategoryKey(category: string): string {
     const keys: Record<string, string> = {
-      OpportunityCover: 'cover',
-      OpportunityGallery: 'gallery',
-      Video: 'video',
-      OpportunityPublicDocument: 'publicDocument',
-      OpportunityPrivateDocument: 'privateDocument'
+      OPPORTUNITYCOVER: 'cover',
+      OPPORTUNITYGALLERY: 'gallery',
+      PITCHVIDEO: 'video',
+      OPPORTUNITYPUBLICDOCUMENT: 'publicDocument',
+      OPPORTUNITYPRIVATEDOCUMENT: 'privateDocument'
     };
     return `opportunityEditor.media.types.${keys[category] ?? 'document'}`;
   }
@@ -679,8 +702,16 @@ export class OpportunityEditorComponent {
     return {
       purpose: this.purposeFor(kind),
       visibility,
-      isPublic: visibility === 'Public'
+      isPublic: visibility === 'Public',
+      projectId: this.form.getRawValue().projectId,
+      entityType: 'Opportunity',
+      entityId: this.editId ?? undefined
     };
+  }
+
+  acceptFor(kind: PendingUploadKind): string {
+    const category = this.fileCategoryPolicies().find(item => item.code === this.categoryFor(kind));
+    return category ? [...category.allowedMimeTypes, ...category.allowedExtensions].join(',') : '';
   }
 
   private purposeFor(kind: PendingUploadKind): string {

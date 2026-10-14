@@ -8,6 +8,13 @@ namespace Investa.Api.IntegrationTests;
 
 public class TestFileStorage : IFileStorage
 {
+    public async Task<FileStoreUploadResult> UploadWithPolicyAsync(string categoryCode, string originalFileName, Stream data, string contentType, long declaredFileSize, FileStoreUploadPolicy policy, FileStoreUploadContext context, CancellationToken cancellationToken = default)
+    {
+        var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
+        var fileName = $"test-{Guid.NewGuid():N}{extension}";
+        return new FileStoreUploadResult(Guid.NewGuid().ToString("N"), $"{categoryCode}/{fileName}", fileName, Path.GetFileName(originalFileName), extension, contentType, declaredFileSize, categoryCode, $"/storage/{categoryCode}/{fileName}", null, null);
+    }
+
     public Task<string> SaveFileAsync(string relativePath, Stream data, string contentType)
     {
         return Task.FromResult($"/storage/{relativePath}");

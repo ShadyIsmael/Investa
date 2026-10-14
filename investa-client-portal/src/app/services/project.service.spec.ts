@@ -27,7 +27,7 @@ describe('ProjectService', () => {
   });
 
   it('creates a project independently from its opportunities', async () => {
-    const payload: any = { displayName: 'Business', summary: 'A sufficiently long summary', description: 'A sufficiently long description', businessStage: 2 };
+    const payload: any = { displayName: 'Business', summary: 'A sufficiently long summary', description: 'A sufficiently long description', projectStage: 2 };
     const result = service.create(payload);
     const request = http.expectOne('https://api.test/api/v1/projects');
     expect(request.request.method).toBe('POST');

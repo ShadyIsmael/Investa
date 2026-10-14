@@ -24,7 +24,7 @@ END
 IF NOT EXISTS (SELECT 1 FROM Investments WHERE Id = 1000)
 BEGIN
     SET IDENTITY_INSERT Investments ON;
-    INSERT INTO Investments (Id, FounderId, InitialCapital, Date, BusinessName, Description, SharePrice, TotalShares, AvailableShares, MinInvestment, MaxInvestment, ValuationCap, ExpectedROI, InvestmentType, Status, TargetFund, BusinessCategoryId, RiskLevel, Currency, StartDate, EndDate)
+    INSERT INTO Investments (Id, FounderId, InitialCapital, Date, BusinessName, Description, SharePrice, TotalShares, AvailableShares, MinInvestment, MaxInvestment, ValuationCap, ExpectedROI, InvestmentType, Status, TargetFund, ProjectCategoryId, RiskLevel, Currency, StartDate, EndDate)
     SELECT 1000, '11111111-1111-1111-1111-111111111111', 50000.00, GETUTCDATE(), 'SolarGrid Energy', 'Distributed solar microgrid for emerging markets.', 10.00, 10000, 8000, 100.00, 5000.00, 5000000.00, 12.50, 'Equity', 'Active', 100000.00, 100, 'Medium', 'USD', DATEADD(day,-14,GETUTCDATE()), DATEADD(day,30,GETUTCDATE());
     SET IDENTITY_INSERT Investments OFF;
 END
@@ -32,7 +32,7 @@ END
 IF NOT EXISTS (SELECT 1 FROM Investments WHERE Id = 1001)
 BEGIN
     SET IDENTITY_INSERT Investments ON;
-    INSERT INTO Investments (Id, FounderId, InitialCapital, Date, BusinessName, Description, SharePrice, TotalShares, AvailableShares, MinInvestment, MaxInvestment, ValuationCap, ExpectedROI, InvestmentType, Status, TargetFund, BusinessCategoryId, RiskLevel, Currency, StartDate, EndDate)
+    INSERT INTO Investments (Id, FounderId, InitialCapital, Date, BusinessName, Description, SharePrice, TotalShares, AvailableShares, MinInvestment, MaxInvestment, ValuationCap, ExpectedROI, InvestmentType, Status, TargetFund, ProjectCategoryId, RiskLevel, Currency, StartDate, EndDate)
     SELECT 1001, '11111111-1111-1111-1111-111111111111', 20000.00, GETUTCDATE(), 'AquaPure', 'Affordable water purification devices.', 5.00, 5000, 1200, 50.00, 2000.00, 2000000.00, 10.00, 'Equity', 'Active', 25000.00, 101, 'Low', 'USD', DATEADD(day,-7,GETUTCDATE()), DATEADD(day,14,GETUTCDATE());
     SET IDENTITY_INSERT Investments OFF;
 END

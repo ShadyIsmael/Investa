@@ -70,7 +70,7 @@ public sealed class OpportunityObligationCompletionPhase6Tests
             .Should().ThrowAsync<BusinessValidationException>().Where(e=>e.Code=="DISCLAIMER_ACKNOWLEDGEMENT_REQUIRED");
     }
 
-    private static Opportunity Opportunity(Project p,Guid founder,OpportunityFundingStatus status)=>new(){Project=p,FounderId=founder,SequenceNumber=1,Purpose="Purpose",Type="Opportunity",
+    private static Opportunity Opportunity(Project p,Guid founder,OpportunityFundingStatus status)=>new(){Project=p,FounderId=founder,SequenceNumber=1,Type="Opportunity",
         Title="Opportunity",ShortDescription="short",UseOfFunds="use",FundingTarget=1000,FundingCurrency="EGP",InvestmentModel=InvestmentModel.LoanInvestment,
         ProjectStage=ProjectStage.MVP,Status=OpportunityStatus.Completed,ModerationStatus=OpportunityModerationStatus.Approved,FundingStatus=status};
     private static AuthUser User()=>new(){Id=Guid.NewGuid(),Email=$"{Guid.NewGuid():N}@test.local",Status=true};

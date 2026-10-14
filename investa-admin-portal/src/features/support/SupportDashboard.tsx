@@ -313,7 +313,7 @@ const SupportDashboard: React.FC = () => {
                     <div className="mt-4">
                       <strong>Conversation</strong>
                       <div className="mt-2 space-y-2 max-h-40 overflow-y-auto">
-                        { (messages[selectedChat.id] || []).map((m, idx) => (
+                        { (messages[selectedChat.id] || []).map((m: string, idx: number) => (
                           <div key={idx} className="text-sm text-slate-200 bg-slate-800 p-2 rounded">{m}</div>
                         )) }
                       </div>

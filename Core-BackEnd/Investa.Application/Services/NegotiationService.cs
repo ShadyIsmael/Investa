@@ -26,6 +26,7 @@ public class NegotiationService : INegotiationService
     private readonly IRealtimeEventPublisher _realtimeEventPublisher;
     private readonly IConversationPresenceService _conversationPresence;
     private readonly IInvestmentContractService _investmentContractService;
+    private readonly IEquityPositionService? _equityPositions;
     private readonly ILogger<NegotiationService> _logger;
 
     public NegotiationService(
@@ -36,7 +37,8 @@ public class NegotiationService : INegotiationService
         IRealtimeEventPublisher realtimeEventPublisher,
         IConversationPresenceService conversationPresence,
         IInvestmentContractService investmentContractService,
-        ILogger<NegotiationService> logger)
+        ILogger<NegotiationService> logger,
+        IEquityPositionService? equityPositions = null)
     {
         _uow = uow;
         _paidActionService = paidActionService;
@@ -46,6 +48,25 @@ public class NegotiationService : INegotiationService
         _conversationPresence = conversationPresence;
         _investmentContractService = investmentContractService;
         _logger = logger;
+        _equityPositions = equityPositions;
+    }
+
+    private async Task EnsureCommitmentCapacityAsync(Opportunity opportunity, decimal newCommitment)
+    {
+        if (newCommitment <= 0m)
+            throw new BusinessValidationException("INVALID_COMMITMENT_AMOUNT", "The accepted offer must contain a positive commitment amount.");
+
+        var approvedRequests = await _uow.Repository<OpportunityJoinRequest>().FindAsync(request =>
+            request.OpportunityId == opportunity.Id
+            && request.Status == OpportunityJoinRequestStatus.Approved
+            && request.RequestType == OpportunityJoinRequestType.InvestmentParticipation);
+        var committedAmount = FundingSemantics.SumCommitted(approvedRequests);
+        if (committedAmount + newCommitment > opportunity.FundingTarget)
+        {
+            throw new BusinessValidationException(
+                "COMMITMENT_CAPACITY_EXCEEDED",
+                $"This offer would exceed the opportunity commitment capacity. Remaining capacity is {Math.Max(opportunity.FundingTarget - committedAmount, 0m):F2}.");
+        }
     }
 
     public async Task<OpportunityViewerStateDto> GetOpportunityViewerStateAsync(
@@ -320,17 +341,28 @@ public class NegotiationService : INegotiationService
     {
         var conversation = await GetAuthorizedConversationAsync(userId, conversationId);
         var dto = ToConversationDetailDto(conversation, userId);
-        dto.Messages = await GetMessagesAsync(userId, conversationId, cancellationToken);
+        dto.Messages = await LoadConversationMessagesAsync(conversation, conversationId, cancellationToken);
         return dto;
     }
 
     public async Task<IReadOnlyList<NegotiationMessageDto>> GetMessagesAsync(Guid userId, Guid conversationId, CancellationToken cancellationToken = default)
     {
         var conversation = await GetAuthorizedConversationAsync(userId, conversationId);
-        var messages = await _uow.Repository<ChatMessage>().FindAsync(m => m.ConversationId == conversationId);
+        return await LoadConversationMessagesAsync(conversation, conversationId, cancellationToken);
+    }
+
+    private async Task<IReadOnlyList<NegotiationMessageDto>> LoadConversationMessagesAsync(
+        Conversation conversation,
+        Guid conversationId,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var messages = await _uow.Repository<ChatMessage>()
+            .FindAsync(message => message.ConversationId == conversationId);
+        cancellationToken.ThrowIfCancellationRequested();
         return messages
-            .OrderBy(m => m.Timestamp)
-            .ThenBy(m => m.Id)
+            .OrderBy(message => message.Timestamp)
+            .ThenBy(message => message.Id)
             .Select(message => ToMessageDto(message, conversation))
             .ToList();
     }
@@ -768,10 +800,14 @@ public class NegotiationService : INegotiationService
         if (existingParticipation != null)
             throw new BusinessValidationException("OFFER_NOT_ACTIVE", "This direct offer has already been finalized.");
 
+        ValidateStoredOfferForAcceptance(offer);
+
         var termsJson = JsonSerializer.Serialize(offer.Legs.Select(l => new
         {
-            l.LegType, l.Amount, l.EquityPercentage, l.SharesTerms, l.ReturnRate,
-            l.TermMonths, l.RepaymentModel, l.ProfitSharePercentage, l.ExitTerms
+            OfferLegId = l.Id,
+            l.LegType, l.Amount, l.EquityPercentage, l.EquityOwnershipModel, l.InvestorShareCount, l.TotalIssuedShares,
+            l.ShareClass, l.PricePerShare, l.PreMoneyValuation, l.PostMoneyValuation, l.EffectiveOwnershipDate, l.SharesTerms, l.ReturnRate,
+            l.TermMonths, l.RepaymentModel, l.ProfitSharePercentage, l.ProfitSharingPayoutFrequency, l.ExitTerms
         }));
         var totalAmount = offer.Legs.Sum(l => l.Amount);
         var sequence = (await _uow.Repository<OpportunityJoinRequest>().FindAsync(r =>
@@ -785,6 +821,7 @@ public class NegotiationService : INegotiationService
             try
             {
                 var now = DateTime.UtcNow;
+                await EnsureCommitmentCapacityAsync(opportunity, totalAmount);
                 var joinRequest = new OpportunityJoinRequest
                 {
                     OpportunityId = opportunityId,
@@ -815,13 +852,19 @@ public class NegotiationService : INegotiationService
                 {
                     opportunity.FirstInvestorJoinedAt = now;
                     opportunity.IsLockedForEditing = true;
-                    await _uow.Repository<Opportunity>().UpdateAsync(opportunity);
                 }
+                // Touch the opportunity on every acceptance. Its rowversion is
+                // the optimistic-concurrency gate for concurrent commitments.
+                opportunity.UpdatedAt = now;
+                await _uow.Repository<Opportunity>().UpdateAsync(opportunity);
                 // Flush the exact accepted offer state inside the transaction before
                 // contract generation resolves the immutable source offer snapshot.
                 await _uow.SaveChangesAsync();
                 opportunity.Events ??= new List<OpportunityEvent>();
                 await _investmentContractService.GenerateForApprovedParticipationAsync(opportunity, joinRequest, now, cancellationToken);
+                await _uow.SaveChangesAsync();
+                if (_equityPositions is not null)
+                    await _equityPositions.EnsurePendingForAcceptedContractAsync(joinRequest.Id, userId, cancellationToken);
                 await _uow.SaveChangesAsync();
                 await _uow.CommitTransactionAsync();
             }
@@ -976,6 +1019,8 @@ public class NegotiationService : INegotiationService
         if (offer.CreatedByUserId == userId)
             throw new BusinessValidationException("OFFER_ACCEPT_FORBIDDEN", "Offer creator cannot accept their own offer.");
 
+        ValidateStoredOfferForAcceptance(offer);
+
         // Idempotency: if participation was already created for this conversation, return existing result
         if (conversation.ParticipationRequestId.HasValue
             && conversation.ParticipationRequest?.Status == OpportunityJoinRequestStatus.Approved)
@@ -1017,21 +1062,32 @@ public class NegotiationService : INegotiationService
                 // Serialize offer legs as immutable JSON terms snapshot
                 var termsJson = JsonSerializer.Serialize(offer.Legs.Select(l => new
                 {
+                    OfferLegId = l.Id,
                     l.LegType,
                     l.Amount,
                     l.EquityPercentage,
+                    l.EquityOwnershipModel,
+                    l.InvestorShareCount,
+                    l.TotalIssuedShares,
+                    l.ShareClass,
+                    l.PricePerShare,
+                    l.PreMoneyValuation,
+                    l.PostMoneyValuation,
+                    l.EffectiveOwnershipDate,
                     l.SharesTerms,
                     l.ReturnRate,
                     l.TermMonths,
                     l.RepaymentModel,
                     l.ProfitSharePercentage,
+                    l.ProfitSharingPayoutFrequency,
                     l.ExitTerms
                 }));
 
                 var totalAmount = offer.Legs.Sum(l => l.Amount);
+                await EnsureCommitmentCapacityAsync(opportunity, totalAmount);
                 var participationSequence = (await _uow.Repository<OpportunityJoinRequest>().FindAsync(r =>
                         r.OpportunityId == opportunity.Id
-                        && r.InvestorId == conversation.InvestorId.Value
+                        && r.InvestorId == conversation.InvestorId
                         && r.RequestType == OpportunityJoinRequestType.InvestmentParticipation))
                     .Select(r => r.ParticipationSequence)
                     .DefaultIfEmpty(0)
@@ -1076,8 +1132,9 @@ public class NegotiationService : INegotiationService
                 {
                     opportunity.FirstInvestorJoinedAt = DateTime.UtcNow;
                     opportunity.IsLockedForEditing = true;
-                    await _uow.Repository<Opportunity>().UpdateAsync(opportunity);
                 }
+                opportunity.UpdatedAt = DateTime.UtcNow;
+                await _uow.Repository<Opportunity>().UpdateAsync(opportunity);
 
                 // Flush the exact accepted offer state inside the transaction before
                 // contract generation resolves the immutable source offer snapshot.
@@ -1113,6 +1170,9 @@ public class NegotiationService : INegotiationService
 
                 await _investmentContractService.GenerateForApprovedParticipationAsync(opportunity, joinRequest, DateTime.UtcNow, cancellationToken);
 
+                await _uow.SaveChangesAsync();
+                if (_equityPositions is not null)
+                    await _equityPositions.EnsurePendingForAcceptedContractAsync(joinRequest.Id, userId, cancellationToken);
                 await _uow.SaveChangesAsync();
                 await _uow.CommitTransactionAsync();
 
@@ -1417,11 +1477,24 @@ public class NegotiationService : INegotiationService
                 LegType = leg.LegType!.Value,
                 Amount = leg.Amount,
                 EquityPercentage = leg.EquityPercentage,
+                EquityOwnershipModel = leg.LegType == NegotiationOfferLegType.Equity ? leg.EquityOwnershipModel : null,
+                InvestorShareCount = leg.LegType == NegotiationOfferLegType.Equity ? leg.InvestorShareCount : null,
+                TotalIssuedShares = leg.LegType == NegotiationOfferLegType.Equity ? leg.TotalIssuedShares : null,
+                ShareClass = leg.LegType == NegotiationOfferLegType.Equity ? Normalize(leg.ShareClass) : null,
+                PricePerShare = leg.LegType == NegotiationOfferLegType.Equity ? leg.PricePerShare : null,
+                PreMoneyValuation = leg.LegType == NegotiationOfferLegType.Equity ? leg.PreMoneyValuation : null,
+                PostMoneyValuation = leg.LegType == NegotiationOfferLegType.Equity ? leg.PostMoneyValuation : null,
+                EffectiveOwnershipDate = leg.LegType == NegotiationOfferLegType.Equity ? leg.EffectiveOwnershipDate : null,
                 SharesTerms = Normalize(leg.SharesTerms),
                 ReturnRate = leg.ReturnRate,
                 TermMonths = leg.TermMonths,
-                RepaymentModel = Normalize(leg.RepaymentModel),
+                RepaymentModel = leg.LegType == NegotiationOfferLegType.Loan
+                    ? RepaymentModelCatalog.NormalizeOrThrow(leg.RepaymentModel)
+                    : null,
                 ProfitSharePercentage = leg.ProfitSharePercentage,
+                ProfitSharingPayoutFrequency = leg.LegType == NegotiationOfferLegType.ProfitSharing
+                    ? ProfitSharingFrequencyCatalog.NormalizeOrThrow(leg.ProfitSharingPayoutFrequency)
+                    : null,
                 ExitTerms = Normalize(leg.ExitTerms)
             });
         }
@@ -1434,6 +1507,9 @@ public class NegotiationService : INegotiationService
         if (request.Legs == null || request.Legs.Count == 0)
             throw new BusinessValidationException("OFFER_LEGS_REQUIRED", "At least one offer leg is required.");
 
+        if (request.Legs.GroupBy(x => x.LegType).Any(group => group.Key.HasValue && group.Count() > 1))
+            throw new BusinessValidationException("DUPLICATE_OFFER_LEG", "A Contract may contain at most one compatible leg for each investment model.");
+
         foreach (var leg in request.Legs)
         {
             if (!leg.LegType.HasValue || !Enum.IsDefined(leg.LegType.Value))
@@ -1445,23 +1521,41 @@ public class NegotiationService : INegotiationService
             switch (leg.LegType.Value)
             {
                 case NegotiationOfferLegType.Equity:
-                    if (!leg.EquityPercentage.HasValue && string.IsNullOrWhiteSpace(leg.SharesTerms))
-                        throw new BusinessValidationException("EQUITY_TERMS_REQUIRED", "Equity offers require EquityPercentage or SharesTerms.");
-                    ValidatePercentage(leg.EquityPercentage, "INVALID_EQUITY_PERCENTAGE", "EquityPercentage must be between 0.01 and 100.");
+                    if (!leg.EquityOwnershipModel.HasValue || !Enum.IsDefined(leg.EquityOwnershipModel.Value))
+                        throw new BusinessValidationException("EQUITY_OWNERSHIP_MODEL_REQUIRED", "Equity offers require PercentageBased or ShareBased ownership terms.");
+                    if (leg.EquityOwnershipModel == EquityOwnershipModel.PercentageBased)
+                    {
+                        ValidatePercentage(leg.EquityPercentage, "INVALID_EQUITY_PERCENTAGE", "EquityPercentage must be between 0.01 and 100.");
+                        if (leg.InvestorShareCount.HasValue || leg.TotalIssuedShares.HasValue)
+                            throw new BusinessValidationException("EQUITY_TERMS_CONTRADICTORY", "PercentageBased Equity cannot include independent share counts.");
+                    }
+                    else
+                    {
+                        if (!leg.InvestorShareCount.HasValue || leg.InvestorShareCount <= 0 || !leg.TotalIssuedShares.HasValue || leg.TotalIssuedShares <= 0 || leg.InvestorShareCount > leg.TotalIssuedShares)
+                            throw new BusinessValidationException("INVALID_EQUITY_SHARES", "ShareBased Equity requires positive investor and total shares, with investor shares not exceeding total shares.");
+                        if (leg.EquityPercentage.HasValue)
+                            throw new BusinessValidationException("EQUITY_TERMS_CONTRADICTORY", "ShareBased Equity ownership is derived from shares and cannot include an independent percentage.");
+                    }
                     break;
 
                 case NegotiationOfferLegType.Loan:
                     ValidatePercentage(leg.ReturnRate, "INVALID_RETURN_RATE", "Loan offers require ReturnRate between 0.01 and 100.");
                     if (!leg.TermMonths.HasValue || leg.TermMonths.Value <= 0)
                         throw new BusinessValidationException("LOAN_TERM_REQUIRED", "Loan offers require TermMonths greater than zero.");
-                    if (string.IsNullOrWhiteSpace(leg.RepaymentModel))
-                        throw new BusinessValidationException("REPAYMENT_MODEL_REQUIRED", "Loan offers require RepaymentModel.");
+                    if (!RepaymentModelCatalog.TryNormalizeCanonical(leg.RepaymentModel, out _))
+                        throw new BusinessValidationException(
+                            "UNSUPPORTED_REPAYMENT_MODEL",
+                            $"Repayment model is unsupported. Use one of: {string.Join(", ", RepaymentModelCatalog.Supported)}.");
                     break;
 
                 case NegotiationOfferLegType.ProfitSharing:
                     ValidatePercentage(leg.ProfitSharePercentage, "INVALID_PROFIT_SHARE_PERCENTAGE", "Profit Sharing offers require ProfitSharePercentage between 0.01 and 100.");
                     if (!leg.TermMonths.HasValue || leg.TermMonths.Value <= 0)
                         throw new BusinessValidationException("PROFIT_SHARING_TERM_REQUIRED", "Profit Sharing offers require TermMonths greater than zero.");
+                    if (!ProfitSharingFrequencyCatalog.TryNormalizeCanonical(leg.ProfitSharingPayoutFrequency, out _))
+                        throw new BusinessValidationException(
+                            "PROFIT_SHARING_FREQUENCY_REQUIRED",
+                            $"Profit Sharing offers require a supported reporting frequency: {string.Join(", ", ProfitSharingFrequencyCatalog.Supported)}.");
                     if (string.IsNullOrWhiteSpace(leg.ExitTerms))
                         throw new BusinessValidationException("EXIT_TERMS_REQUIRED", "Profit Sharing offers require ExitTerms.");
                     break;
@@ -1473,6 +1567,29 @@ public class NegotiationService : INegotiationService
     {
         if (!value.HasValue || value.Value <= 0 || value.Value > 100)
             throw new BusinessValidationException(code, message);
+    }
+
+    private static void ValidateStoredOfferForAcceptance(NegotiationOffer offer)
+    {
+        if (offer.Legs.Count == 0)
+            throw new BusinessValidationException("OFFER_LEGS_REQUIRED", "At least one offer leg is required.");
+
+        foreach (var leg in offer.Legs)
+        {
+            if (leg.LegType == NegotiationOfferLegType.Equity)
+            {
+                if (!leg.EquityOwnershipModel.HasValue)
+                    throw new BusinessValidationException("EQUITY_OWNERSHIP_MODEL_REQUIRED", "This historical Equity offer does not contain an explicit ownership model and cannot be accepted.");
+                if (leg.EquityOwnershipModel == EquityOwnershipModel.PercentageBased)
+                    ValidatePercentage(leg.EquityPercentage, "INVALID_EQUITY_PERCENTAGE", "EquityPercentage must be between 0.01 and 100.");
+                else if (!leg.InvestorShareCount.HasValue || !leg.TotalIssuedShares.HasValue || leg.InvestorShareCount <= 0 || leg.TotalIssuedShares <= 0 || leg.InvestorShareCount > leg.TotalIssuedShares)
+                    throw new BusinessValidationException("INVALID_EQUITY_SHARES", "The accepted ShareBased Equity terms are invalid.");
+            }
+            else if (leg.LegType == NegotiationOfferLegType.Loan)
+                leg.RepaymentModel = RepaymentModelCatalog.NormalizeOrThrow(leg.RepaymentModel);
+            else if (leg.LegType == NegotiationOfferLegType.ProfitSharing)
+                leg.ProfitSharingPayoutFrequency = ProfitSharingFrequencyCatalog.NormalizeOrThrow(leg.ProfitSharingPayoutFrequency);
+        }
     }
 
     private static string? Normalize(string? value) =>
@@ -1700,6 +1817,7 @@ public class NegotiationService : INegotiationService
             Investor = summary.Investor,
             FounderReady = summary.FounderReady,
             InvestorReady = summary.InvestorReady,
+            CurrentUserReady = summary.CurrentUserReady,
             CanContinue = summary.CanContinue,
             ProjectRoomUnlocked = summary.ProjectRoomUnlocked,
             ParticipationStatus = summary.ParticipationStatus,
@@ -1749,6 +1867,9 @@ public class NegotiationService : INegotiationService
             Investor = requester,
             FounderReady = conversation.FounderReady,
             InvestorReady = conversation.InvestorReady,
+            CurrentUserReady = conversation.FounderId == viewerUserId
+                ? conversation.FounderReady
+                : conversation.InvestorId == viewerUserId && conversation.InvestorReady,
             CanContinue = CanContinue(conversation),
             ProjectRoomUnlocked = participationStatus == OpportunityJoinRequestStatus.Approved,
             ParticipationStatus = participationStatus,
@@ -1807,11 +1928,20 @@ public class NegotiationService : INegotiationService
         LegType = leg.LegType,
         Amount = leg.Amount,
         EquityPercentage = leg.EquityPercentage,
+        EquityOwnershipModel = leg.EquityOwnershipModel,
+        InvestorShareCount = leg.InvestorShareCount,
+        TotalIssuedShares = leg.TotalIssuedShares,
+        ShareClass = leg.ShareClass,
+        PricePerShare = leg.PricePerShare,
+        PreMoneyValuation = leg.PreMoneyValuation,
+        PostMoneyValuation = leg.PostMoneyValuation,
+        EffectiveOwnershipDate = leg.EffectiveOwnershipDate,
         SharesTerms = leg.SharesTerms,
         ReturnRate = leg.ReturnRate,
         TermMonths = leg.TermMonths,
         RepaymentModel = leg.RepaymentModel,
         ProfitSharePercentage = leg.ProfitSharePercentage,
+        ProfitSharingPayoutFrequency = leg.ProfitSharingPayoutFrequency,
         ExitTerms = leg.ExitTerms
     };
 

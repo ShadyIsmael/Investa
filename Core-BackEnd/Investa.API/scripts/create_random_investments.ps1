@@ -19,8 +19,8 @@ try {
 }
 
 $headers = @{ Authorization = "Bearer $token" }
-$categories = @(100,101,102,110,115)
-$riskLevels = @('Low','Medium','High')
+$categories = @(1..18)
+$riskLevels = @('LOW','MEDIUM','HIGH')
 
 for ($n=1; $n -le 20; $n++) {
     $amount = [math]::Round((Get-Random -Minimum 100 -Maximum 10000) + (Get-Random -Minimum 0 -Maximum 99)/100,2)
@@ -31,9 +31,7 @@ for ($n=1; $n -le 20; $n++) {
         businessName = $businessName;
         description = 'Auto-generated';
         startDate = (Get-Date).ToString('o');
-        businessStageId = (Get-Random -Minimum 1 -Maximum 5);
-        businessCategoryId = $categories[(Get-Random -Minimum 0 -Maximum ($categories.Length-1))];
-        projectPhaseId = $null;
+        projectCategoryId = $categories[(Get-Random -Minimum 0 -Maximum $categories.Length)];
         milestone = ('M' + (Get-Random -Minimum 1 -Maximum 10));
         riskLevel = $riskLevels[(Get-Random -Minimum 0 -Maximum ($riskLevels.Length-1))];
         targetFund = $targetFund;

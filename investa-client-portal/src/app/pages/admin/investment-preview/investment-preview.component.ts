@@ -16,9 +16,8 @@ import { CashFlowService, ParticipationPaymentSchedule, PaymentScheduleStatus } 
 import { OfferBuilderComponent } from '../../../components/offer-builder/offer-builder.component';
 import { OfferVersion } from '../../../models/offer.model';
 import { RoleContextService } from '../../../services/role-context.service';
+import { ProjectStageService } from '../../../services/project-stage.service';
 import { get } from 'lodash-es';
-
-declare const ngDevMode: boolean;
 
 type RelationshipStateKey =
   | 'viewer-state-unavailable'
@@ -78,6 +77,7 @@ export class InvestmentPreviewComponent {
   private reportService = inject(ReportService);
   private cashFlowService = inject(CashFlowService);
   private roleContext = inject(RoleContextService);
+  private stageService = inject(ProjectStageService);
 
   // User credits from UserService
   userCredits = this.userService.credits;
@@ -98,8 +98,8 @@ export class InvestmentPreviewComponent {
    */
   navigateToMemberProfile(memberId?: string | undefined): void {
     if (!memberId) {
-      const msg = this.languageService.dictionary().investmentPreview?.noTeamMembers || 'Profile unavailable';
-      this.notificationService.showToast({ title: 'Profile unavailable', message: msg, type: 'info' });
+      const msg = this.t('investmentPreview.noTeamMembers');
+      this.notificationService.showToast({ title: this.t('investmentPreview.notifications.profileUnavailable'), message: msg, type: 'info' });
       return;
     }
 
@@ -107,7 +107,7 @@ export class InvestmentPreviewComponent {
       this.router.navigate(['/admin/clients', memberId]);
     } catch (err) {
       console.error('Navigation error:', err);
-      this.notificationService.showToast({ title: 'Navigation error', message: 'Unable to open member profile', type: 'error' });
+      this.notificationService.showToast({ title: this.t('common.navigationError'), message: this.t('investmentPreview.notifications.memberProfileUnavailable'), type: 'error' });
     }
   }
 
@@ -123,12 +123,12 @@ export class InvestmentPreviewComponent {
   }
 
   closeDirectOfferBuilder(): void {
-    this.participationBuilderOpen.set(false);
+    this.directOfferBuilderOpen.set(false);
   }
 
   openDirectOfferBuilder(opportunity: OpportunityView): void {
     if (!this.canSubmitDirectOffer()) return;
-    this.participationBuilderOpen.set(true);
+    this.directOfferBuilderOpen.set(true);
   }
 
   openOpportunityReport(opportunity: Opportunity): void {
@@ -181,7 +181,7 @@ export class InvestmentPreviewComponent {
       this.router.navigate(['/admin/founders', founderId]);
     } catch (err) {
       console.error('Navigation error:', err);
-      this.notificationService.showToast({ title: 'Navigation error', message: 'Unable to open founder profile', type: 'error' });
+      this.notificationService.showToast({ title: this.t('common.navigationError'), message: this.t('investmentPreview.notifications.founderProfileUnavailable'), type: 'error' });
     }
   }
 
@@ -220,7 +220,7 @@ publicActivityError = signal<string | null>(null);
   /** Set only when the backend actually reports the Opportunity as not found / unavailable. */
   notFound = signal<boolean>(false);
   engagementProcessing = signal(false);
-  participationBuilderOpen = signal(false);
+  directOfferBuilderOpen = signal(false);
   directOffer = signal<OfferVersion | null>(null);
   reportModalOpen = signal(false);
   reportSubmitting = signal(false);
@@ -245,6 +245,7 @@ publicActivityError = signal<string | null>(null);
   contactFounderCreditCost = 0;
   contactFounderQuote = signal<PaidActionQuote | null>(null);
   constructor() {
+    void this.stageService.ensureLoaded();
     this.loadInvestment();
   }
 
@@ -324,10 +325,6 @@ publicActivityError = signal<string | null>(null);
       this.investment.set(this.toOpportunityView(opportunity));
       await this.loadPaymentSchedule(viewerState);
 
-      if (typeof ngDevMode !== 'undefined' && ngDevMode) {
-        console.log('Opportunity loaded', opportunity, 'isFounder:', viewerState?.isFounder);
-      }
-      
       // The Opportunity DTO is authoritative for founder media. Avoid probing the
       // file-store profile endpoint when the DTO has no avatar; the UI uses initials.
       const founderId = this.getFounderId(opportunity);
@@ -364,7 +361,7 @@ publicActivityError = signal<string | null>(null);
 
   async onDirectOfferSubmitted(offer: OfferVersion): Promise<void> {
     this.directOffer.set(offer);
-    this.participationBuilderOpen.set(false);
+    this.directOfferBuilderOpen.set(false);
     const opportunityId = this.getPublicOpportunityId(this.publicOpportunity());
     if (opportunityId) await this.loadViewerState(opportunityId);
   }
@@ -548,13 +545,13 @@ publicActivityError = signal<string | null>(null);
   }
 
   getOpportunityFundingProgress(opportunity: Opportunity | null): number {
-    const parsed = Number(opportunity?.fundingProgressPercent ?? 0);
+    const parsed = Number(opportunity?.fundingProgress ?? opportunity?.fundingProgressPercent ?? 0);
     if (!Number.isFinite(parsed)) return 0;
     return Math.max(0, Math.min(100, parsed));
   }
 
   getUseOfFunds(opportunity: Opportunity | null): string {
-    return (opportunity as any)?.useOfFunds || opportunity?.fundingPurpose || opportunity?.fundingUsage || '';
+    return opportunity?.useOfFunds || '';
   }
 
   getRelationshipState(): RelationshipPresentation {
@@ -566,11 +563,11 @@ publicActivityError = signal<string | null>(null);
     if (!state) {
       return {
         state: 'viewer-state-unavailable',
-        title: 'Relationship status unavailable',
-        description: 'We could not load your current relationship with this opportunity.',
-        progress: 'Refresh the page or sign in to see your next action.',
+        title: this.t('investmentPreview.relationship.viewerStateUnavailable.title'),
+        description: this.t('investmentPreview.relationship.viewerStateUnavailable.description'),
+        progress: this.t('investmentPreview.relationship.viewerStateUnavailable.progress'),
         primaryAction: 'none',
-        primaryLabel: 'Unavailable',
+        primaryLabel: this.t('investmentPreview.relationship.actions.unavailable'),
         tone: 'warning'
       };
     }
@@ -578,44 +575,44 @@ publicActivityError = signal<string | null>(null);
     if (state?.projectRoomUnlocked || state?.canOpenProjectRoom || participationStatus.includes('approved')) {
       return {
         state: 'participant-approved',
-        title: 'Participation approved',
-        description: 'You are now an approved Project Participant.',
-        progress: 'Project Room access is unlocked for private documents, updates, downloads, and collaboration.',
+        title: this.t('investmentPreview.relationship.approved.title'),
+        description: this.t('investmentPreview.relationship.approved.description'),
+        progress: this.t('investmentPreview.relationship.approved.progress'),
         primaryAction: 'open-room',
-        primaryLabel: 'Open Project Room',
+        primaryLabel: this.t('investmentPreview.relationship.actions.openRoom'),
         tone: 'success'
       };
     }
     if (participationStatus.includes('rejected') || participationStatus.includes('declined')) {
       return {
         state: 'participation-rejected',
-        title: 'Participation not approved',
-        description: 'The Participation Request was declined by the Founder.',
-        progress: 'Project Room remains locked. Continue only through the existing conversation if both sides agree.',
+        title: this.t('investmentPreview.relationship.rejected.title'),
+        description: this.t('investmentPreview.relationship.rejected.description'),
+        progress: this.t('investmentPreview.relationship.rejected.progress'),
         primaryAction: state.hasConversation && state.conversationId ? 'open-chat' : 'none',
-        primaryLabel: state.hasConversation && state.conversationId ? 'View Conversation' : 'No action available',
+        primaryLabel: state.hasConversation && state.conversationId ? this.t('investmentPreview.relationship.actions.viewConversation') : this.t('investmentPreview.relationship.actions.none'),
         tone: 'danger'
       };
     }
     if (state.hasPendingParticipationRequest || participationStatus.includes('pending') || conversationStatus.includes('participationcreated')) {
       return {
         state: 'participation-pending',
-        title: 'Participation Request Pending',
-        description: 'Your Participation Request is waiting for Founder approval.',
-        progress: 'Project Room remains locked until the Founder gives final approval.',
+        title: this.t('investmentPreview.relationship.pending.title'),
+        description: this.t('investmentPreview.relationship.pending.description'),
+        progress: this.t('investmentPreview.relationship.pending.progress'),
         primaryAction: state.hasConversation && state.conversationId ? 'open-chat' : 'none',
-        primaryLabel: state.hasConversation && state.conversationId ? 'View Conversation' : 'Waiting for Founder',
+        primaryLabel: state.hasConversation && state.conversationId ? this.t('investmentPreview.relationship.actions.viewConversation') : this.t('investmentPreview.relationship.actions.waitingFounder'),
         tone: 'warning'
       };
     }
     if (conversationStatus.includes('closed') || conversationStatus.includes('withdraw') || conversationStatus.includes('reject') || conversationStatus.includes('declin') || conversationStatus.includes('cancel')) {
       return {
         state: 'discussion-closed',
-        title: 'Discussion Closed',
-        description: 'The conversation for this opportunity is closed.',
-        progress: 'There is no active participation workflow from this discussion.',
+        title: this.t('investmentPreview.relationship.closed.title'),
+        description: this.t('investmentPreview.relationship.closed.description'),
+        progress: this.t('investmentPreview.relationship.closed.progress'),
         primaryAction: state.canRequestChat ? 'request-chat' : 'none',
-        primaryLabel: state.canRequestChat ? 'Request Chat' : 'No action available',
+        primaryLabel: state.canRequestChat ? this.t('investmentPreview.relationship.actions.requestChat') : this.t('investmentPreview.relationship.actions.none'),
         tone: 'neutral'
       };
     }
@@ -623,11 +620,11 @@ publicActivityError = signal<string | null>(null);
       if (state.investorReady && !state.founderReady) {
         return {
           state: 'ready-waiting-founder',
-          title: 'You are ready to proceed',
-          description: 'You marked yourself ready after negotiation.',
-          progress: 'Waiting for the Founder to confirm readiness before a Participation Request is created.',
+          title: this.t('investmentPreview.relationship.readyWaitingFounder.title'),
+          description: this.t('investmentPreview.relationship.readyWaitingFounder.description'),
+          progress: this.t('investmentPreview.relationship.readyWaitingFounder.progress'),
           primaryAction: state.hasConversation && state.conversationId ? 'open-chat' : 'none',
-          primaryLabel: state.hasConversation && state.conversationId ? 'Continue Conversation' : 'Waiting for Founder',
+          primaryLabel: state.hasConversation && state.conversationId ? this.t('investmentPreview.relationship.actions.continueConversation') : this.t('investmentPreview.relationship.actions.waitingFounder'),
           tone: 'info'
         };
       }
@@ -635,55 +632,55 @@ publicActivityError = signal<string | null>(null);
       if (state.founderReady && !state.investorReady) {
         return {
           state: 'ready-waiting-investor',
-          title: 'Founder is ready to proceed',
-          description: 'Review the negotiation and confirm when you are ready.',
-          progress: 'Participation is not created until both sides are ready.',
+          title: this.t('investmentPreview.relationship.readyWaitingInvestor.title'),
+          description: this.t('investmentPreview.relationship.readyWaitingInvestor.description'),
+          progress: this.t('investmentPreview.relationship.readyWaitingInvestor.progress'),
           primaryAction: state.hasConversation && state.conversationId ? 'open-chat' : 'none',
-          primaryLabel: state.hasConversation && state.conversationId ? 'Continue Conversation' : 'Review Conversation',
+          primaryLabel: state.hasConversation && state.conversationId ? this.t('investmentPreview.relationship.actions.continueConversation') : this.t('investmentPreview.relationship.actions.reviewConversation'),
           tone: 'info'
         };
       }
 
       return {
         state: 'ready-creating-participation',
-        title: 'Ready for participation',
-        description: 'Both sides are ready to proceed.',
-        progress: 'The formal Participation Request is being prepared or already created by the backend workflow.',
+        title: this.t('investmentPreview.relationship.ready.title'),
+        description: this.t('investmentPreview.relationship.ready.description'),
+        progress: this.t('investmentPreview.relationship.ready.progress'),
         primaryAction: state.hasConversation && state.conversationId ? 'open-chat' : 'none',
-        primaryLabel: state.hasConversation && state.conversationId ? 'View Conversation' : 'Waiting',
+        primaryLabel: state.hasConversation && state.conversationId ? this.t('investmentPreview.relationship.actions.viewConversation') : this.t('investmentPreview.relationship.actions.waiting'),
         tone: 'info'
       };
     }
     if (conversationStatus.includes('accepted') || conversationStatus.includes('progress') || conversationStatus.includes('negotiation')) {
       return {
         state: 'negotiation',
-        title: 'Negotiation in Progress',
-        description: 'You and the Founder are discussing this opportunity.',
-        progress: 'Chat is not participation. Project Room unlocks only after a Participation Request is approved.',
+        title: this.t('investmentPreview.relationship.negotiation.title'),
+        description: this.t('investmentPreview.relationship.negotiation.description'),
+        progress: this.t('investmentPreview.relationship.negotiation.progress'),
         primaryAction: state.hasConversation && state.conversationId ? 'open-chat' : 'none',
-        primaryLabel: state.hasConversation && state.conversationId ? 'Continue Conversation' : 'Conversation unavailable',
+        primaryLabel: state.hasConversation && state.conversationId ? this.t('investmentPreview.relationship.actions.continueConversation') : this.t('investmentPreview.relationship.actions.conversationUnavailable'),
         tone: 'info'
       };
     }
     if (state.hasConversationRequest && !state.hasConversation && (conversationRequestStatus.includes('pending') || conversationRequestStatus.includes('requested'))) {
       return {
         state: 'chat-requested',
-        title: 'Waiting for Founder response',
-        description: 'Your chat request has been sent to the Founder.',
-        progress: 'No duplicate request is needed. Participation actions appear only after negotiation progresses.',
+        title: this.t('investmentPreview.relationship.chatRequested.title'),
+        description: this.t('investmentPreview.relationship.chatRequested.description'),
+        progress: this.t('investmentPreview.relationship.chatRequested.progress'),
         primaryAction: 'none',
-        primaryLabel: 'Waiting for Founder',
+        primaryLabel: this.t('investmentPreview.relationship.actions.waitingFounder'),
         tone: 'warning'
       };
     }
 
     return {
       state: 'never-contacted',
-      title: 'Start the discussion',
-      description: 'Request a chat to learn more and discuss this opportunity with the Founder.',
-      progress: 'Chat opens negotiation only. It does not make you a Participant.',
+      title: this.t('investmentPreview.relationship.start.title'),
+      description: this.t('investmentPreview.relationship.start.description'),
+      progress: this.t('investmentPreview.relationship.start.progress'),
       primaryAction: state.canRequestChat ? 'request-chat' : 'none',
-      primaryLabel: state.canRequestChat ? 'Request Chat' : 'No action available',
+      primaryLabel: state.canRequestChat ? this.t('investmentPreview.relationship.actions.requestChat') : this.t('investmentPreview.relationship.actions.none'),
       tone: 'neutral'
     };
   }
@@ -705,7 +702,8 @@ publicActivityError = signal<string | null>(null);
   }
 
   getProjectCoverUrl(opportunity: Opportunity | null): string {
-    return this.resolveImageUrl(opportunity?.projectContext?.logoUrl || opportunity?.projectLogoUrl || '');
+    return this.resolveImageUrl(opportunity?.projectContext?.logoUrl || opportunity?.projectLogoUrl || '')
+      || '/assets/project-placeholder.svg';
   }
 
   getProjectContext(opportunity: Opportunity | null): OpportunityProjectContext | null {
@@ -734,16 +732,11 @@ publicActivityError = signal<string | null>(null);
   }
 
   getProjectStage(opportunity: Opportunity | null): string {
-    const value = opportunity?.projectContext?.businessStage ?? opportunity?.projectStage;
+    const value = opportunity?.projectContext?.projectStage ?? opportunity?.projectStage;
     if (value === null || value === undefined || value === '') return '';
-    const raw = String(value).toLowerCase().replace(/[\s_-]+/g, '');
-    const key = raw === '0' || raw === '1' || raw === 'idea' ? 'idea'
-      : raw === '2' || raw === 'mvp' ? 'mvp'
-      : raw === '3' || raw === 'startup' ? 'startup'
-      : raw === '4' || raw === 'scaling' ? 'scaling'
-      : raw === '5' || raw === 'established' ? 'established'
-      : raw;
-    return this.t(`investmentPreview.projectStages.${key}`) || String(value);
+    const label = this.stageService.label(value, this.languageService.language() === 'ar' ? 'ar' : 'en');
+    const custom = opportunity?.projectStageCustomName?.trim();
+    return this.stageService.find(value)?.allowsCustomName && custom ? `${label}: ${custom}` : label || String(value);
   }
 
   getProjectStatus(opportunity: Opportunity | null): string {
@@ -790,8 +783,8 @@ publicActivityError = signal<string | null>(null);
 
   endDiscussion(): void {
     this.notificationService.showToast({
-      title: 'Discussion close coming soon',
-      message: 'Closing a discussion needs a backend negotiation endpoint.',
+      title: this.t('investmentPreview.notifications.closeComingSoon'),
+      message: this.t('investmentPreview.notifications.closeNeedsEndpoint'),
       type: 'info'
     });
   }
@@ -985,7 +978,9 @@ publicActivityError = signal<string | null>(null);
   }
 
   resolveImageUrl(url?: string | null): string {
-    return this.fileStoreService.getPublicUrl(url);
+    const value = String(url ?? '').trim();
+    if (!value || /(?:logoexample\.com|example\.com|ui-avatars\.com)/i.test(value)) return '';
+    return this.fileStoreService.getPublicUrl(value);
   }
 
   /**
@@ -1111,8 +1106,8 @@ publicActivityError = signal<string | null>(null);
   private toOpportunityView(opportunity: Opportunity): OpportunityView {
     const source = opportunity as Opportunity & Record<string, any>;
     const targetFund = Number(source.fundingTarget ?? source.targetFund ?? 0);
-    const fundingPercentage = this.numberOrNull(source.fundingProgressPercentage ?? source.fundingProgressPercent);
-    const currentFunding = this.numberOrNull(source.fundedAmount);
+    const fundingPercentage = this.numberOrNull(source.fundingProgress ?? source.fundingProgressPercentage ?? source.fundingProgressPercent);
+    const currentFunding = this.numberOrNull(source.committedAmount ?? source.fundedAmount);
 
     return {
       ...source,
@@ -1199,7 +1194,7 @@ async confirmContactFounder(): Promise<void> {
     const localizedMessage = apiMessage === 'You already have a pending request for this investment'
       ? this.languageService.translate('requests.pendingRequestExists')
       : (apiMessage || 'Failed to submit request. Please try again.');
-    this.notificationService.showToast({ title: 'Request Failed', message: localizedMessage, type: 'error' });
+    this.notificationService.showToast({ title: this.t('investmentPreview.notifications.requestFailed'), message: localizedMessage, type: 'error' });
   } finally {
     this.contactFounderProcessing.set(false);
   }
@@ -1302,36 +1297,6 @@ getStatusDescription(status: string): string {
   };
   return descriptions[status] || status || 'Unknown';
 }
-
-/**
- * Get project stages for the roadmap
- */
-getProjectStages(): string[] {
-  return [
-    'MVP Development',
-    'Beta Testing',
-    'Market Launch',
-    'User Acquisition',
-    'Revenue Generation',
-    'Scale Operations'
-  ];
-}
-
-/**
- * Get the current stage index based on projectPhaseId
- * Maps projectPhaseId (6-11) to stage index (0-5)
- */
-getCurrentStageIndex(): number {
-    const inv = this.investment();
-    if (!inv || inv.projectPhaseId === undefined || inv.projectPhaseId === null) {
-      return 0;
-    }
-
-    // projectPhaseId ranges from 6 to 11 (6 phases total)
-    // Map to index 0-5
-    const index = inv.projectPhaseId - 6;
-    return Math.max(0, Math.min(5, index));
-  }
 
   /**
    * Get founder's total opportunities count

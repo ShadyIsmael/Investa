@@ -5,7 +5,7 @@ BEGIN;
 
 -- Remove user-related data while preserving lookup/seed tables.
 TRUNCATE TABLE
-    "ClientBusinessCategories",
+    "ClientProjectCategories",
     "CreditTransactions",
     "InvestmentUsers",
     "Investments",

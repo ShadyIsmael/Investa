@@ -15,11 +15,6 @@ public class Opportunity
     /// <summary>Stable one-based ordering of opportunities within their Project.</summary>
     public int SequenceNumber { get; set; }
 
-    /// <summary>Founder-facing reason for this distinct opportunity.</summary>
-    [Required]
-    [StringLength(200)]
-    public string Purpose { get; set; } = "General funding";
-
     /// <summary>Opportunity classification; independent from its investment instrument.</summary>
     [Required]
     [StringLength(80)]

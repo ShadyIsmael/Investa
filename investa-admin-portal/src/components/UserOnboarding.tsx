@@ -1,4 +1,5 @@
 import React, { useState } from 'react';import { useTranslation } from 'react-i18next';import { userService } from '@/services/userService';
+import { groupService } from '@/services/groupService';
 import { User } from '@/types';
 import { toast } from 'react-toastify';
 
@@ -59,12 +60,12 @@ const UserOnboarding: React.FC<UserOnboardingProps> = ({ editingUser, onClose })
   React.useEffect(() => {
     (async () => {
       try {
-        const gs = await (await import('@/services/groupService')).groupService.getGroups();
+        const gs = await groupService.getGroups();
         setGroups(gs || []);
         if (editingUser?.groupId) {
-          const rs = await (await import('@/services/groupService')).groupService.getRolesByGroup(editingUser.groupId);
+          const rs = await groupService.getRolesByGroup(editingUser.groupId);
           setRoles(rs || []);
-          setRoleId(editingUser.roleId ?? (rs[0]?.id ?? null));
+          setRoleId(editingUser.roleId != null ? String(editingUser.roleId) : (rs[0]?.id != null ? String(rs[0].id) : null));
         }
       } catch (e) {
         // ignore
@@ -115,9 +116,9 @@ const UserOnboarding: React.FC<UserOnboardingProps> = ({ editingUser, onClose })
               setRoleId(null);
               if (gid) {
                 try {
-                  const rs = await (await import('@/services/groupService')).groupService.getRolesByGroup(gid);
+                  const rs = await groupService.getRolesByGroup(gid);
                   setRoles(rs || []);
-                  setRoleId(rs[0]?.id ?? null);
+                  setRoleId(rs[0]?.id != null ? String(rs[0].id) : null);
                 } catch {
                   setRoles([]);
                 }

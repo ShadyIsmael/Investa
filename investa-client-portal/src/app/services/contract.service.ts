@@ -20,6 +20,12 @@ export interface InvestmentContractSummary {
   status: InvestmentContractStatus;
   latestAgreementDate: string;
   versionCount: number;
+  acceptedOfferId?: number | null;
+  acceptedOfferVersionNumber?: number | null;
+  participationRequestId?: number | null;
+  acceptedAmount?: number;
+  acceptedCurrency?: string;
+  acceptanceTimestamp?: string | null;
 }
 
 export interface InvestmentContractVersionSummary {

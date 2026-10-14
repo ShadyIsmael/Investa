@@ -204,7 +204,7 @@ export const UsersList: React.FC = React.memo(() => {
                 <button onClick={() => handleBulkUpdateStatus('Inactive')} className="px-3 py-1 bg-warning text-white rounded-md">Deactivate</button>
                 <button onClick={handleBulkDelete} className="px-3 py-1 bg-error text-white rounded-md">Delete</button>
                 <button onClick={() => exportCSV(true)} className="px-3 py-1 bg-muted/20 rounded-md text-text">Export Selected</button>
-                <button onClick={clearSelection} className="px-3 py-1 border border-border rounded-md text-text">Clear</button>
+                <button onClick={clearSelection} className="btn-secondary btn-sm">Clear</button>
               </div>
             )}
 
@@ -263,8 +263,8 @@ export const UsersList: React.FC = React.memo(() => {
                     <td className="px-3 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <PermissionControl permission="User.Manage">
-                          <button onClick={() => setDetailUserId(u.id)} className="px-2 py-1 border border-border rounded-md text-sm text-text hover:bg-background">View</button>
-                          <button onClick={() => handleEdit(u)} className="px-2 py-1 border border-border rounded-md text-sm text-text hover:bg-background">Edit</button>
+                          <button onClick={() => setDetailUserId(u.id)} className="btn-secondary btn-sm">View</button>
+                          <button onClick={() => handleEdit(u)} className="btn-secondary btn-sm">Edit</button>
                           <button onClick={() => handleToggleStatus(u)} className="px-2 py-1 border border-border rounded-md text-sm text-text hover:bg-background">{u.status === 'Active' ? 'Deactivate' : 'Activate'}</button>
                           <button onClick={() => handleDelete(u)} className="px-2 py-1 border border-red-200 rounded-md text-sm text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:hover:bg-red-900/20">Delete</button>
                         </PermissionControl>

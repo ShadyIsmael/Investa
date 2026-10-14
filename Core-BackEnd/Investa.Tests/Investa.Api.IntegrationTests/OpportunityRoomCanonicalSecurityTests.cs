@@ -203,7 +203,6 @@ public sealed class OpportunityRoomCanonicalSecurityTests
         Project = project,
         FounderId = founderId,
         SequenceNumber = sequence,
-        Purpose = "Purpose",
         Type = "Opportunity",
         Title = title,
         ShortDescription = "Short opportunity description",

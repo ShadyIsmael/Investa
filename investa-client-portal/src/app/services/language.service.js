@@ -1,18 +1,12 @@
 import { Injectable, signal, computed, inject, effect } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { forkJoin } from 'rxjs';
 import { SettingsService } from './settings.service';
+import { TRANSLATION_DICTIONARIES } from '../i18n/translation-dictionaries';
 import * as i0 from "@angular/core";
 export class LanguageService {
     constructor() {
-        this.http = inject(HttpClient);
         this.settingsService = inject(SettingsService);
+        this.dictionaries = signal(inject(TRANSLATION_DICTIONARIES), ...(ngDevMode ? [{ debugName: "dictionaries" }] : []));
         this.language = signal(this.getInitialLanguage(), ...(ngDevMode ? [{ debugName: "language" }] : []));
-        this.dictionaries = toSignal(forkJoin({
-            en: this.http.get('/assets/i18n/en.json'),
-            ar: this.http.get('/assets/i18n/ar.json')
-        }), { initialValue: { en: {}, ar: {} } });
         this.dictionary = computed(() => this.dictionaries()[this.language()], ...(ngDevMode ? [{ debugName: "dictionary" }] : []));
         this.direction = computed(() => this.language() === 'ar' ? 'rtl' : 'ltr', ...(ngDevMode ? [{ debugName: "direction" }] : []));
         effect(() => {

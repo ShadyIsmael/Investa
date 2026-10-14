@@ -127,13 +127,13 @@ public sealed class ProjectOpportunityStageUniquenessTests
     private static Project Project(Guid founderId, string name) => new()
     {
         FounderId = founderId, DisplayName = name, Slug = $"{name}-{Guid.NewGuid():N}",
-        Summary = "A durable project summary", Description = "A durable project description", BusinessStage = ProjectStage.Idea
+        Summary = "A durable project summary", Description = "A durable project description", ProjectStage = ProjectStage.Idea
     };
 
     private static Task<OpportunityDetailDto> CreateAsync(OpportunityService service, Guid founderId, int projectId, string title, ProjectStage stage, string? custom = null) =>
         service.CreateAsync(founderId, new CreateOpportunityRequest
         {
-            ProjectId = projectId, Title = title, Purpose = "Lifecycle funding", Type = "Opportunity",
+            ProjectId = projectId, Title = title, Type = "Opportunity",
             ShortDescription = "A sufficiently detailed lifecycle opportunity summary.",
             UseOfFunds = "Product, operations, and measured expansion for this lifecycle milestone.",
             FundingTarget = 100_000m, FundingCurrency = "EGP", ProjectStage = stage, ProjectStageCustomName = custom
@@ -141,7 +141,7 @@ public sealed class ProjectOpportunityStageUniquenessTests
 
     private static UpdateOpportunityRequest Update(ProjectStage stage) => new()
     {
-        Title = "Updated lifecycle milestone", Purpose = "Lifecycle funding", Type = "Opportunity",
+        Title = "Updated lifecycle milestone", Type = "Opportunity",
         ShortDescription = "A sufficiently detailed lifecycle opportunity summary.",
         UseOfFunds = "Product, operations, and measured expansion for this lifecycle milestone.",
         FundingTarget = 100_000m, FundingCurrency = "EGP", ProjectStage = stage

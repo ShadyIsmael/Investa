@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { Icon } from '@/components/common/Icons';
 import { api } from '@/services/api';
-import { formatMoney, defaultIsoCode, ensureCurrenciesLoaded } from '../../utils/currency';
+import { formatMoney, defaultIsoCode, ensureCurrenciesLoaded, getCurrencies } from '../../utils/currency';
 
 type PackageId = string | number;
 type PurchaseStatus = 'Pending' | 'Processing' | 'Paid' | 'Failed' | 'Cancelled' | 'Expired' | 'Refunded';
@@ -112,6 +112,7 @@ export const CreditSetup: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [currencies, setCurrencies] = useState<string[]>(() => getCurrencies().map(currency => currency.isoCode));
 
   const loadPackages = useCallback(async () => {
     setLoading(true);
@@ -135,9 +136,9 @@ export const CreditSetup: React.FC = () => {
     finally { setLoading(false); }
   }, [search, status, t]);
 
-  useEffect(() => { ensureCurrenciesLoaded(); tab === 'packages' ? loadPackages() : loadOrders(); }, [tab, loadPackages, loadOrders]);
+  useEffect(() => { void ensureCurrenciesLoaded().then(() => setCurrencies(getCurrencies().map(currency => currency.isoCode))); tab === 'packages' ? loadPackages() : loadOrders(); }, [tab, loadPackages, loadOrders]);
 
-  const openCreate = () => { setEditing(null); setDraft({ ...EMPTY_PACKAGE }); setShowForm(true); };
+  const openCreate = () => { setEditing(null); setDraft({ ...EMPTY_PACKAGE, currency: defaultIsoCode() }); setShowForm(true); };
   const openEdit = (item: CreditPackage) => {
     const { id: _id, updatedAt: _updatedAt, ...values } = item;
     setEditing(item); setDraft(values); setShowForm(true);
@@ -242,7 +243,7 @@ export const CreditSetup: React.FC = () => {
         <div className="mb-5 flex items-center justify-between"><h3 className="text-xl font-bold">{t(editing ? 'creditAdmin.editPackage' : 'creditAdmin.addPackage')}</h3><button onClick={() => setShowForm(false)} className="text-muted-foreground">✕</button></div>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={t('creditAdmin.code')}><input className="input-field w-full" value={draft.code} disabled={!!editing} onChange={e => setDraft({ ...draft, code: e.target.value })} /></Field>
-          <Field label={t('creditAdmin.currency')}><input className="input-field w-full" maxLength={3} value={draft.currency} onChange={e => setDraft({ ...draft, currency: e.target.value.toUpperCase() })} /></Field>
+          <Field label={t('creditAdmin.currency')}><select className="input-field w-full" value={draft.currency} onChange={e => setDraft({ ...draft, currency: e.target.value })}>{currencies.map(code => <option key={code} value={code}>{code}</option>)}</select></Field>
           <Field label={t('creditAdmin.nameEn')}><input className="input-field w-full" dir="ltr" value={draft.nameEn} onChange={e => setDraft({ ...draft, nameEn: e.target.value })} /></Field>
           <Field label={t('creditAdmin.nameAr')}><input className="input-field w-full" dir="rtl" value={draft.nameAr} onChange={e => setDraft({ ...draft, nameAr: e.target.value })} /></Field>
           <NumberField label={t('creditAdmin.credits')} value={draft.creditQuantity} min={1} onChange={creditQuantity => setDraft({ ...draft, creditQuantity })} />

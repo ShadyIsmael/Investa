@@ -1,0 +1,81 @@
+import { lazyNamedRoute } from './lazyRoute';
+
+const globalAdminModule = () => import('@/routes/GlobalAdminRoutes');
+const customersModule = () => import('@/routes/CustomersRoutes');
+const catalogModule = () => import('@/routes/CatalogRoutes');
+const salesOpportunitiesModule = () => import('@/routes/SalesOpportunityRoutes');
+  const quotationsModule = () => import('@/routes/QuotationRoutes');
+const contractsModule = () => import('@/routes/ContractRoutes');
+const fopxWorkspaceModule = () => import('@/routes/FopxWorkspaceRoutes');
+const opportunityAdminModule = () => import('@/routes/OpportunityAdminRoutes');
+const operationsModule = () => import('@/routes/OperationsRoutes');
+const referenceDataModule = () => import('@/routes/ReferenceDataRoutes');
+const companyFinanceModule = () => import('@/routes/CompanyFinanceRoutes');
+const legacyAdminModule = () => import('@/routes/LegacyAdminRoutes');
+
+export const GlobalOverview = lazyNamedRoute(globalAdminModule, 'GlobalOverview');
+export const UsersList = lazyNamedRoute(globalAdminModule, 'UsersList');
+export const AccessControlHub = lazyNamedRoute(globalAdminModule, 'AccessControlHub');
+export const Groups = lazyNamedRoute(globalAdminModule, 'Groups');
+export const Roles = lazyNamedRoute(globalAdminModule, 'Roles');
+export const AdminUserReviewQueue = lazyNamedRoute(globalAdminModule, 'AdminUserReviewQueue');
+export const NotificationTemplates = lazyNamedRoute(globalAdminModule, 'NotificationTemplates');
+export const SystemConfiguration = lazyNamedRoute(globalAdminModule, 'SystemConfiguration');
+export const PlatformStatusPage = lazyNamedRoute(globalAdminModule, 'PlatformStatusPage');
+export const CustomerListPage = lazyNamedRoute(customersModule, 'CustomerListPage');
+export const CustomerDetailPage = lazyNamedRoute(customersModule, 'CustomerDetailPage');
+export const CustomerFormPage = lazyNamedRoute(customersModule, 'CustomerFormPage');
+export const CatalogListPage = lazyNamedRoute(catalogModule, 'CatalogListPage');
+export const CatalogDetailPage = lazyNamedRoute(catalogModule, 'CatalogDetailPage');
+export const CatalogFormPage = lazyNamedRoute(catalogModule, 'CatalogFormPage');
+export const SalesOpportunityListPage = lazyNamedRoute(salesOpportunitiesModule, 'SalesOpportunityListPage');
+export const SalesOpportunityDetailPage = lazyNamedRoute(salesOpportunitiesModule, 'SalesOpportunityDetailPage');
+export const SalesOpportunityFormPage = lazyNamedRoute(salesOpportunitiesModule, 'SalesOpportunityFormPage');
+  export const QuotationListPage = lazyNamedRoute(quotationsModule, 'QuotationListPage');
+  export const QuotationFormPage = lazyNamedRoute(quotationsModule, 'QuotationFormPage');
+  export const QuotationDetailPage = lazyNamedRoute(quotationsModule, 'QuotationDetailPage');
+  export const QuotationPrintPage = lazyNamedRoute(quotationsModule, 'QuotationPrintPage');
+export const ContractListPage = lazyNamedRoute(contractsModule, 'ContractListPage');
+export const ContractFormPage = lazyNamedRoute(contractsModule, 'ContractFormPage');
+export const ContractDetailPage = lazyNamedRoute(contractsModule, 'ContractDetailPage');
+export const ContractPrintPage = lazyNamedRoute(contractsModule, 'ContractPrintPage');
+
+export const Dashboard = lazyNamedRoute(fopxWorkspaceModule, 'Dashboard');
+export const ClientsList = lazyNamedRoute(fopxWorkspaceModule, 'ClientsList');
+export const ClientDetails = lazyNamedRoute(fopxWorkspaceModule, 'ClientDetails');
+export const SupportAdmin = lazyNamedRoute(fopxWorkspaceModule, 'SupportAdmin');
+export const ModerationReports = lazyNamedRoute(fopxWorkspaceModule, 'ModerationReports');
+export const OpportunityListPage = lazyNamedRoute(opportunityAdminModule, 'OpportunityListPage');
+export const OpportunityDetailPage = lazyNamedRoute(opportunityAdminModule, 'OpportunityDetailPage');
+
+export const ReputationRules = lazyNamedRoute(operationsModule, 'ReputationRules');
+export const PricingManagement = lazyNamedRoute(operationsModule, 'PricingManagement');
+export const NotificationBroadcasts = lazyNamedRoute(operationsModule, 'NotificationBroadcasts');
+
+export const OpportunityTagMasterPage = lazyNamedRoute(referenceDataModule, 'OpportunityTagMasterPage');
+export const CurrencyMasterPage = lazyNamedRoute(referenceDataModule, 'CurrencyMasterPage');
+export const ProjectCategoryMasterPage = lazyNamedRoute(referenceDataModule, 'ProjectCategoryMasterPage');
+export const FundingGoalMasterPage = lazyNamedRoute(referenceDataModule, 'FundingGoalMasterPage');
+export const CountryMasterPage = lazyNamedRoute(referenceDataModule, 'CountryMasterPage');
+export const ProjectStageMetadataPage = lazyNamedRoute(referenceDataModule, 'ProjectStageMetadataPage');
+export const RiskLevelMasterPage = lazyNamedRoute(referenceDataModule, 'RiskLevelMasterPage');
+export const FileCategoryMasterPage = lazyNamedRoute(referenceDataModule, 'FileCategoryMasterPage');
+
+export const CompanyFinanceShell = lazyNamedRoute(companyFinanceModule, 'CompanyFinanceShell');
+export const CompanyFinancePage = lazyNamedRoute(companyFinanceModule, 'CompanyFinancePage');
+export const FinanceAccountsPage = lazyNamedRoute(companyFinanceModule, 'FinanceAccountsPage');
+export const FinanceSuppliersPage = lazyNamedRoute(companyFinanceModule, 'FinanceSuppliersPage');
+export const FinanceCategoriesSettingsPage = lazyNamedRoute(companyFinanceModule, 'FinanceCategoriesSettingsPage');
+export const FinanceMoneyInPage = lazyNamedRoute(companyFinanceModule, 'FinanceMoneyInPage');
+export const FinanceMoneyInCreatePage = lazyNamedRoute(companyFinanceModule, 'FinanceMoneyInCreatePage');
+export const FinanceMoneyOutPage = lazyNamedRoute(companyFinanceModule, 'FinanceMoneyOutPage');
+export const FinanceMoneyOutCreatePage = lazyNamedRoute(companyFinanceModule, 'FinanceMoneyOutCreatePage');
+export const FinanceOverviewPage = lazyNamedRoute(companyFinanceModule, 'FinanceOverviewPage');
+export const FinanceReviewQueuePage = lazyNamedRoute(companyFinanceModule, 'FinanceReviewQueuePage');
+export const FinanceReconciliationPage = lazyNamedRoute(companyFinanceModule, 'FinanceReconciliationPage');
+
+export const SupportDashboard = lazyNamedRoute(legacyAdminModule, 'SupportDashboard');
+export const ChatView = lazyNamedRoute(legacyAdminModule, 'ChatView');
+export const CreditSetup = lazyNamedRoute(legacyAdminModule, 'CreditSetup');
+export const ApiTester = lazyNamedRoute(legacyAdminModule, 'ApiTester');
+export const MyProfile = lazyNamedRoute(legacyAdminModule, 'MyProfile');

@@ -28,7 +28,7 @@ export class FounderPortfolioDashboardComponent {
 
   readonly dashboard = signal<FounderDashboard | null>(null);
   readonly loading = signal(true);
-  readonly error = signal(false);
+  readonly error = signal<string | null>(null);
   readonly direction = computed(() => this.languageService.direction());
   readonly language = computed(() => this.languageService.language());
   readonly metrics = computed(() => this.dashboard()?.metrics);
@@ -51,12 +51,12 @@ export class FounderPortfolioDashboardComponent {
 
   async load(): Promise<void> {
     this.loading.set(true);
-    this.error.set(false);
+    this.error.set(null);
     try {
       this.dashboard.set(await this.dashboardService.getDashboard());
-    } catch {
+    } catch (error: any) {
       this.dashboard.set(null);
-      this.error.set(true);
+      this.error.set(error?.error?.message || error?.error?.error || error?.message || null);
     } finally {
       this.loading.set(false);
     }

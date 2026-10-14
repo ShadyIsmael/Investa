@@ -157,7 +157,7 @@
                     </span>
                     <span class="favorite-content">
                       <strong>{{ favorite.title }}</strong>
-                      <small>{{ favorite.categoryName || favorite.fundingGoalName || ('dashboard.uncategorized' | translate) }}</small>
+                      <small>{{ (direction() === 'rtl' ? (favorite.fundingGoal?.nameAr || favorite.fundingGoal?.nameEn) : (favorite.fundingGoal?.nameEn || favorite.fundingGoal?.nameAr)) || favorite.categoryName || ('dashboard.uncategorized' | translate) }}</small>
                     </span>
                     <em>{{ 'dashboard.favorites.openDetails' | translate }}</em>
                   </a>
@@ -272,7 +272,7 @@
                  [style.width.%]="fp"></div>
           </div>
           <div class="flex justify-between text-xs text-gray-500">
-            <span>{{ 'investmentPreview.amountRaised' | translate }}: <span class="text-white font-semibold">{{ getNativeFundedAmount(project) === null ? '—' : formatProjectAmount(getNativeFundedAmount(project), project.currency) }}</span></span>
+            <span>{{ 'investmentPreview.committed' | translate }}: <span class="text-white font-semibold">{{ getNativeFundedAmount(project) === null ? '—' : formatProjectAmount(getNativeFundedAmount(project), project.currency) }}</span></span>
             <span>{{ 'investmentPreview.target' | translate }}: <span class="text-white font-semibold">{{ formatProjectAmount(project.fundingTarget, project.currency) }}</span></span>
           </div>
         </div>
@@ -552,7 +552,7 @@
                   <a [routerLink]="['/admin/opportunities', roomOpportunityId, 'room']"
                      (click)="$event.stopPropagation()"
                      class="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-200 hover:border-emerald-500/45 hover:bg-emerald-500/15">
-                    Open Project Room
+                    {{ 'dashboard.openProjectRoom' | translate }}
                   </a>
                 }
                 @if (isDraftOpportunity(p)) {

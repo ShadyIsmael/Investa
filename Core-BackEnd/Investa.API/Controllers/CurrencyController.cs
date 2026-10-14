@@ -23,9 +23,11 @@ public sealed class CurrencyController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> GetCurrencies(
         [FromQuery] string? purpose,
+        [FromQuery] bool includeInactive,
         CancellationToken cancellationToken)
     {
-        var query = _db.Currencies.AsNoTracking().Where(x => x.IsActive);
+        var query = _db.Currencies.AsNoTracking().AsQueryable();
+        if (!includeInactive) query = query.Where(x => x.IsActive);
         query = purpose?.Trim().ToLowerInvariant() switch
         {
             "funding" => query.Where(x => x.SupportsFunding),
@@ -34,6 +36,18 @@ public sealed class CurrencyController : ControllerBase
             _ => query
         };
         return Ok(await query.OrderBy(x => x.ISOCode).ToListAsync(cancellationToken));
+    }
+
+    [HttpGet("{isoCode}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetCurrency(string isoCode, CancellationToken cancellationToken)
+    {
+        var code = isoCode?.Trim().ToUpperInvariant();
+        if (code?.Length != 3 || !code.All(c => c is >= 'A' and <= 'Z'))
+            return BadRequest(new { code = "INVALID_CURRENCY", message = "Currency must be a three-letter ISO 4217 code." });
+
+        var currency = await _db.Currencies.AsNoTracking().SingleOrDefaultAsync(x => x.ISOCode == code, cancellationToken);
+        return currency is null ? NotFound(new { code = "CURRENCY_NOT_FOUND", message = "Currency was not found." }) : Ok(currency);
     }
 
     [HttpGet("display-quote")]

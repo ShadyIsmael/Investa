@@ -15,11 +15,7 @@ export enum DefaultInvestmentTypePreference {
   Equity = 'equity',
 }
 
-export enum CurrencyPreference {
-  USD = 'USD',
-  EUR = 'EUR',
-  SAR = 'SAR',
-}
+export type CurrencyPreference = string;
 
 export interface NotificationSettings {
   email: boolean;

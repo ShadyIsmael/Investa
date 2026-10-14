@@ -83,6 +83,9 @@ namespace Investa.Application.DTOs
         public string? Icon { get; set; }
         public bool IsRead { get; set; }
         public string? ActionUrl { get; set; }
+        public string? EventType { get; set; }
+        public int? OpportunityId { get; set; }
+        public string? RelatedEntityId { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? ReadAt { get; set; }
     }

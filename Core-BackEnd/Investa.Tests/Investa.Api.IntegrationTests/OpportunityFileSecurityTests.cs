@@ -39,20 +39,24 @@ public class OpportunityFileSecurityTests : IClassFixture<CustomWebApplicationFa
         seededUser.UserType = UserType.Client;
         seededUser.ClientType = ClientType.Founder;
 
-        var category = new Investa.Domain.Entities.OpportunityCategory
+        var category = new Investa.Domain.Entities.ProjectCategory
         {
             Id = Math.Abs(Guid.NewGuid().GetHashCode()),
-            Name = "File Security Test Category",
-            Description = "Test category for file security tests",
+            Code = "FILE-SECURITY-TEST-CATEGORY",
+            NameEn = "File Security Test Category",
+            NameAr = "تصنيف اختبار أمان الملفات",
             IsActive = true
         };
-        db.OpportunityCategories.Add(category);
+        db.ProjectCategories.Add(category);
 
         var fundingGoal = new Investa.Domain.Entities.FundingGoal
         {
             Id = Math.Abs(Guid.NewGuid().GetHashCode()),
-            Name = "File Security Test Goal",
-            Description = "Test goal for file security tests",
+            Code = "FILESECURITYTESTGOAL",
+            NameEn = "File Security Test Goal",
+            NameAr = "هدف اختبار أمان الملفات",
+            DescriptionEn = "Test goal for file security tests",
+            DescriptionAr = "هدف اختبار أمان الملفات",
             SortOrder = 1
         };
         db.FundingGoals.Add(fundingGoal);

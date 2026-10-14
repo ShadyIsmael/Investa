@@ -1,7 +1,9 @@
 import { Component, ChangeDetectionStrategy, signal, computed, inject, DestroyRef, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
-import { Opportunity, OpportunityLookup, OpportunityService, MyParticipation } from '../../../services/opportunity.service';
+import { Opportunity, OpportunityService, MyParticipation } from '../../../services/opportunity.service';
+import { ProjectCategoryReference, ProjectCategoryService } from '../../../services/project-category.service';
+import { RiskLevelReference, RiskLevelService } from '../../../services/risk-level.service';
 import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
@@ -22,15 +24,16 @@ type ProjectCard = (Opportunity & MyParticipation & Record<string, any>) & {
   founderDisplay: string;
   founderId: string;
   businessRole: string;
-  businessCategoryName: string;
-  businessCategoryNameAr: string;
+  categoryName: string;
+  categoryNameAr: string;
   targetFund: number;
   currentFunding: number | null;
+  confirmedFunding: number | null;
   fundingPercentage: number | null;
   currency: string;
   investedAmount: number | null;
   investorCount: number | null;
-  riskLevel: RiskLevel;
+  riskLevel: string;
   favorited: boolean;
   credibilityScore: number;
   date: Date;
@@ -52,19 +55,13 @@ type ProjectCard = (Opportunity & MyParticipation & Record<string, any>) & {
 
 };
 
-enum RiskLevel {
-  Low = 'Low',
-  Medium = 'Medium',
-  High = 'High'
-}
-
-const DEFAULT_PLACEHOLDER = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0tpZHM9ImV4dGxhbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjY2NjYyIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPgogIDxwYXRoIGQ9Ik0wMCAwMmgNDBwLTAgMEwwIDQwIiBmaWxsPSIjMzUwOSIgLz4KICA8cGF0aCBkPSJNMCA0MHY0MCIgZmlsbD0iIzM1MTEiIC8+CiAgPHBhdGggZD0iTTEwMCAxMEw1MCAxMCIgZmlsbD0iIzY2NyIgc3Ryb2tlLXdpZHRoPSIzLjUiIC8+CiAgPHBhdGggZD0iTTEwMCAxNUw1MCAxNSIgcmlnaHQ9NTAiIGZpbGw9IiNmZmYiIHN0cm9rZS13aWR0aD0iMy41IiAvPgogIDxwYXRoIGQ9Ik0xMDAgMjBMNTAgMjAiIHJpZ2h0PSI1MCIgZmlsbD0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIzLjUiIC8+CiAgPC9nPgogIDx0ZXh0IGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzY2NyIgdGV4dC0tLW0tbW0gbWF0Y2hlcmUgdGV4dCIgZmlsbD0iIzY2NyIvPgo8L3N2Zz4=';
+const DEFAULT_PLACEHOLDER = '/assets/project-placeholder.svg';
 
 const ITEMS_PER_PAGE = 8;
 
 type InvestmentFilters = {
   searchTerm: string;
-  riskLevels: { low: boolean; medium: boolean; high: boolean };
+  riskLevels: string[];
   minFunding: number;
   maxFunding: number;
   onlyFavorites: boolean;
@@ -97,21 +94,22 @@ export class InvestmentsComponent {
   private notificationService = inject(NotificationService);
   protected languageService = inject(LanguageService);
   private fileStoreService = inject(FileStoreService);
+  private categoryService = inject(ProjectCategoryService);
+  private riskLevelService = inject(RiskLevelService);
   
-  protected readonly RiskLevel = RiskLevel;
-
   // Service state
   investments = signal<ProjectCard[]>([]);
   loading = signal(false);
   error = signal<string | null>(null);
-  categoryLookups = signal<OpportunityLookup[]>([]);
+  categoryLookups = signal<ProjectCategoryReference[]>([]);
+  riskLevelLookups = signal<RiskLevelReference[]>([]);
 
   /**
    * Navigate to investor/partner profile if available. Stops click propagation so card link won't trigger.
    */
   openInvestorProfile(investorId?: string | null): void {
     if (!investorId) {
-      this.notificationService.showToast({ title: 'Profile unavailable', message: 'Investor profile not available', type: 'info' });
+      this.notificationService.showToast({ title: this.t('investments.errors.profileUnavailable', 'Profile unavailable'), message: this.t('investments.errors.investorProfileUnavailable', 'Investor profile not available'), type: 'info' });
       return;
     }
 
@@ -119,22 +117,22 @@ export class InvestmentsComponent {
       // Navigate to client admin profile route
       this.router.navigate(['/admin/clients', investorId]);
     } catch (err) {
-      this.notificationService.showToast({ title: 'Navigation error', message: 'Unable to open profile', type: 'error' });
+      this.notificationService.showToast({ title: this.t('common.navigationError', 'Navigation error'), message: this.t('investments.errors.profileOpenFailed', 'Unable to open profile'), type: 'error' });
       console.error('Navigation error:', err);
     }
   }
 
-  /** Open project room for my participation */
+  /** Open the Opportunity Room for my participation */
   openProjectRoom(investment: ProjectCard): void {
     const id = this.resolveOpportunityId(investment);
     if (id == null) {
-      this.notificationService.showToast({ title: 'Navigation error', message: 'Unable to open project room: opportunity ID not found', type: 'error' });
+      this.notificationService.showToast({ title: this.t('common.navigationError', 'Navigation error'), message: this.t('investments.errors.opportunityRoomIdMissing', 'Unable to open Opportunity Room: opportunity ID not found'), type: 'error' });
       return;
     }
     try {
       this.router.navigate(['/admin/opportunities', id, 'room']);
     } catch (err) {
-      this.notificationService.showToast({ title: 'Navigation error', message: 'Unable to open project room', type: 'error' });
+      this.notificationService.showToast({ title: this.t('common.navigationError', 'Navigation error'), message: this.t('investments.errors.opportunityRoomOpenFailed', 'Unable to open Opportunity Room'), type: 'error' });
       console.error('Navigation error:', err);
     }
   }
@@ -142,13 +140,13 @@ export class InvestmentsComponent {
   /** Open contract for my participation */
   openContract(investment: ProjectCard): void {
     if (!investment.currentContractId) {
-      this.notificationService.showToast({ title: 'Contract unavailable', message: 'No contract found for this participation', type: 'info' });
+      this.notificationService.showToast({ title: this.t('investments.errors.contractUnavailable', 'Contract unavailable'), message: this.t('investments.errors.contractMissing', 'No contract found for this participation'), type: 'info' });
       return;
     }
     try {
       this.router.navigate(['/admin/contracts', investment.currentContractId]);
     } catch (err) {
-      this.notificationService.showToast({ title: 'Navigation error', message: 'Unable to open contract', type: 'error' });
+      this.notificationService.showToast({ title: this.t('common.navigationError', 'Navigation error'), message: this.t('investments.errors.contractOpenFailed', 'Unable to open contract'), type: 'error' });
       console.error('Navigation error:', err);
     }
   }
@@ -156,7 +154,7 @@ export class InvestmentsComponent {
   // Categories: 'All' + API categories
   categories = computed(() => {
     const apiCategories = this.categoryLookups();
-    return ['All', ...apiCategories.map(cat => cat.value)];
+    return ['All', ...apiCategories.map(cat => this.categoryService.label(cat, this.languageService.language()))];
   });
 
   // UI state
@@ -197,11 +195,7 @@ export class InvestmentsComponent {
   // Filter form
   filterForm: FormGroup = this.fb.group({
     searchTerm: [''],
-    riskLevels: this.fb.group({
-      low: [false],
-      medium: [false],
-      high: [false]
-    }),
+    riskLevels: [[]],
     minFunding: [0],
     maxFunding: [100],
     onlyFavorites: [false]
@@ -217,15 +211,13 @@ export class InvestmentsComponent {
     const term = (filters.searchTerm ?? '').toLowerCase();
     const category = this.activeCategory();
     
-    const selectedRisks = Object.entries(filters.riskLevels ?? {})
-      .filter(([, value]) => value)
-      .map(([key]) => key);
+    const selectedRisks = filters.riskLevels ?? [];
 
     return this.investments().filter(inv => {
       // Category filter
       let categoryMatch = true;
       if (category !== 'All') {
-        categoryMatch = inv.businessCategoryName === category;
+        categoryMatch = inv.categoryName === category;
       }
       
       // Search term filter
@@ -235,7 +227,7 @@ export class InvestmentsComponent {
 
       // Risk level filter
       const riskMatch = selectedRisks.length === 0 || 
-        selectedRisks.some(r => r.toLowerCase() === inv.riskLevel.toLowerCase());
+        selectedRisks.some(r => r.toLowerCase() === String(inv.riskLevel ?? '').toLowerCase());
       
       // Funding progress filter
       const progress = inv.fundingPercentage;
@@ -302,6 +294,7 @@ export class InvestmentsComponent {
     });
 
     void this.loadCategories();
+    void this.loadRiskLevels();
     void this.loadOpportunities();
     // attach scroll listener for load-more
     window.addEventListener('scroll', this.onScroll, { passive: true });
@@ -370,8 +363,8 @@ export class InvestmentsComponent {
   getCategoryLabel(cat: string): string {
     const lang = this.languageService.language();
     if (lang === 'ar') {
-      const found = this.categoryLookups().find(c => c.value === cat);
-      return found?.label || found?.value || cat;
+      const found = this.categoryLookups().find(c => this.categoryService.label(c, this.languageService.language()) === cat);
+      return found ? this.categoryService.label(found, 'ar') : cat;
     }
     return cat;
   }
@@ -412,7 +405,10 @@ export class InvestmentsComponent {
   }
 
   getProjectImageUrl(investment: ProjectCard): string {
-    const url = this.fileStoreService.getPublicUrl(investment.projectLogoUrl || '');
+    const raw = investment.projectLogoUrl || '';
+    const url = /(?:logoexample\.com|example\.com|ui-avatars\.com)/i.test(raw)
+      ? ''
+      : this.fileStoreService.getPublicUrl(raw);
     return url || DEFAULT_PLACEHOLDER;
   }
 
@@ -430,7 +426,7 @@ export class InvestmentsComponent {
    */
   resetAdvancedFilters(): void {
     this.filterForm.patchValue({
-      riskLevels: { low: false, medium: false, high: false },
+      riskLevels: [],
       minFunding: 0,
       maxFunding: 100,
       onlyFavorites: false
@@ -475,13 +471,13 @@ export class InvestmentsComponent {
   navigateToDetails(investment: ProjectCard | number): void {
     const investmentId = typeof investment === 'number' ? investment : this.resolveOpportunityId(investment);
     if (investmentId == null) {
-      this.notificationService.showToast({ title: 'Navigation error', message: 'Unable to navigate to opportunity details: ID not found', type: 'error' });
+      this.notificationService.showToast({ title: this.t('common.navigationError', 'Navigation error'), message: this.t('investments.errors.opportunityIdMissing', 'Unable to navigate to Opportunity details: ID not found'), type: 'error' });
       return;
     }
     try {
       this.router.navigate(['/admin/investments', investmentId]);
     } catch (err) {
-      this.notificationService.showToast({ title: 'Navigation error', message: 'Unable to navigate to opportunity details', type: 'error' });
+      this.notificationService.showToast({ title: this.t('common.navigationError', 'Navigation error'), message: this.t('investments.errors.opportunityOpenFailed', 'Unable to navigate to Opportunity details'), type: 'error' });
       console.error('Navigation error:', err);
     }
   }
@@ -551,7 +547,8 @@ export class InvestmentsComponent {
 
   private async loadCategories(): Promise<void> {
     try {
-      this.categoryLookups.set(await this.opportunityService.getCategories());
+      await this.categoryService.ensureLoaded();
+      this.categoryLookups.set(this.categoryService.active());
     } catch {
       this.categoryLookups.set([]);
     }
@@ -562,7 +559,7 @@ export class InvestmentsComponent {
     this.error.set(null);
     try {
       const category = this.activeCategory();
-      const found = this.categoryLookups().find(c => c.value === category);
+      const found = this.categoryLookups().find(c => this.categoryService.label(c, this.languageService.language()) === category);
       if (this.isMyProjectsView()) {
         const participations = await this.opportunityService.getMyParticipations();
         this.investments.set(participations.map(item => this.toProjectCard(item)));
@@ -606,8 +603,8 @@ private toProjectCard(item: Opportunity | MyParticipation): ProjectCard {
 
   private toProjectCardFromMyParticipation(source: MyParticipation & Record<string, any>): ProjectCard {
     const targetFund = Number(source.fundingTarget ?? 0);
-    const fundingPercentage = this.numberOrNull(source.fundingProgressPercentage);
-    const currentFunding = this.numberOrNull(source.fundedAmount);
+    const fundingPercentage = this.numberOrNull(source.fundingProgress ?? source.fundingProgressPercentage);
+    const currentFunding = this.numberOrNull(source.committedAmount ?? source.fundedAmount);
 
     return {
       ...source,
@@ -623,15 +620,16 @@ private toProjectCard(item: Opportunity | MyParticipation): ProjectCard {
       founderDisplay: source.founderDisplayName || 'Founder',
       founderId: source.founderId || '',
       businessRole: source.businessRole || '',
-      businessCategoryName: source.categoryName || '',
-      businessCategoryNameAr: source.categoryNameAr || '',
+      categoryName: source.categoryName || '',
+      categoryNameAr: source.categoryNameAr || '',
       targetFund,
       currentFunding,
+      confirmedFunding: this.numberOrNull(source.confirmedReceivedAmount),
       fundingPercentage,
-      currency: source.currency || 'USD',
+      currency: source.currency || '',
       investedAmount: this.numberOrNull(source.approvedContributionAmount),
       investorCount: this.numberOrNull(source.approvedParticipantCount),
-      riskLevel: (source.riskLevel || RiskLevel.Medium) as RiskLevel,
+      riskLevel: String(source.riskLevel ?? ''),
       favorited: !!source.favorited,
       credibilityScore: Number(source.credibilityScore ?? 0),
       date: source.createdAt ? new Date(source.createdAt) : new Date(),
@@ -653,8 +651,8 @@ private toProjectCard(item: Opportunity | MyParticipation): ProjectCard {
 
   private toProjectCardFromOpportunity(source: Opportunity & Record<string, any>): ProjectCard {
     const targetFund = Number(source.fundingTarget ?? source.targetFund ?? 0);
-    const fundingPercentage = this.numberOrNull(source.fundingProgressPercentage ?? source.fundingProgressPercent);
-    const currentFunding = this.numberOrNull(source.fundedAmount);
+    const fundingPercentage = this.numberOrNull(source.fundingProgress ?? source.fundingProgressPercentage ?? source.fundingProgressPercent);
+    const currentFunding = this.numberOrNull(source.committedAmount ?? source.fundedAmount);
 
     return {
       ...source,
@@ -663,21 +661,22 @@ private toProjectCard(item: Opportunity | MyParticipation): ProjectCard {
       projectDisplayName: source.projectDisplayName || 'Project',
       projectSummary: source.projectSummary || '',
       projectDescription: source.projectDescription || '',
-      projectIndustry: source.projectIndustry || source.projectContext?.category?.name || '',
+      projectIndustry: source.projectIndustry || source.projectContext?.category?.nameEn || source.projectContext?.category?.nameAr || '',
       projectLogoUrl: source.projectLogoUrl || '',
       fundingStatusLabel: this.normalizeFundingStatusLabel(source.fundingStatus || source.status),
       founderDisplay: source.founder?.displayName || source.founder?.fullName || source.founder?.name || 'Founder',
       founderId: source.founderId || source.founder?.id || source.founder?.userId || '',
       businessRole: source.founder?.businessRole || source.businessRole || '',
-      businessCategoryName: source.projectContext?.category?.name || source.businessCategoryName || '',
-      businessCategoryNameAr: source.projectContext?.category?.name || source.businessCategoryNameAr || '',
+      categoryName: source.projectContext?.category?.nameEn || source.categoryName || '',
+      categoryNameAr: source.projectContext?.category?.nameAr || source.categoryNameAr || '',
       targetFund,
       currentFunding,
+      confirmedFunding: this.numberOrNull(source.confirmedReceivedAmount),
       fundingPercentage,
-      currency: source.currency || 'USD',
+      currency: source.currency || '',
       investedAmount: this.numberOrNull(source.investedAmount),
       investorCount: this.numberOrNull(source.approvedParticipantCount),
-      riskLevel: (source.riskLevel || RiskLevel.Medium) as RiskLevel,
+      riskLevel: String(source.riskLevel ?? source.projectContext?.riskLevel ?? ''),
       favorited: !!source.favorited,
       credibilityScore: Number(source.credibilityScore ?? 0),
       date: source.createdAt ? new Date(source.createdAt) : new Date(),
@@ -690,33 +689,53 @@ private toProjectCard(item: Opportunity | MyParticipation): ProjectCard {
 
   private normalizeStatusLabel(value: unknown): string {
     const raw = String(value || 'Active').toLowerCase().replace(/[\s_-]+/g, '');
-    if (raw === '1' || raw === 'draft') return 'Draft';
-    if (raw === '5' || raw === 'published' || raw === 'active' || raw === 'approved') return 'Active';
-    if (raw === '6' || raw === 'funding') return 'Funding';
-    if (raw === '7' || raw === 'fullyfunded') return 'Fully Funded';
-    if (raw === '8' || raw === 'inprogress') return 'In Progress';
-    if (raw === '9' || raw === 'completed') return 'Completed';
-    if (raw === '10' || raw === 'archived') return 'Archived';
-    if (raw.includes('funded')) return 'Fully Funded';
-    if (raw.includes('progress')) return 'In Progress';
-    if (raw.includes('paused')) return 'Paused';
-    if (raw.includes('completed')) return 'Completed';
-    if (raw.includes('archived')) return 'Archived';
-    if (raw.includes('closed')) return 'Closed';
-    if (raw.includes('review')) return 'Reviewing Participants';
-    if (raw.includes('draft')) return 'Draft';
-    return 'Active';
+    if (raw === '1' || raw === 'draft') return this.t('investments.status.draft', 'Draft');
+    if (raw === '5' || raw === 'published' || raw === 'active' || raw === 'approved') return this.t('investments.status.active', 'Active');
+    if (raw === '6' || raw === 'funding') return this.t('investments.status.funding', 'Funding');
+    if (raw === '7' || raw === 'fullyfunded' || raw.includes('funded')) return this.t('investments.status.fullyFunded', 'Fully Funded');
+    if (raw === '8' || raw === 'inprogress' || raw.includes('progress')) return this.t('investments.status.inProgress', 'In Progress');
+    if (raw === '9' || raw === 'completed' || raw.includes('completed')) return this.t('investments.status.completed', 'Completed');
+    if (raw === '10' || raw === 'archived' || raw.includes('archived')) return this.t('investments.status.archived', 'Archived');
+    if (raw.includes('paused')) return this.t('investments.status.paused', 'Paused');
+    if (raw.includes('closed')) return this.t('investments.status.closed', 'Closed');
+    if (raw.includes('review')) return this.t('investments.status.reviewingParticipants', 'Reviewing Participants');
+    if (raw.includes('draft')) return this.t('investments.status.draft', 'Draft');
+    return this.t('investments.status.active', 'Active');
+  }
+
+  private async loadRiskLevels(): Promise<void> {
+    try {
+      await this.riskLevelService.ensureLoaded();
+      this.riskLevelLookups.set(this.riskLevelService.all());
+    } catch (e) {
+      console.warn('Unable to load risk levels', e);
+    }
+  }
+
+  riskLevelLabel(item: RiskLevelReference): string {
+    return this.riskLevelService.label(item.code, this.languageService.language());
+  }
+
+  isRiskLevelSelected(code: string): boolean {
+    return (this.filterForm.get('riskLevels')?.value as string[] | null ?? []).includes(code);
+  }
+
+  toggleRiskLevel(code: string, event: Event): void {
+    const selected = [...(this.filterForm.get('riskLevels')?.value as string[] | null ?? [])];
+    const checked = (event.target as HTMLInputElement).checked;
+    const next = checked ? [...new Set([...selected, code])] : selected.filter(value => value !== code);
+    this.filterForm.get('riskLevels')?.setValue(next);
   }
 
   private normalizeFundingStatusLabel(value: unknown): string {
     const raw = String(value || '').toLowerCase().replace(/[\s_-]+/g, '');
-    if (raw === '1' || raw === 'draft') return 'Draft';
-    if (raw === '6' || raw === 'funding' || raw === 'open') return 'Open';
-    if (raw === '7' || raw === 'fullyfunded' || raw === 'funded') return 'Fully funded';
-    if (raw === '8' || raw === 'inprogress') return 'In progress';
-    if (raw === '9' || raw === 'completed' || raw === 'closed') return 'Closed';
-    if (raw === 'paused') return 'Paused';
-    return value ? String(value) : 'Open';
+    if (raw === '1' || raw === 'draft') return this.t('investments.status.draft', 'Draft');
+    if (raw === '6' || raw === 'funding' || raw === 'open') return this.t('investments.status.open', 'Open');
+    if (raw === '7' || raw === 'fullyfunded' || raw === 'funded') return this.t('investments.status.fullyFundedLower', 'Fully funded');
+    if (raw === '8' || raw === 'inprogress') return this.t('investments.status.inProgressLower', 'In progress');
+    if (raw === '9' || raw === 'completed' || raw === 'closed') return this.t('investments.status.closed', 'Closed');
+    if (raw === 'paused') return this.t('investments.status.paused', 'Paused');
+    return value ? String(value) : this.t('investments.status.open', 'Open');
   }
 
   private numberOrNull(value: unknown): number | null {

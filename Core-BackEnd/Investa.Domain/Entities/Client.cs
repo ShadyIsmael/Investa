@@ -95,5 +95,5 @@ public class Client
     // Credit transactions history
     public ICollection<CreditTransaction> CreditTransactions { get; set; } = new List<CreditTransaction>();
     // Many-to-many client categories
-    public ICollection<ClientBusinessCategory> ClientBusinessCategories { get; set; } = new List<ClientBusinessCategory>();
+    public ICollection<ClientProjectCategory> ClientProjectCategories { get; set; } = new List<ClientProjectCategory>();
 }

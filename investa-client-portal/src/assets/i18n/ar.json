@@ -1,4 +1,17 @@
 {
+  "funding": {"disclaimer":"لا تقوم FOPX One بتحصيل أو الاحتفاظ أو تحويل أو حفظ أو التحقق من أموال الاستثمار. تتم معاملات التمويل مباشرة بين الأطراف خارج المنصة."},
+  "pageTitles": {"app":"FOPX One","about":"عن FOPX One","services":"الخدمات - FOPX One","blog":"المدونة - FOPX One","blogPost":"مقال المدونة - FOPX One","contact":"تواصل معنا - FOPX One","login":"تسجيل الدخول - FOPX One","signUp":"إنشاء حساب - FOPX One","verifyOtp":"تأكيد OTP - FOPX One","opportunityDetails":"تفاصيل الفرصة - FOPX One","dashboard":"لوحة التحكم - FOPX One","discoverOpportunities":"اكتشاف الفرص - FOPX One","projects":"المشاريع - FOPX One","createProject":"إنشاء مشروع - FOPX One","editProject":"تعديل المشروع - FOPX One","projectWorkspace":"مساحة عمل المشروع - FOPX One","projectDetails":"تفاصيل المشروع - FOPX One","editOpportunity":"تعديل الفرصة - FOPX One","opportunityRoom":"غرفة الفرصة - FOPX One","opportunityObligations":"التزامات الفرصة - FOPX One","myParticipations":"مشاركاتي - FOPX One","createOpportunity":"إنشاء فرصة - FOPX One","opportunityMedia":"وسائط الفرصة - FOPX One","founderProfile":"ملف المؤسس - FOPX One","conversations":"المحادثات - FOPX One","myProfile":"ملفي الشخصي - FOPX One","notAllowed":"غير مسموح - FOPX One","wallet":"المحفظة - FOPX One","notificationCenter":"مركز الإشعارات - FOPX One","transactions":"المعاملات - FOPX One","notifications":"الإشعارات - FOPX One","requests":"الطلبات - FOPX One","settings":"الإعدادات - FOPX One","chargeCredits":"شحن الأرصدة - FOPX One"},
+  "myOpportunities": {"title":"فرصي","subtitle":"أنشئ مسودات وتابع حالة فرص المؤسس.","create":"إنشاء فرصة","empty":"لم تنشئ أي فرص بعد.","createFirst":"إنشاء أول فرصة","table":{"opportunity":"الفرصة","status":"الحالة","category":"الفئة","funding":"التمويل","created":"تاريخ الإنشاء","files":"الملفات","actions":"الإجراءات"},"files":{"cover":"الغلاف","media":"الوسائط","documents":"المستندات","none":"لا يوجد"},"actions":{"view":"عرض","edit":"تعديل"}},
+  "opportunityObligations": {"title":"إتمام التزامات الفرصة","helper":"تسجل التأكيدات إقرار كل طرف فقط. ولا تنشئ أو تنقل أو تسوي أو تثبت أي دفعة.","participationsComplete":"مشاركة مكتملة","startConfirmations":"بدء التأكيدات","participation":"المشاركة","declarationPlaceholder":"إقرار الإتمام الخاص بك","confirm":"تأكيد جانبي","errors":{"load":"تعذر تحميل حالة الإتمام.","start":"تعذر بدء التأكيدات.","declaration":"أدخل إقرار الإتمام الخاص بك.","confirm":"تعذر التأكيد."}},
+  "blogPage":{"title":"الرؤى","subtitle":"وجهات نظر عملية للمؤسسين والمستثمرين."},
+  "blogPostPage":{"notFound":{"title":"المقال غير موجود","subtitle":"لم يعد هذا المقال متاحًا.","backButton":"العودة إلى المدونة"},"on":"في","publishedBy":"بواسطة","relatedPosts":"مقالات ذات صلة","shareArticle":"مشاركة المقال"},
+  "contactPage":{"title":"تواصل معنا","subtitle":"نحن هنا لمساعدتك.","details":{"title":"تواصل معنا","description":"تواصل مع فريق FOPX One.","addressLabel":"العنوان","addressValue":"القاهرة، مصر","emailLabel":"البريد الإلكتروني","emailValue":"support@investa.com","phoneLabel":"الهاتف","phoneValue":"+1 555 123 4567"},"form":{"title":"أرسل لنا رسالة","button":"إرسال الرسالة","emailLabel":"البريد الإلكتروني","emailPlaceholder":"بريدك الإلكتروني","messageLabel":"الرسالة","messagePlaceholder":"كيف يمكننا مساعدتك؟","nameLabel":"الاسم","namePlaceholder":"اسمك","subjectLabel":"الموضوع","subjectPlaceholder":"موضوع الرسالة"}},
+  "faq":{"title":"الأسئلة الشائعة","subtitle":"إجابات عن الأسئلة الشائعة حول FOPX One."},
+  "pricing":{"title":"الباقات والأسعار","subtitle":"اختر الباقة التي تناسب احتياجاتك.","popular":"الأكثر شيوعًا"},
+  "process":{"title":"كيف تعمل المنصة","subtitle":"مسار واضح من اكتشاف المشروع إلى المشاركة."},
+  "services":{"title":"الخدمات","subtitle":"أدوات لاكتشاف الفرص وتنظيم المشاريع."},
+  "notAllowed": {"title":"الوصول غير متاح","description":"هذا الإجراء متاح لحسابات المؤسسين. لا يزال بإمكانك اكتشاف الفرص وإدارة محفظتك وإشعاراتك وملفك الشخصي.","discover":"اكتشاف الفرص","myOpportunities":"فرصي"},
+  "founderAnalytics": {"title":"تحليلات المؤسس","time":{"last7Days":"آخر 7 أيام","last30Days":"آخر 30 يومًا","last90Days":"آخر 90 يومًا","allTime":"كل الفترة"},"summary":{"totalOpportunities":"إجمالي الفرص","published":"منشورة","totalViews":"إجمالي المشاهدات","unique":"فريدة","learnMoreOpens":"مرات فتح اعرف المزيد","requestsReceived":"الطلبات المستلمة","approvedRequests":"الطلبات المعتمدة","approvalRate":"معدل الاعتماد","rejectedRequests":"الطلبات المرفوضة","activeConversations":"المحادثات النشطة"},"sections":{"conversionFunnel":"مسار التحويل","topPerforming":"الفرص الأعلى أداءً","lowPerforming":"الفرص الأقل أداءً","insights":"رؤى المؤسس"},"metrics":{"views":"المشاهدات","learnMore":"اعرف المزيد","requests":"الطلبات","approvals":"الاعتمادات","chats":"المحادثات","approval":"الاعتماد","learnMoreConversion":"تحويلات اعرف المزيد","name":"الاسم","uniqueViews":"المشاهدات الفريدة","uniqueLearnMore":"مرات اعرف المزيد الفريدة"},"empty":{"noOpportunities":"لم يتم العثور على فرص"},"insights":{"approvalExcellent":"✅ معدل اعتمادك {rate}%، وهو ممتاز.","approvalNeedsReview":"⚠️ معدل اعتمادك {rate}%. ننصح بمراجعة شروط التمويل.","viewsWithoutRequests":"💡 لديك {views} مشاهدة دون طلبات. ننصح بتحسين العرض وتفاصيل الفرصة.","topOpportunity":"🏆 الفرصة \"{name}\" هي الأعلى أداءً لديك مع {requests} طلبات.","needsAttention":"📉 الفرصة \"{name}\" تحتاج إلى اهتمام. ننصح بتحديث محتواها أو الترويج لها."}},
   "paidActions": {
     "conversationRequest": "طلب محادثة",
     "sendConversationRequest": "إرسال طلب محادثة",
@@ -6,7 +19,7 @@
     "currentBalance": "رصيد CREDIT الحالي",
     "fixedCost": "تكلفة CREDIT الثابتة",
     "balanceAfter": "الرصيد بعد الإجراء",
-    "investmentValue": "قيمة الاستثمار",
+    "investmentValue": "قيمة المشاركة",
     "addCredits": "إضافة CREDIT",
     "cancel": "إلغاء",
     "processing": "جارٍ التنفيذ…",
@@ -14,8 +27,8 @@
     "insufficientInline": "رصيد CREDIT غير كافٍ لهذا الإجراء.",
     "insufficientMessage": "CREDIT المطلوب: {required}. الرصيد الحالي: {balance}.",
     "confirmationText": "الإجراء: {action}\nتكلفة CREDIT الثابتة: {cost}\nرصيد CREDIT الحالي: {balance}\nالرصيد بعد الإجراء: {after}",
-    "conversationHelper": "هذه رسوم خدمة ثابتة لفتح النقاش فقط. لا تنشئ مشاركة ولا تفتح غرفة المشروع.",
-    "participationHelper": "سيتم إرسال طلب المشاركة للمؤسس للموافقة. يخصم CREDIT فقط كرسوم خدمة ثابتة منفصلة عن قيمة الاستثمار.",
+    "conversationHelper": "هذه رسوم خدمة ثابتة لفتح النقاش فقط. لا تنشئ مشاركة ولا تفتح غرفة الفرصة.",
+    "participationHelper": "سيتم إرسال طلب المشاركة للمؤسس للموافقة. يخصم CREDIT فقط كرسوم خدمة ثابتة منفصلة عن قيمة المشاركة.",
     "pricingUnavailableTitle": "التسعير غير متاح",
     "pricingUnavailableMessage": "تعذر تحميل سعر خدمة المنصة لهذا الإجراء.",
     "requestFailed": "فشل الطلب",
@@ -34,7 +47,7 @@
       "invalidShareSelection": "اختيار الأسهم غير صحيح."
     },
     "platformFeeNoticeTitle": "تنبيه رسوم استخدام المنصة",
-    "platformFeeNotice": "هذه الرسوم لاستخدام خدمة المنصة فقط. وهي منفصلة عن قيمة الاستثمار والأسهم والقروض والمساهمات.",
+    "platformFeeNotice": "هذه الرسوم لاستخدام خدمة المنصة فقط. وهي منفصلة عن قيمة المشاركة والأسهم والقروض والمساهمات.",
     "confirmAndProceed": "تأكيد والمتابعة"
   },
   "offerBuilder": {
@@ -44,8 +57,8 @@
     "conversationTitle": "الرد بعرض جديد",
     "directHelper": "أنشئ الشروط الكاملة التي تريد من المؤسس مراجعتها. يمكنك الجمع بين الملكية والقرض ومشاركة الأرباح في عرض واحد.",
     "conversationHelper": "ينشئ هذا عرضًا بديلاً كاملاً. تبقى النسخ السابقة دون تغيير في سجل التفاوض.",
-    "amount": "المبلغ", "currency": "العملة", "sharesTerms": "شروط الأسهم", "termMonths": "المدة (بالأشهر)", "repaymentModel": "نموذج السداد", "exitTerms": "شروط التخارج", "note": "ملاحظة", "send": "إرسال العرض", "sendReplacement": "إرسال العرض الجديد", "submitting": "جارٍ الإرسال...",
-    "validation": { "oneLeg": "أضف مكوّن عرض واحدًا على الأقل.", "amount": "يجب أن يحتوي كل مكوّن على مبلغ أكبر من صفر.", "equity": "يتطلب عرض الملكية نسبة أو شروط أسهم.", "loan": "يتطلب القرض نسبة عائد ومدة ونموذج سداد.", "profitSharing": "تتطلب مشاركة الأرباح نسبة ومدة وشروط تخارج." },
+    "amount": "المبلغ", "currency": "العملة", "currencyPlaceholder": "اختر العملة", "ownershipModel": "نموذج الملكية", "ownershipModels": { "PercentageBased": "حسب النسبة", "ShareBased": "حسب الأسهم" }, "investorShares": "أسهم المستثمر", "totalIssuedShares": "إجمالي الأسهم المصدرة", "shareClass": "فئة الأسهم", "pricePerShare": "سعر السهم", "effectiveOwnershipDate": "تاريخ سريان الملكية", "sharesTerms": "شروط الأسهم", "termMonths": "المدة (بالأشهر)", "repaymentModel": "نموذج السداد", "repaymentModels": { "Monthly": "شهري", "Quarterly": "ربع سنوي", "SemiAnnual": "نصف سنوي", "Annual": "سنوي" }, "profitSharingFrequency": "دورية التقرير", "profitSharingFrequencies": { "Monthly": "شهري", "Quarterly": "ربع سنوي", "SemiAnnual": "نصف سنوي", "Annual": "سنوي" }, "exitTerms": "شروط التخارج", "note": "ملاحظة", "send": "إرسال العرض", "sendReplacement": "إرسال العرض الجديد", "submitting": "جارٍ الإرسال...",
+    "validation": { "oneLeg": "أضف مكوّن عرض واحدًا على الأقل.", "amount": "يجب أن يحتوي كل مكوّن على مبلغ أكبر من صفر.", "equity": "يجب تحديد نموذج ملكية وشروط ملكية صحيحة.", "loan": "يتطلب القرض نسبة عائد ومدة ونموذج سداد.", "profitSharing": "تتطلب مشاركة الأرباح نسبة ومدة ودورية تقرير وشروط تخارج." },
     "errors": { "conversationRequired": "هذه المحادثة غير متاحة.", "submit": "تعذر إرسال العرض." }
   },
   "stocks": "أسهم",
@@ -70,7 +83,9 @@
       "investors": "للمستثمرين"
     },
     "login": "تسجيل الدخول",
-    "signup": "إنشاء حساب"
+    "signup": "إنشاء حساب",
+    "toggleLanguage": "تغيير اللغة",
+    "toggleTheme": "تغيير المظهر"
   },
   "login": {
     "title": "مرحبًا بعودتك",
@@ -92,22 +107,14 @@
     "founder": "مؤسس",
     "partner": "شريك",
     "investor": "مستثمر",
-    "countries": {
-      "egypt": "مصر",
-      "usa": "الولايات المتحدة",
-      "uk": "المملكة المتحدة",
-      "india": "الهند",
-      "australia": "أستراليا",
-      "japan": "اليابان",
-      "germany": "ألمانيا"
-    },
     "social": {
       "google": "تسجيل الدخول باستخدام Google",
       "facebook": "تسجيل الدخول باستخدام Facebook"
     },
     "signingIn": "جاري تسجيل الدخول...",
     "errorGeneric": "فشل تسجيل الدخول",
-    "invalidCredentials": "رقم الجوال أو كلمة المرور غير صحيحة"
+    "invalidCredentials": "رقم الجوال أو كلمة المرور غير صحيحة",
+    "countryLoadError": "تعذر تحميل أكواد الاتصال بالدول."
   },
   "signupOtp": {
     "title": "تحقق من هاتفك",
@@ -132,6 +139,12 @@
     "confirmPasswordLabel": "تأكيد كلمة المرور",
     "confirmPasswordPlaceholder": "أعد إدخال كلمة المرور",
     "passwordMismatch": "كلمات المرور غير متطابقة",
+    "accountTypeLabel": "نوع الحساب",
+    "accountTypeHint": "اختر طريقة استخدامك لـ FOPX One. إنشاء المشاريع متاح لحساب المؤسس فقط.",
+    "accountTypes": {
+      "investor": "مستثمر — اكتشاف وتمويل الفرص",
+      "founder": "مؤسس — إنشاء المشاريع وطلب التمويل"
+    },
     "signUpButton": "سجل",
     "signingUp": "جارٍ إنشاء الحساب...",
     "alreadyHaveAccount": "هل لديك حساب بالفعل؟",
@@ -176,6 +189,9 @@
   },
   "notifications": {
     "title": "الإشعارات",
+    "fundingDeclared": "سجّل المؤسس استلام أموال منك مباشرة خارج FOPX One. راجع سجل التمويل وأكّد الإفادة أو اعترض عليها.",
+    "unreadCount": "{count} إشعار غير مقروء",
+    "refresh": "تحديث",
     "all": "الكل",
     "unread": "غير المقروءة",
     "delete": "حذف الإشعار",
@@ -339,7 +355,7 @@
   },
   "investments": {
     "title": "تصفح الفرص",
-    "projectFirstEyebrow": "الاستثمار يبدأ بالمشروع",
+    "projectFirstEyebrow": "اكتشاف الفرص يبدأ بالمشروع",
     "projectFirstSubtitle": "افهم المشروع أولاً، ثم راجع فرصة التمويل الخاصة به.",
     "project": "المشروع",
     "sector": "القطاع",
@@ -347,15 +363,16 @@
     "founder": "المؤسس",
     "fundingOpportunity": "فرصة التمويل",
     "target": "المستهدف",
+    "committed": "الالتزام المعتمد",
+    "confirmedReceived": "المستلم المؤكد",
     "progress": "التقدم",
     "fundingWindow": "نافذة التمويل",
     "viewOpportunity": "عرض الفرصة",
     "search": "بحث",
     "category": "الفئة",
-    "myProjectsTitle": "مشاريعي",
+    "myProjectsTitle": "مشاركاتي",
     "noParticipationsTitle": "لا توجد مشاركات بعد",
     "noParticipationsSubtitle": "ابدأ باستكشاف الفرص الاستثمارية.",
-    "startInvestingButton": "ابدأ الآن",
     "filterPlaceholder": "ابحث في الفرص...",
     "advancedSearch": "بحث متقدم",
     "refresh": "تحديث",
@@ -366,13 +383,7 @@
     "investor": "مستثمر",
     "investors": "مستثمرون",
     "riskLevel": "مستوى المخاطر",
-    "risk": {
-      "low": "منخفض",
-      "medium": "متوسط",
-      "high": "مرتفع",
-      "risk": "مخاطر"
-    },
-    "typeFilter": "نوع الاستثمار",
+    "typeFilter": "نموذج التمويل",
     "type": {
       "founding": "مشاركة الأرباح",
       "equity": "أسهم",
@@ -415,6 +426,7 @@
       "archived": "مؤرشف",
       "closed": "مغلق"
     },
+    "errors": {"profileUnavailable":"الملف الشخصي غير متاح","investorProfileUnavailable":"ملف المستثمر غير متاح","profileOpenFailed":"تعذر فتح الملف الشخصي","opportunityRoomIdMissing":"تعذر فتح غرفة الفرصة: معرّف الفرصة غير موجود","opportunityRoomOpenFailed":"تعذر فتح غرفة الفرصة","contractUnavailable":"العقد غير متاح","contractMissing":"لا يوجد عقد لهذه المشاركة","contractOpenFailed":"تعذر فتح العقد","opportunityIdMissing":"تعذر الانتقال إلى تفاصيل الفرصة: المعرّف غير موجود","opportunityOpenFailed":"تعذر الانتقال إلى تفاصيل الفرصة"},
     "roi": "العائد على الاستثمار",
     "toInvest": "للاستثمار",
     "min": "الحد الأدنى",
@@ -497,16 +509,24 @@
     "cashFlow": { "eyebrow": "مشاركة قرض معتمدة", "title": "جدول الدفعات المتوقعة", "loading": "جارٍ تحميل جدول الدفعات المتوقعة...", "error": "جدول الدفعات المتوقعة غير متاح حاليًا.", "approvedAmount": "المبلغ المعتمد", "annualRate": "معدل الفائدة السنوي", "duration": "المدة", "months": "شهرًا", "frequency": "دورية السداد", "principalRule": "سداد أصل المبلغ المجدول", "remainingPrincipal": "أصل المبلغ المتبقي حسب الجدول", "received": "المبلغ المستلم فعليًا", "monthlyAverage": "متوسط الدخل الشهري المتوقع", "disclaimer": "متوسط الدخل الشهري المتوقع قيمة إرشادية. تتبع الدفعات الجدول المتفق عليه وقد لا تُدفع شهريًا.", "actualUnavailable": "تتبع الدفعات الفعلية وسجل المعاملات غير متاحين بعد. لا يتم استنتاج حالة الدفع من بيانات غير متاحة.", "actualUnavailableShort": "غير متاح", "rowsPerPage": "عدد الصفوف في الصفحة", "showing": "عرض", "of": "من", "previous": "الصفحة السابقة", "next": "الصفحة التالية", "dueDate": "تاريخ الاستحقاق المجدول", "interest": "الفائدة المتوقعة", "principal": "أصل المبلغ المجدول", "expectedTotal": "إجمالي الدفعة المتوقعة", "actualPaid": "المدفوع فعليًا", "statusLabel": "حالة الجدول", "status": { "Upcoming": "قادمة", "Due": "مستحقة", "Paid": "مدفوعة", "PartiallyPaid": "مدفوعة جزئيًا", "Overdue": "متأخرة", "Cancelled": "ملغاة" }, "frequencyValue": { "Monthly": "شهري", "Quarterly": "ربع سنوي", "SemiAnnual": "نصف سنوي", "Annual": "سنوي" }, "principalValue": { "AtMaturity": "عند الاستحقاق" } },
     "backButton": "العودة إلى الفرص",
     "projectOverview": "نظرة عامة على المشروع",
-    "projectFallback": "المشروع",
+  "projectFallback": "المشروع",
+  "media": "وسائط الفرصة",
+  "noMedia": "لا توجد وسائط متاحة",
+  "noMediaSubtitle": "لا توجد وسائط عامة لهذه الفرصة بعد.",
+  "primaryImage": "الصورة الرئيسية",
+  "opportunityFallback": "الفرصة",
+  "mediaPhotos": "الصور",
+  "mediaVideos": "الفيديوهات",
+  "photoFallback": "صورة",
+  "videoUnsupported": "متصفحك لا يدعم تشغيل الفيديو.",
     "projectDescriptionFallback": "معلومات المشروع غير متاحة بعد.",
-    "projectId": "المشروع",
     "sector": "القطاع",
     "founderRole": "دور المؤسس",
     "projectMedia": "وسائط المشروع",
     "projectContextLabel": "سياق النشاط",
     "category": "التصنيف",
     "location": "الموقع",
-    "businessStage": "مرحلة النشاط",
+    "projectStage": "مرحلة المشروع",
     "projectStatus": "حالة المشروع",
     "founded": "تأسس في",
     "projectCurrency": "عملة المشروع",
@@ -516,18 +536,20 @@
     "riskDisclosure": "إفصاح المخاطر",
     "projectUpdates": "تحديثات المشروع",
     "projectDocuments": "مستندات المشروع",
-    "projectStages": { "idea": "فكرة", "mvp": "الحد الأدنى من المنتج", "startup": "شركة ناشئة", "scaling": "مرحلة التوسع", "established": "نشاط مستقر" },
     "projectStatuses": { "draft": "مسودة", "active": "نشط", "paused": "متوقف مؤقتًا", "completed": "مكتمل", "archived": "مؤرشف" },
     "fundingOpportunity": "فرصة التمويل",
     "opportunityDescriptionFallback": "يقدم المؤسس تفاصيل التمويل.",
     "fundingTarget": "المستهدف التمويلي",
+    "committed": "إجمالي الالتزامات المعتمدة",
+    "confirmedReceived": "المبلغ المستلم المؤكد",
+    "outstanding": "الالتزام المتبقي",
     "fundingWindow": "نافذة التمويل",
     "progress": "التقدم",
     "investorActions": "إجراءات المستثمر",
     "loading": { "title": "جاري تحميل تفاصيل الفرصة", "helper": "يرجى الانتظار بينما نقوم بتحميل بيانات الفرصة." },
     "notFound": { "title": "هذه الفرصة غير متاحة", "message": "تعذر العثور على صفحة الفرصة لهذا السجل." },
     "loadError": { "title": "تعذر تحميل هذه الفرصة", "message": "حدث خطأ أثناء تحميل الفرصة. يرجى المحاولة مرة أخرى.", "retry": "إعادة المحاولة" },
-    "investmentType": "نوع الاستثمار",
+    "investmentType": "نموذج التمويل",
     "industry": "المجال",
     "founderRating": "تقييم المؤسس",
     "earlyStage": "جولة تمويل مبكرة",
@@ -660,6 +682,8 @@
         "requestsReceived": "الطلبات الم received"
       }
     },
+    "notifications": {"profileUnavailable":"الملف الشخصي غير متاح","memberProfileUnavailable":"تعذر فتح ملف العضو.","founderProfileUnavailable":"تعذر فتح ملف المؤسس.","closeComingSoon":"إغلاق النقاش قريبًا","closeNeedsEndpoint":"يحتاج إغلاق النقاش إلى نقطة نهاية للتفاوض في الخادم.","requestFailed":"فشل الطلب"},
+    "relationship": {"viewerStateUnavailable":{"title":"حالة العلاقة غير متاحة","description":"تعذر تحميل علاقتك الحالية بهذه الفرصة.","progress":"حدّث الصفحة أو سجّل الدخول لرؤية الإجراء التالي."},"approved":{"title":"تم اعتماد المشاركة","description":"أصبحت الآن مشاركًا معتمدًا في الفرصة.","progress":"تم فتح غرفة الفرصة للمستندات والتحديثات والتنزيلات والتعاون."},"rejected":{"title":"لم تتم الموافقة على المشاركة","description":"رفض المؤسس طلب المشاركة.","progress":"تظل غرفة الفرصة مقفلة. تابع فقط عبر المحادثة الحالية إذا اتفق الطرفان."},"pending":{"title":"طلب المشاركة قيد الانتظار","description":"ينتظر طلب المشاركة موافقة المؤسس.","progress":"تظل غرفة الفرصة مقفلة حتى يمنح المؤسس الموافقة النهائية."},"closed":{"title":"أُغلق النقاش","description":"أُغلقت المحادثة الخاصة بهذه الفرصة.","progress":"لا توجد عملية مشاركة نشطة من خلال هذا النقاش."},"readyWaitingFounder":{"title":"أنت مستعد للمتابعة","description":"حددت نفسك مستعدًا بعد التفاوض.","progress":"بانتظار تأكيد المؤسس للجاهزية قبل إنشاء طلب المشاركة."},"readyWaitingInvestor":{"title":"المؤسس مستعد للمتابعة","description":"راجع التفاوض وأكد عندما تصبح مستعدًا.","progress":"لا تُنشأ المشاركة حتى يصبح الطرفان مستعدين."},"ready":{"title":"جاهز للمشاركة","description":"أصبح الطرفان مستعدين للمتابعة.","progress":"يجري إعداد طلب المشاركة الرسمي أو أن سير عمل الخادم أنشأه بالفعل."},"negotiation":{"title":"التفاوض جارٍ","description":"تناقش هذه الفرصة مع المؤسس.","progress":"المحادثة ليست مشاركة. تُفتح غرفة الفرصة فقط بعد اعتماد طلب المشاركة."},"chatRequested":{"title":"بانتظار رد المؤسس","description":"أُرسل طلب المحادثة إلى المؤسس.","progress":"لا حاجة إلى طلب مكرر. تظهر إجراءات المشاركة بعد تقدم التفاوض."},"start":{"title":"بدء النقاش","description":"اطلب محادثة لمعرفة المزيد ومناقشة هذه الفرصة مع المؤسس.","progress":"تفتح المحادثة التفاوض فقط. ولا تجعلك مشاركًا."},"actions":{"unavailable":"غير متاح","openRoom":"فتح غرفة الفرصة","viewConversation":"عرض المحادثة","none":"لا يوجد إجراء متاح","waitingFounder":"بانتظار المؤسس","requestChat":"طلب محادثة","continueConversation":"متابعة المحادثة","reviewConversation":"مراجعة المحادثة","waiting":"بانتظار","conversationUnavailable":"المحادثة غير متاحة"}},
     "public": {
       "draftOpportunity": "مسودة فرصة",
       "draftNotVisible": "هذه الفرصة غير مرئية للمستثمرين بعد.",
@@ -669,7 +693,7 @@
       "opportunityCover": "غلاف الفرصة",
       "by": "بواسطة",
       "overview": "نظرة عامة",
-      "investmentTerms": "شروط الاستثمار",
+      "investmentTerms": "شروط التمويل",
       "updates": "التحديثات",
       "projectActivity": "نشاط المشروع",
       "verifiedActivity": "نشاط المشروع الموثق",
@@ -685,9 +709,9 @@
       "opportunityOverview": "نظرة عامة على الفرصة",
       "aboutThisOpportunity": "حول هذه الفرصة",
       "opportunityInfoPlaceholder": "سيتم إضافة معلومات الفرصة من قبل المؤسس.",
-      "businessCategory": "فئة النشاط التجاري",
+      "projectCategory": "فئة المشروع",
       "projectStage": "مرحلة المشروع",
-      "investmentModel": "نموذج الاستثمار",
+      "investmentModel": "نموذج التمويل",
       "capitalAllocation": "تخصيص رأس المال",
       "useOfFunds": "استخدام الأموال",
       "useOfFundsPlaceholder": "لم ينشر المؤسس ملخص استخدام الأموال بعد.",
@@ -712,7 +736,7 @@
       "visualLibrary": "المكتبة المرئية",
       "publicMedia": "وسائط عامة",
       "noPublicMedia": "لا توجد وسائط عامة متاحة.",
-      "investmentSummary": "ملخص الاستثمار",
+      "investmentSummary": "ملخص المشاركة",
       "funded": "ممول",
       "target": "الهدف",
       "approvedParticipants": "المشاركون المعتمدون",
@@ -724,6 +748,7 @@
       "submitOffer": "إرسال عرض",
       "startConversation": "بدء محادثة",
       "continueConversation": "متابعة المحادثة",
+      "participate": "المشاركة",
       "closeDiscussion": "إغلاق النقاش",
       "chatHistoryNote": "يظل سجل المحادثة متاحًا لسياق التفاوض.",
       "viewTermSheet": "عرض ورقة الشروط"
@@ -763,6 +788,7 @@
       "memberSince": "عضو منذ"
     },
     "stats": {
+      "category": "الفئة",
       "opportunities": "الفرص",
       "active": "النشطة",
       "funded": "الممولة",
@@ -812,6 +838,9 @@
     }
   },
   "dashboard": {
+    "conversationRequest": "طلب محادثة",
+    "participationRequest": "طلب مشاركة",
+    "viewMore": "عرض المزيد",
     "founder": {
       "eyebrow": "محفظة المؤسس",
       "title": "لوحة المحفظة",
@@ -827,18 +856,19 @@
       "deferred": "مؤجل",
       "followersHelper": "لم يتم بناء نموذج المتابعين بعد.",
       "metrics": {
-        "totalProjects": "إجمالي المشاريع", "activeOpportunities": "الفرص النشطة", "activeInvestors": "المستثمرون النشطون الفريدون", "target": "إجمالي هدف التمويل", "funded": "إجمالي الممول", "progress": "تقدم تمويل المحفظة", "received": "المبلغ المستلم", "pendingActions": "الإجراءات المعلقة", "earnings": "الأرباح", "followers": "المتابعون", "portfolio": "محفظة مملوكة للمؤسس", "openNow": "مفتوحة وقت التقييم", "distinctApproved": "مشاركون معتمدون فريدون", "actionable": "إجراء مطلوب من المؤسس"
+        "totalProjects": "إجمالي المشاريع", "activeOpportunities": "الفرص النشطة", "activeInvestors": "المستثمرون النشطون الفريدون", "target": "إجمالي هدف التمويل", "funded": "إجمالي الممول", "committed": "إجمالي الالتزامات", "progress": "تقدم الأموال المستلمة المؤكدة", "received": "المبلغ المستلم", "confirmedReceived": "المبلغ المستلم المؤكد", "pendingActions": "الإجراءات المعلقة", "earnings": "الأرباح", "followers": "المتابعون", "portfolio": "محفظة مملوكة للمؤسس", "openNow": "مفتوحة وقت التقييم", "distinctApproved": "مشاركون معتمدون فريدون", "actionable": "إجراء مطلوب من المؤسس"
       },
-      "position": { "kicker": "مركز المحفظة", "title": "مركز التمويل", "ofTarget": "من الهدف", "approvedFunding": "التمويل المعتمد", "authoritative": "الإجمالي المعتمد للمحفظة" },
+      "position": { "kicker": "مركز المحفظة", "title": "مركز الالتزامات", "ofTarget": "من الهدف", "approvedFunding": "التمويل المعتمد", "committedFunding": "الالتزامات المعتمدة", "authoritative": "الإجمالي المعتمد للمحفظة" },
       "attention": { "kicker": "يتطلب الانتباه", "title": "إجراءات المؤسس", "pendingHelper": "توجد عناصر بانتظار مراجعتك عبر المحفظة.", "openActions": "مراجعة الإجراءات المعلقة", "clearTitle": "المحفظة محدثة", "clearHelper": "لا توجد إجراءات مطلوبة من المؤسس حاليًا." },
       "performance": { "kicker": "الأداء", "title": "نشاط المحفظة", "note": "النشاط المسجل على المنصة ضمن النطاق المحدد." },
       "charts": {
         "fundingEyebrow": "حركة التمويل", "fundingTitle": "تقدم التمويل عبر الزمن", "fundingHelper": "حركة التمويل المعتمد شهريًا", "fundingLabel": "التمويل المعتمد شهريًا", "investorsEyebrow": "نمو المستثمرين", "investorsTitle": "نمو المستثمرين", "investorCurrent": "المستثمرون النشطون الفريدون", "investorHelper": "لا يعرض النظام الخلفي انتقالات المستثمرين التاريخية بعد؛ يتم عرض العدد الحالي المعتمد.", "opportunityEyebrow": "أداء الفرص", "opportunityTitle": "أداء الفرص", "opportunityLabel": "أداء تمويل الفرص", "receivedEyebrow": "الأموال المستلمة", "receivedTitle": "المبلغ المستلم عبر الزمن", "receivedHelper": "الإيصالات المؤكدة شهريًا", "receivedLabel": "المبلغ المستلم المسجل على المنصة شهريًا", "noData": "لا توجد بيانات زمنية لهذا النطاق."
       },
       "projects": {
-        "eyebrow": "هيكل المحفظة", "title": "المشاريع والفرص", "helper": "المشاريع هي العرض الرئيسي للمحفظة. افتح غرفة الفرصة للعمل التشغيلي.", "manage": "إدارة المشاريع", "openProject": "فتح تفاصيل المشروع", "target": "الهدف", "funded": "الممول", "opportunities": "الفرص", "progress": "التقدم", "investors": "مستثمرون", "publicPage": "الصفحة العامة", "room": "غرفة الفرصة", "noOpportunities": "لا توجد فرص في هذا المشروع بعد.", "emptyTitle": "محفظتك فارغة", "emptyHelper": "أنشئ مشروعًا لبدء تنظيم عدة فرص.", "create": "إنشاء مشروع"
+        "eyebrow": "هيكل المحفظة", "title": "المشاريع والفرص", "helper": "المشاريع هي العرض الرئيسي للمحفظة. افتح غرفة الفرصة للعمل التشغيلي.", "manage": "إدارة المشاريع", "openProject": "فتح تفاصيل المشروع", "target": "الهدف", "funded": "الممول", "committed": "الالتزامات المعتمدة", "opportunities": "الفرص", "progress": "التقدم", "investors": "مستثمرون", "publicPage": "الصفحة العامة", "room": "غرفة الفرصة", "noOpportunities": "لا توجد فرص في هذا المشروع بعد.", "emptyTitle": "محفظتك فارغة", "emptyHelper": "أنشئ مشروعًا لبدء تنظيم عدة فرص.", "create": "إنشاء مشروع"
       },
       "footer": { "authoritative": "يتم تزويد المقاييس من خدمة محفظة المؤسس.", "currency": "عملة العرض" },
+      "confirmationUnavailable": "لا توجد آلية تأكيد في Sprint 1",
       "status": { "0": "مسودة", "1": "نشط", "2": "متوقف مؤقتًا", "3": "مكتمل", "4": "مؤرشف", "draft": "مسودة", "active": "نشط", "paused": "متوقف مؤقتًا", "completed": "مكتمل", "archived": "مؤرشف" },
       "opportunityStatus": { "1": "مسودة", "2": "قيد المراجعة", "3": "مرفوضة", "4": "معتمدة", "5": "منشورة", "6": "تمويل", "7": "مكتملة التمويل", "8": "قيد التنفيذ", "9": "مكتملة", "10": "مؤرشفة", "draft": "مسودة", "published": "منشورة", "funding": "تمويل", "fullyfunded": "مكتملة التمويل", "inprogress": "قيد التنفيذ", "completed": "مكتملة", "archived": "مؤرشفة" }
     },
@@ -854,7 +884,7 @@
     "currentCredits": "الرصيد الحالي",
     "availableCredits": "الأرصدة المتاحة",
     "myAllocation": "توزيعي",
-    "allocationTotal": "إجمالي الاستثمار",
+    "allocationTotal": "إجمالي قيمة المشاركات",
     "year": "السنة",
     "portfolioPerformance": "أداء المحفظة",
     "viewAll": "عرض الكل",
@@ -881,7 +911,7 @@
     "editProject": "تعديل المشروع",
     "viewPublicPage": "عرض الصفحة العامة",
     "publicPageDraftHelper": "انشر هذه الفرصة أولاً قبل فتح صفحتها العامة.",
-    "openProjectRoom": "فتح غرفة المشروع",
+    "openProjectRoom": "فتح غرفة الفرصة",
     "approvedInvestors": { "title": "المستثمرون", "loading": "جارٍ تحميل المستثمرين المعتمدين", "emptyTitle": "لا يوجد مستثمرون معتمدون بعد", "emptyHelper": "سيظهر المستثمرون المعتمدون هنا.", "showMore": "عرض {{count}} مستثمرين إضافيين" },
     "recentActivity": "النشاط الأخير",
     "selectProjectTitle": "اختر مشروعًا",
@@ -923,7 +953,7 @@
     "nextAchievement": { "title": "إنجازك التالي", "profile": "أكمل ملفك الشخصي", "remaining": "متبقي", "continue": "متابعة الملف الشخصي" },
     "performance": {
       "eyebrow": "المشاركات المعتمدة فقط",
-      "title": "أداء الاستثمار",
+      "title": "أداء المشاركات",
       "totalInvested": "إجمالي قيمة المشاركات المعتمدة",
       "currentValue": "القيمة السوقية العادلة للمحفظة",
       "realizedEarnings": "الأرباح المحققة",
@@ -931,7 +961,7 @@
       "totalReturn": "إجمالي العائد",
       "returnRate": "معدل العائد",
       "helper": "تعتمد الإجماليات على طلبات المشاركة المعتمدة فقط. تظهر القيمة الحالية والأرباح المحققة عند توفر بيانات التقييم أو المدفوعات من الخادم.",
-      "totalInvestedHint": "إجمالي قيمة جميع طلبات المشاركة المعتمدة عبر نماذج الاستثمار المختلفة",
+      "totalInvestedHint": "إجمالي قيمة جميع طلبات المشاركة المعتمدة عبر نماذج التمويل المختلفة",
       "expectedEarningsHint": "صافي الربح المتوقع بناءً على شروط المشاركات المعتمدة",
       "currentValueHint": "القيمة السوقية العادلة المقدرة للمحفظة — تظهر عند توفر بيانات تقييم المحفظة",
       "realizedEarningsHint": "الأرباح النقدية الفعلية المستلمة بالفعل من دفعات المشاركات المكتملة"
@@ -964,11 +994,11 @@
       "emptyHelper": "ستظهر هنا طلبات المشاركة قيد التفاوض."
     },
     "summary": {
-      "title": "ملخص استثماراتي",
-      "activeInvestments": "الاستثمارات النشطة",
+      "title": "ملخص مشاركاتي",
+      "activeInvestments": "المشاركات النشطة",
       "approvedParticipations": "المشاركات المعتمدة",
       "pendingParticipations": "المشاركات المعلقة",
-      "totalInvested": "إجمالي المستثمر",
+      "totalInvested": "إجمالي قيمة المشاركات",
       "composition": {
         "title": "تكوين المحفظة",
         "equity": "حقوق ملكية",
@@ -983,7 +1013,7 @@
     },
     "premium": {
       "eyebrow": "مميز",
-      "title": "رؤى الاستثمار المميزة",
+      "title": "رؤى المحفظة المميزة",
       "locked": "مقفل",
       "teaser": "افتح تحليلات أعمق للمحفظة ولمحات من الرؤى. تبقى التوصيات مخفية حتى يصبح اشتراكك فعالا.",
       "cta": "إدارة الاشتراك",
@@ -992,7 +1022,7 @@
     },
     "activity": {
       "participationCompleted": "تمت المشاركة",
-      "investedIn": "استثمرت {amount} في {projectName}",
+      "investedIn": "شاركت بقيمة {amount} في {projectName}",
       "reputationTitle": "درجة السمعة",
       "reputationDescription": "درجة سمعتك الآن {score}"
     },
@@ -1079,11 +1109,17 @@
     "confirm": {
       "readyToProceed": "أنت على وشك تأكيد جاهزيتك للمتابعة. لن يتم إنشاء طلب مشاركة تلقائيًا. متابعة؟",
       "closeDiscussion": "سيتم إغلاق هذه المحادثة للتفاوض فقط. سيبقى السجل متاحًا للعرض.",
-      "removeClosed": "سيتم إخفاء هذه المحادثة المغلقة من قائمتك فقط."
+      "removeClosed": "سيتم إخفاء هذه المحادثة المغلقة من قائمتك فقط.",
+      "acceptOffer": "هل تريد قبول نسخة العرض هذه؟ سيتم تسجيل الشروط المقدمة وبدء مسار المشاركة.",
+      "rejectOffer": "هل تريد رفض نسخة العرض هذه؟ لا يمكن التراجع عن هذا القرار.",
+      "withdrawOffer": "هل تريد سحب نسخة العرض هذه؟ لا يمكن التراجع عن هذا القرار."
     },
     "errors": {
       "messageFailed": "فشل إرسال الرسالة.",
       "readyFailed": "فشل تحديث حالة الجاهزية.",
+      "readyInvalidState": "لم تعد هذه المحادثة في حالة تفاوض نشطة.",
+      "noAccess": "ليس لديك صلاحية الوصول إلى هذه المحادثة.",
+      "notFound": "لم يتم العثور على هذه المحادثة.",
       "closeFailed": "فشل إغلاق المحادثة.",
       "removeFailed": "فشل إخفاء المحادثة من القائمة."
     }
@@ -1143,6 +1179,9 @@
       "cancel": "إلغاء",
       "viewOpportunity": "عرض الفرصة",
       "participate": "المشاركة",
+      "submitOffer": "إرسال عرض",
+      "startConversation": "بدء محادثة",
+      "continueConversation": "متابعة المحادثة",
       "openRoom": "فتح غرفة الفرصة"
     },
     "status": {
@@ -1168,7 +1207,11 @@
     },
     "roles": {
       "founder": "مؤسس",
-      "investor": "مستثمر"
+      "investor": "مستثمر",
+      "requester": "مقدم الطلب",
+      "recipient": "المستلم",
+      "you": "أنت",
+      "participant": "مشارك"
     },
     "events": {
       "started": "بدأت المحادثة",
@@ -1176,7 +1219,17 @@
     },
     "offers": {
       "title": "عرض تفاوضي",
+      "reviewLabel": "مراجعة العرض",
       "version": "العرض",
+      "submittedAt": "تاريخ التقديم",
+      "metadataLabel": "بيانات العرض",
+      "totalAmount": "إجمالي المبلغ",
+      "legs": "أرجل الاستثمار",
+      "nextAction": "الإجراء التالي",
+      "acceptPrompt": "راجع الشروط واقبل عندما تكون صحيحة.",
+      "counterPrompt": "عدّل الشروط أو أرسل عرضًا مقابلًا.",
+      "acceptedPrompt": "تم القبول. تابع خطوات المشاركة.",
+      "noAction": "لا يتوفر إجراء لهذه النسخة.",
       "counters": "عرض مقابل للعرض",
       "replaces": "يستبدل العرض",
       "equityPercentage": "الملكية",
@@ -1243,6 +1296,8 @@
       "rejected": "مرفوض",
       "notCreated": "لم يتم الإنشاء بعد"
     },
+    "stageSummary": {"select":"اختر محادثة لعرض مرحلتها الحالية.","founderAccepted":"بدأ التفاوض وأصبح جاهزًا للنقاش.","inProgress":"التفاوض جارٍ. حافظ على تركيز النقاش على الفرصة.","ready":"أصبح طرف أو كلا الطرفين جاهزًا للمتابعة.","participationCreated":"تم إنشاء طلب مشاركة وينتظر الموافقة.","participationApproved":"تم اعتماد المشاركة وفتح غرفة الفرصة.","participationRejected":"لم تتم الموافقة على طلب المشاركة.","declined":"رفض المؤسس هذا النقاش.","withdrawn":"سحبت نفسك من هذا النقاش.","closed":"أُغلق هذا النقاش.","default":"راجع سلسلة المحادثة وحالة الجاهزية أدناه."},
+    "nextStep":{"select":"لم يتم اختيار محادثة.","readOnly":"هذه المحادثة للقراءة فقط.","founderAccepted":"تابع النقاش وتفاوض على التفاصيل.","markReady":"حدد جاهز عندما تستعد للمتابعة.","readyState":"تساعد الجاهزية في التفاوض، لكن يجب على المستثمر إرسال طلب مشاركة صريحًا.","submitRequest":"أصبح الطرفان جاهزين. يمكنك الآن إرسال طلب المشاركة.","waitApproval":"انتظر موافقة المؤسس على طلب المشاركة.","openRoom":"افتح غرفة الفرصة لمتابعة التعاون.","rejected":"تم رفض طلب المشاركة.","default":"استخدم سلسلة الرسائل لمتابعة النقاش."},
     "errors": {
       "requestAction": "تعذر تحديث طلب المحادثة."
     }
@@ -1304,17 +1359,8 @@
       "nationalitySelect": "اختر الجنسية",
       "country": "البلد",
       "countrySelect": "اختر البلد",
-      "country_egypt": "مصر",
-      "country_saudi_arabia": "المملكة العربية السعودية",
-      "country_uae": "الإمارات العربية المتحدة",
-      "country_jordan": "الأردن",
-      "country_lebanon": "لبنان",
-      "country_usa": "الولايات المتحدة",
-      "country_uk": "المملكة المتحدة",
-      "country_india": "الهند",
-      "country_canada": "كندا",
-      "country_australia": "أستراليا",
-      "country_other": "أخرى",
+      "historicalValue": "قيمة تاريخية",
+      "inactive": "غير فعال",
       "nationalId": "الهوية الوطنية",
       "uploadId": "تحميل الهوية",
       "chooseFile": "اختر ملفًا",
@@ -1414,7 +1460,7 @@
       },
       "portfolio": {
         "title": "تحديثات المحفظة",
-        "description": "تنبيهات مهمة حول استثماراتك النشطة وأدائها."
+        "description": "تنبيهات مهمة حول مشاركاتك النشطة وأدائها."
       },
       "security": {
         "title": "تنبيهات الأمان",
@@ -1506,9 +1552,9 @@
     "shortDescription": "الوصف المختصر",
     "longDescription": "الوصف",
     "targetAmount": "المبلغ المستهدف",
-    "minimumInvestment": "الحد الأدنى للاستثمار",
+    "minimumInvestment": "الحد الأدنى للمشاركة",
     "companyName": "اسم الشركة",
-    "businessCategory": "فئة النشاط التجاري"
+    "projectCategory": "فئة المشروع"
   },
   "apiSwitcher": {
     "apiLabel": "واجهة برمجية:",
@@ -1582,14 +1628,7 @@
           "ar": "العربية"
         }
       },
-      "currency": {
-        "label": "العملة",
-        "options": {
-          "USD": "دولار",
-          "EUR": "يورو",
-          "SAR": "ريال"
-        }
-      }
+      "currency": { "label": "العملة" }
     },
     "privacy": {
       "title": "الخصوصية",
@@ -1606,7 +1645,7 @@
         }
       },
       "defaultInvestmentType": {
-        "label": "نوع الاستثمار الافتراضي",
+        "label": "نموذج التمويل الافتراضي",
         "options": {
           "any": "أي",
           "founding": "شريك مؤسس",
@@ -1641,12 +1680,21 @@
       "title": "إعدادات الإشعارات",
       "email": "إشعارات البريد الإلكتروني",
       "push": "الإشعارات الفورية",
-      "sms": "إشعارات الرسائل النصية"
+      "sms": "إشعارات الرسائل النصية",
+      "browserPush": "إشعارات المتصفح الفورية",
+      "browserPushHint": "استلم التحديثات المهمة في متصفحك.",
+      "disableDevice": "تعطيل هذا الجهاز",
+      "inactive": "غير نشط",
+      "lastUsed": "آخر استخدام",
+      "permissionGranted": "تم منح الإذن",
+      "permissionNotGranted": "لم يُمنح الإذن",
+      "pushActive": "الإشعارات الفورية مفعلة",
+      "registeredDevices": "الأجهزة المسجلة"
     }
   },
   "requests": {
     "title": "الطلبات",
-    "directOffers": { "eyebrow": "العروض المباشرة", "title": "صندوق العروض", "subtitle": "راجع العروض الكاملة خارج المحادثة. اقبل أو ارفض النسخة المقدمة بدقة.", "refresh": "تحديث", "loading": "جارٍ تحميل العروض...", "loadError": "تعذر تحميل العروض المباشرة.", "empty": "لا توجد عروض مباشرة بعد.", "participant": "مشارك", "acceptError": "تعذر قبول العرض.", "rejectError": "تعذر رفض العرض.", "status": { "pending": "قيد الانتظار", "replaced": "مستبدل", "accepted": "مقبول", "rejected": "مرفوض", "withdrawn": "مسحوب" } },
+    "directOffers": { "eyebrow": "العروض المباشرة", "title": "مراجعة عرض المؤسس", "subtitle": "راجع النسخة المقدمة بدقة وشروطها والإجراء المتاح لك.", "refresh": "تحديث", "loading": "جارٍ تحميل العروض...", "loadError": "تعذر تحميل العروض المباشرة.", "empty": "لا توجد عروض مباشرة بعد.", "participant": "مشارك", "reviewLabel": "مراجعة العرض", "version": "النسخة", "submittedAt": "تاريخ التقديم", "totalAmount": "إجمالي المبلغ", "legs": "أرجل الاستثمار", "terms": "الشروط المقدمة", "metadataLabel": "بيانات العرض", "actionsLabel": "إجراءات العرض", "unavailable": "غير متاح", "finalState": "تم إنهاء هذا العرض ولا يتوفر إجراء آخر.", "acceptError": "تعذر قبول العرض.", "rejectError": "تعذر رفض العرض.", "confirm": { "accept": "هل تريد قبول نسخة العرض هذه؟ سيؤدي ذلك إلى تسجيل الشروط المقدمة وبدء مسار المشاركة.", "reject": "هل تريد رفض نسخة العرض هذه؟ لا يمكن التراجع عن هذا القرار." }, "actions": { "accept": "قبول العرض", "reject": "رفض العرض" }, "status": { "pending": "قيد الانتظار", "replaced": "مستبدل", "accepted": "مقبول", "rejected": "مرفوض", "withdrawn": "مسحوب" } },
     "workspace": {
       "eyebrow": "مساحة الطلبات",
       "subtitle": "راجع طلبات المحادثة والمشاركة في مساحة عمل مدمجة.",
@@ -1795,9 +1843,14 @@
   },
   "common": {
     "loading": "جاري التحميل...",
+    "navigationError": "خطأ في التنقل",
+    "refresh": "تحديث",
+    "retry": "إعادة المحاولة",
+    "backToProfile": "العودة إلى الملف الشخصي",
     "cancel": "إلغاء",
     "back": "رجوع",
     "processing": "جاري المعالجة...",
+    "saving": "جارٍ الحفظ...",
     "previous": "السابق",
     "next": "التالي",
     "months": {
@@ -1844,7 +1897,7 @@
     "refresh": "تحديث",
     "retry": "إعادة المحاولة",
     "loading": "جاري تحميل المحفظة...",
-    "platformCreditHelper": "Platform CREDIT هو رصيد خدمات المنصة فقط. لا يُستخدم لشراء أسهم أو دفع قيمة قرض أو مساهمة استثمارية.",
+    "platformCreditHelper": "Platform CREDIT هو رصيد خدمات المنصة فقط. لا يمثل قيمة المشاركة أو الأسهم أو القرض أو المساهمة.",
     "summary": {
       "currentBalance": "رصيد Platform CREDIT الحالي",
       "purchased": "Platform CREDIT المشترى",
@@ -1907,12 +1960,12 @@
     "title": "إنشاء طلب مشاركة",
     "subtitle": "راجع تفاصيل المشاركة قبل إرسال الطلب. رسوم المنصة منفصلة عن قيمة الاستثمار.",
     "loading": "جاري تحميل نموذج المشاركة...",
-    "opportunityFallback": "Opportunity",
+  "opportunityFallback": "الفرصة",
     "currencyFallback": "العملة",
     "months": "شهر",
     "startsAt": "يبدأ {date}",
     "endsAt": "ينتهي {date}",
-    "previewHelper": "هذا عرض مبدئي فقط. سيتم إرسال طلب المشاركة للمؤسس للمراجعة.",
+    "previewHelper": "هذه معاينة فقط. يحسب الخادم إجمالي المشاركة المعتمد عند الإرسال.",
     "backendTermsHelper": "تم تحميل شروط الفرصة من الخادم. راجع التفاصيل قبل الإرسال.",
     "models": {
       "equity": "حقوق ملكية",
@@ -1921,7 +1974,7 @@
       "unsupported": "غير مدعوم"
     },
     "labels": {
-      "investmentModel": "نموذج الاستثمار",
+      "investmentModel": "نموذج التمويل",
       "totalShares": "إجمالي الأسهم",
       "availableShares": "الأسهم المتاحة",
       "pricePerShare": "سعر السهم",
@@ -1930,7 +1983,7 @@
       "numberOfShares": "عدد الأسهم",
       "calculatedTotal": "إجمالي الاستثمار المحسوب",
       "selectedShares": "الأسهم المختارة",
-      "estimatedInvestment": "قيمة الاستثمار المتوقعة",
+      "estimatedInvestment": "قيمة المشاركة المتوقعة",
       "opportunityContext": "سياق الفرصة الاستثمارية",
       "fundingTarget": "هدف التمويل",
       "alreadyFunded": "تم تمويله",
@@ -1974,7 +2027,7 @@
     "errors": {
       "loadFailed": "فشل تحميل نموذج المشاركة.",
       "submitFailed": "فشل إرسال طلب المشاركة.",
-      "invalidModel": "أعادت الفرصة نموذج استثمار غير صالح. يرجى تحديث الصفحة والمحاولة مرة أخرى."
+      "invalidModel": "أعادت الفرصة نموذج تمويل غير صالح. يرجى تحديث الصفحة والمحاولة مرة أخرى."
     }
   },
   "reports": {
@@ -2064,7 +2117,6 @@
     },
     "fields": {
       "project": "المشروع",
-      "purpose": "غرض جمع التمويل",
       "type": "نوع الفرصة",
       "title": "عنوان الفرصة",
       "shortDescription": "الوصف المختصر",
@@ -2081,14 +2133,7 @@
       "exitStrategy": "استراتيجية التخارج",
       "coverImageUrl": "رابط صورة الغلاف"
     },
-    "currencies": {
-      "USD": "دولار أمريكي",
-      "EUR": "يورو",
-      "SAR": "ريال سعودي",
-      "EGP": "جنيه مصري"
-    },
     "placeholders": {
-      "purpose": "مثال: التوسع إلى سوق جديد",
       "title": "أدخل عنوانًا موجزًا للفرصة",
       "shortDescription": "لخص الفرصة",
       "story": "اعرض قصة الفرصة كاملة للمستثمرين",
@@ -2107,14 +2152,6 @@
       "bridge": "جسرية",
       "projectFinance": "تمويل مشاريع",
       "other": "أخرى"
-    },
-    "projectStages": {
-      "1": "فكرة",
-      "2": "منتج أولي قابل للاستخدام",
-      "3": "شركة ناشئة",
-      "4": "مرحلة التوسع",
-      "5": "منشأة مستقرة",
-      "6": "أخرى"
     },
     "lookups": {
       "categories": {
@@ -2135,32 +2172,7 @@
         "15": "التقنية المالية",
         "16": "الذكاء الاصطناعي"
       },
-      "tags": {
-        "1": "الذكاء الاصطناعي",
-        "2": "التصدير",
-        "3": "مشاريع خضراء",
-        "4": "بقيادة نسائية",
-        "5": "امتياز تجاري",
-        "6": "أعمال موجهة للشركات",
-        "7": "أعمال موجهة للمستهلكين",
-        "8": "برمجيات كخدمة",
-        "9": "تطبيق جوال",
-        "10": "مشروع محلي",
-        "11": "نمو مرتفع",
-        "12": "حد أدنى منخفض للاستثمار"
-      },
-      "fundingGoals": {
-        "1": "إطلاق مشروع جديد",
-        "2": "توسعة مشروع قائم",
-        "3": "شراء معدات",
-        "4": "التسويق",
-        "5": "رأس المال العامل",
-        "6": "افتتاح فرع جديد",
-        "7": "البحث والتطوير",
-        "8": "شراء المخزون",
-        "9": "التوظيف",
-        "10": "الاستحواذ"
-      }
+      "tags": {}
     },
     "advanced": {
       "title": "تفاصيل اختيارية متقدمة",
@@ -2235,7 +2247,18 @@
     "projectHelp": "اختر المشروع الذي ستتبع له هذه الفرصة.",
     "projectStageHelp": "يمكن استخدام كل مرحلة قياسية للمشروع مرة واحدة فقط ضمن هذا المشروع.",
     "placeholders": {
-      "selectProject": "اختر مشروعاً موجوداً"
+      "selectProject": "اختر مشروعاً موجوداً",
+      "title": "أدخل عنوانًا موجزًا للفرصة",
+      "shortDescription": "لخص الفرصة",
+      "story": "اعرض قصة الفرصة كاملة للمستثمرين",
+      "useOfFunds": "اشرح كيفية استخدام التمويل",
+      "category": "اختر فئة",
+      "projectStage": "أدخل المرحلة الحالية",
+      "projectStageCustomName": "مثال: التوسع الإقليمي",
+      "fundingGoal": "اختر هدف التمويل",
+      "fundingTarget": "0.00",
+      "currency": "اختر العملة",
+      "coverImageUrl": "https://"
     },
     "empty": {
       "noProjects": "لا توجد مشروعات متاحة. أنشئ مشروعًا أولًا من قسم المشروعات.",
@@ -2248,6 +2271,7 @@
     "subtitle": "أدر المشاريع المسجلة والفرص التمويلية المرتبطة بها.",
     "create": "إنشاء مشروع",
     "stats": {
+      "category": "الفئة",
       "opportunities": "الفرص",
       "fundingTarget": "إجمالي هدف التمويل"
     },
@@ -2294,6 +2318,7 @@
       "teamDescription": "وصف الفريق",
       "businessModel": "نموذج العمل",
       "riskDisclosure": "الإفصاح عن المخاطر"
+      ,"projectStage": "مرحلة المشروع"
     },
     "placeholders": {
       "displayName": "أدخل اسم المشروع",
@@ -2303,18 +2328,48 @@
       "category": "اختر تصنيف المشروع",
       "industry": "مثال: تقنية مالية، تكنولوجيا صحية، تجارة إلكترونية",
       "geography": "السوق الجغرافي الأساسي",
-      "websiteUrl": "https://example.com",
-      "logoUrl": "https://example.com/logo.png",
+      "websiteUrl": "رابط موقع المشروع (اختياري)",
+      "logoUrl": "رابط شعار المشروع (اختياري)",
       "defaultCurrency": "تُعيّن تلقائيًا إلى عملتك المفضلة",
       "teamDescription": "صف خبرات فريق التأسيس",
       "businessModel": "كيف سيحقق المشروع الإيرادات؟",
-      "riskDisclosure": "المخاطر المعروفة واستراتيجيات التخفيف"
+      "riskDisclosure": "المخاطر المعروفة واستراتيجيات التخفيف",
+      "projectStage": "اختر مرحلة المشروع"
     },
     "actions": {
       "back": "العودة إلى المشاريع",
       "create": "إنشاء مشروع",
       "save": "حفظ التغييرات",
       "saving": "جارٍ الحفظ…"
+      ,"publish": "نشر المشروع"
+      ,"publishing": "جارٍ النشر…"
+    },
+    "validation": {
+      "displayNameRequired": "اسم المشروع مطلوب.",
+      "displayNameMaxLength": "يجب ألا يتجاوز اسم المشروع {max} حرفًا.",
+      "legalNameMaxLength": "يجب ألا يتجاوز الاسم القانوني {max} حرفًا.",
+      "summaryRequired": "الملخص مطلوب.",
+      "summaryMinLength": "يجب ألا يقل الملخص عن {min} حرفًا.",
+      "summaryMaxLength": "يجب ألا يتجاوز الملخص {max} حرفًا.",
+      "descriptionRequired": "الوصف مطلوب.",
+      "descriptionMinLength": "يجب ألا يقل الوصف عن {min} حرفًا.",
+      "descriptionMaxLength": "يجب ألا يتجاوز الوصف {max} حرفًا.",
+      "industryMaxLength": "يجب ألا يتجاوز المجال {max} حرفًا.",
+      "geographyMaxLength": "يجب ألا تتجاوز المنطقة الجغرافية {max} حرفًا.",
+      "websiteUrlMaxLength": "يجب ألا يتجاوز رابط الموقع {max} حرفًا.",
+      "logoUrlMaxLength": "يجب ألا يتجاوز رابط الشعار {max} حرفًا.",
+      "teamDescriptionMaxLength": "يجب ألا يتجاوز وصف الفريق {max} حرفًا.",
+      "businessModelMaxLength": "يجب ألا يتجاوز نموذج العمل {max} حرفًا.",
+      "riskDisclosureMaxLength": "يجب ألا يتجاوز الإفصاح عن المخاطر {max} حرفًا.",
+      "defaultCurrencyMinLength": "يجب أن تكون العملة الافتراضية رمزًا من 3 أحرف.",
+      "defaultCurrencyMaxLength": "يجب أن تكون العملة الافتراضية رمزًا من 3 أحرف.",
+      "projectStageRequired": "مرحلة المشروع مطلوبة.",
+      "projectStageInvalid": "اختر مرحلة مشروع صحيحة.",
+      "categoryInvalid": "اختر تصنيف مشروع نشطًا.",
+      "urlInvalid": "أدخل رابطًا صحيحًا.",
+      "foundedOnFuture": "تاريخ التأسيس لا يمكن أن يكون في المستقبل.",
+      "foundedOnInvalid": "أدخل تاريخ تأسيس صحيحًا.",
+      "saveFailed": "تعذر حفظ المشروع."
     },
     "opportunities": {
       "eyebrow": "جولات التمويل",
@@ -2346,9 +2401,9 @@
   "projectRoom": {
     "eyebrow": "مساحة المؤسس",
     "back": "العودة إلى المشاريع",
-    "title": "غرفة المشروع",
-    "loading": "جارٍ تحميل غرفة المشروع…",
-    "error": "تعذر تحميل غرفة المشروع.",
+    "title": "مساحة عمل المشروع",
+    "loading": "جارٍ تحميل مساحة عمل المشروع…",
+    "error": "تعذر تحميل مساحة عمل المشروع.",
     "retry": "إعادة المحاولة",
     "composer": {
       "title": "انشر إلى المشروع",
@@ -2393,7 +2448,7 @@
   },
   "contracts": {
     "title": "العقود والاتفاقيات",
-    "investmentAgreement": "اتفاقية الاستثمار",
+    "investmentAgreement": "اتفاقية المشاركة",
     "room": {
       "founderListHelper": "تتضمن قائمة المؤسس جميع العقود المصرح بها لهذه الفرصة.",
       "investorListHelper": "تتضمن قائمة المستثمر العقود التي يكون طرفًا فيها فقط.",
@@ -2408,7 +2463,7 @@
       "email": "إرسال العقد بالبريد الإلكتروني"
     },
     "fields": {
-      "investmentModel": "نموذج الاستثمار",
+      "investmentModel": "نموذج التمويل",
       "contractNumber": "رقم العقد",
       "currentVersion": "الإصدار الحالي",
       "status": "الحالة",
@@ -2440,6 +2495,7 @@
       "noChangesSummary": "لا يتوفر ملخص للتغييرات في هذا الإصدار."
     },
     "preview": {
+      "title": "معاينة العقد",
       "loading": "جارٍ تحميل معاينة العقد..."
     },
     "pdf": {
@@ -2458,7 +2514,7 @@
     },
     "versionTypes": {
       "0": "الاتفاقية الأولية",
-      "1": "استثمار إضافي",
+      "1": "مشاركة إضافية",
       "2": "شراء أسهم إضافية",
       "3": "تعديل الشروط",
       "4": "إعادة هيكلة القرض",
@@ -2467,7 +2523,7 @@
       "7": "تخارج جزئي",
       "8": "إنهاء",
       "InitialAgreement": "الاتفاقية الأولية",
-      "AdditionalInvestment": "استثمار إضافي",
+      "AdditionalInvestment": "مشاركة إضافية",
       "AdditionalSharePurchase": "شراء أسهم إضافية",
       "TermsAmendment": "تعديل الشروط",
       "LoanRestructuring": "إعادة هيكلة القرض",
@@ -2511,6 +2567,7 @@
   "opportunityRoom": {
     "title": "غرفة الفرصة",
     "loading": "جارٍ تحميل غرفة الفرصة...",
+    "projectContext": {"eyebrow":"المشروع الأب","category":"الفئة / القطاع","stage":"المرحلة الحالية","location":"الموقع","founder":"المؤسس","company":"الشركة","viewProject":"عرض المشروع"},
     "statuses": {
       "draft": "مسودة",
       "underReview": "قيد المراجعة",
@@ -2551,16 +2608,60 @@
       "participation": "المشاركة",
       "permissions": "الملفات الخاصة: {privateFiles} · التنزيلات: {downloads}",
       "termsSnapshot": "ملخص الشروط الخاصة بك",
-      "investmentModel": "نموذج {model}",
+      "investmentModel": "نموذج تمويل {model}",
       "minimumParticipation": "الحد الأدنى للمشاركة",
       "latestChange": "آخر تغيير"
     },
     "funding": {
       "progress": "تقدم التمويل",
+      "confirmedProgress": "نسبة التمويل المؤكد",
       "target": "المستهدف التمويلي",
+      "committed": "المبلغ الملتزم به",
+      "declaredReceived": "المبلغ المفاد باستلامه",
+      "confirmedReceived": "المبلغ المستلم المؤكد",
+      "disputed": "المبلغ محل الاعتراض",
+      "awaitingConfirmation": "المبلغ في انتظار التأكيد",
+      "outstanding": "المبلغ المتبقي",
       "funded": "المبلغ الممول",
       "remaining": "التمويل المتبقي",
       "participants": "المشاركون المعتمدون"
+    },
+    "loanRepayment": {
+      "title": "سجل سداد القرض",
+      "principalOutstanding": "أصل الدين المتبقي",
+      "interestOutstanding": "الفائدة المتبقية",
+      "totalOutstanding": "إجمالي المتبقي",
+      "lifecycleStatus": "حالة دورة حياة القرض",
+      "maturityDate": "تاريخ الاستحقاق النهائي",
+      "overdue": "المبلغ المتأخر",
+      "confirmedRepaid": "المسدد المؤكد",
+      "pending": "بانتظار التأكيد",
+      "disputed": "المبلغ محل الاعتراض",
+      "nextDue": "الاستحقاق التالي",
+      "declare": "تسجيل سداد",
+      "declared": "تم تسجيل السداد وبانتظار تأكيد المستثمر.",
+      "declareFailed": "تعذر تسجيل إقرار السداد.",
+      "confirm": "تأكيد",
+      "dispute": "اعتراض",
+      "confirmed": "تم تأكيد السداد.",
+      "disputed": "تم تسجيل الاعتراض على السداد.",
+      "decisionFailed": "تعذر حفظ قرار السداد.",
+      "amount": "المبلغ",
+      "externalDate": "تاريخ السداد الخارجي",
+      "reference": "المرجع الخارجي",
+      "proof": "الإثبات (اختياري)",
+      "proofAvailable": "تم إرفاق الإثبات",
+      "noProof": "لم يتم تقديم إثبات",
+      "declaredAt": "تاريخ التسجيل",
+      "decidedAt": "تاريخ القرار",
+      "status": "الحالة",
+      "record": "سجل السداد",
+      "decisionComment": "تعليق التأكيد",
+      "disputeReason": "سبب الاعتراض",
+      "fullyRepaidAt": "تاريخ السداد الكامل",
+      "defaultReason": "سبب التعثر",
+      "closedAt": "تاريخ الإغلاق",
+      "expectedOnly": "الجدول المتوقع التزام تعاقدي؛ ويتم تسجيل السدادات المؤكدة بشكل منفصل."
     },
     "milestones": {
       "label": "مرحلة رئيسية",
@@ -2610,7 +2711,7 @@
       "status": "الحالة",
       "useOfFunds": "استخدام الأموال",
       "expectedReturn": "العائد المتوقع",
-      "publicTerms": "شروط الاستثمار العامة"
+      "publicTerms": "شروط التمويل العامة"
     },
     "participationSummary": {
       "title": "ملخص المشاركة",
@@ -2626,9 +2727,12 @@
       "helper": "تظهر كل مشاركة بالشروط والأجزاء المعتمدة والتزاماتها الخاصة.",
       "empty": "لا توجد مشاركة معتمدة متاحة في غرفة هذه الفرصة.",
       "yourParticipation": "مشاركتك",
+      "approvedAmount": "مبلغ المشاركة المعتمد",
       "sequence": "المشاركة",
       "immutable": "الشروط المعتمدة مقفلة",
-      "contract": "العقد"
+      "contract": "العقد",
+      "acceptedOffer": "العرض المقبول",
+      "viewContractSnapshot": "عرض نسخة العقد الثابتة"
     },
     "legs": {
       "equity": "الملكية",
@@ -2638,7 +2742,47 @@
       "months": "شهر",
       "cadence": "الدورية",
       "obligations": "التزامات الجزء",
-      "cashFlowCount": "{{count}} تدفقات نقدية مجدولة"
+      "cashFlowCount": "{{count}} تدفقات نقدية مجدولة", "startDate": "تاريخ البدء التعاقدي", "maturityDate": "تاريخ الاستحقاق التعاقدي", "expectedSchedule": "جدول السداد المتوقع", "scheduleInstallment": "القسط", "scheduleDueDate": "تاريخ الاستحقاق", "scheduleInterest": "الفائدة المتوقعة", "schedulePrincipal": "أصل المبلغ المتوقع", "scheduleTotal": "الإجمالي المتوقع", "scheduleStatus": "الحالة", "expectedScheduleNote": "هذه مبالغ تعاقدية متوقعة من التزام القرض المحفوظ. لا يتم افتراض أي سداد."
+    },
+    "equity": { "ownershipModel": "نموذج الملكية", "currentOwnership": "الملكية الحالية", "shares": "أسهم المستثمر / الإجمالي", "shareClass": "فئة الأسهم", "dilution": "التخفيف", "corporateEvents": "الأحداث المؤسسية", "disclaimer": "تعكس هذه السجلات المعلومات التعاقدية المسجلة على FOPX One، ولا تمثل حفظًا للأوراق المالية أو تسجيلًا رسميًا للأسهم بواسطة المنصة." },
+    "profitSharing": {
+      "title": "تقارير مشاركة الأرباح المتوقعة",
+      "status": "حالة الالتزام",
+      "frequency": "دورية التقرير",
+      "basis": "أساس الحساب",
+      "startDate": "تاريخ البدء التعاقدي",
+      "endDate": "تاريخ الانتهاء التعاقدي",
+      "period": "فترة التقرير",
+      "declaration": "إقرار المؤسس",
+      "entitlement": "استحقاق المستثمر",
+      "confirmedDistributed": "التوزيع المؤكد",
+      "pendingConfirmation": "بانتظار الإقرار",
+      "distributionOutstanding": "التوزيع المستحق",
+      "declaredResult": "إجمالي النتائج المقرّ بها",
+      "completedPeriods": "الفترات المكتملة",
+      "finalPeriod": "الفترة النهائية",
+      "maturedNotice": "اكتملت المدة التعاقدية. قد تبقى التزامات تقرير أو توزيع قائمة.",
+      "settledNotice": "تم الإقرار بأن جميع استحقاقات مشاركة الأرباح المسجلة وُزعت خارجيًا بين الأطراف.",
+      "closedSummary": "ملخص الإغلاق المحفوظ",
+      "closedAt": "تاريخ الإغلاق",
+      "closureReason": "سبب الإغلاق",
+      "externalDistribution": "توزيع خارجي أقر به المؤسس",
+      "declareDistribution": "إقرار توزيع",
+      "confirm": "إقرار",
+      "dispute": "اعتراض",
+      "amount": "مبلغ التوزيع",
+      "reference": "المرجع الخارجي",
+      "evidence": "مستند خاص (اختياري)",
+      "notes": "ملاحظات (اختياري)",
+      "acknowledgement": "إقرار المستثمر فقط؛ لا يتم التحقق منه أو تسويته بواسطة FOPX One.",
+      "comment": "تعليق (اختياري)",
+      "disputeReason": "سبب الاعتراض",
+      "distributionDeclared": "تم إقرار التوزيع وبانتظار إقرار المستثمر.",
+      "distributionConfirmed": "تم تسجيل إقرار التوزيع.",
+      "distributionDisputed": "تم تسجيل الاعتراض على التوزيع.",
+      "distributionFailed": "تعذر إقرار التوزيع.",
+      "distributionDecisionFailed": "تعذر تسجيل قرار التوزيع.",
+      "expectedNote": "هذه فترات تقرير تعاقدية متوقعة. يظهر الاستحقاق بعد إقرار المؤسس فقط، ولا يُفترض أي توزيع أو سداد."
     },
     "timeline": {
       "title": "الجدول الزمني للفرصة",
@@ -2773,11 +2917,13 @@
       "remaining": "المتبقي",
       "paymentDate": "تاريخ الإفادة",
       "reference": "المرجع",
+      "referencePlaceholder": "مرجع اختياري",
+      "notesPlaceholder": "ملاحظات اختيارية",
       "expectedInterest": "الفائدة",
       "expectedPrincipal": "أصل الدين",
       "expectedTotal": "الإجمالي",
       "statusLabel": "الحالة",
-      "noSchedule": "نموذج الاستثمار هذا لا يُنشئ جدول سداد مجدولاً. إفادات السداد خارج المنصة غير قابلة للتطبيق.",
+      "noSchedule": "نموذج التمويل هذا لا يُنشئ جدول سداد مجدولاً. إفادات السداد خارج المنصة غير قابلة للتطبيق.",
       "history": "سجل الإفادات",
       "reversed": "ملغي",
       "reversalReason": "السبب",
@@ -2812,6 +2958,7 @@
       "bulkConfirmDetail": "تفاصيل الإفادات",
       "bulkConfirmSubmit": "تسجيل إفادات السداد",
       "bulkConfirmSuccess": "تم تسجيل إفادات السداد الشهرية بنجاح.",
+      "reputationPoints": "نقاط السمعة",
       "bulkConfirmEmpty": "لا توجد أقساط غير مسددة مستحقة هذا الشهر.",
       "bulkConfirmEmptyHelper": "تمت الإفادة عن جميع أقساط هذا الشهر بالكامل.",
       "recordPaymentForSelected": "تسجيل افاده سداد المستحقات",
@@ -2819,6 +2966,7 @@
       "reversePaymentModalTitle": "إلغاء دفعة",
       "reverseModalHelper": "سيؤدي هذا الإجراء إلى وضع علامة على الدفعة كملغية. لن تُحتسب المبالغ الموزعة في إجمالي الأقساط بعد الآن.",
       "reversalReasonLabel": "سبب الإلغاء",
+      "reversalReasonPlaceholder": "اشرح سبب إلغاء هذه الدفعة",
       "reverseSubmit": "إلغاء",
       "reverseSuccess": "تم إلغاء الدفعة بنجاح.",
       "selectInvestor": "اختر مستثمراً",
@@ -2831,6 +2979,26 @@
         "NoPaymentSchedule": "لا توجد دفعات مجدولة"
       }
     }
+  },
+  "fundingDeclaration": {
+    "title": "إفادات المؤسس باستلام التمويل",
+    "helper": "إفادة من المؤسس عن أموال استلمها مباشرة من المستثمر خارج منصة FOPX One.",
+    "available": "المتاح للإفادة",
+    "empty": "لم يتم تسجيل إفادات تمويل خارج المنصة بعد.",
+    "historyTitle": "سجل التمويل",
+    "historyHelper": "سجل زمني لمعلومات التمويل خارج المنصة، يظهر فقط للمصرح لهم بدخول الغرفة.",
+    "history": { "declaredAt": "وقت تسجيل الإفادة", "declaredBy": "سجلها", "proof": "حالة الإثبات", "externalReference": "مرجع خارجي", "decisionBy": "القرار بواسطة", "decisionAt": "وقت تسجيل القرار", "confirmationComment": "تعليق التأكيد", "disputeReason": "سبب الاعتراض", "terminal": "قرار نهائي — لا توجد إجراءات أخرى" },
+    "noProof": "لم يتم تقديم إثبات دفع",
+    "metrics": { "declared": "المبلغ المفاد باستلامه", "awaiting": "في انتظار تأكيد المستثمر", "disputed": "الإفادات محل اعتراض" },
+    "actions": { "declare": "تسجيل استلام تمويل", "viewProof": "عرض إثبات الدفع", "cancel": "إلغاء", "submit": "تسجيل الإفادة", "confirm": "تأكيد الإقرار", "dispute": "الاعتراض على الإقرار" },
+    "methods": { "BankTransfer": "تحويل بنكي", "Cash": "نقدي", "Cheque": "شيك", "Other": "أخرى" },
+    "form": { "amount": "المبلغ المستلم", "receivedDate": "تاريخ الاستلام", "paymentMethod": "طريقة الدفع", "reference": "مرجع خارجي (اختياري)", "proof": "إثبات الدفع (اختياري)", "proofOptional": "يمكنك إرفاق إيصال أو تأكيد تحويل.", "notes": "ملاحظات (اختيارية)" },
+    "modal": { "title": "تسجيل الأموال المستلمة", "instruction": "سجّل فقط الأموال التي استلمتها فعليًا من المستثمر مباشرة خارج منصة FOPX One." },
+    "status": { "PendingConfirmation": "في انتظار تأكيد المستثمر", "Confirmed": "تم تأكيده من المستثمر", "Disputed": "اعترض عليه المستثمر" },
+    "confirm": { "title": "تأكيد إقرار التمويل", "instruction": "أكد إقرارك بأن المؤسس سجّل استلام هذا المبلغ منك مباشرة خارج منصة FOPX One.", "amount": "المبلغ", "receivedDate": "تاريخ الاستلام", "founder": "المؤسس", "context": "الفرصة", "participation": "المشاركة", "paymentMethod": "طريقة الدفع", "proof": "الإثبات", "attached": "مرفق", "notProvided": "غير مقدم", "comment": "تعليق (اختياري)", "confirmedAt": "تاريخ التأكيد", "success": "تم تأكيد إقرار التمويل. هذا تأكيد من الأطراف وليس تحققًا من الدفع بواسطة FOPX One." },
+    "dispute": { "title": "الاعتراض على إقرار التمويل", "instruction": "اعترض على إقرار استلام التمويل إذا كانت البيانات المسجلة لا تتوافق مع فهمك للمعاملة التي تمت خارج المنصة.", "reasonLabel": "سبب الاعتراض", "reason": "سبب الاعتراض", "disputedAt": "تاريخ الاعتراض", "success": "تم تسجيل الاعتراض. تقوم FOPX One بتسجيل النزاع ولا تفصل فيه." },
+    "success": "تم تسجيل إفادة التمويل وهي في انتظار تأكيد المستثمر.",
+    "validation": { "required": "المبلغ وتاريخ الاستلام مطلوبان.", "exceedsAvailable": "المبلغ يتجاوز الالتزام غير المفاد به لهذه المشاركة.", "failed": "تعذر تسجيل إفادة التمويل.", "proofFailed": "تعذر تنزيل إثبات الدفع.", "proofUploadUnavailable": "رفع إثبات الدفع غير متاح مؤقتًا. يمكنك تسجيل الإفادة بدون إثبات والمحاولة لاحقًا.", "disputeReasonRequired": "أدخل سببًا قبل الاعتراض على هذا الإقرار.", "alreadyConfirmed": "تم تأكيد هذا الإقرار بالفعل.", "alreadyDisputed": "تم الاعتراض على هذا الإقرار بالفعل.", "conflict": "تم اتخاذ قرار بشأن هذا الإقرار بطلب آخر. حدّث الصفحة وراجع حالته.", "forbidden": "المستثمر المرتبط بهذا الإقرار فقط يمكنه اتخاذ القرار.", "decisionFailed": "تعذر حفظ قرار إقرار التمويل." }
   },
   "creditPurchase": {
     "back": "العودة إلى المحفظة", "eyebrow": "أرصدة خدمات المنصة", "title": "شراء CREDIT", "subtitle": "اختر باقة نشطة منشورة من تسعير FOPX One.", "balance": "الرصيد الحالي", "serviceOnly": "يُستخدم CREDIT لخدمات المنصة فقط، وليس أموالاً استثمارية ولا يمكن سحبه.", "retry": "إعادة المحاولة", "loading": "جارٍ تحميل الباقات وسجل المشتريات…", "error": "شراء الأرصدة غير متاح حالياً.", "packages": "باقات الأرصدة", "noPackages": "لا توجد باقات أرصدة نشطة حالياً.", "featured": "مميزة", "bonus": "CREDIT إضافي", "review": "مراجعة الطلب", "package": "الباقة", "credits": "CREDIT المشتَرى", "total": "الإجمالي", "buy": "شراء أرصدة", "creating": "جارٍ إنشاء طلب آمن…", "verificationNote": "تُضاف الأرصدة فقط بعد تحقق FOPX One من مزود الدفع. إعادة التوجيه في المتصفح لا تضيف رصيداً.", "selectPrompt": "اختر باقة لمراجعة الطلب.", "history": "سجل المشتريات", "refresh": "تحديث", "noOrders": "لا توجد مشتريات أرصدة بعد.", "reference": "مرجع الطلب", "totalCredits": "إجمالي CREDIT", "amount": "السعر", "statusLabel": "حالة الدفع", "date": "تاريخ الإنشاء", "details": "التفاصيل", "receipt": "إيصال الطلب", "paidAt": "تاريخ الدفع", "close": "إغلاق", "providerUnavailable": "مزود الدفع غير مهيأ حالياً. سيظل الطلب معلقاً ولم تتم إضافة أي أرصدة.", "receiptNote": "يُعد سجل الطلب إيصالاً فقط عندما تكون حالة الدفع مدفوعاً.",

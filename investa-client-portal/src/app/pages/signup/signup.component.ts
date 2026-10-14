@@ -1,6 +1,6 @@
 import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ReactiveFormsModule, FormControl, FormGroup, Validators, AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { TranslatePipe } from '../../pipes/translate.pipe';
@@ -27,6 +27,7 @@ export const passwordMatchValidator: ValidatorFn = (control: AbstractControl): V
 })
 export class SignupComponent {
   private router: Router = inject(Router);
+  private route = inject(ActivatedRoute, { optional: true });
   private authService: AuthService = inject(AuthService);
 
   errorMessage = signal<string | null>(null);
@@ -37,8 +38,15 @@ export class SignupComponent {
     firstName: new FormControl('', [Validators.required]),
     lastName: new FormControl('', [Validators.required]),
     password: new FormControl('', [Validators.required, Validators.minLength(8)]),
-    confirmPassword: new FormControl('', [Validators.required])
+    confirmPassword: new FormControl('', [Validators.required]),
+    clientType: new FormControl<'Investor' | 'Founder'>('Investor', { nonNullable: true, validators: [Validators.required] })
   }, { validators: passwordMatchValidator });
+
+  constructor() {
+    const requestedRole = this.route?.snapshot.queryParamMap.get('role')?.toLowerCase();
+    if (requestedRole === 'founder') this.signupForm.controls.clientType.setValue('Founder');
+    if (requestedRole === 'investor') this.signupForm.controls.clientType.setValue('Investor');
+  }
 
   async onSubmit() {
     if (!this.signupForm.valid || this.isSubmitting()) return;
@@ -50,9 +58,10 @@ export class SignupComponent {
     const firstName = this.signupForm.get('firstName')!.value!;
     const lastName = this.signupForm.get('lastName')!.value!;
     const password = this.signupForm.get('password')!.value!;
+    const clientType = this.signupForm.get('clientType')!.value!;
 
     try {
-      const result = await this.authService.signupInit(mobile, password, firstName, lastName);
+      const result = await this.authService.signupInit(mobile, password, firstName, lastName, clientType);
       this.router.navigate(['/signup-otp'], { queryParams: { session: result.verificationSessionId } });
     } catch (err: any) {
       this.errorMessage.set(err?.message || 'Signup failed. Please try again.');

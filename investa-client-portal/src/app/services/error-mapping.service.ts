@@ -12,6 +12,8 @@ export interface ErrorResult {
   message: string;
   fieldErrors: FieldError[];
   statusCode?: number;
+  backendCode?: string;
+  backendMessage?: string;
 }
 
 @Injectable({ providedIn: 'root' })

@@ -117,18 +117,22 @@ public sealed class OpportunityCreationAuthorizationTests
 
     private static void AddClassification(ApplicationDbContext db)
     {
-        db.OpportunityCategories.Add(new OpportunityCategory
+        db.ProjectCategories.Add(new ProjectCategory
         {
             Id = 9101,
-            Name = "Security Test Category",
-            Description = "Security test category",
+            Code = "SECURITY-TEST-CATEGORY",
+            NameEn = "Security Test Category",
+            NameAr = "تصنيف اختبار أمني",
             IsActive = true
         });
         db.FundingGoals.Add(new FundingGoal
         {
             Id = 9102,
-            Name = "Security Test Goal",
-            Description = "Security test goal",
+            Code = "SECURITYTESTGOAL",
+            NameEn = "Security Test Goal",
+            NameAr = "هدف اختبار أمني",
+            DescriptionEn = "Security test goal",
+            DescriptionAr = "هدف اختبار أمني",
             IsActive = true,
             SortOrder = 9102
         });

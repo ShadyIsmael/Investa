@@ -1,10 +1,9 @@
 ﻿using Investa.Application.Interfaces;
-using Investa.Application.Services;
 using Investa.Domain.Entities;
 using Investa.Domain.Entities.Enums;
 using Investa.Application.DTOs;
 using Investa.Application.DTOs.Investments;
-using Microsoft.Extensions.Logging;
+using Investa.Application.Common;
 
 namespace Investa.Application.Services;
 
@@ -13,25 +12,27 @@ public class InvestmentService : IInvestmentService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IInvestmentEventService _eventService;
     private readonly IInvestmentRepository _investmentRepository;
-    private readonly IOpportunityService _opportunityService;
-    private readonly ILogger<InvestmentService> _logger;
+    private readonly IRiskLevelService _riskLevels;
 
     public InvestmentService(
         IUnitOfWork unitOfWork, 
         IInvestmentEventService eventService,
         IInvestmentRepository investmentRepository,
-        IOpportunityService opportunityService,
-        ILogger<InvestmentService> logger)
+        IRiskLevelService riskLevels)
     {
         _unitOfWork = unitOfWork;
         _eventService = eventService;
         _investmentRepository = investmentRepository;
-        _opportunityService = opportunityService;
-        _logger = logger;
+        _riskLevels = riskLevels;
     }
 
     public async Task<bool> PurchaseSharesAsync(Guid investorId, int investmentId, int sharesPurchased)
     {
+        throw new BusinessValidationException(
+            "LEGACY_PURCHASE_RETIRED",
+            "Investment purchases are retired. Use the Opportunity negotiation flow; acceptance records a commitment only and does not move funds.");
+
+#pragma warning disable CS0162
         if (sharesPurchased <= 0)
             throw new ArgumentException("Shares must be positive.");
 
@@ -151,6 +152,8 @@ public class InvestmentService : IInvestmentService
 
     public async Task<Investment> CreateAsync(CreateInvestmentDto dto)
     {
+        var riskLevel = await _riskLevels.ValidateActiveCodeAsync(dto.RiskLevel, required: true);
+        var defaultRiskLevel = await _riskLevels.ValidateActiveCodeAsync(dto.DefaultRiskLevel);
         var entity = new Investment
         {
             FounderId = dto.FounderId,
@@ -159,9 +162,7 @@ public class InvestmentService : IInvestmentService
             BusinessName = dto.BusinessName,
             Description = dto.Description,
             StartDate = dto.StartDate,
-            BusinessStageId = dto.BusinessStageId,
-            BusinessCategoryId = dto.BusinessCategoryId,
-            ProjectPhaseId = dto.ProjectPhaseId,
+            ProjectCategoryId = dto.ProjectCategoryId,
             TargetFund = dto.TargetFund,
             SharePrice = dto.SharePrice,
             TotalShares = dto.TotalShares,
@@ -199,19 +200,13 @@ public class InvestmentService : IInvestmentService
             RemainingBalance = dto.RemainingBalance,
             TotalPaidAmount = dto.TotalPaidAmount,
             NextInstallmentDate = dto.NextInstallmentDate,
-            DefaultRiskLevel = dto.DefaultRiskLevel,
+            RiskLevel = riskLevel,
+            DefaultRiskLevel = defaultRiskLevel,
             LoanCompletionStatus = dto.LoanCompletionStatus
         };
 
         await _unitOfWork.Repository<Investment>().AddAsync(entity);
         await _unitOfWork.SaveChangesAsync();
-        var mirroredOpportunityId = await MirrorLegacyCreateToOpportunityAsync(dto, entity);
-        if (mirroredOpportunityId.HasValue)
-        {
-            entity.OpportunityId = mirroredOpportunityId.Value;
-            await _unitOfWork.Repository<Investment>().UpdateAsync(entity);
-            await _unitOfWork.SaveChangesAsync();
-        }
 
         // Best-effort: append Created event (do not fail creation if event append fails)
         try
@@ -239,15 +234,11 @@ public class InvestmentService : IInvestmentService
         if (entity == null) return false;
 
         var oldStatus = entity.Status;
-        var oldBusinessName = entity.BusinessName;
-
         if (dto.InitialCapital.HasValue) entity.InitialCapital = dto.InitialCapital.Value;
         if (dto.BusinessName != null) entity.BusinessName = dto.BusinessName;
         if (dto.Description != null) entity.Description = dto.Description;
         if (dto.StartDate.HasValue) entity.StartDate = dto.StartDate;
-        if (dto.BusinessStageId.HasValue) entity.BusinessStageId = dto.BusinessStageId;
-        if (dto.BusinessCategoryId.HasValue) entity.BusinessCategoryId = dto.BusinessCategoryId;
-        if (dto.ProjectPhaseId.HasValue) entity.ProjectPhaseId = dto.ProjectPhaseId;
+        if (dto.ProjectCategoryId.HasValue) entity.ProjectCategoryId = dto.ProjectCategoryId;
         if (dto.TargetFund.HasValue) entity.TargetFund = dto.TargetFund.Value;
         if (dto.SharePrice.HasValue) entity.SharePrice = dto.SharePrice.Value;
         if (dto.TotalShares.HasValue) 
@@ -295,12 +286,12 @@ public class InvestmentService : IInvestmentService
         if (dto.RemainingBalance.HasValue) entity.RemainingBalance = dto.RemainingBalance.Value;
         if (dto.TotalPaidAmount.HasValue) entity.TotalPaidAmount = dto.TotalPaidAmount.Value;
         if (dto.NextInstallmentDate.HasValue) entity.NextInstallmentDate = dto.NextInstallmentDate;
-        if (dto.DefaultRiskLevel != null) entity.DefaultRiskLevel = dto.DefaultRiskLevel;
+        if (dto.RiskLevel != null) entity.RiskLevel = await _riskLevels.ValidateActiveCodeAsync(dto.RiskLevel);
+        if (dto.DefaultRiskLevel != null) entity.DefaultRiskLevel = await _riskLevels.ValidateActiveCodeAsync(dto.DefaultRiskLevel);
         if (dto.LoanCompletionStatus != null) entity.LoanCompletionStatus = dto.LoanCompletionStatus;
 
         await repo.UpdateAsync(entity);
         await _unitOfWork.SaveChangesAsync();
-        await MirrorLegacyUpdateToOpportunityAsync(entity, oldBusinessName, dto);
 
         // Emit status change event if status changed
         if (oldStatus != entity.Status)
@@ -442,83 +433,4 @@ public class InvestmentService : IInvestmentService
         return participants.Where(p => p.InvestmentId == investmentId);
     }
 
-    private async Task<int?> MirrorLegacyCreateToOpportunityAsync(CreateInvestmentDto dto, Investment investment)
-    {
-        if (!InvestmentOpportunityCompatibilityMapper.TryCreateRequest(dto, investment.Id, out var request, out var skipReason))
-        {
-            _logger.LogWarning(
-                "Legacy investment {InvestmentId} Opportunity mirror create skipped: {Reason}",
-                investment.Id,
-                skipReason);
-            return null;
-        }
-
-        try
-        {
-            var opportunity = await _opportunityService.CreateAsync(dto.FounderId, request);
-            _logger.LogInformation(
-                "Legacy investment {InvestmentId} mirrored to Opportunity {OpportunityId} during create.",
-                investment.Id,
-                opportunity.Id);
-            return opportunity.Id;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(
-                ex,
-                "Legacy investment {InvestmentId} was created, but Opportunity mirror create was skipped.",
-                investment.Id);
-            return null;
-        }
-    }
-
-    private async Task MirrorLegacyUpdateToOpportunityAsync(Investment investment, string? oldBusinessName, UpdateInvestmentDto? dto = null)
-    {
-        try
-        {
-            var existing = await FindMirroredOpportunityAsync(investment, oldBusinessName);
-            if (existing is null)
-                return;
-
-            if (!InvestmentOpportunityCompatibilityMapper.TryUpdateRequest(investment, dto, out var request, out var skipReason))
-            {
-                _logger.LogWarning(
-                    "Legacy investment {InvestmentId} Opportunity mirror update skipped: {Reason}",
-                    investment.Id,
-                    skipReason);
-                return;
-            }
-
-            await _opportunityService.UpdateAsync(investment.FounderId, existing.Id, request);
-            _logger.LogInformation(
-                "Legacy investment {InvestmentId} mirrored to Opportunity {OpportunityId} during update.",
-                investment.Id,
-                existing.Id);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(
-                ex,
-                "Legacy investment {InvestmentId} was updated, but Opportunity mirror update was skipped.",
-                investment.Id);
-        }
-    }
-
-    private async Task<OpportunityDto?> FindMirroredOpportunityAsync(Investment investment, string? oldBusinessName)
-    {
-        var opportunities = await _opportunityService.GetMyAsync(investment.FounderId);
-        if (investment.OpportunityId.HasValue)
-        {
-            var linked = opportunities.FirstOrDefault(o => o.Id == investment.OpportunityId.Value);
-            if (linked is not null)
-                return linked;
-        }
-
-        var currentTitle = InvestmentOpportunityCompatibilityMapper.ToOpportunityTitle(investment.BusinessName, investment.Id);
-        var previousTitle = InvestmentOpportunityCompatibilityMapper.ToOpportunityTitle(oldBusinessName, investment.Id);
-
-        return opportunities.FirstOrDefault(o =>
-            string.Equals(o.Title, currentTitle, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(o.Title, previousTitle, StringComparison.OrdinalIgnoreCase));
-    }
 }

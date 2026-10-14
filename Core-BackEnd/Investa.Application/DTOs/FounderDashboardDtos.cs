@@ -19,6 +19,13 @@ public sealed class FounderDashboardMetricsDto
     public int ActiveOpportunities { get; init; }
     public int UniqueActiveInvestors { get; init; }
     public FounderDashboardMoneyDto TotalFundingTarget { get; init; } = FounderDashboardMoneyDto.Zero();
+    public FounderDashboardMoneyDto TotalCommitted { get; init; } = FounderDashboardMoneyDto.Zero();
+    public FounderDashboardMoneyDto DeclaredReceivedAmount { get; init; } = FounderDashboardMoneyDto.Zero();
+    public FounderDashboardMoneyDto AwaitingConfirmationAmount { get; init; } = FounderDashboardMoneyDto.Zero();
+    public FounderDashboardMoneyDto DisputedAmount { get; init; } = FounderDashboardMoneyDto.Zero();
+    public FounderDashboardMoneyDto UndeclaredCommittedAmount { get; init; } = FounderDashboardMoneyDto.Zero();
+    public FounderDashboardMoneyDto ConfirmedReceivedAmount { get; init; } = FounderDashboardMoneyDto.Zero();
+    public FounderDashboardMoneyDto OutstandingAmount { get; init; } = FounderDashboardMoneyDto.Zero();
     public FounderDashboardMoneyDto TotalFunded { get; init; } = FounderDashboardMoneyDto.Zero();
     public decimal? FundingProgressPercentage { get; init; }
     public FounderDashboardMoneyDto ReceivedAmount { get; init; } = FounderDashboardMoneyDto.Zero();
@@ -53,6 +60,13 @@ public sealed class FounderDashboardProjectDto
     public string? DefaultCurrency { get; init; }
     public int OpportunityCount { get; init; }
     public FounderDashboardMoneyDto TotalFundingTarget { get; init; } = FounderDashboardMoneyDto.Zero();
+    public FounderDashboardMoneyDto TotalCommitted { get; init; } = FounderDashboardMoneyDto.Zero();
+    public FounderDashboardMoneyDto DeclaredReceivedAmount { get; init; } = FounderDashboardMoneyDto.Zero();
+    public FounderDashboardMoneyDto AwaitingConfirmationAmount { get; init; } = FounderDashboardMoneyDto.Zero();
+    public FounderDashboardMoneyDto DisputedAmount { get; init; } = FounderDashboardMoneyDto.Zero();
+    public FounderDashboardMoneyDto UndeclaredCommittedAmount { get; init; } = FounderDashboardMoneyDto.Zero();
+    public FounderDashboardMoneyDto ConfirmedReceivedAmount { get; init; } = FounderDashboardMoneyDto.Zero();
+    public FounderDashboardMoneyDto OutstandingAmount { get; init; } = FounderDashboardMoneyDto.Zero();
     public FounderDashboardMoneyDto TotalFunded { get; init; } = FounderDashboardMoneyDto.Zero();
     public decimal? FundingProgressPercentage { get; init; }
     public IReadOnlyList<FounderDashboardOpportunityDto> Opportunities { get; init; } = [];
@@ -68,6 +82,13 @@ public sealed class FounderDashboardOpportunityDto
     public decimal FundingTarget { get; init; }
     public string? FundingCurrency { get; init; }
     public FounderDashboardMoneyDto TotalFundingTarget { get; init; } = FounderDashboardMoneyDto.Zero();
+    public FounderDashboardMoneyDto TotalCommitted { get; init; } = FounderDashboardMoneyDto.Zero();
+    public FounderDashboardMoneyDto DeclaredReceivedAmount { get; init; } = FounderDashboardMoneyDto.Zero();
+    public FounderDashboardMoneyDto AwaitingConfirmationAmount { get; init; } = FounderDashboardMoneyDto.Zero();
+    public FounderDashboardMoneyDto DisputedAmount { get; init; } = FounderDashboardMoneyDto.Zero();
+    public FounderDashboardMoneyDto UndeclaredCommittedAmount { get; init; } = FounderDashboardMoneyDto.Zero();
+    public FounderDashboardMoneyDto ConfirmedReceivedAmount { get; init; } = FounderDashboardMoneyDto.Zero();
+    public FounderDashboardMoneyDto OutstandingAmount { get; init; } = FounderDashboardMoneyDto.Zero();
     public FounderDashboardMoneyDto TotalFunded { get; init; } = FounderDashboardMoneyDto.Zero();
     public int ActiveInvestorCount { get; init; }
     public decimal? FundingProgressPercentage { get; init; }

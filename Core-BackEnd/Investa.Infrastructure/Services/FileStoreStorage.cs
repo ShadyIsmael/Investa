@@ -18,6 +18,7 @@ public class FileStoreStorage : IFileStorage
     private readonly HttpClient _http;
     private readonly string _baseUrl;
     private readonly string _apiKey;
+    private readonly string _internalUploadKey;
     private readonly ILogger<FileStoreStorage> _logger;
 
     public FileStoreStorage(HttpClient http, IConfiguration config, ILogger<FileStoreStorage> logger)
@@ -30,9 +31,62 @@ public class FileStoreStorage : IFileStorage
             .TrimEnd('/');
         _apiKey = config["FileStore:ApiKey"]
             ?? throw new InvalidOperationException("Required secret 'FileStore:ApiKey' is missing.");
+        _internalUploadKey = config["FileStore:InternalUploadKey"] ?? _apiKey;
 
         _http.DefaultRequestHeaders.Remove("X-Api-Key");
         _http.DefaultRequestHeaders.Add("X-Api-Key", _apiKey);
+    }
+
+    public async Task<FileStoreUploadResult> UploadWithPolicyAsync(string categoryCode, string originalFileName, Stream data, string contentType, long declaredFileSize, FileStoreUploadPolicy policy, FileStoreUploadContext context, CancellationToken cancellationToken = default)
+    {
+        var safeName = Path.GetFileName(originalFileName);
+        var url = $"{_baseUrl}/files/{Uri.EscapeDataString(categoryCode)}";
+        using var content = new MultipartFormDataContent();
+        var streamContent = new StreamContent(data);
+        streamContent.Headers.ContentType = new MediaTypeHeaderValue(string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType);
+        content.Add(streamContent, "file", safeName);
+        content.Add(new StringContent(declaredFileSize.ToString(System.Globalization.CultureInfo.InvariantCulture)), "declaredFileSize");
+        content.Add(new StringContent(context.UserId.ToString()), "userId");
+        if (context.ProjectId.HasValue) content.Add(new StringContent(context.ProjectId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)), "projectId");
+        if (!string.IsNullOrWhiteSpace(context.EntityType)) content.Add(new StringContent(context.EntityType), "entityType");
+        if (!string.IsNullOrWhiteSpace(context.EntityId)) content.Add(new StringContent(context.EntityId), "entityId");
+        content.Add(new StringContent(policy.MaxFileSizeBytes.ToString(System.Globalization.CultureInfo.InvariantCulture)), "policyMaxFileSizeBytes");
+        content.Add(new StringContent(string.Join(',', policy.AllowedExtensions)), "policyAllowedExtensions");
+        content.Add(new StringContent(string.Join(',', policy.AllowedMimeTypes)), "policyAllowedMimeTypes");
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = content };
+        request.Headers.Add("X-FileStore-Internal-Key", _internalUploadKey);
+        request.Headers.Add("X-User-Id", context.UserId.ToString());
+        HttpResponseMessage response;
+        try
+        {
+            response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            _logger.LogWarning(ex, "FileStore governed upload was unavailable.");
+            throw new IOException("FileStore upload service is unavailable.", ex);
+        }
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError("FileStore governed upload failed ({Status}): {Body}", response.StatusCode, body);
+            throw new IOException($"FileStore upload failed: {response.StatusCode}: {body}");
+        }
+        using var doc = JsonDocument.Parse(body);
+        var root = doc.RootElement;
+        return new FileStoreUploadResult(
+            root.GetProperty("fileId").GetString() ?? string.Empty,
+            root.GetProperty("fileKey").GetString() ?? string.Empty,
+            root.GetProperty("fileName").GetString() ?? safeName,
+            root.TryGetProperty("originalFileName", out var original) ? original.GetString() ?? safeName : safeName,
+            root.GetProperty("extension").GetString() ?? Path.GetExtension(safeName),
+            root.GetProperty("mimeType").GetString() ?? contentType,
+            root.GetProperty("fileSize").GetInt64(),
+            root.GetProperty("category").GetString() ?? categoryCode,
+            root.GetProperty("url").GetString() ?? string.Empty,
+            root.TryGetProperty("previewUrl", out var preview) ? preview.GetString() : null,
+            root.TryGetProperty("thumbnailUrl", out var thumbnail) ? thumbnail.GetString() : null);
     }
 
     /// <summary>
@@ -77,13 +131,24 @@ public class FileStoreStorage : IFileStorage
 
     public async Task<byte[]> ReadFileAsync(string storedPath, CancellationToken cancellationToken = default)
     {
+        var normalizedPath = storedPath.Replace("\\", "/").TrimStart('/');
         var url = Uri.TryCreate(storedPath, UriKind.Absolute, out var absolute)
             ? absolute.ToString()
-            : $"{_baseUrl}/{storedPath.TrimStart('/')}";
+            : normalizedPath.StartsWith("storage/", StringComparison.OrdinalIgnoreCase)
+                ? $"{_baseUrl}/{normalizedPath}"
+                : BuildDownloadUrl(normalizedPath);
         using var response = await _http.GetAsync(url, cancellationToken);
         if (!response.IsSuccessStatusCode)
             throw new IOException($"FileStore download failed: {response.StatusCode}");
         return await response.Content.ReadAsByteArrayAsync(cancellationToken);
+    }
+
+    private string BuildDownloadUrl(string fileKey)
+    {
+        var segments = fileKey.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length < 2)
+            return $"{_baseUrl}/{fileKey}";
+        return $"{_baseUrl}/files/{Uri.EscapeDataString(segments[0])}/{Uri.EscapeDataString(segments[^1])}/download";
     }
 
     /// <summary>

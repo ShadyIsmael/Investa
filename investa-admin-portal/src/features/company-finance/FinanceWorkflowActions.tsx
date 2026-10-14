@@ -93,15 +93,15 @@ export const FinanceWorkflowActions: React.FC<Props> = ({ transaction, compact =
     {!compact && error && !pendingAction && <p className="mt-2 text-xs text-rose-600 dark:text-rose-400">{error}</p>}
     {compact && message && <div role="status" className="fixed end-4 top-4 z-[80] max-w-sm rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-start text-xs font-semibold text-emerald-800 shadow-lg dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">{message}</div>}
     {compact && error && !pendingAction && <div role="alert" className="fixed end-4 top-4 z-[80] max-w-sm rounded-md border border-rose-300 bg-rose-50 px-3 py-2 text-start text-xs font-semibold text-rose-800 shadow-lg dark:border-rose-800 dark:bg-rose-950 dark:text-rose-200">{error}</div>}
-    {pendingAction && <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/55 p-4" role="dialog" aria-modal="true" aria-labelledby="finance-workflow-dialog-title">
-      <div className="w-full max-w-md rounded-lg border border-border bg-card p-5 text-foreground shadow-2xl">
+    {pendingAction && <div className="dialog-overlay" role="presentation" onMouseDown={event => event.target === event.currentTarget && !running && setPendingAction(null)}>
+      <div role="dialog" aria-modal="true" aria-labelledby="finance-workflow-dialog-title" className="dialog-panel">
         <h3 id="finance-workflow-dialog-title" className="text-base font-bold">{t(`companyFinance.workflow.dialogTitle.${pendingAction}`)}</h3>
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{t(`companyFinance.workflow.explanation.${pendingAction}`)}</p>
         {(pendingAction === 'reject' || pendingAction === 'reverse') && <label className="mt-4 block text-sm font-medium">{t(`companyFinance.workflow.${pendingAction}Reason`)}<textarea autoFocus value={reason} onChange={(event) => setReason(event.target.value)} rows={3} maxLength={1000} className="mt-1.5 w-full resize-y rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" /></label>}
         {error && <p className="mt-2 text-xs text-rose-600 dark:text-rose-400">{error}</p>}
-        <div className="mt-5 flex justify-end gap-2">
-          <button type="button" disabled={Boolean(running)} onClick={() => { setPendingAction(null); setError(''); }} className="h-9 rounded-md border border-border px-3 text-sm font-semibold disabled:opacity-50">{t('companyFinance.workflow.cancel')}</button>
-          <button type="button" disabled={Boolean(running)} onClick={() => void execute()} className="h-9 rounded-md bg-primary px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">{running ? t('companyFinance.workflow.processing') : t('companyFinance.workflow.continue')}</button>
+        <div className="form-footer">
+          <button type="button" disabled={Boolean(running)} onClick={() => { setPendingAction(null); setError(''); }} className="btn-secondary">{t('companyFinance.workflow.cancel')}</button>
+          <button type="button" disabled={Boolean(running)} onClick={() => void execute()} className={pendingAction === 'reject' || pendingAction === 'reverse' ? 'btn-danger' : 'btn-primary'}>{running ? t('companyFinance.workflow.processing') : t('companyFinance.workflow.continue')}</button>
         </div>
       </div>
     </div>}

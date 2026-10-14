@@ -57,6 +57,9 @@ namespace Investa.API.Controllers
                     Icon = n.Icon,
                     IsRead = n.IsRead,
                     ActionUrl = n.ActionUrl,
+                    EventType = n.EventType,
+                    OpportunityId = n.OpportunityId,
+                    RelatedEntityId = n.RelatedEntityId,
                     CreatedAt = n.CreatedAt,
                     ReadAt = n.ReadAt
                 })

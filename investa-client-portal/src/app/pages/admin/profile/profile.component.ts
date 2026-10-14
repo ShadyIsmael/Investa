@@ -8,13 +8,14 @@ import { ProfileService } from '../../../services/profile.service';
 import { ApiErrorResponse } from '../../../models/api-response.model';
 import { LanguageService } from '../../../services/language.service';
 import { Router, RouterLink } from '@angular/router';
-import { FileStoreService } from '../../../services/file-store.service';
+import { FileCategoryPolicy, FileStoreService } from '../../../services/file-store.service';
 import { MyParticipation, Opportunity, OpportunityService } from '../../../services/opportunity.service';
 import { SettingsService } from '../../../services/settings.service';
 import { DashboardDensity, DefaultInvestmentTypePreference, ThemePreference } from '../../../models/settings.model';
 import { walletReasonKey, WalletService, WalletTransaction } from '../../../services/wallet.service';
 import { MatDialog } from '@angular/material/dialog';
 import { EmailOtpDialogComponent } from '../../../components/email-otp-dialog/email-otp-dialog.component';
+import { CountryReference, CountryService } from '../../../services/country.service';
 
 export const passwordMatchValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
   const password = control.get('newPassword');
@@ -72,6 +73,11 @@ export class ProfileComponent {
   private opportunityService = inject(OpportunityService);
   private walletService = inject(WalletService);
   private dialog = inject(MatDialog);
+  public countryService = inject(CountryService);
+  countries = signal<CountryReference[]>([]);
+  countryOptions = computed(() => this.countries());
+  avatarAccept = signal('');
+  nationalIdAccept = signal('');
 
   private t(path: string): string {
     return this.languageService.translate(path);
@@ -204,20 +210,6 @@ export class ProfileComponent {
   dobCalendarYear = signal<number>(new Date().getFullYear());
 
   isRtl = computed(() => this.languageService.direction() === 'rtl');
-
-  nationalityOptions = [
-    { code: 'EG', key: 'profile.personalInfo.country_egypt' },
-    { code: 'SA', key: 'profile.personalInfo.country_saudi_arabia' },
-    { code: 'AE', key: 'profile.personalInfo.country_uae' },
-    { code: 'JO', key: 'profile.personalInfo.country_jordan' },
-    { code: 'LB', key: 'profile.personalInfo.country_lebanon' },
-    { code: 'US', key: 'profile.personalInfo.country_usa' },
-    { code: 'GB', key: 'profile.personalInfo.country_uk' },
-    { code: 'IN', key: 'profile.personalInfo.country_india' },
-    { code: 'CA', key: 'profile.personalInfo.country_canada' },
-    { code: 'AU', key: 'profile.personalInfo.country_australia' },
-    { code: 'OT', key: 'profile.personalInfo.country_other' },
-  ];
 
   isProfileChanged = computed(() => {
     const formValues = this.profileFormValues();
@@ -363,6 +355,7 @@ export class ProfileComponent {
     });
 
     this.loadProfile();
+    void this.loadFilePolicies();
 
     effect(() => {
       const p = this.profileService.profile();
@@ -376,13 +369,41 @@ export class ProfileComponent {
 
   // Google Maps removed (Profile V2)
 
+  private async loadFilePolicies(): Promise<void> {
+    try {
+      const policies = await this.fileStoreService.getFileCategories();
+      this.avatarAccept.set(this.acceptFor(policies, 'PROFILEAVATAR'));
+      this.nationalIdAccept.set(this.acceptFor(policies, 'PROFILENATIONALID'));
+    } catch {
+      this.avatarAccept.set('');
+      this.nationalIdAccept.set('');
+    }
+  }
+
+  private acceptFor(policies: FileCategoryPolicy[], code: string): string {
+    const policy = policies.find(item => item.code === code);
+    return policy ? [...policy.allowedMimeTypes, ...policy.allowedExtensions].join(',') : '';
+  }
+
   getCountryLabel(code?: string | null): string {
     if (!code) return '';
-    const found = this.nationalityOptions.find(c => c.code === code);
-    if (found) return this.t(found.key);
-    const foundByLabel = this.nationalityOptions.find(c => this.t(c.key) === code);
-    if (foundByLabel) return this.t(foundByLabel.key);
+    const found = this.countryService.findByAlpha2(code) ?? this.countryService.all().find(country =>
+      country.nameEn.localeCompare(code.trim(), undefined, { sensitivity: 'base' }) === 0 || country.nameAr.trim() === code.trim());
+    if (found) return this.countryService.label(found, this.isRtl() ? 'ar' : 'en');
     return code;
+  }
+
+  isKnownCountry(code?: string | null): boolean { return Boolean(code && this.countryService.findByAlpha2(code)); }
+
+  historicalCountryLabel(code?: string | null): string {
+    return code ? `${code} (${this.t('profile.personalInfo.historicalValue')})` : '';
+  }
+
+  canonicalCountryValue(value?: string | null): string {
+    if (!value) return '';
+    const found = this.countryService.findByAlpha2(value) ?? this.countryService.all().find(country =>
+      country.nameEn.localeCompare(value.trim(), undefined, { sensitivity: 'base' }) === 0 || country.nameAr.trim() === value.trim());
+    return found?.isoAlpha2 ?? value;
   }
 
   async loadCreditHistory(): Promise<void> {
@@ -495,8 +516,8 @@ export class ProfileComponent {
     const incomingNationality = p?.basicInfo?.nationality ?? '';
     let nationalityCode = '';
     if (incomingNationality) {
-      const found = this.nationalityOptions.find(c => c.code === incomingNationality || this.t(c.key) === incomingNationality);
-      nationalityCode = found ? found.code : incomingNationality;
+      const found = this.countryService.findByAlpha2(incomingNationality);
+      nationalityCode = found ? found.isoAlpha2 : incomingNationality;
     }
 
     this.profileForm.patchValue(
@@ -506,7 +527,7 @@ export class ProfileComponent {
         dateOfBirth: p?.basicInfo?.dateOfBirth ? new Date(p.basicInfo.dateOfBirth as string).toISOString().substr(0, 10) : null,
         gender: normalizedGender ?? '',
         nationality: nationalityCode ?? '',
-        country: p?.basicInfo?.country ?? '',
+        country: this.canonicalCountryValue(p?.basicInfo?.country),
         nationalId: p?.identityCompliance?.documentNumber ?? '',
         companyName: p?.basicInfo?.companyName ?? '',
         jobTitle: p?.basicInfo?.jobTitle ?? '',
@@ -546,6 +567,8 @@ export class ProfileComponent {
     try {
       this.isLoading.set(true);
       this.errorMessage.set(null);
+      await this.countryService.ensureLoaded();
+      this.countries.set(this.countryService.all());
       const p = await this.profileService.loadMyProfile();
       if (!p) {
         this.errorMessage.set(this.t('profile.errors.notFound'));
@@ -673,16 +696,6 @@ export class ProfileComponent {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
-
-    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowed.includes(file.type)) {
-      this.notificationService.showToast({
-        title: this.t('profile.toasts.invalidFileTypeTitle'),
-        message: this.t('profile.toasts.invalidFileTypeMessage'),
-        type: 'error'
-      });
-      return;
-    }
 
     const userId = this.profileService.profile()?.userId;
     if (!userId) return;

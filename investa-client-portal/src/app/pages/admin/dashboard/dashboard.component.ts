@@ -1045,7 +1045,7 @@ private currencyService = inject(CurrencyService);
 
   getNativeFundedAmount(project: DashboardProject): number | null {
     const source = project as Record<string, any>;
-    return this.toNullableNumber(source['fundedAmount']);
+    return this.toNullableNumber(source['committedAmount'] ?? source['fundedAmount']);
   }
 
   private toNullableNumber(value: unknown): number | null {
@@ -1178,8 +1178,8 @@ private currencyService = inject(CurrencyService);
       if (value === null || value <= 0) continue;
 
       const categoryName = lang === 'ar'
-        ? (investment.businessCategoryNameAr || investment.businessCategoryName || this.t('dashboard.uncategorized', 'Uncategorized'))
-        : (investment.businessCategoryName || this.t('dashboard.uncategorized', 'Uncategorized'));
+        ? (investment.categoryNameAr || investment.categoryName || this.t('dashboard.uncategorized', 'Uncategorized'))
+        : (investment.categoryName || this.t('dashboard.uncategorized', 'Uncategorized'));
 
       categoryTotals[categoryName] = (categoryTotals[categoryName] || 0) + value;
     }
@@ -1250,7 +1250,7 @@ private currencyService = inject(CurrencyService);
     d3.select(element).select('.d3-tooltip').remove();
     
     if (data.length === 0) {
-      element.innerHTML = `<div class="flex items-center justify-center h-full text-gray-500">No data to display</div>`;
+      element.innerHTML = `<div class="flex items-center justify-center h-full text-gray-500">${this.t('dashboard.noData', 'No data to display')}</div>`;
       return;
     }
     element.innerHTML = ''; // Clear fallback text
@@ -1280,7 +1280,7 @@ private currencyService = inject(CurrencyService);
 
     const data_ready = pie(data as any);
     const totalValue = data.reduce((sum, d) => sum + d.value, 0);
-    const centerLabel = this.roleContext.isActiveInvestorContext() ? this.t('dashboard.allocationTotal', 'Total Invested') : this.t('dashboard.allocationTotal', 'Total');
+    const centerLabel = this.roleContext.isActiveInvestorContext() ? this.t('dashboard.allocationTotal', 'Total Participation Value') : this.t('dashboard.allocationTotal', 'Total');
     const formattedTotal = this.currencyService.format(totalValue, this.investmentCurrency());
 
     const arc = d3.arc()

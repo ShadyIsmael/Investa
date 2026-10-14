@@ -22,7 +22,7 @@ export const ChatRequestToast: React.FC<Props> = React.memo(({ request, onClose 
             <div className="text-[12px] text-slate-500 dark:text-slate-400 truncate">{request.message}</div>
           </div>
           <div className="text-right">
-            <div className="text-[11px] text-slate-400">{new Date(request.createdAt).toLocaleTimeString()}</div>
+            <div className="text-[11px] text-slate-400">{new Date(request.createdAt ?? Date.now()).toLocaleTimeString()}</div>
             <button onClick={() => onClose(request.id)} title="Dismiss" className="mt-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
               <Icon name="x" className="w-3.5 h-3.5" />
             </button>

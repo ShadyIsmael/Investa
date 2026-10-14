@@ -1,16 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Reflection;
 using System.Text.Json;
 using FluentAssertions;
 using Investa.Domain.Entities;
 using Investa.Domain.Entities.Enums;
-using Investa.Infrastructure.Migrations;
 using Investa.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Migrations;
-using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -74,6 +70,119 @@ public sealed class ProjectFoundationTests
     }
 
     [Fact]
+    public async Task Project_create_accepts_the_frontend_projectStage_payload()
+    {
+        using var factory = new CustomWebApplicationFactory();
+        using var client = factory.CreateClient();
+        SeedFounderAndClassification(factory);
+
+        var response = await client.PostAsJsonAsync("/api/v1/projects", new
+        {
+            displayName = "Frontend payload project",
+            summary = "A valid project summary from the Angular editor.",
+            description = "A valid project description from the Angular editor.",
+            projectStage = 2,
+            defaultCurrency = "EGP"
+        });
+        var body = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created, body);
+        using var json = JsonDocument.Parse(body);
+        var payload = json.RootElement.GetProperty("data");
+        payload.GetProperty("displayName").GetString().Should().Be("Frontend payload project");
+        var stage = payload.GetProperty("projectStage");
+        (stage.ValueKind == JsonValueKind.String && stage.GetString() == "MVP"
+            || stage.ValueKind == JsonValueKind.Number && stage.GetInt32() == 2).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Project_create_rejects_a_future_founded_date_with_a_field_error()
+    {
+        using var factory = new CustomWebApplicationFactory();
+        using var client = factory.CreateClient();
+        SeedFounderAndClassification(factory);
+
+        var response = await client.PostAsJsonAsync("/api/v1/projects", ProjectPayload(DateOnly.FromDateTime(DateTime.Today).AddDays(1)));
+        var body = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest, body);
+        using var json = JsonDocument.Parse(body);
+        var errors = json.RootElement.GetProperty("data");
+        FirstFieldError(errors, "FoundedOn").Should().Be("Founded date cannot be in the future.");
+    }
+
+    [Fact]
+    public async Task Project_create_accepts_today_and_historical_founded_dates()
+    {
+        using var factory = new CustomWebApplicationFactory();
+        using var client = factory.CreateClient();
+        SeedFounderAndClassification(factory);
+
+        var today = await client.PostAsJsonAsync("/api/v1/projects", ProjectPayload(DateOnly.FromDateTime(DateTime.Today)));
+        var historical = await client.PostAsJsonAsync("/api/v1/projects", ProjectPayload(new DateOnly(2020, 1, 2)));
+
+        today.StatusCode.Should().Be(HttpStatusCode.Created, await today.Content.ReadAsStringAsync());
+        historical.StatusCode.Should().Be(HttpStatusCode.Created, await historical.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task Project_create_rejects_invalid_stage_and_category_with_field_errors()
+    {
+        using var factory = new CustomWebApplicationFactory();
+        using var client = factory.CreateClient();
+        SeedFounderAndClassification(factory);
+
+        var invalidStage = await client.PostAsJsonAsync("/api/v1/projects", new
+        {
+            displayName = "Invalid stage project",
+            summary = "A valid project summary for stage validation.",
+            description = "A valid project description for stage validation.",
+            projectStage = 999
+        });
+        invalidStage.StatusCode.Should().Be(HttpStatusCode.BadRequest, await invalidStage.Content.ReadAsStringAsync());
+        using var stageJson = JsonDocument.Parse(await invalidStage.Content.ReadAsStringAsync());
+        FirstFieldError(stageJson.RootElement.GetProperty("data"), "ProjectStage").Should().Be("Unknown project stage.");
+
+        var invalidCategory = await client.PostAsJsonAsync("/api/v1/projects", new
+        {
+            displayName = "Invalid category project",
+            summary = "A valid project summary for category validation.",
+            description = "A valid project description for category validation.",
+            projectStage = 2,
+            categoryId = 9999
+        });
+        invalidCategory.StatusCode.Should().Be(HttpStatusCode.BadRequest, await invalidCategory.Content.ReadAsStringAsync());
+        using var categoryJson = JsonDocument.Parse(await invalidCategory.Content.ReadAsStringAsync());
+        FirstFieldError(categoryJson.RootElement.GetProperty("data"), "CategoryId").Should().Be("CategoryId must reference an active project category.");
+    }
+
+    [Fact]
+    public async Task Project_create_returns_field_errors_for_missing_and_short_required_values()
+    {
+        using var factory = new CustomWebApplicationFactory();
+        using var client = factory.CreateClient();
+        SeedFounderAndClassification(factory);
+
+        var missing = await client.PostAsJsonAsync("/api/v1/projects", new { displayName = "", summary = "", description = "" });
+        var missingBody = await missing.Content.ReadAsStringAsync();
+        missing.StatusCode.Should().Be(HttpStatusCode.BadRequest, missingBody);
+        using var missingJson = JsonDocument.Parse(missingBody);
+        missingJson.RootElement.GetProperty("data").EnumerateObject().Select(property => property.Name.ToLowerInvariant())
+            .Should().Contain(new[] { "displayname", "summary", "description" });
+
+        var shortValues = await client.PostAsJsonAsync("/api/v1/projects", new
+        {
+            displayName = "Short values project",
+            summary = "too short",
+            description = "too short"
+        });
+        shortValues.StatusCode.Should().Be(HttpStatusCode.BadRequest, await shortValues.Content.ReadAsStringAsync());
+        using var shortJson = JsonDocument.Parse(await shortValues.Content.ReadAsStringAsync());
+        shortJson.RootElement.GetProperty("data").EnumerateObject().Select(property => property.Name.ToLowerInvariant())
+            .Should().Contain(new[] { "summary", "description" });
+    }
+
+    [Fact]
     public async Task Phase2_CreateOpportunity_UsesSelectedOwnedProject_WithoutCreatingAnother()
     {
         using var factory = new CustomWebApplicationFactory();
@@ -97,7 +206,7 @@ public sealed class ProjectFoundationTests
     }
 
     [Fact]
-    public async Task CreateThenPublish_UsesProjectCategoryOnly()
+    public async Task CreateThenSubmitForReview_UsesProjectCategoryOnly()
     {
         using var factory = new CustomWebApplicationFactory();
         using var client = factory.CreateClient();
@@ -107,12 +216,13 @@ public sealed class ProjectFoundationTests
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var project = NewProject(AuthenticatedUserId, "Project-owned category");
+            project.Status = ProjectStatus.Active;
             db.Projects.Add(project);
             db.SaveChanges();
             projectId = project.Id;
         }
 
-        var create = OpportunityRequest(projectId, "Project category launch", "Seed");
+        var create = OpportunityRequest(projectId, "Seed");
         create.Remove("categoryId");
         var createResponse = await client.PostAsJsonAsync("/api/v1/opportunities", create);
         var createBody = await createResponse.Content.ReadAsStringAsync();
@@ -120,15 +230,50 @@ public sealed class ProjectFoundationTests
         using var createJson = JsonDocument.Parse(createBody);
         var opportunityId = createJson.RootElement.GetProperty("data").GetProperty("id").GetInt32();
 
-        var publishResponse = await client.PostAsync($"/api/v1/opportunities/{opportunityId}/publish", null);
-        var publishBody = await publishResponse.Content.ReadAsStringAsync();
-        publishResponse.StatusCode.Should().Be(HttpStatusCode.OK, publishBody);
+        var submitResponse = await client.PostAsync($"/api/v1/opportunities/{opportunityId}/submit-review", null);
+        var submitBody = await submitResponse.Content.ReadAsStringAsync();
+        submitResponse.StatusCode.Should().Be(HttpStatusCode.OK, submitBody);
 
         using var verifyScope = factory.Services.CreateScope();
         var verifyDb = verifyScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var opportunity = verifyDb.Opportunities.Single(o => o.Id == opportunityId);
-        opportunity.Status.Should().Be(OpportunityStatus.Published);
+        opportunity.Status.Should().Be(OpportunityStatus.UnderReview);
         verifyDb.Projects.Single(p => p.Id == projectId).CategoryId.Should().Be(9201);
+    }
+
+    [Fact]
+    public async Task FounderCanArchiveOwnedOpportunityThroughLifecycleEndpoint()
+    {
+        using var factory = new CustomWebApplicationFactory();
+        using var client = factory.CreateClient();
+        SeedFounderAndClassification(factory);
+        int projectId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var project = NewProject(AuthenticatedUserId, "Archive lifecycle project");
+            db.Projects.Add(project);
+            db.SaveChanges();
+            projectId = project.Id;
+        }
+
+        var createResponse = await client.PostAsJsonAsync(
+            "/api/v1/opportunities",
+            OpportunityRequest(projectId, "Archive test"));
+        var createBody = await createResponse.Content.ReadAsStringAsync();
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created, createBody);
+        using var createJson = JsonDocument.Parse(createBody);
+        var opportunityId = createJson.RootElement.GetProperty("data").GetProperty("id").GetInt32();
+
+        var archiveResponse = await client.PostAsync($"/api/v1/opportunities/{opportunityId}/archive", null);
+        var archiveBody = await archiveResponse.Content.ReadAsStringAsync();
+        archiveResponse.StatusCode.Should().Be(HttpStatusCode.OK, archiveBody);
+
+        using var archiveJson = JsonDocument.Parse(archiveBody);
+        archiveJson.RootElement.GetProperty("data").GetProperty("status").GetString()
+            .Should().Be(nameof(OpportunityStatus.Archived));
+        archiveJson.RootElement.GetProperty("data").GetProperty("canFounderArchive").GetBoolean()
+            .Should().BeFalse();
     }
 
     [Fact]
@@ -145,8 +290,8 @@ public sealed class ProjectFoundationTests
             db.Projects.Add(project); db.SaveChanges(); projectId = project.Id;
         }
 
-        var first = OpportunityRequest(projectId, "Initial launch", "Seed");
-        var second = OpportunityRequest(projectId, "Regional expansion", "Growth");
+        var first = OpportunityRequest(projectId, "Seed");
+        var second = OpportunityRequest(projectId, "Growth");
         (await client.PostAsJsonAsync("/api/v1/opportunities", first)).StatusCode.Should().Be(HttpStatusCode.Created);
         (await client.PostAsJsonAsync("/api/v1/opportunities", second)).StatusCode.Should().Be(HttpStatusCode.Created);
 
@@ -154,7 +299,6 @@ public sealed class ProjectFoundationTests
         var opportunities = verify.ServiceProvider.GetRequiredService<ApplicationDbContext>().Opportunities
             .Where(o => o.ProjectId == projectId).OrderBy(o => o.SequenceNumber).ToList();
         opportunities.Select(o => o.SequenceNumber).Should().Equal(1, 2);
-        opportunities.Select(o => o.Purpose).Should().Equal("Initial launch", "Regional expansion");
         opportunities.Select(o => o.Type).Should().Equal("Seed", "Growth");
         opportunities.Select(o => o.Id).Distinct().Should().HaveCount(2);
     }
@@ -178,7 +322,6 @@ public sealed class ProjectFoundationTests
         var createPayload = new
         {
             projectId,
-            purpose = "Launch the next funding round",
             type = "Growth",
             title = "Funding-only opportunity",
             description = "A funding need with terms proposed later through an Offer.",
@@ -203,7 +346,6 @@ public sealed class ProjectFoundationTests
 
         var updatePayload = new
         {
-            purpose = "Refine the next funding round",
             type = "Bridge",
             title = "Updated funding-only opportunity",
             description = "Updated funding need with no fixed investment terms.",
@@ -289,7 +431,7 @@ public sealed class ProjectFoundationTests
                 Slug = $"other-{Guid.NewGuid():N}",
                 Summary = "Other founder project summary",
                 Description = "Other founder project description",
-                BusinessStage = ProjectStage.Idea,
+                ProjectStage = ProjectStage.Idea,
                 Status = ProjectStatus.Draft
             };
             var opportunity = NewOpportunity(otherFounderId, project);
@@ -309,71 +451,6 @@ public sealed class ProjectFoundationTests
         verifyDb.Projects.Single(item => item.Id == projectId).FounderId.Should().NotBe(AuthenticatedUserId);
     }
 
-    [Fact]
-    public void Migration_BackfillsOneProjectPerOpportunity_ThenMakesRelationshipRequired()
-    {
-        var migration = new AddProjectFoundation();
-        var builder = new MigrationBuilder("Microsoft.EntityFrameworkCore.SqlServer");
-        var up = typeof(AddProjectFoundation).GetMethod(
-            "Up",
-            BindingFlags.Instance | BindingFlags.NonPublic)
-            ?? throw new InvalidOperationException("Migration Up method was not found.");
-
-        up.Invoke(migration, [builder]);
-
-        builder.Operations.OfType<CreateTableOperation>()
-            .Should().ContainSingle(operation => operation.Name == "Projects");
-        builder.Operations.OfType<AddColumnOperation>()
-            .Should().ContainSingle(operation =>
-                operation.Table == "Opportunities"
-                && operation.Name == "ProjectId"
-                && operation.IsNullable);
-
-        var backfill = builder.Operations.OfType<SqlOperation>().Single().Sql;
-        backfill.Should().Contain("INSERT INTO [Projects]");
-        backfill.Should().Contain("[SourceOpportunityId]");
-        backfill.Should().Contain("FROM [Opportunities] o");
-        backfill.Should().Contain("SET o.[ProjectId] = p.[Id]");
-        backfill.Should().Contain("WHERE [ProjectId] IS NULL");
-        backfill.Should().NotContain("GROUP BY");
-        backfill.Should().NotContain("PARTITION BY");
-
-        builder.Operations.OfType<AlterColumnOperation>()
-            .Should().ContainSingle(operation =>
-                operation.Table == "Opportunities"
-                && operation.Name == "ProjectId"
-                && !operation.IsNullable);
-        builder.Operations.OfType<DropColumnOperation>()
-            .Should().ContainSingle(operation =>
-                operation.Table == "Projects"
-                && operation.Name == "SourceOpportunityId");
-        builder.Operations.OfType<AddForeignKeyOperation>()
-            .Should().ContainSingle(operation =>
-                operation.Table == "Opportunities"
-                && operation.PrincipalTable == "Projects"
-                && operation.OnDelete == ReferentialAction.Restrict);
-    }
-
-    [Fact]
-    public void Phase3Migration_DeterministicallyBackfillsSequence_AndEnforcesProjectOrder()
-    {
-        var migration = new AddMultipleOpportunitiesPhase3();
-        var builder = new MigrationBuilder("Microsoft.EntityFrameworkCore.SqlServer");
-        typeof(AddMultipleOpportunitiesPhase3).GetMethod("Up", BindingFlags.Instance | BindingFlags.NonPublic)!
-            .Invoke(migration, [builder]);
-
-        builder.Operations.OfType<AddColumnOperation>().Should().Contain(o =>
-            o.Table == "Opportunities" && o.Name == "SequenceNumber" && !o.IsNullable);
-        var backfill = builder.Operations.OfType<SqlOperation>().Single().Sql;
-        backfill.Should().Contain("ROW_NUMBER()");
-        backfill.Should().Contain("PARTITION BY [ProjectId]");
-        backfill.Should().Contain("ORDER BY [CreatedAt], [Id]");
-        builder.Operations.OfType<CreateIndexOperation>().Should().ContainSingle(o =>
-            o.Table == "Opportunities"
-            && o.Columns.SequenceEqual(new[] { "ProjectId", "SequenceNumber" })
-            && o.IsUnique);
-    }
-
     private static void SeedFounderAndClassification(CustomWebApplicationFactory factory)
     {
         using var scope = factory.Services.CreateScope();
@@ -386,18 +463,22 @@ public sealed class ProjectFoundationTests
         user.UserType = UserType.Client;
         user.ClientType = ClientType.Founder;
         user.Status = true;
-        db.OpportunityCategories.Add(new OpportunityCategory
+        db.ProjectCategories.Add(new ProjectCategory
         {
             Id = 9201,
-            Name = "Phase 1 Category",
-            Description = "Phase 1 category",
+            Code = "PHASE-1-CATEGORY",
+            NameEn = "Phase 1 Category",
+            NameAr = "تصنيف المرحلة الأولى",
             IsActive = true
         });
         db.FundingGoals.Add(new FundingGoal
         {
             Id = 9202,
-            Name = "Phase 1 Goal",
-            Description = "Phase 1 goal",
+            Code = "PHASE1GOAL",
+            NameEn = "Phase 1 Goal",
+            NameAr = "هدف المرحلة الأولى",
+            DescriptionEn = "Phase 1 goal",
+            DescriptionAr = "هدف المرحلة الأولى",
             IsActive = true,
             SortOrder = 9202
         });
@@ -425,7 +506,7 @@ public sealed class ProjectFoundationTests
         FounderId=founderId, DisplayName=name, Slug=$"project-{Guid.NewGuid():N}",
         Summary="A valid project summary for opportunity selection",
         Description="A valid project description for opportunity selection",
-        BusinessStage=ProjectStage.Idea, Status=ProjectStatus.Draft, CategoryId=9201
+                ProjectStage=ProjectStage.Idea, Status=ProjectStatus.Draft, CategoryId=9201
     };
 
     private static object ValidRequest() => new
@@ -449,13 +530,25 @@ public sealed class ProjectFoundationTests
         equityOfferedPercentage = 10m
     };
 
-    private static Dictionary<string, object> OpportunityRequest(int projectId, string purpose, string type)
+    private static object ProjectPayload(DateOnly foundedOn) => new
+    {
+        displayName = $"Founded date project {foundedOn:yyyyMMdd}",
+        summary = "A valid project summary for founded date validation.",
+        description = "A valid project description for founded date validation.",
+        projectStage = 2,
+        foundedOn
+    };
+
+    private static string FirstFieldError(JsonElement data, string fieldName) => data.EnumerateObject()
+        .Single(property => string.Equals(property.Name, fieldName, StringComparison.OrdinalIgnoreCase))
+        .Value[0].GetString()!;
+
+    private static Dictionary<string, object> OpportunityRequest(int projectId, string type)
     {
         var request = JsonSerializer.Deserialize<Dictionary<string, object>>(JsonSerializer.Serialize(ValidRequest()))!;
         request["projectId"] = projectId;
-        request["purpose"] = purpose;
         request["type"] = type;
-        if (purpose == "Regional expansion") request["projectStage"] = "MVP";
+        if (type == "Growth") request["projectStage"] = "MVP";
         return request;
     }
 }

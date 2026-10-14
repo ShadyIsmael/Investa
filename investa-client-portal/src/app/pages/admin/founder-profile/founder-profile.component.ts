@@ -8,6 +8,7 @@ import { Opportunity, OpportunityService } from '../../../services/opportunity.s
 import { ProfileService, PublicProfile } from '../../../services/profile.service';
 import { ReportReasonCode, ReportService } from '../../../services/report.service';
 import { TranslatePipe } from '../../../pipes/translate.pipe';
+import { CountryService } from '../../../services/country.service';
 
 @Component({
   standalone: true,
@@ -24,6 +25,7 @@ export class FounderProfileComponent {
   private readonly fileStoreService = inject(FileStoreService);
   private readonly reportService = inject(ReportService);
   readonly languageService = inject(LanguageService);
+  private readonly countryService = inject(CountryService);
 
   readonly founderId = signal('');
   readonly profile = signal<PublicProfile | null>(null);
@@ -64,6 +66,7 @@ export class FounderProfileComponent {
     }
 
     try {
+      await this.countryService.ensureLoaded();
       const [profile, opportunities] = await Promise.all([
         this.profileService.getPublicProfile(id),
         this.opportunityService.getPublicOpportunities()
@@ -100,7 +103,9 @@ export class FounderProfileComponent {
   }
 
   location(profile: PublicProfile): string {
-    return this.clean(profile.location) || [profile.city, profile.country].map(value => this.clean(value)).filter(Boolean).join(', ');
+    const country = this.countryService.findByAlpha2(profile.country);
+    const countryLabel = country ? this.countryService.label(country, this.languageService.direction() === 'rtl' ? 'ar' : 'en') : this.clean(profile.country);
+    return this.clean(profile.location) || [profile.city, countryLabel].map(value => this.clean(value)).filter(Boolean).join(', ');
   }
 
   roleLabel(value?: string | null): string {

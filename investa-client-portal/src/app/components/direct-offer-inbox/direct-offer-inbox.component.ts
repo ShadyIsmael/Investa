@@ -5,7 +5,7 @@ import { TranslatePipe } from '../../pipes/translate.pipe';
 import { CurrencyDisplayPipe } from '../../pipes/currency-display.pipe';
 import { OfferService } from '../../services/offer.service';
 import { LanguageService } from '../../services/language.service';
-import { OfferLegType, OfferStatus, OfferVersion, isTerminalOfferStatus } from '../../models/offer.model';
+import { OfferLegType, OfferStatus, OfferVersion, isTerminalOfferStatus, repaymentModelLabelKey } from '../../models/offer.model';
 
 @Component({
   standalone: true,
@@ -22,6 +22,11 @@ export class DirectOfferInboxComponent {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly processingId = signal<number | null>(null);
+
+  repaymentModelLabel(value: string | null | undefined): string {
+    const key = repaymentModelLabelKey(value);
+    return key ? this.t(key) : String(value ?? '');
+  }
 
   constructor() { void this.load(); }
 
@@ -49,6 +54,14 @@ export class DirectOfferInboxComponent {
   canReject(offer: OfferVersion): boolean { return offer.status === OfferStatus.Pending && offer.canReject === true && this.processingId() === null; }
   isTerminal(offer: OfferVersion): boolean { return isTerminalOfferStatus(offer.status); }
 
+  totalAmount(offer: OfferVersion): number { return offer.legs.reduce((total, leg) => total + Number(leg.amount || 0), 0); }
+
+  submittedAt(offer: OfferVersion): string {
+    const date = new Date(offer.createdAt);
+    if (Number.isNaN(date.getTime())) return this.t('requests.directOffers.unavailable');
+    return new Intl.DateTimeFormat(this.language.language() === 'ar' ? 'ar-EG' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+  }
+
   status(offer: OfferVersion): string {
     const key = OfferStatus[offer.status]?.toLowerCase() || 'pending';
     return this.t(`requests.directOffers.status.${key}`);
@@ -63,12 +76,14 @@ export class DirectOfferInboxComponent {
 
   private async action(offer: OfferVersion, action: 'accept' | 'reject'): Promise<void> {
     if (!offer.opportunityId || (action === 'accept' ? !this.canAccept(offer) : !this.canReject(offer))) return;
+    if (!window.confirm(this.t(`requests.directOffers.confirm.${action}`))) return;
     try {
       this.processingId.set(offer.id);
       const updated = action === 'accept'
         ? await this.service.acceptDirectOffer(offer.opportunityId, offer.id)
         : await this.service.rejectDirectOffer(offer.opportunityId, offer.id);
       this.offers.update(items => items.map(item => item.id === offer.id ? { ...item, ...updated } : item));
+      this.error.set(null);
     } catch (error: any) {
       this.error.set(error?.error?.message || error?.message || this.t(`requests.directOffers.${action}Error`));
     } finally {
